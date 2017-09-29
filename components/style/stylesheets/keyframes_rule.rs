@@ -11,7 +11,6 @@ use parser::{ParserContext, ParserErrorContext};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, PropertyParserContext};
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
-use properties::animated_properties::AnimatableLonghand;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
@@ -360,16 +359,17 @@ pub struct KeyframesAnimation {
     /// The difference steps of the animation.
     pub steps: Vec<KeyframesStep>,
     /// The properties that change in this animation.
-    pub properties_changed: Vec<AnimatableLonghand>,
+    pub properties_changed: LonghandIdSet,
     /// Vendor prefix type the @keyframes has.
     pub vendor_prefix: Option<VendorPrefix>,
 }
 
 /// Get all the animated properties in a keyframes animation.
-fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRwLockReadGuard)
-                           -> Vec<AnimatableLonghand> {
-    let mut ret = vec![];
-    let mut seen = LonghandIdSet::new();
+fn get_animated_properties(
+    keyframes: &[Arc<Locked<Keyframe>>],
+    guard: &SharedRwLockReadGuard
+) -> LonghandIdSet {
+    let mut ret = LonghandIdSet::new();
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
     for keyframe in keyframes {
@@ -382,15 +382,20 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
         // be properties with !important in keyframe rules here.
         // See the spec issue https://github.com/w3c/csswg-drafts/issues/1824
         for declaration in block.normal_declaration_iter() {
-            if let Some(property) = AnimatableLonghand::from_declaration(declaration) {
-                // Skip the 'display' property because although it is animatable from SMIL,
-                // it should not be animatable from CSS Animations or Web Animations.
-                if property != AnimatableLonghand::Display &&
-                   !seen.has_animatable_longhand_bit(&property) {
-                    seen.set_animatable_longhand_bit(&property);
-                    ret.push(property);
-                }
+            let longhand_id = match declaration.id() {
+                PropertyDeclarationId::Longhand(id) => id,
+                _ => continue,
+            };
+
+            if longhand_id == LonghandId::Display {
+                continue;
             }
+
+            if !longhand_id.is_animatable() {
+                continue;
+            }
+
+            ret.insert(longhand_id);
         }
     }
 
@@ -406,14 +411,15 @@ impl KeyframesAnimation {
     ///
     /// Otherwise, this will compute and sort the steps used for the animation,
     /// and return the animation object.
-    pub fn from_keyframes(keyframes: &[Arc<Locked<Keyframe>>],
-                          vendor_prefix: Option<VendorPrefix>,
-                          guard: &SharedRwLockReadGuard)
-                          -> Self {
+    pub fn from_keyframes(
+        keyframes: &[Arc<Locked<Keyframe>>],
+        vendor_prefix: Option<VendorPrefix>,
+        guard: &SharedRwLockReadGuard,
+    ) -> Self {
         let mut result = KeyframesAnimation {
             steps: vec![],
-            properties_changed: vec![],
-            vendor_prefix: vendor_prefix,
+            properties_changed: LonghandIdSet::new(),
+            vendor_prefix,
         };
 
         if keyframes.is_empty() {

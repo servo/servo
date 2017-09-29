@@ -69,9 +69,9 @@ use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use hash::HashMap;
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use properties::{ComputedValues, parse_style_attribute};
+use properties::{ComputedValues, LonghandId, parse_style_attribute};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
-use properties::animated_properties::{AnimatableLonghand, AnimationValue, AnimationValueMap};
+use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
@@ -1357,12 +1357,13 @@ impl<'le> TElement for GeckoElement<'le> {
     // update.
     //
     // https://drafts.csswg.org/css-transitions/#starting
-    fn needs_transitions_update(&self,
-                                before_change_style: &ComputedValues,
-                                after_change_style: &ComputedValues)
-                                -> bool {
+    fn needs_transitions_update(
+        &self,
+        before_change_style: &ComputedValues,
+        after_change_style: &ComputedValues
+    ) -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
-        use hash::HashSet;
+        use std::collections::HashSet;
 
         debug_assert!(self.might_need_transitions_update(Some(before_change_style),
                                                          after_change_style),
@@ -1372,19 +1373,20 @@ impl<'le> TElement for GeckoElement<'le> {
         let after_change_box_style = after_change_style.get_box();
         let transitions_count = after_change_box_style.transition_property_count();
         let existing_transitions = self.get_css_transitions_info();
-        let mut transitions_to_keep = if !existing_transitions.is_empty() &&
-                                         (after_change_box_style.transition_nscsspropertyid_at(0) !=
-                                              nsCSSPropertyID::eCSSPropertyExtra_all_properties) {
-            Some(HashSet::<TransitionProperty>::with_capacity(transitions_count))
-        } else {
-            None
-        };
 
         // Check if this property is none, custom or unknown.
         let is_none_or_custom_property = |property: nsCSSPropertyID| -> bool {
             return property == nsCSSPropertyID::eCSSPropertyExtra_no_properties ||
                    property == nsCSSPropertyID::eCSSPropertyExtra_variable ||
                    property == nsCSSPropertyID::eCSSProperty_UNKNOWN;
+        };
+
+        let mut transitions_to_keep = if !existing_transitions.is_empty() &&
+                                         (after_change_box_style.transition_nscsspropertyid_at(0) !=
+                                              nsCSSPropertyID::eCSSPropertyExtra_all_properties) {
+            Some(HashSet::<TransitionProperty>::with_capacity(transitions_count))
+        } else {
+            None
         };
 
         for i in 0..transitions_count {
@@ -1398,21 +1400,14 @@ impl<'le> TElement for GeckoElement<'le> {
 
             let transition_property: TransitionProperty = property.into();
 
-            let mut property_check_helper = |property: &TransitionProperty| -> bool {
-                if self.needs_transitions_update_per_property(property,
-                                                              combined_duration,
-                                                              before_change_style,
-                                                              after_change_style,
-                                                              &existing_transitions) {
-                    return true;
-                }
-
-                if let Some(set) = transitions_to_keep.as_mut() {
-                    // The TransitionProperty here must be animatable, so cloning it is cheap
-                    // because it is an integer-like enum.
-                    set.insert(property.clone());
-                }
-                false
+            let property_check_helper = |property: &LonghandId| -> bool {
+                self.needs_transitions_update_per_property(
+                    property,
+                    combined_duration,
+                    before_change_style,
+                    after_change_style,
+                    &existing_transitions
+                )
             };
 
             match transition_property {
@@ -1421,22 +1416,26 @@ impl<'le> TElement for GeckoElement<'le> {
                         return true;
                     }
                 },
-                TransitionProperty::Unsupported(_) => { },
-                ref shorthand if shorthand.is_shorthand() => {
-                    if shorthand.longhands().iter().any(|p| property_check_helper(p)) {
+                TransitionProperty::Unsupported(..) => {},
+                TransitionProperty::Shorthand(ref shorthand) => {
+                    if shorthand.longhands().iter().any(property_check_helper) {
                         return true;
                     }
                 },
-                ref longhand => {
-                    if property_check_helper(longhand) {
+                TransitionProperty::Longhand(ref longhand_id) => {
+                    if property_check_helper(longhand_id) {
                         return true;
                     }
                 },
             };
+
+            if let Some(ref mut transitions_to_keep) = transitions_to_keep {
+                transitions_to_keep.insert(transition_property);
+            }
         }
 
-        // Check if we have to cancel the running transition because this is not a matching
-        // transition-property value.
+        // Check if we have to cancel the running transition because this is not
+        // a matching transition-property value.
         transitions_to_keep.map_or(false, |set| {
             existing_transitions.keys().any(|property| !set.contains(property))
         })
@@ -1444,7 +1443,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn needs_transitions_update_per_property(
         &self,
-        property: &TransitionProperty,
+        longhand_id: &LonghandId,
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
@@ -1452,27 +1451,42 @@ impl<'le> TElement for GeckoElement<'le> {
     ) -> bool {
         use values::animated::{Animate, Procedure};
 
-        // |property| should be an animatable longhand
-        let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
-
-        if existing_transitions.contains_key(property) {
-            // If there is an existing transition, update only if the end value differs.
-            // If the end value has not changed, we should leave the currently running
-            // transition as-is since we don't want to interrupt its timing function.
+        // If there is an existing transition, update only if the end value
+        // differs.
+        //
+        // If the end value has not changed, we should leave the currently
+        // running transition as-is since we don't want to interrupt its timing
+        // function.
+        //
+        // FIXME(emilio): The shorthand / longhand mapping with transitions
+        // looks pretty fishy!
+        if let Some(ref existing) = existing_transitions.get(&TransitionProperty::Longhand(*longhand_id)) {
             let after_value =
-                Arc::new(AnimationValue::from_computed_values(&animatable_longhand,
-                                                              after_change_style));
-            return existing_transitions.get(property).unwrap() != &after_value;
+                AnimationValue::from_computed_values(
+                    &longhand_id,
+                    after_change_style
+                ).unwrap();
+
+            return ***existing != after_value
         }
 
-        let from = AnimationValue::from_computed_values(&animatable_longhand,
-                                                        before_change_style);
-        let to = AnimationValue::from_computed_values(&animatable_longhand,
-                                                      after_change_style);
+        let from = AnimationValue::from_computed_values(
+            &longhand_id,
+            before_change_style,
+        );
+        let to = AnimationValue::from_computed_values(
+            &longhand_id,
+            after_change_style,
+        );
+
+        debug_assert_eq!(to.is_some(), from.is_some());
 
         combined_duration > 0.0f32 &&
         from != to &&
-        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).is_ok()
+        from.unwrap().animate(
+            to.as_ref().unwrap(),
+            Procedure::Interpolate { progress: 0.5 }
+        ).is_ok()
     }
 
     #[inline]

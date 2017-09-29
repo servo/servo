@@ -11,7 +11,6 @@ use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
-#[cfg(feature = "gecko")] use gecko_string_cache::Atom;
 use itertools::{EitherOrBoth, Itertools};
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
@@ -23,8 +22,9 @@ use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::visibility::computed_value::T as Visibility;
-#[cfg(feature = "gecko")] use properties::{PropertyId, PropertyDeclarationId, LonghandId};
-#[cfg(feature = "gecko")] use properties::{ShorthandId};
+#[cfg(feature = "gecko")]
+use properties::PropertyId;
+use properties::{LonghandId, ShorthandId};
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use smallvec::SmallVec;
@@ -32,7 +32,7 @@ use std::borrow::Cow;
 use std::cmp;
 use std::fmt;
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
-use style_traits::ParseError;
+use style_traits::{ParseError, ToCss};
 use super::ComputedValues;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
@@ -60,137 +60,6 @@ use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait RepeatableListAnimatable: Animate {}
 
-/// A longhand property whose animation type is not "none".
-///
-/// NOTE: This includes the 'display' property since it is animatable from SMIL even though it is
-/// not animatable from CSS animations or Web Animations. CSS transitions also does not allow
-/// animating 'display', but for CSS transitions we have the separate TransitionProperty type.
-#[derive(Clone, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum AnimatableLonghand {
-    % for prop in data.longhands:
-        % if prop.animatable:
-            /// ${prop.name}
-            ${prop.camel_case},
-        % endif
-    % endfor
-}
-
-impl fmt::Debug for AnimatableLonghand {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            % for property in data.longhands:
-                % if property.animatable:
-                    AnimatableLonghand::${property.camel_case} => "${property.camel_case}",
-                % endif
-            % endfor
-        };
-        formatter.write_str(name)
-    }
-}
-
-impl AnimatableLonghand {
-    /// Returns true if this AnimatableLonghand is one of the discretely animatable properties.
-    pub fn is_discrete(&self) -> bool {
-        match *self {
-            % for prop in data.longhands:
-                % if prop.animation_value_type == "discrete":
-                    AnimatableLonghand::${prop.camel_case} => true,
-                % endif
-            % endfor
-            _ => false
-        }
-    }
-
-    /// Converts from an nsCSSPropertyID. Returns None if nsCSSPropertyID is not an animatable
-    /// longhand in Servo.
-    #[cfg(feature = "gecko")]
-    pub fn from_nscsspropertyid(css_property: nsCSSPropertyID) -> Option<Self> {
-        match css_property {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    ${helpers.to_nscsspropertyid(prop.ident)}
-                        => Some(AnimatableLonghand::${prop.camel_case}),
-                % endif
-            % endfor
-            _ => None
-        }
-    }
-
-    /// Converts from TransitionProperty. Returns None if the property is not an animatable
-    /// longhand.
-    pub fn from_transition_property(transition_property: &TransitionProperty) -> Option<Self> {
-        match *transition_property {
-            % for prop in data.longhands:
-                % if prop.transitionable and prop.animatable:
-                    TransitionProperty::${prop.camel_case}
-                        => Some(AnimatableLonghand::${prop.camel_case}),
-                % endif
-            % endfor
-            _ => None
-        }
-    }
-
-    /// Get an animatable longhand property from a property declaration.
-    pub fn from_declaration(declaration: &PropertyDeclaration) -> Option<Self> {
-        use properties::LonghandId;
-        match *declaration {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    PropertyDeclaration::${prop.camel_case}(..)
-                        => Some(AnimatableLonghand::${prop.camel_case}),
-                % endif
-            % endfor
-            PropertyDeclaration::CSSWideKeyword(id, _) |
-            PropertyDeclaration::WithVariables(id, _) => {
-                match id {
-                    % for prop in data.longhands:
-                        % if prop.animatable:
-                            LonghandId::${prop.camel_case} =>
-                                Some(AnimatableLonghand::${prop.camel_case}),
-                        % endif
-                    % endfor
-                    _ => None,
-                }
-            },
-            _ => None,
-        }
-    }
-}
-
-/// Convert to nsCSSPropertyID.
-#[cfg(feature = "gecko")]
-#[allow(non_upper_case_globals)]
-impl<'a> From< &'a AnimatableLonghand> for nsCSSPropertyID {
-    fn from(property: &'a AnimatableLonghand) -> nsCSSPropertyID {
-        match *property {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimatableLonghand::${prop.camel_case}
-                        => ${helpers.to_nscsspropertyid(prop.ident)},
-                % endif
-            % endfor
-        }
-    }
-}
-
-/// Convert to PropertyDeclarationId.
-#[cfg(feature = "gecko")]
-#[allow(non_upper_case_globals)]
-impl<'a> From<AnimatableLonghand> for PropertyDeclarationId<'a> {
-    fn from(property: AnimatableLonghand) -> PropertyDeclarationId<'a> {
-        match property {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimatableLonghand::${prop.camel_case}
-                        => PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}),
-                % endif
-            % endfor
-        }
-    }
-}
-
 /// Returns true if this nsCSSPropertyID is one of the animatable properties.
 #[cfg(feature = "gecko")]
 pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
@@ -210,56 +79,52 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 // beforehand.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Eq, Hash, PartialEq, ToCss, ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TransitionProperty {
     /// All, any transitionable property changing should generate a transition.
+    ///
+    /// FIXME(emilio): Can we remove this and just use
+    /// Shorthand(ShorthandId::All)?
     All,
-    % for prop in data.longhands + data.shorthands_except_all():
-        % if prop.transitionable:
-            /// ${prop.name}
-            ${prop.camel_case},
-        % endif
-    % endfor
+    /// A shorthand.
+    Shorthand(ShorthandId),
+    /// A longhand transitionable property.
+    Longhand(LonghandId),
     /// Unrecognized property which could be any non-transitionable, custom property, or
     /// unknown property.
-    Unsupported(CustomIdent)
+    Unsupported(CustomIdent),
 }
 
-impl fmt::Debug for TransitionProperty {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            % for property in data.longhands + data.shorthands_except_all():
-                % if property.transitionable:
-                    TransitionProperty::${property.camel_case} => "${property.camel_case}",
-                % endif
-            % endfor
-            TransitionProperty::All => "All",
-            TransitionProperty::Unsupported(ref ident) => {
-                formatter.write_str("Unsupported(")?;
-                ident.fmt(formatter)?;
-                return formatter.write_str(")");
-            }
-        };
-        formatter.write_str(name)
+impl ToCss for TransitionProperty {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TransitionProperty::All => dest.write_str("all"),
+            TransitionProperty::Shorthand(ref id) => dest.write_str(id.name()),
+            TransitionProperty::Longhand(ref id) => dest.write_str(id.name()),
+            TransitionProperty::Unsupported(ref id) => id.to_css(dest),
+        }
     }
 }
 
+trivial_to_computed_value!(TransitionProperty);
+
 impl TransitionProperty {
     /// Iterates over each longhand property.
-    pub fn each<F: FnMut(&TransitionProperty) -> ()>(mut cb: F) {
+    pub fn each<F: FnMut(&LonghandId) -> ()>(mut cb: F) {
         % for prop in data.longhands:
             % if prop.transitionable:
-                cb(&TransitionProperty::${prop.camel_case});
+                cb(&LonghandId::${prop.camel_case});
             % endif
         % endfor
     }
 
-    /// Iterates over every longhand property that is not TransitionProperty::All, stopping and
-    /// returning true when the provided callback returns true for the first time.
-    pub fn any<F: FnMut(&TransitionProperty) -> bool>(mut cb: F) -> bool {
+    /// Iterates over every longhand property that is not
+    /// TransitionProperty::All, stopping and returning true when the provided
+    /// callback returns true for the first time.
+    pub fn any<F: FnMut(&LonghandId) -> bool>(mut cb: F) -> bool {
         % for prop in data.longhands:
             % if prop.transitionable:
-                if cb(&TransitionProperty::${prop.camel_case}) {
+                if cb(&LonghandId::${prop.camel_case}) {
                     return true;
                 }
             % endif
@@ -272,67 +137,27 @@ impl TransitionProperty {
         let ident = input.expect_ident()?;
         match_ignore_ascii_case! { &ident,
             "all" => Ok(TransitionProperty::All),
-            % for prop in data.longhands + data.shorthands_except_all():
-                % if prop.transitionable:
-                    "${prop.name}" => Ok(TransitionProperty::${prop.camel_case}),
-                % endif
+            % for prop in data.shorthands_except_all():
+                "${prop.name}" => Ok(TransitionProperty::Shorthand(ShorthandId::${prop.camel_case})),
+            % endfor
+            % for prop in data.longhands:
+                "${prop.name}" => Ok(TransitionProperty::Longhand(LonghandId::${prop.camel_case})),
             % endfor
             "none" => Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
             _ => CustomIdent::from_ident(ident, &[]).map(TransitionProperty::Unsupported),
         }
     }
 
-    /// Return transitionable longhands of this shorthand TransitionProperty, except for "all".
-    pub fn longhands(&self) -> &'static [TransitionProperty] {
-        % for prop in data.shorthands_except_all():
-            % if prop.transitionable:
-                static ${prop.ident.upper()}: &'static [TransitionProperty] = &[
-                    % for sub in prop.sub_properties:
-                        % if sub.transitionable:
-                            TransitionProperty::${sub.camel_case},
-                        % endif
-                    % endfor
-                ];
-            % endif
-        % endfor
-        match *self {
-            % for prop in data.shorthands_except_all():
-                % if prop.transitionable:
-                    TransitionProperty::${prop.camel_case} => ${prop.ident.upper()},
-                % endif
-            % endfor
-            _ => panic!("Not allowed to call longhands() for this TransitionProperty")
-        }
-    }
 
-    /// Returns true if this TransitionProperty is a shorthand.
-    pub fn is_shorthand(&self) -> bool {
-        match *self {
-            % for prop in data.shorthands_except_all():
-                % if prop.transitionable:
-                    TransitionProperty::${prop.camel_case} => true,
-                % endif
-            % endfor
-            _ => false
-        }
-    }
-}
-
-/// Convert to nsCSSPropertyID.
-#[cfg(feature = "gecko")]
-#[allow(non_upper_case_globals)]
-impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
-    fn from(transition_property: &'a TransitionProperty) -> nsCSSPropertyID {
-        match *transition_property {
-            % for prop in data.longhands + data.shorthands_except_all():
-                % if prop.transitionable:
-                    TransitionProperty::${prop.camel_case}
-                        => ${helpers.to_nscsspropertyid(prop.ident)},
-                % endif
-            % endfor
+    /// Convert TransitionProperty to nsCSSPropertyID.
+    #[cfg(feature = "gecko")]
+    pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
+        Ok(match *self {
             TransitionProperty::All => nsCSSPropertyID::eCSSPropertyExtra_all_properties,
-            _ => panic!("Unconvertable Servo transition property: {:?}", transition_property),
-        }
+            TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
+            TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
+            TransitionProperty::Unsupported(..) => return Err(()),
+        })
     }
 }
 
@@ -341,20 +166,22 @@ impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
 #[allow(non_upper_case_globals)]
 impl From<nsCSSPropertyID> for TransitionProperty {
     fn from(property: nsCSSPropertyID) -> TransitionProperty {
-        let unsupported = match property {
-            % for prop in data.longhands + data.shorthands_except_all():
-                % if prop.transitionable:
-                    ${helpers.to_nscsspropertyid(prop.ident)}
-                        => return TransitionProperty::${prop.camel_case},
-                % else:
-                    ${helpers.to_nscsspropertyid(prop.ident)}
-                        => "${prop.ident}",
-                % endif
+        match property {
+            % for prop in data.longhands:
+            ${helpers.to_nscsspropertyid(prop.ident)} => {
+                TransitionProperty::Longhand(LonghandId::${prop.camel_case})
+            }
             % endfor
-            nsCSSPropertyID::eCSSPropertyExtra_all_properties => return TransitionProperty::All,
-            _ => panic!("Unconvertable nsCSSPropertyID: {:?}", property),
-        };
-        TransitionProperty::Unsupported(CustomIdent(Atom::from(unsupported)))
+            % for prop in data.shorthands_except_all():
+            ${helpers.to_nscsspropertyid(prop.ident)} => {
+                TransitionProperty::Shorthand(ShorthandId::${prop.camel_case})
+            }
+            % endfor
+            nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
+            _ => {
+                panic!("non-convertible nsCSSPropertyID::{:?}", property)
+            }
+        }
     }
 }
 
@@ -459,14 +286,15 @@ impl AnimatedProperty {
 
     /// Get an animatable value from a transition-property, an old style, and a
     /// new style.
-    pub fn from_animatable_longhand(property: &AnimatableLonghand,
-                                    old_style: &ComputedValues,
-                                    new_style: &ComputedValues)
-                                    -> AnimatedProperty {
-        match *property {
+    pub fn from_longhand(
+        property: &LonghandId,
+        old_style: &ComputedValues,
+        new_style: &ComputedValues,
+    ) -> Option<AnimatedProperty> {
+        Some(match *property {
             % for prop in data.longhands:
             % if prop.animatable:
-                AnimatableLonghand::${prop.camel_case} => {
+                LonghandId::${prop.camel_case} => {
                     let old_computed = old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}();
                     let new_computed = new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}();
                     AnimatedProperty::${prop.camel_case}(
@@ -481,7 +309,8 @@ impl AnimatedProperty {
                 }
             % endif
             % endfor
-        }
+            _ => return None,
+        })
     }
 }
 
@@ -489,7 +318,7 @@ impl AnimatedProperty {
 /// This HashMap stores the values that are the last AnimationValue to be
 /// composed for each TransitionProperty.
 #[cfg(feature = "gecko")]
-pub type AnimationValueMap = FnvHashMap<AnimatableLonghand, AnimationValue>;
+pub type AnimationValueMap = FnvHashMap<LonghandId, AnimationValue>;
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for AnimationValueMap {
     type FFIType = RawServoAnimationValueMap;
@@ -525,18 +354,22 @@ pub enum AnimationValue {
 
 impl fmt::Debug for AnimationValue {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-        % for prop in data.longhands:
-            % if prop.animatable:
-                AnimationValue::${prop.camel_case}(..) => "${prop.camel_case}",
-            % endif
-        % endfor
-        };
-        formatter.write_str(name)
+        formatter.write_str(self.id().name())
     }
 }
 
 impl AnimationValue {
+    /// Returns the longhand id this animated value corresponds to.
+    pub fn id(&self) -> LonghandId {
+        match *self {
+            % for prop in data.longhands:
+            % if prop.animatable:
+                AnimationValue::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
+            % endif
+            % endfor
+        }
+    }
+
     /// "Uncompute" this animation value in order to be used inside the CSS
     /// cascade.
     pub fn uncompute(&self) -> PropertyDeclaration {
@@ -657,27 +490,29 @@ impl AnimationValue {
     }
 
     /// Get an AnimationValue for an AnimatableLonghand from a given computed values.
-    pub fn from_computed_values(property: &AnimatableLonghand,
-                                computed_values: &ComputedValues)
-                                -> Self {
-        match *property {
+    pub fn from_computed_values(
+        property: &LonghandId,
+        computed_values: &ComputedValues
+    ) -> Option<Self> {
+        Some(match *property {
             % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimatableLonghand::${prop.camel_case} => {
-                        let computed = computed_values
-                            .get_${prop.style_struct.ident.strip("_")}()
-                            .clone_${prop.ident}();
-                        AnimationValue::${prop.camel_case}(
-                        % if prop.is_animatable_with_computed_value:
-                            computed
-                        % else:
-                            computed.to_animated_value()
-                        % endif
-                        )
-                    }
+            % if prop.animatable:
+            LonghandId::${prop.camel_case} => {
+                let computed = computed_values
+                    .get_${prop.style_struct.ident.strip("_")}()
+                    .clone_${prop.ident}();
+                AnimationValue::${prop.camel_case}(
+                % if prop.is_animatable_with_computed_value:
+                    computed
+                % else:
+                    computed.to_animated_value()
                 % endif
+                )
+            }
+            % endif
             % endfor
-        }
+            _ => return None,
+        })
     }
 }
 

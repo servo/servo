@@ -17,6 +17,7 @@ use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
+#[cfg(feature = "gecko")] use properties::LonghandId;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
@@ -679,7 +680,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     #[cfg(feature = "gecko")]
     fn needs_transitions_update_per_property(
         &self,
-        property: &TransitionProperty,
+        property: &LonghandId,
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
