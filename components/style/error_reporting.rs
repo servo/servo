@@ -6,8 +6,7 @@
 
 #![deny(missing_docs)]
 
-use cssparser::{BasicParseError, Token, SourceLocation};
-use cssparser::ParseError as CssParseError;
+use cssparser::{Token, SourceLocation, ParseErrorKind, BasicParseErrorKind};
 use log;
 use std::fmt;
 use style_traits::ParseError;
@@ -91,24 +90,24 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
         }
 
         fn parse_error_to_str(err: &ParseError, f: &mut fmt::Formatter) -> fmt::Result {
-            match *err {
-                CssParseError::Basic(BasicParseError::UnexpectedToken(ref t)) => {
+            match err.kind {
+                ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken(ref t)) => {
                     write!(f, "found unexpected ")?;
                     token_to_str(t, f)
                 }
-                CssParseError::Basic(BasicParseError::EndOfInput) => {
+                ParseErrorKind::Basic(BasicParseErrorKind::EndOfInput) => {
                     write!(f, "unexpected end of input")
                 }
-                CssParseError::Basic(BasicParseError::AtRuleInvalid(ref i)) => {
+                ParseErrorKind::Basic(BasicParseErrorKind::AtRuleInvalid(ref i)) => {
                     write!(f, "@ rule invalid: {}", i)
                 }
-                CssParseError::Basic(BasicParseError::AtRuleBodyInvalid) => {
+                ParseErrorKind::Basic(BasicParseErrorKind::AtRuleBodyInvalid) => {
                     write!(f, "@ rule invalid")
                 }
-                CssParseError::Basic(BasicParseError::QualifiedRuleInvalid) => {
+                ParseErrorKind::Basic(BasicParseErrorKind::QualifiedRuleInvalid) => {
                     write!(f, "qualified rule invalid")
                 }
-                CssParseError::Custom(ref err) => {
+                ParseErrorKind::Custom(ref err) => {
                     write!(f, "{:?}", err)
                 }
             }

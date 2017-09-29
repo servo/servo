@@ -83,7 +83,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
             style.unwrap_or(BorderStyle::none),
             width.unwrap_or(BorderSideWidth::Medium)))
     } else {
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -276,7 +276,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                 border_image_outset::parse(context, input)
                             }).ok();
                             if w.is_none() && o.is_none() {
-                               Err(StyleParseError::UnspecifiedError.into())
+                               Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                             }
                             else {
                                Ok((w, o))
@@ -312,7 +312,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                 % endfor
                 Ok(())
             } else {
-                Err(StyleParseError::UnspecifiedError.into())
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         });
         result?;

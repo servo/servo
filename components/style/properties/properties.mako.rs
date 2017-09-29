@@ -35,11 +35,11 @@ use parser::ParserContext;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use rule_cache::{RuleCache, RuleCacheConditions};
 use selector_parser::PseudoElement;
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError};
-use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, PropertyDeclarationParseError};
+use style_traits::{PropertyDeclarationParseErrorKind, StyleParseErrorKind};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -153,7 +153,7 @@ macro_rules! unwrap_or_initial {
 pub mod shorthands {
     use cssparser::Parser;
     use parser::{Parse, ParserContext};
-    use style_traits::{ParseError, StyleParseError};
+    use style_traits::{ParseError, StyleParseErrorKind};
     use values::specified;
 
     <%include file="/shorthand/serialize.mako.rs" />
@@ -553,7 +553,9 @@ impl LonghandId {
                     % if not property.derived_from:
                         longhands::${property.ident}::parse_declared(context, input)
                     % else:
-                        Err(PropertyDeclarationParseError::UnknownProperty("${property.ident}".into()).into())
+                        Err(input.new_custom_error(
+                            PropertyDeclarationParseErrorKind::UnknownProperty("${property.ident}".into())
+                        ))
                     % endif
                 }
             % endfor
@@ -878,7 +880,7 @@ impl ShorthandId {
                 }
             % endfor
             // 'all' accepts no value other than CSS-wide keywords
-            ShorthandId::All => Err(StyleParseError::UnspecifiedError.into())
+            ShorthandId::All => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
@@ -962,7 +964,7 @@ impl UnparsedValue {
                     Some(ShorthandId::All) => {
                         // No need to parse the 'all' shorthand as anything other than a CSS-wide
                         // keyword, after variable substitution.
-                        Err(SelectorParseError::UnexpectedIdent("all".into()).into())
+                        Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("all".into())))
                     }
                     % for shorthand in data.shorthands_except_all():
                         Some(ShorthandId::${shorthand.camel_case}) => {
@@ -1642,8 +1644,7 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(e) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into(),
-                        ValueParseError::from_parse_error(e))),
+                        Err(e) => return Err(PropertyDeclarationParseErrorKind::new_invalid(name, e)),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(property_name, value));
@@ -1662,8 +1663,7 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    PropertyDeclarationParseError::InvalidValue(name,
-                                        ValueParseError::from_parse_error(e))
+                                    PropertyDeclarationParseErrorKind::new_invalid(name, e)
                                 })?;
                             Ok(PropertyDeclaration::WithVariables(id, Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1672,8 +1672,7 @@ impl PropertyDeclaration {
                                 from_shorthand: None,
                             })))
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(name,
-                                ValueParseError::from_parse_error(err)))
+                            Err(PropertyDeclarationParseErrorKind::new_invalid(name, err))
                         }
                     })
                 }).map(|declaration| {
@@ -1701,8 +1700,7 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    PropertyDeclarationParseError::InvalidValue(name,
-                                        ValueParseError::from_parse_error(e))
+                                    PropertyDeclarationParseErrorKind::new_invalid(name, e)
                                 })?;
                             let unparsed = Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1721,8 +1719,7 @@ impl PropertyDeclaration {
                             }
                             Ok(())
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(name,
-                                ValueParseError::from_parse_error(err)))
+                            Err(PropertyDeclarationParseErrorKind::new_invalid(name, err))
                         }
                     })
                 }

@@ -241,7 +241,7 @@ ${helpers.single_keyword("image-rendering",
             // Handle <angle> | <angle> flip
             let angle = input.try(|input| Angle::parse(context, input)).ok();
             if angle.is_none() {
-                return Err(StyleParseError::UnspecifiedError.into());
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
 
             let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();

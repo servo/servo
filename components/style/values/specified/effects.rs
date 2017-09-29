@@ -4,9 +4,9 @@
 
 //! Specified types for CSS values related to effects.
 
-use cssparser::{Parser, Token, BasicParseError};
+use cssparser::{self, Parser, Token, BasicParseErrorKind};
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseError, ValueParseError};
+use style_traits::{ParseError, StyleParseErrorKind, ValueParseErrorKind};
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
 use values::computed::{Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue};
@@ -138,7 +138,7 @@ impl Parse for BoxShadow {
             break;
         }
 
-        let lengths = lengths.ok_or(StyleParseError::UnspecifiedError)?;
+        let lengths = lengths.ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
         Ok(BoxShadow {
             base: SimpleShadow {
                 color: color,
@@ -186,10 +186,15 @@ impl Parse for Filter {
                 return Ok(GenericFilter::Url(url));
             }
         }
+        let location = input.current_source_location();
         let function = match input.expect_function() {
             Ok(f) => f.clone(),
-            Err(BasicParseError::UnexpectedToken(t)) =>
-                return Err(ValueParseError::InvalidFilter(t.clone()).into()),
+            Err(cssparser::BasicParseError {
+                kind: BasicParseErrorKind::UnexpectedToken(t),
+                location,
+            }) => {
+                return Err(location.new_custom_error(ValueParseErrorKind::InvalidFilter(t)))
+            }
             Err(e) => return Err(e.into()),
         };
         input.parse_nested_block(|i| {
@@ -220,7 +225,9 @@ impl Parse for Filter {
                     Ok(GenericFilter::Sepia(Factor::parse_with_clamping_to_one(context, i)?))
                 },
                 "drop-shadow" => Ok(GenericFilter::DropShadow(Parse::parse(context, i)?)),
-                _ => Err(ValueParseError::InvalidFilter(Token::Function(function.clone())).into()),
+                _ => Err(location.new_custom_error(
+                    ValueParseErrorKind::InvalidFilter(Token::Function(function.clone()))
+                )),
             }
         })
     }

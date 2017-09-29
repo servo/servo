@@ -8,19 +8,19 @@
 
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
-use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseError as CssParseError};
+use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind};
 use custom_properties::CustomPropertiesBuilder;
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, ParserErrorContext};
 use properties::animated_properties::AnimationValue;
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use shared_lock::Locked;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
 use std::fmt;
 use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseError};
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseErrorKind};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use values::computed::Context;
@@ -1059,7 +1059,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = Importance;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
 }
 
 /// Based on NonMozillaVendorIdentifier from Gecko's CSS parser.
@@ -1070,7 +1070,7 @@ fn is_non_mozilla_vendor_identifier(name: &str) -> bool {
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = Importance;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
@@ -1078,11 +1078,11 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
         let id = match PropertyId::parse(&name, Some(&prop_context)) {
             Ok(id) => id,
             Err(()) => {
-                return Err(if is_non_mozilla_vendor_identifier(&name) {
-                    PropertyDeclarationParseError::UnknownVendorProperty
+                return Err(input.new_custom_error(if is_non_mozilla_vendor_identifier(&name) {
+                    PropertyDeclarationParseErrorKind::UnknownVendorProperty
                 } else {
-                    PropertyDeclarationParseError::UnknownProperty(name)
-                }.into());
+                    PropertyDeclarationParseErrorKind::UnknownProperty(name)
+                }));
             }
         };
         input.parse_until_before(Delimiter::Bang, |input| {
@@ -1120,18 +1120,18 @@ pub fn parse_property_declaration_list<R>(context: &ParserContext,
             Ok(importance) => {
                 block.extend(iter.parser.declarations.drain(), importance);
             }
-            Err(err) => {
+            Err((error, slice)) => {
                 iter.parser.declarations.clear();
 
                 // If the unrecognized property looks like a vendor-specific property,
                 // silently ignore it instead of polluting the error output.
-                if let CssParseError::Custom(SelectorParseError::Custom(
-                    StyleParseError::PropertyDeclaration(
-                        PropertyDeclarationParseError::UnknownVendorProperty))) = err.error {
+                if let ParseErrorKind::Custom(SelectorParseErrorKind::Custom(
+                    StyleParseErrorKind::PropertyDeclaration(
+                        PropertyDeclarationParseErrorKind::UnknownVendorProperty))) = error.kind {
                     continue;
                 }
 
-                let error = ContextualParseError::UnsupportedPropertyDeclaration(err.slice, err.error);
+                let error = ContextualParseError::UnsupportedPropertyDeclaration(slice, error);
                 let location = iter.input.current_source_location();
                 context.log_css_error(error_context, location, error);
             }

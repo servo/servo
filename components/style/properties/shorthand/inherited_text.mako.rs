@@ -36,7 +36,7 @@
                 text_emphasis_style: unwrap_or_initial!(text_emphasis_style, style),
             })
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 </%helpers:shorthand>
@@ -78,7 +78,7 @@
                 _webkit_text_stroke_width: unwrap_or_initial!(_webkit_text_stroke_width, width),
             })
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 </%helpers:shorthand>

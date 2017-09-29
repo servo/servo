@@ -58,7 +58,7 @@ ${helpers.predefined_type(
                     // The outline-style property accepts the same values as
                     // border-style, except that 'hidden' is not a legal outline
                     // style.
-                    Err(SelectorParseError::UnexpectedIdent("hidden".into()).into())
+                    Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("hidden".into())))
                 } else {
                     Ok(result)
                 }

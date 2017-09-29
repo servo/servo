@@ -12,11 +12,11 @@ use cssparser::{Delimiter, Parser};
 use cssparser::{Token, ParserInput};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use serialize_comma_separated_list;
 use std::fmt;
 use str::string_as_ascii_lowercase;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use values::CustomIdent;
 
 #[cfg(feature = "servo")]
@@ -210,13 +210,13 @@ impl MediaQuery {
         let media_type = match input.try(|i| i.expect_ident_cloned()) {
             Ok(ident) => {
                 let result: Result<_, ParseError> = MediaQueryType::parse(&*ident)
-                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into());
+                    .map_err(|()| input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
                 result?
             }
             Err(_) => {
                 // Media type is only optional if qualifier is not specified.
                 if qualifier.is_some() {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
 
                 // Without a media type, require at least one expression.
