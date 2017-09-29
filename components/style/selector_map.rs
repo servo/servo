@@ -10,7 +10,7 @@ use applicable_declarations::ApplicableDeclarationBlock;
 use context::QuirksMode;
 use dom::TElement;
 use fallible::FallibleVec;
-use hash::{HashMap, HashSet};
+use hash::{HashMap, HashSet, ProtectedHashMap};
 use hash::map as hash_map;
 use hashglobe::FailedAllocationError;
 use pdqsort::sort_by;
@@ -37,6 +37,9 @@ impl Default for PrecomputedHasher {
 
 /// A simple alias for a hashmap using PrecomputedHasher.
 pub type PrecomputedHashMap<K, V> = HashMap<K, V, BuildHasherDefault<PrecomputedHasher>>;
+
+/// A simple alias for a hashmap using PrecomputedHasher.
+pub type PrecomputedProtectedHashMap<K, V> = ProtectedHashMap<K, V, BuildHasherDefault<PrecomputedHasher>>;
 
 /// A simple alias for a hashset using PrecomputedHasher.
 pub type PrecomputedHashSet<K> = HashSet<K, BuildHasherDefault<PrecomputedHasher>>;
@@ -102,7 +105,7 @@ pub struct SelectorMap<T: 'static> {
     /// A hash from a class name to rules which contain that class selector.
     pub class_hash: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[T; 1]>>,
     /// A hash from local name to rules which contain that local name selector.
-    pub local_name_hash: PrecomputedHashMap<LocalName, SmallVec<[T; 1]>>,
+    pub local_name_hash: PrecomputedProtectedHashMap<LocalName, SmallVec<[T; 1]>>,
     /// Rules that don't have ID, class, or element selectors.
     pub other: SmallVec<[T; 1]>,
     /// The number of entries in this map.
@@ -123,7 +126,7 @@ impl<T: 'static> SelectorMap<T> {
         SelectorMap {
             id_hash: MaybeCaseInsensitiveHashMap::new(),
             class_hash: MaybeCaseInsensitiveHashMap::new(),
-            local_name_hash: HashMap::default(),
+            local_name_hash: ProtectedHashMap::default(),
             other: SmallVec::new(),
             count: 0,
         }
@@ -147,6 +150,30 @@ impl<T: 'static> SelectorMap<T> {
     pub fn len(&self) -> usize {
         self.count
     }
+
+    /// Allows mutation of this SelectorMap.
+    #[cfg(feature = "gecko")]
+    pub fn begin_mutation(&mut self) {
+        self.id_hash.begin_mutation();
+        self.class_hash.begin_mutation();
+        self.local_name_hash.begin_mutation();
+    }
+
+    /// Allows mutation of this SelectorMap. Not enforced in Servo.
+    #[cfg(feature = "servo")]
+    pub fn begin_mutation(&mut self) {}
+
+    /// Disallows mutation of this SelectorMap.
+    #[cfg(feature = "gecko")]
+    pub fn end_mutation(&mut self) {
+        self.id_hash.end_mutation();
+        self.class_hash.end_mutation();
+        self.local_name_hash.end_mutation();
+    }
+
+    /// Disallows mutation of this SelectorMap. Not enforced in Servo.
+    #[cfg(feature = "servo")]
+    pub fn end_mutation(&mut self) {}
 }
 
 impl SelectorMap<Rule> {
@@ -463,7 +490,7 @@ fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
 #[derive(Debug)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'static>(PrecomputedHashMap<K, V>);
+pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'static>(PrecomputedProtectedHashMap<K, V>);
 
 // FIXME(Manishearth) the 'static bound can be removed when
 // our HashMap fork (hashglobe) is able to use NonZero,
@@ -471,7 +498,7 @@ pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'stati
 impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
     /// Empty map
     pub fn new() -> Self {
-        MaybeCaseInsensitiveHashMap(PrecomputedHashMap::default())
+        MaybeCaseInsensitiveHashMap(PrecomputedProtectedHashMap::default())
     }
 
     /// HashMap::entry
@@ -511,6 +538,18 @@ impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
         } else {
             self.0.get(key)
         }
+    }
+
+    /// ProtectedHashMap::begin_mutation
+    #[cfg(feature = "gecko")]
+    pub fn begin_mutation(&mut self) {
+        self.0.begin_mutation();
+    }
+
+    /// ProtectedHashMap::end_mutation
+    #[cfg(feature = "gecko")]
+    pub fn end_mutation(&mut self) {
+        self.0.end_mutation();
     }
 }
 

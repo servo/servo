@@ -159,6 +159,15 @@ impl<T> PerPseudoElementMap<T> {
         *self = Self::default();
     }
 
+    /// Invokes a callback on each non-None entry.
+    pub fn for_each<F: FnMut(&mut T)>(&mut self, mut f: F) {
+        for entry in self.entries.iter_mut() {
+            if entry.is_some() {
+                f(entry.as_mut().unwrap());
+            }
+        }
+    }
+
     /// Set an entry value.
     ///
     /// Returns an error if the element is not a simple pseudo.

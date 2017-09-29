@@ -181,6 +181,10 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
 
     // Initialize the dummy url data
     unsafe { DUMMY_URL_DATA = dummy_url_data; }
+
+    // Set the system page size.
+    let page_size = unsafe { bindings::Gecko_GetSystemPageSize() };
+    ::hashglobe::SYSTEM_PAGE_SIZE.store(page_size, ::std::sync::atomic::Ordering::Relaxed);
 }
 
 #[no_mangle]
@@ -4051,4 +4055,10 @@ pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrow
         element = e.traversal_parent();
     }
     false
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CorruptRuleHashAndCrash(set: RawServoStyleSetBorrowed, index: usize) {
+    let per_doc_data = PerDocumentStyleData::from_ffi(set).borrow();
+    per_doc_data.stylist.corrupt_rule_hash_and_crash(index);
 }
