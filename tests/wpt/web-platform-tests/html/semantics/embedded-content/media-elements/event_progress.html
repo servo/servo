@@ -14,7 +14,7 @@
   </video>
   <div id="log"></div>
   <script>
-(function() {
+test(function() {
   var t = async_test("setting src attribute on autoplay audio should trigger progress event", {timeout:5000});
   var a = document.getElementById("a");
   a.addEventListener("error", t.unreached_func());
@@ -23,9 +23,9 @@
     a.pause();
   }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
-})();
+}, "audio events - progress");
 
-(function() {
+test(function() {
   var t = async_test("setting src attribute on autoplay video should trigger progress event", {timeout:5000});
   var v = document.getElementById("v");
   v.addEventListener("error", t.unreached_func());
@@ -34,7 +34,7 @@
     v.pause();
   }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
-})();
+}, "video events - progress");
   </script>
  </body>
 </html>

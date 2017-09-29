@@ -14,7 +14,7 @@
   </video>
   <div id="log"></div>
   <script>
-(function() {
+test(function() {
   var t = async_test("setting src attribute on autoplay audio should trigger loadstart then progress event", {timeout:5000});
   var a = document.getElementById("a");
   var found_loadstart = false;
@@ -28,9 +28,9 @@
     a.pause();
   }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
-})();
+}, "audio events - loadstart, then progress");
 
-(function() {
+test(function() {
   var t = async_test("setting src attribute on autoplay video should trigger loadstart then progress event", {timeout:5000});
   var v = document.getElementById("v");
   var found_loadstart = false;
@@ -44,7 +44,7 @@
     v.pause();
   }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
-})();
+}, "video events - loadstart, then progress");
   </script>
  </body>
 </html>

@@ -17,26 +17,24 @@
 test(function() {
   var t = async_test("audio.readyState should be >= HAVE_CURRENT_DATA during loadeddata event", {timeout:5000});
   var a = document.getElementById("a");
-  a.addEventListener("loadeddata", function() {
-    t.step(function() {
-     assert_greater_than_equal(a.readyState, a.HAVE_CURRENT_DATA);
-    });
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("loadeddata", t.step_func(function() {
+    assert_greater_than_equal(a.readyState, a.HAVE_CURRENT_DATA);
     t.done();
     a.pause();
-  }, false);
+  }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 }, "audio events - readyState property during loadeddata");
 
 test(function() {
   var t = async_test("video.readyState should be >= HAVE_CURRENT_DATA during loadeddata event", {timeout:5000});
   var v = document.getElementById("v");
-  v.addEventListener("loadeddata", function() {
-    t.step(function() {
-     assert_greater_than_equal(v.readyState, v.HAVE_CURRENT_DATA);
-    });
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("loadeddata", t.step_func(function() {
+    assert_greater_than_equal(v.readyState, v.HAVE_CURRENT_DATA);
     t.done();
     v.pause();
-  }, false);
+  }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
 }, "video events - readyState property during loadeddata");
   </script>

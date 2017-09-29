@@ -17,20 +17,22 @@
 test(function() {
   var t = async_test("setting src attribute on autoplay audio should trigger loadedmetadata event", {timeout:5000});
   var a = document.getElementById("a");
-  a.addEventListener("loadedmetadata", function() {
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("loadedmetadata", t.step_func(function() {
     t.done();
     a.pause();
-  });
+  }));
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 }, "audio events - loadedmetadata");
 
 test(function() {
   var t = async_test("setting src attribute on autoplay video should trigger loadedmetadata event", {timeout:5000});
   var v = document.getElementById("v");
-  v.addEventListener("loadedmetadata", function() {
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("loadedmetadata", t.step_func(function() {
     t.done();
     v.pause();
-  });
+  }));
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
 }, "video events - loadedmetadata");
   </script>

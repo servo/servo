@@ -17,6 +17,7 @@
         a.preload = preload;
         a.autoplay = true;
       }
+      a.addEventListener('error', t.unreached_func());
       a.addEventListener('playing', t.step_func(function() {
         assert_equals(a.readyState, a.HAVE_ENOUGH_DATA);
         assert_false(a.paused);

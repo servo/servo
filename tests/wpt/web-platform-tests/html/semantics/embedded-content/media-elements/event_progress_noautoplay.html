@@ -17,18 +17,16 @@
 test(function() {
   var t = async_test("setting src attribute on non-autoplay audio should trigger progress event", {timeout:5000});
   var a = document.getElementById("a");
-  a.addEventListener("progress", function() {
-    t.done();
-  }, false);
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("progress", t.step_func_done(), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 }, "audio events - progress");
 
 test(function() {
   var t = async_test("setting src attribute on non-autoplay video should trigger progress event", {timeout:5000});
   var v = document.getElementById("v");
-  v.addEventListener("progress", function() {
-    t.done();
-  }, false);
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("progress", t.step_func_done(), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
 }, "video events - progress");
   </script>

@@ -18,16 +18,15 @@ test(function() {
   var t = async_test("setting src attribute on autoplay audio should trigger canplay then canplaythrough event", {timeout:5000});
   var a = document.getElementById("a");
   var found_canplay = false;
-  a.addEventListener("canplay", function() {
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("canplay", t.step_func(function() {
     found_canplay = true;
-  });
-  a.addEventListener("canplaythrough", function() {
-    t.step(function() {
-     assert_true(found_canplay);
-    });
+  }));
+  a.addEventListener("canplaythrough", t.step_func(function() {
+    assert_true(found_canplay);
     t.done();
     a.pause();
-  }, false);
+  }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 }, "audio events - canplay, then canplaythrough");
 
@@ -35,16 +34,15 @@ test(function() {
   var t = async_test("setting src attribute on autoplay video should trigger canplay then canplaythrough event", {timeout:5000});
   var v = document.getElementById("v");
   var found_canplay = false;
-  v.addEventListener("canplay", function() {
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("canplay", t.step_func(function() {
     found_canplay = true;
-  });
-  v.addEventListener("canplaythrough", function() {
-    t.step(function() {
-     assert_true(found_canplay);
-    });
+  }));
+  v.addEventListener("canplaythrough", t.step_func(function() {
+    assert_true(found_canplay);
     t.done();
     v.pause();
-  }, false);
+  }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
 }, "video events - canplay, then canplaythrough");
  </script>
