@@ -13,10 +13,15 @@ use fnv;
 pub use hashglobe::hash_map::HashMap;
 #[cfg(feature = "gecko")]
 pub use hashglobe::hash_set::HashSet;
-
+#[cfg(feature = "gecko")]
+pub use hashglobe::diagnostic::DiagnosticHashMap;
 
 #[cfg(feature = "servo")]
 pub use hashglobe::fake::{HashMap, HashSet};
+
+/// Alias to use regular HashMaps everywhere in Servo.
+#[cfg(feature = "servo")]
+pub type DiagnosticHashMap<K, V, S> = HashMap<K, V, S>;
 
 /// Appropriate reexports of hash_map types
 pub mod map {
