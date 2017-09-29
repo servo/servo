@@ -21,12 +21,14 @@
         videotest.done();
       }
 
+      var do_error = videotest.unreached_func();
+
     </script>
   </head>
   <body>
   <div id='log'></div>
 
-  <video id="video0" autoplay onplay="do_play(event);">
+  <video id="video0" autoplay onplay="do_play(event);" onerror="do_error();">
     <script type="text/javascript">
 
       document.write(
