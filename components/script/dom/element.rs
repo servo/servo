@@ -554,9 +554,10 @@ impl LayoutElementHelpers for LayoutDom<Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(
-                        font_family::SpecifiedValue::Values(vec![
+                    font_family::SpecifiedValue::Values(
+                        font_family::computed_value::FontFamilyList::new(vec![
                             font_family::computed_value::FontFamily::from_atom(
-                                font_family)]))));
+                                font_family)])))));
         }
 
         let font_size = self.downcast::<HTMLFontElement>().and_then(|this| this.get_size());
