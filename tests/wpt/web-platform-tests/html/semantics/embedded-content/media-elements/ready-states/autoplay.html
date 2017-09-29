@@ -17,7 +17,7 @@ function autoplay_test(tagName, src) {
       }
     });
     ['canplay', 'canplaythrough',
-     'pause', 'play', 'playing'].forEach(function(type) {
+     'pause', 'play', 'playing', 'error'].forEach(function(type) {
       e.addEventListener(type, callback);
     });
   }
