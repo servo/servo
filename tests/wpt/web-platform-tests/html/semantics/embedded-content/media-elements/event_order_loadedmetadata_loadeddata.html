@@ -18,16 +18,15 @@ test(function() {
   var t = async_test("setting src attribute on autoplay audio should trigger loadedmetadata then loadeddata event", {timeout:5000});
   var a = document.getElementById("a");
   var found_loadedmetadata = false;
-  a.addEventListener("loadedmetadata", function() {
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("loadedmetadata", t.step_func(function() {
     found_loadedmetadata = true;
-  });
-  a.addEventListener("loadeddata", function() {
-    t.step(function() {
-     assert_true(found_loadedmetadata);
-    });
+  }));
+  a.addEventListener("loadeddata", t.step_func(function() {
+    assert_true(found_loadedmetadata);
     t.done();
     a.pause();
-  }, false);
+  }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 }, "audio events - loadedmetadata, then loadeddata");
 
@@ -35,16 +34,15 @@ test(function() {
   var t = async_test("setting src attribute on autoplay video should trigger loadedmetadata then loadeddata event", {timeout:5000});
   var v = document.getElementById("v");
   var found_loadedmetadata = false;
-  v.addEventListener("loadedmetadata", function() {
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("loadedmetadata", t.step_func(function() {
     found_loadedmetadata = true;
-  });
-  v.addEventListener("loadeddata", function() {
-    t.step(function() {
-     assert_true(found_loadedmetadata);
-    });
+  }));
+  v.addEventListener("loadeddata", t.step_func(function() {
+    assert_true(found_loadedmetadata);
     t.done();
     v.pause();
-  }, false);
+  }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
 }, "video events - loadedmetadata, then loadeddata");
  </script>
