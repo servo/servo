@@ -2046,13 +2046,14 @@ pub extern "C" fn Servo_ComputedValues_EqualCustomProperties(
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoStyleContextBorrowed,
                                                         rules: RawGeckoServoStyleRuleListBorrowedMut) {
+    use smallvec::SmallVec;
+
     let rule_node = match values.rules {
         Some(ref r) => r,
         None => return,
     };
 
-    // TODO(emilio): Will benefit from SmallVec.
-    let mut result = vec![];
+    let mut result = SmallVec::<[_; 10]>::new();
     for node in rule_node.self_and_ancestors() {
         let style_rule = match *node.style_source() {
             StyleSource::Style(ref rule) => rule,
