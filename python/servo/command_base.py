@@ -551,6 +551,9 @@ class CommandBase(object):
     def android_build_dir(self, dev):
         return path.join(self.get_target_dir(), self.config["android"]["target"], "debug" if dev else "release")
 
+    def android_aar_dir(self):
+        return path.join(self.context.topdir, "target", "android_aar")
+
     def handle_android_target(self, target):
         if target == "arm-linux-androideabi":
             self.config["android"]["platform"] = "android-18"

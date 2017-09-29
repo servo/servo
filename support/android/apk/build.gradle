@@ -11,6 +11,9 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+        flatDir {
+            dirs rootDir.absolutePath + "/../../../target/android_aar"
+        }
     }
 
     buildDir = rootDir.absolutePath + "/../../../target/gradle"

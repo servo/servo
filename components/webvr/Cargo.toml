@@ -9,13 +9,17 @@ publish = false
 name = "webvr"
 path = "lib.rs"
 
+[features]
+googlevr = ['rust-webvr/googlevr']
+oculusvr = ['rust-webvr/oculusvr']
+
 [dependencies]
 canvas_traits = {path = "../canvas_traits"}
 euclid = "0.15"
 ipc-channel = "0.8"
 log = "0.3"
 msg = {path = "../msg"}
-rust-webvr = {version = "0.8", features = ["openvr"]}
+rust-webvr = {version = "0.9", features = ["openvr"]}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 webvr_traits = {path = "../webvr_traits" }
