@@ -33,6 +33,7 @@
             looped = true;
         }
 
+        media.addEventListener("error", t.unreached_func());
         media.addEventListener("seeking", startTest, false);
         media.loop = true;
         media.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
