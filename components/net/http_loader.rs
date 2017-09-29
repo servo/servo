@@ -1176,8 +1176,8 @@ fn http_network_fetch(request: &Request,
 
     // Step 14
     if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
-        if let Ok(http_cache) = context.state.http_cache.write() {
-            http_cache.update_cache(&response);
+        if let Ok(mut http_cache) = context.state.http_cache.write() {
+            http_cache.update_cache(&request, &response);
         }
     }
 

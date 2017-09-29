@@ -13,7 +13,7 @@ use hyper::header::EntityTag;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
-use net_traits::Metadata;
+use net_traits::{Metadata, FetchMetadata, FilteredMetadata};
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 use servo_url::ServoUrl;
@@ -170,14 +170,6 @@ fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
     Duration::max_value()
 }
 
-/// Determine the expiry date of the given response.
-/// Returns a far-future date if this response does not expire.
-fn get_response_expiry(metadata: &Metadata) -> Duration {
-    metadata.headers.as_ref().map(|headers| {
-        get_response_expiry_from_headers(headers)
-    }).unwrap_or(Duration::max_value())
-}
-
 impl HttpCache {
     /// Create a new memory cache instance.
     pub fn new() -> HttpCache {
@@ -193,6 +185,26 @@ impl HttpCache {
     }
 
     /// Update the cache with a new response.
-    pub fn update_cache(&self, response: &Response) {}
+    pub fn update_cache(&mut self, request: &Request, response: &Response) {
+        match response.metadata() {
+            Ok(FetchMetadata::Filtered {
+               filtered: FilteredMetadata::Basic(metadata),
+               unsafe_: unsafe_metadata }) |
+            Ok(FetchMetadata::Filtered {
+                filtered: FilteredMetadata::Cors(metadata),
+                unsafe_: unsafe_metadata }) => {
+                if response_is_cacheable(&metadata) {
+                    let entry_key = CacheKey::new(request.clone());
+                    let entry_resource = CachedResource {
+                        body: response.body.lock().unwrap().clone(),
+                        expires: get_response_expiry_from_headers(&response.headers),
+                        last_validated: time::now()
+                    };
+                    self.entries.insert(entry_key, entry_resource);
+                }
+            },
+            _ => {}
+        }
+    }
 
 }
