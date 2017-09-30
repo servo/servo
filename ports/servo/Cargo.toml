@@ -34,6 +34,8 @@ max_log_level = ["log/release_max_level_info"]
 webdriver = ["libservo/webdriver_server"]
 energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
+googlevr = ["libservo/googlevr"]
+oculusvr = ["libservo/oculusvr"]
 
 [dependencies]
 backtrace = "0.3"

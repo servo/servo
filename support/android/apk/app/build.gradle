@@ -33,6 +33,17 @@ android {
         }
     }
 
+    productFlavors {
+        main {
+        }
+        googlevr {
+            minSdkVersion 21
+        }
+        oculusvr {
+            minSdkVersion 21
+        }
+    }
+
     sourceSets {
         main {
             java.srcDirs = ['src/main/java']
@@ -145,7 +156,9 @@ android {
     // Call our custom NDK Build task using flavor parameters
     tasks.all {
         compileTask ->
-            Pattern pattern = Pattern.compile(/^transformJackWithJackFor([\w\d]+)(Debug|Release)/);
+            // Parse architecture name from gradle task name:
+            // Examples: transformJackWithJackForMainArmv7Release, transformJackWithJackForOculusvrArmv7Release
+            Pattern pattern = Pattern.compile(/^transformJackWithJackFor[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)/);
             Matcher matcher = pattern.matcher(compileTask.name);
             // You can use this alternative pattern when jackCompiler is disabled
             // Pattern pattern = Pattern.compile(/^compile([\w\d]+)(Debug|Release)/);
@@ -194,6 +207,10 @@ dependencies {
             }
         }
     }
+
+    googlevrCompile 'com.google.vr:sdk-base:1.70.0'
+    googlevrCompile(name:'GVRService', ext:'aar')
+    oculusvrCompile(name:'OVRService', ext:'aar')
 }
 
 // Utility methods

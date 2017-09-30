@@ -180,7 +180,10 @@ class PackageCommands(CommandBase):
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Package for given target platform')
-    def package(self, release=False, dev=False, android=None, debug=False, debugger=None, target=None):
+    @CommandArgument('--flavor', '-f',
+                     default=None,
+                     help='Package using the given Gradle flavor')
+    def package(self, release=False, dev=False, android=None, debug=False, debugger=None, target=None, flavor=None):
         env = self.build_env()
         if android is None:
             android = self.config["build"]["android"]
@@ -206,7 +209,11 @@ class PackageCommands(CommandBase):
             else:
                 build_mode = "Release"
 
-            task_name = "assemble" + build_type + build_mode
+            flavor_name = "Main"
+            if flavor is not None:
+                flavor_name = flavor.title()
+
+            task_name = "assemble" + flavor_name + build_type + build_mode
             try:
                 with cd(path.join("support", "android", "apk")):
                     subprocess.check_call(["./gradlew", "--no-daemon", task_name], env=env)
