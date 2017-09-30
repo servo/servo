@@ -110,7 +110,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
-use script_layout_interface::message::{Msg, ReflowQueryType};
+use script_layout_interface::message::{Msg, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
@@ -133,7 +133,7 @@ use std::mem;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
-use style::context::{QuirksMode, ReflowGoal};
+use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
@@ -463,11 +463,7 @@ impl Document {
             if activity == DocumentActivity::FullyActive {
                 self.title_changed();
                 self.dirty_all_nodes();
-                self.window().reflow(
-                    ReflowGoal::ForDisplay,
-                    ReflowQueryType::NoQuery,
-                    ReflowReason::CachedPageNeededReflow
-                );
+                self.window().reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
                 self.window().resume();
             } else {
                 self.window().suspend();
@@ -585,9 +581,7 @@ impl Document {
             }
 
             self.reflow_timeout.set(None);
-            self.window.reflow(ReflowGoal::ForDisplay,
-                               ReflowQueryType::NoQuery,
-                               ReflowReason::RefreshTick);
+            self.window.reflow(ReflowGoal::Full, ReflowReason::RefreshTick);
         }
     }
 
@@ -949,9 +943,7 @@ impl Document {
             self.maybe_fire_dblclick(client_point, node);
         }
 
-        self.window.reflow(ReflowGoal::ForDisplay,
-                           ReflowQueryType::NoQuery,
-                           ReflowReason::MouseEvent);
+        self.window.reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     fn maybe_fire_dblclick(&self, click_pos: Point2D<f32>, target: &Node) {
@@ -1201,9 +1193,7 @@ impl Document {
         // Store the current mouse over target for next frame.
         prev_mouse_over_target.set(maybe_new_target.r());
 
-        self.window.reflow(ReflowGoal::ForDisplay,
-                           ReflowQueryType::NoQuery,
-                           ReflowReason::MouseEvent);
+        self.window.reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     #[allow(unsafe_code)]
@@ -1324,9 +1314,7 @@ impl Document {
         let event = event.upcast::<Event>();
         let result = event.fire(&target);
 
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::MouseEvent);
+        window.reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
 
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
@@ -1447,9 +1435,7 @@ impl Document {
             }
         }
 
-        self.window.reflow(ReflowGoal::ForDisplay,
-                           ReflowQueryType::NoQuery,
-                           ReflowReason::KeyEvent);
+        self.window.reflow(ReflowGoal::Full, ReflowReason::KeyEvent);
     }
 
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
@@ -1595,9 +1581,7 @@ impl Document {
 
         self.running_animation_callbacks.set(false);
 
-        let spurious = !self.window.reflow(ReflowGoal::ForDisplay,
-                                           ReflowQueryType::NoQuery,
-                                           ReflowReason::RequestAnimationFrame);
+        let spurious = !self.window.reflow(ReflowGoal::Full, ReflowReason::RequestAnimationFrame);
 
         if spurious && !was_faking_animation_frames {
             // If the rAF callbacks did not mutate the DOM, then the
@@ -1610,9 +1594,7 @@ impl Document {
             // for the interim frames where we are deciding whether this rAF
             // is considered spurious, we need to ensure that the layout
             // and compositor *do* tick the animation.
-            self.window.force_reflow(ReflowGoal::ForDisplay,
-                                     ReflowQueryType::NoQuery,
-                                     ReflowReason::RequestAnimationFrame);
+            self.window.force_reflow(ReflowGoal::Full, ReflowReason::RequestAnimationFrame);
         }
 
         // Only send the animation change state message after running any callbacks.
@@ -1670,9 +1652,7 @@ impl Document {
                     // Disarm the reflow timer and trigger the initial reflow.
                     self.reflow_timeout.set(None);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                    self.window.reflow(ReflowGoal::ForDisplay,
-                                       ReflowQueryType::NoQuery,
-                                       ReflowReason::FirstLoad);
+                    self.window.reflow(ReflowGoal::Full, ReflowReason::FirstLoad);
                 }
 
                 // Deferred scripts have to wait for page to finish loading,
@@ -1749,11 +1729,7 @@ impl Document {
                 // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                 update_with_current_time_ms(&document.load_event_end);
 
-                window.reflow(
-                    ReflowGoal::ForDisplay,
-                    ReflowQueryType::NoQuery,
-                    ReflowReason::DocumentLoaded,
-                );
+                window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
 
                 document.notify_constellation_load();
 
@@ -1900,9 +1876,7 @@ impl Document {
         window.dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
             EventBubbles::Bubbles, EventCancelable::NotCancelable, window);
 
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::DOMContentLoaded);
+        window.reflow(ReflowGoal::Full, ReflowReason::DOMContentLoaded);
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
 
         // Step 4.2.
@@ -2032,9 +2006,7 @@ impl Document {
     }
 
     pub fn nodes_from_point(&self, client_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        if !self.window.reflow(ReflowGoal::ForScriptQuery,
-                               ReflowQueryType::NodesFromPoint(*client_point),
-                               ReflowReason::Query) {
+        if !self.window.reflow(ReflowGoal::NodesFromPoint(*client_point), ReflowReason::Query) {
             return vec!();
         };
 
@@ -2591,9 +2563,7 @@ impl Document {
             element.set_target_state(true);
         }
 
-        self.window.reflow(ReflowGoal::ForDisplay,
-                           ReflowQueryType::NoQuery,
-                           ReflowReason::ElementStateChanged);
+        self.window.reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
     }
 
     pub fn incr_ignore_destructive_writes_counter(&self) {

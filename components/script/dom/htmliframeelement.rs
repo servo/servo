@@ -42,7 +42,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::response::HttpsState;
-use script_layout_interface::message::ReflowQueryType;
+use script_layout_interface::message::ReflowGoal;
 use script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg};
@@ -53,7 +53,6 @@ use servo_config::servo_version;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use style::context::ReflowGoal;
 use task_source::TaskSource;
 
 bitflags! {
@@ -313,9 +312,7 @@ impl HTMLIFrameElement {
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         let window = window_from_node(self);
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::FramedContentChanged);
+        window.reflow(ReflowGoal::Full, ReflowReason::FramedContentChanged);
     }
 
     fn new_inherited(local_name: LocalName,
@@ -396,9 +393,7 @@ impl HTMLIFrameElement {
         // TODO Step 5 - unset child document `mut iframe load` flag
 
         let window = window_from_node(self);
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::IFrameLoadEvent);
+        window.reflow(ReflowGoal::Full, ReflowReason::IFrameLoadEvent);
     }
 
     /// Check whether the iframe has the mozprivatebrowsing attribute set
