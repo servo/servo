@@ -84,7 +84,7 @@ use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestIni
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowQueryType};
+use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, get_reports, new_rt_and_cx};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
@@ -113,7 +113,6 @@ use std::result::Result;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
-use style::context::ReflowGoal;
 use style::thread_state;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
@@ -1091,17 +1090,13 @@ impl ScriptThread {
             let window = document.window();
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
-                window.reflow(ReflowGoal::ForDisplay,
-                              ReflowQueryType::NoQuery,
-                              ReflowReason::ImageLoaded);
+                window.reflow(ReflowGoal::Full, ReflowReason::ImageLoaded);
             } else {
                 // Reflow currently happens when explicitly invoked by code that
                 // knows the document could have been modified. This should really
                 // be driven by the compositor on an as-needed basis instead, to
                 // minimize unnecessary work.
-                window.reflow(ReflowGoal::ForDisplay,
-                              ReflowQueryType::NoQuery,
-                              ReflowReason::MissingExplicitReflow);
+                window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
             }
         }
 
@@ -2173,7 +2168,7 @@ impl ScriptThread {
     fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
         let window = window_from_node(&*document);
         document.dirty_all_nodes();
-        window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
+        window.reflow(ReflowGoal::Full, reason);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -2382,9 +2377,7 @@ impl ScriptThread {
 
         let window = document.window();
         window.set_window_size(new_size);
-        window.force_reflow(ReflowGoal::ForDisplay,
-                            ReflowQueryType::NoQuery,
-                            ReflowReason::WindowResize);
+        window.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize);
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {

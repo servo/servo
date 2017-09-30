@@ -819,15 +819,6 @@ pub struct StyleContext<'a, E: TElement + 'a> {
     pub thread_local: &'a mut ThreadLocalStyleContext<E>,
 }
 
-/// Why we're doing reflow.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ReflowGoal {
-    /// We're reflowing in order to send a display list to the screen.
-    ForDisplay,
-    /// We're reflowing in order to satisfy a script query. No display list will be created.
-    ForScriptQuery,
-}
-
 /// A registered painter
 #[cfg(feature = "servo")]
 pub trait RegisteredSpeculativePainter: SpeculativePainter {
