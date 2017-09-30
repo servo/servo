@@ -25,6 +25,7 @@ extern crate layout;
 extern crate layout_traits;
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate metrics;
@@ -75,7 +76,6 @@ use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT, RelayoutMode};
 use layout::layout_debug;
-use layout::opaque_node::OpaqueNodeMethods;
 use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
 use layout::query::{process_margin_style_query, process_node_overflow_request, process_resolved_style_request};
@@ -86,6 +86,7 @@ use layout::traversal::{ComputeStackingRelativePositions, PreorderFlowTraversal,
 use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
+use libc::c_void;
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -94,8 +95,8 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowGoal};
-use script_layout_interface::message::{ScriptReflow, ReflowComplete};
+use script_layout_interface::message::{Msg, NewLayoutThreadInfo, NodesFromPointQueryType, Reflow};
+use script_layout_interface::message::{ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
@@ -122,10 +123,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
-use style::context::{QuirksMode, SharedStyleContext};
-use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
-use style::context::RegisteredSpeculativePainter;
-use style::context::RegisteredSpeculativePainters;
+use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
+use style::context::{SharedStyleContext, StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::driver;
 use style::error_reporting::{NullReporter, RustLogReporter};
@@ -521,7 +520,6 @@ impl LayoutThread {
                     content_box_response: None,
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
-                    hit_test_response: (None, false),
                     scroll_root_id_response: None,
                     scroll_area_response: Rect::zero(),
                     overflow_response: NodeOverflowResponse(None),
@@ -706,6 +704,14 @@ impl LayoutThread {
             Msg::UpdateScrollStateFromScript(state) => {
                 let mut rw_data = possibly_locked_rw_data.lock();
                 rw_data.scroll_offsets.insert(state.scroll_root_id, state.scroll_offset);
+
+                let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
+                self.webrender_api.scroll_node_with_id(
+                    self.webrender_document,
+                    webrender_api::LayoutPoint::from_untyped(&point),
+                    state.scroll_root_id,
+                    webrender_api::ScrollClamping::ToContentBounds
+                );
             }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
@@ -1079,10 +1085,7 @@ impl LayoutThread {
                     ReflowGoal::ContentBoxesQuery(_) => {
                         rw_data.content_boxes_response = Vec::new();
                     },
-                    ReflowGoal::HitTestQuery(..) => {
-                        rw_data.hit_test_response = (None, false);
-                    },
-                    ReflowGoal::NodesFromPoint(..) => {
+                    ReflowGoal::NodesFromPointQuery(..) => {
                         rw_data.nodes_from_point_response = Vec::new();
                     },
                     ReflowGoal::NodeGeometryQuery(_) => {
@@ -1356,15 +1359,6 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
             },
-            ReflowGoal::HitTestQuery(client_point, update_cursor) => {
-                let point = Point2D::new(Au::from_f32_px(client_point.x),
-                                         Au::from_f32_px(client_point.y));
-                let result = rw_data.display_list
-                                    .as_ref()
-                                    .expect("Tried to hit test with no display list")
-                                    .hit_test(&point, &rw_data.scroll_offsets);
-                rw_data.hit_test_response = (result.last().cloned(), update_cursor);
-            },
             ReflowGoal::TextIndexQuery(node, mouse_x, mouse_y) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 let opaque_node = node.opaque();
@@ -1412,25 +1406,28 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.margin_style_response = process_margin_style_query(node);
             },
-            ReflowGoal::NodesFromPoint(client_point) => {
-                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
-                                                Au::from_f32_px(client_point.y));
-                let nodes_from_point_list = {
-                    let result = match rw_data.display_list {
-                        None => panic!("Tried to hit test without a DisplayList"),
-                        Some(ref display_list) => {
-                            display_list.hit_test(&client_point, &rw_data.scroll_offsets)
-                        }
-                    };
-
-                    result
+            ReflowGoal::NodesFromPointQuery(client_point, ref reflow_goal) => {
+                let mut flags = match reflow_goal {
+                    &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
+                    &NodesFromPointQueryType::All => webrender_api::FIND_ALL,
                 };
 
-                rw_data.nodes_from_point_response = nodes_from_point_list.iter()
-                   .rev()
-                   .map(|metadata| metadata.node.to_untrusted_node_address())
+                // The point we get is not relative to the entire WebRender scene, but to this
+                // particular pipeline, so we need to tell WebRender about that.
+                flags.insert(webrender_api::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
+
+                let client_point = webrender_api::WorldPoint::from_untyped(&client_point);
+                let results = self.webrender_api.hit_test(
+                    self.webrender_document,
+                    Some(self.id.to_webrender()),
+                    client_point,
+                    flags
+                );
+
+                rw_data.nodes_from_point_response = results.items.iter()
+                   .map(|item| UntrustedNodeAddress(item.tag.0 as *const c_void))
                    .collect()
-            }
+            },
 
             ReflowGoal::Full | ReflowGoal::TickAnimations => {}
         }

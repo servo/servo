@@ -1004,7 +1004,7 @@ impl ScriptThread {
                 }
                 FromConstellation(ConstellationControlMsg::SendEvent(
                         _,
-                        MouseMoveEvent(_))) => {
+                        MouseMoveEvent(..))) => {
                     match mouse_move_event_index {
                         None => {
                             mouse_move_event_index = Some(sequential.len());
@@ -2180,11 +2180,11 @@ impl ScriptThread {
                 self.handle_resize_event(pipeline_id, new_size, size_type);
             }
 
-            MouseButtonEvent(event_type, button, point) => {
-                self.handle_mouse_event(pipeline_id, event_type, button, point);
+            MouseButtonEvent(event_type, button, point, node_address) => {
+                self.handle_mouse_event(pipeline_id, event_type, button, point, node_address);
             }
 
-            MouseMoveEvent(point) => {
+            MouseMoveEvent(point, node_address) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
@@ -2194,7 +2194,8 @@ impl ScriptThread {
                 let prev_mouse_over_target = self.topmost_mouse_over_target.get();
 
                 document.handle_mouse_move_event(self.js_runtime.rt(), point,
-                                                 &self.topmost_mouse_over_target);
+                                                 &self.topmost_mouse_over_target,
+                                                 node_address);
 
                 // Short-circuit if nothing changed
                 if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
@@ -2237,8 +2238,14 @@ impl ScriptThread {
                     }
                 }
             }
-            TouchEvent(event_type, identifier, point) => {
-                let touch_result = self.handle_touch_event(pipeline_id, event_type, identifier, point);
+            TouchEvent(event_type, identifier, point, node_address) => {
+                let touch_result = self.handle_touch_event(
+                    pipeline_id,
+                    event_type,
+                    identifier,
+                    point,
+                    node_address
+                );
                 match (event_type, touch_result) {
                     (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
                         let result = if handled {
@@ -2256,12 +2263,17 @@ impl ScriptThread {
                 }
             }
 
-            TouchpadPressureEvent(point, pressure, phase) => {
+            TouchpadPressureEvent(_point, pressure, phase, node_address) => {
                 let doc = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(doc) => doc,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
-                doc.handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
+                doc.handle_touchpad_pressure_event(
+                    self.js_runtime.rt(),
+                    pressure,
+                    phase,
+                    node_address
+                );
             }
 
             KeyEvent(ch, key, state, modifiers) => {
@@ -2278,19 +2290,27 @@ impl ScriptThread {
                           pipeline_id: PipelineId,
                           mouse_event_type: MouseEventType,
                           button: MouseButton,
-                          point: Point2D<f32>) {
+                          point: Point2D<f32>,
+                          node_address: Option<u64>) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
-        document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
+        document.handle_mouse_event(
+            self.js_runtime.rt(),
+            button,
+            point,
+            mouse_event_type,
+            node_address
+        );
     }
 
     fn handle_touch_event(&self,
                           pipeline_id: PipelineId,
                           event_type: TouchEventType,
                           identifier: TouchId,
-                          point: Point2D<f32>)
+                          point: Point2D<f32>,
+                          node_address: Option<u64>)
                           -> TouchEventResult {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
@@ -2299,7 +2319,13 @@ impl ScriptThread {
                 return TouchEventResult::Processed(true);
             },
         };
-        document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
+        document.handle_touch_event(
+            self.js_runtime.rt(),
+            event_type,
+            identifier,
+            point,
+            node_address
+        )
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
