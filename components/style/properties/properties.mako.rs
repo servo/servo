@@ -15,7 +15,6 @@ use app_units::Au;
 use servo_arc::{Arc, UniqueArc};
 use smallbitvec::SmallBitVec;
 use std::borrow::Cow;
-use hash::HashSet;
 use std::{fmt, mem, ops};
 use std::cell::RefCell;
 #[cfg(feature = "gecko")] use std::ptr;
@@ -35,6 +34,7 @@ use media_queries::Device;
 use parser::ParserContext;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use rule_cache::{RuleCache, RuleCacheConditions};
+use selector_map::PrecomputedHashSet;
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
@@ -3272,7 +3272,7 @@ where
 
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
-    let mut seen_custom = HashSet::new();
+    let mut seen_custom = PrecomputedHashSet::default();
     for (declaration, _cascade_level) in iter_declarations() {
         if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
             ::custom_properties::cascade(
