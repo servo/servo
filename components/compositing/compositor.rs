@@ -6,20 +6,20 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg, RenderListener};
-use euclid::{Point2D, TypedPoint2D, TypedVector2D, ScaleFactor};
+use euclid::{TypedPoint2D, TypedVector2D, ScaleFactor};
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSharedMemory};
+use libc::c_void;
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::{Image, PixelFormat};
 use nonzero::NonZero;
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
-use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton};
-use script_traits::{MouseEventType, ScrollState};
-use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{self, MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
+use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
+use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
+use script_traits::{TouchpadPressurePhase, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::DeviceIndependentPixel;
@@ -29,12 +29,13 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
+use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_api::{self, ClipId, DeviceUintRect, DeviceUintSize, LayoutPoint, LayoutVector2D};
-use webrender_api::{ScrollEventPhase, ScrollLocation, ScrollClamping};
+use webrender_api::{self, DeviceUintRect, DeviceUintSize, HitTestFlags, HitTestResult};
+use webrender_api::{LayoutVector2D, ScrollEventPhase, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
@@ -464,11 +465,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.send_viewport_rects();
             }
 
-            (Msg::ScrollFragmentPoint(scroll_root_id, point, _),
-             ShutdownState::NotShuttingDown) => {
-                self.scroll_fragment_to_point(scroll_root_id, point);
-            }
-
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             }
@@ -656,13 +652,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn scroll_fragment_to_point(&mut self, id: ClipId, point: Point2D<f32>) {
-        self.webrender_api.scroll_node_with_id(self.webrender_document,
-                                               LayoutPoint::from_untyped(&point),
-                                               id,
-                                               ScrollClamping::ToContentBounds);
-    }
-
     pub fn on_resize_window_event(&mut self, new_size: DeviceUintSize) {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
@@ -707,30 +696,45 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             MouseWindowEvent::MouseUp(_, p) => p,
         };
 
-        let root_pipeline_id = match self.get_root_pipeline_id() {
-            Some(root_pipeline_id) => root_pipeline_id,
+        let results = self.hit_test_at_point(point);
+        let result = match results.items.first() {
+            Some(result) => result,
             None => return,
         };
 
-        if let Some(pipeline) = self.pipeline(root_pipeline_id) {
-            let dppx = self.page_zoom * self.hidpi_factor();
-            let translated_point = (point / dppx).to_untyped();
-            let event_to_send = match mouse_window_event {
-                MouseWindowEvent::Click(button, _) => {
-                    MouseButtonEvent(MouseEventType::Click, button, translated_point)
-                }
-                MouseWindowEvent::MouseDown(button, _) => {
-                    MouseButtonEvent(MouseEventType::MouseDown, button, translated_point)
-                }
-                MouseWindowEvent::MouseUp(button, _) => {
-                    MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
-                }
-            };
-            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
-            if let Err(e) = pipeline.script_chan.send(msg) {
-                warn!("Sending control event to script failed ({}).", e);
+        let point = result.point_in_viewport.to_untyped();
+        let node_address = Some(UntrustedNodeAddress(result.tag.0 as *const c_void));
+        let event_to_send = match mouse_window_event {
+            MouseWindowEvent::Click(button, _) => {
+                MouseButtonEvent(MouseEventType::Click, button, point, node_address)
             }
+            MouseWindowEvent::MouseDown(button, _) => {
+                MouseButtonEvent(MouseEventType::MouseDown, button, point, node_address)
+            }
+            MouseWindowEvent::MouseUp(button, _) => {
+                MouseButtonEvent(MouseEventType::MouseUp, button, point, node_address)
+            }
+        };
+
+        let pipeline_id = PipelineId::from_webrender(result.pipeline);
+        let msg = ConstellationMsg::ForwardEvent(pipeline_id, event_to_send);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({}).", e);
         }
+    }
+
+    fn hit_test_at_point(&self, point: TypedPoint2D<f32, DevicePixel>) -> HitTestResult {
+        let dppx = self.page_zoom * self.hidpi_factor();
+        let scaled_point = (point / dppx).to_untyped();
+
+        let world_cursor = webrender_api::WorldPoint::from_untyped(&scaled_point);
+        self.webrender_api.hit_test(
+            self.webrender_document,
+            None,
+            world_cursor,
+            HitTestFlags::empty()
+        )
+
     }
 
     pub fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
@@ -751,26 +755,43 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return;
         }
 
-        let dppx = self.page_zoom * self.hidpi_factor();
-        let event_to_send = MouseMoveEvent(Some((cursor / dppx).to_untyped()));
-        let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
-        if let Some(pipeline) = self.pipeline(root_pipeline_id) {
-            if let Err(e) = pipeline.script_chan.send(msg) {
-                warn!("Sending mouse control event to script failed ({}).", e);
+        let results = self.hit_test_at_point(cursor);
+        if let Some(item) = results.items.first() {
+            let node_address = Some(UntrustedNodeAddress(item.tag.0 as *const c_void));
+            let event = MouseMoveEvent(Some(item.point_in_viewport.to_untyped()), node_address);
+            let pipeline_id = PipelineId::from_webrender(item.pipeline);
+            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({}).", e);
+            }
+
+            if let Some(cursor) =  Cursor::from_u8(item.tag.1).ok() {
+                let msg = ConstellationMsg::SetCursor(cursor);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({}).", e);
+                }
             }
         }
     }
 
-    fn send_event_to_root_pipeline(&self, event: CompositorEvent) {
-        let root_pipeline_id = match self.get_root_pipeline_id() {
-            Some(root_pipeline_id) => root_pipeline_id,
-            None => return,
-        };
-
-        if let Some(pipeline) = self.pipeline(root_pipeline_id) {
-            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event);
-            if let Err(e) = pipeline.script_chan.send(msg) {
-                warn!("Sending control event to script failed ({}).", e);
+    fn send_touch_event(
+        &self,
+        event_type: TouchEventType,
+        identifier: TouchId,
+        point: TypedPoint2D<f32, DevicePixel>)
+    {
+        let results = self.hit_test_at_point(point);
+        if let Some(item) = results.items.first() {
+            let event = TouchEvent(
+                event_type,
+                identifier,
+                item.point_in_viewport.to_untyped(),
+                Some(UntrustedNodeAddress(item.tag.0 as *const c_void)),
+            );
+            let pipeline_id = PipelineId::from_webrender(item.pipeline);
+            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({}).", e);
             }
         }
     }
@@ -789,11 +810,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         self.touch_handler.on_touch_down(identifier, point);
-        let dppx = self.page_zoom * self.hidpi_factor();
-        let translated_point = (point / dppx).to_untyped();
-        self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Down,
-                                                    identifier,
-                                                    translated_point));
+        self.send_touch_event(TouchEventType::Down, identifier, point);
     }
 
     fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
@@ -821,22 +838,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 });
             }
             TouchAction::DispatchEvent => {
-                let dppx = self.page_zoom * self.hidpi_factor();
-                let translated_point = (point / dppx).to_untyped();
-                self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Move,
-                                                            identifier,
-                                                            translated_point));
+                self.send_touch_event(TouchEventType::Move, identifier, point);
             }
             _ => {}
         }
     }
 
     fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
-        let dppx = self.page_zoom * self.hidpi_factor();
-        let translated_point = (point / dppx).to_untyped();
-        self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Up,
-                                                    identifier,
-                                                    translated_point));
+        self.send_touch_event(TouchEventType::Up, identifier, point);
+
         if let TouchAction::Click = self.touch_handler.on_touch_up(identifier, point) {
             self.simulate_mouse_click(point);
         }
@@ -845,23 +855,31 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(identifier, point);
-        let dppx = self.page_zoom * self.hidpi_factor();
-        let translated_point = (point / dppx).to_untyped();
-        self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Cancel,
-                                                    identifier,
-                                                    translated_point));
+        self.send_touch_event(TouchEventType::Cancel, identifier, point);
     }
 
     pub fn on_touchpad_pressure_event(&self,
                                   point: TypedPoint2D<f32, DevicePixel>,
                                   pressure: f32,
                                   phase: TouchpadPressurePhase) {
-        if let Some(true) = PREFS.get("dom.forcetouch.enabled").as_boolean() {
-            let dppx = self.page_zoom * self.hidpi_factor();
-            let translated_point = (point / dppx).to_untyped();
-            self.send_event_to_root_pipeline(TouchpadPressureEvent(translated_point,
-                                                                   pressure,
-                                                                   phase));
+        match PREFS.get("dom.forcetouch.enabled").as_boolean() {
+            Some(true) => {},
+            _ => return,
+        }
+
+        let results = self.hit_test_at_point(point);
+        if let Some(item) = results.items.first() {
+            let event = TouchpadPressureEvent(
+                item.point_in_viewport.to_untyped(),
+                pressure,
+                phase,
+                Some(UntrustedNodeAddress(item.tag.0 as *const c_void)),
+            );
+            let pipeline_id = PipelineId::from_webrender(item.pipeline);
+            let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({}).", e);
+            }
         }
     }
 

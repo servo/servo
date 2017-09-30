@@ -25,6 +25,7 @@ ipc-channel = "0.9"
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}
 lazy_static = "0.2"
+libc = "0.2"
 log = "0.3.5"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}

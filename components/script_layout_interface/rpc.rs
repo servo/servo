@@ -29,17 +29,15 @@ pub trait LayoutRPC {
     fn node_scroll_area(&self) -> NodeGeometryResponse;
     /// Requests the scroll root id of this node. Used by APIs such as `scrollTop`
     fn node_scroll_root_id(&self) -> NodeScrollRootIdResponse;
-    /// Requests the node containing the point of interest
-    fn hit_test(&self) -> HitTestResponse;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
     /// Query layout for the resolve values of the margin properties for an element.
     fn margin_style(&self) -> MarginStyleResponse;
+    fn text_index(&self) -> TextIndexResponse;
     /// Requests the list of nodes from the given point.
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
 
-    fn text_index(&self) -> TextIndexResponse;
 }
 
 pub struct ContentBoxResponse(pub Option<Rect<Au>>);
@@ -53,10 +51,6 @@ pub struct NodeGeometryResponse {
 pub struct NodeOverflowResponse(pub Option<Point2D<overflow_x::computed_value::T>>);
 
 pub struct NodeScrollRootIdResponse(pub ClipId);
-
-pub struct HitTestResponse {
-    pub node_address: Option<UntrustedNodeAddress>,
-}
 
 pub struct ResolvedStyleResponse(pub String);
 

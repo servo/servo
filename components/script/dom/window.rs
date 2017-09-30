@@ -1149,28 +1149,15 @@ impl Window {
                             x: f32,
                             y: f32,
                             scroll_root_id: ClipId,
-                            behavior: ScrollBehavior,
-                            element: Option<&Element>) {
-        //TODO Step 1
-        let point = Point2D::new(x, y);
-        let smooth = match behavior {
-            ScrollBehavior::Auto => {
-                element.map_or(false, |_element| {
-                    // TODO check computed scroll-behaviour CSS property
-                    true
-                })
-            }
-            ScrollBehavior::Instant => false,
-            ScrollBehavior::Smooth => true
-        };
-
+                            _behavior: ScrollBehavior,
+                            _element: Option<&Element>) {
+        // TODO Step 1
+        // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
+        // properly process ScrollBehavior here.
         self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
             scroll_root_id: scroll_root_id,
             scroll_offset: Vector2D::new(-x, -y),
         })).unwrap();
-
-        let message = ScriptMsg::ScrollFragmentPoint(scroll_root_id, point, smooth);
-        self.send_to_constellation(message);
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1404,18 +1391,6 @@ impl Window {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
-    }
-
-    pub fn hit_test_query(&self,
-                          client_point: Point2D<f32>,
-                          update_cursor: bool)
-                          -> Option<UntrustedNodeAddress> {
-        if !self.reflow(ReflowGoal::HitTestQuery(client_point, update_cursor),
-                        ReflowReason::Query) {
-            return None
-        }
-
-        self.layout_rpc.hit_test().node_address
     }
 
     pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
@@ -1910,8 +1885,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::Full => "\tFull",
         ReflowGoal::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowGoal::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
-        ReflowGoal::HitTestQuery(..) => "\tHitTestQuery",
-        ReflowGoal::NodesFromPoint(..) => "\tNodesFromPoint",
+        ReflowGoal::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
         ReflowGoal::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowGoal::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowGoal::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
