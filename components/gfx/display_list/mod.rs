@@ -48,74 +48,6 @@ pub struct DisplayList {
     pub list: Vec<DisplayItem>,
 }
 
-struct ScrollOffsetLookup<'a> {
-    parents: &'a mut HashMap<ClipId, ClipId>,
-    calculated_total_offsets: ScrollOffsetMap,
-    raw_offsets: &'a ScrollOffsetMap,
-}
-
-impl<'a> ScrollOffsetLookup<'a> {
-    fn new(parents: &'a mut HashMap<ClipId, ClipId>,
-           raw_offsets: &'a ScrollOffsetMap)
-           -> ScrollOffsetLookup<'a> {
-        ScrollOffsetLookup {
-            parents: parents,
-            calculated_total_offsets: HashMap::new(),
-            raw_offsets: raw_offsets,
-        }
-    }
-
-    fn new_for_reference_frame(&mut self,
-                               clip_id: ClipId,
-                               transform: &Transform3D<f32>,
-                               point: &mut Point2D<Au>)
-                               -> Option<ScrollOffsetLookup> {
-        // If a transform function causes the current transformation matrix of an object
-        // to be non-invertible, the object and its content do not get displayed.
-        let inv_transform = match transform.inverse() {
-            Some(transform) => transform,
-            None => return None,
-        };
-
-        let scroll_offset = self.full_offset_for_clip_scroll_node(&clip_id);
-        *point = Point2D::new(point.x - Au::from_f32_px(scroll_offset.x),
-                              point.y - Au::from_f32_px(scroll_offset.y));
-        let frac_point = inv_transform.transform_point2d(&Point2D::new(point.x.to_f32_px(),
-                                                                       point.y.to_f32_px()));
-        *point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
-
-        let mut sublookup = ScrollOffsetLookup {
-            parents: &mut self.parents,
-            calculated_total_offsets: HashMap::new(),
-            raw_offsets: self.raw_offsets,
-        };
-        sublookup.calculated_total_offsets.insert(clip_id, Vector2D::zero());
-        Some(sublookup)
-    }
-
-    fn add_clip_scroll_node(&mut self, clip_scroll_node: &ClipScrollNode) {
-        self.parents.insert(clip_scroll_node.id, clip_scroll_node.parent_id);
-    }
-
-    fn full_offset_for_clip_scroll_node(&mut self, id: &ClipId) -> Vector2D<f32> {
-        if let Some(offset) = self.calculated_total_offsets.get(id) {
-            return *offset;
-        }
-
-        let parent_offset = if !id.is_root_scroll_node() {
-            let parent_id = *self.parents.get(id).unwrap();
-            self.full_offset_for_clip_scroll_node(&parent_id)
-        } else {
-            Vector2D::zero()
-        };
-
-        let offset = parent_offset +
-                     self.raw_offsets.get(id).cloned().unwrap_or_else(Vector2D::zero);
-        self.calculated_total_offsets.insert(*id, offset);
-        offset
-    }
-}
-
 impl DisplayList {
     /// Return the bounds of this display list based on the dimensions of the root
     /// stacking context.
@@ -128,82 +60,23 @@ impl DisplayList {
     }
 
     // Returns the text index within a node for the point of interest.
-    pub fn text_index(&self,
-                      node: OpaqueNode,
-                      client_point: &Point2D<Au>,
-                      scroll_offsets: &ScrollOffsetMap)
-                      -> Option<usize> {
-        let mut result = Vec::new();
+    pub fn text_index(&self, node: OpaqueNode, point_in_item: &Point2D<Au>) -> Option<usize> {
         let mut traversal = DisplayListTraversal::new(self);
-        self.text_index_contents(node,
-                                 &mut traversal,
-                                 client_point,
-                                 &mut ScrollOffsetLookup::new(&mut HashMap::new(), scroll_offsets),
-                                 &mut result);
-        result.pop()
-    }
-
-    fn text_index_contents<'a>(&self,
-                               node: OpaqueNode,
-                               traversal: &mut DisplayListTraversal<'a>,
-                               point: &Point2D<Au>,
-                               offset_lookup: &mut ScrollOffsetLookup,
-                               result: &mut Vec<usize>) {
         while let Some(item) = traversal.next() {
             match item {
-                &DisplayItem::PushStackingContext(ref context_item) => {
-                    self.text_index_stacking_context(&context_item.stacking_context,
-                                                     item.scroll_node_id(),
-                                                     node,
-                                                     traversal,
-                                                     point,
-                                                     offset_lookup,
-                                                     result);
-                }
-                &DisplayItem::DefineClipScrollNode(ref item) => {
-                    offset_lookup.add_clip_scroll_node(&item.node);
-                }
-                &DisplayItem::PopStackingContext(_) => return,
                 &DisplayItem::Text(ref text) => {
                     let base = item.base();
                     if base.metadata.node == node {
-                        let offset = *point - text.baseline_origin;
-                        let index = text.text_run.range_index_of_advance(&text.range, offset.x);
-                        result.push(index);
+                        let point = *point_in_item + item.base().bounds.origin.to_vector();
+                        let offset = point - text.baseline_origin;
+                        return Some(text.text_run.range_index_of_advance(&text.range, offset.x));
                     }
                 },
                 _ => {},
             }
         }
-    }
 
-    fn text_index_stacking_context<'a>(&self,
-                                       stacking_context: &StackingContext,
-                                       clip_id: ClipId,
-                                       node: OpaqueNode,
-                                       traversal: &mut DisplayListTraversal<'a>,
-                                       point: &Point2D<Au>,
-                                       offset_lookup: &mut ScrollOffsetLookup,
-                                       result: &mut Vec<usize>) {
-        let mut point = *point - stacking_context.bounds.origin.to_vector();
-        if stacking_context.scroll_policy == ScrollPolicy::Fixed {
-            let old_offset = offset_lookup.calculated_total_offsets.get(&clip_id).cloned();
-            offset_lookup.calculated_total_offsets.insert(clip_id, Vector2D::zero());
-
-            self.text_index_contents(node, traversal, &point, offset_lookup, result);
-
-            match old_offset {
-                Some(offset) => offset_lookup.calculated_total_offsets.insert(clip_id, offset),
-                None => offset_lookup.calculated_total_offsets.remove(&clip_id),
-            };
-        } else if let Some(transform) = stacking_context.transform {
-            if let Some(ref mut sublookup) =
-                offset_lookup.new_for_reference_frame(clip_id, &transform, &mut point) {
-                self.text_index_contents(node, traversal, &point, sublookup, result);
-            }
-        } else {
-            self.text_index_contents(node, traversal, &point, offset_lookup, result);
-        }
+        None
     }
 
     pub fn print(&self) {
