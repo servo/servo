@@ -10,16 +10,15 @@ use context::LayoutContext;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
 use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
+use gfx::display_list::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use inline::LAST_FRAGMENT_OF_ELEMENT;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
-use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
-use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
+use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
-use script_layout_interface::rpc::{NodeOverflowResponse, OffsetParentResponse};
-use script_layout_interface::rpc::{NodeScrollRootIdResponse, ResolvedStyleResponse, TextIndexResponse};
+use script_layout_interface::rpc::{NodeOverflowResponse, NodeScrollRootIdResponse};
+use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, TextIndexResponse};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -35,7 +34,6 @@ use style::properties::{style_structs, PropertyId, PropertyDeclarationId, Longha
 use style::properties::longhands::{display, position};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
-use style_traits::cursor::Cursor;
 use webrender_api::ClipId;
 use wrapper::LayoutNodeLayoutData;
 
@@ -57,9 +55,6 @@ pub struct LayoutThreadData {
 
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
-
-    /// A queued response for the node at a given point
-    pub hit_test_response: (Option<DisplayItemMetadata>, bool),
 
     /// A queued response for the scroll root id for a given node.
     pub scroll_root_id_response: Option<ClipId>,
@@ -117,24 +112,6 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
-    }
-
-    /// Requests the node containing the point of interest.
-    fn hit_test(&self) -> HitTestResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        let &(ref result, update_cursor) = &rw_data.hit_test_response;
-        if update_cursor {
-            // Compute the new cursor.
-            let cursor = match *result {
-                None => Cursor::Default,
-                Some(dim) => dim.pointing.unwrap(),
-            };
-            rw_data.constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
-        }
-        HitTestResponse {
-            node_address: result.map(|dim| dim.node.to_untrusted_node_address()),
-        }
     }
 
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress> {
