@@ -2090,6 +2090,26 @@ pub struct ComputedValues {
 }
 
 impl ComputedValues {
+    /// Whether we're a visited style.
+    pub fn is_style_if_visited(&self) -> bool {
+        self.flags.contains(IS_STYLE_IF_VISITED)
+    }
+
+    /// Whether there is a visited style.
+    pub fn has_visited_style(&self) -> bool {
+        self.visited_style.is_some()
+    }
+
+    /// Gets a reference to the visited style, if any.
+    pub fn get_visited_style(&self) -> Option<<&ComputedValues> {
+        self.visited_style.as_ref().map(|x| &**x)
+    }
+
+    /// Gets a reference to the rule node. Panic if no rule node exists.
+    pub fn rules(&self) -> &StrongRuleNode {
+        self.rules.as_ref().unwrap()
+    }
+
     /// Returns the visited rules, if applicable.
     pub fn visited_rules(&self) -> Option<<&StrongRuleNode> {
         self.visited_style.as_ref().and_then(|s| s.rules.as_ref())
@@ -2216,34 +2236,14 @@ impl ComputedValuesInner {
         self.rules.as_ref().unwrap()
     }
 
-    /// Whether there is a visited style.
-    pub fn has_visited_style(&self) -> bool {
-        self.visited_style.is_some()
-    }
-
-    /// Gets a reference to the visited style, if any.
-    pub fn get_visited_style(&self) -> Option< & ComputedValues> {
-        self.visited_style.as_ref().map(|x| &**x)
-    }
-
-    /// Gets a reference to the visited style. Panic if no visited style exists.
-    pub fn visited_style(&self) -> &ComputedValues {
-        self.get_visited_style().unwrap()
-    }
+    /// Whether this style has a -moz-binding value. This is always false for
+    /// Servo for obvious reasons.
+    pub fn has_moz_binding(&self) -> bool { false }
 
     /// Clone the visited style.  Used for inheriting parent styles in
     /// StyleBuilder::for_inheritance.
     pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
         self.visited_style.clone()
-    }
-
-    /// Whether this style has a -moz-binding value. This is always false for
-    /// Servo for obvious reasons.
-    pub fn has_moz_binding(&self) -> bool { false }
-
-    /// Whether we're a visited style.
-    pub fn is_style_if_visited(&self) -> bool {
-        self.flags.contains(IS_STYLE_IF_VISITED)
     }
 
     /// Returns whether this style's display value is equal to contents.
