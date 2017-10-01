@@ -206,7 +206,7 @@ impl CascadeInputs {
     pub fn new_from_style(style: &ComputedValues) -> Self {
         CascadeInputs {
             rules: style.rules.clone(),
-            visited_rules: style.get_visited_style().and_then(|v| v.rules.clone()),
+            visited_rules: style.visited_style().and_then(|v| v.rules.clone()),
         }
     }
 }

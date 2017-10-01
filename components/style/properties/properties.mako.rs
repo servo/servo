@@ -2100,14 +2100,14 @@ impl ComputedValues {
         self.visited_style.is_some()
     }
 
-    /// Gets a reference to the visited style, if any.
-    pub fn get_visited_style(&self) -> Option<<&ComputedValues> {
-        self.visited_style.as_ref().map(|x| &**x)
-    }
-
     /// Gets a reference to the rule node. Panic if no rule node exists.
     pub fn rules(&self) -> &StrongRuleNode {
         self.rules.as_ref().unwrap()
+    }
+
+    /// Returns the visited style, if any.
+    pub fn visited_style(&self) -> Option<<&ComputedValues> {
+        self.visited_style.as_ref().map(|s| &**s)
     }
 
     /// Returns the visited rules, if applicable.
