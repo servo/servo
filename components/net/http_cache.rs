@@ -75,8 +75,7 @@ struct CachedResource {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone)]
-pub struct CachedMetadata {
+struct CachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
 
@@ -91,6 +90,12 @@ pub struct CachedMetadata {
 
     /// HTTP Status
     pub status: Option<(u16, Vec<u8>)>
+}
+
+/// Wrapper around a cached response, including information on re-validation needs
+pub struct CachedResponse {
+    response: Response,
+    needs_revalidation: bool
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
@@ -201,7 +206,7 @@ impl HttpCache {
     }
 
     /// Try to fetch a cached response.
-    pub fn try_cache_fetch(&self, request: &Request) -> Option<Response> {
+    pub fn try_cache_fetch(&self, request: &Request) -> Option<CachedResponse> {
         let entry_key = CacheKey::new(request.clone());
         if let Some(cached_resource) = self.entries.get(&entry_key) {
             let mut response = Response::new(cached_resource.metadata.final_url.clone());
@@ -215,7 +220,7 @@ impl HttpCache {
             };
             response.headers = headers;
             response.body = Arc::new(Mutex::new(cached_resource.body.clone()));
-            return Some(response);
+            return Some(CachedResponse { response: response, needs_revalidation: false });
         }
         None
     }
