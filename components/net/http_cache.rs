@@ -205,6 +205,13 @@ impl HttpCache {
         let entry_key = CacheKey::new(request.clone());
         if let Some(cached_resource) = self.entries.get(&entry_key) {
             let mut response = Response::new(cached_resource.metadata.final_url.clone());
+            let mut headers = Headers::new();
+            if let Some(ref header_list) = cached_resource.metadata.headers {
+                for &(ref name, ref value) in header_list {
+                    headers.set_raw(name.clone(), vec![value.clone().into_bytes()]);
+                }
+            };
+            response.headers = headers;
             response.body = Arc::new(Mutex::new(cached_resource.body.clone()));
             return Some(response);
         }
@@ -226,7 +233,7 @@ impl HttpCache {
                         Some(headers.iter()
                             .map(|header|
                                     (String::from_str(header.name()).unwrap_or(String::from("None")),
-                                    header.value_string()))
+                                     header.value_string()))
                             .collect()));
                     let cacheable_metadata = CachedMetadata {
                         final_url: metadata.final_url,
