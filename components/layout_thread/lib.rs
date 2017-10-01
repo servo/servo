@@ -1318,6 +1318,7 @@ impl LayoutThread {
                                                          &mut layout_context);
         }
 
+        self.first_reflow.set(false);
         self.respond_to_query_if_necessary(&data.reflow_goal,
                                            &mut *rw_data,
                                            &mut layout_context,
@@ -1617,8 +1618,6 @@ impl LayoutThread {
                                                     FlowRef::deref_mut(&mut root_flow),
                                                     &mut *layout_context,
                                                     rw_data);
-
-        self.first_reflow.set(false);
 
         if opts::get().trace_layout {
             layout_debug::end_trace(self.generation.get());
