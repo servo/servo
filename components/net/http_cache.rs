@@ -9,10 +9,11 @@
 //! and http://tools.ietf.org/html/rfc7232.
 
 use hyper::header;
-use hyper::header::EntityTag;
+use hyper::header::{ContentType, EntityTag};
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
+use hyper_serde::Serde;
 use net_traits::{Metadata, FetchMetadata, FilteredMetadata};
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -76,9 +77,20 @@ struct CachedResource {
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
 #[derive(Clone)]
 pub struct CachedMetadata {
-    /// Headers
-    pub headers: Vec<(String, String)>,
+    /// Final URL after redirects.
+    pub final_url: ServoUrl,
 
+    /// MIME type / subtype.
+    pub content_type: Option<Serde<ContentType>>,
+
+    /// Character set.
+    pub charset: Option<String>,
+
+    /// Headers
+    pub headers: Option<Vec<(String, String)>>,
+
+    /// HTTP Status
+    pub status: Option<(u16, Vec<u8>)>
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
@@ -203,24 +215,27 @@ impl HttpCache {
                 filtered: FilteredMetadata::Cors(metadata),
                 unsafe_: unsafe_metadata }) => {
                 if response_is_cacheable(&metadata) {
-                    if let Some(headers) = metadata.headers {
-                        let entry_key = CacheKey::new(request.clone());
-                        let cacheable_metadata = CachedMetadata {
-                            headers: headers
-                                         .iter()
-                                         .map(|header|
-                                             (String::from_str(header.name()).unwrap_or(String::from("None")),
-                                             header.value_string()))
-                                         .collect()
-                        };
-                        let entry_resource = CachedResource {
-                            metadata: cacheable_metadata,
-                            body: response.body.lock().unwrap().clone(),
-                            expires: get_response_expiry_from_headers(&response.headers),
-                            last_validated: time::now()
-                        };
-                        self.entries.insert(entry_key, entry_resource);
-                    }
+                    let entry_key = CacheKey::new(request.clone());
+                    let raw_headers = metadata.headers.map_or(None, |headers|
+                        Some(headers.iter()
+                            .map(|header|
+                                    (String::from_str(header.name()).unwrap_or(String::from("None")),
+                                    header.value_string()))
+                            .collect()));
+                    let cacheable_metadata = CachedMetadata {
+                        final_url: metadata.final_url,
+                        content_type: metadata.content_type,
+                        charset: metadata.charset,
+                        status: metadata.status,
+                        headers: raw_headers
+                    };
+                    let entry_resource = CachedResource {
+                        metadata: cacheable_metadata,
+                        body: response.body.lock().unwrap().clone(),
+                        expires: get_response_expiry_from_headers(&response.headers),
+                        last_validated: time::now()
+                    };
+                    self.entries.insert(entry_key, entry_resource);
                 }
             },
             _ => {}
