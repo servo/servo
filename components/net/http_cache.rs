@@ -67,9 +67,18 @@ impl CacheKey {
 
 /// A complete cached resource.
 struct CachedResource {
+    metadata: CachedMetadata,
     body: ResponseBody,
     expires: Duration,
     last_validated: Tm,
+}
+
+/// Metadata about a loaded resource, such as is obtained from HTTP headers.
+#[derive(Clone)]
+pub struct CachedMetadata {
+    /// Headers
+    pub headers: Vec<(String, String)>,
+
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
@@ -194,13 +203,24 @@ impl HttpCache {
                 filtered: FilteredMetadata::Cors(metadata),
                 unsafe_: unsafe_metadata }) => {
                 if response_is_cacheable(&metadata) {
-                    let entry_key = CacheKey::new(request.clone());
-                    let entry_resource = CachedResource {
-                        body: response.body.lock().unwrap().clone(),
-                        expires: get_response_expiry_from_headers(&response.headers),
-                        last_validated: time::now()
-                    };
-                    self.entries.insert(entry_key, entry_resource);
+                    if let Some(headers) = metadata.headers {
+                        let entry_key = CacheKey::new(request.clone());
+                        let cacheable_metadata = CachedMetadata {
+                            headers: headers
+                                         .iter()
+                                         .map(|header|
+                                             (String::from_str(header.name()).unwrap_or(String::from("None")),
+                                             header.value_string()))
+                                         .collect()
+                        };
+                        let entry_resource = CachedResource {
+                            metadata: cacheable_metadata,
+                            body: response.body.lock().unwrap().clone(),
+                            expires: get_response_expiry_from_headers(&response.headers),
+                            last_validated: time::now()
+                        };
+                        self.entries.insert(entry_key, entry_resource);
+                    }
                 }
             },
             _ => {}
