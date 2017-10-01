@@ -236,7 +236,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The length of the selected text in UTF-16 code units.
     fn selection_utf16_len(&self) -> usize {
         self.fold_selection_slices(0usize,
-            |len, slice| *len += slice.chars().map(char::len_utf16).sum())
+            |len, slice| *len += slice.chars().map(char::len_utf16).sum::<usize>())
     }
 
     /// Run the callback on a series of slices that, concatenated, make up the selected text.
