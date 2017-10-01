@@ -322,15 +322,6 @@ impl ComputedValuesInner {
         self.visited_style.as_ref().map(|x| x.clone_arc())
     }
 
-    /// Gets a reference to the custom properties map (if one exists).
-    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::CustomPropertiesMap> {
-        self.custom_properties.as_ref().map(|x| &**x)
-    }
-
-    pub fn custom_properties(&self) -> Option<Arc<CustomPropertiesMap>> {
-        self.custom_properties.clone()
-    }
-
     #[allow(non_snake_case)]
     pub fn has_moz_binding(&self) -> bool {
         !self.get_box().gecko.mBinding.mPtr.mRawPtr.is_null()

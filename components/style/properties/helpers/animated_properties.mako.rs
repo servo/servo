@@ -402,7 +402,7 @@ impl AnimationValue {
     pub fn from_declaration(
         decl: &PropertyDeclaration,
         context: &mut Context,
-        extra_custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
+        extra_custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
         initial: &ComputedValues
     ) -> Option<Self> {
         use properties::LonghandId;
@@ -476,14 +476,22 @@ impl AnimationValue {
                 }
             },
             PropertyDeclaration::WithVariables(id, ref unparsed) => {
-                let substituted = if extra_custom_properties.is_some() {
+                let substituted = {
+                    let custom_properties =
+                        extra_custom_properties.or_else(|| context.style().custom_properties());
+
                     unparsed.substitute_variables(
-                        id, &extra_custom_properties, context.quirks_mode)
-                } else {
-                    unparsed.substitute_variables(
-                        id, &context.style().custom_properties(), context.quirks_mode)
+                        id,
+                        custom_properties,
+                        context.quirks_mode
+                    )
                 };
-                AnimationValue::from_declaration(&substituted, context, extra_custom_properties, initial)
+                AnimationValue::from_declaration(
+                    &substituted,
+                    context,
+                    extra_custom_properties,
+                    initial,
+                )
             },
             _ => None // non animatable properties will get included because of shorthands. ignore.
         }

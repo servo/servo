@@ -938,19 +938,23 @@ pub struct UnparsedValue {
 }
 
 impl UnparsedValue {
-    fn substitute_variables(&self, longhand_id: LonghandId,
-                            custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
-                            quirks_mode: QuirksMode)
-                            -> PropertyDeclaration {
+    fn substitute_variables(
+        &self,
+        longhand_id: LonghandId,
+        custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
+        quirks_mode: QuirksMode,
+    ) -> PropertyDeclaration {
         ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties)
         .ok()
         .and_then(|css| {
             // As of this writing, only the base URL is used for property values:
-            let context = ParserContext::new(Origin::Author,
-                                             &self.url_data,
-                                             None,
-                                             PARSING_MODE_DEFAULT,
-                                             quirks_mode);
+            let context = ParserContext::new(
+                Origin::Author,
+                &self.url_data,
+                None,
+                PARSING_MODE_DEFAULT,
+                quirks_mode,
+            );
             let mut input = ParserInput::new(&css);
             Parser::new(&mut input).parse_entirely(|input| {
                 match self.from_shorthand {
@@ -2097,6 +2101,11 @@ impl ComputedValues {
 
         self.flags.contains(IS_IN_DISPLAY_NONE_SUBTREE)
     }
+
+    /// Gets a reference to the custom properties map (if one exists).
+    pub fn custom_properties(&self) -> Option<<&Arc<::custom_properties::CustomPropertiesMap>> {
+        self.custom_properties.as_ref()
+    }
 }
 
 #[cfg(feature = "servo")]
@@ -2226,21 +2235,6 @@ impl ComputedValuesInner {
     /// StyleBuilder::for_inheritance.
     pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
         self.visited_style.clone()
-    }
-
-    // Aah! The << in the return type below is not valid syntax, but we must
-    // escape < that way for Mako.
-    /// Gets a reference to the custom properties map (if one exists).
-    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::CustomPropertiesMap> {
-        self.custom_properties.as_ref().map(|x| &**x)
-    }
-
-    /// Get the custom properties map if necessary.
-    ///
-    /// Cloning the Arc here is fine because it only happens in the case where
-    /// we have custom properties, and those are both rare and expensive.
-    pub fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
-        self.custom_properties.clone()
     }
 
     /// Whether this style has a -moz-binding value. This is always false for
@@ -2769,7 +2763,7 @@ impl<'a> StyleBuilder<'a> {
             pseudo,
             modified_reset: false,
             rules: None, // FIXME(emilio): Dubious...
-            custom_properties: style_to_derive_from.custom_properties(),
+            custom_properties: style_to_derive_from.custom_properties().cloned(),
             writing_mode: style_to_derive_from.writing_mode,
             flags: style_to_derive_from.flags,
             visited_style: style_to_derive_from.clone_visited_style(),
@@ -2888,7 +2882,7 @@ impl<'a> StyleBuilder<'a> {
             pseudo,
             CascadeFlags::empty(),
             /* rules = */ None,
-            parent.custom_properties(),
+            parent.custom_properties().cloned(),
             parent.writing_mode,
             parent.flags,
             parent.clone_visited_style()
@@ -3009,8 +3003,8 @@ impl<'a> StyleBuilder<'a> {
     ///
     /// Cloning the Arc here is fine because it only happens in the case where
     /// we have custom properties, and those are both rare and expensive.
-    fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
-        self.custom_properties.clone()
+    fn custom_properties(&self) -> Option<<&Arc<::custom_properties::CustomPropertiesMap>> {
+        self.custom_properties.as_ref()
     }
 
     /// Access to various information about our inherited styles.  We don't
@@ -3276,14 +3270,20 @@ where
     for (declaration, _cascade_level) in iter_declarations() {
         if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
             ::custom_properties::cascade(
-                &mut custom_properties, &inherited_custom_properties,
-                &mut seen_custom, name, value.borrow());
+                &mut custom_properties,
+                inherited_custom_properties,
+                &mut seen_custom,
+                name,
+                value.borrow(),
+            );
         }
     }
 
     let custom_properties =
         ::custom_properties::finish_cascade(
-            custom_properties, &inherited_custom_properties);
+            custom_properties,
+            inherited_custom_properties,
+        );
 
     let mut context = computed::Context {
         is_root_element: flags.contains(IS_ROOT_ELEMENT),
@@ -3348,7 +3348,7 @@ where
                     }
                     Cow::Owned(unparsed.substitute_variables(
                         id,
-                        &context.builder.custom_properties,
+                        context.builder.custom_properties.as_ref(),
                         context.quirks_mode
                     ))
                 }
