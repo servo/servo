@@ -893,7 +893,7 @@ impl Stylist {
     ) -> Arc<ComputedValues> {
         // We need to compute visited values if we have visited rules or if our
         // parent has visited values.
-        let visited_values = if inputs.visited_rules.is_some() || parent_style.get_visited_style().is_some() {
+        let visited_values = if inputs.visited_rules.is_some() || parent_style.visited_style().is_some() {
             // Slightly annoying: we know that inputs has either rules or
             // visited rules, but we can't do inputs.rules() up front because
             // maybe it just has visited rules, so can't unwrap_or.
@@ -913,11 +913,11 @@ impl Stylist {
                 // We want to use the visited bits (if any) from our parent
                 // style as our parent.
                 inherited_style =
-                    parent_style.get_visited_style().unwrap_or(parent_style);
+                    parent_style.visited_style().unwrap_or(parent_style);
                 inherited_style_ignoring_first_line =
-                    parent_style_ignoring_first_line.get_visited_style().unwrap_or(parent_style_ignoring_first_line);
+                    parent_style_ignoring_first_line.visited_style().unwrap_or(parent_style_ignoring_first_line);
                 layout_parent_style_for_visited =
-                    layout_parent_style.get_visited_style().unwrap_or(layout_parent_style);
+                    layout_parent_style.visited_style().unwrap_or(layout_parent_style);
             }
 
             Some(properties::cascade(

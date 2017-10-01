@@ -2044,7 +2044,7 @@ pub extern "C" fn Servo_ComputedValues_EqualCustomProperties(
     first: ServoComputedDataBorrowed,
     second: ServoComputedDataBorrowed
 ) -> bool {
-    first.get_custom_properties() == second.get_custom_properties()
+    first.custom_properties == second.custom_properties
 }
 
 #[no_mangle]
@@ -3436,7 +3436,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
             let iter = guard.to_animation_value_iter(
                 &mut context,
                 &default_values,
-                &custom_properties,
+                custom_properties.as_ref(),
             );
 
             for value in iter {
@@ -3479,11 +3479,10 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
 
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     let guard = declarations.read_with(&guard);
-    let no_extra_custom_properties = None; // SMIL has no extra custom properties.
     let iter = guard.to_animation_value_iter(
         &mut context,
         &default_values,
-        &no_extra_custom_properties,
+        None, // SMIL has no extra custom properties.
     );
     for (index, anim) in iter.enumerate() {
         unsafe { animation_values.set_len((index + 1) as u32) };
@@ -3524,11 +3523,10 @@ pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
     // We only compute the first element in declarations.
     match declarations.read_with(&guard).declaration_importance_iter().next() {
         Some((decl, imp)) if imp == Importance::Normal => {
-            let no_extra_custom_properties = None; // No extra custom properties for devtools.
             let animation = AnimationValue::from_declaration(
                 decl,
                 &mut context,
-                &no_extra_custom_properties,
+                None, // No extra custom properties for devtools.
                 default_values,
             );
             animation.map_or(RawServoAnimationValueStrong::null(), |value| {

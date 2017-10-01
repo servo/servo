@@ -126,7 +126,7 @@ trait PrivateMatchMethods: TElement {
         let inputs =
             CascadeInputs {
                 rules: Some(without_transition_rules),
-                visited_rules: primary_style.get_visited_style().and_then(|s| s.rules.clone()),
+                visited_rules: primary_style.visited_rules().cloned()
             };
 
         // Actually `PseudoElementResolution` doesn't really matter.

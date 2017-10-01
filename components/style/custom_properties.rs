@@ -448,7 +448,7 @@ fn parse_var_function<'i, 't>(
 /// name was already there.
 pub fn cascade<'a>(
     custom_properties: &mut Option<OrderedMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
-    inherited: &'a Option<Arc<CustomPropertiesMap>>,
+    inherited: Option<&'a Arc<CustomPropertiesMap>>,
     seen: &mut PrecomputedHashSet<&'a Name>,
     name: &'a Name,
     specified_value: DeclaredValue<'a, Box<SpecifiedValue>>
@@ -462,7 +462,7 @@ pub fn cascade<'a>(
         Some(ref mut map) => map,
         None => {
             let mut map = OrderedMap::new();
-            if let Some(ref inherited) = *inherited {
+            if let Some(inherited) = inherited {
                 for name in &inherited.index {
                     let inherited_value = inherited.get(name).unwrap();
                     map.insert(name, BorrowedSpecifiedValue {
@@ -503,14 +503,15 @@ pub fn cascade<'a>(
 /// to remove any potential cycles, and wrap it in an arc.
 ///
 /// Otherwise, just use the inherited custom properties map.
-pub fn finish_cascade(specified_values_map: Option<OrderedMap<&Name, BorrowedSpecifiedValue>>,
-                      inherited: &Option<Arc<CustomPropertiesMap>>)
-                      -> Option<Arc<CustomPropertiesMap>> {
+pub fn finish_cascade(
+    specified_values_map: Option<OrderedMap<&Name, BorrowedSpecifiedValue>>,
+    inherited: Option<&Arc<CustomPropertiesMap>>,
+) -> Option<Arc<CustomPropertiesMap>> {
     if let Some(mut map) = specified_values_map {
         remove_cycles(&mut map);
         Some(Arc::new(substitute_all(map)))
     } else {
-        inherited.clone()
+        inherited.cloned()
     }
 }
 
@@ -732,16 +733,18 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
 
 /// Replace `var()` functions for a non-custom property.
 /// Return `Err(())` for invalid at computed time.
-pub fn substitute<'i>(input: &'i str, first_token_type: TokenSerializationType,
-                      computed_values_map: &Option<Arc<CustomPropertiesMap>>)
-                      -> Result<String, ParseError<'i>> {
+pub fn substitute<'i>(
+    input: &'i str,
+    first_token_type: TokenSerializationType,
+    computed_values_map: Option<&Arc<CustomPropertiesMap>>,
+) -> Result<String, ParseError<'i>> {
     let mut substituted = ComputedValue::empty();
     let mut input = ParserInput::new(input);
     let mut input = Parser::new(&mut input);
     let mut position = (input.position(), first_token_type);
     let last_token_type = substitute_block(
         &mut input, &mut position, &mut substituted, &mut |name, substituted| {
-            if let Some(value) = computed_values_map.as_ref().and_then(|map| map.get(name)) {
+            if let Some(value) = computed_values_map.and_then(|map| map.get(name)) {
                 substituted.push_variable(value);
                 Ok(value.last_token_type)
             } else {

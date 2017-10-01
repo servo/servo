@@ -253,9 +253,10 @@ impl ops::DerefMut for ComputedValues {
 }
 
 impl ComputedValuesInner {
-    /// Whether we're a visited style.
-    pub fn is_style_if_visited(&self) -> bool {
-        self.flags.contains(IS_STYLE_IF_VISITED)
+    /// Clone the visited style.  Used for inheriting parent styles in
+    /// StyleBuilder::for_inheritance.
+    pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
+        self.visited_style.as_ref().map(|x| x.clone_arc())
     }
 
     #[inline]
@@ -291,44 +292,9 @@ impl ComputedValuesInner {
     }
     % endfor
 
-    /// Gets a reference to the rule node. Panic if no rule node exists.
-    pub fn rules(&self) -> &StrongRuleNode {
-        self.rules.as_ref().unwrap()
-    }
-
-    /// Whether there is a visited style.
-    pub fn has_visited_style(&self) -> bool {
-        self.visited_style.is_some()
-    }
-
-    /// Gets a reference to the visited style, if any.
-    pub fn get_visited_style(&self) -> Option< & ComputedValues> {
-        self.visited_style.as_ref().map(|x| &**x)
-    }
-
     /// Gets the raw visited style. Useful for memory reporting.
     pub fn get_raw_visited_style(&self) -> &Option<RawOffsetArc<ComputedValues>> {
         &self.visited_style
-    }
-
-    /// Gets a reference to the visited style. Panic if no visited style exists.
-    pub fn visited_style(&self) -> &ComputedValues {
-        self.get_visited_style().unwrap()
-    }
-
-    /// Clone the visited style.  Used for inheriting parent styles in
-    /// StyleBuilder::for_inheritance.
-    pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
-        self.visited_style.as_ref().map(|x| x.clone_arc())
-    }
-
-    /// Gets a reference to the custom properties map (if one exists).
-    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::CustomPropertiesMap> {
-        self.custom_properties.as_ref().map(|x| &**x)
-    }
-
-    pub fn custom_properties(&self) -> Option<Arc<CustomPropertiesMap>> {
-        self.custom_properties.clone()
     }
 
     #[allow(non_snake_case)]
