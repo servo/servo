@@ -202,6 +202,12 @@ impl HttpCache {
 
     /// Try to fetch a cached response.
     pub fn try_cache_fetch(&self, request: &Request) -> Option<Response> {
+        let entry_key = CacheKey::new(request.clone());
+        if let Some(cached_resource) = self.entries.get(&entry_key) {
+            let mut response = Response::new(cached_resource.metadata.final_url.clone());
+            response.body = Arc::new(Mutex::new(cached_resource.body.clone()));
+            return Some(response);
+        }
         None
     }
 
