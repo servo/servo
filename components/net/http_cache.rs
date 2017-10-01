@@ -208,7 +208,9 @@ impl HttpCache {
             let mut headers = Headers::new();
             if let Some(ref header_list) = cached_resource.metadata.headers {
                 for &(ref name, ref value) in header_list {
-                    headers.set_raw(name.clone(), vec![value.clone().into_bytes()]);
+                    let header_values: Vec<Vec<u8>> = value.split(",").map(|val| String::from(val).into_bytes())
+                        .collect();
+                    headers.set_raw(name.clone(), header_values);
                 }
             };
             response.headers = headers;
