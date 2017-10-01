@@ -2145,47 +2145,21 @@ impl ComputedValues {
         % endfor
     ) -> Arc<Self> {
         Arc::new(Self {
-            inner: ComputedValuesInner::new(
+            inner: ComputedValuesInner {
                 custom_properties,
                 writing_mode,
-                flags,
                 rules,
                 visited_style,
-                % for style_struct in data.active_style_structs():
+                flags,
+            % for style_struct in data.active_style_structs():
                 ${style_struct.ident},
-                % endfor
-            )
+            % endfor
+            }
         })
     }
 
     /// Get the initial computed values.
     pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
-}
-
-#[cfg(feature = "servo")]
-impl ComputedValuesInner {
-    /// Construct a `ComputedValuesInner` instance.
-    pub fn new(
-        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
-        writing_mode: WritingMode,
-        flags: ComputedValueFlags,
-        rules: Option<StrongRuleNode>,
-        visited_style: Option<Arc<ComputedValues>>,
-        % for style_struct in data.active_style_structs():
-        ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
-        % endfor
-    ) -> Self {
-        ComputedValuesInner {
-            custom_properties: custom_properties,
-            writing_mode: writing_mode,
-            rules: rules,
-            visited_style: visited_style,
-            flags: flags,
-        % for style_struct in data.active_style_structs():
-            ${style_struct.ident}: ${style_struct.ident},
-        % endfor
-        }
-    }
 }
 
 #[cfg(feature = "servo")]
