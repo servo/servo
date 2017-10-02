@@ -258,6 +258,8 @@ class ExpectedUpdater(object):
         if test is None:
             return
         test_cls = wpttest.manifest_test_cls[test.test_type]
+        if not test_cls.subtest_result_cls:
+            print "Test %s does not match the kind of test specified by its metadata" % test_id
 
         subtest = test.get_subtest(data["subtest"])
 
