@@ -6,7 +6,7 @@ use cssparser::{Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use malloc_size_of::MallocSizeOfOps;
-use selectors::Element;
+use selectors::{self, Element};
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use std::cell::RefCell;
@@ -1520,6 +1520,22 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
         let mut ctx = MatchingContext::new(matching_mode, None, None, element.owner_document_quirks_mode());
         matches_selector(selector, 0, None, &element, &mut ctx, &mut |_, _| {})
     })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_Matches(
+    element: RawGeckoElementBorrowed,
+    selectors: &::selectors::SelectorList<SelectorImpl>,
+) -> bool {
+    let element = GeckoElement(element);
+    let mut context = MatchingContext::new(
+        MatchingMode::Normal,
+        None,
+        None,
+        element.owner_document_quirks_mode(),
+    );
+
+    selectors::matching::matches_selector_list(selectors, &element, &mut context)
 }
 
 #[no_mangle]
@@ -4104,7 +4120,9 @@ pub extern "C" fn Servo_CorruptRuleHashAndCrash(set: RawServoStyleSetBorrowed, i
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_SelectorList_Parse(selector_list: *const nsACString) -> *mut ::selectors::SelectorList<SelectorImpl> {
+pub unsafe extern "C" fn Servo_SelectorList_Parse(
+    selector_list: *const nsACString,
+) -> *mut ::selectors::SelectorList<SelectorImpl> {
     use style::selector_parser::SelectorParser;
 
     debug_assert!(!selector_list.is_null());
