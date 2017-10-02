@@ -154,6 +154,7 @@ class BrowserManager(object):
         self.browser = browser
         self.no_timeout = no_timeout
         self.browser_settings = None
+        self.last_test = None
 
         self.started = False
 
@@ -163,8 +164,9 @@ class BrowserManager(object):
         browser_settings = self.browser.settings(test)
         restart_required = ((self.browser_settings is not None and
                              self.browser_settings != browser_settings) or
-                            test.expected() == "CRASH")
+                            (self.last_test != test and test.expected() == "CRASH"))
         self.browser_settings = browser_settings
+        self.last_test = test
         return restart_required
 
     def init(self):
