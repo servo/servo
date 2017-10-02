@@ -101,6 +101,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
+use metrics::{InteractiveFlag, InteractiveMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
@@ -110,6 +111,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
+use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
@@ -348,7 +350,10 @@ pub struct Document {
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
     form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
+    interactive_time: DomRefCell<InteractiveMetrics>,
 }
+
+unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 
 #[derive(HeapSizeOf, JSTraceable)]
 struct ImagesFilter;
@@ -627,10 +632,10 @@ impl Document {
 
     /// Associate an element present in this document with the provided id.
     pub fn register_named_element(&self, element: &Element, id: Atom) {
-        debug!("Adding named element to document {:p}: {:p} id={}",
-               self,
-               element,
-               id);
+        // debug!("Adding named element to document {:p}: {:p} id={}",
+               // self,
+               // element,
+               // id);
         assert!(element.upcast::<Node>().is_in_doc());
         assert!(!id.is_empty());
 
@@ -1879,6 +1884,9 @@ impl Document {
         window.reflow(ReflowGoal::Full, ReflowReason::DOMContentLoaded);
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
 
+        // html parsing has finished - set dom content loaded
+        self.interactive_time.borrow().maybe_set_tti(self, None, InteractiveFlag::DCL);
+
         // Step 4.2.
         // TODO: client message queue.
     }
@@ -1959,6 +1967,18 @@ impl Document {
 
     pub fn get_dom_interactive(&self) -> u64 {
         self.dom_interactive.get()
+    }
+
+    pub fn get_interactive_metrics(&self) -> Ref<InteractiveMetrics> {
+        self.interactive_time.borrow()
+    }
+
+    pub fn maybe_set_tti(&self, time: u64) {
+        self.get_interactive_metrics().maybe_set_tti(self, Some(time as f64), InteractiveFlag::TTI);
+    }
+
+    pub fn is_interactive(&self) -> bool {
+        self.get_interactive_metrics().get_tti().is_some()
     }
 
     pub fn get_dom_content_loaded_event_start(&self) -> u64 {
@@ -2187,6 +2207,9 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
+        let mut interactive_time = InteractiveMetrics::new(window.time_profiler_chan().clone());
+        (&interactive_time).set_navigation_start(window.get_navigation_start());
+
         Document {
             node: Node::new_document_node(),
             window: Dom::from_ref(window),
@@ -2278,6 +2301,7 @@ impl Document {
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
+            interactive_time: DomRefCell::new(interactive_time),
         }
     }
 
@@ -2712,6 +2736,16 @@ impl Element {
                 if self.disabled_state() => true,
             _ => false,
         }
+    }
+}
+
+impl ProfilerMetadataFactory for Document {
+    fn new_metadata(&self) -> Option<TimerMetadata> {
+        Some(TimerMetadata {
+            url: String::from(self.url().as_str()),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::Incremental,
+        })
     }
 }
 

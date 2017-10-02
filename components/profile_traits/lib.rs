@@ -9,6 +9,7 @@
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
 
+extern crate heapsize;
 extern crate ipc_channel;
 #[macro_use]
 extern crate log;

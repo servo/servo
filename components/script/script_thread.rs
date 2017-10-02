@@ -74,7 +74,7 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
-use metrics::PaintTimeMetrics;
+use metrics::{InteractiveWindow, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
@@ -91,7 +91,7 @@ use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
-use script_traits::{PaintMetricType, Painter, ScriptMsg, ScriptThreadFactory};
+use script_traits::{PWMType, Painter, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
@@ -102,7 +102,7 @@ use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
 use std::ops::Deref;
@@ -111,6 +111,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::thread_state;
@@ -198,6 +199,108 @@ impl InProgressLoad {
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: navigation_start_precise,
         }
+    }
+}
+
+/// Encapsulated state required to create cancellable runnables from non-script threads.
+pub struct RunnableWrapper {
+    pub cancelled: Option<Arc<AtomicBool>>,
+}
+
+impl RunnableWrapper {
+    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: Box<T>) -> Box<Runnable + Send> {
+        box CancellableRunnable {
+            cancelled: self.cancelled.clone(),
+            inner: runnable,
+        }
+    }
+}
+
+/// A runnable that can be discarded by toggling a shared flag.
+pub struct CancellableRunnable<T: Runnable + Send> {
+    cancelled: Option<Arc<AtomicBool>>,
+    inner: Box<T>,
+}
+
+impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
+    fn name(&self) -> &'static str { self.inner.name() }
+
+    fn is_cancelled(&self) -> bool {
+        self.cancelled.as_ref()
+            .map(|cancelled| cancelled.load(Ordering::SeqCst))
+            .unwrap_or(false)
+    }
+
+    fn main_thread_handler(self: Box<CancellableRunnable<T>>, script_thread: &ScriptThread) {
+        self.inner.main_thread_handler(script_thread);
+    }
+
+    fn handler(self: Box<CancellableRunnable<T>>) {
+        self.inner.handler()
+    }
+}
+
+pub trait Runnable {
+    fn is_cancelled(&self) -> bool { false }
+    fn name(&self) -> &'static str { "generic runnable" }
+    fn handler(self: Box<Self>) {}
+    fn pipeline(&self) -> Option<PipelineId> { None }
+    fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
+}
+
+impl Runnable for ConstellationControlMsg {
+    fn pipeline(&self) -> Option<PipelineId> {
+        use self::ConstellationControlMsg::*;
+        match *self {
+            NavigationResponse(id, _) => Some(id),
+            AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
+            Resize(id, ..) => Some(id),
+            ResizeInactive(id, ..) => Some(id),
+            ExitPipeline(id, ..) => Some(id),
+            ExitScriptThread => None,
+            SendEvent(id, ..) => Some(id),
+            Viewport(id, ..) => Some(id),
+            SetScrollState(id, ..) => Some(id),
+            GetTitle(id) => Some(id),
+            SetDocumentActivity(id, ..) => Some(id),
+            ChangeFrameVisibilityStatus(id, ..) => Some(id),
+            NotifyVisibilityChange(id, ..) => Some(id),
+            Navigate(id, ..) => Some(id),
+            PostMessage(id, ..) => Some(id),
+            MozBrowserEvent(id, ..) => Some(id),
+            UpdatePipelineId(_, _, id, _) => Some(id),
+            FocusIFrame(id, ..) => Some(id),
+            WebDriverScriptCommand(id, ..) => Some(id),
+            TickAllAnimations(id) => Some(id),
+            TransitionEnd(..) => None,
+            WebFontLoaded(id) => Some(id),
+            DispatchIFrameLoadEvent { .. } => None,
+            DispatchStorageEvent(id, ..) => Some(id),
+            ReportCSSError(id, ..) => Some(id),
+            Reload(id, ..) => Some(id),
+            WebVREvents(id, ..) => Some(id),
+            _ => None,
+        }
+    }
+}
+
+impl Runnable for MainThreadScriptMsg {
+    fn pipeline(&self) -> Option<PipelineId> {
+        use self::MainThreadScriptMsg::*;
+        match *self {
+            Common(_) => None,
+            ExitWindow(pipeline_id) => Some(pipeline_id),
+            Navigate(pipeline_id, ..) => Some(pipeline_id),
+            WorkletLoaded(pipeline_id) => Some(pipeline_id),
+            RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
+            DispatchJobQueue { .. } => None,
+        }
+    }
+}
+
+impl Runnable for DevtoolScriptControlMsg {
+    fn pipeline(&self) -> Option<PipelineId> {
+        None
     }
 }
 
@@ -344,6 +447,10 @@ impl Documents {
         self.map.get(&pipeline_id).map(|doc| DomRoot::from_ref(&**doc))
     }
 
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
+
     pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
         self.find_document(pipeline_id).map(|doc| DomRoot::from_ref(doc.window()))
     }
@@ -375,6 +482,44 @@ impl<'a> Iterator for DocumentsIter<'a> {
 
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
         self.iter.next().map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
+    }
+}
+
+#[derive(Debug)]
+pub struct Task {
+    url: Option<ServoUrl>,
+    pipeline_id: Option<PipelineId>,
+    start_time: u64,
+    end_time: Option<u64>,
+}
+
+impl Task {
+    pub fn new(url: Option<ServoUrl>, pipeline_id: Option<PipelineId>) -> Task {
+        Task {
+            url: url,
+            pipeline_id: pipeline_id,
+            start_time: precise_time_ns(),
+            end_time: None,
+        }
+    }
+
+    pub fn pipeline(&self) -> Option<PipelineId> {
+        self.pipeline_id
+    }
+
+    fn complete(&mut self) {
+        self.end_time = Some(precise_time_ns());
+    }
+
+    pub fn duration(&self) -> u64 {
+        match self.end_time {
+            Some(end_time) => end_time - self.start_time,
+            None => precise_time_ns() - self.start_time,
+        }
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.end_time.is_some()
     }
 }
 
@@ -495,7 +640,14 @@ pub struct ScriptThread {
 
     /// https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack
     custom_element_reaction_stack: CustomElementReactionStack,
+
+    /// list of tasks and window for time to interactive metric
+    task_times: RefCell<Vec<Task>>,
+    tti_window: RefCell<InteractiveWindow>,
 }
+
+unsafe_no_jsmanaged_fields!(RefCell<Vec<Task>>);
+unsafe_no_jsmanaged_fields!(RefCell<InteractiveWindow>);
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
 /// are no reachable, owning pointers to the DOM memory, so it never gets freed by default
@@ -673,6 +825,7 @@ impl ScriptThread {
         });
     }
 
+    //FIXME pipeline id
     pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
@@ -836,7 +989,7 @@ impl ScriptThread {
             control_chan: state.control_chan,
             control_port: control_port,
             script_sender: state.script_to_constellation_chan.sender.clone(),
-            time_profiler_chan: state.time_profiler_chan,
+            time_profiler_chan: state.time_profiler_chan.clone(),
             mem_profiler_chan: state.mem_profiler_chan,
 
             devtools_chan: state.devtools_chan,
@@ -871,6 +1024,9 @@ impl ScriptThread {
             transitioning_nodes: Default::default(),
 
             custom_element_reaction_stack: CustomElementReactionStack::new(),
+
+            task_times: Default::default(),
+            tti_window: RefCell::new(InteractiveWindow::new()),
         }
     }
 
@@ -908,6 +1064,8 @@ impl ScriptThread {
         for (id, size, size_type) in resizes {
             self.handle_event(id, ResizeEvent(size, size_type));
         }
+
+        // TODO avada can we replace sequential with task times
 
         // Store new resizes, and gather all other events.
         let mut sequential = vec![];
@@ -999,23 +1157,30 @@ impl ScriptThread {
                     // step 7.8
                     if !animation_ticks.contains(&pipeline_id) {
                         animation_ticks.insert(pipeline_id);
+                        let t = Task::new(None, Some(pipeline_id));
+                        self.task_times.borrow_mut().push(t);
                         sequential.push(event);
                     }
                 }
                 FromConstellation(ConstellationControlMsg::SendEvent(
                         _,
                         MouseMoveEvent(_))) => {
+                    let t = Task::new(None, self.message_to_pipeline(&event));
                     match mouse_move_event_index {
                         None => {
                             mouse_move_event_index = Some(sequential.len());
+                            self.task_times.borrow_mut().push(t);
                             sequential.push(event);
                         }
                         Some(index) => {
+                            self.task_times.borrow_mut().push(t);
                             sequential[index] = event
                         }
                     }
                 }
                 _ => {
+                    let t = Task::new(None, self.message_to_pipeline(&event));
+                    self.task_times.borrow_mut().push(t);
                     sequential.push(event);
                 }
             }
@@ -1044,7 +1209,20 @@ impl ScriptThread {
         // Process the gathered events.
         debug!("Processing events.");
         for msg in sequential {
+            if self.tti_window.borrow().needs_check() {
+                if !self.check_tti() {
+                    self.tti_window.borrow_mut().start_window();
+                } else {
+                    // all current documents are interactive
+                    self.tti_window.borrow_mut().set_all_interactive();
+                }
+            }
             debug!("Processing event {:?}.", msg);
+
+            // TODO avada currently removing completed tasks
+            // even though i'm tracking end times, i'm not keeping the task after it's been completed
+            let mut completed = self.task_times.borrow_mut().remove(0); //need to pop front
+            completed.complete();
             let category = self.categorize_msg(&msg);
 
             let result = self.profile_event(category, move || {
@@ -1127,6 +1305,56 @@ impl ScriptThread {
             },
             MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent
         }
+    }
+
+    fn message_to_pipeline(&self, msg: &MixedMessage) -> Option<PipelineId> {
+        match *msg {
+            MixedMessage::FromConstellation(ref inner_msg) => inner_msg.pipeline(),
+            MixedMessage::FromDevtools(ref inner_msg) => inner_msg.pipeline(),
+            MixedMessage::FromScript(_) => None,
+            MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
+            MixedMessage::FromScheduler(ref timer_event) => {
+                let TimerEvent(source, _) = *timer_event;
+                match source {
+                    TimerSource::FromWindow(pipeline_id) => Some(pipeline_id),
+                    _ => None
+                }
+            }
+        }
+    }
+
+    /// Go through documents and see if any don't have a time to interactive yet
+    /// If not, get all tasks for the pipeline that have been running for > 50ms
+    ///    if there are none, then the document is considered interactive
+    ///    otherwise, the window will need to be reset
+    /// Return only after going through all current documents
+    fn check_tti(&self) -> bool {
+        use metrics::MAX_TASK_TIME;
+
+        let times = self.task_times.borrow();
+        let mut all_interactive = true;
+
+        let documents = self.documents.borrow();
+
+        for (pipeline, doc) in documents.iter() {
+            if !doc.is_interactive() {
+                let long_tasks: Vec<&Task> = times.iter()
+                                    .filter(|task| task.pipeline() == Some(pipeline))
+                                    .filter(|task| task.duration() > *MAX_TASK_TIME )
+                                    .collect();
+                debug!("# tasks over 50ms for {:?}: {}", pipeline, long_tasks.len());
+
+                // can't set interactive for this pipeline yet
+                // we need to return false, but only after we
+                // finish iterating through all of the documents
+                if long_tasks.len() > 0 {
+                    all_interactive = false;
+                }
+
+                doc.maybe_set_tti(self.tti_window.borrow().get_start());
+            }
+        }
+        all_interactive
     }
 
     fn profile_event<F, R>(&self, category: ScriptThreadEventCategory, f: F) -> R
@@ -1234,6 +1462,7 @@ impl ScriptThread {
                 self.handle_webvr_events(pipeline_id, events),
             ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) =>
                 self.handle_paint_metric(pipeline_id, metric_type, metric_value),
+            ConstellationControlMsg::InteractiveMetric(pipeline_id, metric_value) => (),  //TODO
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -2118,6 +2347,7 @@ impl ScriptThread {
         document.set_ready_state(DocumentReadyState::Loading);
 
         self.documents.borrow_mut().insert(incomplete.pipeline_id, &*document);
+        self.tti_window.borrow_mut().start_window();
 
         window.init_document(&document);
 
@@ -2518,7 +2748,7 @@ impl ScriptThread {
 
     fn handle_paint_metric(&self,
                            pipeline_id: PipelineId,
-                           metric_type: PaintMetricType,
+                           metric_type: PWMType,
                            metric_value: f64) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {

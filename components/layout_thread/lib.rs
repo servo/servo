@@ -86,7 +86,7 @@ use layout::traversal::{ComputeStackingRelativePositions, PreorderFlowTraversal,
 use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
-use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
+use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -757,7 +757,7 @@ impl LayoutThread {
                 return false
             },
             Msg::SetNavigationStart(time) => {
-                self.paint_time_metrics.set_navigation_start(time);
+                (&self.paint_time_metrics).set_navigation_start(time);
             },
         }
 

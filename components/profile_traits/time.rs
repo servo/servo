@@ -5,6 +5,7 @@
 extern crate time as std_time;
 
 use energy::read_energy_uj;
+use heapsize::HeapSizeOf;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
 use servo_config::opts;
@@ -12,8 +13,8 @@ use signpost;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {
-    pub url:         String,
-    pub iframe:      TimerMetadataFrameType,
+    pub url: String,
+    pub iframe: TimerMetadataFrameType,
     pub incremental: TimerMetadataReflowType,
 }
 
@@ -25,6 +26,12 @@ impl ProfilerChan {
         if let Err(e) = self.0.send(msg) {
             warn!("Error communicating with the time profiler thread: {}", e);
         }
+    }
+}
+
+impl HeapSizeOf for ProfilerChan {
+    fn heap_size_of_children(&self) -> usize {
+        0
     }
 }
 
@@ -93,6 +100,7 @@ pub enum ProfilerCategory {
     ScriptPerformanceEvent = 0x7b,
     TimeToFirstPaint = 0x80,
     TimeToFirstContentfulPaint = 0x81,
+    TimeToInteractive = 0x82,
     ApplicationHeartbeat = 0x90,
 }
 
@@ -108,12 +116,14 @@ pub enum TimerMetadataReflowType {
     FirstReflow,
 }
 
-pub fn profile<T, F>(category: ProfilerCategory,
-                     meta: Option<TimerMetadata>,
-                     profiler_chan: ProfilerChan,
-                     callback: F)
-                  -> T
-    where F: FnOnce() -> T
+pub fn profile<T, F>(
+    category: ProfilerCategory,
+    meta: Option<TimerMetadata>,
+    profiler_chan: ProfilerChan,
+    callback: F,
+) -> T
+where
+    F: FnOnce() -> T,
 {
     if opts::get().signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
@@ -129,24 +139,30 @@ pub fn profile<T, F>(category: ProfilerCategory,
         signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
 
-    send_profile_data(category,
-                      meta,
-                      &profiler_chan,
-                      start_time,
-                      end_time,
-                      start_energy,
-                      end_energy);
+    send_profile_data(
+        category,
+        meta,
+        &profiler_chan,
+        start_time,
+        end_time,
+        start_energy,
+        end_energy,
+    );
     val
 }
 
-pub fn send_profile_data(category: ProfilerCategory,
-                         meta: Option<TimerMetadata>,
-                         profiler_chan: &ProfilerChan,
-                         start_time: u64,
-                         end_time: u64,
-                         start_energy: u64,
-                         end_energy: u64) {
-    profiler_chan.send(ProfilerMsg::Time((category, meta),
-                                         (start_time, end_time),
-                                         (start_energy, end_energy)));
+pub fn send_profile_data(
+    category: ProfilerCategory,
+    meta: Option<TimerMetadata>,
+    profiler_chan: &ProfilerChan,
+    start_time: u64,
+    end_time: u64,
+    start_energy: u64,
+    end_energy: u64,
+) {
+    profiler_chan.send(ProfilerMsg::Time(
+        (category, meta),
+        (start_time, end_time),
+        (start_energy, end_energy),
+    ));
 }

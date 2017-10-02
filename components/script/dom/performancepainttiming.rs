@@ -9,7 +9,7 @@ use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
 use dom_struct::dom_struct;
-use script_traits::PaintMetricType;
+use script_traits::PWMType;
 
 #[dom_struct]
 pub struct PerformancePaintTiming {
@@ -17,24 +17,23 @@ pub struct PerformancePaintTiming {
 }
 
 impl PerformancePaintTiming {
-    fn new_inherited(metric_type: PaintMetricType, start_time: f64)
-        -> PerformancePaintTiming {
+    fn new_inherited(metric_type: PWMType, start_time: f64) -> PerformancePaintTiming {
         let name = match metric_type {
-            PaintMetricType::FirstPaint => DOMString::from("first-paint"),
-            PaintMetricType::FirstContentfulPaint => DOMString::from("first-contentful-paint"),
+            PWMType::FirstPaint => DOMString::from("first-paint"),
+            PWMType::FirstContentfulPaint => DOMString::from("first-contentful-paint"),
+            _ => DOMString::from(""),
         };
         PerformancePaintTiming {
-            entry: PerformanceEntry::new_inherited(name,
-                                                   DOMString::from("paint"),
-                                                   start_time,
-                                                   0.)
+            entry: PerformanceEntry::new_inherited(name, DOMString::from("paint"), start_time, 0.),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               metric_type: PaintMetricType,
-               start_time: f64) -> DomRoot<PerformancePaintTiming> {
+    pub fn new(
+        global: &GlobalScope,
+        metric_type: PWMType,
+        start_time: f64,
+    ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
         reflect_dom_object(box entry, global, PerformancePaintTimingBinding::Wrap)
     }
