@@ -17,7 +17,6 @@ use smallbitvec::SmallBitVec;
 use std::borrow::Cow;
 use std::{fmt, mem, ops};
 use std::cell::RefCell;
-#[cfg(feature = "gecko")] use std::ptr;
 
 #[cfg(feature = "servo")] use cssparser::RGBA;
 use cssparser::{CowRcStr, Parser, TokenSerializationType, serialize_identifier};
@@ -2660,8 +2659,8 @@ impl<'a> StyleBuilder<'a> {
         debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
         #[cfg(feature = "gecko")]
         debug_assert!(parent_style.is_none() ||
-                      ptr::eq(parent_style.unwrap(),
-                              parent_style_ignoring_first_line.unwrap()) ||
+                      ::std::ptr::eq(parent_style.unwrap(),
+                                     parent_style_ignoring_first_line.unwrap()) ||
                       parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
@@ -3130,11 +3129,6 @@ pub fn cascade(
     rule_cache_conditions: &mut RuleCacheConditions,
 ) -> Arc<ComputedValues> {
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
-    #[cfg(feature = "gecko")]
-    debug_assert!(parent_style.is_none() ||
-                  ptr::eq(parent_style.unwrap(),
-                          parent_style_ignoring_first_line.unwrap()) ||
-                  parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let empty = SmallBitVec::new();
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
@@ -3218,8 +3212,8 @@ where
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     #[cfg(feature = "gecko")]
     debug_assert!(parent_style.is_none() ||
-                  ptr::eq(parent_style.unwrap(),
-                          parent_style_ignoring_first_line.unwrap()) ||
+                  ::std::ptr::eq(parent_style.unwrap(),
+                                 parent_style_ignoring_first_line.unwrap()) ||
                   parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let (inherited_style, layout_parent_style) = match parent_style {
         Some(parent_style) => {
