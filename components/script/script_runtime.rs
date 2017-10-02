@@ -22,6 +22,7 @@ use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqu
 use js::panic::wrap_panic;
 use js::rust::Runtime as RustRuntime;
 use microtask::{EnqueuedPromiseCallback, Microtask};
+use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::trace_thread;
 use servo_config::opts;
@@ -44,14 +45,14 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    Task(ScriptThreadEventCategory, Box<TaskBox>),
+    Task(ScriptThreadEventCategory, Box<TaskBox>, Option<PipelineId>),
 }
 
 impl fmt::Debug for CommonScriptMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::Task(ref category, ref task) => {
+            CommonScriptMsg::Task(ref category, ref task, _) => {
                 f.debug_tuple("Task").field(category).field(task).finish()
             },
         }

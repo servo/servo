@@ -505,6 +505,7 @@ impl VRDisplay {
             let (raf_sender, raf_receiver) = mpsc::channel();
             let mut near = near_init;
             let mut far = far_init;
+            // let pipeline_id = self.global().pipeline_id().clone(); TODO
 
             // Initialize compositor
             api_sender.send_vr(WebVRCommand::Create(display_id)).unwrap();
@@ -515,7 +516,7 @@ impl VRDisplay {
                 let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
-                js_sender.send(CommonScriptMsg::Task(WebVREvent, task)).unwrap();
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, None)).unwrap();
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());

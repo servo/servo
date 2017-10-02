@@ -37,6 +37,7 @@ impl TaskSource for DOMManipulationTaskSource {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::ScriptEvent,
             Box::new(canceller.wrap_task(task)),
+            None    //TODO
         ));
         self.0.send(msg).map_err(|_| ())
     }

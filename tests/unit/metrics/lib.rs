@@ -14,4 +14,5 @@ extern crate style;
 extern crate time;
 
 #[cfg(test)]
+mod interactive_time;
 mod paint_time;
