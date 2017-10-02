@@ -203,6 +203,8 @@ fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
         let current = time::now().to_timespec();
         return (current - last_modified) / 10;
     }
+    // https://tools.ietf.org/html/rfc7234#section-5.5.4
+    // Since we do not generate such a warning, 24 hours is the max for heuristic calculation.
     Duration::hours(24)
 }
 
