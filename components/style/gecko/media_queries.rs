@@ -32,6 +32,7 @@ use string_cache::Atom;
 use style_traits::{CSSPixel, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::viewport::ViewportConstraints;
+use stylesheets::Origin;
 use values::{CSSFloat, CustomIdent, serialize_dimension};
 use values::computed::{self, ToComputedValue};
 use values::specified::Length;
@@ -584,8 +585,10 @@ impl Expression {
     /// ```
     /// (media-feature: media-value)
     /// ```
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
+    pub fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block().map_err(|err|
             match err {
                 BasicParseError::UnexpectedToken(t) => StyleParseError::ExpectedIdentifier(t),
@@ -606,6 +609,12 @@ impl Expression {
                 )?;
 
                 let mut flags = 0;
+
+                if context.in_chrome_stylesheet() ||
+                    context.stylesheet_origin == Origin::UserAgent {
+                    flags |= nsMediaFeature_RequirementFlags::eUserAgentAndChromeOnly as u8;
+                }
+
                 let result = {
                     let mut feature_name = &**ident;
 
