@@ -117,8 +117,8 @@ macro_rules! apply_non_ts_list {
                 ("-moz-window-inactive", MozWindowInactive, mozWindowInactive, _, _),
             ],
             string: [
-                // FIXME(emilio): Unship this for content docs (bug 1396066).
-                ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, _),
+                ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _,
+                  PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("lang", Lang, lang, _, _),
             ],
             keyword: [
