@@ -95,7 +95,7 @@ struct CachedMetadata {
 /// Wrapper around a cached response, including information on re-validation needs
 pub struct CachedResponse {
     response: Response,
-    needs_revalidation: bool
+    needs_validation: bool
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
@@ -233,7 +233,7 @@ impl HttpCache {
             response.headers = headers;
             response.body = Arc::new(Mutex::new(cached_resource.body.clone()));
             let has_expired = self.base_time + cached_resource.expires < time::now().to_timespec();
-            return Some(CachedResponse { response: response, needs_revalidation: false });
+            return Some(CachedResponse { response: response, needs_validation: has_expired });
         }
         None
     }
