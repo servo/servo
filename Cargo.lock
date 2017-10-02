@@ -2695,6 +2695,7 @@ dependencies = [
  "msg 0.0.1",
  "script 0.0.1",
  "servo_url 0.0.1",
+ "style 0.0.1",
 ]
 
 [[package]]

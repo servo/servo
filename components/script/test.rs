@@ -15,6 +15,10 @@ pub mod area {
     pub use dom::htmlareaelement::{Area, Shape};
 }
 
+pub mod sizes {
+    pub use dom::htmlimageelement::{parse_a_sizes_attribute, Size};
+}
+
 pub mod size_of {
     use dom::characterdata::CharacterData;
     use dom::element::Element;
