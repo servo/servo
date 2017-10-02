@@ -305,6 +305,11 @@ impl Window {
         }
     }
 
+    /// Get a sender to the time profiler thread.
+    pub fn time_profiler_chan(&self) -> &TimeProfilerChan {
+        self.globalscope.time_profiler_chan()
+    }
+
     pub fn origin(&self) -> &MutableOrigin {
         self.globalscope.origin()
     }
@@ -1047,6 +1052,10 @@ impl Window {
         TaskCanceller {
             cancelled: Some(self.ignore_further_async_events.borrow().clone()),
         }
+    }
+
+    pub fn get_navigation_start(&self) -> f64 {
+        self.navigation_start_precise.get()
     }
 
     /// Cancels all the tasks associated with that window.

@@ -86,7 +86,7 @@ use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
+use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -763,7 +763,7 @@ impl LayoutThread {
                 return false
             },
             Msg::SetNavigationStart(time) => {
-                self.paint_time_metrics.set_navigation_start(time);
+                (&self.paint_time_metrics).set_navigation_start(time);
             },
         }
 
