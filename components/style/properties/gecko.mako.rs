@@ -4912,17 +4912,13 @@ fn static_assert() {
                 ${ident}.mType = StyleShapeSourceType::Box;
             }
             ShapeSource::Shape(servo_shape, maybe_box) => {
-                ${ident}.mReferenceBox = maybe_box.map(Into::into)
-                                                   .unwrap_or(StyleGeometryBox::NoBox);
-                ${ident}.mType = StyleShapeSourceType::Shape;
-
-                fn init_shape(${ident}: &mut StyleShapeSource, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
+                fn init_shape(${ident}: &mut StyleShapeSource, basic_shape_type: StyleBasicShapeType)
+                              -> &mut StyleBasicShape {
                     unsafe {
-                        // We have to be very careful to avoid a copy here!
-                        let ref mut union = ${ident}.__bindgen_anon_1;
-                        let shape: &mut *mut StyleBasicShape = union.mBasicShape.as_mut();
-                        *shape = Gecko_NewBasicShape(ty);
-                        &mut **shape
+                        // Create StyleBasicShape in StyleShapeSource. mReferenceBox and mType
+                        // will be set manually later.
+                        Gecko_NewBasicShape(${ident}, basic_shape_type);
+                        &mut *${ident}.mBasicShape.mPtr
                     }
                 }
                 match servo_shape {
@@ -4984,6 +4980,10 @@ fn static_assert() {
                         };
                     }
                 }
+
+                ${ident}.mReferenceBox = maybe_box.map(Into::into)
+                                                  .unwrap_or(StyleGeometryBox::NoBox);
+                ${ident}.mType = StyleShapeSourceType::Shape;
             }
         }
 

@@ -617,13 +617,14 @@ pub mod basic_shape {
                 StyleShapeSourceType::Box => ShapeSource::Box(other.mReferenceBox.into()),
                 StyleShapeSourceType::URL => {
                     unsafe {
-                        let other_url = &(**other.__bindgen_anon_1.mURL.as_ref());
+                        let shape_image = &*other.mShapeImage.mPtr;
+                        let other_url = &(**shape_image.__bindgen_anon_1.mURLValue.as_ref());
                         let url = SpecifiedUrl::from_url_value_data(&other_url._base).unwrap();
                         ShapeSource::Url(url)
                     }
                 },
                 StyleShapeSourceType::Shape => {
-                    let other_shape = unsafe { &(**other.__bindgen_anon_1.mBasicShape.as_ref()) };
+                    let other_shape = unsafe { &*other.mBasicShape.mPtr };
                     let shape = other_shape.into();
                     let reference_box = if other.mReferenceBox == StyleGeometryBox::NoBox {
                         None
