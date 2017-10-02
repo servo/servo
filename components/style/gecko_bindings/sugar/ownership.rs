@@ -4,6 +4,7 @@
 
 //! Helpers for different FFI pointer kinds that Gecko's FFI layer uses.
 
+use selector_parser::SelectorImpl;
 use servo_arc::{Arc, RawOffsetArc};
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
@@ -344,3 +345,9 @@ impl<GeckoType> OwnedOrNull<GeckoType> {
         unsafe { transmute(self) }
     }
 }
+
+unsafe impl HasFFI for ::selectors::SelectorList<SelectorImpl> {
+    type FFIType = ::gecko_bindings::structs::RawServoSelectorList;
+}
+unsafe impl HasSimpleFFI for ::selectors::SelectorList<SelectorImpl> {}
+unsafe impl HasBoxFFI for ::selectors::SelectorList<SelectorImpl> {}

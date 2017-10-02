@@ -122,7 +122,7 @@ use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::{CascadeLevel, StyleSource};
-use style::selector_parser::PseudoElementCascadeType;
+use style::selector_parser::{PseudoElementCascadeType, SelectorImpl};
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
@@ -4101,4 +4101,24 @@ pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrow
 pub extern "C" fn Servo_CorruptRuleHashAndCrash(set: RawServoStyleSetBorrowed, index: usize) {
     let per_doc_data = PerDocumentStyleData::from_ffi(set).borrow();
     per_doc_data.stylist.corrupt_rule_hash_and_crash(index);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_Parse(selector_list: *const nsACString) -> *mut ::selectors::SelectorList<SelectorImpl> {
+    use style::selector_parser::SelectorParser;
+
+    debug_assert!(!selector_list.is_null());
+
+    let input = ::std::str::from_utf8_unchecked(&**selector_list);
+    let selector_list = match SelectorParser::parse_author_origin_no_namespace(&input) {
+        Ok(selector_list) => selector_list,
+        Err(..) => return ptr::null_mut(),
+    };
+
+    Box::into_raw(Box::new(selector_list))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_Drop(list: *mut ::selectors::SelectorList<SelectorImpl>) {
+    let _ = Box::from_raw(list);
 }
