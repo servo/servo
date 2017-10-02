@@ -13,6 +13,7 @@ use malloc_size_of::MallocSizeOfOps;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
+use selectors::NthIndexCache;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
@@ -236,6 +237,7 @@ impl ElementData {
         element: E,
         shared_context: &SharedStyleContext,
         stack_limit_checker: Option<&StackLimitChecker>,
+        nth_index_cache: Option<&mut NthIndexCache>,
     ) -> InvalidationResult {
         // In animation-only restyle we shouldn't touch snapshot at all.
         if shared_context.traversal_flags.for_animation_only() {
@@ -261,7 +263,9 @@ impl ElementData {
             Some(self),
             shared_context,
             stack_limit_checker,
+            nth_index_cache,
         );
+
         let result = invalidator.invalidate();
         unsafe { element.set_handled_snapshot() }
         debug_assert!(element.handled_snapshot());

@@ -169,8 +169,11 @@ pub trait DomTraversal<E: TElement> : Sync {
             if !traversal_flags.for_animation_only() {
                 // Invalidate our style, and that of our siblings and
                 // descendants as needed.
+                //
+                // FIXME(emilio): an nth-index cache could be worth here, even
+                // if temporary?
                 let invalidation_result =
-                    data.invalidate_style_if_needed(root, shared_context, None);
+                    data.invalidate_style_if_needed(root, shared_context, None, None);
 
                 if invalidation_result.has_invalidated_siblings() {
                     let actual_root =
@@ -895,7 +898,8 @@ where
             child_data.invalidate_style_if_needed(
                 child,
                 &context.shared,
-                Some(&context.thread_local.stack_limit_checker)
+                Some(&context.thread_local.stack_limit_checker),
+                Some(&mut context.thread_local.nth_index_cache)
             );
         }
 
