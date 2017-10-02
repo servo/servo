@@ -170,12 +170,16 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     return true;
 }
 
-/// Determine the expiry date of the given response headers.
-/// Returns a far-future date if the response does not expire.
+/// Determine the expiry date of the given response headers,
+/// or uses a heuristic if none are present.
 fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
+    // Calculating Freshness Lifetime https://tools.ietf.org/html/rfc7234#section-4.2.1
     if let Some(&header::CacheControl(ref directives)) = headers.get::<header::CacheControl>() {
         for directive in directives {
             match directive {
+                &header::CacheDirective::SMaxAge(secs) => {
+                    return Duration::seconds(secs as i64);
+                },
                 &header::CacheDirective::MaxAge(secs) => {
                     return Duration::seconds(secs as i64);
                 },
@@ -193,7 +197,13 @@ fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
             return Duration::min_value();
         }
     }
-    Duration::max_value()
+    // Calculating Heuristic Freshness https://tools.ietf.org/html/rfc7234#section-4.2.2
+    if let Some(&header::LastModified(header::HttpDate(t))) = headers.get::<header::LastModified>() {
+        let last_modified = t.to_timespec();
+        let current = time::now().to_timespec();
+        return (current - last_modified) / 10;
+    }
+    Duration::hours(24)
 }
 
 impl HttpCache {
@@ -220,6 +230,7 @@ impl HttpCache {
             };
             response.headers = headers;
             response.body = Arc::new(Mutex::new(cached_resource.body.clone()));
+            let has_expired = self.base_time + cached_resource.expires < time::now().to_timespec();
             return Some(CachedResponse { response: response, needs_revalidation: false });
         }
         None
