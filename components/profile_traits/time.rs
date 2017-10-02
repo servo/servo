@@ -12,8 +12,8 @@ use signpost;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {
-    pub url:         String,
-    pub iframe:      TimerMetadataFrameType,
+    pub url: String,
+    pub iframe: TimerMetadataFrameType,
     pub incremental: TimerMetadataReflowType,
 }
 
@@ -93,6 +93,7 @@ pub enum ProfilerCategory {
     ScriptPerformanceEvent = 0x7b,
     TimeToFirstPaint = 0x80,
     TimeToFirstContentfulPaint = 0x81,
+    TimeToInteractive = 0x82,
     ApplicationHeartbeat = 0x90,
 }
 
@@ -113,7 +114,7 @@ pub fn profile<T, F>(category: ProfilerCategory,
                      profiler_chan: ProfilerChan,
                      callback: F)
                   -> T
-    where F: FnOnce() -> T
+    where F: FnOnce() -> T,
 {
     if opts::get().signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);

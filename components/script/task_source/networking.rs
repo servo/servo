@@ -27,6 +27,7 @@ impl TaskSource for NetworkingTaskSource {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(canceller.wrap_task(task)),
+            None
         ))
     }
 }
@@ -41,6 +42,7 @@ impl NetworkingTaskSource {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(task),
+            None                //TODO
         ))
     }
 }
