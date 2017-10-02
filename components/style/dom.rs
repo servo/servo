@@ -28,7 +28,7 @@ use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::fmt;
-#[cfg(feature = "gecko")] use hash::HashMap;
+#[cfg(feature = "gecko")] use hash::FnvHashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
@@ -648,10 +648,10 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         false
     }
 
-    /// Gets the current existing CSS transitions, by |property, end value| pairs in a HashMap.
+    /// Gets the current existing CSS transitions, by |property, end value| pairs in a FnvHashMap.
     #[cfg(feature = "gecko")]
     fn get_css_transitions_info(&self)
-                                -> HashMap<TransitionProperty, Arc<AnimationValue>>;
+                                -> FnvHashMap<TransitionProperty, Arc<AnimationValue>>;
 
     /// Does a rough (and cheap) check for whether or not transitions might need to be updated that
     /// will quickly return false for the common case of no transitions specified or running. If
@@ -684,7 +684,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
-        existing_transitions: &HashMap<TransitionProperty, Arc<AnimationValue>>
+        existing_transitions: &FnvHashMap<TransitionProperty, Arc<AnimationValue>>
     ) -> bool;
 
     /// Returns the value of the `xml:lang=""` attribute (or, if appropriate,
