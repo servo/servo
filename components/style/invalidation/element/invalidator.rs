@@ -15,6 +15,7 @@ use invalidation::element::invalidation_map::*;
 use invalidation::element::restyle_hints::*;
 use selector_map::SelectorMap;
 use selector_parser::{SelectorImpl, Snapshot};
+use selectors::NthIndexCache;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::{matches_selector, matches_compound_selector};
@@ -47,6 +48,7 @@ pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
     data: Option<&'a mut ElementData>,
     shared_context: &'a SharedStyleContext<'b>,
     stack_limit_checker: Option<&'a StackLimitChecker>,
+    nth_index_cache: Option<&'a mut NthIndexCache>,
 }
 
 type InvalidationVector = SmallVec<[Invalidation; 10]>;
@@ -174,12 +176,14 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         data: Option<&'a mut ElementData>,
         shared_context: &'a SharedStyleContext<'b>,
         stack_limit_checker: Option<&'a StackLimitChecker>,
+        nth_index_cache: Option<&'a mut NthIndexCache>,
     ) -> Self {
         Self {
             element,
             data,
             shared_context,
             stack_limit_checker,
+            nth_index_cache,
         }
     }
 
@@ -252,16 +256,17 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         let mut sibling_invalidations = InvalidationVector::new();
         let invalidated_self = {
             let mut collector = InvalidationCollector {
-                wrapper: wrapper,
+                wrapper,
+                lookup_element,
+                nth_index_cache: self.nth_index_cache.as_mut().map(|c| &mut **c),
+                state_changes,
                 element: self.element,
                 snapshot: &snapshot,
                 shared_context: self.shared_context,
-                lookup_element: lookup_element,
                 removed_id: id_removed.as_ref(),
                 added_id: id_added.as_ref(),
                 classes_removed: &classes_removed,
                 classes_added: &classes_added,
-                state_changes: state_changes,
                 descendant_invalidations: &mut descendant_invalidations,
                 sibling_invalidations: &mut sibling_invalidations,
                 invalidates_self: false,
@@ -325,6 +330,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                 sibling_data,
                 self.shared_context,
                 self.stack_limit_checker,
+                self.nth_index_cache.as_mut().map(|c| &mut **c),
             );
 
             let mut invalidations_for_descendants = InvalidationVector::new();
@@ -388,6 +394,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             child_data,
             self.shared_context,
             self.stack_limit_checker,
+            self.nth_index_cache.as_mut().map(|c| &mut **c),
         );
 
         let mut invalidations_for_descendants = InvalidationVector::new();
@@ -633,22 +640,22 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         debug!("TreeStyleInvalidator::process_invalidation({:?}, {:?}, {:?})",
                self.element, invalidation, invalidation_kind);
 
-        // FIXME(bholley): Consider passing an nth-index cache here.
-        let mut context =
-            MatchingContext::new_for_visited(
+        let matching_result = {
+            let mut context = MatchingContext::new_for_visited(
                 MatchingMode::Normal,
                 None,
-                None,
+                self.nth_index_cache.as_mut().map(|c| &mut **c),
                 VisitedHandlingMode::AllLinksVisitedAndUnvisited,
                 self.shared_context.quirks_mode(),
             );
 
-        let matching_result = matches_compound_selector(
-            &invalidation.selector,
-            invalidation.offset,
-            &mut context,
-            &self.element
-        );
+            matches_compound_selector(
+                &invalidation.selector,
+                invalidation.offset,
+                &mut context,
+                &self.element
+            )
+        };
 
         let mut invalidated_self = false;
         let mut matched = false;
@@ -814,6 +821,7 @@ struct InvalidationCollector<'a, 'b: 'a, E>
 {
     element: E,
     wrapper: ElementWrapper<'b, E>,
+    nth_index_cache: Option<&'a mut NthIndexCache>,
     snapshot: &'a Snapshot,
     shared_context: &'a SharedStyleContext<'b>,
     lookup_element: E,
@@ -923,6 +931,64 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         );
     }
 
+    /// Check whether a dependency should be taken into account, using a given
+    /// visited handling mode.
+    fn check_dependency(
+        &mut self,
+        visited_handling_mode: VisitedHandlingMode,
+        dependency: &Dependency,
+        relevant_link_found: &mut bool,
+    ) -> bool {
+        let (matches_now, relevant_link_found_now) = {
+            let mut context = MatchingContext::new_for_visited(
+                MatchingMode::Normal,
+                None,
+                self.nth_index_cache.as_mut().map(|c| &mut **c),
+                visited_handling_mode,
+                self.shared_context.quirks_mode(),
+            );
+
+            let matches_now = matches_selector(
+                &dependency.selector,
+                dependency.selector_offset,
+                None,
+                &self.element,
+                &mut context,
+                &mut |_, _| {},
+            );
+
+            (matches_now, context.relevant_link_found)
+        };
+
+        let (matched_then, relevant_link_found_then) = {
+            let mut context = MatchingContext::new_for_visited(
+                MatchingMode::Normal,
+                None,
+                self.nth_index_cache.as_mut().map(|c| &mut **c),
+                visited_handling_mode,
+                self.shared_context.quirks_mode(),
+            );
+
+            let matched_then = matches_selector(
+                &dependency.selector,
+                dependency.selector_offset,
+                None,
+                &self.wrapper,
+                &mut context,
+                &mut |_, _| {},
+            );
+
+            (matched_then, context.relevant_link_found)
+        };
+
+        *relevant_link_found = relevant_link_found_now;
+
+        // Check for mismatches in both the match result and also the status
+        // of whether a relevant link was found.
+        matched_then != matches_now ||
+            relevant_link_found_now != relevant_link_found_then
+    }
+
     fn scan_dependency(
         &mut self,
         dependency: &Dependency,
@@ -937,47 +1003,15 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
             return;
         }
 
-        // TODO(emilio): Add a bloom filter here?
-        //
-        // If we decide to do so, we can't use the bloom filter for snapshots,
-        // given that arbitrary elements in the parent chain may have mutated
-        // their id's/classes, which means that they won't be in the filter, and
-        // as such we may fast-reject selectors incorrectly.
-        //
-        // We may be able to improve this if we record as we go down the tree
-        // whether any parent had a snapshot, and whether those snapshots were
-        // taken due to an element class/id change, but it's not clear it'd be
-        // worth it.
-        //
-        // FIXME(bholley): Consider passing an nth-index cache here.
-        let mut now_context =
-            MatchingContext::new_for_visited(MatchingMode::Normal, None, None,
-                                             VisitedHandlingMode::AllLinksUnvisited,
-                                             self.shared_context.quirks_mode());
-        let mut then_context =
-            MatchingContext::new_for_visited(MatchingMode::Normal, None, None,
-                                             VisitedHandlingMode::AllLinksUnvisited,
-                                             self.shared_context.quirks_mode());
+        let mut relevant_link_found = false;
 
-        let matched_then =
-            matches_selector(&dependency.selector,
-                             dependency.selector_offset,
-                             None,
-                             &self.wrapper,
-                             &mut then_context,
-                             &mut |_, _| {});
-        let matches_now =
-            matches_selector(&dependency.selector,
-                             dependency.selector_offset,
-                             None,
-                             &self.element,
-                             &mut now_context,
-                             &mut |_, _| {});
+        let should_account_for_dependency = self.check_dependency(
+            VisitedHandlingMode::AllLinksUnvisited,
+            dependency,
+            &mut relevant_link_found,
+        );
 
-        // Check for mismatches in both the match result and also the status
-        // of whether a relevant link was found.
-        if matched_then != matches_now ||
-           then_context.relevant_link_found != now_context.relevant_link_found {
+        if should_account_for_dependency {
             return self.note_dependency(dependency);
         }
 
@@ -997,25 +1031,14 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         //
         // NOTE: This thing is actually untested because testing it is flaky,
         // see the tests that were added and then backed out in bug 1328509.
-        if is_visited_dependent == VisitedDependent::Yes && now_context.relevant_link_found {
-            then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
-            let matched_then =
-                matches_selector(&dependency.selector,
-                                 dependency.selector_offset,
-                                 None,
-                                 &self.wrapper,
-                                 &mut then_context,
-                                 &mut |_, _| {});
+        if is_visited_dependent == VisitedDependent::Yes && relevant_link_found {
+            let should_account_for_dependency = self.check_dependency(
+                VisitedHandlingMode::RelevantLinkVisited,
+                dependency,
+                &mut false,
+            );
 
-            now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
-            let matches_now =
-                matches_selector(&dependency.selector,
-                                 dependency.selector_offset,
-                                 None,
-                                 &self.element,
-                                 &mut now_context,
-                                 &mut |_, _| {});
-            if matched_then != matches_now {
+            if should_account_for_dependency {
                 return self.note_dependency(dependency);
             }
         }
