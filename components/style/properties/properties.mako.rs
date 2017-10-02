@@ -28,7 +28,7 @@ use context::QuirksMode;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
-#[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
+#[cfg(feature = "servo")] use logical_geometry::LogicalMargin;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::ParserContext;
@@ -49,7 +49,6 @@ use values::computed::NonNegativeLength;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use self::computed_value_flags::*;
 use style_adjuster::StyleAdjuster;
-#[cfg(feature = "servo")] use values::specified::BorderStyle;
 
 pub use self::declaration_block::*;
 
@@ -3565,62 +3564,6 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
             style.set_border_${side}_width(NonNegativeLength::zero());
         }
     % endfor
-}
-
-/// Adjusts borders as appropriate to account for a fragment's status as the
-/// first or last fragment within the range of an element.
-///
-/// Specifically, this function sets border widths to zero on the sides for
-/// which the fragment is not outermost.
-#[cfg(feature = "servo")]
-#[inline]
-pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
-                                            is_first_fragment_of_element: bool,
-                                            is_last_fragment_of_element: bool) {
-    fn modify_side(style: &mut Arc<ComputedValues>, side: PhysicalSide) {
-        {
-            let border = &style.border;
-            let current_style = match side {
-                PhysicalSide::Left =>   (border.border_left_width,   border.border_left_style),
-                PhysicalSide::Right =>  (border.border_right_width,  border.border_right_style),
-                PhysicalSide::Top =>    (border.border_top_width,    border.border_top_style),
-                PhysicalSide::Bottom => (border.border_bottom_width, border.border_bottom_style),
-            };
-            if current_style == (NonNegativeLength::zero(), BorderStyle::none) {
-                return;
-            }
-        }
-        let style = Arc::make_mut(style);
-        let border = Arc::make_mut(&mut style.border);
-        match side {
-            PhysicalSide::Left => {
-                border.border_left_width = NonNegativeLength::zero();
-                border.border_left_style = BorderStyle::none;
-            }
-            PhysicalSide::Right => {
-                border.border_right_width = NonNegativeLength::zero();
-                border.border_right_style = BorderStyle::none;
-            }
-            PhysicalSide::Bottom => {
-                border.border_bottom_width = NonNegativeLength::zero();
-                border.border_bottom_style = BorderStyle::none;
-            }
-            PhysicalSide::Top => {
-                border.border_top_width = NonNegativeLength::zero();
-                border.border_top_style = BorderStyle::none;
-            }
-        }
-    }
-
-    if !is_first_fragment_of_element {
-        let side = style.writing_mode.inline_start_physical_side();
-        modify_side(style, side)
-    }
-
-    if !is_last_fragment_of_element {
-        let side = style.writing_mode.inline_end_physical_side();
-        modify_side(style, side)
-    }
 }
 
 /// An identifier for a given alias property.

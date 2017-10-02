@@ -50,8 +50,8 @@ use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, border_style, cursor};
 use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
-use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{self, ComputedValues};
+use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
+use style::properties::ComputedValues;
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
@@ -138,12 +138,16 @@ fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
     &arr[index % arr.len()]
 }
 
+pub struct InlineNodeBorderInfo {
+    is_first_fragment_of_element: bool,
+    is_last_fragment_of_element: bool,
+}
+
 #[derive(Debug)]
 struct StackingContextInfo {
     children: Vec<StackingContext>,
     clip_scroll_nodes: Vec<ClipScrollNode>,
 }
-
 impl StackingContextInfo {
     fn new() -> StackingContextInfo {
         StackingContextInfo {
@@ -503,13 +507,15 @@ pub trait FragmentDisplayListBuilding {
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
     /// necessary.
     fn build_display_list_for_borders_if_applicable(
-            &self,
-            state: &mut DisplayListBuildState,
-            style: &ComputedValues,
-            border_painting_mode: BorderPaintingMode,
-            bounds: &Rect<Au>,
-            display_list_section: DisplayListSection,
-            clip: &Rect<Au>);
+        &self,
+        state: &mut DisplayListBuildState,
+        style: &ComputedValues,
+        inline_node_info: Option<InlineNodeBorderInfo>,
+        border_painting_mode: BorderPaintingMode,
+        bounds: &Rect<Au>,
+        display_list_section: DisplayListSection,
+        clip: &Rect<Au>,
+    );
 
     /// Adds the display items necessary to paint the outline of this fragment to the display list
     /// if necessary.
@@ -1488,14 +1494,20 @@ impl FragmentDisplayListBuilding for Fragment {
     }
 
     fn build_display_list_for_borders_if_applicable(
-            &self,
-            state: &mut DisplayListBuildState,
-            style: &ComputedValues,
-            border_painting_mode: BorderPaintingMode,
-            bounds: &Rect<Au>,
-            display_list_section: DisplayListSection,
-            clip: &Rect<Au>) {
+        &self,
+        state: &mut DisplayListBuildState,
+        style: &ComputedValues,
+        inline_info: Option<InlineNodeBorderInfo>,
+        border_painting_mode: BorderPaintingMode,
+        bounds: &Rect<Au>,
+        display_list_section: DisplayListSection,
+        clip: &Rect<Au>
+    ) {
         let mut border = style.logical_border_width();
+
+        if let Some(inline_info) = inline_info {
+            modify_border_width_for_inline_sides(&mut border, inline_info);
+        }
 
         match border_painting_mode {
             BorderPaintingMode::Separate => {}
@@ -1518,6 +1530,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   border_style_struct.border_right_style,
                                                   border_style_struct.border_bottom_style,
                                                   border_style_struct.border_left_style);
+
         if let BorderPaintingMode::Collapse(collapsed_borders) = border_painting_mode {
             collapsed_borders.adjust_border_colors_and_styles_for_painting(&mut colors,
                                                                            &mut border_style,
@@ -1880,55 +1893,73 @@ impl FragmentDisplayListBuilding for Fragment {
                         state,
                         &*node.style,
                         display_list_section,
-                        &stacking_relative_border_box);
+                        &stacking_relative_border_box,
+                    );
+
                     self.build_display_list_for_box_shadow_if_applicable(
                         state,
                         &*node.style,
                         display_list_section,
                         &stacking_relative_border_box,
-                        clip);
+                        clip,
+                    );
 
-                    let mut style = node.style.clone();
-                    properties::modify_border_style_for_inline_sides(
-                        &mut style,
-                        node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
-                        node.flags.contains(LAST_FRAGMENT_OF_ELEMENT));
                     self.build_display_list_for_borders_if_applicable(
                         state,
-                        &*style,
+                        &*node.style,
+                        Some(InlineNodeBorderInfo {
+                            is_first_fragment_of_element: node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
+                            is_last_fragment_of_element: node.flags.contains(LAST_FRAGMENT_OF_ELEMENT),
+                        }),
                         border_painting_mode,
                         &stacking_relative_border_box,
                         display_list_section,
-                        clip);
+                        clip,
+                    );
 
+                    // FIXME(emilio): Why does outline not do the same width
+                    // fixup as border?
                     self.build_display_list_for_outline_if_applicable(
                         state,
                         &*node.style,
                         &stacking_relative_border_box,
-                        clip);
+                        clip,
+                    );
                 }
             }
 
             if !self.is_scanned_text_fragment() {
-                self.build_display_list_for_background_if_applicable(state,
-                                                                     &*self.style,
-                                                                     display_list_section,
-                                                                     &stacking_relative_border_box);
-                self.build_display_list_for_box_shadow_if_applicable(state,
-                                                                     &*self.style,
-                                                                     display_list_section,
-                                                                     &stacking_relative_border_box,
-                                                                     clip);
-                self.build_display_list_for_borders_if_applicable(state,
-                                                                  &*self.style,
-                                                                  border_painting_mode,
-                                                                  &stacking_relative_border_box,
-                                                                  display_list_section,
-                                                                  clip);
-                self.build_display_list_for_outline_if_applicable(state,
-                                                                  &*self.style,
-                                                                  &stacking_relative_border_box,
-                                                                  clip);
+                self.build_display_list_for_background_if_applicable(
+                    state,
+                    &*self.style,
+                    display_list_section,
+                    &stacking_relative_border_box,
+                );
+
+                self.build_display_list_for_box_shadow_if_applicable(
+                    state,
+                    &*self.style,
+                    display_list_section,
+                    &stacking_relative_border_box,
+                    clip,
+                );
+
+                self.build_display_list_for_borders_if_applicable(
+                    state,
+                    &*self.style,
+                    /* inline_node_info = */ None,
+                    border_painting_mode,
+                    &stacking_relative_border_box,
+                    display_list_section,
+                    clip,
+                );
+
+                self.build_display_list_for_outline_if_applicable(
+                    state,
+                    &*self.style,
+                    &stacking_relative_border_box,
+                    clip,
+                );
             }
         }
 
@@ -3133,6 +3164,24 @@ fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
 fn shadow_bounds(content_rect: &Rect<Au>, blur: Au, spread: Au) -> Rect<Au> {
     let inflation = spread + blur * BLUR_INFLATION_FACTOR;
     content_rect.inflate(inflation, inflation)
+}
+
+/// Adjusts borders as appropriate to account for a fragment's status as the
+/// first or last fragment within the range of an element.
+///
+/// Specifically, this function sets border widths to zero on the sides for
+/// which the fragment is not outermost.
+fn modify_border_width_for_inline_sides(
+    border_width: &mut LogicalMargin<Au>,
+    inline_border_info: InlineNodeBorderInfo,
+) {
+    if !inline_border_info.is_first_fragment_of_element {
+        border_width.inline_start = Au(0);
+    }
+
+    if !inline_border_info.is_last_fragment_of_element {
+        border_width.inline_end = Au(0);
+    }
 }
 
 /// Allows a CSS color to be converted into a graphics color.
