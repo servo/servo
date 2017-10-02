@@ -65,7 +65,6 @@ use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotTable;
 use gecko_bindings::structs::ServoStyleSetSizes;
 use gecko_bindings::structs::SheetParsingMode;
-use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::StyleTransition;
@@ -1220,8 +1219,8 @@ extern "C" {
     pub fn Gecko_DestroyShapeSource(shape: *mut StyleShapeSource);
 }
 extern "C" {
-    pub fn Gecko_NewBasicShape(type_: StyleBasicShapeType)
-     -> *mut StyleBasicShape;
+    pub fn Gecko_NewBasicShape(shape: *mut StyleShapeSource,
+                               type_: StyleBasicShapeType);
 }
 extern "C" {
     pub fn Gecko_StyleShapeSource_SetURLValue(shape: *mut StyleShapeSource,
