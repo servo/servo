@@ -22,7 +22,7 @@ const MIN_ALIGN: usize = 8;
               target_arch = "sparc64")))]
 const MIN_ALIGN: usize = 16;
 
-pub use self::platform::{alloc, dealloc};
+pub use self::platform::{alloc, dealloc, realloc};
 
 #[cfg(any(unix, target_os = "redox"))]
 mod platform {
@@ -45,6 +45,11 @@ mod platform {
     #[inline]
     pub unsafe fn dealloc(ptr: *mut u8, _align: usize) {
         libc::free(ptr as *mut libc::c_void)
+    }
+
+    #[inline]
+    pub unsafe fn realloc(ptr: *mut u8, new_size: usize) -> *mut u8 {
+        libc::realloc(ptr as *mut libc::c_void, new_size) as *mut u8
     }
 
     #[cfg(any(target_os = "android", target_os = "redox"))]
@@ -98,6 +103,7 @@ mod platform {
     extern "system" {
         fn GetProcessHeap() -> HANDLE;
         fn HeapAlloc(hHeap: HANDLE, dwFlags: DWORD, dwBytes: SIZE_T) -> LPVOID;
+        fn HeapReAlloc(hHeap: HANDLE, dwFlags: DWORD, lpMem: LPVOID, dwBytes: SIZE_T) -> LPVOID;
         fn HeapFree(hHeap: HANDLE, dwFlags: DWORD, lpMem: LPVOID) -> BOOL;
         fn GetLastError() -> DWORD;
     }
@@ -148,5 +154,13 @@ mod platform {
             debug_assert!(err != 0, "Failed to free heap memory: {}",
                           GetLastError());
         }
+    }
+
+    #[inline]
+    pub unsafe fn realloc(ptr: *mut u8, new_size: usize) -> *mut u8 {
+        HeapReAlloc(GetProcessHeap(),
+                    0,
+                    ptr as LPVOID,
+                    new_size) as *mut u8
     }
 }
