@@ -148,7 +148,7 @@ impl<'a> Iterator for NormalDeclarationIterator<'a> {
 
 /// Iterator for AnimationValue to be generated from PropertyDeclarationBlock.
 pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
-    iter: DeclarationImportanceIterator<'a>,
+    iter: NormalDeclarationIterator<'a>,
     context: &'cx mut Context<'cx_a>,
     default_values: &'a ComputedValues,
     /// Custom properties in a keyframe if exists.
@@ -163,7 +163,7 @@ impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
        extra_custom_properties: Option<&'a Arc<::custom_properties::CustomPropertiesMap>>,
     ) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
-            iter: declarations.declaration_importance_iter(),
+            iter: declarations.normal_declaration_iter(),
             context,
             default_values,
             extra_custom_properties,
@@ -177,14 +177,10 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let next = self.iter.next();
-            let (decl, importance) = match next {
-                Some(decl_and_importance) => decl_and_importance,
+            let decl = match next {
+                Some(decl) => decl,
                 None => return None,
             };
-
-            if importance.important() {
-                continue;
-            }
 
             let animation = AnimationValue::from_declaration(
                 decl,
