@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
+use cssparser::{Parser, ParserInput};
 use document_loader::{LoadType, LoadBlocker};
 use dom::activation::Activatable;
 use dom::attr::Attr;
@@ -52,10 +53,17 @@ use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use std::cell::{Cell, RefMut};
+use std::char;
 use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::context::QuirksMode;
+use style::media_queries::MediaQuery;
+use style::parser::ParserContext;
+use style::values::specified::{Length, ViewportPercentageLength};
+use style::values::specified::length::NoCalcLength;
+use style_traits::ParsingMode;
 use task_source::TaskSource;
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
@@ -66,6 +74,13 @@ enum State {
     CompletelyAvailable,
     Broken,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct Size {
+    pub query: Option<MediaQuery>,
+    pub length: Length,
+}
+
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
 enum ImageRequestPhase {
     Pending,
@@ -726,6 +741,60 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
+}
+
+//https://html.spec.whatwg.org/multipage/#parse-a-sizes-attribute
+pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size> {
+    let mut sizes = Vec::<Size>::new();
+    for unparsed_size in input.split(',') {
+        let whitespace = unparsed_size.chars().rev().take_while(|c| char::is_whitespace(*c)).count();
+        let trimmed: String = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).collect();
+
+        if trimmed.is_empty() {
+            continue;
+        }
+        let mut input = ParserInput::new(&trimmed);
+        let url = ServoUrl::parse("about:blank").unwrap();
+        let context = ParserContext::new_for_cssom(&url,
+                                                   None,
+                                                   ParsingMode::empty(),
+                                                   QuirksMode::NoQuirks);
+        let mut parser = Parser::new(&mut input);
+        let length = parser.try(|i| Length::parse_non_negative(&context, i));
+        match length {
+            Ok(len) => sizes.push(Size {
+                length: len,
+                query: None
+            }),
+            Err(_) => {
+                let mut media_query_parser = parser;
+                let media_query = media_query_parser.try(|i| MediaQuery::parse(&context, i));
+                if let Ok(query) = media_query {
+                    let length = Length::parse_non_negative(&context, &mut media_query_parser);
+                        if let Ok(length) = length {
+                            sizes.push(Size {
+                                length: length,
+                                query: Some(query)
+                        })
+                    }
+                }
+            },
+        }
+    }
+    if sizes.is_empty() {
+        let size = match width {
+            Some(w) => Size {
+                length: Length::from_px(w as f32),
+                query: None
+            },
+            None => Size {
+                length: Length::NoCalc(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.))),
+                query: None
+            },
+        };
+        sizes.push(size);
+    }
+    sizes
 }
 
 impl HTMLImageElementMethods for HTMLImageElement {
