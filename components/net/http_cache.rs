@@ -220,8 +220,8 @@ impl HttpCache {
         }
     }
 
-    /// Try to fetch a cached response.
-    pub fn try_cache_fetch(&self, request: &Request) -> Option<CachedResponse> {
+    /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
+    pub fn construct_response(&self, request: &Request) -> Option<CachedResponse> {
         let entry_key = CacheKey::new(request.clone());
         if let Some(cached_resource) = self.entries.get(&entry_key) {
             let mut response = Response::new(cached_resource.metadata.final_url.clone());
@@ -241,8 +241,15 @@ impl HttpCache {
         None
     }
 
-    /// Update the cache with a new response.
-    pub fn update_cache(&mut self, request: &Request, response: &Response) {
+    /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
+    pub fn refresh(&mut self, request: &Request, response: &Response) {}
+
+    /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
+    pub fn invalidate(&mut self, request: &Request) {}
+
+
+    /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
+    pub fn store(&mut self, request: &Request, response: &Response) {
         match response.metadata() {
             Ok(FetchMetadata::Filtered {
                filtered: FilteredMetadata::Basic(metadata),

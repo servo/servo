@@ -902,7 +902,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
     // Step 21
     if let Ok(http_cache) = context.state.http_cache.read() {
-        let complete_http_response_from_cache = http_cache.try_cache_fetch(&http_request);
+        let complete_http_response_from_cache = http_cache.construct_response(&http_request);
         if http_request.cache_mode != CacheMode::NoStore &&
            http_request.cache_mode != CacheMode::Reload {
             // TODO Substep 1 and 2. Select a response from HTTP cache.
@@ -947,20 +947,26 @@ fn http_network_or_cache_fetch(request: &mut Request,
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.safe() {
-                // TODO Invalidate HTTP cache response
+                if let Ok(mut http_cache) = context.state.http_cache.write() {
+                    http_cache.invalidate(&http_request);
+                }
             }
         }
         // Substep 4
         if revalidating_flag && forward_response.status.map_or(false, |s| s == StatusCode::NotModified) {
-            // TODO update forward_response headers with cached response headers
+            if let Ok(mut http_cache) = context.state.http_cache.write() {
+                http_cache.refresh(&http_request, &forward_response.clone());
+            }
         }
 
         // Substep 5
         if response.is_none() {
             // Subsubstep 1
-            response = Some(forward_response);
+            response = Some(forward_response.clone());
             // Subsubstep 2
-            // TODO: store http_request and forward_response in cache
+            if let Ok(mut http_cache) = context.state.http_cache.write() {
+                http_cache.store(&http_request, &forward_response);
+            }
         }
     }
 
