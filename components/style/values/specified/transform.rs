@@ -10,10 +10,10 @@ use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
+use values::generics::transform::{Matrix3D, Transform as GenericTransform};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, Matrix};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
-use values::generics::transform::Transform as GenericTransform;
 use values::generics::transform::TransformOperation as GenericTransformOperation;
 use values::specified::{self, Angle, Number, Length, Integer};
 use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
@@ -104,12 +104,12 @@ impl Transform {
                             let m43 = specified::parse_number(context, input)?;
                             input.expect_comma()?;
                             let m44 = specified::parse_number(context, input)?;
-                            Ok(GenericTransformOperation::Matrix3D {
+                            Ok(GenericTransformOperation::Matrix3D(Matrix3D {
                                 m11, m12, m13, m14,
                                 m21, m22, m23, m24,
                                 m31, m32, m33, m34,
                                 m41, m42, m43, m44,
-                            })
+                            }))
                         } else {
                             // Non-standard prefixed matrix parsing for -moz-transform.
                             let m41 = LengthOrPercentageOrNumber::parse(context, input)?;
@@ -119,12 +119,12 @@ impl Transform {
                             let m43 = LengthOrNumber::parse(context, input)?;
                             input.expect_comma()?;
                             let m44 = specified::parse_number(context, input)?;
-                            Ok(GenericTransformOperation::PrefixedMatrix3D {
+                            Ok(GenericTransformOperation::PrefixedMatrix3D(Matrix3D {
                                 m11, m12, m13, m14,
                                 m21, m22, m23, m24,
                                 m31, m32, m33, m34,
                                 m41, m42, m43, m44,
-                            })
+                            }))
                         }
                     },
                     "translate" => {
