@@ -23,6 +23,7 @@ use hyper::header::{AccessControlMaxAge, AccessControlRequestHeaders};
 use hyper::header::{AccessControlRequestMethod, AcceptEncoding, AcceptLanguage};
 use hyper::header::{Authorization, Basic, CacheControl, CacheDirective};
 use hyper::header::{ContentEncoding, ContentLength, Encoding, Header, Headers};
+use hyper::header::{ETag, EntityTag, HttpDate, LastModified};
 use hyper::header::{Host, Origin as HyperOrigin, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location};
 use hyper::header::{Pragma, Quality, QualityItem, Referer, SetCookie};
@@ -903,31 +904,32 @@ fn http_network_or_cache_fetch(request: &mut Request,
     if let Ok(http_cache) = context.state.http_cache.read() {
         let complete_http_response_from_cache = http_cache.try_cache_fetch(&http_request);
         if http_request.cache_mode != CacheMode::NoStore &&
-           http_request.cache_mode != CacheMode::Reload &&
-           complete_http_response_from_cache.is_some() {
+           http_request.cache_mode != CacheMode::Reload {
             // TODO Substep 1 and 2. Select a response from HTTP cache.
+            if let Some(cached_response) = complete_http_response_from_cache {
+                // Substep 3
+                revalidating_flag = cached_response.needs_validation;
 
-            // Substep 3
-            if let Some(ref response) = response {
-                revalidating_flag = response_needs_revalidation(&response);
-            };
-
-            // Substep 4
-            if http_request.cache_mode == CacheMode::ForceCache ||
-               http_request.cache_mode == CacheMode::OnlyIfCached {
-                // TODO pull response from HTTP cache
-                // response = http_request
-            }
-
-            if revalidating_flag {
-                // Substep 5
-                // TODO set If-None-Match and If-Modified-Since according to cached
-                //      response headers.
-            } else {
-                // Substep 6
-                // TODO pull response from HTTP cache
-                // response = http_request
-                // response.cache_state = CacheState::Local;
+                // Substep 4
+                if http_request.cache_mode == CacheMode::ForceCache ||
+                   http_request.cache_mode == CacheMode::OnlyIfCached {
+                    response = Some(cached_response.response);
+                } else {
+                    if revalidating_flag {
+                        // Substep 5
+                        if let Some(&LastModified(HttpDate(t))) =
+                            cached_response.response.headers.get::<LastModified>() {
+                            http_request.headers.set(IfModifiedSince(HttpDate(t)));
+                        }
+                        if let Some(&ETag(ref entity_tag)) =
+                            cached_response.response.headers.get::<ETag>() {
+                            http_request.headers.set(ETag(entity_tag.clone()));
+                        }
+                    } else {
+                        // Substep 6
+                        response = Some(cached_response.response);
+                    }
+                }
             }
         }
     }
@@ -1177,7 +1179,9 @@ fn http_network_fetch(request: &Request,
     // Step 14
     if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
         if let Ok(mut http_cache) = context.state.http_cache.write() {
-            http_cache.update_cache(&request, &response);
+            // TODO find out how this update relates to the updates going on,
+            // in http_network_or_cache_fetch
+            //http_cache.update_cache(&request, &response);
         }
     }
 
@@ -1375,11 +1379,6 @@ fn is_no_store_cache(headers: &Headers) -> bool {
     headers.has::<IfModifiedSince>() | headers.has::<IfNoneMatch>() |
     headers.has::<IfUnmodifiedSince>() | headers.has::<IfMatch>() |
     headers.has::<IfRange>()
-}
-
-fn response_needs_revalidation(_response: &Response) -> bool {
-    // TODO this function
-    false
 }
 
 /// https://fetch.spec.whatwg.org/#redirect-status

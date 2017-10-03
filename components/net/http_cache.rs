@@ -94,8 +94,11 @@ struct CachedMetadata {
 
 /// Wrapper around a cached response, including information on re-validation needs
 pub struct CachedResponse {
-    response: Response,
-    needs_validation: bool
+    /// The stored response
+    pub response: Response,
+
+    /// The revalidation flag for the stored response
+    pub needs_validation: bool
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
