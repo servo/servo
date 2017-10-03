@@ -6,7 +6,7 @@
 
 use std::fmt;
 use style_traits::ToCss;
-use values::CSSFloat;
+use values::{computed, specified, CSSFloat};
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
@@ -137,3 +137,106 @@ impl TimingKeyword {
         }
     }
 }
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A single operation in the list of a `transform` value
+pub enum TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+    /// Represents a 2D 2x3 matrix.
+    Matrix(Matrix<Number>),
+    /// Represents a 3D 4x4 matrix with percentage and length values.
+    /// For `moz-transform`.
+    PrefixedMatrix(Matrix<Number, LoPoNumber>),
+    /// Represents a 3D 4x4 matrix.
+    #[allow(missing_docs)]
+    Matrix3D {
+        m11: Number, m12: Number, m13: Number, m14: Number,
+        m21: Number, m22: Number, m23: Number, m24: Number,
+        m31: Number, m32: Number, m33: Number, m34: Number,
+        m41: Number, m42: Number, m43: Number, m44: Number,
+    },
+    /// Represents a 3D 4x4 matrix with percentage and length values.
+    /// For `moz-transform`.
+    #[allow(missing_docs)]
+    PrefixedMatrix3D {
+        m11: Number,     m12: Number,     m13: Number,         m14: Number,
+        m21: Number,     m22: Number,     m23: Number,         m24: Number,
+        m31: Number,     m32: Number,     m33: Number,         m34: Number,
+        m41: LoPoNumber, m42: LoPoNumber, m43: LengthOrNumber, m44: Number,
+    },
+    /// A 2D skew.
+    ///
+    /// If the second angle is not provided it is assumed zero.
+    ///
+    /// Syntax can be skew(angle) or skew(angle, angle)
+    Skew(Angle, Option<Angle>),
+    /// skewX(angle)
+    SkewX(Angle),
+    /// skewY(angle)
+    SkewY(Angle),
+    /// translate(x, y) or translate(x)
+    Translate(LengthOrPercentage, Option<LengthOrPercentage>),
+    /// translateX(x)
+    TranslateX(LengthOrPercentage),
+    /// translateY(y)
+    TranslateY(LengthOrPercentage),
+    /// translateZ(z)
+    TranslateZ(Length),
+    /// translate3d(x, y, z)
+    Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+    /// A 2D scaling factor.
+    ///
+    /// `scale(2)` is parsed as `Scale(Number::new(2.0), None)` and is equivalent to
+    /// writing `scale(2, 2)` (`Scale(Number::new(2.0), Some(Number::new(2.0)))`).
+    ///
+    /// Negative values are allowed and flip the element.
+    ///
+    /// Syntax can be scale(factor) or scale(factor, factor)
+    Scale(Number, Option<Number>),
+    /// scaleX(factor)
+    ScaleX(Number),
+    /// scaleY(factor)
+    ScaleY(Number),
+    /// scaleZ(factor)
+    ScaleZ(Number),
+    /// scale3D(factorX, factorY, factorZ)
+    Scale3D(Number, Number, Number),
+    /// Describes a 2D Rotation.
+    ///
+    /// In a 3D scene `rotate(angle)` is equivalent to `rotateZ(angle)`.
+    Rotate(Angle),
+    /// Rotation in 3D space around the x-axis.
+    RotateX(Angle),
+    /// Rotation in 3D space around the y-axis.
+    RotateY(Angle),
+    /// Rotation in 3D space around the z-axis.
+    RotateZ(Angle),
+    /// Rotation in 3D space.
+    ///
+    /// Generalization of rotateX, rotateY and rotateZ.
+    Rotate3D(Number, Number, Number, Angle),
+    /// Specifies a perspective projection matrix.
+    ///
+    /// Part of CSS Transform Module Level 2 and defined at
+    /// [§ 13.1. 3D Transform Function](https://drafts.csswg.org/css-transforms-2/#funcdef-perspective).
+    ///
+    /// The value must be greater than or equal to zero.
+    Perspective(specified::Length),
+    /// A intermediate type for interpolation of mismatched transform lists.
+    #[allow(missing_docs)]
+    InterpolateMatrix { from_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                        to_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                        progress: computed::Percentage },
+    /// A intermediate type for accumulation of mismatched transform lists.
+    #[allow(missing_docs)]
+    AccumulateMatrix { from_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                       to_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                       count: specified::Integer },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A value of the `transform` property
+pub struct Transform<T>(Vec<T>);
