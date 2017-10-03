@@ -250,7 +250,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A value of the `transform` property
-pub struct Transform<T>(Vec<T>);
+pub struct Transform<T>(pub Vec<T>);
 
 
 impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
