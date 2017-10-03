@@ -14546,6 +14546,12 @@
      {}
     ]
    ],
+   "mozilla/first-reflow-sheet-assert.html": [
+    [
+     "/_mozilla/mozilla/first-reflow-sheet-assert.html",
+     {}
+    ]
+   ],
    "mozilla/focus_blur.html": [
     [
      "/_mozilla/mozilla/focus_blur.html",
@@ -27923,6 +27929,10 @@
   ],
   "mozilla/event_listener.html": [
    "f2ec5f89521fb4eda64a5e70249bbfb8850c4278",
+   "testharness"
+  ],
+  "mozilla/first-reflow-sheet-assert.html": [
+   "8a0cf9152c3f2421d3e418f824f02c915092d78f",
    "testharness"
   ],
   "mozilla/focus_blur.html": [

@@ -1318,6 +1318,7 @@ impl LayoutThread {
                                                          &mut layout_context);
         }
 
+        self.first_reflow.set(false);
         self.respond_to_query_if_necessary(&data.reflow_goal,
                                            &mut *rw_data,
                                            &mut layout_context,
@@ -1596,6 +1597,7 @@ impl LayoutThread {
         });
 
         self.perform_post_main_layout_passes(data,
+                                             root_flow,
                                              reflow_goal,
                                              document,
                                              rw_data,
@@ -1604,30 +1606,28 @@ impl LayoutThread {
 
     fn perform_post_main_layout_passes(&self,
                                        data: &Reflow,
+                                       mut root_flow: &mut FlowRef,
                                        reflow_goal: &ReflowGoal,
                                        document: Option<&ServoLayoutDocument>,
                                        rw_data: &mut LayoutThreadData,
                                        layout_context: &mut LayoutContext) {
         // Build the display list if necessary, and send it to the painter.
-        if let Some(mut root_flow) = self.root_flow.borrow().clone() {
-            self.compute_abs_pos_and_build_display_list(data,
-                                                        reflow_goal,
-                                                        document,
-                                                        FlowRef::deref_mut(&mut root_flow),
-                                                        &mut *layout_context,
-                                                        rw_data);
-            self.first_reflow.set(false);
+        self.compute_abs_pos_and_build_display_list(data,
+                                                    reflow_goal,
+                                                    document,
+                                                    FlowRef::deref_mut(&mut root_flow),
+                                                    &mut *layout_context,
+                                                    rw_data);
 
-            if opts::get().trace_layout {
-                layout_debug::end_trace(self.generation.get());
-            }
-
-            if opts::get().dump_flow_tree {
-                root_flow.print("Post layout flow tree".to_owned());
-            }
-
-            self.generation.set(self.generation.get() + 1);
+        if opts::get().trace_layout {
+            layout_debug::end_trace(self.generation.get());
         }
+
+        if opts::get().dump_flow_tree {
+            root_flow.print("Post layout flow tree".to_owned());
+        }
+
+        self.generation.set(self.generation.get() + 1);
     }
 
     fn reflow_all_nodes(flow: &mut Flow) {
