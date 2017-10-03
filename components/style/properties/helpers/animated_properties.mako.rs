@@ -407,7 +407,7 @@ impl AnimationValue {
     ) -> Option<Self> {
         use properties::LonghandId;
 
-        match *decl {
+        let animatable = match *decl {
             % for prop in data.longhands:
             % if prop.animatable:
             PropertyDeclaration::${prop.camel_case}(ref val) => {
@@ -427,13 +427,13 @@ impl AnimationValue {
             % else:
             let computed = val.to_computed_value(context);
             % endif
-            Some(AnimationValue::${prop.camel_case}(
+            AnimationValue::${prop.camel_case}(
             % if prop.is_animatable_with_computed_value:
                 computed
             % else:
                 computed.to_animated_value()
             % endif
-            ))
+            )
             },
             % endif
             % endfor
@@ -444,33 +444,32 @@ impl AnimationValue {
                     % for prop in data.longhands:
                     % if prop.animatable:
                     LonghandId::${prop.camel_case} => {
-                        let computed = match keyword {
+                        let style_struct = match keyword {
                             % if not prop.style_struct.inherited:
                                 CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Initial => {
-                                let initial_struct = initial.get_${prop.style_struct.name_lower}();
-                                initial_struct.clone_${prop.ident}()
+                                initial.get_${prop.style_struct.name_lower}()
                             },
                             % if prop.style_struct.inherited:
                                 CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Inherit => {
-                                let inherit_struct = context.builder
-                                                            .get_parent_${prop.style_struct.name_lower}();
-                                inherit_struct.clone_${prop.ident}()
+                                context.builder
+                                       .get_parent_${prop.style_struct.name_lower}()
                             },
                         };
+                        let computed = style_struct.clone_${prop.ident}();
                         % if not prop.is_animatable_with_computed_value:
                         let computed = computed.to_animated_value();
                         % endif
-                        Some(AnimationValue::${prop.camel_case}(computed))
+                        AnimationValue::${prop.camel_case}(computed)
                     },
                     % endif
                     % endfor
                     % for prop in data.longhands:
                     % if not prop.animatable:
-                    LonghandId::${prop.camel_case} => None,
+                    LonghandId::${prop.camel_case} => return None,
                     % endif
                     % endfor
                 }
@@ -486,15 +485,16 @@ impl AnimationValue {
                         context.quirks_mode
                     )
                 };
-                AnimationValue::from_declaration(
+                return AnimationValue::from_declaration(
                     &substituted,
                     context,
                     extra_custom_properties,
                     initial,
                 )
             },
-            _ => None // non animatable properties will get included because of shorthands. ignore.
-        }
+            _ => return None // non animatable properties will get included because of shorthands. ignore.
+        };
+        Some(animatable)
     }
 
     /// Get an AnimationValue for an AnimatableLonghand from a given computed values.
@@ -524,9 +524,17 @@ impl AnimationValue {
     }
 }
 
+fn animate_discrete<T: Clone>(this: &T, other: &T, procedure: Procedure) -> Result<T, ()> {
+    if let Procedure::Interpolate { progress } = procedure {
+        Ok(if progress < 0.5 { this.clone() } else { other.clone() })
+    } else {
+        Err(())
+    }
+}
+
 impl Animate for AnimationValue {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
+        let value = match (self, other) {
             % for prop in data.longhands:
             % if prop.animatable:
             % if prop.animation_value_type != "discrete":
@@ -534,22 +542,18 @@ impl Animate for AnimationValue {
                 &AnimationValue::${prop.camel_case}(ref this),
                 &AnimationValue::${prop.camel_case}(ref other),
             ) => {
-                Ok(AnimationValue::${prop.camel_case}(
+                AnimationValue::${prop.camel_case}(
                     this.animate(other, procedure)?,
-                ))
+                )
             },
             % else:
             (
                 &AnimationValue::${prop.camel_case}(ref this),
                 &AnimationValue::${prop.camel_case}(ref other),
             ) => {
-                if let Procedure::Interpolate { progress } = procedure {
-                    Ok(AnimationValue::${prop.camel_case}(
-                        if progress < 0.5 { this.clone() } else { other.clone() },
-                    ))
-                } else {
-                    Err(())
-                }
+                AnimationValue::${prop.camel_case}(
+                    animate_discrete(this, other, procedure)?
+                )
             },
             % endif
             % endif
@@ -557,22 +561,29 @@ impl Animate for AnimationValue {
             _ => {
                 panic!("Unexpected AnimationValue::animate call, got: {:?}, {:?}", self, other);
             }
-        }
+        };
+        Ok(value)
     }
 }
 
 impl ComputeSquaredDistance for AnimationValue {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match *self {
+            % for i, prop in enumerate([p for p in data.longhands if p.animatable and p.animation_value_type == "discrete"]):
+            % if i > 0:
+            |
+            % endif
+            AnimationValue::${prop.camel_case}(..)
+            % endfor
+            => return Err(()),
+            _ => (),
+        }
         match (self, other) {
             % for prop in data.longhands:
             % if prop.animatable:
             % if prop.animation_value_type != "discrete":
             (&AnimationValue::${prop.camel_case}(ref this), &AnimationValue::${prop.camel_case}(ref other)) => {
                 this.compute_squared_distance(other)
-            },
-            % else:
-            (&AnimationValue::${prop.camel_case}(_), &AnimationValue::${prop.camel_case}(_)) => {
-                Err(())
             },
             % endif
             % endif
