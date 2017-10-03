@@ -21,6 +21,17 @@ pub struct Matrix<T, U = T> {
     pub f: U,
 }
 
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, ToComputedValue, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Matrix3D<T, U = T, V = T> {
+    pub m11: T, pub m12: T, pub m13: T, pub m14: T,
+    pub m21: T, pub m22: T, pub m23: T, pub m24: T,
+    pub m31: T, pub m32: T, pub m33: T, pub m34: T,
+    pub m41: U, pub m42: U, pub m43: V, pub m44: T,
+}
+
 /// A generic transform origin.
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(MallocSizeOf, PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
@@ -151,21 +162,11 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     PrefixedMatrix(Matrix<Number, LoPoNumber>),
     /// Represents a 3D 4x4 matrix.
     #[allow(missing_docs)]
-    Matrix3D {
-        m11: Number, m12: Number, m13: Number, m14: Number,
-        m21: Number, m22: Number, m23: Number, m24: Number,
-        m31: Number, m32: Number, m33: Number, m34: Number,
-        m41: Number, m42: Number, m43: Number, m44: Number,
-    },
+    Matrix3D(Matrix3D<Number>),
     /// Represents a 3D 4x4 matrix with percentage and length values.
     /// For `moz-transform`.
     #[allow(missing_docs)]
-    PrefixedMatrix3D {
-        m11: Number,     m12: Number,     m13: Number,         m14: Number,
-        m21: Number,     m22: Number,     m23: Number,         m24: Number,
-        m31: Number,     m32: Number,     m33: Number,         m34: Number,
-        m41: LoPoNumber, m42: LoPoNumber, m43: LengthOrNumber, m44: Number,
-    },
+    PrefixedMatrix3D(Matrix3D<Number, LoPoNumber, LengthOrNumber>),
     /// A 2D skew.
     ///
     /// If the second angle is not provided it is assumed zero.
@@ -261,12 +262,12 @@ impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
         match *self {
             TransformOperation::Matrix(ref m) => m.to_css(dest),
             TransformOperation::PrefixedMatrix(ref m) => m.to_css(dest),
-            TransformOperation::Matrix3D {
+            TransformOperation::Matrix3D(Matrix3D {
                 m11, m12, m13, m14,
                 m21, m22, m23, m24,
                 m31, m32, m33, m34,
                 m41, m42, m43, m44,
-            } => {
+            }) => {
                 serialize_function!(dest, matrix3d(
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
@@ -274,12 +275,12 @@ impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
                     m41, m42, m43, m44,
                 ))
             }
-            TransformOperation::PrefixedMatrix3D {
+            TransformOperation::PrefixedMatrix3D(Matrix3D {
                 m11, m12, m13, m14,
                 m21, m22, m23, m24,
                 m31, m32, m33, m34,
                 ref m41, ref m42, ref m43, m44,
-            } => {
+            }) => {
                 serialize_function!(dest, matrix3d(
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
