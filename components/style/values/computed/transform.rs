@@ -9,9 +9,11 @@ use euclid::{Rect, Transform3D, Vector3D};
 use properties::longhands::transform::computed_value::{ComputedOperation, ComputedMatrix};
 use properties::longhands::transform::computed_value::T as TransformList;
 use std::f32;
-use super::CSSFloat;
+use super::{CSSFloat, Either};
+use values::animated::ToAnimatedZero;
 use values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
 use values::computed::{LengthOrNumber, LengthOrPercentageOrNumber};
+use values::generics::transform::{Matrix as GenericMatrix, Matrix3D as GenericMatrix3D};
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::{Transform as GenericTransform, TransformOperation as GenericTransformOperation};
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
@@ -62,6 +64,68 @@ impl From<Transform3D<CSSFloat>> for ComputedMatrix {
             m21: m.m21, m22: m.m22, m23: m.m23, m24: m.m24,
             m31: m.m31, m32: m.m32, m33: m.m33, m34: m.m34,
             m41: m.m41, m42: m.m42, m43: m.m43, m44: m.m44
+        }
+    }
+}
+
+/// computed value of matrix3d()
+pub type Matrix3D = GenericMatrix3D<Number>;
+/// computed value of matrix3d() in -moz-transform
+pub type PrefixedMatrix3D = GenericMatrix3D<Number, LengthOrPercentageOrNumber, LengthOrNumber>;
+/// computed value of matrix()
+pub type Matrix = GenericMatrix<Number>;
+/// computed value of matrix() in -moz-transform
+pub type PrefixedMatrix = GenericMatrix<Number, LengthOrPercentageOrNumber>;
+
+impl Matrix3D {
+    #[inline]
+    /// Get an identity matrix
+    pub fn identity() -> Self {
+        Self {
+            m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
+            m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
+            m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
+            m41: 0., m42: 0., m43: 0., m44: 1.0
+        }
+    }
+}
+
+impl PrefixedMatrix3D {
+    #[inline]
+    /// Get an identity matrix
+    pub fn identity() -> Self {
+        Self {
+            m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
+            m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
+            m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
+            m41: Either::First(0.), m42: Either::First(0.),
+            m43: Either::First(Length::new(0.)), m44: 1.0
+        }
+    }
+}
+
+impl Matrix {
+    #[inline]
+    /// Get an identity matrix
+    pub fn identity() -> Self {
+        Self {
+            a: 1., c: 0., /* 0 */e: 0.,
+            b: 0., d: 1., /* 0 */f: 0.,
+            /* 0      0      1      0 */
+            /* 0      0      0      1 */
+        }
+    }
+}
+
+impl PrefixedMatrix {
+    #[inline]
+    /// Get an identity matrix
+    pub fn identity() -> Self {
+        Self {
+            a: 1., c: 0., /* 0 */e: Either::First(0.),
+            b: 0., d: 1., /* 0 */f: Either::First(0.),
+            /* 0      0      1      0 */
+            /* 0      0      0      1 */
         }
     }
 }
@@ -174,6 +238,119 @@ impl TransformList {
         } else {
             let vector = vector.normalize();
             (vector.x, vector.y, vector.z, angle)
+        }
+    }
+}
+
+/// Build an equivalent 'identity transform function list' based
+/// on an existing transform list.
+/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+impl ToAnimatedZero for TransformOperation {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            GenericTransformOperation::Matrix3D(..) => {
+                Ok(GenericTransformOperation::Matrix3D(Matrix3D::identity()))
+            },
+            GenericTransformOperation::PrefixedMatrix3D(..) => {
+                Ok(GenericTransformOperation::PrefixedMatrix3D(PrefixedMatrix3D::identity()))
+            },
+            GenericTransformOperation::Matrix(..) => {
+                Ok(GenericTransformOperation::Matrix(Matrix::identity()))
+            },
+            GenericTransformOperation::PrefixedMatrix(..) => {
+                Ok(GenericTransformOperation::PrefixedMatrix(PrefixedMatrix::identity()))
+            },
+            GenericTransformOperation::Skew(sx, sy) => {
+                Ok(GenericTransformOperation::Skew(
+                    sx.to_animated_zero()?,
+                    sy.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::SkewX(s) => {
+                Ok(GenericTransformOperation::SkewX(
+                    s.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::SkewY(s) => {
+                Ok(GenericTransformOperation::SkewY(
+                    s.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::Translate3D(ref tx, ref ty, ref tz) => {
+                Ok(GenericTransformOperation::Translate3D(
+                    tx.to_animated_zero()?,
+                    ty.to_animated_zero()?,
+                    tz.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::Translate(ref tx, ref ty) => {
+                Ok(GenericTransformOperation::Translate(
+                    tx.to_animated_zero()?,
+                    ty.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::TranslateX(ref t) => {
+                Ok(GenericTransformOperation::TranslateX(
+                    t.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::TranslateY(ref t) => {
+                Ok(GenericTransformOperation::TranslateY(
+                    t.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::TranslateZ(ref t) => {
+                Ok(GenericTransformOperation::TranslateZ(
+                    t.to_animated_zero()?,
+                ))
+            },
+            GenericTransformOperation::Scale3D(..) => {
+                Ok(GenericTransformOperation::Scale3D(1.0, 1.0, 1.0))
+            },
+            GenericTransformOperation::Scale(_, None) => {
+                Ok(GenericTransformOperation::Scale(1.0, None))
+            },
+            GenericTransformOperation::Scale(_, Some(_)) => {
+                Ok(GenericTransformOperation::Scale(1.0, Some(1.0)))
+            },
+            GenericTransformOperation::ScaleX(..) => {
+                Ok(GenericTransformOperation::ScaleX(1.0))
+            },
+            GenericTransformOperation::ScaleY(..) => {
+                Ok(GenericTransformOperation::ScaleY(1.0))
+            },
+            GenericTransformOperation::ScaleZ(..) => {
+                Ok(GenericTransformOperation::ScaleZ(1.0))
+            },
+            GenericTransformOperation::Rotate3D(x, y, z, a) => {
+                let (x, y, z, _) = TransformList::get_normalized_vector_and_angle(x, y, z, a);
+                Ok(GenericTransformOperation::Rotate3D(x, y, z, Angle::zero()))
+            },
+            GenericTransformOperation::RotateX(_) => {
+                Ok(GenericTransformOperation::RotateX(Angle::zero()))
+            },
+            GenericTransformOperation::RotateY(_) => {
+                Ok(GenericTransformOperation::RotateY(Angle::zero()))
+            },
+            GenericTransformOperation::RotateZ(_) => {
+                Ok(GenericTransformOperation::RotateZ(Angle::zero()))
+            },
+            GenericTransformOperation::Rotate(_) => {
+                Ok(GenericTransformOperation::Rotate(Angle::zero()))
+            },
+            GenericTransformOperation::Perspective(..) |
+            GenericTransformOperation::AccumulateMatrix { .. } |
+            GenericTransformOperation::InterpolateMatrix { .. } => {
+                // Perspective: We convert a perspective function into an equivalent
+                //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
+                // AccumulateMatrix/InterpolateMatrix: We do interpolation on
+                //     AccumulateMatrix/InterpolateMatrix by reading it as a ComputedMatrix
+                //     (with layout information), and then do matrix interpolation.
+                //
+                // Therefore, we use an identity matrix to represent the identity transform list.
+                // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
+                Ok(GenericTransformOperation::Matrix3D(Matrix3D::identity()))
+            },
         }
     }
 }
