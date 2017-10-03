@@ -10,9 +10,17 @@ use properties::longhands::transform::computed_value::{ComputedOperation, Comput
 use properties::longhands::transform::computed_value::T as TransformList;
 use std::f32;
 use super::CSSFloat;
-use values::computed::{Angle, Length, LengthOrPercentage, Number, Percentage};
+use values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
+use values::computed::{LengthOrNumber, LengthOrPercentageOrNumber};
 use values::generics::transform::TimingFunction as GenericTimingFunction;
+use values::generics::transform::{Transform as GenericTransform, TransformOperation as GenericTransformOperation};
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
+
+/// A single operation in a computed CSS `transform`
+pub type TransformOperation = GenericTransformOperation<Angle, Number, Length, Integer,
+                                                        LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber>;
+/// A computed CSS `transform`
+pub type Transform = GenericTransform<TransformOperation>;
 
 /// The computed value of a CSS `<transform-origin>`
 pub type TransformOrigin = GenericTransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;

@@ -13,9 +13,16 @@ use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
-use values::specified::{Integer, Number};
-use values::specified::length::{Length, LengthOrPercentage};
+use values::generics::transform::{Transform as GenericTransform, TransformOperation as GenericTransformOperation};
+use values::specified::{Angle, Number, Length, Integer};
+use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
 use values::specified::position::{Side, X, Y};
+
+/// A single operation in a specified CSS `transform`
+pub type TransformOperation = GenericTransformOperation<Angle, Number, Length, Integer,
+                                                        LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber>;
+/// A specified CSS `transform`
+pub type Transform = GenericTransform<TransformOperation>;
 
 /// The specified value of a CSS `<transform-origin>`
 pub type TransformOrigin = GenericTransformOrigin<OriginComponent<X>, OriginComponent<Y>, Length>;
