@@ -1563,14 +1563,6 @@ extern "C" {
     pub fn Gecko_GetSystemPageSize() -> usize;
 }
 extern "C" {
-    pub fn Gecko_ProtectBuffer(buffer: *mut ::std::os::raw::c_void,
-                               size: usize);
-}
-extern "C" {
-    pub fn Gecko_UnprotectBuffer(buffer: *mut ::std::os::raw::c_void,
-                                 size: usize);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);
@@ -2998,10 +2990,6 @@ extern "C" {
     pub fn Servo_CloneArcStringData(string:
                                         *const ServoRawOffsetArc<RustString>)
      -> ServoRawOffsetArc<RustString>;
-}
-extern "C" {
-    pub fn Servo_CorruptRuleHashAndCrash(set: RawServoStyleSetBorrowed,
-                                         index: usize);
 }
 extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(sheet: *mut ServoStyleSheet,
