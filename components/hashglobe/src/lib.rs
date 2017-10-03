@@ -13,7 +13,6 @@ extern crate heapsize;
 pub mod alloc;
 pub mod hash_map;
 pub mod hash_set;
-pub mod protected;
 mod shim;
 mod table;
 
@@ -52,6 +51,3 @@ impl fmt::Display for FailedAllocationError {
         self.reason.fmt(f)
     }
 }
-
-// The size of memory pages on this system. Set when initializing geckolib.
-pub static SYSTEM_PAGE_SIZE: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
