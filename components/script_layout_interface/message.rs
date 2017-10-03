@@ -126,12 +126,13 @@ impl ReflowGoal {
     pub fn needs_display_list(&self) -> bool {
         match *self {
             ReflowGoal::NodesFromPoint(..) | ReflowGoal::HitTestQuery(..) |
-            ReflowGoal::TextIndexQuery(..) | ReflowGoal::Full => true,
+            ReflowGoal::TextIndexQuery(..) | ReflowGoal::TickAnimations |
+            ReflowGoal::Full => true,
             ReflowGoal::ContentBoxQuery(_) | ReflowGoal::ContentBoxesQuery(_) |
             ReflowGoal::NodeGeometryQuery(_) | ReflowGoal::NodeScrollGeometryQuery(_) |
             ReflowGoal::NodeOverflowQuery(_) | ReflowGoal::NodeScrollRootIdQuery(_) |
             ReflowGoal::ResolvedStyleQuery(..) | ReflowGoal::OffsetParentQuery(_) |
-            ReflowGoal::MarginStyleQuery(_) |  ReflowGoal::TickAnimations => false,
+            ReflowGoal::MarginStyleQuery(_)  => false,
         }
     }
 
