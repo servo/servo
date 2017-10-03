@@ -6,7 +6,7 @@
 
 use std::fmt;
 use style_traits::ToCss;
-use values::{computed, specified, CSSFloat};
+use values::{computed, CSSFloat};
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
@@ -141,8 +141,9 @@ impl TimingKeyword {
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(ToComputedValue)]
 /// A single operation in the list of a `transform` value
-pub enum TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
     /// Represents a 2D 2x3 matrix.
     Matrix(Matrix<Number>),
     /// Represents a 3D 4x4 matrix with percentage and length values.
@@ -222,21 +223,160 @@ pub enum TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPerce
     /// [§ 13.1. 3D Transform Function](https://drafts.csswg.org/css-transforms-2/#funcdef-perspective).
     ///
     /// The value must be greater than or equal to zero.
-    Perspective(specified::Length),
+    Perspective(Length),
     /// A intermediate type for interpolation of mismatched transform lists.
     #[allow(missing_docs)]
-    InterpolateMatrix { from_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                        to_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                        progress: computed::Percentage },
+    InterpolateMatrix { #[compute(ignore_bound)]
+                        from_list: Transform<TransformOperation<Angle, Number, Length, Integer,
+                                                                LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                        #[compute(ignore_bound)]
+                        to_list: Transform<TransformOperation<Angle, Number, Length, Integer,
+                                                              LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                        #[compute(clone)] progress: computed::Percentage },
     /// A intermediate type for accumulation of mismatched transform lists.
     #[allow(missing_docs)]
-    AccumulateMatrix { from_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                       to_list: Transform<TransformOperation<Angle, Number, Length, LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                       count: specified::Integer },
+
+    AccumulateMatrix { #[compute(ignore_bound)]
+                       from_list: Transform<TransformOperation<Angle, Number, Length, Integer,
+                                                               LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                       #[compute(ignore_bound)]
+                       to_list: Transform<TransformOperation<Angle, Number, Length, Integer,
+                                                             LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
+                       count: Integer },
 }
 
+#[derive(Animate, ToComputedValue)]
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A value of the `transform` property
 pub struct Transform<T>(Vec<T>);
+
+
+impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
+     Integer: ToCss + Copy, LengthOrNumber: ToCss, LengthOrPercentage: ToCss, LoPoNumber: ToCss>
+    ToCss for
+    TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TransformOperation::Matrix(ref m) => m.to_css(dest),
+            TransformOperation::PrefixedMatrix(ref m) => m.to_css(dest),
+            TransformOperation::Matrix3D {
+                m11, m12, m13, m14,
+                m21, m22, m23, m24,
+                m31, m32, m33, m34,
+                m41, m42, m43, m44,
+            } => {
+                serialize_function!(dest, matrix3d(
+                    m11, m12, m13, m14,
+                    m21, m22, m23, m24,
+                    m31, m32, m33, m34,
+                    m41, m42, m43, m44,
+                ))
+            }
+            TransformOperation::PrefixedMatrix3D {
+                m11, m12, m13, m14,
+                m21, m22, m23, m24,
+                m31, m32, m33, m34,
+                ref m41, ref m42, ref m43, m44,
+            } => {
+                serialize_function!(dest, matrix3d(
+                    m11, m12, m13, m14,
+                    m21, m22, m23, m24,
+                    m31, m32, m33, m34,
+                    m41, m42, m43, m44,
+                ))
+            }
+            TransformOperation::Skew(ax, None) => {
+                serialize_function!(dest, skew(ax))
+            }
+            TransformOperation::Skew(ax, Some(ay)) => {
+                serialize_function!(dest, skew(ax, ay))
+            }
+            TransformOperation::SkewX(angle) => {
+                serialize_function!(dest, skewX(angle))
+            }
+            TransformOperation::SkewY(angle) => {
+                serialize_function!(dest, skewY(angle))
+            }
+            TransformOperation::Translate(ref tx, None) => {
+                serialize_function!(dest, translate(tx))
+            }
+            TransformOperation::Translate(ref tx, Some(ref ty)) => {
+                serialize_function!(dest, translate(tx, ty))
+            }
+            TransformOperation::TranslateX(ref tx) => {
+                serialize_function!(dest, translateX(tx))
+            }
+            TransformOperation::TranslateY(ref ty) => {
+                serialize_function!(dest, translateY(ty))
+            }
+            TransformOperation::TranslateZ(ref tz) => {
+                serialize_function!(dest, translateZ(tz))
+            }
+            TransformOperation::Translate3D(ref tx, ref ty, ref tz) => {
+                serialize_function!(dest, translate3d(tx, ty, tz))
+            }
+            TransformOperation::Scale(factor, None) => {
+                serialize_function!(dest, scale(factor))
+            }
+            TransformOperation::Scale(sx, Some(sy)) => {
+                serialize_function!(dest, scale(sx, sy))
+            }
+            TransformOperation::ScaleX(sx) => {
+                serialize_function!(dest, scaleX(sx))
+            }
+            TransformOperation::ScaleY(sy) => {
+                serialize_function!(dest, scaleY(sy))
+            }
+            TransformOperation::ScaleZ(sz) => {
+                serialize_function!(dest, scaleZ(sz))
+            }
+            TransformOperation::Scale3D(sx, sy, sz) => {
+                serialize_function!(dest, scale3d(sx, sy, sz))
+            }
+            TransformOperation::Rotate(theta) => {
+                serialize_function!(dest, rotate(theta))
+            }
+            TransformOperation::RotateX(theta) => {
+                serialize_function!(dest, rotateX(theta))
+            }
+            TransformOperation::RotateY(theta) => {
+                serialize_function!(dest, rotateY(theta))
+            }
+            TransformOperation::RotateZ(theta) => {
+                serialize_function!(dest, rotateZ(theta))
+            }
+            TransformOperation::Rotate3D(x, y, z, theta) => {
+                serialize_function!(dest, rotate3d(x, y, z, theta))
+            }
+            TransformOperation::Perspective(ref length) => {
+                serialize_function!(dest, perspective(length))
+            }
+            TransformOperation::InterpolateMatrix { ref from_list, ref to_list, progress } => {
+                serialize_function!(dest, interpolatematrix(from_list, to_list, progress))
+            }
+            TransformOperation::AccumulateMatrix { ref from_list, ref to_list, count } => {
+                serialize_function!(dest, accumulatematrix(from_list, to_list, count))
+            }
+        }
+    }
+}
+
+impl<T: ToCss> ToCss for Transform<T> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.0.is_empty() {
+            return dest.write_str("none")
+        }
+
+        let mut first = true;
+        for operation in &self.0 {
+            if !first {
+                dest.write_str(" ")?;
+            }
+            first = false;
+            operation.to_css(dest)?
+        }
+        Ok(())
+    }
+}
