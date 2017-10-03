@@ -52,7 +52,6 @@ use gecko_bindings::structs::CSSPseudoElementType;
 use gecko_bindings::structs::ServoTraversalFlags;
 use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
 use gecko_bindings::structs::CounterStylePtr;
-use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::FontSizePrefs;
 use gecko_bindings::structs::GeckoFontMetrics;
@@ -240,6 +239,8 @@ use gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 unsafe impl Send for nsStyleTransformMatrix::MatrixTransformOperator {}
 unsafe impl Sync for nsStyleTransformMatrix::MatrixTransformOperator {}
 use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
+use gecko_bindings::structs::FontFamilyName;
+use gecko_bindings::structs::mozilla::SharedFontList;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
@@ -874,19 +875,39 @@ extern "C" {
     pub fn Gecko_EnsureMozBorderColors(aBorder: *mut nsStyleBorder);
 }
 extern "C" {
-    pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
-}
-extern "C" {
-    pub fn Gecko_FontFamilyList_AppendNamed(aList: *mut FontFamilyList,
-                                            aName: *mut nsIAtom,
-                                            aQuoted: bool);
-}
-extern "C" {
-    pub fn Gecko_FontFamilyList_AppendGeneric(list: *mut FontFamilyList,
-                                              familyType: FontFamilyType);
-}
-extern "C" {
     pub fn Gecko_CopyFontFamilyFrom(dst: *mut nsFont, src: *const nsFont);
+}
+extern "C" {
+    pub fn Gecko_nsTArray_FontFamilyName_AppendNamed(aNames:
+                                                         *mut nsTArray<FontFamilyName>,
+                                                     aName: *mut nsIAtom,
+                                                     aQuoted: bool);
+}
+extern "C" {
+    pub fn Gecko_nsTArray_FontFamilyName_AppendGeneric(aNames:
+                                                           *mut nsTArray<FontFamilyName>,
+                                                       aType: FontFamilyType);
+}
+extern "C" {
+    pub fn Gecko_SharedFontList_Create() -> *mut SharedFontList;
+}
+extern "C" {
+    pub fn Gecko_SharedFontList_SizeOfIncludingThis(fontlist:
+                                                        *mut SharedFontList)
+     -> usize;
+}
+extern "C" {
+    pub fn Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(fontlist:
+                                                                  *mut SharedFontList)
+     -> usize;
+}
+extern "C" {
+    pub fn Gecko_AddRefSharedFontListArbitraryThread(aPtr:
+                                                         *mut SharedFontList);
+}
+extern "C" {
+    pub fn Gecko_ReleaseSharedFontListArbitraryThread(aPtr:
+                                                          *mut SharedFontList);
 }
 extern "C" {
     pub fn Gecko_nsFont_InitSystem(dst: *mut nsFont, font_id: i32,
