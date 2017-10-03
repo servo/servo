@@ -121,38 +121,6 @@ pub struct HashSet<T, S = RandomState> {
     map: HashMap<T, (), S>,
 }
 
-impl<T: Hash + Eq> HashSet<T, RandomState> {
-    /// Creates an empty `HashSet`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashSet;
-    /// let set: HashSet<i32> = HashSet::new();
-    /// ```
-    #[inline]
-    pub fn new() -> HashSet<T, RandomState> {
-        HashSet { map: HashMap::new() }
-    }
-
-    /// Creates an empty `HashSet` with the specified capacity.
-    ///
-    /// The hash set will be able to hold at least `capacity` elements without
-    /// reallocating. If `capacity` is 0, the hash set will not allocate.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashSet;
-    /// let set: HashSet<i32> = HashSet::with_capacity(10);
-    /// assert!(set.capacity() >= 10);
-    /// ```
-    #[inline]
-    pub fn with_capacity(capacity: usize) -> HashSet<T, RandomState> {
-        HashSet { map: HashMap::with_capacity(capacity) }
-    }
-}
-
 impl<T, S> HashSet<T, S>
     where T: Eq + Hash,
           S: BuildHasher

@@ -414,7 +414,7 @@ ${helpers.predefined_type("object-position",
         products="gecko"
         animation_value_type="discrete"
         boxed="True">
-    use hash::HashMap;
+    use hash::FnvHashMap;
     use std::fmt;
     use std::ops::Range;
     use str::HTML_SPACE_CHARACTERS;
@@ -478,7 +478,7 @@ ${helpers.predefined_type("object-position",
             let mut width = 0;
             {
                 let mut row = 0u32;
-                let mut area_indices = HashMap::<(&str), usize>::new();
+                let mut area_indices = FnvHashMap::<(&str), usize>::default();
                 for string in &strings {
                     let mut current_area_index: Option<usize> = None;
                     row += 1;
