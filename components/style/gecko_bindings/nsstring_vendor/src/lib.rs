@@ -22,11 +22,15 @@
 //! struct field, but passing the borrowed `&{mut,} nsA[C]String` over FFI is
 //! safe.
 //!
-//! Use `nsFixed[C]String` or `ns_auto_[c]string!` for dynamic stack allocated
-//! strings which are expected to hold short string values.
-//!
 //! Use `*{const,mut} nsA[C]String` (`{const,} nsA[C]String*` in C++) for
 //! function arguments passed across the rust/C++ language boundary.
+//!
+//! There is currently no Rust equivalent to nsAuto[C]String. Implementing a
+//! type that contains a pointer to an inline buffer is difficult in Rust due
+//! to its move semantics, which require that it be safe to move a value by
+//! copying its bits. If such a type is genuinely needed at some point,
+//! https://bugzilla.mozilla.org/show_bug.cgi?id=1403506#c6 has a sketch of how
+//! to emulate it via macros.
 //!
 //! # String Types
 //!
@@ -98,36 +102,6 @@
 //! mutable reference. This struct may also be included in `#[repr(C)]` structs
 //! shared with C++.
 //!
-//! ## `nsFixed[C]String<'a>`
-//!
-//! This type is a string type with fixed backing storage. It is created with
-//! `nsFixed[C]String::new(buffer)`, passing a mutable reference to a buffer as
-//! the argument. This buffer will be used as backing storage whenever the
-//! resulting string will fit within it, falling back to heap allocations only
-//! when the string size exceeds that of the backing buffer.
-//!
-//! Like `ns[C]String`, this type dereferences to `nsA[C]String` which provides
-//! the methods for manipulating the type, and is not `#[repr(C)]`.
-//!
-//! When passing this type by reference, prefer passing a `&nsA[C]String` or
-//! `&mut nsA[C]String`. to passing this type.
-//!
-//! When passing this type across the language boundary, pass it as `*const
-//! nsA[C]String` for an immutable reference, or `*mut nsA[C]String` for a
-//! mutable reference. This struct may also be included in `#[repr(C)]`
-//! structs shared with C++, although `nsFixed[C]String` objects are uncommon
-//! as struct members.
-//!
-//! ## `ns_auto_[c]string!($name)`
-//!
-//! This is a helper macro which defines a fixed size, (currently 64 character),
-//! backing array on the stack, and defines a local variable with name `$name`
-//! which is a `nsFixed[C]String` using this buffer as its backing storage.
-//!
-//! Usage of this macro is similar to the C++ type `nsAuto[C]String`, but could
-//! not be implemented as a basic type due to the differences between rust and
-//! C++'s move semantics.
-//!
 //! ## `ns[C]StringRepr`
 //!
 //! This crate also provides the type `ns[C]StringRepr` which acts conceptually
@@ -155,9 +129,9 @@ use std::str;
 use std::u32;
 use std::os::raw::c_void;
 
-//////////////////////////////////
-// Internal Implemenation Flags //
-//////////////////////////////////
+///////////////////////////////////
+// Internal Implementation Flags //
+///////////////////////////////////
 
 mod data_flags {
     bitflags! {
@@ -169,7 +143,7 @@ mod data_flags {
             const VOIDED = 1 << 1, // IsVoid returns true
             const SHARED = 1 << 2, // mData points to a heap-allocated, shared buffer
             const OWNED = 1 << 3, // mData points to a heap-allocated, raw buffer
-            const FIXED = 1 << 4, // mData points to a fixed-size writable, dependent buffer
+            const INLINE = 1 << 4, // mData points to a writable, inline buffer
             const LITERAL = 1 << 5, // mData points to a string literal; TERMINATED will also be set
         }
     }
@@ -181,7 +155,7 @@ mod class_flags {
         // over FFI safely as a u16.
         #[repr(C)]
         pub flags ClassFlags : u16 {
-            const FIXED = 1 << 0, // |this| is of type nsTFixedString
+            const INLINE = 1 << 0, // |this|'s buffer is inline
             const NULL_TERMINATED = 1 << 1, // |this| requires its buffer is null-terminated
         }
     }
@@ -201,7 +175,6 @@ macro_rules! define_string_types {
         AString = $AString: ident;
         String = $String: ident;
         Str = $Str: ident;
-        FixedString = $FixedString: ident;
 
         StringLike = $StringLike: ident;
         StringAdapter = $StringAdapter: ident;
@@ -431,12 +404,6 @@ macro_rules! define_string_types {
 
         impl<'a> cmp::PartialEq<$Str<'a>> for $AString {
             fn eq(&self, other: &$Str<'a>) -> bool {
-                self.eq(&**other)
-            }
-        }
-
-        impl<'a> cmp::PartialEq<$FixedString<'a>> for $AString {
-            fn eq(&self, other: &$FixedString<'a>) -> bool {
                 self.eq(&**other)
             }
         }
@@ -706,100 +673,6 @@ macro_rules! define_string_types {
             }
         }
 
-        /// A nsFixed[C]String is a string which uses a fixed size mutable
-        /// backing buffer for storing strings which will fit within that
-        /// buffer, rather than using heap allocations.
-        #[repr(C)]
-        pub struct $FixedString<'a> {
-            base: $String,
-            capacity: u32,
-            buffer: *mut $char_t,
-            _marker: PhantomData<&'a mut [$char_t]>,
-        }
-
-        impl<'a> $FixedString<'a> {
-            pub fn new(buf: &'a mut [$char_t]) -> $FixedString<'a> {
-                let len = buf.len();
-                assert!(len < (u32::MAX as usize));
-                let buf_ptr = buf.as_mut_ptr();
-                $FixedString {
-                    base: $String {
-                        hdr: $StringRepr::new(class_flags::FIXED | class_flags::NULL_TERMINATED),
-                    },
-                    capacity: len as u32,
-                    buffer: buf_ptr,
-                    _marker: PhantomData,
-                }
-            }
-        }
-
-        impl<'a> Deref for $FixedString<'a> {
-            type Target = $AString;
-            fn deref(&self) -> &$AString {
-                &self.base
-            }
-        }
-
-        impl<'a> DerefMut for $FixedString<'a> {
-            fn deref_mut(&mut self) -> &mut $AString {
-                &mut self.base
-            }
-        }
-
-        impl<'a> AsRef<[$char_t]> for $FixedString<'a> {
-            fn as_ref(&self) -> &[$char_t] {
-                &self
-            }
-        }
-
-        impl<'a> fmt::Write for $FixedString<'a> {
-            fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
-                $AString::write_str(self, s)
-            }
-        }
-
-        impl<'a> fmt::Display for $FixedString<'a> {
-            fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-                <$AString as fmt::Display>::fmt(self, f)
-            }
-        }
-
-        impl<'a> fmt::Debug for $FixedString<'a> {
-            fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-                <$AString as fmt::Debug>::fmt(self, f)
-            }
-        }
-
-        impl<'a> cmp::PartialEq for $FixedString<'a> {
-            fn eq(&self, other: &$FixedString<'a>) -> bool {
-                $AString::eq(self, other)
-            }
-        }
-
-        impl<'a> cmp::PartialEq<[$char_t]> for $FixedString<'a> {
-            fn eq(&self, other: &[$char_t]) -> bool {
-                $AString::eq(self, other)
-            }
-        }
-
-        impl<'a, 'b> cmp::PartialEq<&'b [$char_t]> for $FixedString<'a> {
-            fn eq(&self, other: &&'b [$char_t]) -> bool {
-                $AString::eq(self, *other)
-            }
-        }
-
-        impl<'a> cmp::PartialEq<str> for $FixedString<'a> {
-            fn eq(&self, other: &str) -> bool {
-                $AString::eq(self, other)
-            }
-        }
-
-        impl<'a, 'b> cmp::PartialEq<&'b str> for $FixedString<'a> {
-            fn eq(&self, other: &&'b str) -> bool {
-                $AString::eq(self, *other)
-            }
-        }
-
         /// An adapter type to allow for passing both types which coerce to
         /// &[$char_type], and &$AString to a function, while still performing
         /// optimized operations when passed the $AString.
@@ -869,12 +742,6 @@ macro_rules! define_string_types {
             }
         }
 
-        impl<'a> $StringLike for $FixedString<'a> {
-            fn adapt(&self) -> $StringAdapter {
-                $StringAdapter::Abstract(self)
-            }
-        }
-
         impl $StringLike for [$char_t] {
             fn adapt(&self) -> $StringAdapter {
                 $StringAdapter::Borrowed($Str::from(self))
@@ -905,7 +772,6 @@ define_string_types! {
     AString = nsACString;
     String = nsCString;
     Str = nsCStr;
-    FixedString = nsFixedCString;
 
     StringLike = nsCStringLike;
     StringAdapter = nsCStringAdapter;
@@ -1029,14 +895,6 @@ impl nsCStringLike for Box<str> {
     }
 }
 
-#[macro_export]
-macro_rules! ns_auto_cstring {
-    ($name:ident) => {
-        let mut buf: [u8; 64] = [0; 64];
-        let mut $name = $crate::nsFixedCString::new(&mut buf);
-    }
-}
-
 ///////////////////////////////////////////
 // Bindings for nsString (u16 char type) //
 ///////////////////////////////////////////
@@ -1047,7 +905,6 @@ define_string_types! {
     AString = nsAString;
     String = nsString;
     Str = nsStr;
-    FixedString = nsFixedString;
 
     StringLike = nsStringLike;
     StringAdapter = nsStringAdapter;
@@ -1126,14 +983,6 @@ impl fmt::Debug for nsAString {
 impl cmp::PartialEq<str> for nsAString {
     fn eq(&self, other: &str) -> bool {
         other.encode_utf16().eq(self.iter().cloned())
-    }
-}
-
-#[macro_export]
-macro_rules! ns_auto_string {
-    ($name:ident) => {
-        let mut buf: [u16; 64] = [0; 64];
-        let mut $name = $crate::nsFixedString::new(&mut buf);
     }
 }
 
