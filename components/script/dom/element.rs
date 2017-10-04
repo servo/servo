@@ -2050,7 +2050,10 @@ impl ElementMethods for Element {
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         // XXX TODO: XML case
-        self.serialize(ChildrenOnly)
+        let qname = QualName::new(self.prefix().clone(),
+                                  self.namespace().clone(),
+                                  self.local_name().clone());
+        self.serialize(ChildrenOnly(Some(qname)))
     }
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
