@@ -650,16 +650,6 @@ pub fn run_content_process(token: String) {
                                      script::script_thread::ScriptThread>(true);
 }
 
-// This is a workaround for https://github.com/rust-lang/rust/pull/30175 until
-// https://github.com/lfairy/rust-errno/pull/5 lands, and should be removed once
-// we update Servo with the rust-errno crate.
-#[cfg(target_os = "android")]
-#[no_mangle]
-pub unsafe extern fn __errno_location() -> *mut i32 {
-    extern { fn __errno() -> *mut i32; }
-    __errno()
-}
-
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 fn create_sandbox() {
     ChildSandbox::new(content_process_sandbox_profile()).activate()
