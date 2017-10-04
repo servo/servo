@@ -2892,7 +2892,19 @@ fn static_assert() {
     }
 
     ${impl_css_url('_moz_binding', 'mBinding.mPtr')}
-
+    <%
+    transform_functions = [
+        ("Matrix3D", "matrix3d", ["number"] * 16),
+        ("PrefixedMatrix3D", "matrix3d", ["number"] * 12 + ["lopon"] * 2
+                                         + ["lon"] + ["number"]),
+        ("Translate3D", "translate3d", ["lop", "lop", "length"]),
+        ("Scale3D", "scale3d", ["number"] * 3),
+        ("Rotate3D", "rotate3d", ["number"] * 3 + ["angle"]),
+        ("Perspective", "perspective", ["length"]),
+        ("InterpolateMatrix", "interpolatematrix", ["list"] * 2 + ["percentage"]),
+        ("AccumulateMatrix", "accumulatematrix", ["list"] * 2 + ["integer_to_percentage"])
+    ]
+    %>
     <%def name="transform_function_arm(name, keyword, items)">
         <%
             pattern = None
@@ -2978,17 +2990,9 @@ fn static_assert() {
 
         unsafe {
             match *servo_value {
-                ${transform_function_arm("Matrix3D", "matrix3d", ["number"] * 16)}
-                ${transform_function_arm("PrefixedMatrix3D", "matrix3d", ["number"] * 12 + ["lopon"] * 2
-                                         + ["lon"] + ["number"])}
-                ${transform_function_arm("Translate3D", "translate3d", ["lop", "lop", "length"])}
-                ${transform_function_arm("Scale3D", "scale3d", ["number"] * 3)}
-                ${transform_function_arm("Rotate3D", "rotate3d", ["number"] * 3 + ["angle"])}
-                ${transform_function_arm("Perspective", "perspective", ["length"])}
-                ${transform_function_arm("InterpolateMatrix", "interpolatematrix",
-                                         ["list"] * 2 + ["percentage"])}
-                ${transform_function_arm("AccumulateMatrix", "accumulatematrix",
-                                         ["list"] * 2 + ["integer_to_percentage"])}
+                % for servo, gecko, format in transform_functions:
+                    ${transform_function_arm(servo, gecko, format)}
+                % endfor
                 _ => unimplemented!()
             }
         }
@@ -3035,10 +3039,12 @@ fn static_assert() {
             css_value_getters = {
                 "length" : "Length::new(bindings::Gecko_CSSValue_GetNumber(%s))",
                 "lop" : "%s.get_lop()",
+                "lopon" : "Either::Second(%s.get_lop())",
+                "lon" : "Either::First(%s.get_length())",
                 "angle" : "%s.get_angle()",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
                 "percentage" : "Percentage(bindings::Gecko_CSSValue_GetPercentage(%s))",
-                "percentage_to_integer" : "bindings::Gecko_CSSValue_GetPercentage(%s) as i32",
+                "integer_to_percentage" : "bindings::Gecko_CSSValue_GetPercentage(%s) as i32",
                 "list" : "Transform(convert_shared_list_to_operations(%s))",
             }
             pre_symbols = "("
@@ -3056,8 +3062,18 @@ fn static_assert() {
                 field_names = ["from_list", "to_list", "progress"]
             elif keyword == "accumulatematrix":
                 field_names = ["from_list", "to_list", "count"]
+
         %>
-        structs::nsCSSKeyword::eCSSKeyword_${keyword} => {
+        <%
+
+            guard = ""
+            if name == "Matrix3D":
+                guard = "if !needs_prefix "
+            elif name == "PrefixedMatrix3D":
+                guard = "if needs_prefix "
+
+        %>
+        structs::nsCSSKeyword::eCSSKeyword_${keyword} ${guard}=> {
             ::values::generics::transform::TransformOperation::${name}${pre_symbols}
             % for index, item in enumerate(items):
                 % if keyword == "matrix3d":
@@ -3096,17 +3112,24 @@ fn static_assert() {
             bindings::Gecko_CSSValue_GetKeyword(bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 0))
         };
 
+        let needs_prefix = if transform_function == structs::nsCSSKeyword::eCSSKeyword_matrix3d {
+            unsafe {
+                bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 13).mUnit
+                        != structs::nsCSSUnit::eCSSUnit_Number ||
+                bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 14).mUnit
+                        != structs::nsCSSUnit::eCSSUnit_Number ||
+                bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 15).mUnit
+                        != structs::nsCSSUnit::eCSSUnit_Number
+            }
+        } else {
+            false
+        };
+
         unsafe {
             match transform_function {
-                ${computed_operation_arm("Matrix3D", "matrix3d", ["number"] * 16)}
-                ${computed_operation_arm("Translate3D", "translate3d", ["lop", "lop", "length"])}
-                ${computed_operation_arm("Scale3D", "scale3d", ["number"] * 3)}
-                ${computed_operation_arm("Rotate3D", "rotate3d", ["number"] * 3 + ["angle"])}
-                ${computed_operation_arm("Perspective", "perspective", ["length"])}
-                ${computed_operation_arm("InterpolateMatrix", "interpolatematrix",
-                                         ["list"] * 2 + ["percentage"])}
-                ${computed_operation_arm("AccumulateMatrix", "accumulatematrix",
-                                         ["list"] * 2 + ["percentage_to_integer"])}
+                % for servo, gecko, format in transform_functions:
+                    ${computed_operation_arm(servo, gecko, format)}
+                % endfor
                 _ => panic!("{:?} is not an acceptable transform function", transform_function),
             }
         }
