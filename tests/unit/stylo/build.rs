@@ -64,7 +64,7 @@ fn main() {
                                      TO PASS DATA AROUND BETWEEN BUILD SCRIPTS_OUT_DIR").unwrap();
     File::create(out_dir.join("bindings.rs"))
         .unwrap()
-        .write_all(format!("include!(concat!({:?}, \"/gecko/structs_debug.rs\"));",
+        .write_all(format!("include!(concat!({:?}, \"/gecko/structs.rs\"));",
                            style_out_dir).as_bytes())
         .unwrap();
 }
