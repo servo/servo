@@ -291,7 +291,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         }
 
         if !self.as_block().fragment.establishes_stacking_context() ||
-           self.as_block().fragment.style.get_box().transform.0.is_none() {
+           self.as_block().fragment.style.get_box().transform.0.is_empty() {
             overflow.translate(&position.origin.to_vector());
             return overflow;
         }

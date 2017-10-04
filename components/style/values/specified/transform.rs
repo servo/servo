@@ -46,6 +46,7 @@ impl Transform {
         Ok(GenericTransform(Space::parse(input, |input| {
             let function = input.expect_function()?.clone();
             input.parse_nested_block(|input| {
+                let location = input.current_source_location();
                 let result = match_ignore_ascii_case! { &function,
                     "matrix" => {
                         let a = specified::parse_number(context, input)?;
@@ -236,7 +237,7 @@ impl Transform {
                     _ => Err(()),
                 };
                 result
-                    .map_err(|()| StyleParseError::UnexpectedFunction(function.clone()).into())
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone())))
             })
         })?))
     }

@@ -2500,7 +2500,7 @@ impl Fragment {
 
     /// Returns true if this fragment has a filter, transform, or perspective property set.
     pub fn has_filter_transform_or_perspective(&self) -> bool {
-           self.style().get_box().transform.0.is_some() ||
+           !self.style().get_box().transform.0.is_empty() ||
            !self.style().get_effects().filter.0.is_empty() ||
            self.style().get_box().perspective != Either::Second(values::None_)
     }
@@ -2560,7 +2560,7 @@ impl Fragment {
             _ => return self.style().get_position().z_index.integer_or(0),
         }
 
-        if self.style().get_box().transform.0.is_some() {
+        if !self.style().get_box().transform.0.is_empty() {
             return self.style().get_position().z_index.integer_or(0);
         }
 

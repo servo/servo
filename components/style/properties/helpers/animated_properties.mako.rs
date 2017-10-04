@@ -18,9 +18,8 @@ use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
 #[cfg(feature = "gecko")]
 use properties::longhands::font_variation_settings::computed_value::T as FontVariationSettings;
-use properties::longhands::transform::computed_value::ComputedMatrix;
-use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
-use properties::longhands::transform::computed_value::T as TransformList;
+use properties::longhands::transform::computed_value::ComputedOperation as ComputedTransformOperation;
+use properties::longhands::transform::computed_value::T as ComputedTransform;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")]
 use properties::PropertyId;
@@ -28,7 +27,6 @@ use properties::{LonghandId, ShorthandId};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
-use std::borrow::Cow;
 use std::cmp;
 use std::fmt;
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
@@ -46,7 +44,8 @@ use values::computed::{LengthOrPercentageOrNone, MaxLength};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::computed::ToComputedValue;
-use values::computed::transform::DirectionVector;
+use values::computed::transform::{DirectionVector, Matrix3D};
+use values::generics::transform::{Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
 #[cfg(feature = "gecko")] use values::generics::FontSettingTag as GenericFontSettingTag;
@@ -1014,60 +1013,6 @@ impl ToAnimatedZero for ClipRect {
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
-/// Build an equivalent 'identity transform function list' based
-/// on an existing transform list.
-/// <http://dev.w3.org/csswg/css-transforms/#none-transform-animation>
-impl ToAnimatedZero for TransformOperation {
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            TransformOperation::Matrix(..) => {
-                Ok(TransformOperation::Matrix(ComputedMatrix::identity()))
-            },
-            TransformOperation::MatrixWithPercents(..) => {
-                // FIXME(nox): Should be MatrixWithPercents value.
-                Ok(TransformOperation::Matrix(ComputedMatrix::identity()))
-            },
-            TransformOperation::Skew(sx, sy) => {
-                Ok(TransformOperation::Skew(
-                    sx.to_animated_zero()?,
-                    sy.to_animated_zero()?,
-                ))
-            },
-            TransformOperation::Translate(ref tx, ref ty, ref tz) => {
-                Ok(TransformOperation::Translate(
-                    tx.to_animated_zero()?,
-                    ty.to_animated_zero()?,
-                    tz.to_animated_zero()?,
-                ))
-            },
-            TransformOperation::Scale(..) => {
-                Ok(TransformOperation::Scale(1.0, 1.0, 1.0))
-            },
-            TransformOperation::Rotate(x, y, z, a) => {
-                let (x, y, z, _) = TransformList::get_normalized_vector_and_angle(x, y, z, a);
-                Ok(TransformOperation::Rotate(x, y, z, Angle::zero()))
-            },
-            TransformOperation::Perspective(..) |
-            TransformOperation::AccumulateMatrix { .. } |
-            TransformOperation::InterpolateMatrix { .. } => {
-                // Perspective: We convert a perspective function into an equivalent
-                //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
-                // AccumulateMatrix/InterpolateMatrix: We do interpolation on
-                //     AccumulateMatrix/InterpolateMatrix by reading it as a ComputedMatrix
-                //     (with layout information), and then do matrix interpolation.
-                //
-                // Therefore, we use an identity matrix to represent the identity transform list.
-                // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
-                //
-                // FIXME(nox): This does not actually work, given the impl of
-                // Animate for TransformOperation bails out if the two given
-                // values are dissimilar.
-                Ok(TransformOperation::Matrix(ComputedMatrix::identity()))
-            },
-        }
-    }
-}
-
 fn animate_multiplicative_factor(
     this: CSSFloat,
     other: CSSFloat,
@@ -1077,14 +1022,14 @@ fn animate_multiplicative_factor(
 }
 
 /// <http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms>
-impl Animate for TransformOperation {
+impl Animate for ComputedTransformOperation {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (
-                &TransformOperation::Matrix(ref this),
-                &TransformOperation::Matrix(ref other),
+                &TransformOperation::Matrix3D(ref this),
+                &TransformOperation::Matrix3D(ref other),
             ) => {
-                Ok(TransformOperation::Matrix(
+                Ok(TransformOperation::Matrix3D(
                     this.animate(other, procedure)?,
                 ))
             },
@@ -1098,40 +1043,40 @@ impl Animate for TransformOperation {
                 ))
             },
             (
-                &TransformOperation::Translate(ref fx, ref fy, ref fz),
-                &TransformOperation::Translate(ref tx, ref ty, ref tz),
+                &TransformOperation::Translate3D(ref fx, ref fy, ref fz),
+                &TransformOperation::Translate3D(ref tx, ref ty, ref tz),
             ) => {
-                Ok(TransformOperation::Translate(
+                Ok(TransformOperation::Translate3D(
                     fx.animate(tx, procedure)?,
                     fy.animate(ty, procedure)?,
                     fz.animate(tz, procedure)?,
                 ))
             },
             (
-                &TransformOperation::Scale(ref fx, ref fy, ref fz),
-                &TransformOperation::Scale(ref tx, ref ty, ref tz),
+                &TransformOperation::Scale3D(ref fx, ref fy, ref fz),
+                &TransformOperation::Scale3D(ref tx, ref ty, ref tz),
             ) => {
-                Ok(TransformOperation::Scale(
+                Ok(TransformOperation::Scale3D(
                     animate_multiplicative_factor(*fx, *tx, procedure)?,
                     animate_multiplicative_factor(*fy, *ty, procedure)?,
                     animate_multiplicative_factor(*fz, *tz, procedure)?,
                 ))
             },
             (
-                &TransformOperation::Rotate(fx, fy, fz, fa),
-                &TransformOperation::Rotate(tx, ty, tz, ta),
+                &TransformOperation::Rotate3D(fx, fy, fz, fa),
+                &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => {
                 let (fx, fy, fz, fa) =
-                    TransformList::get_normalized_vector_and_angle(fx, fy, fz, fa);
+                    ComputedTransform::get_normalized_vector_and_angle(fx, fy, fz, fa);
                 let (tx, ty, tz, ta) =
-                    TransformList::get_normalized_vector_and_angle(tx, ty, tz, ta);
+                    ComputedTransform::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
                     let ia = fa.animate(&ta, procedure)?;
-                    Ok(TransformOperation::Rotate(fx, fy, fz, ia))
+                    Ok(TransformOperation::Rotate3D(fx, fy, fz, ia))
                 } else {
                     let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
                     let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
-                    Ok(TransformOperation::Matrix(
+                    Ok(TransformOperation::Matrix3D(
                         matrix_f.animate(&matrix_t, procedure)?,
                     ))
                 }
@@ -1140,15 +1085,15 @@ impl Animate for TransformOperation {
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => {
-                let mut fd_matrix = ComputedMatrix::identity();
-                let mut td_matrix = ComputedMatrix::identity();
+                let mut fd_matrix = Matrix3D::identity();
+                let mut td_matrix = Matrix3D::identity();
                 if fd.px() > 0. {
                     fd_matrix.m34 = -1. / fd.px();
                 }
                 if td.px() > 0. {
                     td_matrix.m34 = -1. / td.px();
                 }
-                Ok(TransformOperation::Matrix(
+                Ok(TransformOperation::Matrix3D(
                     fd_matrix.animate(&td_matrix, procedure)?,
                 ))
             },
@@ -1157,12 +1102,12 @@ impl Animate for TransformOperation {
     }
 }
 
-fn is_matched_operation(first: &TransformOperation, second: &TransformOperation) -> bool {
+fn is_matched_operation(first: &ComputedTransformOperation, second: &ComputedTransformOperation) -> bool {
     match (first, second) {
         (&TransformOperation::Matrix(..),
          &TransformOperation::Matrix(..)) |
-        (&TransformOperation::MatrixWithPercents(..),
-         &TransformOperation::MatrixWithPercents(..)) |
+        (&TransformOperation::PrefixedMatrix(..),
+         &TransformOperation::PrefixedMatrix(..)) |
         (&TransformOperation::Skew(..),
          &TransformOperation::Skew(..)) |
         (&TransformOperation::Translate(..),
@@ -1179,12 +1124,12 @@ fn is_matched_operation(first: &TransformOperation, second: &TransformOperation)
 }
 
 /// <https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined>
-fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
+fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> Matrix3D {
     let half_rad = a.radians() / 2.0;
     let sc = (half_rad).sin() * (half_rad).cos();
     let sq = (half_rad).sin().powi(2);
 
-    ComputedMatrix {
+    Matrix3D {
         m11: 1.0 - 2.0 * (y * y + z * z) * sq,
         m12: 2.0 * (x * y * sq + z * sc),
         m13: 2.0 * (x * z * sq - y * sc),
@@ -1214,7 +1159,7 @@ fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
 // FIXME: We use custom derive for ComputeSquaredDistance. However, If possible, we should convert
 // the InnerMatrix2D into types with physical meaning. This custom derive computes the squared
 // distance from each matrix item, and this makes the result different from that in Gecko if we
-// have skew factor in the ComputedMatrix.
+// have skew factor in the Matrix3D.
 pub struct InnerMatrix2D {
     pub m11: CSSFloat, pub m12: CSSFloat,
     pub m21: CSSFloat, pub m22: CSSFloat,
@@ -1324,7 +1269,7 @@ impl ComputeSquaredDistance for MatrixDecomposed2D {
     }
 }
 
-impl Animate for ComputedMatrix {
+impl Animate for Matrix3D {
     #[cfg(feature = "servo")]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         if self.is_3d() || other.is_3d() {
@@ -1332,7 +1277,7 @@ impl Animate for ComputedMatrix {
             let decomposed_to = decompose_3d_matrix(*other);
             match (decomposed_from, decomposed_to) {
                 (Ok(this), Ok(other)) => {
-                    Ok(ComputedMatrix::from(this.animate(&other, procedure)?))
+                    Ok(Matrix3D::from(this.animate(&other, procedure)?))
                 },
                 // Matrices can be undecomposable due to couple reasons, e.g.,
                 // non-invertible matrices. In this case, we should report Err
@@ -1342,7 +1287,7 @@ impl Animate for ComputedMatrix {
         } else {
             let this = MatrixDecomposed2D::from(*self);
             let other = MatrixDecomposed2D::from(*other);
-            Ok(ComputedMatrix::from(this.animate(&other, procedure)?))
+            Ok(Matrix3D::from(this.animate(&other, procedure)?))
         }
     }
 
@@ -1355,7 +1300,7 @@ impl Animate for ComputedMatrix {
         };
         match (from, to) {
             (Ok(from), Ok(to)) => {
-                Ok(ComputedMatrix::from(from.animate(&to, procedure)?))
+                Ok(Matrix3D::from(from.animate(&to, procedure)?))
             },
             // Matrices can be undecomposable due to couple reasons, e.g.,
             // non-invertible matrices. In this case, we should report Err here,
@@ -1365,7 +1310,7 @@ impl Animate for ComputedMatrix {
     }
 }
 
-impl ComputeSquaredDistance for ComputedMatrix {
+impl ComputeSquaredDistance for Matrix3D {
     #[inline]
     #[cfg(feature = "servo")]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
@@ -1392,10 +1337,10 @@ impl ComputeSquaredDistance for ComputedMatrix {
     }
 }
 
-impl From<ComputedMatrix> for MatrixDecomposed2D {
+impl From<Matrix3D> for MatrixDecomposed2D {
     /// Decompose a 2D matrix.
     /// <https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix>
-    fn from(matrix: ComputedMatrix) -> MatrixDecomposed2D {
+    fn from(matrix: Matrix3D) -> MatrixDecomposed2D {
         let mut row0x = matrix.m11;
         let mut row0y = matrix.m12;
         let mut row1x = matrix.m21;
@@ -1456,11 +1401,11 @@ impl From<ComputedMatrix> for MatrixDecomposed2D {
     }
 }
 
-impl From<MatrixDecomposed2D> for ComputedMatrix {
+impl From<MatrixDecomposed2D> for Matrix3D {
     /// Recompose a 2D matrix.
     /// <https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix>
-    fn from(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
-        let mut computed_matrix = ComputedMatrix::identity();
+    fn from(decomposed: MatrixDecomposed2D) -> Matrix3D {
+        let mut computed_matrix = Matrix3D::identity();
         computed_matrix.m11 = decomposed.matrix.m11;
         computed_matrix.m12 = decomposed.matrix.m12;
         computed_matrix.m21 = decomposed.matrix.m21;
@@ -1475,7 +1420,7 @@ impl From<MatrixDecomposed2D> for ComputedMatrix {
         let cos_angle = angle.cos();
         let sin_angle = angle.sin();
 
-        let mut rotate_matrix = ComputedMatrix::identity();
+        let mut rotate_matrix = Matrix3D::identity();
         rotate_matrix.m11 = cos_angle;
         rotate_matrix.m12 = sin_angle;
         rotate_matrix.m21 = -sin_angle;
@@ -1494,9 +1439,9 @@ impl From<MatrixDecomposed2D> for ComputedMatrix {
 }
 
 #[cfg(feature = "gecko")]
-impl<'a> From< &'a RawGeckoGfxMatrix4x4> for ComputedMatrix {
-    fn from(m: &'a RawGeckoGfxMatrix4x4) -> ComputedMatrix {
-        ComputedMatrix {
+impl<'a> From< &'a RawGeckoGfxMatrix4x4> for Matrix3D {
+    fn from(m: &'a RawGeckoGfxMatrix4x4) -> Matrix3D {
+        Matrix3D {
             m11: m[0],  m12: m[1],  m13: m[2],  m14: m[3],
             m21: m[4],  m22: m[5],  m23: m[6],  m24: m[7],
             m31: m[8],  m32: m[9],  m33: m[10], m34: m[11],
@@ -1506,8 +1451,8 @@ impl<'a> From< &'a RawGeckoGfxMatrix4x4> for ComputedMatrix {
 }
 
 #[cfg(feature = "gecko")]
-impl From<ComputedMatrix> for RawGeckoGfxMatrix4x4 {
-    fn from(matrix: ComputedMatrix) -> RawGeckoGfxMatrix4x4 {
+impl From<Matrix3D> for RawGeckoGfxMatrix4x4 {
+    fn from(matrix: Matrix3D) -> RawGeckoGfxMatrix4x4 {
         [ matrix.m11, matrix.m12, matrix.m13, matrix.m14,
           matrix.m21, matrix.m22, matrix.m23, matrix.m24,
           matrix.m31, matrix.m32, matrix.m33, matrix.m34,
@@ -1597,7 +1542,7 @@ impl ComputeSquaredDistance for Quaternion {
 
 /// Decompose a 3D matrix.
 /// <https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix>
-fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D, ()> {
+fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // Normalize the matrix.
     if matrix.m44 == 0.0 {
         return Err(());
@@ -1635,7 +1580,7 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
         perspective_matrix = perspective_matrix.inverse().unwrap();
 
         // Transpose perspective_matrix
-        perspective_matrix = ComputedMatrix {
+        perspective_matrix = Matrix3D {
             % for i in range(1, 5):
                 % for j in range(1, 5):
                     m${i}${j}: perspective_matrix.m${j}${i},
@@ -1743,7 +1688,7 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
 /// Decompose a 2D matrix for Gecko.
 // Use the algorithm from nsStyleTransformMatrix::Decompose2DMatrix() in Gecko.
 #[cfg(feature = "gecko")]
-fn decompose_2d_matrix(matrix: &ComputedMatrix) -> Result<MatrixDecomposed3D, ()> {
+fn decompose_2d_matrix(matrix: &Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // The index is column-major, so the equivalent transform matrix is:
     // | m11 m21  0 m41 |  =>  | m11 m21 | and translate(m41, m42)
     // | m12 m22  0 m42 |      | m12 m22 |
@@ -1928,11 +1873,11 @@ impl Animate for MatrixDecomposed3D {
     }
 }
 
-impl From<MatrixDecomposed3D> for ComputedMatrix {
+impl From<MatrixDecomposed3D> for Matrix3D {
     /// Recompose a 3D matrix.
     /// <https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix>
-    fn from(decomposed: MatrixDecomposed3D) -> ComputedMatrix {
-        let mut matrix = ComputedMatrix::identity();
+    fn from(decomposed: MatrixDecomposed3D) -> Matrix3D {
+        let mut matrix = Matrix3D::identity();
 
         // Apply perspective
         % for i in range(1, 5):
@@ -1954,7 +1899,7 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
 
         // Construct a composite rotation matrix from the quaternion values
         // rotationMatrix is a identity 4x4 matrix initially
-        let mut rotation_matrix = ComputedMatrix::identity();
+        let mut rotation_matrix = Matrix3D::identity();
         rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z) as f32;
         rotation_matrix.m12 = 2.0 * (x * y + z * w) as f32;
         rotation_matrix.m13 = 2.0 * (x * z - y * w) as f32;
@@ -1968,7 +1913,7 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
         matrix = multiply(rotation_matrix, matrix);
 
         // Apply skew
-        let mut temp = ComputedMatrix::identity();
+        let mut temp = Matrix3D::identity();
         if decomposed.skew.2 != 0.0 {
             temp.m32 = decomposed.skew.2;
             matrix = multiply(temp, matrix);
@@ -1998,7 +1943,7 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
 }
 
 // Multiplication of two 4x4 matrices.
-fn multiply(a: ComputedMatrix, b: ComputedMatrix) -> ComputedMatrix {
+fn multiply(a: Matrix3D, b: Matrix3D) -> Matrix3D {
     let mut a_clone = a;
     % for i in range(1, 5):
         % for j in range(1, 5):
@@ -2011,7 +1956,7 @@ fn multiply(a: ComputedMatrix, b: ComputedMatrix) -> ComputedMatrix {
     a_clone
 }
 
-impl ComputedMatrix {
+impl Matrix3D {
     fn is_3d(&self) -> bool {
         self.m13 != 0.0 || self.m14 != 0.0 ||
         self.m23 != 0.0 || self.m24 != 0.0 ||
@@ -2046,7 +1991,7 @@ impl ComputedMatrix {
         self.m11 * self.m22 * self.m33 * self.m44
     }
 
-    fn inverse(&self) -> Option<ComputedMatrix> {
+    fn inverse(&self) -> Option<Matrix3D> {
         let mut det = self.determinant();
 
         if det == 0.0 {
@@ -2054,7 +1999,7 @@ impl ComputedMatrix {
         }
 
         det = 1.0 / det;
-        let x = ComputedMatrix {
+        let x = Matrix3D {
             m11: det *
             (self.m23*self.m34*self.m42 - self.m24*self.m33*self.m42 +
              self.m24*self.m32*self.m43 - self.m22*self.m34*self.m43 -
@@ -2126,43 +2071,29 @@ impl ComputedMatrix {
 }
 
 /// <https://drafts.csswg.org/css-transforms/#interpolation-of-transforms>
-impl Animate for TransformList {
+impl Animate for ComputedTransform {
     #[inline]
     fn animate(
         &self,
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        if self.0.is_none() && other.0.is_none() {
-            return Ok(TransformList(None));
+        if self.0.is_empty() && other.0.is_empty() {
+            return Ok(Transform(vec![]));
         }
+
+
+        let this = &self.0;
+        let other = &other.0;
 
         if procedure == Procedure::Add {
-            let this = self.0.as_ref().map_or(&[][..], |l| l);
-            let other = other.0.as_ref().map_or(&[][..], |l| l);
             let result = this.iter().chain(other).cloned().collect::<Vec<_>>();
-            return Ok(TransformList(if result.is_empty() {
-                None
-            } else {
-                Some(result)
-            }));
+            return Ok(Transform(result));
         }
 
-        let this = if self.0.is_some() {
-            Cow::Borrowed(self)
-        } else {
-            Cow::Owned(other.to_animated_zero()?)
-        };
-        let other = if other.0.is_some() {
-            Cow::Borrowed(other)
-        } else {
-            Cow::Owned(self.to_animated_zero()?)
-        };
 
         // For matched transform lists.
         {
-            let this = (*this).0.as_ref().map_or(&[][..], |l| l);
-            let other = (*other).0.as_ref().map_or(&[][..], |l| l);
             if this.len() == other.len() {
                 let is_matched_transforms = this.iter().zip(other).all(|(this, other)| {
                     is_matched_operation(this, other)
@@ -2173,11 +2104,7 @@ impl Animate for TransformList {
                         this.animate(other, procedure)
                     }).collect::<Result<Vec<_>, _>>();
                     if let Ok(list) = result {
-                        return Ok(TransformList(if list.is_empty() {
-                            None
-                        } else {
-                            Some(list)
-                        }));
+                        return Ok(Transform(list));
                     }
 
                     // Can't animate for a pair of matched transform lists?
@@ -2193,18 +2120,18 @@ impl Animate for TransformList {
         match procedure {
             Procedure::Add => Err(()),
             Procedure::Interpolate { progress } => {
-                Ok(TransformList(Some(vec![TransformOperation::InterpolateMatrix {
-                    from_list: this.into_owned(),
-                    to_list: other.into_owned(),
+                Ok(Transform(vec![TransformOperation::InterpolateMatrix {
+                    from_list: Transform(this.clone()),
+                    to_list: Transform(other.clone()),
                     progress: Percentage(progress as f32),
-                }])))
+                }]))
             },
             Procedure::Accumulate { count } => {
-                Ok(TransformList(Some(vec![TransformOperation::AccumulateMatrix {
-                    from_list: this.into_owned(),
-                    to_list: other.into_owned(),
+                Ok(Transform(vec![TransformOperation::AccumulateMatrix {
+                    from_list: Transform(this.clone()),
+                    to_list: Transform(other.clone()),
                     count: cmp::min(count, i32::max_value() as u64) as i32,
-                }])))
+                }]))
             },
         }
     }
@@ -2214,12 +2141,12 @@ impl Animate for TransformList {
 // to trace the distance travelled by a point as its transform is interpolated between the two
 // lists. That, however, proves to be quite complicated so we take a simple approach for now.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1318591#c0.
-impl ComputeSquaredDistance for TransformOperation {
+impl ComputeSquaredDistance for ComputedTransformOperation {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         match (self, other) {
             (
-                &TransformOperation::Matrix(ref this),
-                &TransformOperation::Matrix(ref other),
+                &TransformOperation::Matrix3D(ref this),
+                &TransformOperation::Matrix3D(ref other),
             ) => {
                 this.compute_squared_distance(other)
             },
@@ -2233,8 +2160,8 @@ impl ComputeSquaredDistance for TransformOperation {
                 )
             },
             (
-                &TransformOperation::Translate(ref fx, ref fy, ref fz),
-                &TransformOperation::Translate(ref tx, ref ty, ref tz),
+                &TransformOperation::Translate3D(ref fx, ref fy, ref fz),
+                &TransformOperation::Translate3D(ref tx, ref ty, ref tz),
             ) => {
                 // We don't want to require doing layout in order to calculate the result, so
                 // drop the percentage part. However, dropping percentage makes us impossible to
@@ -2262,8 +2189,8 @@ impl ComputeSquaredDistance for TransformOperation {
                 )
             },
             (
-                &TransformOperation::Scale(ref fx, ref fy, ref fz),
-                &TransformOperation::Scale(ref tx, ref ty, ref tz),
+                &TransformOperation::Scale3D(ref fx, ref fy, ref fz),
+                &TransformOperation::Scale3D(ref tx, ref ty, ref tz),
             ) => {
                 Ok(
                     fx.compute_squared_distance(&tx)? +
@@ -2272,13 +2199,13 @@ impl ComputeSquaredDistance for TransformOperation {
                 )
             },
             (
-                &TransformOperation::Rotate(fx, fy, fz, fa),
-                &TransformOperation::Rotate(tx, ty, tz, ta),
+                &TransformOperation::Rotate3D(fx, fy, fz, fa),
+                &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => {
                 let (fx, fy, fz, angle1) =
-                    TransformList::get_normalized_vector_and_angle(fx, fy, fz, fa);
+                    ComputedTransform::get_normalized_vector_and_angle(fx, fy, fz, fa);
                 let (tx, ty, tz, angle2) =
-                    TransformList::get_normalized_vector_and_angle(tx, ty, tz, ta);
+                    ComputedTransform::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
                     angle1.compute_squared_distance(&angle2)
                 } else {
@@ -2293,8 +2220,8 @@ impl ComputeSquaredDistance for TransformOperation {
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => {
-                let mut fd_matrix = ComputedMatrix::identity();
-                let mut td_matrix = ComputedMatrix::identity();
+                let mut fd_matrix = Matrix3D::identity();
+                let mut td_matrix = Matrix3D::identity();
                 if fd.px() > 0. {
                     fd_matrix.m34 = -1. / fd.px();
                 }
@@ -2306,12 +2233,12 @@ impl ComputeSquaredDistance for TransformOperation {
             }
             (
                 &TransformOperation::Perspective(ref p),
-                &TransformOperation::Matrix(ref m),
+                &TransformOperation::Matrix3D(ref m),
             ) | (
-                &TransformOperation::Matrix(ref m),
+                &TransformOperation::Matrix3D(ref m),
                 &TransformOperation::Perspective(ref p),
             ) => {
-                let mut p_matrix = ComputedMatrix::identity();
+                let mut p_matrix = Matrix3D::identity();
                 if p.px() > 0. {
                     p_matrix.m34 = -1. / p.px();
                 }
@@ -2322,11 +2249,11 @@ impl ComputeSquaredDistance for TransformOperation {
     }
 }
 
-impl ComputeSquaredDistance for TransformList {
+impl ComputeSquaredDistance for ComputedTransform {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        let list1 = self.0.as_ref().map_or(&[][..], |l| l);
-        let list2 = other.0.as_ref().map_or(&[][..], |l| l);
+        let list1 = &self.0;
+        let list2 = &other.0;
 
         let squared_dist: Result<SquaredDistance, _> = list1.iter().zip_longest(list2).map(|it| {
             match it {
@@ -2342,25 +2269,11 @@ impl ComputeSquaredDistance for TransformList {
         // Roll back to matrix interpolation if there is any Err(()) in the transform lists, such
         // as mismatched transform functions.
         if let Err(_) = squared_dist {
-            let matrix1: ComputedMatrix = self.to_transform_3d_matrix(None).ok_or(())?.into();
-            let matrix2: ComputedMatrix = other.to_transform_3d_matrix(None).ok_or(())?.into();
+            let matrix1: Matrix3D = self.to_transform_3d_matrix(None).ok_or(())?.into();
+            let matrix2: Matrix3D = other.to_transform_3d_matrix(None).ok_or(())?.into();
             return matrix1.compute_squared_distance(&matrix2);
         }
         squared_dist
-    }
-}
-
-impl ToAnimatedZero for TransformList {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match self.0 {
-            None => Ok(TransformList(None)),
-            Some(ref list) => {
-                Ok(TransformList(Some(
-                    list.iter().map(|op| op.to_animated_zero()).collect::<Result<Vec<_>, _>>()?
-                )))
-            },
-        }
     }
 }
 
