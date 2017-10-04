@@ -696,7 +696,7 @@ pub struct GlyphIterator<'a> {
     store: &'a GlyphStore,
     byte_index: ByteIndex,
     byte_range: Range<ByteIndex>,
-    glyph_range: Option<EachIndex<isize, ByteIndex>>,
+    glyph_range: Option<EachIndex<ByteIndex>>,
 }
 
 impl<'a> GlyphIterator<'a> {
