@@ -458,15 +458,15 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::PushTextShadow(ref item) => {
                 let rect = item.base.bounds;
-                builder.push_text_shadow(&prim_info(rect, Some(item.base.local_clip)),
-                                         webrender_api::TextShadow {
-                                             blur_radius: item.blur_radius.to_f32_px(),
-                                             offset: item.offset.to_vectorf(),
-                                             color: item.color,
-                                         });
+                builder.push_shadow(&prim_info(rect, Some(item.base.local_clip)),
+                                    webrender_api::Shadow {
+                                        blur_radius: item.blur_radius.to_f32_px(),
+                                        offset: item.offset.to_vectorf(),
+                                        color: item.color,
+                                    });
             }
             DisplayItem::PopTextShadow(_) => {
-                builder.pop_text_shadow();
+                builder.pop_shadow();
             }
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds;
