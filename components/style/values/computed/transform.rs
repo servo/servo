@@ -130,6 +130,28 @@ impl PrefixedMatrix {
     }
 }
 
+impl From<Matrix3D> for Transform3D<CSSFloat> {
+    #[inline]
+    fn from(m: Matrix3D) -> Self {
+        Transform3D::row_major(
+            m.m11, m.m12, m.m13, m.m14,
+            m.m21, m.m22, m.m23, m.m24,
+            m.m31, m.m32, m.m33, m.m34,
+            m.m41, m.m42, m.m43, m.m44)
+    }
+}
+
+impl From<Matrix> for Transform3D<CSSFloat> {
+    #[inline]
+    fn from(m: Matrix) -> Self {
+        Transform3D::row_major(
+            m.a, m.b, 0.0, 0.0,
+            m.c, m.d, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            m.e, m.f, 0.0, 1.0)
+    }
+}
+
 impl TransformList {
     /// Return the equivalent 3d matrix of this transform list.
     /// If |reference_box| is None, we will drop the percent part from translate because
@@ -354,3 +376,195 @@ impl ToAnimatedZero for TransformOperation {
         }
     }
 }
+
+impl Transform {
+    /// Return the equivalent 3d matrix of this transform list.
+    /// If |reference_box| is None, we will drop the percent part from translate because
+    /// we can resolve it without the layout info.
+    pub fn to_transform_3d_matrix(&self, reference_box: Option<&Rect<Au>>)
+                                  -> Option<Transform3D<CSSFloat>> {
+        let mut transform = Transform3D::identity();
+        let list = &self.0;
+        if list.len() == 0 {
+            return None;
+        }
+
+        let extract_pixel_length = |lop: &LengthOrPercentage| {
+            match *lop {
+                LengthOrPercentage::Length(px) => px.px(),
+                LengthOrPercentage::Percentage(_) => 0.,
+                LengthOrPercentage::Calc(calc) => calc.length().px(),
+            }
+        };
+
+        for operation in list {
+            let matrix = match *operation {
+                GenericTransformOperation::Rotate3D(ax, ay, az, theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    let (ax, ay, az, theta) =
+                        Self::get_normalized_vector_and_angle(ax, ay, az, theta);
+                    Transform3D::create_rotation(ax, ay, az, theta.into())
+                }
+                GenericTransformOperation::RotateX(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(1., 0., 0., theta.into())
+                }
+                GenericTransformOperation::RotateY(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(0., 1., 0., theta.into())
+                }
+                GenericTransformOperation::RotateZ(theta) | GenericTransformOperation::Rotate(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(0., 0., 1., theta.into())
+                }
+                GenericTransformOperation::Perspective(d) => {
+                    Self::create_perspective_matrix(d.px())
+                }
+                GenericTransformOperation::Scale3D(sx, sy, sz) => {
+                    Transform3D::create_scale(sx, sy, sz)
+                }
+                GenericTransformOperation::Scale(sx, sy) => {
+                    Transform3D::create_scale(sx, sy.unwrap_or(sx), 1.)
+                }
+                GenericTransformOperation::ScaleX(s) => {
+                    Transform3D::create_scale(s, s, 1.)
+                }
+                GenericTransformOperation::ScaleY(s) => {
+                    Transform3D::create_scale(1., s, 1.)
+                }
+                GenericTransformOperation::ScaleZ(s) => {
+                    Transform3D::create_scale(1., 1., s)
+                }
+                GenericTransformOperation::Translate3D(tx, ty, tz) => {
+                    let (tx, ty) = match reference_box {
+                        Some(relative_border_box) => {
+                            (tx.to_pixel_length(relative_border_box.size.width).px(),
+                             ty.to_pixel_length(relative_border_box.size.height).px())
+                        },
+                        None => {
+                            // If we don't have reference box, we cannot resolve the used value,
+                            // so only retrieve the length part. This will be used for computing
+                            // distance without any layout info.
+                            (extract_pixel_length(&tx), extract_pixel_length(&ty))
+                        }
+                    };
+                    let tz = tz.px();
+                    Transform3D::create_translation(tx, ty, tz)
+                }
+                GenericTransformOperation::Translate(tx, Some(ty)) => {
+                    let (tx, ty) = match reference_box {
+                        Some(relative_border_box) => {
+                            (tx.to_pixel_length(relative_border_box.size.width).px(),
+                             ty.to_pixel_length(relative_border_box.size.height).px())
+                        },
+                        None => {
+                            // If we don't have reference box, we cannot resolve the used value,
+                            // so only retrieve the length part. This will be used for computing
+                            // distance without any layout info.
+                            (extract_pixel_length(&tx), extract_pixel_length(&ty))
+                        }
+                    };
+                    Transform3D::create_translation(tx, ty, 0.)
+                }
+                GenericTransformOperation::TranslateX(t) | GenericTransformOperation::Translate(t, None) => {
+                    let t = match reference_box {
+                        Some(relative_border_box) => {
+                            t.to_pixel_length(relative_border_box.size.width).px()
+                        },
+                        None => {
+                            // If we don't have reference box, we cannot resolve the used value,
+                            // so only retrieve the length part. This will be used for computing
+                            // distance without any layout info.
+                            extract_pixel_length(&t)
+                        }
+                    };
+                    Transform3D::create_translation(t, 0., 0.)
+                }
+                GenericTransformOperation::TranslateY(t) => {
+                    let t = match reference_box {
+                        Some(relative_border_box) => {
+                            t.to_pixel_length(relative_border_box.size.height).px()
+                        },
+                        None => {
+                            // If we don't have reference box, we cannot resolve the used value,
+                            // so only retrieve the length part. This will be used for computing
+                            // distance without any layout info.
+                            extract_pixel_length(&t)
+                        }
+                    };
+                    Transform3D::create_translation(0., t, 0.)
+                }
+                GenericTransformOperation::TranslateZ(z) => {
+                    Transform3D::create_translation(0., 0., z.px())
+                }
+                GenericTransformOperation::Skew(theta_x, theta_y) => {
+                    Transform3D::create_skew(theta_x.into(), theta_y.unwrap_or(Angle::zero()).into())
+                }
+                GenericTransformOperation::SkewX(theta) => {
+                    Transform3D::create_skew(theta.into(), Angle::zero().into())
+                }
+                GenericTransformOperation::SkewY(theta) => {
+                    Transform3D::create_skew(Angle::zero().into(), theta.into())
+                }
+                GenericTransformOperation::Matrix3D(m) => {
+                    m.into()
+                }
+                GenericTransformOperation::Matrix(m) => {
+                    m.into()
+                }
+                GenericTransformOperation::PrefixedMatrix3D(_) | GenericTransformOperation::PrefixedMatrix(_) => {
+                    // `-moz-transform` is not implemented in Servo yet.
+                    unreachable!()
+                }
+                GenericTransformOperation::InterpolateMatrix { .. } |
+                GenericTransformOperation::AccumulateMatrix { .. } => {
+                    // TODO: Convert InterpolateMatrix/AccmulateMatrix into a valid Transform3D by
+                    // the reference box and do interpolation on these two Transform3D matrices.
+                    // Both Gecko and Servo don't support this for computing distance, and Servo
+                    // doesn't support animations on InterpolateMatrix/AccumulateMatrix, so
+                    // return None.
+                    return None;
+                }
+            };
+
+            transform = transform.pre_mul(&matrix);
+        }
+
+        Some(transform)
+    }
+
+    /// Return the transform matrix from a perspective length.
+    #[inline]
+    pub fn create_perspective_matrix(d: CSSFloat) -> Transform3D<f32> {
+        // TODO(gw): The transforms spec says that perspective length must
+        // be positive. However, there is some confusion between the spec
+        // and browser implementations as to handling the case of 0 for the
+        // perspective value. Until the spec bug is resolved, at least ensure
+        // that a provided perspective value of <= 0.0 doesn't cause panics
+        // and behaves as it does in other browsers.
+        // See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
+        if d <= 0.0 {
+            Transform3D::identity()
+        } else {
+            Transform3D::create_perspective(d)
+        }
+    }
+
+    /// Return the normalized direction vector and its angle for Rotate3D.
+    pub fn get_normalized_vector_and_angle(x: f32, y: f32, z: f32, angle: Angle)
+                                           -> (f32, f32, f32, Angle) {
+        use euclid::approxeq::ApproxEq;
+        use euclid::num::Zero;
+        let vector = DirectionVector::new(x, y, z);
+        if vector.square_length().approx_eq(&f32::zero()) {
+            // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d
+            // A direction vector that cannot be normalized, such as [0, 0, 0], will cause the
+            // rotation to not be applied, so we use identity matrix (i.e. rotate3d(0, 0, 1, 0)).
+            (0., 0., 1., Angle::zero())
+        } else {
+            let vector = vector.normalize();
+            (vector.x, vector.y, vector.z, angle)
+        }
+    }
+}
+
