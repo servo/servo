@@ -197,7 +197,7 @@ where
 
         let ref key = index[index.len() - self.pos - 1];
         self.pos += 1;
-        let value = self.inner.values.get(key).unwrap();
+        let value = &self.inner.values[key];
         Some((key, value))
     }
 }
