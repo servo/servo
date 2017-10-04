@@ -62,3 +62,7 @@ pub mod size_of {
         size_of::<Text>()
     }
 }
+
+pub mod srcset {
+    pub use dom::htmlimageelement::{parse_a_srcset_attribute, ImageSource, Descriptor};
+}
