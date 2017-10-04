@@ -26,7 +26,7 @@ tinyfiledialogs = "2.5.9"
 [dependencies]
 app_units = "0.5"
 audio-video-metadata = "0.1.4"
-base64 = "0.5.2"
+base64 = "0.6"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"

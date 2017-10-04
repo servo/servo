@@ -135,10 +135,11 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.5.2"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "safemem 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -504,7 +505,7 @@ dependencies = [
  "gaol 0.0.1 (git+https://github.com/servo/gaol)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.5.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "layout_traits 0.0.1",
@@ -696,7 +697,7 @@ name = "devtools"
 version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -713,7 +714,7 @@ dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -1302,16 +1303,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "hyper"
-version = "0.10.10"
+version = "0.10.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "language-tags 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "traitobject 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "typeable 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1325,7 +1325,7 @@ version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "antidote 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.9.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1335,7 +1335,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_bytes 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1393,7 +1393,7 @@ name = "influent"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1937,12 +1937,12 @@ dependencies = [
 name = "net"
 version = "0.0.1"
 dependencies = [
- "base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "immeta 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1990,7 +1990,7 @@ dependencies = [
  "cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2012,7 +2012,7 @@ dependencies = [
  "cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2553,6 +2553,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "safemem"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "same-file"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2578,7 +2583,7 @@ dependencies = [
  "angle 0.5.0 (git+https://github.com/servo/angle?branch=servo)",
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "audio-video-metadata 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth_traits 0.0.1",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2599,7 +2604,7 @@ dependencies = [
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2709,7 +2714,7 @@ dependencies = [
  "gfx_traits 0.0.1",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2912,7 +2917,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "net2 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.9.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3580,7 +3585,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3591,10 +3596,10 @@ dependencies = [
 name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
- "base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3790,7 +3795,7 @@ dependencies = [
 "checksum azure 0.21.2 (git+https://github.com/servo/rust-azure)" = "<none>"
 "checksum backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "72f9b4182546f4b04ebc4ab7f84948953a118bd6021a1b6a6c909e3e94f6be76"
 "checksum backtrace-sys 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "3a0d842ea781ce92be2bf78a9b38883948542749640b8378b3b2f03d1fd9f1ff"
-"checksum base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "30e93c03064e7590d0466209155251b90c22e37fab1daf2771582598b5827557"
+"checksum base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "96434f987501f0ed4eb336a411e0631ecd1afa11574fe148587adc4ff96143c9"
 "checksum binary-space-partition 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88ceb0d16c4fd0e42876e298d7d3ce3780dd9ebdcbe4199816a32c77e08597ff"
 "checksum bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e103c8b299b28a9c6990458b7013dc4a8356a9b854c51b9883241f5866fac36e"
 "checksum bindgen 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0c338079dafc81bef7d581f494b906603d12359c4306979eae6ca081925a4984"
@@ -3889,7 +3894,7 @@ dependencies = [
 "checksum heartbeats-simple-sys 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e1a408c0011427cc0e0049f7861c70377819aedfc006e8c901b1c70fd98fb1a4"
 "checksum html5ever 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6ba0806f17ce2ea657c67cd28d03941166638c05153fb644aac6d5156b3033d0"
 "checksum httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a6e7a63e511f9edffbab707141fbb8707d1a3098615fb2adbd5769cdfcc9b17d"
-"checksum hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)" = "36e108e0b1fa2d17491cbaac4bc460dc0956029d10ccf83c913dd0e5db3e7f07"
+"checksum hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)" = "368cb56b2740ebf4230520e2b90ebb0461e69034d85d1945febd9b3971426db2"
 "checksum hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "85a372eb692590b3fe014c196c30f9f52d4c42f58cd49dd94caeee1593c9cc37"
 "checksum hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cbe43f514f80494e9329c9fc47d61b85b167d245685424637a0f4a409177e444"
 "checksum ident_case 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3c9826188e666f2ed92071d2dadef6edc430b11b158b5b2b3f4babbcc891eaaa"
@@ -3990,6 +3995,7 @@ dependencies = [
 "checksum rustc-demangle 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3058a43ada2c2d0b92b3ae38007a2d0fa5e9db971be260e0171408a4ff471c95"
 "checksum rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)" = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
 "checksum rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
+"checksum safemem 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e27a8b19b835f7aea908818e871f5cc3a5a186550c30773be987e155e8163d8f"
 "checksum same-file 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "d931a44fdaa43b8637009e7632a02adc4f2b2e0733c08caa4cf00e8da4a117a7"
 "checksum scoped_threadpool 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "3ef399c8893e8cb7aa9696e895427fab3a6bf265977bb96e126f24ddd2cda85a"
 "checksum scopeguard 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c79eb2c3ac4bc2507cda80e7f3ac5b88bd8eae4c0914d5663e6a8933994be918"
