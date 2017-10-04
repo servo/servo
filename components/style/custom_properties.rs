@@ -244,13 +244,13 @@ impl SpecifiedValue {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Box<Self>, ParseError<'i>> {
-        let mut references = Some(PrecomputedHashSet::default());
-        let (first, css, last) = parse_self_contained_declaration_value(input, &mut references)?;
+        let mut references = PrecomputedHashSet::default();
+        let (first, css, last) = parse_self_contained_declaration_value(input, Some(&mut references))?;
         Ok(Box::new(SpecifiedValue {
             css: css.into_owned(),
             first_token_type: first,
             last_token_type: last,
-            references: references.unwrap(),
+            references
         }))
     }
 }
@@ -259,13 +259,13 @@ impl SpecifiedValue {
 pub fn parse_non_custom_with_var<'i, 't>
                                 (input: &mut Parser<'i, 't>)
                                 -> Result<(TokenSerializationType, Cow<'i, str>), ParseError<'i>> {
-    let (first_token_type, css, _) = parse_self_contained_declaration_value(input, &mut None)?;
+    let (first_token_type, css, _) = parse_self_contained_declaration_value(input, None)?;
     Ok((first_token_type, css))
 }
 
 fn parse_self_contained_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>
+    references: Option<&mut PrecomputedHashSet<Name>>
 ) -> Result<
     (TokenSerializationType, Cow<'i, str>, TokenSerializationType),
     ParseError<'i>
@@ -288,7 +288,7 @@ fn parse_self_contained_declaration_value<'i, 't>(
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
 fn parse_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>,
+    references: Option<&mut PrecomputedHashSet<Name>>,
     missing_closing_characters: &mut String
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
@@ -305,7 +305,7 @@ fn parse_declaration_value<'i, 't>(
 /// invalid at the top level
 fn parse_declaration_value_block<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>,
+    mut references: Option<&mut PrecomputedHashSet<Name>>,
     missing_closing_characters: &mut String
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     let mut token_start = input.position();
@@ -319,7 +319,11 @@ fn parse_declaration_value_block<'i, 't>(
         macro_rules! nested {
             () => {
                 input.parse_nested_block(|input| {
-                    parse_declaration_value_block(input, references, missing_closing_characters)
+                    parse_declaration_value_block(
+                        input,
+                        references.as_mut().map(|r| &mut **r),
+                        missing_closing_characters
+                    )
                 })?
             }
         }
@@ -353,7 +357,10 @@ fn parse_declaration_value_block<'i, 't>(
                 if name.eq_ignore_ascii_case("var") {
                     let args_start = input.state();
                     input.parse_nested_block(|input| {
-                        parse_var_function(input, references)
+                        parse_var_function(
+                            input,
+                            references.as_mut().map(|r| &mut **r),
+                        )
                     })?;
                     input.reset(&args_start);
                 }
@@ -420,7 +427,7 @@ fn parse_declaration_value_block<'i, 't>(
 // If the var function is valid, return Ok((custom_property_name, fallback))
 fn parse_var_function<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>
+    references: Option<&mut PrecomputedHashSet<Name>>
 ) -> Result<(), ParseError<'i>> {
     let name = input.expect_ident_cloned()?;
     let name: Result<_, ParseError> =
@@ -438,7 +445,7 @@ fn parse_var_function<'i, 't>(
             Ok(())
         })?;
     }
-    if let Some(ref mut refs) = *references {
+    if let Some(refs) = references {
         refs.insert(Atom::from(name));
     }
     Ok(())
