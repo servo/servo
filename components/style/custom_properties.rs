@@ -607,7 +607,7 @@ fn substitute_one(
     if invalid.contains(name) {
         return Err(());
     }
-    let computed_value = if specified_value.references.map(|set| set.is_empty()) == Some(false) {
+    let computed_value = if specified_value.references.map_or(false, |set| !set.is_empty()) {
         let mut partial_computed_value = ComputedValue::empty();
         let mut input = ParserInput::new(&specified_value.css);
         let mut input = Parser::new(&mut input);
