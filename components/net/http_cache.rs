@@ -272,12 +272,18 @@ impl HttpCache {
             println!("updating response for {:?}", entry_key);
             if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
                 let mut body = cached_resource.body.lock().unwrap();
-                *body = ResponseBody::Done(completed_body.clone());
-                let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
-                for done_sender in awaiting_consumers.drain(..) {
-                    done_sender.send(Data::Payload(completed_body.clone()));
-                    done_sender.send(Data::Done);
-                };
+                match *body {
+                    ResponseBody::Receiving(_) => {
+                        *body = ResponseBody::Done(completed_body.clone());
+                        let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
+                        for done_sender in awaiting_consumers.drain(..) {
+                            done_sender.send(Data::Payload(completed_body.clone()));
+                            done_sender.send(Data::Done);
+                        };
+                    },
+                    _ => {},
+                }
+
             }
         }
     }
