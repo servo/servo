@@ -68,20 +68,27 @@ macro_rules! impl_gecko_keyword_conversions {
     }
 </%def>
 
-<%helpers:longhand name="font-family" animation_value_type="discrete" boxed="${product == 'gecko'}"
+<%helpers:longhand name="font-family" animation_value_type="discrete"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
+    #[cfg(feature = "gecko")] use gecko_bindings::bindings;
+    #[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
     use properties::longhands::system_font::SystemFont;
-    use self::computed_value::{FontFamily, FamilyName};
+    use self::computed_value::{FontFamily, FontFamilyList, FamilyName};
     use std::fmt;
     use style_traits::ToCss;
 
 
     pub mod computed_value {
         use cssparser::{CssStringWriter, Parser, serialize_identifier};
+        #[cfg(feature = "gecko")] use gecko_bindings::{bindings, structs};
+        #[cfg(feature = "gecko")] use gecko_bindings::sugar::refptr::RefPtr;
+        #[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
         use std::fmt::{self, Write};
-        use Atom;
+        #[cfg(feature = "gecko")] use std::hash::{Hash, Hasher};
+        #[cfg(feature = "servo")] use std::slice;
         use style_traits::{ToCss, ParseError};
+        use Atom;
         pub use self::FontFamily as SingleComputedValue;
 
         #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -223,8 +230,8 @@ macro_rules! impl_gecko_keyword_conversions {
 
             #[cfg(feature = "gecko")]
             /// Return the generic ID for a given generic font name
-            pub fn generic(name: &Atom) -> (::gecko_bindings::structs::FontFamilyType, u8) {
-                use gecko_bindings::structs::{self, FontFamilyType};
+            pub fn generic(name: &Atom) -> (structs::FontFamilyType, u8) {
+                use gecko_bindings::structs::FontFamilyType;
                 if *name == atom!("serif") {
                     (FontFamilyType::eFamily_serif,
                      structs::kGenericFont_serif)
@@ -245,6 +252,34 @@ macro_rules! impl_gecko_keyword_conversions {
                      structs::kGenericFont_moz_fixed)
                 } else {
                     panic!("Unknown generic {}", name);
+                }
+            }
+
+            #[cfg(feature = "gecko")]
+            fn from_font_family_name(family: &structs::FontFamilyName) -> FontFamily {
+                use gecko_bindings::structs::FontFamilyType;
+
+                match family.mType {
+                    FontFamilyType::eFamily_serif => FontFamily::Generic(atom!("serif")),
+                    FontFamilyType::eFamily_sans_serif => FontFamily::Generic(atom!("sans-serif")),
+                    FontFamilyType::eFamily_monospace => FontFamily::Generic(atom!("monospace")),
+                    FontFamilyType::eFamily_cursive => FontFamily::Generic(atom!("cursive")),
+                    FontFamilyType::eFamily_fantasy => FontFamily::Generic(atom!("fantasy")),
+                    FontFamilyType::eFamily_moz_fixed => FontFamily::Generic(Atom::from("-moz-fixed")),
+                    FontFamilyType::eFamily_named => {
+                        let name = Atom::from(&*family.mName);
+                        let mut serialization = String::new();
+                        serialize_identifier(&name.to_string(), &mut serialization).unwrap();
+                        FontFamily::FamilyName(FamilyName {
+                            name: name.clone(),
+                            syntax: FamilyNameSyntax::Identifiers(serialization),
+                        })
+                    },
+                    FontFamilyType::eFamily_named_quoted => FontFamily::FamilyName(FamilyName {
+                        name: (&*family.mName).into(),
+                        syntax: FamilyNameSyntax::Quoted,
+                    }),
+                    x => panic!("Found unexpected font FontFamilyType: {:?}", x),
                 }
             }
         }
@@ -298,15 +333,156 @@ macro_rules! impl_gecko_keyword_conversions {
             }
         }
 
+        #[cfg(feature = "servo")]
+        #[derive(Clone, Debug, Eq, Hash, HeapSizeOf, PartialEq)]
+        pub struct FontFamilyList(Vec<FontFamily>);
+
+        #[cfg(feature = "gecko")]
+        #[derive(Clone, Debug)]
+        pub struct FontFamilyList(pub RefPtr<structs::SharedFontList>);
+
+        #[cfg(feature = "gecko")]
+        impl Hash for FontFamilyList {
+            fn hash<H>(&self, state: &mut H) where H: Hasher {
+                for name in self.0.mNames.iter() {
+                    name.mType.hash(state);
+                    name.mName.hash(state);
+                }
+            }
+        }
+
+        #[cfg(feature = "gecko")]
+        impl PartialEq for FontFamilyList {
+            fn eq(&self, other: &FontFamilyList) -> bool {
+                if self.0.mNames.len() != other.0.mNames.len() {
+                    return false;
+                }
+                for (a, b) in self.0.mNames.iter().zip(other.0.mNames.iter()) {
+                    if a.mType != b.mType || &*a.mName != &*b.mName {
+                        return false;
+                    }
+                }
+                true
+            }
+        }
+
+        #[cfg(feature = "gecko")]
+        impl Eq for FontFamilyList {}
+
+        impl FontFamilyList {
+            #[cfg(feature = "servo")]
+            pub fn new(families: Vec<FontFamily>) -> FontFamilyList {
+                FontFamilyList(families)
+            }
+
+            #[cfg(feature = "gecko")]
+            pub fn new(families: Vec<FontFamily>) -> FontFamilyList {
+                let fontlist;
+                let names;
+                unsafe {
+                    fontlist = bindings::Gecko_SharedFontList_Create();
+                    names = &mut (*fontlist).mNames;
+                    names.ensure_capacity(families.len());
+                };
+
+                for family in families {
+                    match family {
+                        FontFamily::FamilyName(ref f) => {
+                            let quoted = matches!(f.syntax, FamilyNameSyntax::Quoted);
+                            unsafe {
+                                bindings::Gecko_nsTArray_FontFamilyName_AppendNamed(
+                                    names,
+                                    f.name.as_ptr(),
+                                    quoted
+                                );
+                            }
+                        }
+                        FontFamily::Generic(ref name) => {
+                            let (family_type, _generic) = FontFamily::generic(name);
+                            unsafe {
+                                bindings::Gecko_nsTArray_FontFamilyName_AppendGeneric(
+                                    names,
+                                    family_type
+                                );
+                            }
+                        }
+                    }
+                }
+
+                FontFamilyList(unsafe { RefPtr::from_addrefed(fontlist) })
+            }
+
+            #[cfg(feature = "servo")]
+            pub fn iter(&self) -> slice::Iter<FontFamily> {
+                self.0.iter()
+            }
+
+            #[cfg(feature = "gecko")]
+            pub fn iter(&self) -> FontFamilyNameIter {
+                FontFamilyNameIter {
+                    names: &self.0.mNames,
+                    cur: 0,
+                }
+            }
+
+            #[cfg(feature = "gecko")]
+            /// Return the generic ID if it is a single generic font
+            pub fn single_generic(&self) -> Option<u8> {
+                let mut iter = self.iter();
+                if let Some(FontFamily::Generic(ref name)) = iter.next() {
+                    if iter.next().is_none() {
+                        return Some(FontFamily::generic(name).1);
+                    }
+                }
+                None
+            }
+        }
+
+        #[cfg(feature = "gecko")]
+        pub struct FontFamilyNameIter<'a> {
+            names: &'a structs::nsTArray<structs::FontFamilyName>,
+            cur: usize,
+        }
+
+        #[cfg(feature = "gecko")]
+        impl<'a> Iterator for FontFamilyNameIter<'a> {
+            type Item = FontFamily;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.cur < self.names.len() {
+                    let item = FontFamily::from_font_family_name(&self.names[self.cur]);
+                    self.cur += 1;
+                    Some(item)
+                } else {
+                    None
+                }
+            }
+        }
+
         #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<FontFamily>);
+        pub struct T(pub FontFamilyList);
+
+        #[cfg(feature = "gecko")]
+        impl MallocSizeOf for T {
+            fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+                // SharedFontList objects are generally shared from the pointer
+                // stored in the specified value. So only count this if the
+                // SharedFontList is unshared.
+                unsafe {
+                    bindings::Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(
+                        (self.0).0.get()
+                    )
+                }
+            }
+        }
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![FontFamily::Generic(atom!("serif"))])
+        computed_value::T(
+            FontFamilyList::new(vec![FontFamily::Generic(atom!("serif"))])
+        )
     }
 
     /// <family-name>#
@@ -317,10 +493,9 @@ macro_rules! impl_gecko_keyword_conversions {
         SpecifiedValue::parse(input)
     }
 
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[derive(Clone, Debug, Eq, Hash, PartialEq)]
     pub enum SpecifiedValue {
-        Values(Vec<FontFamily>),
+        Values(FontFamilyList),
         System(SystemFont),
     }
 
@@ -328,14 +503,10 @@ macro_rules! impl_gecko_keyword_conversions {
     impl SpecifiedValue {
         /// Return the generic ID if it is a single generic font
         pub fn single_generic(&self) -> Option<u8> {
-            if let SpecifiedValue::Values(ref values) = *self {
-                if values.len() == 1 {
-                    if let FontFamily::Generic(ref name) = values[0] {
-                        return Some(FontFamily::generic(name).1);
-                    }
-                }
+            match *self {
+                SpecifiedValue::Values(ref values) => values.single_generic(),
+                _ => None,
             }
-            None
         }
     }
 
@@ -356,6 +527,24 @@ macro_rules! impl_gecko_keyword_conversions {
         }
     }
 
+    #[cfg(feature = "gecko")]
+    impl MallocSizeOf for SpecifiedValue {
+        fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+            match *self {
+                SpecifiedValue::Values(ref v) => {
+                    // Although a SharedFontList object is refcounted, we always
+                    // attribute its size to the specified value.
+                    unsafe {
+                        bindings::Gecko_SharedFontList_SizeOfIncludingThis(
+                            v.0.get()
+                        )
+                    }
+                }
+                SpecifiedValue::System(_) => 0,
+            }
+        }
+    }
+
     impl SpecifiedValue {
         pub fn system_font(f: SystemFont) -> Self {
             SpecifiedValue::System(f)
@@ -369,10 +558,11 @@ macro_rules! impl_gecko_keyword_conversions {
         }
 
         pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-            input.parse_comma_separated(|input| FontFamily::parse(input)).map(SpecifiedValue::Values)
+            input.parse_comma_separated(|input| FontFamily::parse(input)).map(|v| {
+                SpecifiedValue::Values(FontFamilyList::new(v))
+            })
         }
     }
-
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -2191,16 +2381,13 @@ ${helpers.single_keyword("-moz-math-variant",
                         cx.device().pres_context()
                     )
                 }
-                let family = system.fontlist.mFontlist.iter().map(|font| {
-                    use properties::longhands::font_family::computed_value::*;
-                    FontFamily::FamilyName(FamilyName {
-                        name: (&*font.mName).into(),
-                        syntax: FamilyNameSyntax::Quoted,
-                    })
-                }).collect::<Vec<_>>();
                 let weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
                 let ret = ComputedSystemFont {
-                    font_family: longhands::font_family::computed_value::T(family),
+                    font_family: longhands::font_family::computed_value::T(
+                        longhands::font_family::computed_value::FontFamilyList(
+                            unsafe { system.fontlist.mFontlist.mBasePtr.to_safe() }
+                        )
+                    ),
                     font_size: longhands::font_size::computed_value::T {
                             size: Au(system.size).into(),
                             keyword_info: None

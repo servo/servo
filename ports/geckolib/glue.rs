@@ -2970,7 +2970,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
     let result = FontFamily::parse(&mut parser);
     if let Ok(family) = result {
         if parser.is_exhausted() {
-            let decl = PropertyDeclaration::FontFamily(Box::new(family));
+            let decl = PropertyDeclaration::FontFamily(family);
             write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
                 decls.push(decl, Importance::Normal);
             })
