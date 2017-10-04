@@ -656,12 +656,15 @@ fn substitute_one(
 ///
 /// Return `Err(())` if `input` is invalid at computed-value time.
 /// or `Ok(last_token_type that was pushed to partial_computed_value)` otherwise.
-fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
-                               position: &mut (SourcePosition, TokenSerializationType),
-                               partial_computed_value: &mut ComputedValue,
-                               substitute_one: &mut F)
-                               -> Result<TokenSerializationType, ParseError<'i>>
-                       where F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()> {
+fn substitute_block<'i, 't, F>(
+    input: &mut Parser<'i, 't>,
+    position: &mut (SourcePosition, TokenSerializationType),
+    partial_computed_value: &mut ComputedValue,
+    substitute_one: &mut F
+) -> Result<TokenSerializationType, ParseError<'i>>
+where
+    F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()>
+{
     let mut last_token_type = TokenSerializationType::nothing();
     let mut set_position_at_next_iteration = false;
     loop {
