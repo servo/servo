@@ -902,7 +902,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
     // Step 21
     if let Ok(http_cache) = context.state.http_cache.read() {
-        let complete_http_response_from_cache = http_cache.construct_response(&http_request);
+        let complete_http_response_from_cache = http_cache.construct_response(&http_request, done_chan);
         if http_request.cache_mode != CacheMode::NoStore &&
            http_request.cache_mode != CacheMode::Reload {
             // TODO Substep 1 and 2. Select a response from HTTP cache.
@@ -1185,9 +1185,7 @@ fn http_network_fetch(request: &Request,
     // Step 14
     if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
         if let Ok(mut http_cache) = context.state.http_cache.write() {
-            // TODO find out how this update relates to the updates going on,
-            // in http_network_or_cache_fetch
-            //http_cache.update_cache(&request, &response);
+            http_cache.store(&request, &response);
         }
     }
 

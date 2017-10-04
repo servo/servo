@@ -8,6 +8,7 @@
 //! without bound. Implements the logic specified in http://tools.ietf.org/html/rfc7234
 //! and http://tools.ietf.org/html/rfc7232.
 
+use fetch::methods::{Data, DoneChannel};
 use hyper::header;
 use hyper::header::{ContentType, EntityTag};
 use hyper::header::Headers;
@@ -24,7 +25,7 @@ use std::mem;
 use std::str::FromStr;
 use std::str::Split;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{channel, Sender};
 use std::u64::{self, MAX, MIN};
 use time;
 use time::{Duration, Tm, Timespec};
@@ -42,7 +43,7 @@ use time::{Duration, Tm, Timespec};
 //TODO: Vary header
 
 /// The key used to differentiate requests in the cache.
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CacheKey {
     url: ServoUrl,
     request_headers: Vec<(String, String)>,
@@ -67,14 +68,19 @@ impl CacheKey {
 }
 
 /// A complete cached resource.
+#[derive(Debug)]
 struct CachedResource {
     metadata: CachedMetadata,
-    body: ResponseBody,
+    body: Arc<Mutex<ResponseBody>>,
+    status: Option<StatusCode>,
+    raw_status: Option<(u16, Vec<u8>)>,
     expires: Duration,
     last_validated: Tm,
+    awaiting_body: Arc<Mutex<Vec<Sender<Data>>>>
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
+#[derive(Debug)]
 struct CachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -134,12 +140,6 @@ pub enum RevalidationMethod {
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
 fn response_is_cacheable(metadata: &Metadata) -> bool {
-    if let Some((_, ref status)) = metadata.status {
-        if status != &b"OK".to_vec() {
-            return false;
-        }
-    }
-
     if metadata.headers.is_none() {
         return true;
     }
@@ -168,6 +168,14 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             return false;
         },
         _ => ()
+    }
+
+    if let Some((ref code, _)) = metadata.status {
+        // Status codes that are cacheable by default https://tools.ietf.org/html/rfc7231#section-6.1
+        match *code {
+            200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => return true,
+            _ => {},
+        }
     }
 
     return true;
@@ -221,8 +229,10 @@ impl HttpCache {
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
-    pub fn construct_response(&self, request: &Request) -> Option<CachedResponse> {
+    pub fn construct_response(&self, request: &Request, done_chan: &mut DoneChannel)
+        -> Option<CachedResponse> {
         let entry_key = CacheKey::new(request.clone());
+        println!("received construct_response for {:?}", entry_key);
         if let Some(cached_resource) = self.entries.get(&entry_key) {
             let mut response = Response::new(cached_resource.metadata.final_url.clone());
             let mut headers = Headers::new();
@@ -234,8 +244,16 @@ impl HttpCache {
                 }
             };
             response.headers = headers;
-            response.body = Arc::new(Mutex::new(cached_resource.body.clone()));
+            response.body = cached_resource.body.clone();
+            response.status = cached_resource.status.clone();
+            response.raw_status = cached_resource.raw_status.clone();
+            if let ResponseBody::Receiving(_) = *response.body.lock().unwrap() {
+                let (done_sender, done_receiver) = channel();
+                *done_chan = Some((done_sender.clone(), done_receiver));
+                cached_resource.awaiting_body.lock().unwrap().push(done_sender);
+            }
             let has_expired = self.base_time + cached_resource.expires < time::now().to_timespec();
+            println!("constructing for: {:?} {:?}", response, has_expired);
             return Some(CachedResponse { response: response, needs_validation: has_expired });
         }
         None
@@ -247,16 +265,37 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
     pub fn invalidate(&mut self, request: &Request) {}
 
+    /// Updating the cached response body from ResponseBody::Receiving to ResponseBody::Done.
+    pub fn update_response_body(&mut self, request: &Request, response: &Response) {
+        let entry_key = CacheKey::new(request.clone());
+        if let Some(mut cached_resource) = self.entries.get(&entry_key) {
+            println!("updating response for {:?}", entry_key);
+            if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
+                let mut body = cached_resource.body.lock().unwrap();
+                *body = ResponseBody::Done(completed_body.clone());
+                let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
+                for done_sender in awaiting_consumers.drain(..) {
+                    done_sender.send(Data::Payload(completed_body.clone()));
+                    done_sender.send(Data::Done);
+                };
+            }
+        }
+    }
+
 
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
     pub fn store(&mut self, request: &Request, response: &Response) {
+        println!("received store: {:?}", response);
+        println!("received metatdata: {:?}", response.metadata());
         match response.metadata() {
             Ok(FetchMetadata::Filtered {
                filtered: FilteredMetadata::Basic(metadata),
-               unsafe_: unsafe_metadata }) |
+               unsafe_: _ }) |
             Ok(FetchMetadata::Filtered {
                 filtered: FilteredMetadata::Cors(metadata),
-                unsafe_: unsafe_metadata }) => {
+                unsafe_: _ }) |
+            Ok(FetchMetadata::Unfiltered(metadata)) => {
+                println!("checking if response is cacheable: {:?}", response);
                 if response_is_cacheable(&metadata) {
                     let entry_key = CacheKey::new(request.clone());
                     let raw_headers = metadata.headers.map_or(None, |headers|
@@ -274,14 +313,18 @@ impl HttpCache {
                     };
                     let entry_resource = CachedResource {
                         metadata: cacheable_metadata,
-                        body: response.body.lock().unwrap().clone(),
+                        body: response.body.clone(),
+                        status: response.status,
+                        raw_status: response.raw_status.clone(),
                         expires: get_response_expiry_from_headers(&response.headers),
-                        last_validated: time::now()
+                        last_validated: time::now(),
+                        awaiting_body: Arc::new(Mutex::new(vec![]))
                     };
+                    println!("storing: {:?} {:?}", entry_key, entry_resource);
                     self.entries.insert(entry_key, entry_resource);
                 }
             },
-            _ => {}
+            _ => { println!("not storing: {:?}", response); }
         }
     }
 
