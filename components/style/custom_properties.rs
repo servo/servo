@@ -470,8 +470,7 @@ pub fn cascade<'a>(
         None => {
             let mut map = OrderedMap::new();
             if let Some(inherited) = inherited {
-                for name in &inherited.index {
-                    let inherited_value = inherited.get(name).unwrap();
+                for (name, inherited_value) in inherited.iter() {
                     map.insert(name, BorrowedSpecifiedValue {
                         css: &inherited_value.css,
                         first_token_type: inherited_value.first_token_type,
@@ -575,9 +574,7 @@ fn substitute_all(
 ) -> CustomPropertiesMap {
     let mut custom_properties_map = CustomPropertiesMap::new();
     let mut invalid = PrecomputedHashSet::default();
-    for name in &specified_values_map.index {
-        let value = specified_values_map.get(name).unwrap();
-
+    for (name, value) in specified_values_map.iter() {
         // If this value is invalid at computed-time it won’t be inserted in computed_values_map.
         // Nothing else to do.
         let _ = substitute_one(
