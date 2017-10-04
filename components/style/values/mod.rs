@@ -146,6 +146,17 @@ impl KeyframesName {
         }
     }
 
+    /// Create a new KeyframesName from Atom.
+    #[cfg(feature = "gecko")]
+    pub fn from_atom(atom: Atom) -> Self {
+        debug_assert_ne!(atom, atom!(""));
+
+        // FIXME: We might want to preserve <string>, but currently Gecko
+        // stores both of <custom-ident> and <string> into nsAtom, so
+        // we can't tell it.
+        KeyframesName::Ident(CustomIdent(atom))
+    }
+
     /// The name as an Atom
     pub fn as_atom(&self) -> &Atom {
         match *self {
