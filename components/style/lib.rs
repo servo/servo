@@ -66,7 +66,6 @@ extern crate lru_cache;
 #[macro_use]
 extern crate matches;
 #[cfg(feature = "gecko")]
-#[macro_use]
 pub extern crate nsstring_vendor as nsstring;
 #[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate num_integer;
