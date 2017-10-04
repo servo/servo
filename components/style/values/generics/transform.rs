@@ -22,9 +22,7 @@ pub struct Matrix<T, U = T> {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, ToComputedValue, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct Matrix3D<T, U = T, V = T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,
     pub m21: T, pub m22: T, pub m23: T, pub m24: T,
@@ -149,9 +147,7 @@ impl TimingKeyword {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToComputedValue)]
 /// A single operation in the list of a `transform` value
 pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
@@ -247,9 +243,7 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
 }
 
 #[derive(Animate, ToComputedValue)]
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 /// A value of the `transform` property
 pub struct Transform<T>(pub Vec<T>);
 
