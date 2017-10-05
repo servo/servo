@@ -197,7 +197,7 @@ where
 
         let ref key = index[index.len() - self.pos - 1];
         self.pos += 1;
-        let value = self.inner.values.get(key).unwrap();
+        let value = &self.inner.values[key];
         Some((key, value))
     }
 }
@@ -244,13 +244,13 @@ impl SpecifiedValue {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Box<Self>, ParseError<'i>> {
-        let mut references = Some(PrecomputedHashSet::default());
-        let (first, css, last) = parse_self_contained_declaration_value(input, &mut references)?;
+        let mut references = PrecomputedHashSet::default();
+        let (first, css, last) = parse_self_contained_declaration_value(input, Some(&mut references))?;
         Ok(Box::new(SpecifiedValue {
             css: css.into_owned(),
             first_token_type: first,
             last_token_type: last,
-            references: references.unwrap(),
+            references
         }))
     }
 }
@@ -259,13 +259,13 @@ impl SpecifiedValue {
 pub fn parse_non_custom_with_var<'i, 't>
                                 (input: &mut Parser<'i, 't>)
                                 -> Result<(TokenSerializationType, Cow<'i, str>), ParseError<'i>> {
-    let (first_token_type, css, _) = parse_self_contained_declaration_value(input, &mut None)?;
+    let (first_token_type, css, _) = parse_self_contained_declaration_value(input, None)?;
     Ok((first_token_type, css))
 }
 
 fn parse_self_contained_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>
+    references: Option<&mut PrecomputedHashSet<Name>>
 ) -> Result<
     (TokenSerializationType, Cow<'i, str>, TokenSerializationType),
     ParseError<'i>
@@ -288,7 +288,7 @@ fn parse_self_contained_declaration_value<'i, 't>(
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
 fn parse_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>,
+    references: Option<&mut PrecomputedHashSet<Name>>,
     missing_closing_characters: &mut String
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
@@ -305,7 +305,7 @@ fn parse_declaration_value<'i, 't>(
 /// invalid at the top level
 fn parse_declaration_value_block<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>,
+    mut references: Option<&mut PrecomputedHashSet<Name>>,
     missing_closing_characters: &mut String
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     let mut token_start = input.position();
@@ -319,7 +319,11 @@ fn parse_declaration_value_block<'i, 't>(
         macro_rules! nested {
             () => {
                 input.parse_nested_block(|input| {
-                    parse_declaration_value_block(input, references, missing_closing_characters)
+                    parse_declaration_value_block(
+                        input,
+                        references.as_mut().map(|r| &mut **r),
+                        missing_closing_characters
+                    )
                 })?
             }
         }
@@ -353,7 +357,10 @@ fn parse_declaration_value_block<'i, 't>(
                 if name.eq_ignore_ascii_case("var") {
                     let args_start = input.state();
                     input.parse_nested_block(|input| {
-                        parse_var_function(input, references)
+                        parse_var_function(
+                            input,
+                            references.as_mut().map(|r| &mut **r),
+                        )
                     })?;
                     input.reset(&args_start);
                 }
@@ -420,7 +427,7 @@ fn parse_declaration_value_block<'i, 't>(
 // If the var function is valid, return Ok((custom_property_name, fallback))
 fn parse_var_function<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: &mut Option<PrecomputedHashSet<Name>>
+    references: Option<&mut PrecomputedHashSet<Name>>
 ) -> Result<(), ParseError<'i>> {
     let name = input.expect_ident_cloned()?;
     let name: Result<_, ParseError> =
@@ -438,7 +445,7 @@ fn parse_var_function<'i, 't>(
             Ok(())
         })?;
     }
-    if let Some(ref mut refs) = *references {
+    if let Some(refs) = references {
         refs.insert(Atom::from(name));
     }
     Ok(())
@@ -463,8 +470,7 @@ pub fn cascade<'a>(
         None => {
             let mut map = OrderedMap::new();
             if let Some(inherited) = inherited {
-                for name in &inherited.index {
-                    let inherited_value = inherited.get(name).unwrap();
+                for (name, inherited_value) in inherited.iter() {
                     map.insert(name, BorrowedSpecifiedValue {
                         css: &inherited_value.css,
                         first_token_type: inherited_value.first_token_type,
@@ -568,9 +574,7 @@ fn substitute_all(
 ) -> CustomPropertiesMap {
     let mut custom_properties_map = CustomPropertiesMap::new();
     let mut invalid = PrecomputedHashSet::default();
-    for name in &specified_values_map.index {
-        let value = specified_values_map.get(name).unwrap();
-
+    for (name, value) in specified_values_map.iter() {
         // If this value is invalid at computed-time it won’t be inserted in computed_values_map.
         // Nothing else to do.
         let _ = substitute_one(
@@ -603,7 +607,7 @@ fn substitute_one(
     if invalid.contains(name) {
         return Err(());
     }
-    let computed_value = if specified_value.references.map(|set| set.is_empty()) == Some(false) {
+    let computed_value = if specified_value.references.map_or(false, |set| !set.is_empty()) {
         let mut partial_computed_value = ComputedValue::empty();
         let mut input = ParserInput::new(&specified_value.css);
         let mut input = Parser::new(&mut input);
@@ -652,12 +656,15 @@ fn substitute_one(
 ///
 /// Return `Err(())` if `input` is invalid at computed-value time.
 /// or `Ok(last_token_type that was pushed to partial_computed_value)` otherwise.
-fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
-                               position: &mut (SourcePosition, TokenSerializationType),
-                               partial_computed_value: &mut ComputedValue,
-                               substitute_one: &mut F)
-                               -> Result<TokenSerializationType, ParseError<'i>>
-                       where F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()> {
+fn substitute_block<'i, 't, F>(
+    input: &mut Parser<'i, 't>,
+    position: &mut (SourcePosition, TokenSerializationType),
+    partial_computed_value: &mut ComputedValue,
+    substitute_one: &mut F
+) -> Result<TokenSerializationType, ParseError<'i>>
+where
+    F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()>
+{
     let mut last_token_type = TokenSerializationType::nothing();
     let mut set_position_at_next_iteration = false;
     loop {
