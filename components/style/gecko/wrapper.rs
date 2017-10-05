@@ -1306,7 +1306,6 @@ impl<'le> TElement for GeckoElement<'le> {
     ) -> FnvHashMap<LonghandId, Arc<AnimationValue>> {
         use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
         use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
-        use gecko_bindings::bindings::Gecko_ElementTransitions_PropertyAt;
 
         let collection_length =
             unsafe { Gecko_ElementTransitions_Length(self.0) } as usize;
@@ -1316,20 +1315,15 @@ impl<'le> TElement for GeckoElement<'le> {
         );
 
         for i in 0..collection_length {
-            let property = unsafe {
-                Gecko_ElementTransitions_PropertyAt(self.0, i as usize)
-            };
-
-            let property = LonghandId::from_nscsspropertyid(property)
-                .expect("Only longhands should be in the element transitions");
-
             let raw_end_value = unsafe {
                  Gecko_ElementTransitions_EndValueAt(self.0, i)
             };
 
-            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value);
-            debug_assert!(end_value.is_some());
-            map.insert(property, end_value.unwrap().clone_arc());
+            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value)
+                .expect("AnimationValue not found in ElementTransitions");
+
+            let property = end_value.id();
+            map.insert(property, end_value.clone_arc());
         }
         map
     }
