@@ -625,12 +625,6 @@ impl Stylist {
         }
     }
 
-    /// Returns whether the given ElementState bit might be relied upon by a
-    /// selector of some rule in the stylist.
-    pub fn might_have_state_dependency(&self, state: ElementState) -> bool {
-        self.has_state_dependency(state)
-    }
-
     /// Returns whether the given ElementState bit is relied upon by a selector
     /// of some rule in the stylist.
     pub fn has_state_dependency(&self, state: ElementState) -> bool {
