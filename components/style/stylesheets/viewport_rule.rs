@@ -369,8 +369,9 @@ impl ViewportRule {
                     }
                 }
                 Err((error, slice)) => {
+                    let location = error.location;
                     let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(slice, error);
-                    context.log_css_error(error_context, parser.input.current_source_location(), error);
+                    context.log_css_error(error_context, location, error);
                 }
             }
         }
