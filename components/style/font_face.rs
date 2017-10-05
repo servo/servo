@@ -124,8 +124,9 @@ pub fn parse_font_face_block<R>(context: &ParserContext,
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
             if let Err((error, slice)) = declaration {
+                let location = error.location;
                 let error = ContextualParseError::UnsupportedFontFaceDescriptor(slice, error);
-                context.log_css_error(error_context, iter.input.current_source_location(), error)
+                context.log_css_error(error_context, location, error)
             }
         }
     }

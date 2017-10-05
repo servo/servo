@@ -276,8 +276,8 @@ macro_rules! font_feature_values_blocks {
                     });
                     while let Some(result) = iter.next() {
                         if let Err((error, slice)) = result {
+                            let location = error.location;
                             let error = ContextualParseError::UnsupportedRule(slice, error);
-                            let location = iter.input.current_source_location();
                             context.log_css_error(error_context, location, error);
                         }
                     }
@@ -430,10 +430,10 @@ macro_rules! font_feature_values_blocks {
                             let mut iter = DeclarationListParser::new(input, parser);
                             while let Some(declaration) = iter.next() {
                                 if let Err((error, slice)) = declaration {
+                                    let location = error.location;
                                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
                                         slice, error
                                     );
-                                    let location = iter.input.current_source_location();
                                     self.context.log_css_error(self.error_context, location, error);
                                 }
                             }

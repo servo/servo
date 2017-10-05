@@ -323,7 +323,7 @@ fn test_report_error_stylesheet() {
         background-image: linear-gradient(0deg, black, invalid, transparent);
         invalid: true;
     }
-    @media (min-width: invalid 1000px) {}
+    @media (min-width: 10px invalid 1000px) {}
     @font-face { src: url(), invalid, url(); }
     @counter-style foo { symbols: a 0invalid b }
     @font-feature-values Sans Sans { @foo {} @swash { foo: 1 invalid 2 } }
@@ -342,26 +342,26 @@ fn test_report_error_stylesheet() {
                          None, &error_reporter, QuirksMode::NoQuirks, 5);
 
     error_reporter.assert_messages_contain(&[
-        (8, 26, "Unsupported property declaration: 'display: invalid;'"),
-        (9, 78, "Unsupported property declaration: 'background-image:"),
-        (10, 23, "Unsupported property declaration: 'invalid: true;'"),
-        (12, 40, "Invalid media rule"),
-        (13, 45, "Unsupported @font-face descriptor declaration"),
+        (8, 18, "Unsupported property declaration: 'display: invalid;'"),
+        (9, 27, "Unsupported property declaration: 'background-image:"),  // FIXME: column should be around 56
+        (10, 17, "Unsupported property declaration: 'invalid: true;'"),
+        (12, 28, "Invalid media rule"),
+        (13, 30, "Unsupported @font-face descriptor declaration"),
 
         // When @counter-style is supported, this should be replaced with two errors
-        (14, 25, "Invalid rule: '@counter-style "),
+        (14, 19, "Invalid rule: '@counter-style "),
 
         // When @font-feature-values is supported, this should be replaced with two errors
-        (15, 37, "Invalid rule: '@font-feature-values "),
+        (15, 25, "Invalid rule: '@font-feature-values "),
 
         // FIXME: the message of these two should be consistent
-        (16, 14, "Invalid rule: '@invalid'"),
-        (17, 30, "Unsupported rule: '@invalid'"),
+        (16, 13, "Invalid rule: '@invalid'"),
+        (17, 29, "Unsupported rule: '@invalid'"),
 
-        (18, 59, "Invalid rule: '@supports "),
-        (19, 35, "Invalid keyframe rule: 'from invalid '"),
-        (19, 63, "Unsupported keyframe property declaration: 'margin: 0 invalid 0;'"),
-        (20, 43, "Unsupported @viewport descriptor declaration: 'width: 320px invalid auto;'"),
+        (18, 34, "Invalid rule: '@supports "),
+        (19, 26, "Invalid keyframe rule: 'from invalid '"),
+        (19, 52, "Unsupported keyframe property declaration: 'margin: 0 invalid 0;'"),
+        (20, 29, "Unsupported @viewport descriptor declaration: 'width: 320px invalid auto;'"),
     ]);
 
     assert_eq!(error_reporter.errors.borrow()[0].url, url);
@@ -385,7 +385,7 @@ fn test_no_report_unrecognized_vendor_properties() {
                          None, &error_reporter, QuirksMode::NoQuirks, 0);
 
     error_reporter.assert_messages_contain(&[
-        (4, 36, "Unsupported property declaration: '-moz-background-color: red;'"),
+        (4, 31, "Unsupported property declaration: '-moz-background-color: red;'"),
     ]);
 }
 
