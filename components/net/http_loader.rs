@@ -909,7 +909,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
             if let Some(cached_response) = complete_http_response_from_cache {
                 // Substep 3
                 revalidating_flag = cached_response.needs_validation;
-
+                println!("revalidating_flag: {:?} {:?}", cached_response.response, revalidating_flag);
                 // Substep 4
                 if http_request.cache_mode == CacheMode::ForceCache ||
                    http_request.cache_mode == CacheMode::OnlyIfCached {
@@ -921,9 +921,10 @@ fn http_network_or_cache_fetch(request: &mut Request,
                             cached_response.response.headers.get::<LastModified>() {
                             http_request.headers.set(IfModifiedSince(HttpDate(t)));
                         }
-                        if let Some(&ETag(ref entity_tag)) =
-                            cached_response.response.headers.get::<ETag>() {
-                            http_request.headers.set(ETag(entity_tag.clone()));
+                        if let Some(entity_tag) =
+                            cached_response.response.headers.get_raw("ETag") {
+                            http_request.headers.set_raw("If-None-Match", entity_tag.to_vec());
+
                         }
                     } else {
                         // Substep 6
@@ -941,6 +942,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
             return Response::network_error(
                 NetworkError::Internal("Couldn't find response in cache".into()))
         }
+        println!("network fetch");
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
                                                   done_chan, context);

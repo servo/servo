@@ -148,17 +148,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     let headers = metadata.headers.as_ref().unwrap();
     match headers.get::<header::CacheControl>() {
         Some(&header::CacheControl(ref directive)) => {
-            let has_no_cache_directives = directive.iter().any(|directive|
-                match *directive {
-                    header::CacheDirective::NoCache |
-                    header::CacheDirective::NoStore |
-                    header::CacheDirective::MaxAge(0u32) => {
-                        true
-                    },
-                    _ => false,
-            });
-            if has_no_cache_directives {
-                return false;
+            for directive in directive.iter() {
+                if let header::CacheDirective::NoStore = *directive {
+                    return false;
+                }
             }
         },
         None => ()
@@ -187,19 +180,34 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
     // Calculating Freshness Lifetime https://tools.ietf.org/html/rfc7234#section-4.2.1
     if let Some(&header::CacheControl(ref directives)) = headers.get::<header::CacheControl>() {
-        for directive in directives {
-            match directive {
-                &header::CacheDirective::SMaxAge(secs) => {
-                    return Duration::seconds(secs as i64);
-                },
-                &header::CacheDirective::MaxAge(secs) => {
-                    return Duration::seconds(secs as i64);
-                },
-                _ => (),
+        let has_no_cache_directive = directives.iter().any(|directive| {
+            if let header::CacheDirective::NoCache = *directive {
+                true
+            } else {
+                false
+            }
+        });
+        if has_no_cache_directive {
+            // Requires validation on first use.
+            return Duration::seconds(0i64);
+        } else {
+            for directive in directives {
+                match *directive {
+                    header::CacheDirective::SMaxAge(secs) => {
+                        return Duration::seconds(secs as i64);
+                    },
+                    header::CacheDirective::MaxAge(secs) => {
+                        return Duration::seconds(secs as i64);
+                    },
+                    _ => (),
+                }
             }
         }
+
     }
+    println!("received response with headers for {:?}", headers);
     if let Some(&header::Expires(header::HttpDate(t))) = headers.get::<header::Expires>() {
+        println!("Expires headers for {:?}", t);
         // store the period of time from now until expiry
         let desired = t.to_timespec();
         let current = time::now().to_timespec();
@@ -208,6 +216,11 @@ fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
         } else {
             return Duration::min_value();
         }
+    } else {
+       if let Some(val) = headers.get_raw("Expires") {
+           // Malformed Expires header, shouldn't be used to construct a valid response.
+           return Duration::seconds(0i64);
+       }
     }
     // Calculating Heuristic Freshness https://tools.ietf.org/html/rfc7234#section-4.2.2
     if let Some(&header::LastModified(header::HttpDate(t))) = headers.get::<header::LastModified>() {
@@ -229,6 +242,16 @@ impl HttpCache {
         }
     }
 
+    /// Calculating Age https://tools.ietf.org/html/rfc7234#section-4.2.3
+    fn calculate_response_age(&self, cached_resource: &CachedResource, response: &Response) -> Duration {
+        if let Some(secs) = response.headers.get_raw("Age") {
+            let seconds = String::from_utf8(secs[0].to_vec()).unwrap();
+            return Duration::seconds(seconds.parse::<i64>().unwrap());
+        } else {
+             return Duration::seconds(self.base_time.sec);
+        }
+    }
+
     /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
     pub fn construct_response(&self, request: &Request, done_chan: &mut DoneChannel)
         -> Option<CachedResponse> {
@@ -238,6 +261,7 @@ impl HttpCache {
             let mut response = Response::new(cached_resource.metadata.final_url.clone());
             let mut headers = Headers::new();
             if let Some(ref header_list) = cached_resource.metadata.headers {
+                // TODO: translate raw headers into typed hyper::Header values.
                 for &(ref name, ref value) in header_list {
                     let header_values: Vec<Vec<u8>> = value.split(",").map(|val| String::from(val).into_bytes())
                         .collect();
@@ -254,7 +278,8 @@ impl HttpCache {
                 *done_chan = Some((done_sender.clone(), done_receiver));
                 cached_resource.awaiting_body.lock().unwrap().push(done_sender);
             }
-            let has_expired = self.base_time + cached_resource.expires < time::now().to_timespec();
+            let has_expired = self.calculate_response_age(&cached_resource, &response) + cached_resource.expires
+                < Duration::seconds(time::now().to_timespec().sec);
             println!("constructing for: {:?} {:?}", response, has_expired);
             return Some(CachedResponse { response: response, needs_validation: has_expired });
         }
