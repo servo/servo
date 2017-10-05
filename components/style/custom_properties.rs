@@ -190,14 +190,14 @@ where
     type Item = (&'a K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ref index = self.inner.index;
-        if self.pos >= index.len() {
-            return None;
-        }
+        let key = match self.inner.index.get(self.pos) {
+            Some(k) => k,
+            None => return None,
+        };
 
-        let ref key = index[index.len() - self.pos - 1];
         self.pos += 1;
         let value = &self.inner.values[key];
+
         Some((key, value))
     }
 }
