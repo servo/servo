@@ -755,18 +755,6 @@
      {}
     ]
    ],
-   "css/body_bgcolor_attribute_change.html": [
-    [
-     "/_mozilla/css/body_bgcolor_attribute_change.html",
-     [
-      [
-       "/_mozilla/css/body_bgcolor_attribute_change_ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
    "css/border-image-linear-gradient.html": [
     [
      "/_mozilla/css/border-image-linear-gradient.html",
@@ -8194,11 +8182,6 @@
     ]
    ],
    "css/blur_ref.html": [
-    [
-     {}
-    ]
-   ],
-   "css/body_bgcolor_attribute_change_ref.html": [
     [
      {}
     ]
@@ -23082,14 +23065,6 @@
   ],
   "css/blur_ref.html": [
    "d0bf8fafec5ff2c0cfde8f0d47083ca23b745588",
-   "support"
-  ],
-  "css/body_bgcolor_attribute_change.html": [
-   "87ac2d974938dccdec21b522af13ecd2ae9b1ab1",
-   "reftest"
-  ],
-  "css/body_bgcolor_attribute_change_ref.html": [
-   "aa8be9d8b11635dc87f287530ef76ccf529a7ed9",
    "support"
   ],
   "css/border-image-linear-gradient-ref.html": [
