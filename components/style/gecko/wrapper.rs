@@ -930,7 +930,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
         debug_assert!(self.is_native_anonymous());
-        let mut parent = match self.parent_element() {
+        let mut parent = match self.traversal_parent() {
             Some(e) => e,
             None => return None,
         };
@@ -940,7 +940,7 @@ impl<'le> TElement for GeckoElement<'le> {
                 return Some(parent);
             }
 
-            parent = match parent.parent_element() {
+            parent = match parent.traversal_parent() {
                 Some(p) => p,
                 None => return None,
             };
