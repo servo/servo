@@ -45,25 +45,20 @@ use time::{Duration, Tm, Timespec};
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CacheKey {
-    url: ServoUrl,
+    url_list: Vec<ServoUrl>,
     request_headers: Vec<(String, String)>,
 }
 
 impl CacheKey {
     fn new(request: Request) -> CacheKey {
         CacheKey {
-            url: request.url().clone(),
+            url_list: request.url_list.clone(),
             request_headers: request.headers
                                       .iter()
                                       .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
                                                       header.value_string()))
                                       .collect(),
         }
-    }
-
-    /// Retrieve the URL associated with this key
-    pub fn url(&self) -> ServoUrl {
-        self.url.clone()
     }
 }
 
@@ -74,6 +69,7 @@ struct CachedResource {
     body: Arc<Mutex<ResponseBody>>,
     status: Option<StatusCode>,
     raw_status: Option<(u16, Vec<u8>)>,
+    url_list: Vec<ServoUrl>,
     expires: Duration,
     last_validated: Tm,
     awaiting_body: Arc<Mutex<Vec<Sender<Data>>>>
@@ -247,6 +243,7 @@ impl HttpCache {
             response.body = cached_resource.body.clone();
             response.status = cached_resource.status.clone();
             response.raw_status = cached_resource.raw_status.clone();
+            response.url_list = cached_resource.url_list.clone();
             if let ResponseBody::Receiving(_) = *response.body.lock().unwrap() {
                 let (done_sender, done_receiver) = channel();
                 *done_chan = Some((done_sender.clone(), done_receiver));
@@ -293,6 +290,11 @@ impl HttpCache {
     pub fn store(&mut self, request: &Request, response: &Response) {
         println!("received store: {:?}", response);
         println!("received metatdata: {:?}", response.metadata());
+        match request.method {
+            // Only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
+            Method::Get => {},
+            _ => return,
+        }
         match response.metadata() {
             Ok(FetchMetadata::Filtered {
                filtered: FilteredMetadata::Basic(metadata),
@@ -322,6 +324,7 @@ impl HttpCache {
                         body: response.body.clone(),
                         status: response.status,
                         raw_status: response.raw_status.clone(),
+                        url_list: response.url_list.clone(),
                         expires: get_response_expiry_from_headers(&response.headers),
                         last_validated: time::now(),
                         awaiting_body: Arc::new(Mutex::new(vec![]))
