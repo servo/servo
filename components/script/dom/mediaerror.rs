@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::MediaErrorBinding::{self, MediaErrorMethods};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
+use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
 
@@ -33,5 +34,10 @@ impl MediaErrorMethods for MediaError {
     // https://html.spec.whatwg.org/multipage/#dom-mediaerror-code
     fn Code(&self) -> u16 {
         self.code
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-mediaerror-message
+    fn Message(&self) -> DOMString {
+        DOMString::new()
     }
 }

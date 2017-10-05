@@ -79,9 +79,6 @@ pub struct HTMLMediaElement {
     /// Play promises which are soon to be fulfilled by a queued task.
     #[ignore_heap_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
-    /// The details of the video currently related to this media element.
-    // FIXME(nox): Why isn't this in HTMLVideoElement?
-    video: DomRefCell<Option<VideoMedia>>,
 }
 
 /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
@@ -105,17 +102,6 @@ enum ReadyState {
     HaveEnoughData = HTMLMediaElementConstants::HAVE_ENOUGH_DATA as u8,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
-pub struct VideoMedia {
-    format: String,
-    #[ignore_heap_size_of = "defined in time"]
-    duration: Duration,
-    width: u32,
-    height: u32,
-    video: String,
-    audio: Option<String>,
-}
-
 impl HTMLMediaElement {
     pub fn new_inherited(
         tag_name: LocalName,
@@ -136,7 +122,6 @@ impl HTMLMediaElement {
             delaying_the_load_event_flag: Default::default(),
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
-            video: DomRefCell::new(None),
         }
     }
 
@@ -1111,23 +1096,10 @@ impl HTMLMediaElementContext {
     }
 
     fn check_metadata(&mut self, elem: &HTMLMediaElement) {
-        match audio_video_metadata::get_format_from_slice(&self.data) {
-            Ok(audio_video_metadata::Metadata::Video(meta)) => {
-                let dur = meta.audio.duration.unwrap_or(::std::time::Duration::new(0, 0));
-                *elem.video.borrow_mut() = Some(VideoMedia {
-                    format: format!("{:?}", meta.format),
-                    duration: Duration::seconds(dur.as_secs() as i64) +
-                              Duration::nanoseconds(dur.subsec_nanos() as i64),
-                    width: meta.dimensions.width,
-                    height: meta.dimensions.height,
-                    video: meta.video.unwrap_or("".to_owned()),
-                    audio: meta.audio.audio,
-                });
-                // Step 6
-                elem.change_ready_state(ReadyState::HaveMetadata);
-                self.have_metadata = true;
-            }
-            _ => {}
+        if audio_video_metadata::get_format_from_slice(&self.data).is_ok() {
+            // Step 6.
+            elem.change_ready_state(ReadyState::HaveMetadata);
+            self.have_metadata = true;
         }
     }
 }
