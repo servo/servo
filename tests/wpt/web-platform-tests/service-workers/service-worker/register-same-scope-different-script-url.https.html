@@ -84,17 +84,10 @@ async_test(function(t) {
       .then(function() {
           assert_equals(registration.installing, null,
                         'on installed, installing should be null');
-          // Since the registration is not controlling any document, the new
-          // worker can immediately transition to active.
-          if (registration.waiting) {
-            assert_equals(registration.waiting.scriptURL, script2,
-                          'on installed, the second script may still be waiting');
-            assert_equals(registration.active.scriptURL, script1,
-                          'on installed, the first script may be active');
-          } else {
-            assert_equals(registration.active.scriptURL, script2,
-                          'on installed, the second script may be active');
-          }
+          assert_equals(registration.waiting.scriptURL, script2,
+                        'on installed, the second script should be waiting');
+          assert_equals(registration.active.scriptURL, script1,
+                        'on installed, the first script should be active');
           return registration.unregister();
         })
       .then(function() {

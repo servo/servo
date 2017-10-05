@@ -277,7 +277,7 @@ window.onload =
             // Per https://w3c.github.io/resource-timing/#performanceresourcetiming:
             //      "[If redirected, startTime] MUST return the same value as redirectStart. Otherwise,
             //      [startTime] MUST return the same value as fetchStart."
-            assert_true(actual.startTime == actual.redirectStart || actual.startTime == actual.fetchStart,
+            assert_in_array(actual.startTime, [actual.redirectStart, actual.fetchStart],
                 "startTime must be equal to redirectStart or fetchStart.");
 
             // redirectStart <= redirectEnd <= fetchStart <= domainLookupStart <= domainLookupEnd <= connectStart

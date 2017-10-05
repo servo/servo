@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="paint-function-arguments-ref.html">
+<style>
+.container {
+  width: 200px;
+  height: 200px;
+}
+
+#canvas-box-1 {
+  background-image: paint(box, rgb(50, 100, 150), 5px);
+}
+
+#canvas-box-2 {
+  background-image: paint(box, rgb(150, 100, 50), 10px);
+}
+
+#background {
+  background-color: yellow;
+  display: inline-block;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+
+<div id="background">
+  <div id="canvas-box-1" class="container"></div>
+  <div id="canvas-box-2" class="container"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerPaint('box', class {
+    static get alpha() { return true; }
+    static get inputArguments() { return ['<color>', '<length>']; }
+    paint(ctx, geom, properties, args) {
+        ctx.strokeStyle = args[0].toString();
+        ctx.lineWidth = args[1].toString();
+        ctx.strokeRect(40, 40, 120, 120);
+    }
+});
+
+</script>
+
+<script>
+  importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

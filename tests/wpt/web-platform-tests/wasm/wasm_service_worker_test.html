@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Service Worker: postMessage with wasm</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/serviceworker/resources/test-helpers.js"></script>
+<script>
+  promise_test(async test => {
+    var registration = await service_worker_unregister_and_register(
+      test, 'resources/service-worker.js', 'resources/blank.html');
+      add_completion_callback(() => registration.unregister());
+      var worker = registration.installing;
+      var data = await new Promise((resolve, reject) => {
+        var messageChannel = new MessageChannel();
+        worker.postMessage({port: messageChannel.port2}, [messageChannel.port2]);
+        worker.postMessage({compile: true});
+        messageChannel.port1.onmessage = event => resolve(event.data);
+      });
+      assert_equals(data, null);
+  }, 'postMessaging wasm from a service worker should fail');
+</script>

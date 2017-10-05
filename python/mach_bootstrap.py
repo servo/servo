@@ -115,7 +115,7 @@ def wpt_harness_path(is_firefox, topdir, *paths):
     if is_firefox:
         rel = os.path.join(wpt_root, "tests", "tools", "wptrunner")
     else:
-        rel = os.path.join(wpt_root, "harness")
+        rel = os.path.join(wpt_root, "web-platform-tests", "tools", "wptrunner")
 
     return os.path.join(topdir, rel, *paths)
 

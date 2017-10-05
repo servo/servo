@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Content Distribution 'space-around' and gaps on 4x4 grid</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-content-space-around">
+<link rel="match" href="../../reference/ref-filled-green-300px-square.html">
+<meta name="assert" content="Content Distribution properties with 'space-around' value render correcly.">
+<style>
+.block {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 300px;
+  height: 300px;
+}
+.block > div {
+  position: absolute;
+  background: red;
+  width: 20px;
+  height: 20px;
+}
+.grid {
+  z-index: 1;
+  display: grid;
+  width: 300px;
+  height: 300px;
+  grid-row-gap: 20px;
+  grid-column-gap: 20px;
+  grid-template-columns: 20px 20px 20px 20px;
+  grid-template-rows: 20px 20px 20px 20px;
+  align-content: space-around;
+  justify-content: space-around;
+}
+.grid > div { background: green; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="block">
+    <div style="top: 20px; left: 100px;"></div>
+    <div style="top: 20px; left: 180px;"></div>
+    <div style="top: 100px; left: 180px;"></div>
+    <div style="top: 180px; left: 180px;"></div>
+    <div style="top: 260px; left: 20px;"></div>
+    <div style="top: 260px; left: 260px;"></div>
+</div>
+<div class="grid">
+    <div class="item" style="grid-row: 1; grid-column: 2;"></div>
+    <div class="item" style="grid-row: 1; grid-column: 3;"></div>
+    <div class="item" style="grid-row: 2; grid-column: 3;"></div>
+    <div class="item" style="grid-row: 3; grid-column: 3;"></div>
+    <div class="item" style="grid-row: 4; grid-column: 1;"></div>
+    <div class="item" style="grid-row: 4; grid-column: 4;"></div>
+</div>

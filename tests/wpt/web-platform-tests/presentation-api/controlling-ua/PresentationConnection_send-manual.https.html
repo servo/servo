@@ -37,92 +37,89 @@
         }, '');
     }
 
-    presentBtn.onclick = () => {
-        presentBtn.disabled = true;
+    promise_test(t => {
+        const clickWatcher = new EventWatcher(t, presentBtn, 'click');
         const stash = new Stash(stashIds.toController, stashIds.toReceiver);
+        const request = new PresentationRequest(presentationUrls);
+        let connection, watcher;
 
-        promise_test(t => {
-            let connection, watcher;
-            const request = new PresentationRequest(presentationUrls);
-
-            t.add_cleanup(() => {
-                if (connection) {
-                    if (connection.state === 'connected')
-                        connection.terminate();
-                    else if (connection.state === 'closed') {
-                        request.reconnect(connection.id).then(c => {
-                            c.terminate();
-                        });
-                    }
-                }
-                const notice = document.getElementById('notice');
-                notice.parentNode.removeChild(notice);
-                stash.stop();
-            });
-
-            return request.start().then(c => {
-                connection = c;
-
-                // send data in "connecting" state (throws an exception)
-                assert_equals(connection.state, 'connecting', 'the initial state of the presentation connection is "connecting"');
-                assert_throws('InvalidStateError', () => {
-                    connection.send('');
-                }, 'an InvalidStateError is thrown if the state is "connecting"');
-
-                // enable timeout again, cause no user action is needed from here.
-                t.step_timeout(() => {
-                    t.force_timeout();
-                    t.done();
-                }, 10000);
-
-                watcher = new EventWatcher(t, connection, ['connect', 'close']);
-                return watcher.wait_for('connect');
-            }).then(() => {
-                return stash.init();
-            }).then(() => {
-                return Promise.all([ stash.send('send'), stash.receive() ]);
-            }).then(results => {
-                // send messages
-                connection.send(message1);              // string
-                connection.send(message2);              // string
-                connection.send(new Blob([message3]));  // Blob
-                connection.send(message4.buffer);       // ArrayBuffer
-                connection.send(message5);              // ArrayBufferView
-                return stash.receive();
-            }).then(stash => {
-                // verify messages
-                const results = JSON.parse(stash);
-                assert_true(!!results[0] && results[0].type === 'text'   && results[0].data === message1,          'send a string correctly');
-                assert_true(!!results[1] && results[1].type === 'text'   && results[1].data === message2,          'send a string correctly');
-                assert_true(!!results[2] && results[2].type === 'binary' && results[2].data === toText(message3), 'send a Blob correctly');
-                assert_true(!!results[3] && results[3].type === 'binary' && results[3].data === toText(message4), 'send a ArrayBuffer correctly');
-                assert_true(!!results[4] && results[4].type === 'binary' && results[4].data === toText(message5), 'send a ArrayBufferView correctly');
-
-                // send data in "closed" state (throws an exception)
-                connection.close();
-                return watcher.wait_for('close');
-            }).then(() => {
-                assert_equals(connection.state, 'closed', 'the state is set to "closed" when the presentation connection is closed');
-                assert_throws('InvalidStateError', () => {
-                    connection.send('');
-                }, 'an InvalidStateError is thrown if the state is "closed"');
-
-                // reconnect and terminate the connection
-                return request.reconnect(connection.id);
-            }).then(c => {
-                connection = c;
-                watcher = new EventWatcher(t, connection, ['connect', 'terminate']);
-                return watcher.wait_for('connect');
-            }).then(() => {
-                // send data in "terminated" state (throws an exception)
-                connection.terminate();
-                return watcher.wait_for('terminate');
-            }).then(() => {
-                assert_equals(connection.state, 'terminated', 'the state is set to "terminated" when the presentation connection is terminated');
-                assert_throws('InvalidStateError', () => {
-                    connection.send('');
-                }, 'an InvalidStateError is thrown if the state is "terminated"');
-            });
+        t.add_cleanup(() => {
+            if (connection) {
+                connection.onconnect = () => { connection.terminate(); };
+                if (connection.state === 'closed')
+                    request.reconnect(connection.id);
+                else
+                    connection.terminate();
+            }
+            const notice = document.getElementById('notice');
+            notice.parentNode.removeChild(notice);
+            stash.stop();
         });
-    };
+
+        return clickWatcher.wait_for('click').then(() => {
+            presentBtn.disabled = true;
+
+            return request.start();
+        }).then(c => {
+            connection = c;
+
+            // send data in "connecting" state (throws an exception)
+            assert_equals(connection.state, 'connecting', 'the initial state of the presentation connection is "connecting"');
+            assert_throws('InvalidStateError', () => {
+                connection.send('');
+            }, 'an InvalidStateError is thrown if the state is "connecting"');
+
+            // enable timeout again, cause no user action is needed from here.
+            t.step_timeout(() => {
+                t.force_timeout();
+                t.done();
+            }, 10000);
+
+            watcher = new EventWatcher(t, connection, ['connect', 'close', 'terminate']);
+            return watcher.wait_for('connect');
+        }).then(() => {
+            return stash.init();
+        }).then(() => {
+            return Promise.all([ stash.send('send'), stash.receive() ]);
+        }).then(results => {
+            // send messages
+            connection.send(message1);              // string
+            connection.send(message2);              // string
+            connection.send(new Blob([message3]));  // Blob
+            connection.send(message4.buffer);       // ArrayBuffer
+            connection.send(message5);              // ArrayBufferView
+            return stash.receive();
+        }).then(stash => {
+            // verify messages
+            const results = JSON.parse(stash);
+            assert_true(!!results[0] && results[0].type === 'text'   && results[0].data === message1,          'send a string correctly');
+            assert_true(!!results[1] && results[1].type === 'text'   && results[1].data === message2,          'send a string correctly');
+            assert_true(!!results[2] && results[2].type === 'binary' && results[2].data === toText(message3), 'send a Blob correctly');
+            assert_true(!!results[3] && results[3].type === 'binary' && results[3].data === toText(message4), 'send a ArrayBuffer correctly');
+            assert_true(!!results[4] && results[4].type === 'binary' && results[4].data === toText(message5), 'send a ArrayBufferView correctly');
+
+            // send data in "closed" state (throws an exception)
+            connection.close();
+            return watcher.wait_for('close');
+        }).then(() => {
+            assert_equals(connection.state, 'closed', 'the state is set to "closed" when the presentation connection is closed');
+            assert_throws('InvalidStateError', () => {
+                connection.send('');
+            }, 'an InvalidStateError is thrown if the state is "closed"');
+
+            // reconnect and terminate the connection
+            return request.reconnect(connection.id);
+        }).then(() => {
+            return watcher.wait_for('connect');
+        }).then(() => {
+            // send data in "terminated" state (throws an exception)
+            connection.terminate();
+            return watcher.wait_for('terminate');
+        }).then(() => {
+            assert_equals(connection.state, 'terminated', 'the state is set to "terminated" when the presentation connection is terminated');
+            assert_throws('InvalidStateError', () => {
+                connection.send('');
+            }, 'an InvalidStateError is thrown if the state is "terminated"');
+        });
+    });
 </script>

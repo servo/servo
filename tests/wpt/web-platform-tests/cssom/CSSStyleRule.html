@@ -101,6 +101,13 @@
             assert_equals(rule.style.padding, "5px");
             assert_equals(rule.style.border, "1px solid");
         }, "Mutability of CSSStyleRule's style attribute");
+
+        test(function() {
+            rule.style = "margin: 15px; padding: 2px;";
+
+            assert_equals(rule.style.margin, "15px", "margin");
+            assert_equals(rule.style.padding, "2px", "padding");
+        }, "CSSStyleRule's style has [PutForwards]");
     </script>
 </body>
 </html>

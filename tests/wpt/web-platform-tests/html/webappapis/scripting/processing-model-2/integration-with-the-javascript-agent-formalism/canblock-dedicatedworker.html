@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[[CanBlock]] in a dedicated worker agent</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dedicated-worker-agent">
+<link rel="help" href="https://tc39.github.io/ecma262/#sec-agentcansuspend">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+fetch_tests_from_worker(new Worker("worker-that-requires-success.js"));
+</script>

@@ -111,16 +111,7 @@
 			Any sample value less than -1 will correspond to the first value in the curve array.
 			Any sample value greater than +1 will correspond to the last value in the curve array.
 			The implementation must perform linear interpolation between adjacent points in the curve.
-		Note:
-			I found a post on the W3C audio mailing list (from one of the Chris's) that suggested it would be feasible
-				to use the WaveShaperNode to create constant values.
 		*/
-		(function() {
-			var oneElementCurve=[1.0];
-			var inputData=[-1.0, 0, 1.0, -2.0, 2.0];
-			var expectedData=[1.0, 1.0, 1.0, 1.0, 1.0];
-			executeTest(oneElementCurve, inputData, expectedData, "Testing single-element curve (boundary condition)");
-		})();
 
 		/*
 		Testing null curve (should return input values)
@@ -134,22 +125,6 @@
 			var expectedData=[-1.0, 0.0, 1.0, 2.0];
 			executeTest(null, inputData, expectedData, "Testing null curve (should return input values)");
 		})();
-
-		/*
-		Testing zero-element curve (unspecified result)
-		===============================================
-		From the specification:
-			Unspecified result (I assume it will be treated in the same way as a null curve).
-		Note:
-			Mozilla test_waveShaperNoCurve.html indicates they expect same results as a null curve.
-		*/
-		(function() {
-			var zeroElementCurve=[];
-			var inputData=[-1.0, 0, 1.0, 2.0];
-			var expectedData=[-1.0, 0.0, 1.0, 2.0];
-			executeTest(zeroElementCurve, inputData, expectedData, "Testing zero-element curve (unspecified result)");
-		})();
-
 
 		/**
 		* Function that does the actual testing (using an asynchronous test).

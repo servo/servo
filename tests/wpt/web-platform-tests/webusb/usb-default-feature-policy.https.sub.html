@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=resources/featurepolicytest.js></script>
+<script>
+'use strict';
+
+promise_test(
+    () => navigator.usb.getDevices(),
+    'Default "usb" feature policy ["self"] allows the top-level document.');
+
+async_test(t => {
+  assert_usb_available_in_iframe(t, '', '#OK');
+}, 'Default "usb" feature policy ["self"] allows same-origin iframes.');
+
+async_test(t => {
+  assert_usb_available_in_iframe(t, 'https://{{domains[www]}}:{{ports[https][0]}}', '#SecurityError');
+}, 'Default "usb" feature policy ["self"] disallows cross-origin iframes.');
+</script>
+</body>

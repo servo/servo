@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Scroll in iframe - no page scale</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <style>
+          iframe {
+            width: 200px;
+            height: 300px;
+            border: 0;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Scroll in iframe - no page scale</h1>
+    <h4>Test Description: This test checks that window.view returns correct offset and scroll values without any pinch-zoom page scale applied.</h4>
+    <iframe></iframe>
+    <div id="complete-notice">
+        <p>frames[0].window.view's offsetLeft and offsetTop is (<span id="scroll-offset-log"></span>).</p>
+        <p>frames[0].window.view's pageLeft and pageTop is (<span id="scroll-page-log"></span>).</p>
+    </div>
+    <div id="log"></div>
+    </body>
+    <script>
+        var iframe = frames[0].window;
+
+        // Add overflow we can scroll.
+        iframe.document.body.style.width = "2000px";
+        iframe.document.body.style.height = "2000px";
+
+        iframe.scrollTo(1000, 1200);
+
+
+        test(function() {
+              assert_equals(iframe.view.offsetLeft, 0);
+            }, "offsetLeft must be 0.");
+        test(function() {
+              assert_equals(iframe.view.offsetTop, 0);
+            }, "offsetTop must be 0.");
+        test(function() {
+              assert_equals(iframe.view.pageLeft, 1000);
+            }, "pageLeft must reflect location of viewport in document.");
+        test(function() {
+              assert_equals(iframe.view.pageTop, 1200);
+            }, "pageTop must reflect location of viewport in document.");
+
+        document.getElementById("scroll-offset-log").innerText = iframe.view.offsetLeft+ ", " + iframe.view.offsetTop;
+        document.getElementById("scroll-page-log").innerText = iframe.view.pageLeft + ", " + iframe.view.pageTop;
+    </script>
+</html>

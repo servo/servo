@@ -10,46 +10,6 @@
 <div id=log></div>
 
 <script type=text/plain class=untested>
-[Constructor(DOMString type, optional EventInit eventInitDict)/*,
- Exposed=(Window,Worker)*/]
-interface Event {
-  readonly attribute DOMString type;
-  readonly attribute EventTarget? target;
-  readonly attribute EventTarget? currentTarget;
-
-  const unsigned short NONE = 0;
-  const unsigned short CAPTURING_PHASE = 1;
-  const unsigned short AT_TARGET = 2;
-  const unsigned short BUBBLING_PHASE = 3;
-  readonly attribute unsigned short eventPhase;
-
-  void stopPropagation();
-  void stopImmediatePropagation();
-
-  readonly attribute boolean bubbles;
-  readonly attribute boolean cancelable;
-  void preventDefault();
-  readonly attribute boolean defaultPrevented;
-
-  [Unforgeable] readonly attribute boolean isTrusted;
-  readonly attribute DOMTimeStamp timeStamp;
-
-  void initEvent(DOMString type, boolean bubbles, boolean cancelable);
-};
-
-dictionary EventInit {
-  boolean bubbles = false;
-  boolean cancelable = false;
-};
-
-/*[Exposed=(Window,Worker)]*/
-interface EventTarget {
-  void addEventListener(DOMString type, EventListener? callback, optional boolean capture = false);
-  void removeEventListener(DOMString type, EventListener? callback, optional boolean capture = false);
-  boolean dispatchEvent(Event event);
-};
-</script>
-<script type=text/plain class=untested>
 [TreatNonCallableAsNull]
 callback EventHandlerNonNull = any (Event event);
 typedef EventHandlerNonNull? EventHandler;
@@ -149,11 +109,11 @@ dictionary ProgressEventInit : EventInit {
 </script>
 <script>
 "use strict";
-var form;
-var idlArray;
-setup(function() {
-  form = document.createElement("form");
-  idlArray = new IdlArray();
+var form = document.createElement("form");
+var idlArray = new IdlArray();
+
+function doTest(domIdl) {
+  idlArray.add_untested_idls(domIdl);
   [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
     if (node.className == "untested") {
       idlArray.add_untested_idls(node.textContent);
@@ -166,6 +126,11 @@ setup(function() {
     XMLHttpRequestUpload: ['(new XMLHttpRequest()).upload'],
     FormData: ['new FormData()', 'new FormData(form)']
   });
-});
-idlArray.test();
+  idlArray.test();
+}
+
+promise_test(function() {
+  return fetch("/interfaces/dom.idl").then(response => response.text())
+                                     .then(doTest);
+}, "Test driver");
 </script>

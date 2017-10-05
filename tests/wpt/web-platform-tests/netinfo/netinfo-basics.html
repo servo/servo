@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>NetInfo basic functionality</title>
+<link rel="help" href="https://wicg.github.io/netinfo/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(function() {
+      assert_in_array(navigator.connection.type,  ["bluetooth", "cellular",
+        "ethernet", "mixed", "none", "other", "unknown", "wifi", "wimax"], 'type is unexpected');
+ });
+
+test(function() {
+      assert_greater_than_equal(navigator.connection.downlinkMax, 0);
+ });
+
+test(function() {
+      assert_in_array(navigator.connection.effectiveType, ["slow-2g", "2g",
+          "3g", "4g"], 'effectiveType is unexpected');
+ });
+
+test(function() {
+      assert_greater_than_equal(navigator.connection.rtt, 0);
+      assert_equals(navigator.connection.rtt % 25, 0,
+        'rtt must be a multiple of 25 msec');
+ });
+
+test(function() {
+      assert_greater_than_equal(navigator.connection.downlink, 0);
+      var downlink  = navigator.connection.downlink ;
+      assert_equals(((downlink  - Math.floor(downlink)) *1000) % 25, 0,
+        'downlink must be a multiple of 25 kbps');
+ });
+</script>

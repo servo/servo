@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery Test: navigator.getBattery() always return same battery promise</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/battery-status/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+promise_test(function () {
+  return navigator.getBattery().then(function (result) {
+    assert_class_string(result, 'BatteryManager',
+        'getBattery should return BatteryManager Object.');
+  });
+}, 'navigator.getBattery() shall return BatteryManager as a promise');
+
+test(function () {
+  assert_equals(navigator.getBattery(), navigator.getBattery());
+}, 'navigator.getBattery() shall always return the same promise');
+</script>

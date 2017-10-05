@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="paint2d-composite-ref.html">
+<style>
+    div {
+        display: inline-block;
+        width: 80px;
+        height: 80px;
+    }
+    #source-over { background-image: paint(source-over); }
+    #source-in { background-image: paint(source-in); }
+    #source-out { background-image: paint(source-out); }
+    #source-atop { background-image: paint(source-atop); }
+    #destination-over { background-image: paint(destination-over); }
+    #destination-in { background-image: paint(destination-in); }
+    #destination-out { background-image: paint(destination-out); }
+    #destination-atop { background-image: paint(destination-atop); }
+    #lighter { background-image: paint(lighter); }
+    #xor { background-image: paint(xor); }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="source-over"></div>
+<div id="source-in"></div>
+<div id="source-out"></div>
+<div id="source-atop"></div>
+<br>
+<div id="destination-over"></div>
+<div id="destination-in"></div>
+<div id="destination-out"></div>
+<div id="destination-atop"></div>
+<br>
+<div id="lighter"></div>
+<div id="xor"></div>
+
+<script id="code" type="text/worklet">
+var compositeOps = [
+    'source-over',
+    'source-in',
+    'source-out',
+    'source-atop',
+    'destination-over',
+    'destination-in',
+    'destination-out',
+    'destination-atop',
+    'lighter',
+    'xor'
+];
+
+function doPaint(ctx, op) {
+    ctx.fillStyle = 'red';
+    ctx.fillRect(5, 5, 40, 40);
+
+    ctx.globalCompositeOperation = op;
+
+    ctx.fillStyle = 'deepskyblue';
+    ctx.beginPath();
+    ctx.arc(45,45,20,0,Math.PI*2,true);
+    ctx.fill();
+}
+
+for (var i = 0; i < compositeOps.length; i++) {
+    let op = compositeOps[i];
+    registerPaint(op, class { paint(ctx, geom) { doPaint(ctx, op); } });
+}
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

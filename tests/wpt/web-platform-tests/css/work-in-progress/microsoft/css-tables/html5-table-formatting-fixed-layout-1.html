@@ -1,8 +1,8 @@
 <!doctype html>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<link rel='stylesheet' href='/resources/testharness.css'>
 <link rel='stylesheet' href='./base.css' />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#dimensioning-the-row-column-grid">
 <main>
 
 	<h1>HTML5 Table Formatting algorithm and Fixed Layout (row/column grid computation)</h1>
@@ -18,7 +18,7 @@
 	</x-table>
 
 	<hr/>
-		
+
 </main>
 
 <script>
@@ -27,18 +27,18 @@
 		var td = document.createElement('td'); for(var i = xtd.attributes.length; i--;) { td.setAttribute(xtd.attributes[i].name,xtd.attributes[i].value) }
 		xtd.parentNode.replaceChild(td,xtd);
 	}
-	
+
 	generate_tests(assert_equals, [
 		[
-			"Redundant columns of fixed-layout tables are not being merged", 
-			document.querySelector("x-table:nth-of-type(1)").offsetWidth, 
+			"Redundant columns of fixed-layout tables are not being merged",
+			document.querySelector("x-table:nth-of-type(1)").offsetWidth,
 			100
 		],
 		[
-			"Redundant rows of fixed-layout tables are not being merged", 
-			document.querySelector("x-table:nth-of-type(1)").offsetHeight, 
+			"Redundant rows of fixed-layout tables are not being merged",
+			document.querySelector("x-table:nth-of-type(1)").offsetHeight,
 			50
 		],
     ])
-	
+
 </script>

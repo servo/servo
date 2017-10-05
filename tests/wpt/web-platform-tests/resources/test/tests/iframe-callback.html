@@ -1,0 +1,118 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Example with iframe that notifies containing document via callbacks</title>
+<script src="../../testharness.js"></script>
+<script src="../../testharnessreport.js"></script>
+</head>
+<body onload="start_test_in_iframe()">
+<h1>Callbacks From Tests Running In An IFRAME</h1>
+<p>A test is run inside an <tt>iframe</tt> with a same origin document. The
+containing document should receive callbacks as the tests progress inside the
+<tt>iframe</tt>. A single passing test is expected in the summary below.
+<div id="log"></div>
+
+<script>
+var callbacks = [];
+var START = 1
+var TEST_STATE = 2
+var RESULT = 3
+var COMPLETION = 4
+var test_complete = false;
+
+setup({explicit_done: true});
+
+// The following callbacks are called for tests in this document as well as the
+// tests in the IFRAME. Currently, callbacks invoked from this document and any
+// child document are indistinguishable from each other.
+
+function start_callback(properties) {
+    callbacks.push(START);
+}
+
+function test_state_callback(test) {
+    callbacks.push(TEST_STATE);
+}
+
+function result_callback(test) {
+    callbacks.push(RESULT);
+}
+
+function completion_callback(tests, status) {
+    if (test_complete) {
+        return;
+    }
+    test_complete = true;
+    callbacks.push(COMPLETION);
+    verify_received_callbacks();
+    done();
+}
+
+function verify_received_callbacks() {
+    var copy_of_callbacks = callbacks.slice(0);
+
+    // Note that you can't run test assertions directly in a callback even if
+    // this is a file test. When the callback is invoked from a same-origin child
+    // page, the callstack reaches into the calling child document. Any
+    // exception thrown in a callback will be handled by the child rather than
+    // this document.
+    test(
+        function() {
+            // callbacks list should look like:
+            //     START 1*(TEST_STATE) RESULT COMPLETION
+            assert_equals(copy_of_callbacks.shift(), START,
+                          "The first received callback should be 'start_callback'.");
+            assert_equals(copy_of_callbacks.shift(), TEST_STATE,
+                          "'test_state_callback' should be received before any " +
+                          "result or completion callbacks.");
+            while(copy_of_callbacks.length > 0) {
+                var callback = copy_of_callbacks.shift();
+                if (callback != TEST_STATE) {
+                    copy_of_callbacks.unshift(callback);
+                    break;
+                }
+            }
+            assert_equals(copy_of_callbacks.shift(), RESULT,
+                          "'test_state_callback' should be followed by 'result_callback'.");
+            assert_equals(copy_of_callbacks.shift(), COMPLETION,
+                          "Final 'result_callback' should be followed by 'completion_callback'.");
+            assert_equals(copy_of_callbacks.length, 0,
+                          "'completion_callback' should be the last callback.");
+        });
+}
+
+function start_test_in_iframe() {
+    // This document is going to clear any received callbacks and maintain
+    // radio silence until the test in the iframe runs to completion. The
+    // completion_callback() will then complete the testing on this document.
+    callbacks.length = 0;
+    var iframe = document.createElement("iframe");
+    // single-page-test-pass.html has a single test.
+    iframe.src = "single-page-test-pass.html";
+    iframe.style.setProperty("display", "none");
+    document.getElementById("target").appendChild(iframe);
+}
+</script>
+
+<div id="target">
+</div>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null,
+    "stack": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Example with iframe that notifies containing document via callbacks",
+      "properties": {},
+      "message": null,
+      "stack": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Late star-export request</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    window.log = [];
+
+    const test_load = async_test(
+        "Test the situation where a module is instantiated without a use of " +
+        "its star-exports, but later on a different module requests them.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_array_equals(log, [
+          "export-something", "export-something-nested",
+          "import-something-namespace", 42, 43]);
+    }));
+</script>
+<script type="module" src="export-something-nested.js"></script>
+<script type="module">
+    log.push("import-something-namespace");
+    log.push(foo);
+    set_foo(43);
+    log.push(foo);
+    import {foo, set_foo} from "./export-something-nested.js";
+</script>

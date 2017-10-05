@@ -1,0 +1,177 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.ondatachannel</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  // exchangeIceCandidates
+  // doSignalingHandshake
+
+  /*
+    6.2.  RTCDataChannel
+      When an underlying data transport is to be announced
+        2.  Let channel be a newly created RTCDataChannel object.
+        5.  Set channel's readyState attribute to connecting.
+        6.  Fire a datachannel event named datachannel with channel at the
+            RTCPeerConnection object.
+
+    6.3.  RTCDataChannelEvent
+      Firing a datachannel event named e with a RTCDataChannel channel means
+      that an event with the name e, which does not bubble (except where
+      otherwise stated) and is not cancelable (except where otherwise stated),
+      and which uses the RTCDataChannelEvent interface with the channel
+      attribute set to channel, must be created and dispatched at the given
+      target.
+
+      interface RTCDataChannelEvent : Event {
+        readonly attribute RTCDataChannel channel;
+      };
+   */
+  async_test(t => {
+    const localPc = new RTCPeerConnection();
+    const remotePc = new RTCPeerConnection();
+
+    let eventCount = 0;
+
+    const onDataChannel = t.step_func_done(event => {
+      eventCount++;
+      assert_equals(eventCount, 1,
+        'Expect data channel event to fire exactly once');
+
+      assert_true(event instanceof RTCDataChannelEvent,
+        'Expect event to be instance of RTCDataChannelEvent');
+
+      assert_equals(event.bubbles, false);
+      assert_equals(event.cancelable, false);
+
+      const { channel } = event;
+      assert_true(channel instanceof RTCDataChannel,
+        'Expect channel to be instance of RTCDataChannel');
+
+      const { readyState } = channel;
+
+      // The spec requires readyState to be connecting at first,
+      // but it may quickly change to open before the callback
+      // is invoked, especially with local connections.
+      assert_true(readyState === 'connecting' || readyState === 'open',
+        'Expect channel ready state to be either connecting or open');
+    });
+
+    localPc.createDataChannel('test');
+
+    remotePc.addEventListener('datachannel', onDataChannel);
+    exchangeIceCandidates(localPc, remotePc);
+    doSignalingHandshake(localPc, remotePc);
+
+  }, 'datachannel event should fire when new data channel is announced to the remote peer');
+
+  /*
+    6.2.  RTCDataChannel
+      interface RTCDataChannel : EventTarget {
+        readonly attribute USVString           label;
+        readonly attribute boolean             ordered;
+        readonly attribute unsigned short?     maxPacketLifeTime;
+        readonly attribute unsigned short?     maxRetransmits;
+        readonly attribute USVString           protocol;
+        readonly attribute boolean             negotiated;
+        readonly attribute unsigned short?     id;
+        readonly attribute RTCPriorityType     priority;
+        readonly attribute RTCDataChannelState readyState;
+        ...
+      };
+
+      When an underlying data transport is to be announced
+        3.  Let configuration be an information bundle received from the
+            other peer as a part of the process to establish the underlying
+            data transport described by the WebRTC DataChannel Protocol
+            specification [RTCWEB-DATA-PROTOCOL].
+        4.  Initialize channel's label, ordered, maxPacketLifeTime,
+            maxRetransmits, protocol, negotiated and id attributes to their
+            corresponding values in configuration.
+   */
+  async_test(t => {
+    const localPc = new RTCPeerConnection();
+    const remotePc = new RTCPeerConnection();
+
+    const onDataChannel = t.step_func_done(event => {
+      const remoteChannel = event.channel;
+      assert_true(remoteChannel instanceof RTCDataChannel,
+        'Expect channel to be instance of RTCDataChannel');
+
+      assert_equals(remoteChannel.label, 'test');
+      assert_equals(remoteChannel.id, 8);
+      assert_equals(remoteChannel.ordered, false);
+      assert_equals(remoteChannel.maxRetransmits, 1);
+      assert_equals(remoteChannel.protocol, 'custom');
+      assert_equals(remoteChannel.priority, 'high');
+    });
+
+    const localChannel = localPc.createDataChannel('test', {
+      id: 8,
+      ordered: false,
+      maxRetransmits: 1,
+      protocol: 'custom',
+      priority: 'high'
+    });
+
+    assert_equals(localChannel.label, 'test');
+    assert_equals(localChannel.id, 8);
+    assert_equals(localChannel.ordered, false);
+    assert_equals(localChannel.maxRetransmits, 1);
+    assert_equals(localChannel.protocol, 'custom');
+    assert_equals(localChannel.priority, 'high');
+
+    remotePc.addEventListener('datachannel', onDataChannel);
+    exchangeIceCandidates(localPc, remotePc);
+    doSignalingHandshake(localPc, remotePc);
+  }, 'Data channel created on remote peer should match the same configuration as local peer');
+
+  /*
+    6.2.  RTCDataChannel
+      Dictionary RTCDataChannelInit Members
+        negotiated
+          The default value of false tells the user agent to announce the
+          channel in-band and instruct the other peer to dispatch a corresponding
+          RTCDataChannel object. If set to true, it is up to the application
+          to negotiate the channel and create a RTCDataChannel object with the
+          same id at the other peer.
+   */
+  async_test(t => {
+    const localPc = new RTCPeerConnection();
+    const remotePc = new RTCPeerConnection();
+
+    const onDataChannel = t.unreached_func('datachannel event should not be fired');
+
+    localPc.createDataChannel('test', {
+      negotiated: true
+    });
+
+    remotePc.addEventListener('datachannel', onDataChannel);
+    exchangeIceCandidates(localPc, remotePc);
+    doSignalingHandshake(localPc, remotePc);
+
+    t.step_timeout(t.step_func_done(), 200);
+
+  }, 'Data channel created with negotiated set to true should not fire datachannel event on remote peer');
+
+  /*
+    Non-testable
+    6.2.  RTCDataChannel
+      When an underlying data transport is to be announced
+        1.  If the associated RTCPeerConnection object's [[isClosed]] slot
+            is true, abort these steps.
+
+    The above step is not testable because to reach it we would have to
+    close the peer connection after the remote peer call
+    setLocalDescription(answer) but before the underlying data transport
+    is connected. This require the promise callback for setLocalDescription()
+    to be called at the right moment, which is not always possible.
+   */
+</script>

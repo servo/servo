@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Tests for animation type of accumulation</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#animation-types">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="property-list.js"></script>
+<script src="property-types.js"></script>
+<style>
+html {
+  font-size: 10px;
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+for (var property in gCSSProperties) {
+  if (!isSupported(property)) {
+    continue;
+  }
+
+  var animationTypes = gCSSProperties[property].types;
+  var setupFunction = gCSSProperties[property].setup;
+  animationTypes.forEach(function(animationType) {
+    var typeObject;
+    var animationTypeString;
+    if (typeof animationType === 'string') {
+      typeObject = types[animationType];
+      animationTypeString = animationType;
+    } else if (typeof animationType === 'object' &&
+               animationType.type && typeof animationType.type === 'string') {
+      typeObject = types[animationType.type];
+      animationTypeString = animationType.type;
+    }
+
+    // First, test that the animation type object has 'testAccumulation'.
+    // We use test() function here so that we can continue the remainder tests
+    // even if this test fails.
+    test(function(t) {
+      assert_own_property(typeObject, 'testAccumulation', animationTypeString +
+                          ' should have testAccumulation property');
+      assert_equals(typeof typeObject.testAccumulation, 'function',
+                    'testAccumulation method should be a function');
+    }, property + ' (type: ' + animationTypeString +
+       ') has testAccumulation function');
+
+    if (typeObject.testAccumulation &&
+        typeof typeObject.testAccumulation === 'function') {
+      typeObject.testAccumulation(property,
+                              setupFunction,
+                              animationType.options);
+    }
+  });
+}
+</script>

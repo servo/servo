@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Mouse Events with button depressed</title>
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <style>
+            div.box {
+                border: 2px solid lightgray;
+                margin: 25px;
+                padding: 25px;
+                float: left;
+            }
+            #lightyellow {
+                background-color: lightyellow;
+            }
+            #lightblue {
+                background-color: lightblue;
+            }
+            #lightgreen {
+                background-color: lightgreen;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h2>Mouse Events</h2>
+        <h4>Test Description: This test checks if mouse events set button property correctly
+            <ol>
+                <li>Put your mouse over the green rectangle</li>
+                <li>Press a non-primary button and hold it</li>
+                <li>Drag mouse to blue rectangle</li>
+                <li>Release mouse button</li>
+            </ol>
+        </h4>
+        <div class="box" id="lightyellow">
+            <div class="box" id="lightgreen"></div>
+            <div class="box" id="lightblue"></div>
+        </div>
+        <script>
+            var test = async_test("mouse events fired without button state");
+            var button = -1;
+
+            function run() {
+                var lightgreen = document.getElementById("lightgreen");
+                var lightyellow = document.getElementById("lightyellow");
+                var lightblue = document.getElementById("lightblue");
+
+                on_event(lightgreen, "contextmenu", function (event) {
+                    event.preventDefault();
+                });
+
+                on_event(lightgreen, "mousedown", function (event) {
+                    test.step(function() {assert_true(button === -1, "There must only be one mouse down event.");});
+                    test.step(function() {assert_true(event.button != 0, "Must not be primary button.");});
+                    button = event.button;
+                });
+                on_event(lightyellow, "click", function (event) {
+                    test.step(function() {assert_true(event.button === button, "Button must be the same as mousedown.");});
+                });
+                on_event(lightyellow, "mousemove", function (event) {
+                    if (button != -1) {
+                        test.step(function() {assert_true(event.button === 0, "Button must be un-initialized for mousemove.");});
+                    }
+                });
+                on_event(lightgreen, "mouseleave", function (event) {
+                    if (button != -1) {
+                        test.step(function() {assert_true(event.button === 0, "Button must be un-initialized for mouseleave.");});
+                    }
+                });
+                on_event(lightblue, "mouseenter", function (event) {
+                    if (button != -1) {
+                        test.step(function() {assert_true(event.button === 0, "Button must be un-initialized for mouseenter.");});
+                    }
+                });
+                on_event(lightblue, "mouseup", function (event) {
+                    if (button != -1) {
+                        test.step(function() {assert_true(event.button === button, "Button must be the same as mousedown.");});
+                        test.done();
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    canvas { display: inline-block; }
+</style>
+</head>
+<body>
+<canvas id="source-over" width="80" height="80"></canvas>
+<canvas id="source-in" width="80" height="80"></canvas>
+<canvas id="source-out" width="80" height="80"></canvas>
+<canvas id="source-atop" width="80" height="80"></canvas>
+<br>
+<canvas id="destination-over" width="80" height="80"></canvas>
+<canvas id="destination-in" width="80" height="80"></canvas>
+<canvas id="destination-out" width="80" height="80"></canvas>
+<canvas id="destination-atop" width="80" height="80"></canvas>
+<br>
+<canvas id="lighter" width="80" height="80"></canvas>
+<canvas id="xor" width="80" height="80"></canvas>
+<script>
+var compositeOps = [
+    'source-over',
+    'source-in',
+    'source-out',
+    'source-atop',
+    'destination-over',
+    'destination-in',
+    'destination-out',
+    'destination-atop',
+    'lighter',
+    'xor'
+];
+
+for (var i = 0; i < compositeOps.length; i++) {
+    var op = compositeOps[i];
+    var ctx = document.getElementById(op).getContext('2d');
+    ctx.fillStyle = 'red';
+    ctx.fillRect(5, 5, 40, 40);
+
+    ctx.globalCompositeOperation = op;
+
+    ctx.fillStyle = 'deepskyblue';
+    ctx.beginPath();
+    ctx.arc(45,45,20,0,Math.PI*2,true);
+    ctx.fill();
+}
+</script>
+</body>
+</html>

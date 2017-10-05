@@ -14,32 +14,13 @@ from .github import GitHub
 
 
 def rewrite_patch(patch, strip_dir):
-    """Take a Patch and convert to a different repository by stripping a prefix from the
-    file paths. Also rewrite the message to remove the bug number and reviewer, but add
+    """Take a Patch and  rewrite the message to remove the bug number and reviewer, but add
     a bugzilla link in the summary.
 
     :param patch: the Patch to convert
-    :param strip_dir: the path prefix to remove
     """
 
-    if not strip_dir.startswith("/"):
-        strip_dir = "/%s"% strip_dir
-
-    new_diff = []
-    line_starts = ["diff ", "+++ ", "--- "]
-    for line in patch.diff.split("\n"):
-        for start in line_starts:
-            if line.startswith(start):
-                new_diff.append(line.replace(strip_dir, "").encode("utf8"))
-                break
-        else:
-            new_diff.append(line)
-
-    new_diff = "\n".join(new_diff)
-
-    assert new_diff != patch
-
-    return Patch(patch.author, patch.email, rewrite_message(patch), None, new_diff)
+    return Patch(patch.author, patch.email, rewrite_message(patch), None, patch.diff)
 
 def rewrite_message(patch):
     if patch.merge_message and patch.merge_message.bug:
@@ -223,8 +204,11 @@ class MovePatches(Step):
             self.logger.info("Moving commit %i: %s" % (i, commit.message.full_summary))
             patch = commit.export_patch(state.tests_path)
             stripped_patch = rewrite_patch(patch, strip_path)
+            strip_count = strip_path.count('/')
+            if strip_path[-1] != '/':
+                strip_count += 1
             try:
-                state.sync_tree.import_patch(stripped_patch)
+                state.sync_tree.import_patch(stripped_patch, 1 + strip_count)
             except:
                 print patch.diff
                 raise

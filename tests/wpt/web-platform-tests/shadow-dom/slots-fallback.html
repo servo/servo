@@ -213,7 +213,8 @@ test(() => {
 
   assert_array_equals(n.s1.assignedNodes(), []);
 
-  assert_array_equals(n.s1.assignedNodes({ flatten: true }), [n.f1]);
+  assert_array_equals(n.s1.assignedNodes({ flatten: true }), [],
+                      'fall back contents should be empty because s1 is not in a shadow tree.');
   assert_array_equals(n.s2.assignedNodes({ flatten: true }), [n.f2]);
   assert_array_equals(n.s3.assignedNodes({ flatten: true }), [n.f2]);
   assert_array_equals(n.s4.assignedNodes({ flatten: true }), [n.f2, n.f4]);

@@ -2,15 +2,25 @@
 <html class="a A">
  <head>
   <title>document.getElementsByClassName(): case-insensitive (quirks mode)</title>
+  <link rel="help" href="https://dom.spec.whatwg.org/#concept-getelementsbyclassname">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
  </head>
  <body class="a a">
   <div id="log"></div>
-  <script>test(function() {
-             assert_array_equals(document.getElementsByClassName("A a"),
-                                 [document.documentElement, document.body]);
-          })
+  <div class="k"></div>
+  <div class="K"></div>
+  <div class="&#x212a;" id="kelvin"></div>
+  <script>
+test(function() {
+  assert_array_equals(document.getElementsByClassName("A a"),
+                      [document.documentElement, document.body]);
+})
+
+test(function() {
+  assert_array_equals(document.getElementsByClassName("\u212a"),
+                      [document.getElementById("kelvin")]);
+}, 'Unicode-case should be sensitive even in quirks mode.');
   </script>
  </body>
 </html>

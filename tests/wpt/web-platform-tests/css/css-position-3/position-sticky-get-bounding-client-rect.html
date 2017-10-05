@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Sticky positioned element should be observable by getBoundingClientRect.</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that sticky positioned element
+should be observable by getBoundingClientRect." />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.container {
+  overflow: scroll;
+  width: 200px;
+  height: 200px;
+}
+
+.spacer {
+  height: 2000px;
+}
+
+.box {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  top: 50px;
+}
+
+.sticky {
+  position: sticky;
+}
+</style>
+
+<div id="scroller" class="container">
+  <div id="sticky" class="sticky box"></div>
+  <div class="spacer"></div>
+</div>
+
+<script>
+test(() => {
+  var element = document.getElementById('sticky');
+  assert_equals(element.getBoundingClientRect().top, 50);
+  document.getElementById('scroller').scrollTop = 100;
+  assert_equals(element.getBoundingClientRect().top, 50);
+  sticky.style.position = 'relative';
+  assert_equals(element.getBoundingClientRect().top, -50);
+  sticky.style.position = 'sticky';
+  assert_equals(element.getBoundingClientRect().top, 50);
+}, 'sticky positioned element should be observable by getBoundingClientRect.');
+</script>
+

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Sec-Required-CSP header.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Sec-Required-CSP is not sent if `csp` attribute is not set on <iframe>.",
+        "csp": null,
+        "expected":  null },
+      { "name": "Send Sec-Required-CSP when `csp` attribute of <iframe> is not empty.",
+        "csp": "script-src 'unsafe-inline'",
+        "expected":  "script-src 'unsafe-inline'" },
+      { "name": "Send Sec-Required-CSP Header on change of `src` attribute on iframe.",
+        "csp": "script-src 'unsafe-inline'",
+        "expected":  "script-src 'unsafe-inline'" },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - gibberish csp",
+        "csp": "completely wrong csp",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - unknown policy name",
+        "csp": "invalid-policy-name http://example.com",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - unknown policy name in multiple directives",
+        "csp": "default-src http://example.com; invalid-policy-name http://example.com",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - misspeled 'none'",
+        "csp": "default-src 'non'",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - query values in path",
+        "csp": "script-src 127.0.0.1:8000/path?query=string",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - missing semicolon",
+        "csp": "script-src 'self' object-src 'self' style-src *",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - comma separated",
+        "csp": "script-src 'none', object-src 'none'",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - html encoded string",
+        // script-src 127.0.0.1:8000
+        "csp": "script-src &#x31;&#x32;&#x37;&#x2E;&#x30;&#x2E;&#x30;&#x2E;&#x31;&#x3A;&#x38;&#x30;&#x30;&#x30;",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - url encoded string",
+        // script-src 127.0.0.1:8000
+        "csp": "script-src%20127.0.0.1%3A8000",
+        "expected": null },
+      { "name": "Wrong value of `csp` should not trigger sending Sec-Required-CSP Header - report-uri present",
+        "csp": "script-src 'unsafe-inline'; report-uri resources/dummy-report.php",
+        "expected": null },
+      // TODO(andypaicu): when `report-to` is implemented, add tests here.
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
+        assert_required_csp(t, url, test.csp, test.expected);
+      }, "Test same origin: " + test.name);
+
+      async_test(t => {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
+        var redirect_url = generateRedirect(Host.SAME_ORIGIN, url);
+        assert_required_csp(t, redirect_url, test.csp, test.expected);
+      }, "Test same origin redirect: " + test.name);
+
+      async_test(t => {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
+        var redirect_url = generateRedirect(Host.CROSS_ORIGIN, url);
+        assert_required_csp(t, redirect_url, test.csp, test.expected);
+      }, "Test cross origin redirect: " + test.name);
+
+      async_test(t => {
+        var url = generateURLString(Host.CROSS_ORIGIN, PolicyHeader.REQUIRED_CSP);
+        var redirect_url = generateRedirect(Host.CROSS_ORIGIN, url);
+        assert_required_csp(t, redirect_url, test.csp, test.expected);
+      }, "Test cross origin redirect of cross origin iframe: " + test.name);
+
+      async_test(t => {
+        var i = document.createElement('iframe');
+        if (test.csp)
+          i.csp = test.csp;
+        i.src = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
+        var loaded = false;
+
+        window.addEventListener('message', t.step_func(e => {
+          if (e.source != i.contentWindow || !('required_csp' in e.data))
+              return;
+          if (!loaded) {
+            assert_equals(e.data['required_csp'], test.expected);
+            loaded = true;
+            i.csp = "default-src 'unsafe-inline'";
+            i.src = generateURLString(Host.CROSS_ORIGIN, PolicyHeader.REQUIRED_CSP);
+          } else {
+            // Once iframe has loaded, check that on change of `src` attribute
+            // Required-CSP value is based on latest `csp` attribute value.
+            assert_equals(e.data['required_csp'], "default-src 'unsafe-inline'");
+            t.done();
+          }
+        }));
+
+        document.body.appendChild(i);
+      }, "Test Required-CSP value on `csp` change: " + test.name);
+    });
+  </script>
+</body>
+</html>

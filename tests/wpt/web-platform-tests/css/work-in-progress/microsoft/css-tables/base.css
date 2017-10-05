@@ -11,7 +11,7 @@
 	x-caption { display: table-caption; }
 
 /* layout of the page */
-	
+
 	hr + p { font-weight: bold; margin-bottom: 0; }
 	p + p { margin-top: 0; }
 

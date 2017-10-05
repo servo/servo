@@ -45,12 +45,12 @@ indexeddb_test(
 
             store.deleteIndex("idx");
         });
-        txn.oncomplete = function() {
+        txn.oncomplete = t.step_func(function() {
             assert_throws("TransactionInactiveError", function() {
                 cursor.continuePrimaryKey("A", 4);
             }, "transaction-state check should precede deletion check");
             t.done();
-        };
+        });
     },
     null,
     "TransactionInactiveError v.s. InvalidStateError(deleted index)"
@@ -378,5 +378,3 @@ indexeddb_test(
     "DataError(keys are larger then current one) in 'prev' direction"
 );
 </script>
-
-<div id="log"></div>

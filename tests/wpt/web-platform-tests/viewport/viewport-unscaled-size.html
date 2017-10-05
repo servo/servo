@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Size unscaled</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <style>
+          html {
+            width: 100%;
+            height: 100%;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Size unscaled</h1>
+    <h4>Test Description: This test checks that window.view returns correct sizes without any pinch-zoom page scale applied.</h4>
+    <div id="complete-notice">
+        <p>window.view width and height is (<span id="view-size-log"></span>).</p>
+        <p>window.view width and height when scrollbars are present is (<span id="view-size-scrollbar-log"></span>).</p>
+    </div>
+    <div id="log"></div>
+    </body>
+    <script>
+        var scrollbarThickness = calculateScrollbarThickness();
+
+        test(function() {
+              assert_equals(window.view.width, document.documentElement.clientWidth);
+            }, "view.width should match documentElement.clientWidth when unzoomed.");
+        test(function() {
+              assert_equals(window.view.height, document.documentElement.clientHeight);
+            }, "view.height should match documentElement.clientHeight when unzoomed.");
+
+        document.getElementById("view-size-log").innerText = window.view.width + ", " + window.view.height;
+
+        // Add overflow so scrollbars appear.
+        document.body.style.width = "2000px";
+        document.body.style.height = "2000px";
+
+        test(function() {
+              assert_equals(window.view.width, document.documentElement.clientWidth);
+            }, "view.width should exclude scrollbar.");
+        test(function() {
+              assert_equals(window.view.height, document.documentElement.clientHeight);
+            }, "view.height should exclude scrollbar.");
+
+        document.getElementById("view-size-scrollbar-log").innerText = window.view.width + ", " + window.view.height;
+    </script>
+</html>

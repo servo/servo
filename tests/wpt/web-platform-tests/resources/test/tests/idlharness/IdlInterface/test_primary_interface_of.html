@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: Primary interface</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<p>Verify the series of sub-tests that are executed for "tested" interface
+objects but skipped for "untested" interface objects.</p>
+<script>
+"use strict";
+
+function FooParent() {}
+Object.defineProperty(window, "Foo", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function Foo() {}
+  });
+Object.defineProperty(window.Foo, "prototype", {
+    writable: false,
+    value: new FooParent()
+  });
+Object.defineProperty(window.Foo.prototype, "constructor", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: window.Foo
+  });
+Foo.__proto__ = FooParent;
+Foo.prototype[Symbol.toStringTag] = "Foo";
+
+var idlArray = new IdlArray();
+idlArray.add_untested_idls("interface FooParent {};");
+idlArray.add_idls(
+    "[Constructor()]\n" +
+    "interface Foo : FooParent {};"
+  );
+idlArray.add_objects({
+  Foo: ["new Foo()"],
+  FooParent: ["new FooParent()"]
+});
+idlArray.test();
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null,
+    "stack": null
+  },
+  "summarized_tests": [
+    {
+      "name": "Foo interface object length",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "name": "Foo interface object name",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "name": "Foo interface: existence and properties of interface object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "name": "Foo interface: existence and properties of interface prototype object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "name": "Foo interface: existence and properties of interface prototype object's \"constructor\" property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "name": "Foo must be primary interface of new Foo()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "name": "Stringification of new Foo()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null,
+      "stack": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

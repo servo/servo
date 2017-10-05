@@ -33,16 +33,15 @@ function make_test(name, script) {
       return service_worker_unregister_and_register(t, script, scope)
         .then(function(r) {
             registration = r;
+
+            t.add_cleanup(function() {
+                r.unregister();
+              });
+
             return wait_for_install(registration.installing);
           })
         .then(function() {
             // Activate should succeed regardless of script errors.
-            if (registration.active && registration.active.state == 'activated') {
-              return Promise.resolve();
-            } else if (registration.active) {
-              return wait_for_activate(registration.active);
-            }
-
             return wait_for_activate(registration.waiting);
           });
     }, name);

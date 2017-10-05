@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>SendBeacon Content-Type header</title>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+  </head>
+  <body>
+    <script src="/common/utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script>
+var RESOURCES_DIR = "/beacon/resources/";
+
+function pollResult(test, id) {
+  var checkUrl = RESOURCES_DIR + "content-type.py?cmd=get&id=" + id;
+
+  return new Promise(resolve => {
+    step_timeout(test.step_func(() => {
+      fetch(checkUrl).then(response => {
+        response.text().then(body => {
+          resolve(body);
+        });
+      });
+    }), 1000);
+  });
+}
+
+function testContentTypeHeader(what, contentType, title) {
+  var testBase = get_host_info().HTTP_REMOTE_ORIGIN + RESOURCES_DIR;
+  var id = self.token();
+  var testUrl = testBase + "content-type.py?cmd=put&id=" + id;
+
+  promise_test(function(test) {
+    assert_true(navigator.sendBeacon(testUrl, what), "SendBeacon Succeeded");
+    return pollResult(test, id) .then(result => {
+      assert_true(result.startsWith(contentType), "Correct referrer header result");
+    });
+  }, "Test content-type header for a body " + title);
+}
+
+function stringToArrayBuffer(input) {
+  var buffer = new ArrayBuffer(input.length * 2);
+  var array = new Uint16Array(buffer);
+
+  // dumbly copy over the bytes
+  for (var i = 0, len = input.length; i < len; i++) {
+    array[i] = input.charCodeAt(i);
+  }
+  return array;
+}
+
+function stringToFormData(input) {
+  var formdata = new FormData();
+  formdata.append(input, new Blob(['hi']));
+  return formdata;
+}
+
+testContentTypeHeader("hi!", "text/plain;charset=UTF-8", "string");
+testContentTypeHeader(stringToArrayBuffer("123"), "", "ArrayBuffer");
+testContentTypeHeader(stringToFormData("qwerty"), "multipart/form-data", "FormData");
+    </script>
+  </body>
+</html>

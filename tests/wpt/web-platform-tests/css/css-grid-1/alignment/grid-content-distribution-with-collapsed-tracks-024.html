@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Content Distribution 'stretch' and gaps with collapsed tracks on 4x4 grid</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#collapsed-track">
+<link rel="match" href="../../reference/ref-filled-green-300px-square.html">
+<meta name="assert" content="Content Distribution alignment ignore collapsed grid tracks and render correctly with a value of 'stretch'.">
+<style>
+.block {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 300px;
+  height: 300px;
+}
+.block > div {
+  position: absolute;
+  background: red;
+  width: 60px;
+  height: 60px;
+}
+.grid {
+  z-index: 1;
+  display: grid;
+  width: 300px;
+  height: 300px;
+  grid-template-columns: repeat(auto-fit, minmax(25px, auto));
+  grid-template-rows: repeat(auto-fit, minmax(25px, auto));
+  grid-row-gap: 20px;
+  grid-column-gap: 20px;
+  align-content: stretch;
+  justify-content: stretch;
+}
+.grid > div { background: green; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="block">
+    <div style="top: 0px; left: 80px;"></div>
+    <div style="top: 0px; left: 160px;"></div>
+    <div style="top: 80px; left: 160px;"></div>
+    <div style="top: 160px; left: 160px;"></div>
+    <div style="top: 240px; left: 0px;"></div>
+    <div style="top: 240px; left: 240px;"></div>
+</div>
+<div class="grid">
+    <div class="item" style="grid-row: 1; grid-column: 2;"></div>
+    <div class="item" style="grid-row: 1; grid-column: 5;"></div>
+    <div class="item" style="grid-row: 3; grid-column: 5;"></div>
+    <div class="item" style="grid-row: 4; grid-column: 5;"></div>
+    <div class="item" style="grid-row: 6; grid-column: 1;"></div>
+    <div class="item" style="grid-row: 6; grid-column: 7;"></div>
+</div>

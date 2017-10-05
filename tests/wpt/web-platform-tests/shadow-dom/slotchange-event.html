@@ -241,11 +241,11 @@ testSlotchangeDoesNotFireWhenOtherSlotsChange('closed', true);
 testSlotchangeDoesNotFireWhenOtherSlotsChange('open', false);
 testSlotchangeDoesNotFireWhenOtherSlotsChange('closed', false);
 
-function testSlotchangeDoesNotFireForMutationBeforeOrAfterSlotWasPresent(mode, connectedToDocument)
+function testSlotchangeDoesFireAtInsertedAndDoesNotFireForMutationAfterRemoved(mode, connectedToDocument)
 {
-    var test = async_test('slotchange event must not fire on a slot element inside '
-        + treeName(mode, connectedToDocument)
-        + ' when the shadow host was mutated before the slot was inserted or after the slot was removed');
+    var test = async_test('slotchange event must fire on a slot element when a shadow host has a slotable and the slot was inserted'
+                        + ' and must not fire when the shadow host was mutated after the slot was removed inside '
+                        + treeName(mode, connectedToDocument));
 
     var host;
     var slot;
@@ -273,32 +273,32 @@ function testSlotchangeDoesNotFireForMutationBeforeOrAfterSlotWasPresent(mode, c
 
     setTimeout(function () {
         test.step(function () {
-            assert_equals(eventCount, 0,
-                'slotchange must not be fired on a slot element if the assigned nodes changed before the slot was inserted');
+            assert_equals(eventCount, 1,
+                          'slotchange must be fired on a slot element if there is assigned nodes when the slot was inserted');
             host.removeChild(host.firstChild);
         });
 
         setTimeout(function () {
             test.step(function () {
-                assert_equals(eventCount, 1,
-                    'slotchange must be fired exactly once after the assigned nodes change on a slot while the slot element was in the tree');
+                assert_equals(eventCount, 2,
+                              'slotchange must be fired after the assigned nodes change on a slot while the slot element was in the tree');
                 slot.parentNode.removeChild(slot);
                 host.appendChild(document.createElement('span'));
             });
 
             setTimeout(function () {
-                assert_equals(eventCount, 1,
-                    'slotchange must not be fired on a slot element if the assigned nodes changed after the slot was removed');
+                assert_equals(eventCount, 2,
+                              'slotchange must not be fired on a slot element if the assigned nodes changed after the slot was removed');
                 test.done();
             }, 1);
         }, 1);
     }, 1);
 }
 
-testSlotchangeDoesNotFireForMutationBeforeOrAfterSlotWasPresent('open', true);
-testSlotchangeDoesNotFireForMutationBeforeOrAfterSlotWasPresent('closed', true);
-testSlotchangeDoesNotFireForMutationBeforeOrAfterSlotWasPresent('open', false);
-testSlotchangeDoesNotFireForMutationBeforeOrAfterSlotWasPresent('closed', false);
+testSlotchangeDoesFireAtInsertedAndDoesNotFireForMutationAfterRemoved('open', true);
+testSlotchangeDoesFireAtInsertedAndDoesNotFireForMutationAfterRemoved('closed', true);
+testSlotchangeDoesFireAtInsertedAndDoesNotFireForMutationAfterRemoved('open', false);
+testSlotchangeDoesFireAtInsertedAndDoesNotFireForMutationAfterRemoved('closed', false);
 
 function testSlotchangeFiresOnTransientlyPresentSlot(mode, connectedToDocument)
 {
@@ -505,7 +505,11 @@ function testSlotchangeFiresWhenNestedSlotChange(mode, connectedToDocument)
         innerSlot.addEventListener('slotchange', function (event) {
             event.stopPropagation();
             test.step(function () {
-                assert_equals(event.target, outerSlot, 'slotchange event\'s target must be the outer slot element');
+                if (innerSlotEventCount === 0) {
+                    assert_equals(event.target, innerSlot, 'slotchange event\'s target must be the inner slot element at 1st slotchange');
+                } else if (innerSlotEventCount === 1) {
+                    assert_equals(event.target, outerSlot, 'slotchange event\'s target must be the outer slot element at 2nd sltochange');
+                }
             });
             innerSlotEventCount++;
         });
@@ -521,7 +525,7 @@ function testSlotchangeFiresWhenNestedSlotChange(mode, connectedToDocument)
         test.step(function () {
             assert_equals(outerSlotEventCount, 1,
                 'slotchange must be fired on a slot element if the assigned nodes changed');
-            assert_equals(innerSlotEventCount, 1,
+            assert_equals(innerSlotEventCount, 2,
                 'slotchange must be fired on a slot element and must bubble');
         });
         test.done();
