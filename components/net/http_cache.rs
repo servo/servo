@@ -45,20 +45,25 @@ use time::{Duration, Tm, Timespec};
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CacheKey {
-    url_list: Vec<ServoUrl>,
+    url: ServoUrl,
     request_headers: Vec<(String, String)>,
 }
 
 impl CacheKey {
     fn new(request: Request) -> CacheKey {
         CacheKey {
-            url_list: request.url_list.clone(),
+            url: request.url().clone(),
             request_headers: request.headers
                                       .iter()
                                       .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
                                                       header.value_string()))
                                       .collect(),
         }
+    }
+
+    /// Retrieve the URL associated with this key
+    pub fn url(&self) -> ServoUrl {
+        self.url.clone()
     }
 }
 
@@ -294,6 +299,12 @@ impl HttpCache {
             // Only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
             Method::Get => {},
             _ => return,
+        }
+        match response.status {
+            // Not caching redirects.
+            Some(StatusCode::SeeOther) | Some(StatusCode::MovedPermanently)
+            | Some(StatusCode::TemporaryRedirect) | Some(StatusCode::Found) => return,
+            _ => {}
         }
         match response.metadata() {
             Ok(FetchMetadata::Filtered {
