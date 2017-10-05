@@ -4,8 +4,7 @@
 
 #![deny(missing_docs)]
 
-//! A non-validating memory cache that only evicts expired entries and grows
-//! without bound. Implements the logic specified in http://tools.ietf.org/html/rfc7234
+//! A memory cache Implements the logic specified in http://tools.ietf.org/html/rfc7234
 //! and http://tools.ietf.org/html/rfc7232.
 
 use fetch::methods::{Data, DoneChannel};
@@ -30,17 +29,6 @@ use std::u64::{self, MAX, MIN};
 use time;
 use time::{Duration, Tm, Timespec};
 
-//TODO: Store an Arc<Vec<u8>> instead?
-//TODO: Cache HEAD requests
-//TODO: Doom responses with network errors
-//TODO: Send Err responses for doomed entries
-//TODO: Enable forced eviction of a request instead of retrieving the cached response
-//TODO: Doom incomplete entries
-//TODO: Cache-Control: must-revalidate
-//TODO: Last-Modified
-//TODO: Range requests
-//TODO: Revalidation rules for query strings
-//TODO: Vary header
 
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -101,7 +89,7 @@ struct CachedMetadata {
 
 /// Wrapper around a cached response, including information on re-validation needs
 pub struct CachedResponse {
-    /// The stored response
+    /// The response constructed from the cached resource
     pub response: Response,
 
     /// The revalidation flag for the stored response
@@ -115,26 +103,6 @@ pub struct HttpCache {
     entries: HashMap<CacheKey, CachedResource>,
     /// The time at which this cache was created for use by expiry checks.
     base_time: Timespec,
-}
-
-/// The result of matching a request against an HTTP cache.
-pub enum CacheOperationResult {
-    /// The request cannot be cached for a given reason.
-    Uncacheable(&'static str),
-    /// The request is in the cache and the response data is forthcoming.
-    CachedContentPending,
-    /// The request is not present in the cache but will be cached with the given key.
-    NewCacheEntry(CacheKey),
-    /// The request is in the cache but requires revalidation.
-    Revalidate(CacheKey, RevalidationMethod),
-}
-
-/// The means by which to revalidate stale cached content
-pub enum RevalidationMethod {
-    /// The result of a stored Last-Modified or Expires header
-    ExpiryDate(Tm),
-    /// The result of a stored RevalidationMethod::Etag header
-    Etag(EntityTag),
 }
 
 
@@ -314,7 +282,6 @@ impl HttpCache {
             }
         }
     }
-
 
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
     pub fn store(&mut self, request: &Request, response: &Response) {
