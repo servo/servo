@@ -442,8 +442,6 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         if release:
             opts += ["--release"]
-        else:
-            features += ["gecko_debug"]
 
         if features:
             opts += ["--features", ' '.join(features)]
