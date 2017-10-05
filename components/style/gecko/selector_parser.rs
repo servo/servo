@@ -433,13 +433,6 @@ impl SelectorImpl {
             fun(pseudo.clone())
         }
     }
-
-
-    /// Returns the relevant state flag for a given non-tree-structural
-    /// pseudo-class.
-    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
-        pc.state_flag()
-    }
 }
 
 fn utf16_to_ascii_lowercase(unit: u16) -> u16 {

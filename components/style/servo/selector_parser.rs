@@ -561,12 +561,6 @@ impl SelectorImpl {
             fun(PseudoElement::from_eager_index(i));
         }
     }
-
-    /// Returns the pseudo-class state flag for selector matching.
-    #[inline]
-    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
-        pc.state_flag()
-    }
 }
 
 /// A map from elements to snapshots for the Servo style back-end.
