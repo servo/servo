@@ -175,7 +175,9 @@ pub mod shorthands {
     // We don't defined the 'all' shorthand using the regular helpers:shorthand
     // mechanism, since it causes some very large types to be generated.
     <% data.declare_shorthand("all",
-                              [p.name for p in data.longhands if p.name not in ['direction', 'unicode-bidi']],
+                              [p.name for p in data.longhands
+                                if p.name not in ['direction', 'unicode-bidi']
+                                      and not p.internal],
                               spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand") %>
 }
 
