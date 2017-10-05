@@ -130,12 +130,12 @@ test(function() {
 test(function() {
   var el = document.createElement("foo")
   for (var i = 0, il = invalid_qnames.length; i < il; ++i) {
-    assert_throws("NAMESPACE_ERR",
+    assert_throws("INVALID_CHARACTER_ERR",
                   function() { el.setAttributeNS("a", invalid_qnames[i], "fail") },
                   "Expected exception for " + invalid_qnames[i] + ".")
   }
 }, "When qualifiedName does not match the QName production, an " +
-   "NAMESPACE_ERR exception is to be thrown.")
+   "INVALID_CHARACTER_ERR exception is to be thrown.")
 
 // Step 3
 test(function() {

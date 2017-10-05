@@ -1,43 +1,24 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Presentation API PresentationRequest for Controlling User Agent (Success)</title>
+<title>Constructing a PresentationRequest</title>
 <link rel="author" title="Franck William Taffo" href="http://www.fokus.fraunhofer.de">
-<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#constructing-a-presentationrequest">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
 <script>
-    test(function() {
-        try {
-            var request = new PresentationRequest('presentation.html');
-            assert_true(request instanceof PresentationRequest);
-        }
-        catch (ex) {
-            assert_unreached('PresentationRequest constructor threw an unexpected exception "' + ex.name + '"');
-        }
-    }, 'Call PresentationRequest constructor with a valid relative presentation URL. No Exception expected.');
+    test(() => {
+        let request = new PresentationRequest('presentation.html');
+        assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with a relative presentation URL is constructed successfully.');
 
-    test(function() {
-        try {
-            var request = new PresentationRequest('http://example.org/');
-            assert_true(request instanceof PresentationRequest);
-        }
-        catch (ex) {
-            assert_unreached('PresentationRequest constructor threw an unexpected exception "' + ex.name + '"');
-        }
-    }, 'Call PresentationRequest constructor with a valid absolute presentation URL. No Exception expected.');
+        request = new PresentationRequest('https://example.org/');
+        assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with an absolute presentation URL is constructed successfully.');
 
-    test(function() {
-        try {
-            var request = new PresentationRequest([
-                'presentation.html',
-                'http://example.org/presentation/'
-            ]);
-            assert_true(request instanceof PresentationRequest);
-        }
-        catch (ex) {
-            assert_unreached('PresentationRequest constructor threw an unexpected exception "' + ex.name + '"');
-        }
-    }, 'Call PresentationRequest constructor with a set of valid presentation URLs. No Exception expected.');
-
+        request = new PresentationRequest([
+            'presentation.html',
+            'https://example.org/presentation/'
+        ]);
+        assert_true(request instanceof PresentationRequest, 'An instance of PresentationRequest with an array of presentation URLs is constructed successfully.');
+    });
 </script>

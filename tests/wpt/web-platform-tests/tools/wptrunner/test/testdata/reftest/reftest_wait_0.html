@@ -1,0 +1,13 @@
+<html class="reftest-wait">
+<title>rel=match that should fail</title>
+<link rel=match href=red.html>
+<style>
+:root {background-color:red}
+</style>
+<script>
+setTimeout(function() {
+  document.documentElement.style.backgroundColor = "green";
+  document.documentElement.className = "";
+}, 2000);
+</script>
+</html>

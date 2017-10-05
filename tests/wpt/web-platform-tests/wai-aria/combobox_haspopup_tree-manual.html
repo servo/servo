@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+  <head>
+    <title>combobox haspopup tree</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_COMBO_BOX"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_EXPANDABLE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_EXPANDED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_HAS_POPUP"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:tree"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXComboBox"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "combo box"
+               ],
+               [
+                  "property",
+                  "AXExpanded",
+                  "is",
+                  "true"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "contains",
+                  "AXShowMenu"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "contains",
+                  "AXPress"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:tree"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_COMBOBOX"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_HASPOPUP"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_EXPANDED"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Combobox"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "ExpandCollapse pattern"
+               ],
+               [
+                  "property",
+                  "ExpandCollapse.ExpandCollapseState",
+                  "is",
+                  "Expanded"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "combobox haspopup tree"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for combobox haspopup tree.</p>
+    <div aria-label="Tag" id="test" role="combobox" aria-expanded="true" aria-owns="owned_tree" aria-haspopup="tree">
+    <input type="text" aria-autocomplete="list" aria-controls="owned_tree" aria-activedescendant="oranges">
+   <li id="fruits" role="treeitem" tabindex="0" aria-expanded="true"><span>Fruits</span>
+      <ul id="fruit-grp" role="group">
+         <li id="oranges" role="treeitem" tabindex="-1">Oranges</li>
+         <li id="apples" role="treeitem" tabindex="-1" aria-expanded="false"><span>Apples</span>
+            <ul id="apple-grp" role="group">
+               <li id="macintosh" role="treeitem" tabindex="-1">Macintosh</li>
+               <li id="granny_smith" role="treeitem" tabindex="-1" aria-expanded="false"><span>Granny Smith</span>
+                  <ul id="granny-grp" role="group">
+                     <li id="Washington" role="treeitem" tabindex="-1">Washington State</li>
+                     <li id="Michigan" role="treeitem" tabindex="-1">Michigan</li>
+                  </ul>
+               </li>
+               <li id="fuji" role="treeitem" tabindex="-1">Fuji</li>
+            </ul>
+         </li>
+         <li id="bananas" role="treeitem" tabindex="-1">Bananas</li>
+         <li id="pears" role="treeitem" tabindex="-1">Pears</li>
+      </ul>
+   </li>
+   <li id="vegetables" role="treeitem" tabindex="-1" aria-expanded="true">Vegetables</li>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

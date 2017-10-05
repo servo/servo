@@ -5,19 +5,16 @@
 <link rel="help" href="https://www.w3.org/TR/ambient-light/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<div id="log"></div>
 <h2>Precondition</h2>
 <ol>
   <li>
     Run test in an insecure context, e.g. http://example.com/.
   </li>
 </ol>
-<div id="log"></div>
 <script>
 
-test(() => {
-  assert_throws('SecurityError', () => {
-    let sensor = new AmbientLightSensor();
-  });
-}, "throw a 'SecurityError' when construct AmbientLightSensor in an insecure context");
+runGenericSensorInsecureContext(AmbientLightSensor);
 
 </script>

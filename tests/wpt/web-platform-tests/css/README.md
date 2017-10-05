@@ -2,7 +2,9 @@ Introduction
 ------------
 
 This directory contains all testsuites for all CSS specifications still using
-the [CSS test harness][harness].
+the [CSS test harness][harness]. These should primarily be considered legacy;
+new testsuites should almost always be put at the top level without any level
+suffix.
 
 As the test harness relies on the largely undocumented(!) old CSS build system,
 this directory has a number of test requirements specific to it:

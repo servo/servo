@@ -17,6 +17,7 @@ self.addEventListener('fetch', function(event) {
     port.postMessage({
         url: url,
         mode: event.request.mode,
+        redirect: event.request.redirect,
         credentials: event.request.credentials,
         integrity: event.request.integrity
       });

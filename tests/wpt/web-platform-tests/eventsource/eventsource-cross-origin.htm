@@ -10,17 +10,17 @@
   <body>
     <div id="log"></div>
     <script>
-      var crossdomain = location.href
-                    .replace('://', '://www2.')
-                    .replace(/\/[^\/]*$/, '/')
+      const crossdomain = location.href.replace('://', '://élève.').replace(/\/[^\/]*$/, '/'),
+            origin = location.origin.replace('://', '://xn--lve-6lad.');
+
 
       function doCORS(url, title) {
         async_test(document.title + " " + title).step(function() {
           var source = new EventSource(url, { withCredentials: true })
-          source.onmessage = this.step_func(function(e) {
-            assert_equals(e.data, "data")
-            source.close()
-            this.done()
+          source.onmessage = this.step_func_done(e => {
+            assert_equals(e.data, "data");
+            assert_equals(e.origin, origin);
+            source.close();
           })
         })
       }

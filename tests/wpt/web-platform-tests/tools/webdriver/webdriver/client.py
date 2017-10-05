@@ -1,7 +1,3 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
 import urlparse
 
 import error
@@ -20,7 +16,7 @@ def command(func):
 
         if session.session_id is None:
             session.start()
-        assert session.session_id != None
+        assert session.session_id is not None
 
         return func(self, *args, **kwargs)
 
@@ -125,6 +121,10 @@ class ActionSequence(object):
     def _pointer_action(self, subtype, button):
         self._actions.append({"type": subtype, "button": button})
 
+    def pause(self, duration):
+        self._actions.append({"type": "pause", "duration": duration})
+        return self
+
     def pointer_move(self, x, y, duration=None, origin=None):
         """Queue a pointerMove action.
 
@@ -147,21 +147,37 @@ class ActionSequence(object):
         self._actions.append(action)
         return self
 
-    def pointer_up(self, button):
+    def pointer_up(self, button=0):
         """Queue a pointerUp action for `button`.
 
         :param button: Pointer button to perform action with.
+                       Default: 0, which represents main device button.
         """
         self._pointer_action("pointerUp", button)
         return self
 
-    def pointer_down(self, button):
+    def pointer_down(self, button=0):
         """Queue a pointerDown action for `button`.
 
         :param button: Pointer button to perform action with.
+                       Default: 0, which represents main device button.
         """
         self._pointer_action("pointerDown", button)
         return self
+
+    def click(self, element=None, button=0):
+        """Queue a click with the specified button.
+
+        If an element is given, move the pointer to that element first,
+        otherwise click current pointer coordinates.
+
+        :param element: Optional element to click.
+        :param button: Integer representing pointer button to perform action
+                       with. Default: 0, which represents main device button.
+        """
+        if element:
+            self.pointer_move(0, 0, origin=element)
+        return self.pointer_down(button).pointer_up(button)
 
     def key_up(self, value):
         """Queue a keyUp action for `value`.
@@ -216,6 +232,7 @@ class Actions(object):
         """
         return ActionSequence(self.session, *args, **kwargs)
 
+
 class Window(object):
     def __init__(self, session):
         self.session = session
@@ -228,7 +245,8 @@ class Window(object):
 
     @size.setter
     @command
-    def size(self, (width, height)):
+    def size(self, data):
+        width, height = data
         body = {"width": width, "height": height}
         self.session.send_session_command("POST", "window/rect", body)
 
@@ -240,7 +258,8 @@ class Window(object):
 
     @position.setter
     @command
-    def position(self, (x, y)):
+    def position(self, data):
+        data = x, y
         body = {"x": x, "y": y}
         self.session.send_session_command("POST", "window/rect", body)
 
@@ -596,12 +615,8 @@ class Element(object):
         self.send_element_command("POST", self.url("clear"), {})
 
     @command
-    def send_keys(self, keys):
-        if isinstance(keys, (str, unicode)):
-            keys = [char for char in keys]
-
-        body = {"value": keys}
-        return self.send_element_command("POST", "value", body)
+    def send_keys(self, text):
+        return self.send_element_command("POST", "value", {"text": text})
 
     @property
     @command

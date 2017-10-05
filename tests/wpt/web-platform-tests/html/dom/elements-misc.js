@@ -40,22 +40,8 @@ var miscElements = {
   },
   summary: {},
   menu: {
-    // Conforming
-    //TODO: check that missing value default is context if parent's type is context
-    type: {type: "enum", keywords:["context", "toolbar"], defaultVal: "toolbar"},
-    label: "string",
-
     // Obsolete
     compact: "boolean",
-  },
-  menuitem: {
-    type: {type: "enum", keywords: ["command", "checkbox", "radio"], defaultVal: "command"},
-    label: "string",
-    icon: "url",
-    disabled: "boolean",
-    checked: "boolean",
-    radiogroup: "string",
-    "default": "boolean",
   },
   dialog: {
     open: "boolean",

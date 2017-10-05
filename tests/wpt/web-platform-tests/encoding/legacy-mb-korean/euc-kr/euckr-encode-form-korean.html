@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="korean"> <!-- test breaks if the server overrides this -->
+<title>korean encoding (form)</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="euckr_index.js"></script>
+<script src="euckr-encoder.js"></script>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+<link rel="help" href="https://encoding.spec.whatwg.org/#names-and-labels">
+<meta name="assert" content="The browser produces the same encoding behavior for a document labeled 'korean' as for a document labeled 'euc-kr'.">
+<style>
+ iframe { display:none }
+ form { display:none }
+</style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var tests = [];
+var cplist = [];
+var numTests = null;
+var numFrames = 2;
+var chunkSize = 500;
+var numChunks = null;
+var frames = null;
+var frames = null;
+var forms = null;
+var seperator = ",";
+var encodedSeperator = encodeURIComponent(",");
+var currentChunkIndex = 0;
+
+// set up a sparse array of all unicode codepoints listed in the index
+// this will be used for lookup in getByteSequence
+var indexcodepoints = []; // index is unicode cp, value is pointer
+for (p = 0; p < euckr.length; p++) {
+    if (euckr[p] != null && indexcodepoints[euckr[p]] == null) {
+        indexcodepoints[euckr[p]] = p;
+    }
+}
+
+setup(function() {
+    // create a simple list of just those code points for which there is an encoding possible
+    codepoints = [];
+    for (var i = 0x80; i < 0xffff; i++) {
+        result = euckrEncoder(String.fromCodePoint(i));
+        if (result) {
+            var item = {};
+            codepoints.push(item);
+            item.cp = i;
+            item.expected = "%" + result.replace(/ /g, "%");
+        }
+    }
+
+    // convert the information into a simple array of objects that can be easily traversed
+    var currentChunk = [];
+    var currentTests = [];
+    cplist = [currentChunk];
+    tests = [currentTests];
+    for (i = 0; i < codepoints.length; i++) {
+        if (currentChunk.length == chunkSize) {
+            currentChunk = [];
+            cplist.push(currentChunk);
+            currentTests = [];
+            tests.push(currentTests);
+        }
+        var item = {};
+        currentChunk.push(item);
+        item.cp = codepoints[i].cp;
+        item.expected = codepoints[i].expected;
+        currentTests.push(
+            async_test(
+                "U+" +
+                    item.cp.toString(16).toUpperCase() +
+                    " " +
+                    String.fromCodePoint(item.cp) +
+                    " " +
+                    item.expected
+            )
+        );
+    }
+
+    numChunks = cplist.length;
+
+    for (var i = 0; i < numFrames; i++) {
+        var frame = document.createElement("iframe");
+        frame.id = frame.name = "frame-" + i;
+        document.body.appendChild(frame);
+        var form = document.createElement("form");
+        form.id = "form-" + i;
+        form.method = "GET";
+        form.action = "/common/blank.html";
+        form.acceptCharset = "korean";
+        form.target = frame.id;
+        var input = document.createElement("input");
+        input.id = input.name = "input-" + i;
+        form.appendChild(input);
+        document.body.appendChild(form);
+    }
+
+    addEventListener("load", function() {
+        frames = Array.prototype.slice.call(
+            document.getElementsByTagName("iframe")
+        );
+        forms = Array.prototype.slice.call(
+            document.getElementsByTagName("form")
+        );
+        inputs = Array.prototype.slice.call(
+            document.getElementsByTagName("input")
+        );
+        for (var i = 0; i < Math.min(numFrames, numChunks); i++) {
+            runNext(i);
+        }
+    });
+});
+
+function runNext(id) {
+    var i = currentChunkIndex;
+    currentChunkIndex += 1;
+
+    var iframe = frames[id];
+    var form = forms[id];
+    var input = inputs[id];
+
+    input.value = cplist[i]
+        .map(function(x) {
+            return String.fromCodePoint(x.cp);
+        })
+        .join(seperator);
+    form.submit();
+
+    iframe.onload = function() {
+        var url = iframe.contentWindow.location;
+        var query = url.search;
+        var result_string = query.substr(query.indexOf("=") + 1);
+        var results = result_string.split(encodedSeperator);
+
+        for (var j = 0; j < cplist[i].length; j++) {
+            var t = tests[i][j];
+            t.step(function() {
+                assert_equals(
+                    normalizeStr(results[j]),
+                    normalizeStr(cplist[i][j].expected)
+                );
+            });
+            t.done();
+        }
+        if (currentChunkIndex < numChunks) {
+            runNext(id);
+        }
+    };
+}
+</script>
+</body>
+</html>

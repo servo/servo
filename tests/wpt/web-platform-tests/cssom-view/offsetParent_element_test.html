@@ -109,7 +109,7 @@ test(function() {
     assert_equals(none_element_child_video.offsetParent,null);
     assert_equals(none_element_child_audio.offsetParent,null);
     assert_equals(none_element_child_canvas.offsetParent,null);
-    assert_equals(none_element_child_svg.offsetParent,null);
+    assert_equals(none_element_child_svg.offsetParent,undefined);
 }, "Valid the algorithm rule of offsetParent check step 1",
 { assert: "The offsetParent attribute algorithm rule checking passed!" }
 );

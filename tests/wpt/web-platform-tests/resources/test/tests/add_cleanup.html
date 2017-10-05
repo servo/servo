@@ -1,0 +1,96 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Test#add_cleanup</title>
+<script src="../../testharness.js"></script>
+<script src="../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+var log_sync;
+test(function(t) {
+  log_sync = "";
+  t.add_cleanup(function() { log_sync += "1"; });
+  t.add_cleanup(function() { log_sync += "2"; });
+  t.add_cleanup(function() { log_sync += "3"; });
+  t.add_cleanup(function() { log_sync += "4"; });
+  t.add_cleanup(function() { log_sync += "5"; });
+  log_sync += "0";
+}, "probe synchronous");
+
+test(function() {
+  if (log_sync !== "012345") {
+    throw new Error("Expected: '012345'. Actual: '" + log_sync + "'.");
+  }
+}, "Cleanup methods are invoked exactly once and in the expected sequence.");
+
+var complete, log_async;
+async_test(function(t) {
+  complete = t.step_func(function() {
+    if (log_async !== "012") {
+      throw new Error("Expected: '012'. Actual: '" + log_async + "'.");
+    }
+
+    t.done();
+  });
+}, "Cleanup methods are invoked following the completion of asynchronous tests");
+
+async_test(function(t) {
+  log_async = "";
+  t.add_cleanup(function() { log_async += "1"; });
+
+  setTimeout(t.step_func(function() {
+    t.add_cleanup(function() {
+      log_async += "2";
+      complete();
+    });
+    log_async += "0";
+    t.done();
+  }), 0);
+}, "probe asynchronous");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null,
+    "stack": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Cleanup methods are invoked exactly once and in the expected sequence.",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Cleanup methods are invoked following the completion of asynchronous tests",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "probe asynchronous",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "probe synchronous",
+      "properties": {},
+      "message": null,
+      "stack": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

@@ -85,7 +85,7 @@ onload = function() {
   }
 
   ('iframe src, a href, base href, link href, img src, embed src, object data, track src, video src, audio src, input src, form action, ' +
-  'input formaction formAction, button formaction formAction, menuitem icon, script src').split(', ').forEach(function(str) {
+  'input formaction formAction, button formaction formAction, script src').split(', ').forEach(function(str) {
     var arr = str.split(' ');
     test_reflecting(arr[0], arr[1], arr[2]);
   });
@@ -292,7 +292,6 @@ onload = function() {
   });
 
   // XXX test <img srcset> or its successor
-  // <menuitem icon> could also be tested but the spec doesn't require it to be loaded...
 
   // loading video
   function test_load_video(tag, use_source_element) {

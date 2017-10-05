@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=resources/featurepolicytest.js></script>
+<script>
+'use strict';
+
+promise_test(() => {
+  return navigator.usb.getDevices().then(() => {
+    assert_unreached('expected promise to reject with SecurityError');
+  }, error => {
+    assert_equals(error.name, 'SecurityError');
+  });
+}, 'Feature-Policy header {"usb": []} disallows the top-level document.');
+
+async_test(t => {
+  assert_usb_available_in_iframe(t, '', '#SecurityError');
+}, 'Feature-Policy header {"usb": []} disallows same-origin iframes.');
+
+async_test(t => {
+  assert_usb_available_in_iframe(t, 'https://{{domains[www]}}:{{ports[https][0]}}', '#SecurityError');
+}, 'Feature-Policy header {"usb": []} disallows cross-origin iframes.');
+</script>
+</body>

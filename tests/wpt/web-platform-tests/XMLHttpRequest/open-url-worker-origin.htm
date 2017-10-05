@@ -17,7 +17,7 @@
             'Request URL test' : (location.href.replace(/[^/]*$/, ''))+'resources/requri.py?full'
         }
         // now start the worker
-        var worker = new Worker("resources/workerxhr-origin-referrer.js", true)
+        var worker = new Worker("resources/workerxhr-origin-referrer.js")
         worker.onmessage = function (e) {
             var subtest = async_test(e.data.test)
             subtest.step(function(){

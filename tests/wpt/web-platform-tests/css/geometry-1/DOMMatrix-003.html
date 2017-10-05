@@ -86,6 +86,14 @@
             m41, m42, m43, m44]);
         }
 
+        function getMatrixTransform(matrix, point) {
+            var x = point.x * matrix.m11 + point.y * matrix.m21 + point.z * matrix.m31 + point.w * matrix.m41;
+            var y = point.x * matrix.m12 + point.y * matrix.m22 + point.z * matrix.m32 + point.w * matrix.m42;
+            var w = point.x * matrix.m13 + point.y * matrix.m23 + point.z * matrix.m33 + point.w * matrix.m43;
+            var z = point.x * matrix.m14 + point.y * matrix.m24 + point.z * matrix.m34 + point.w * matrix.m44;
+            return new DOMPoint(x, y, w, z)
+        }
+
         test(function() {
           var tx = 1;
           var ty = 5;
@@ -207,6 +215,21 @@
           checkDOMMatrix(result, expected);
         },"test flipY()");
 
+        test(function() {
+          var point = new DOMPointReadOnly(1, 2, 3, 4);
+          var matrix = new DOMMatrix([1, 2, 3, 4, 5, 6]);
+          var result = matrix.transformPoint(point);
+          var expected = getMatrixTransform(matrix, point);
+          checkDOMPoint(result, expected);
+        },"test transformPoint() - 2d matrix");
+
+        test(function() {
+          var point = new DOMPointReadOnly(1, 2, 3, 4);
+          var matrix = new DOMMatrix([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+          var result = matrix.transformPoint(point);
+          var expected = getMatrixTransform(matrix, point);
+          checkDOMPoint(result, expected);
+        },"test transformPoint() - 3d matrix");
 
         function checkDOMMatrix(m, exp) {
           assert_approx_equals(m.m11, exp.m11, epsilon, "Expected value for m11 is " + exp.m11);
@@ -226,6 +249,13 @@
           assert_approx_equals(m.m43, exp.m43, epsilon, "Expected value for m43 is " + exp.m43);
           assert_approx_equals(m.m44, exp.m44, epsilon, "Expected value for m44 is " + exp.m44);
           assert_equals(m.is2D, exp.is2D, "Expected value for is2D is " + exp.is2D);
+        }
+
+        function checkDOMPoint(p, exp) {
+            assert_equals(p.x, exp.x, "x is not matched");
+            assert_equals(p.y, exp.y, "y is not matched");
+            assert_equals(p.z, exp.z, "z is not matched");
+            assert_equals(p.w, exp.w, "w is not matched");
         }
 
     </script>

@@ -1,0 +1,270 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setLocalDescription</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateOffer()
+  //   generateAnswer()
+  //   assert_session_desc_not_equals()
+  //   assert_session_desc_equals()
+  //   test_state_change_event()
+  //   test_never_resolve()
+
+
+  /*
+   * 4.3.2. setLocalDescription(offer)
+   */
+
+  /*
+   *  5.  If description.sdp is null and description.type is offer, set description.sdp
+   *      to lastOffer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return pc.createOffer()
+    .then(offer =>
+      pc.setLocalDescription({ type: 'offer' })
+      .then(() => {
+        assert_equals(pc.signalingState, 'have-local-offer');
+        assert_session_desc_equals(pc.localDescription, offer);
+        assert_session_desc_equals(pc.pendingLocalDescription, offer);
+        assert_equals(pc.currentLocalDescription, null);
+      }));
+  }, 'setLocalDescription with type offer and null sdp should use lastOffer generated from createOffer');
+
+  /*
+   *  6.  If description.type is offer and description.sdp does not match lastOffer,
+   *      reject the promise with a newly created InvalidModificationError and abort
+   *      these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer({ data: true })
+    .then(offer =>
+      promise_rejects(t, 'InvalidModificationError',
+        pc.setLocalDescription(offer)));
+  }, 'setLocalDescription() with offer not created by own createOffer() should reject with InvalidModificationError');
+
+  /*
+   *  6.  If description.type is offer and description.sdp does not match lastOffer,
+   *      reject the promise with a newly created InvalidModificationError and abort
+   *      these steps.
+   */
+  promise_test(t => {
+    // Create first offer with audio line, then second offer with
+    // both audio and video line. Since the second offer is the
+    // last offer, setLocalDescription would reject when setting
+    // with the first offer
+    const pc = new RTCPeerConnection();
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer1 =>
+      pc.createOffer({ offerToReceiveVideo: true })
+      .then(offer2 => {
+        assert_session_desc_not_equals(offer1, offer2);
+        return promise_rejects(t, 'InvalidModificationError',
+          pc.setLocalDescription(offer1));
+      }));
+  }, 'Set created offer other than last offer should reject with InvalidModificationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    // Only one state change event should be fired
+    test_state_change_event(t, pc, ['have-local-offer']);
+
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer1 =>
+      pc.setLocalDescription(offer1)
+      .then(() =>
+        pc.createOffer({ offerToReceiveVideo: true })
+        .then(offer2 =>
+          pc.setLocalDescription(offer2)
+          .then(offer2 => {
+            assert_session_desc_not_equals(offer1, offer2);
+            assert_equals(pc.signalingState, 'have-local-offer');
+            assert_session_desc_equals(pc.localDescription, offer2);
+            assert_session_desc_equals(pc.pendingLocalDescription, offer2);
+            assert_equals(pc.currentLocalDescription, null);
+          }))));
+  }, 'Creating and setting offer multiple times should succeed');
+
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.createOffer()
+    .then(offer => {
+      const promise = pc.setLocalDescription(offer);
+      pc.close();
+      return promise;
+    });
+  }, 'setLocalDescription(offer) should never resolve if connection is closed in parallel')
+
+  /*
+   *  TODO
+   *  4.3.1.  Setting an RTCSessionDescription
+   *    2.2.2.  If description is set as a local description, then run one of
+   *            the following steps:
+   *      - If description is of type "rollback", then this is a rollback. Set
+   *        connection.pendingLocalDescription to null and signaling state to stable.
+   *      - If description is of type "pranswer", then set connection.pendingLocalDescription
+   *        to description and signaling state to have-local-pranswer.
+   */
+
+
+  /* setLocalDescription(answer) */
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    test_state_change_event(t, pc, ['have-remote-offer', 'stable']);
+
+    return generateOffer({ video: true })
+    .then(offer =>
+      pc.setRemoteDescription(offer)
+      .then(() => pc.createAnswer())
+      .then(answer =>
+        pc.setLocalDescription(answer)
+        .then(() => {
+          assert_equals(pc.signalingState, 'stable');
+          assert_session_desc_equals(pc.localDescription, answer);
+          assert_session_desc_equals(pc.remoteDescription, offer);
+
+          assert_session_desc_equals(pc.currentLocalDescription, answer);
+          assert_session_desc_equals(pc.currentRemoteDescription, offer);
+
+          assert_equals(pc.pendingLocalDescription, null);
+          assert_equals(pc.pendingRemoteDescription, null);
+        })));
+  }, 'setLocalDescription() with valid answer should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer({ video: true })
+    .then(offer =>
+      pc.setRemoteDescription(offer)
+      .then(() => pc.createAnswer())
+      .then(answer =>
+        pc.setLocalDescription({ type: 'answer' })
+        .then(() => {
+          assert_equals(pc.signalingState, 'stable');
+          assert_session_desc_equals(pc.localDescription, answer);
+          assert_session_desc_equals(pc.remoteDescription, offer);
+
+          assert_session_desc_equals(pc.currentLocalDescription, answer);
+          assert_session_desc_equals(pc.currentRemoteDescription, offer);
+
+          assert_equals(pc.pendingLocalDescription, null);
+          assert_equals(pc.pendingRemoteDescription, null);
+        })));
+  }, 'setLocalDescription() with type answer and null sdp should use lastAnswer generated from createAnswer');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer({ video: true })
+    .then(offer =>
+      pc.setRemoteDescription(offer)
+      .then(() => generateAnswer(offer))
+      .then(answer =>
+        promise_rejects(t, 'InvalidModificationError',
+          pc.setLocalDescription(answer))));
+  }, 'setLocalDescription() with answer not created by own createAnswer() should reject with InvalidModificationError');
+
+  /*
+   *  Operations after returning to stable state
+   */
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    test_state_change_event(t, pc, ['have-local-offer', 'stable', 'have-local-offer']);
+
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer1 =>
+      pc.setLocalDescription(offer1)
+      .then(() => generateAnswer(offer1))
+      .then(answer => pc.setRemoteDescription(answer))
+      .then(() => {
+        pc.createDataChannel('test');
+        return pc.createOffer({ offerToReceiveVideo: true });
+      })
+      .then(offer2 =>
+        pc.setLocalDescription(offer2)
+        .then(() => {
+          assert_equals(pc.signalingState, 'have-local-offer');
+          assert_session_desc_not_equals(offer1, offer2);
+          assert_session_desc_equals(pc.localDescription, offer2);
+          assert_session_desc_equals(pc.currentLocalDescription, offer1);
+          assert_session_desc_equals(pc.pendingLocalDescription, offer2);
+        })));
+  }, 'Calling createOffer() and setLocalDescription() again after one round of local-offer/remote-answer should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    test_state_change_event(t, pc,
+      ['have-remote-offer', 'stable', 'have-local-offer']);
+
+    return generateOffer({ data: true })
+    .then(offer => pc.setRemoteDescription(offer))
+    .then(() => pc.createAnswer())
+    .then(answer =>
+      pc.setLocalDescription(answer)
+      .then(() => pc.createOffer({ offerToReceiveVideo: true }))
+      .then(offer =>
+        pc.setLocalDescription(offer)
+        .then(() => {
+          assert_equals(pc.signalingState, 'have-local-offer');
+          assert_session_desc_equals(pc.localDescription, offer);
+          assert_session_desc_equals(pc.currentLocalDescription, answer);
+          assert_session_desc_equals(pc.pendingLocalDescription, offer);
+        })));
+
+  }, 'Switching role from answerer to offerer after going back to stable state should succeed');
+
+  /*
+   *  InvalidStateError
+   *    [webrtc-pc] 4.3.1. Setting the RTCSessionDescription
+   *      2.3.  If the description's type is invalid for the current signaling state
+   *            of connection, then reject p with a newly created InvalidStateError
+   *            and abort these steps.
+   */
+
+  /*
+   *  [jsep] 5.5. If the type is "pranswer" or "answer", the PeerConnection
+   *              state MUST be either "have-remote-offer" or "have-local-pranswer".
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer()
+    .then(offer =>
+      promise_rejects(t, 'InvalidStateError',
+        pc.setLocalDescription({ type: 'answer', sdp: offer.sdp })));
+
+  }, 'Calling setLocalDescription(answer) from stable state should reject with InvalidStateError');
+
+  /*
+   *  [jsep] 5.5. If the type is "pranswer" or "answer", the PeerConnection
+   *              state MUST be either "have-remote-offer" or "have-local-pranswer".
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.createOffer()
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(() => generateAnswer(offer)))
+    .then(answer =>
+      promise_rejects(t, 'InvalidStateError',
+        pc.setLocalDescription(answer)));
+  }, 'Calling setLocalDescription(answer) from have-local-offer state should reject with InvalidStateError');
+
+</script>

@@ -4,17 +4,12 @@
 <meta name=timeout content=long>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
 <script>
 
 function getkey_test(func, name) {
-    return async_test(function(t) {
-        var del = indexedDB.deleteDatabase(name);
-        del.onerror = t.unreached_func('deleteDatabase failed');
-        var open = indexedDB.open(name);
-        open.onerror = t.unreached_func('open failed');
-        open.onupgradeneeded = t.step_func(function() {
-            var db = open.result;
-
+    indexeddb_test(
+        function(t, db, tx) {
             var basic = db.createObjectStore('basic');
             var key_path_store = db.createObjectStore('key path',
                 {keyPath: 'id'});
@@ -30,12 +25,10 @@ function getkey_test(func, name) {
                 key_generator_store.put('value: ' + i);
                 key_generator_and_path_store.put({});
             }
-        });
-        open.onsuccess = t.step_func(function() {
-            var db = open.result;
-            func(t, db);
-        });
-    }, name);
+        },
+        func,
+        name
+    );
 }
 
 getkey_test(function(t, db) {

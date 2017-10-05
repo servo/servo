@@ -10,7 +10,7 @@ describe("Parses all of the IDLs to produce the correct ASTs", function () {
                     // so we compare based on that
                     var diff = jsondiffpatch.diff(json, WebIDL2.parse(idl));
                     if (diff && debug) console.log(JSON.stringify(diff, null, 4));
-                    expect(diff).to.be(undefined);
+                    expect(diff).toBe(undefined);
                 }
                 catch (e) {
                     console.log(e.toString());
@@ -36,11 +36,11 @@ describe("Parses all of the invalid IDLs to check that they blow up correctly", 
                     error = e;
                 }
                 finally {
-                    expect(error).to.be.ok();
-                    expect(error.message).to.equal(err.message);
-                    expect(error.line).to.equal(err.line);
+                    expect(error).toExist();
+                    expect(error.message).toEqual(err.message);
+                    expect(error.line).toEqual(err.line);
                 }
-                
+
             };
         }(idl, error));
         it("should produce the right error for " + i, func);

@@ -1,0 +1,294 @@
+interface MediaList {
+  stringifier attribute DOMString mediaText;
+  readonly attribute unsigned long length;
+  getter DOMString item(unsigned long index);
+  void appendMedium(DOMString medium);
+  void deleteMedium(DOMString medium);
+};
+
+interface StyleSheet {
+  readonly attribute DOMString type;
+  readonly attribute DOMString href;
+  readonly attribute Node ownerNode;
+  readonly attribute StyleSheet parentStyleSheet;
+  readonly attribute DOMString title;
+  [PutForwards=mediaText] readonly attribute MediaList media;
+           attribute boolean disabled;
+};
+
+interface CSSStyleSheet : StyleSheet {
+  readonly attribute CSSRule ownerRule;
+  readonly attribute CSSRuleList cssRules;
+  unsigned long insertRule(DOMString rule, unsigned long index);
+  void deleteRule(unsigned long index);
+};
+
+typedef sequence<StyleSheet> StyleSheetList;
+
+partial interface Document {
+  [SameObject] readonly attribute StyleSheetList styleSheets;
+};
+
+[NoInterfaceObject] interface LinkStyle {
+  readonly attribute StyleSheet sheet;
+};
+
+ProcessingInstruction implements LinkStyle;
+
+typedef sequence<CSSRule> CSSRuleList;
+
+interface CSSRule {
+  // Types
+  const unsigned short STYLE_RULE = 1;
+  const unsigned short IMPORT_RULE = 3;
+  const unsigned short MEDIA_RULE = 4;
+  const unsigned short FONT_FACE_RULE = 5;
+  const unsigned short PAGE_RULE = 6;
+  const unsigned short NAMESPACE_RULE = 10;
+  readonly attribute unsigned short type;
+
+  // Parsing and serialization
+           attribute DOMString cssText;
+
+  // Context
+  readonly attribute CSSRule parentRule;
+  readonly attribute CSSStyleSheet parentStyleSheet;
+};
+
+interface CSSStyleRule : CSSRule {
+           attribute DOMString selectorText;
+  readonly attribute CSSStyleDeclaration style;
+};
+
+interface CSSImportRule : CSSRule {
+  readonly attribute DOMString href;
+  [PutForwards=mediaText] readonly attribute MediaList media;
+  readonly attribute CSSStyleSheet styleSheet;
+};
+
+interface CSSMediaRule : CSSRule {
+  [PutForwards=mediaText] readonly attribute MediaList media;
+  readonly attribute CSSRuleList cssRules;
+  unsigned long insertRule(DOMString rule, unsigned long index);
+  void deleteRule(unsigned long index);
+};
+
+interface CSSFontFaceRule : CSSRule {
+  readonly attribute CSSStyleDeclaration style;
+};
+
+interface CSSPageRule : CSSRule {
+           attribute DOMString selectorText;
+  readonly attribute CSSStyleDeclaration style;
+};
+
+interface CSSNamespaceRule : CSSRule {
+  readonly attribute DOMString namespaceURI;
+  readonly attribute DOMString? prefix;
+};
+
+interface CSSStyleDeclaration {
+           attribute DOMString cssText;
+
+  readonly attribute unsigned long length;
+  DOMString item(unsigned long index);
+
+  DOMString getPropertyValue(DOMString property);
+  DOMString getPropertyPriority(DOMString property);
+  void setProperty(DOMString property, DOMString value, optional DOMString priority);
+  DOMString removeProperty(DOMString property);
+
+  readonly attribute CSSStyleDeclarationValue values;
+
+  readonly attribute CSSRule parentRule;
+
+  // CSS Properties
+           attribute DOMString azimuth;
+           attribute DOMString background;
+           attribute DOMString backgroundAttachment;
+           attribute DOMString backgroundColor;
+           attribute DOMString backgroundImage;
+           attribute DOMString backgroundPosition;
+           attribute DOMString backgroundRepeat;
+           attribute DOMString border;
+           attribute DOMString borderCollapse;
+           attribute DOMString borderColor;
+           attribute DOMString borderSpacing;
+           attribute DOMString borderStyle;
+           attribute DOMString borderTop;
+           attribute DOMString borderRight;
+           attribute DOMString borderBottom;
+           attribute DOMString borderLeft;
+           attribute DOMString borderTopColor;
+           attribute DOMString borderRightColor;
+           attribute DOMString borderBottomColor;
+           attribute DOMString borderLeftColor;
+           attribute DOMString borderTopStyle;
+           attribute DOMString borderRightStyle;
+           attribute DOMString borderBottomStyle;
+           attribute DOMString borderLeftStyle;
+           attribute DOMString borderTopWidth;
+           attribute DOMString borderRightWidth;
+           attribute DOMString borderBottomWidth;
+           attribute DOMString borderLeftWidth;
+           attribute DOMString borderWidth;
+           attribute DOMString bottom;
+           attribute DOMString captionSide;
+           attribute DOMString clear;
+           attribute DOMString clip;
+           attribute DOMString color;
+           attribute DOMString content;
+           attribute DOMString counterIncrement;
+           attribute DOMString counterReset;
+           attribute DOMString cue;
+           attribute DOMString cueAfter;
+           attribute DOMString cueBefore;
+           attribute DOMString cursor;
+           attribute DOMString direction;
+           attribute DOMString display;
+           attribute DOMString elevation;
+           attribute DOMString emptyCells;
+           attribute DOMString cssFloat;
+           attribute DOMString font;
+           attribute DOMString fontFamily;
+           attribute DOMString fontSize;
+           attribute DOMString fontSizeAdjust;
+           attribute DOMString fontStretch;
+           attribute DOMString fontStyle;
+           attribute DOMString fontVariant;
+           attribute DOMString fontWeight;
+           attribute DOMString height;
+           attribute DOMString left;
+           attribute DOMString letterSpacing;
+           attribute DOMString lineHeight;
+           attribute DOMString listStyle;
+           attribute DOMString listStyleImage;
+           attribute DOMString listStylePosition;
+           attribute DOMString listStyleType;
+           attribute DOMString margin;
+           attribute DOMString marginTop;
+           attribute DOMString marginRight;
+           attribute DOMString marginBottom;
+           attribute DOMString marginLeft;
+           attribute DOMString marks;
+           attribute DOMString maxHeight;
+           attribute DOMString maxWidth;
+           attribute DOMString minHeight;
+           attribute DOMString minWidth;
+           attribute DOMString orphans;
+           attribute DOMString outline;
+           attribute DOMString outlineColor;
+           attribute DOMString outlineStyle;
+           attribute DOMString outlineWidth;
+           attribute DOMString overflow;
+           attribute DOMString padding;
+           attribute DOMString paddingTop;
+           attribute DOMString paddingRight;
+           attribute DOMString paddingBottom;
+           attribute DOMString paddingLeft;
+           attribute DOMString page;
+           attribute DOMString pageBreakAfter;
+           attribute DOMString pageBreakBefore;
+           attribute DOMString pageBreakInside;
+           attribute DOMString pause;
+           attribute DOMString pauseAfter;
+           attribute DOMString pauseBefore;
+           attribute DOMString pitch;
+           attribute DOMString pitchRange;
+           attribute DOMString playDuring;
+           attribute DOMString position;
+           attribute DOMString quotes;
+           attribute DOMString richness;
+           attribute DOMString right;
+           attribute DOMString size;
+           attribute DOMString speak;
+           attribute DOMString speakHeader;
+           attribute DOMString speakNumeral;
+           attribute DOMString speakPunctuation;
+           attribute DOMString speechRate;
+           attribute DOMString stress;
+           attribute DOMString tableLayout;
+           attribute DOMString textAlign;
+           attribute DOMString textDecoration;
+           attribute DOMString textIndent;
+           attribute DOMString textShadow;
+           attribute DOMString textTransform;
+           attribute DOMString top;
+           attribute DOMString unicodeBidi;
+           attribute DOMString verticalAlign;
+           attribute DOMString visibility;
+           attribute DOMString voiceFamily;
+           attribute DOMString volume;
+           attribute DOMString whiteSpace;
+           attribute DOMString widows;
+           attribute DOMString width;
+           attribute DOMString wordSpacing;
+           attribute DOMString zIndex;
+};
+
+interface CSSStyleDeclarationValue {
+  // ...
+
+  // CSS Properties
+
+};
+
+interface CSSPropertyValue {
+           attribute DOMString cssText;
+};
+
+[NoInterfaceObject] interface CSSMapValue {
+  getter CSSValue (DOMString name);
+};
+
+[NoInterfaceObject] interface CSSPropertyValueList {
+  readonly attribute CSSValue[] list;
+};
+
+[NoInterfaceObject] interface CSSComponentValue {
+  readonly attribute DOMString type;
+           attribute any value;
+};
+
+[NoInterfaceObject] interface CSSStringComponentValue {
+           attribute DOMString string;
+};
+
+[NoInterfaceObject] interface CSSKeywordComponentValue {
+           attribute DOMString keyword;
+};
+
+[NoInterfaceObject] interface CSSIdentifierComponentValue {
+           attribute DOMString identifier;
+};
+
+[NoInterfaceObject] interface CSSColorComponentValue {
+           attribute short red;
+           attribute short green;
+           attribute short blue;
+           attribute float alpha;
+};
+
+[NoInterfaceObject] interface CSSLengthComponentValue {
+           attribute float em;
+           attribute float ex;
+           attribute float px;
+           // figure out what to do with absolute lengths
+};
+
+[NoInterfaceObject] interface CSSPercentageComponentValue {
+           attribute float percent;
+};
+
+[NoInterfaceObject] interface CSSURLComponentValue {
+           attribute DOMString? url;
+};
+
+[NoInterfaceObject] interface ElementCSSInlineStyle {
+  readonly attribute CSSStyleDeclaration style;
+};
+
+//partial interface Window {
+//  CSSStyleDeclaration getComputedStyle(Element elt);
+//  CSSStyleDeclaration getComputedStyle(Element elt, DOMString pseudoElt);
+//};

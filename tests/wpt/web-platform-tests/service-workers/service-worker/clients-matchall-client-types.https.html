@@ -7,6 +7,7 @@
 var scope = 'resources/clients-matchall-client-types';
 var iframe_url = scope + '-iframe.html';
 var shared_worker_url = scope + '-shared-worker.js';
+var dedicated_worker_url = scope + '-dedicated-worker.js';
 
 /* visibilityState, focused, url, type, frameType */
 var expected_only_window = [
@@ -15,8 +16,12 @@ var expected_only_window = [
 var expected_only_shared_worker = [
     [undefined, undefined, new URL(shared_worker_url, location).href, 'sharedworker', 'none']
 ];
-var expected_window_and_shared_worker = [
-    expected_only_window[0], expected_only_shared_worker[0]
+var expected_only_dedicated_worker = [
+    [undefined, undefined, new URL(dedicated_worker_url, location).href, 'worker', 'none']
+];
+var expected_all_clients = [
+    expected_only_window[0], expected_only_shared_worker[0],
+    expected_only_dedicated_worker[0]
 ];
 
 function test_matchall(frame, expected, query_options) {
@@ -79,6 +84,13 @@ promise_test(function(t) {
             });
         })
       .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new Worker(dedicated_worker_url);
+              w.onmessage = resolve;
+              w.postMessage('Start');
+            });
+        })
+      .then(function() {
           return test_matchall(frame, expected_only_window, {});
         })
       .then(function() {
@@ -89,12 +101,16 @@ promise_test(function(t) {
                                {type:'sharedworker'});
         })
       .then(function() {
-          return test_matchall(frame, expected_window_and_shared_worker, {type:'all'});
+          return test_matchall(frame, expected_only_dedicated_worker,
+                               {type:'worker'});
+        })
+      .then(function() {
+          return test_matchall(frame, expected_all_clients, {type:'all'});
         })
       .then(function() {
           frame.remove();
           return service_worker_unregister_and_done(t, scope);
         });
-  }, 'Verify matchAll() with window and sharedworker client types');
+}, 'Verify matchAll() with {window, sharedworker, worker} client types');
 
 </script>

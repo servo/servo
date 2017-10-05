@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transform Module Level 2: parsing scale with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#propdef-scale">
+<meta name="assert" content="scale supports the full grammar 'none | <number>{1,3}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("scale", "none");
+
+test_valid_value("scale", "1");
+
+test_valid_value("scale", "100 200");
+
+test_valid_value("scale", "100 200 300");
+</script>
+</body>
+</html>

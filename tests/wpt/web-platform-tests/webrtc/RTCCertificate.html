@@ -1,0 +1,283 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCCertificate Tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  /*
+    4.2.1. RTCConfiguration Dictionary
+      dictionary RTCConfiguration {
+        sequence<RTCCertificate> certificates;
+        ...
+      };
+
+      certificates of type sequence<RTCCertificate>
+        If this value is absent, then a default set of certificates is
+        generated for each RTCPeerConnection instance.
+
+        The value for this configuration option cannot change after its
+        value is initially selected.
+
+    4.10.2. RTCCertificate Interface
+      interface RTCCertificate {
+        readonly attribute DOMTimeStamp expires;
+        sequence<RTCDtlsFingerprint>    getFingerprints();
+        AlgorithmIdentifier             getAlgorithm();
+      };
+
+    5.5.1 The RTCDtlsFingerprint Dictionary
+      dictionary RTCDtlsFingerprint {
+        DOMString algorithm;
+        DOMString value;
+      };
+
+    [RFC4572] Comedia over TLS in SDP
+    5.  Fingerprint Attribute
+      Figure 2. Augmented Backus-Naur Syntax for the Fingerprint Attribute
+
+        attribute              =/ fingerprint-attribute
+
+        fingerprint-attribute  =  "fingerprint" ":" hash-func SP fingerprint
+
+        hash-func              =  "sha-1" / "sha-224" / "sha-256" /
+                                  "sha-384" / "sha-512" /
+                                  "md5" / "md2" / token
+                                  ; Additional hash functions can only come
+                                  ; from updates to RFC 3279
+
+        fingerprint            =  2UHEX *(":" 2UHEX)
+                                  ; Each byte in upper-case hex, separated
+                                  ; by colons.
+
+        UHEX                   =  DIGIT / %x41-46 ; A-F uppercase
+   */
+
+  // Helper function to generate certificate with a set of
+  // default parameters
+  function generateCertificate() {
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256'
+    });
+  }
+
+  // Helper function that takes in an RTCDtlsFingerprint
+  // and return an a=fingerprint SDP line
+  function fingerprintToSdpLine(fingerprint) {
+    return `\r\na=fingerprint ${fingerprint.algorithm} ${fingerprint.value.toUpperCase()}\r\n`;
+  }
+
+  // Assert that an SDP string has fingerprint line for all the cert's fingerprints
+  function assert_sdp_has_cert_fingerprints(sdp, cert) {
+    for(const fingerprint of cert.getFingerprints()) {
+      const fingerprintLine = fingerprintToSdpLine(fingerprint);
+      assert_true(sdp.includes(fingerprintLine),
+        'Expect fingerprint line to be found in SDP');
+    }
+  }
+
+  /*
+    4.3.1. Operation
+      When the RTCPeerConnection() constructor is invoked
+        2.  If the certificates value in configuration is non-empty,
+            check that the expires on each value is in the future.
+            If a certificate has expired, throw an InvalidAccessError;
+            otherwise, store the certificates. If no certificates value
+            was specified, one or more new RTCCertificate instances are
+            generated for use with this RTCPeerConnection instance.
+            This may happen asynchronously and the value of certificates
+            remains undefined for the subsequent steps.
+   */
+  promise_test(t => {
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+      expires: 0
+    }).then(cert => {
+      assert_less_than_equal(cert.expires, Date.now());
+      assert_throws('InvalidAccessError', () =>
+        new RTCPeerConnection({ certificates: [cert] }));
+    });
+  }, 'Constructing RTCPeerConnection with expired certificate should reject with InvalidAccessError');
+
+  /*
+    4.3.2 Interface Definition
+      setConfiguration
+        4.  If configuration.certificates is set and the set of
+            certificates differs from the ones used when connection
+            was constructed, throw an InvalidModificationError.
+   */
+  promise_test(t => {
+    return Promise.all([
+      generateCertificate(),
+      generateCertificate()
+    ]).then(([cert1, cert2]) => {
+      const pc = new RTCPeerConnection({
+        certificates: [cert1]
+      });
+
+      // should not throw
+      pc.setConfiguration({
+        certificates: [cert1]
+      });
+
+      assert_throws('InvalidModificationError', () =>
+        pc.setConfiguration({
+          certificates: [cert2]
+        }));
+
+      assert_throws('InvalidModificationError', () =>
+        pc.setConfiguration({
+          certificates: [cert1, cert2]
+        }));
+    });
+  }, 'Calling setConfiguration with different set of certs should reject with InvalidModificationError');
+
+  /*
+    4.10.2. RTCCertificate Interface
+      getFingerprints
+        Returns the list of certificate fingerprints, one of which is
+        computed with the digest algorithm used in the certificate signature.
+
+    5.5.1 The RTCDtlsFingerprint Dictionary
+      algorithm of type DOMString
+        One of the the hash function algorithms defined in the 'Hash function
+        Textual Names' registry, initially specified in [RFC4572] Section 8.
+        As noted in [JSEP] Section 5.2.1, the digest algorithm used for the
+        fingerprint matches that used in the certificate signature.
+
+      value of type DOMString
+        The value of the certificate fingerprint in lowercase hex string as
+        expressed utilizing the syntax of 'fingerprint' in [ RFC4572] Section 5.
+
+   */
+  promise_test(t => {
+    return generateCertificate()
+    .then(cert => {
+      assert_own_property(cert, 'getFingerprints');
+
+      const fingerprints = cert.getFingerprints();
+      assert_true(Array.isArray(fingerprints),
+        'Expect fingerprints to return an array');
+
+      assert_greater_than_equal(fingerprints.length, 1,
+        'Expect at last one fingerprint in array');
+
+      for(const fingerprint of fingerprints[0]) {
+        assert_true(fingerprint instanceof RTCDtlsFingerprint,
+          'Expect fingerprint to be instance of RTCDtlsFingerprint');
+
+        // Can only do simple test as the allowed values may be extended
+        assert_true(/^[a-zA-Z\-]+$/.test(fingerprint.algorithm),
+          'Expect fingerprint.algorithm to be string of algorithm identifier');
+
+        assert_true(/^([0-9a-f]{2}\:)+[0-9a-f]{2}$/.test(fingerprint.value),
+          'Expect fingerprint.value to be lowercase hexadecimal separated by colon');
+      }
+    });
+  }, 'RTCCertificate should have at least one fingerprint');
+
+  /*
+    4.3.2 Interface Definition
+      createOffer
+        The value for certificates in the RTCConfiguration for the
+        RTCPeerConnection is used to produce a set of certificate
+        fingerprints. These certificate fingerprints are used in the
+        construction of SDP and as input to requests for identity
+        assertions.
+
+    [JSEP]
+    5.2.1.  Initial Offers
+      For DTLS, all m= sections MUST use all the certificate(s) that have
+      been specified for the PeerConnection; as a result, they MUST all
+      have the same [I-D.ietf-mmusic-4572-update] fingerprint value(s), or
+      these value(s) MUST be session-level attributes.
+
+      The following attributes, which are of category IDENTICAL or
+      TRANSPORT, MUST appear only in "m=" sections which either have a
+      unique address or which are associated with the bundle-tag.  (In
+      initial offers, this means those "m=" sections which do not contain
+      an "a=bundle-only" attribute.)
+
+        - An "a=fingerprint" line for each of the endpoint's certificates,
+          as specified in [RFC4572], Section 5; the digest algorithm used
+          for the fingerprint MUST match that used in the certificate
+          signature.
+
+      Each m= section which is not bundled into another m= section, MUST
+      contain the following attributes (which are of category IDENTICAL or
+      TRANSPORT):
+
+        - An "a=fingerprint" line for each of the endpoint's certificates,
+          as specified in [RFC4572], Section 5; the digest algorithm used
+          for the fingerprint MUST match that used in the certificate
+          signature.
+   */
+  promise_test(t => {
+    return generateCertificate()
+    .then(cert => {
+      const pc = new RTCPeerConnection({
+        certificates: [cert]
+      });
+      pc.createDataChannel('test');
+
+      return pc.createOffer()
+      .then(offer => {
+        assert_sdp_has_cert_fingerprints(offer.sdp, cert);
+      });
+    });
+  }, 'RTCPeerConnection({ certificates }) should generate offer SDP with fingerprint of provided certificate');
+
+  promise_test(t => {
+    return Promise.all([
+      generateCertificate(),
+      generateCertificate()
+    ]).then(certs => {
+      const pc = new RTCPeerConnection({
+        certificates: certs
+      });
+      pc.createDataChannel('test');
+
+      return pc.createOffer()
+      .then(offer => {
+        for(const cert of certs) {
+          assert_sdp_has_cert_fingerprints(offer.sdp, cert);
+        }
+      });
+    });
+  }, 'RTCPeerConnection({ certificates }) should generate offer SDP with fingerprint of all provided certificates');
+
+  /*
+    TODO
+
+    4.10.2. RTCCertificate Interface
+      getAlgorithm
+        Returns the result of the WebCrypto algorithm normalization process
+        [WebCryptoAPI] that occurred when this certificate was generated
+        with generateCertificate().
+
+      The RTCCertificate object can be stored and retrieved from persistent
+      storage by an application. When a user agent is required to obtain a
+      structured clone [HTML5] of a RTCCertificate object, it performs the
+      following steps:
+        1.  Let input and memory be the corresponding inputs defined by the
+            internal structured cloning algorithm, where input represents a
+            RTCCertificate object to be cloned.
+        2.  Let output be a newly constructed RTCCertificate object.
+        3.  Copy the value of the expires attribute from input to output.
+        4.  Let the [[certificate]] internal slot of output be set to the
+            result of invoking the internal structured clone algorithm
+            recursively on the corresponding internal slots of input, with
+            the slot contents as the new " input" argument and memory as
+            the new " memory" argument.
+        5.  Let the [[handle]] internal slot of output refer to the same
+            private keying material represented by the [[handle]] internal
+            slot of input.
+   */
+
+</script>

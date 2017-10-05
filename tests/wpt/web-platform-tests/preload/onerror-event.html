@@ -15,7 +15,8 @@
     var audioFailed = false;
     var trackFailed = false;
     var gibberishFailed = false;
-    var noTypeFailed = false;
+    var fetchFailed = false;
+    var emptyFailed = false;
 </script>
 <link rel=preload href="non-existent/dummy.js" as=script onerror="scriptFailed = true;">
 <link rel=preload href="non-existent/dummy.css" as=style onerror="styleFailed = true;">
@@ -24,8 +25,9 @@
 <link rel=preload href="non-existent/test.mp4" as=video onerror="videoFailed = true;">
 <link rel=preload href="non-existent/test.oga" as=audio onerror="audioFailed = true;">
 <link rel=preload href="non-existent/security/captions.vtt" as=track onerror="trackFailed = true;">
-<link rel=preload href="non-existent/dummy.xml" as=foobarxmlthing onerror="gibberishFailed = true;">
-<link rel=preload href="non-existent/dummy.xml" onerror="noTypeFailed = true;">
+<link rel=preload href="non-existent/dummy.xml?foo" as=foobarxmlthing onerror="gibberishFailed = true;">
+<link rel=preload href="non-existent/dummy.xml?fetch" as=fetch onerror="fetchFailed = true;">
+<link rel=preload href="non-existent/dummy.xml?empty" onerror="emptyFailed = true;">
 <script src="resources/dummy.js?pipe=trickle(d5)"></script>
 <script>
     window.onload = t.step_func(function() {
@@ -37,8 +39,9 @@
         assert_true(videoFailed, "video triggered error event");
         assert_true(audioFailed, "audio triggered error event");
         assert_true(trackFailed, "track triggered error event");
-        assert_true(gibberishFailed, "gibberish as value triggered error event");
-        assert_true(noTypeFailed, "empty as triggered error event");
+        assert_false(gibberishFailed, "gibberish as value did not trigger error event");
+        assert_true(fetchFailed, "fetch as triggered error event");
+        assert_false(emptyFailed, "empty as triggered error event");
         t.done();
     });
 </script>

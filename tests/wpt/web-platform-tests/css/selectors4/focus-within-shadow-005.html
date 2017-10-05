@@ -44,18 +44,14 @@ var template = document.getElementById('shadow-template');
 var instance = document.importNode(template.content, true);
 shadow.appendChild(instance);
 
-window.setTimeout(function() {
 shadow = shadow.getElementById('nested-shadow-host').attachShadow({mode: 'open'});
 template = document.getElementById('nested-shadow-template');
 instance = document.importNode(template.content, true);
 shadow.appendChild(instance);
-}, 0);
 
-window.setTimeout(function() {
-  var focusme = shadow.getElementById('focusme');
-  focusme.focus();
-  document.documentElement.classList.remove('reftest-wait');
-}, 0);
+var focusme = shadow.getElementById('focusme');
+focusme.focus();
+document.documentElement.classList.remove('reftest-wait');
 </script>
 </body>
 </html>

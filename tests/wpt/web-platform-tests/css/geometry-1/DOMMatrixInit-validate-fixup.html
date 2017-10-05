@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<title>Geometry Interfaces: DOMMatrixInit validate and fixup</title>
+<link rel="help" href="https://drafts.fxtf.org/geometry/#dommatrixinit-dictionary">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// This formats dict as a string suitable as test name.
+// format_value() is provided by testharness.js,
+// which also preserves sign for -0.
+function format_dict(dict) {
+  const props = [];
+  for (let prop in dict) {
+    props.push(`${prop}: ${format_value(dict[prop])}`);
+  }
+  return `{${props.join(', ')}}`;
+}
+
+// Create a normal JS object with the expected properties
+// from a dict with only m11..m44 specified (not a..f).
+function matrix3D(dict) {
+  const matrix = {m11: 1, m12: 0, m13: 0, m14: 0,
+                  m21: 0, m22: 1, m23: 0, m24: 0,
+                  m31: 0, m32: 0, m33: 1, m34: 0,
+                  m41: 0, m42: 0, m43: 0, m44: 1}
+  matrix.is2D = false;
+  for (let member in dict) {
+    matrix[member] = dict[member];
+  }
+  matrix.a = matrix.m11;
+  matrix.b = matrix.m12;
+  matrix.c = matrix.m21;
+  matrix.d = matrix.m22;
+  matrix.e = matrix.m41;
+  matrix.f = matrix.m42;
+  return matrix;
+}
+
+function matrix2D(dict) {
+  const matrix = matrix3D(dict);
+  matrix.is2D = true;
+  return matrix;
+}
+
+function checkMatrix(actual, expected) {
+  for (let member in expected) {
+    assert_equals(actual[member], expected[member], member);
+  }
+}
+
+[
+  {a: 1, m11: 2},
+  {b: 0, m12: -1},
+  {c: Infinity, m21: -Infinity},
+  {d: 0, m22: NaN},
+  {e: 1, m41: 1.00000001},
+  {f: 0, m42: Number.MIN_VALUE},
+  {m13: 1, is2D: true},
+  {m14: 1, is2D: true},
+  {m23: 1, is2D: true},
+  {m24: 1, is2D: true},
+  {m31: 1, is2D: true},
+  {m32: 1, is2D: true},
+  {m33: 0, is2D: true},
+  {m33: -0, is2D: true},
+  {m33: -1, is2D: true},
+  {m34: 1, is2D: true},
+  {m43: 1, is2D: true},
+  {m44: 0, is2D: true},
+].forEach(dict => {
+  test(() => {
+    assert_true('fromMatrix' in DOMMatrix, 'fromMatrix should exist');
+    assert_throws(new TypeError(), () => DOMMatrix.fromMatrix(dict));
+  }, `${format_dict(dict)} (invalid)`);
+});
+
+[
+  [{},                             matrix2D({})],
+  [{is2D: undefined},              matrix2D({})], // undefined means the dictionary member is not present
+  [{a: 1, m11: 1},                 matrix2D({m11: 1})],
+  [{b: 0, m12: undefined},         matrix2D({m12: 0})],
+  [{c: 0, m21: 0},                 matrix2D({m21: 0})],
+  [{c: 0, m21: -0},                matrix2D({m21: -0})],
+  [{c: -0, m21: 0},                matrix2D({m21: 0})],
+  [{c: -0, m21: -0},               matrix2D({m21: -0})],
+  [{d: Infinity, m22: Infinity},   matrix2D({m22: Infinity})],
+  [{e: -Infinity, m41: -Infinity}, matrix2D({m41: -Infinity})],
+  [{f: NaN, m42: NaN},             matrix2D({m42: NaN})],
+  [{f: NaN, m42: NaN, is2D: true}, matrix2D({m42: NaN})],
+  [{f: 0, m42: null},              matrix2D({m42: 0})], // null is converted to 0
+  [{f: -0, m42: null},             matrix2D({m42: 0})], // null is converted to 0
+  [{a: 2},                         matrix2D({m11: 2})],
+  [{b: 2},                         matrix2D({m12: 2})],
+  [{c: 2},                         matrix2D({m21: 2})],
+  [{d: 2},                         matrix2D({m22: 2})],
+  [{e: 2},                         matrix2D({m41: 2})],
+  [{f: 2},                         matrix2D({m42: 2})],
+  [{a: -0, b: -0, c: -0, d: -0, e: -0, f: -0},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{a: -0, b: -0, c: -0, d: -0, e: -0, f: -0, is2D: true},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{m11:2},                        matrix2D({m11: 2})],
+  [{m12:2},                        matrix2D({m12: 2})],
+  [{m21:2},                        matrix2D({m21: 2})],
+  [{m22:2},                        matrix2D({m22: 2})],
+  [{m41:2},                        matrix2D({m41: 2})],
+  [{m42:2},                        matrix2D({m42: 2})],
+  [{m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0, is2D: true},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{m13: 0, is2D: true},           matrix2D({m13: 0})],
+  [{m13: -0, is2D: true},          matrix2D({m13: 0})],
+  [{m14: 0, is2D: true},           matrix2D({m14: 0})],
+  [{m14: -0, is2D: true},          matrix2D({m14: 0})],
+  [{m23: 0, is2D: true},           matrix2D({m23: 0})],
+  [{m23: -0, is2D: true},          matrix2D({m23: 0})],
+  [{m24: 0, is2D: true},           matrix2D({m24: 0})],
+  [{m24: -0, is2D: true},          matrix2D({m24: 0})],
+  [{m31: 0, is2D: true},           matrix2D({m31: 0})],
+  [{m31: -0, is2D: true},          matrix2D({m31: 0})],
+  [{m32: 0, is2D: true},           matrix2D({m32: 0})],
+  [{m32: -0, is2D: true},          matrix2D({m32: 0})],
+  [{m33: 1, is2D: true},           matrix2D({m33: 1})],
+  [{m34: 0, is2D: true},           matrix2D({m34: 0})],
+  [{m34: -0, is2D: true},          matrix2D({m34: 0})],
+  [{m43: 0, is2D: true},           matrix2D({m43: 0})],
+  [{m43: -0, is2D: true},          matrix2D({m43: 0})],
+  [{m44: 1, is2D: true},           matrix2D({m44: 1})],
+  [{is2D: true},                   matrix2D({})],
+].forEach(([dict, expected]) => {
+  test(() => {
+    const matrix = DOMMatrix.fromMatrix(dict);
+    checkMatrix(matrix, expected);
+  }, `${format_dict(dict)} (2d)`);
+});
+
+[
+  [{m13: 1, is2D: false},          matrix3D({m13: 1})],
+  [{m14: 1, is2D: false},          matrix3D({m14: 1})],
+  [{m23: 1, is2D: false},          matrix3D({m23: 1})],
+  [{m24: 1, is2D: false},          matrix3D({m24: 1})],
+  [{m31: 1, is2D: false},          matrix3D({m31: 1})],
+  [{m32: 1, is2D: false},          matrix3D({m32: 1})],
+  [{m33: 0, is2D: false},          matrix3D({m33: 0})],
+  [{m33: -0, is2D: false},         matrix3D({m33: -0})],
+  [{m33: -1, is2D: false},         matrix3D({m33: -1})],
+  [{m34: 1, is2D: false},          matrix3D({m34: 1})],
+  [{m43: 1, is2D: false},          matrix3D({m43: 1})],
+  [{m44: 0, is2D: false},          matrix3D({m44: 0})],
+  [{m13: 1},                       matrix3D({m13: 1})],
+  [{m14: 1},                       matrix3D({m14: 1})],
+  [{m23: 1},                       matrix3D({m23: 1})],
+  [{m24: 1},                       matrix3D({m24: 1})],
+  [{m31: 1},                       matrix3D({m31: 1})],
+  [{m32: 1},                       matrix3D({m32: 1})],
+  [{m33: 0},                       matrix3D({m33: 0})],
+  [{m34: 1},                       matrix3D({m34: 1})],
+  [{m43: 1},                       matrix3D({m43: 1})],
+  [{m44: 0},                       matrix3D({m44: 0})],
+  [{is2D: false},                  matrix3D({})],
+  [{is2D: null},                   matrix3D({})], // null is converted to false
+].forEach(([dict, expected]) => {
+  test(() => {
+    const matrix = DOMMatrix.fromMatrix(dict);
+    checkMatrix(matrix, expected);
+  }, `${format_dict(dict)} (3d)`);
+});
+</script>

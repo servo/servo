@@ -4,8 +4,6 @@
     <title>XMLHttpRequest: responseXML document properties</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol[1]/li[4]" />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#document-response-entity-body" data-tested-assertations="following::ol[1]/li[6] following::ol[1]/li[7] following::ol[1]/li[8] following::ol[1]/li[10]" />
   </head>
   <body>
     <div id="log"></div>
@@ -14,10 +12,12 @@
       var client = new XMLHttpRequest()
       client.open("GET", "resources/well-formed.xml", false)
       client.send(null)
+      var responseURL = new URL('resources/well-formed.xml', location.href).href
       var expected = {
         domain:undefined,
-        URL:location.href.replace(/[^/]*$/, 'resources/well-formed.xml'),
-        documentURI:location.href.replace(/[^/]*$/, 'resources/well-formed.xml'),
+        URL:responseURL,
+        documentURI:responseURL,
+        baseURI:responseURL,
         referrer:'',
         title:'',
         contentType:'application/xml',
@@ -42,6 +42,38 @@
           assert_equals(client.responseXML[name], value)
         }, name)
       }
+
+      async_test(t => {
+        const client = new XMLHttpRequest();
+        client.open("GET", "resources/redirect.py?location=well-formed.xml");
+        client.send();
+        client.onload = t.step_func_done(() => {
+          assert_equals(client.responseXML.URL, responseURL);
+          assert_equals(client.responseXML.baseURI, responseURL);
+        });
+      }, "Test document URL properties after redirect");
+
+      async_test(t => {
+        const client = new XMLHttpRequest();
+        client.open("GET", "resources/redirect.py?location=base.xml");
+        client.send();
+        client.onload = t.step_func_done(() => {
+          const localResponseURL = new URL('resources/base.xml', location.href).href;
+          assert_equals(client.responseXML.URL, localResponseURL);
+          assert_equals(client.responseXML.baseURI, 'https://example.com/');
+          client.responseXML.documentElement.remove();
+          assert_equals(client.responseXML.baseURI, localResponseURL);
+          const newBase = document.createElement("base"),
+                newBaseURL = "https://elsewhere.example/";
+          newBase.href = "https://elsewhere.example/";
+          client.responseXML.appendChild(newBase);
+          assert_equals(client.responseXML.baseURI, newBaseURL);
+          newBase.remove();
+          document.head.appendChild(newBase);
+          assert_equals(client.responseXML.baseURI, localResponseURL);
+          newBase.remove();
+        });
+      }, "Test document URL properties of document with <base> after redirect");
 
       test(function() {
         var lastModified = Math.floor(new Date(client.responseXML.lastModified).getTime() / 1000);

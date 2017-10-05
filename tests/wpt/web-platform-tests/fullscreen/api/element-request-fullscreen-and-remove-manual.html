@@ -10,8 +10,9 @@ async_test(t => {
   const target = document.getElementById("target");
 
   document.onfullscreenchange = t.unreached_func("fullscreenchange event");
-  document.onfullscreenerror = t.step_func_done(() => {
-    assert_equals(document.fullscreenElement, null);
+  document.onfullscreenerror = t.step_func_done(event => {
+    assert_equals(document.fullscreenElement, null, "fullscreen element");
+    assert_equals(event.target, document, "event target");
   });
 
   trusted_click(t, () => {

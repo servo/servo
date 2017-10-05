@@ -176,7 +176,7 @@ promise_test(function(t) {
         return test_redirect(
             SCOPE1 + 'url=' + encodeURIComponent(SCOPE1),
             SCOPE1,
-            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE1)], [], []]);
+            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE1), SCOPE1], [], []]);
       });
   }, 'SW-fallbacked redirect to same-origin same-scope.');
 promise_test(function(t) {
@@ -184,7 +184,7 @@ promise_test(function(t) {
         return test_redirect(
             SCOPE1 + 'url=' + encodeURIComponent(SCOPE2),
             SCOPE2,
-            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE2)], [], []]);
+            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE2)], [SCOPE2], []]);
       });
   }, 'SW-fallbacked redirect to same-origin other-scope.');
 promise_test(function(t) {
@@ -204,7 +204,7 @@ promise_test(function(t) {
             OTHER_ORIGIN_SCOPE,
             [[SCOPE1 + 'url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE)],
              [],
-             []]);
+             [OTHER_ORIGIN_SCOPE]]);
       });
   }, 'SW-fallbacked redirect to other-origin in-scope.');
 
@@ -372,6 +372,16 @@ promise_test(function(t) {
              [OTHER_ORIGIN_SCOPE]]);
       });
   }, 'Redirect to other-origin in-scope with opaque redirect response.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaque&noLocationRedirect',
+            SCOPE1 + 'sw=opaque&noLocationRedirect',
+            [[SCOPE1 + 'sw=opaque&noLocationRedirect'],
+             [],
+             []]);
+      });
+  }, 'No location redirect response.');
 
 // Opaque redirect passed through Cache.
 // SW responds with an opaque redirectresponse from the Cache API.
@@ -445,5 +455,15 @@ promise_test(function(t) {
   },
   'Redirect to other-origin in-scope with opaque redirect response which ' +
   'is passed through Cache.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaqueThroughCache&noLocationRedirect',
+            SCOPE1 + 'sw=opaqueThroughCache&noLocationRedirect',
+            [[SCOPE1 + 'sw=opaqueThroughCache&noLocationRedirect'],
+             [],
+             []]);
+      });
+  }, 'No location redirect response via Cache.');
 </script>
 </body>

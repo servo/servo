@@ -15,7 +15,8 @@ test(function() {
                        onactivate: EVENT_HANDLER,
                        onfetch: EVENT_HANDLER,
                        oninstall: EVENT_HANDLER,
-                       onmessage: EVENT_HANDLER
+                       onmessage: EVENT_HANDLER,
+                       onmessageerror: EVENT_HANDLER
                      });
   }, 'ServiceWorkerGlobalScope');
 
@@ -76,6 +77,15 @@ test(function() {
     assert_equals(
       new ExtendableEvent('ExtendableEvent').type,
       'ExtendableEvent', 'Type of ExtendableEvent should be ExtendableEvent');
+    assert_throws(new TypeError, function() {
+        new FetchEvent('FetchEvent');
+    }, 'FetchEvent constructor with one argument throws');
+    assert_throws(new TypeError, function() {
+        new FetchEvent('FetchEvent', {});
+    }, 'FetchEvent constructor with empty init dict throws');
+    assert_throws(new TypeError, function() {
+        new FetchEvent('FetchEvent', {request: null});
+    }, 'FetchEvent constructor with null request member throws');
     assert_equals(
       new FetchEvent('FetchEvent', {request: req}).type,
       'FetchEvent', 'Type of FetchEvent should be FetchEvent');

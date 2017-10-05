@@ -47,7 +47,7 @@
     generateFile(vo, fileIndex, page, pages) {
       var path = "../../text-orientation-script-001";
       this.title = "Test orientation of characters";
-      this.flags = "dom font";
+      this.flags = "dom";
       // if (fileIndex)
       //     path += "-" + padZero(fileIndex, 3);
       if (fileIndex === undefined)
@@ -164,17 +164,18 @@
   }
 
   function createGenerator(argv) {
-    var deferred = Promise.defer();
-    Promise.all([
-      unicodeData.get(unicodeData.url.vo, unicodeData.formatAsRangesByValue),
-      unicodeData.get(unicodeData.url.gc),
-      unicodeData.get(unicodeData.url.blocks),
-    ]).then(function (results) {
-      var generator = new Generator(results[0], results[1], results[2]);
-      generator.prefix = argv.prefix ? "-" + argv.prefix + "-" : "";
-      deferred.resolve(generator);
+    var promise = new Promise(function(resolve, reject) {
+      Promise.all([
+        unicodeData.get(unicodeData.url.vo, unicodeData.formatAsRangesByValue),
+        unicodeData.get(unicodeData.url.gc),
+        unicodeData.get(unicodeData.url.blocks),
+      ]).then(function (results) {
+        var generator = new Generator(results[0], results[1], results[2]);
+        generator.prefix = argv.prefix ? "-" + argv.prefix + "-" : "";
+        resolve(generator);
+      });
     });
-    return deferred.promise;
+    return promise;
   }
 
   exports.generate = function (argv) {

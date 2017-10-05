@@ -64,7 +64,7 @@ test (t => {
     'noopener,=',
     'noopener foo', // => ('noopener', ''), ('foo', '')
     'foo noopener=1', // => ('foo', ''), ('noopener', '1')
-    'foo=\u000Cnoopener' // => ('foo', ''), ('noopener', '')
+    'foo=\u000Cbar\u000Cnoopener' // => ('foo', 'bar'), ('noopener', '')
   ];
   featureVariants.forEach(feature => {
     var win = window.open(windowURL, '', feature);
@@ -139,7 +139,8 @@ test (t => {
     'no\nopener', //    => ('no', ''), ('opener', '')
     'no,opener', //     => ('no', ''), ('opener', '')
     '\0noopener', //    => ('\0noopener', '')
-    'noopener\u0000=yes' // => ('noopener\0', 'yes')
+    'noopener\u0000=yes', // => ('noopener\0', 'yes')
+    'foo=\u000Cnoopener' // => ('foo', 'noopener')
   ];
   invalidFeatureVariants.forEach(feature => {
     var win = window.open(windowURL, '', feature);

@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <title>Service Worker: Skip waiting installed worker</title>
 <script src="/resources/testharness.js"></script>
-<script src="resources/testharness-helpers.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script>
+'use strict';
 
 promise_test(function(t) {
-    var scope = 'resources/blank.html';
+    var scope = 'resources/blank.html?skip-waiting-installed';
     var url1 = 'resources/empty.js';
     var url2 = 'resources/skip-waiting-installed-worker.js';
     var frame, frame_sw, service_worker, registration, onmessage, oncontrollerchanged;
     var saw_message = new Promise(function(resolve) {
         onmessage = function(e) {
-            var message = e.data;
-            assert_equals(
-                message, 'PASS',
-                'skipWaiting promise should be resolved with undefined');
+            resolve(e.data);
+          };
+        })
+      .then(function(message) {
+          assert_equals(
+            message, 'PASS',
+            'skipWaiting promise should be resolved with undefined');
 
-            assert_equals(registration.active.scriptURL, normalizeURL(url2),
-                          "skipWaiting should make worker become active");
-            resolve();
-        };
-      });
+          assert_equals(registration.active.scriptURL, normalizeURL(url2),
+                        'skipWaiting should make worker become active');
+        });
     var saw_controllerchanged = new Promise(function(resolve) {
         oncontrollerchanged = function() {
             assert_equals(

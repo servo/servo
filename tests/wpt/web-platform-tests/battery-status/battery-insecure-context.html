@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery Test: navigator.getBattery() shall throw "SecurityError" in an insecure context</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/battery-status/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #note {
+    background-color: #fef1b5;
+    border: solid 1px #cdab2d;
+    padding: 5px;
+    margin: 15px;
+    display: block;
+  }
+</style>
+<div id="note">
+  Run test in an insecure context, e.g. http://example.com/.
+</div>
+
+<script>
+
+promise_test(t => {
+  return promise_rejects(t, 'SecurityError', navigator.getBattery());
+}, "navigator.getBattery() shall throw a 'SecurityError' in an insecure context");
+
+</script>

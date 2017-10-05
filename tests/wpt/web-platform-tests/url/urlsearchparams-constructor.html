@@ -80,6 +80,17 @@ test(function() {
 }, 'Parse +');
 
 test(function() {
+    const testValue = '+15555555555';
+    const params = new URLSearchParams();
+    params.set('query', testValue);
+    var newParams = new URLSearchParams(params.toString());
+
+    assert_equals(params.toString(), 'query=%2B15555555555');
+    assert_equals(params.get('query'), testValue);
+    assert_equals(newParams.get('query'), testValue);
+}, 'Parse encoded +');
+
+test(function() {
     var params = new URLSearchParams('a=b c');
     assert_equals(params.get('a'), 'b c');
     params = new URLSearchParams('a b=c');
@@ -148,7 +159,8 @@ test(function() {
 [
   { "input": {"+": "%C2"}, "output": [["+", "%C2"]], "name": "object with +" },
   { "input": {c: "x", a: "?"}, "output": [["c", "x"], ["a", "?"]], "name": "object with two keys" },
-  { "input": [["c", "x"], ["a", "?"]], "output": [["c", "x"], ["a", "?"]], "name": "array with two keys" }
+  { "input": [["c", "x"], ["a", "?"]], "output": [["c", "x"], ["a", "?"]], "name": "array with two keys" },
+  { "input": {"a\0b": "42", "c\uD83D": "23", "d\u1234": "foo"}, "output": [["a\0b", "42"], ["c\uFFFD", "23"], ["d\u1234", "foo"]], "name": "object with NULL, non-ASCII, and surrogate keys" }
 ].forEach((val) => {
     test(() => {
         let params = new URLSearchParams(val.input),

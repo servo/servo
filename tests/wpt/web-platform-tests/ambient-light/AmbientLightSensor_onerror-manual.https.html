@@ -5,28 +5,16 @@
 <link rel="help" href="https://www.w3.org/TR/ambient-light/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<div id="log"></div>
 <h2>Precondition</h2>
 <ol>
   <li>
     Disable the Ambient Light Sensor or run test on a device without Amibent Light Sensor.
   </li>
 </ol>
-<div id="log"></div>
 <script>
-let sensor;
-setup(() => {
-  sensor = new AmbientLightSensor();
-});
 
-async_test(t => {
-  sensor.onactivate = t.step_func_done(assert_unreached);
-
-  sensor.onerror = t.step_func_done(event => {
-    assert_equals(sensor.state, 'errored');
-    assert_equals(event.error.name, 'NotFoundError');
-  });
-
-  sensor.start();
-}, "Test that 'onerror' event is fired when sensor is not supported");
+runGenericSensorOnerror(AmbientLightSensor);
 
 </script>

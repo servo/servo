@@ -12,10 +12,10 @@
   </head>
   <body>
     <script id="headers-idl" type="text/plain">
-      typedef (sequence<sequence<ByteString>> or record<ByteString>) HeadersInit;
+      typedef (sequence<sequence<ByteString>> or record<ByteString, ByteString>) HeadersInit;
 
       [Constructor(optional HeadersInit init),
-      Exposed=(Window,Worker)]
+       Exposed=(Window,Worker)]
       interface Headers {
         void append(ByteString name, ByteString value);
         void delete(ByteString name);

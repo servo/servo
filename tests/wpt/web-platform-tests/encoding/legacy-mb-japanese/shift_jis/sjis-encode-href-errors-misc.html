@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="shift_jis"> <!-- test breaks if the server overrides this -->
+<title>Shift_jis encoding (href, misc)</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="jis0208_index.js"></script>
+<script src="sjis-encoder.js"></script>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+<link rel="help" href="https://encoding.spec.whatwg.org//#shift_jis">
+<meta name="assert" content="The browser produces percent-escaped character references when writing characters to an href value and encoding miscellaneous characters that are not in the shift_jis encoding.">
+<script>
+function encode(input, expected, desc) {
+	// tests whether a Unicode character is converted to an equivalent byte sequence by href
+	// input: a Unicode character
+	// expected: expected byte sequence
+	// desc: what's being tested
+	test(function() {
+		var a = document.createElement("a"); // <a> uses document encoding for URL's query
+		a.href = "https://example.com/?" + input;
+		result = a.search.substr(1); // remove leading "?"
+		assert_equals(normalizeStr(result), normalizeStr(expected));
+	}, desc);
+}
+
+// set up a simple array of unicode codepoints that are not encoded
+var codepoints = [];
+
+for (var i = 0x80; i < 0x4ff; i++) {
+	result = sjisEncoder(String.fromCodePoint(i));
+	if (!result) {
+		var item = {};
+		codepoints.push(item);
+		item.cp = i;
+		item.expected = "%26%23" + item.cp + "%3B";
+		item.desc = "latin, greek, cyrillic, etc ";
+	}
+}
+
+for (i = 0x2000; i < 0x23ff; i++) {
+	result = sjisEncoder(String.fromCodePoint(i));
+	if (!result) {
+		var item = {};
+		codepoints.push(item);
+		item.cp = i;
+		item.expected = "%26%23" + item.cp + "%3B";
+		item.desc = "punctuation, currency, symbols ";
+	}
+}
+
+for (i = 0x2460; i < 0x26ff; i++) {
+	result = sjisEncoder(String.fromCodePoint(i));
+	if (!result) {
+		var item = {};
+		codepoints.push(item);
+		item.cp = i;
+		item.expected = "%26%23" + item.cp + "%3B";
+		item.desc = "enclosed chars and boxes ";
+	}
+}
+
+for (i = 0x3000; i < 0x33ff; i++) {
+	result = sjisEncoder(String.fromCodePoint(i));
+	if (!result) {
+		var item = {};
+		codepoints.push(item);
+		item.cp = i;
+		item.expected = "%26%23" + item.cp + "%3B";
+		item.desc = "various asian ";
+	}
+}
+
+for (i = 0xff00; i < 0xffef; i++) {
+	result = sjisEncoder(String.fromCodePoint(i));
+	if (!result) {
+		var item = {};
+		codepoints.push(item);
+		item.cp = i;
+		item.expected = "%26%23" + item.cp + "%3B";
+		item.desc = "half/full width ";
+	}
+}
+
+// run the tests
+for (var x = 0; x < codepoints.length; x++) {
+	encode(
+		String.fromCodePoint(codepoints[x].cp),
+		codepoints[x].expected,
+		codepoints[x].desc +
+			" U+" +
+			codepoints[x].cp.toString(16).toUpperCase() +
+			" " +
+			String.fromCodePoint(codepoints[x].cp) +
+			" " +
+			codepoints[x].expected
+	);
+}
+
+// NOTES
+// this test relies on support for String.fromCodePoint, which appears to be supported by major desktop browsers
+// the tests exclude ASCII characters
+</script>
+</head>
+<body>
+<div id="log"></div>
+</body>
+</html>

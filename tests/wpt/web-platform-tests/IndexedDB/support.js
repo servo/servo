@@ -106,30 +106,34 @@ function assert_key_equals(actual, expected, description) {
 
 function indexeddb_test(upgrade_func, open_func, description, options) {
   async_test(function(t) {
-    var options = Object.assign({upgrade_will_abort: false}, options);
+    options = Object.assign({upgrade_will_abort: false}, options);
     var dbname = document.location + '-' + t.name;
     var del = indexedDB.deleteDatabase(dbname);
     del.onerror = t.unreached_func('deleteDatabase should succeed');
     var open = indexedDB.open(dbname, 1);
-    if (!options.upgrade_will_abort) {
-      open.onsuccess = t.unreached_func('open should not succeed');
-    } else {
-      open.onerror = t.unreached_func('open should succeed');
-    }
     open.onupgradeneeded = t.step_func(function() {
       var db = open.result;
-      var tx = open.transaction;
-      upgrade_func(t, db, tx);
-    });
-    open.onsuccess = t.step_func(function() {
-      var db = open.result;
       t.add_cleanup(function() {
+        // If open didn't succeed already, ignore the error.
+        open.onerror = function(e) {
+          e.preventDefault();
+        };
         db.close();
         indexedDB.deleteDatabase(db.name);
       });
-      if (open_func)
-        open_func(t, db);
+      var tx = open.transaction;
+      upgrade_func(t, db, tx, open);
     });
+    if (options.upgrade_will_abort) {
+      open.onsuccess = t.unreached_func('open should not succeed');
+    } else {
+      open.onerror = t.unreached_func('open should succeed');
+      open.onsuccess = t.step_func(function() {
+        var db = open.result;
+        if (open_func)
+          open_func(t, db, open);
+      });
+    }
   }, description);
 }
 

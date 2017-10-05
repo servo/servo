@@ -1,0 +1,298 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test RTCPeerConnection.prototype.onnegotiationneeded</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  /* Helper Functions */
+
+  // Listen to the negotiationneeded event on a peer connection
+  // Returns a promise that resolves when the first event is fired.
+  // The resolve result is a dictionary with event and nextPromise,
+  // which resolves when the next negotiationneeded event is fired.
+  // This allow us to promisify the event listening and assert whether
+  // an event is fired or not by testing whether a promise is resolved.
+  function awaitNegotiation(pc) {
+    if(pc.onnegotiationneeded) {
+      throw new Error('connection is already attached with onnegotiationneeded event handler');
+    }
+
+    function waitNextNegotiation() {
+      return new Promise(resolve => {
+        pc.onnegotiationneeded = event => {
+          const nextPromise = waitNextNegotiation();
+          resolve({ nextPromise, event });
+        }
+      });
+    }
+
+    return waitNextNegotiation();
+  }
+
+  // Return a promise that rejects if the first promise is resolved before second promise.
+  // Also rejects when either promise rejects.
+  function assert_first_promise_fulfill_after_second(promise1, promise2, message) {
+    if(!message) {
+      message = 'first promise is resolved before second promise';
+    }
+
+    return new Promise((resolve, reject) => {
+      let secondResolved = false;
+
+      promise1.then(() => {
+        if(secondResolved) {
+          resolve();
+        } else {
+          assert_unreached(message);
+        }
+      })
+      .catch(reject);
+
+      promise2.then(() => {
+        secondResolved = true;
+      }, reject);
+    });
+  }
+
+  // Run a test function that return a promise that should
+  // never be resolved. For lack of better options,
+  // we wait for a time out and pass the test if the
+  // promise doesn't resolve within that time.
+  function test_never_resolve(testFunc, testName) {
+    async_test(t => {
+      testFunc(t)
+      .then(
+        t.step_func(result => {
+          assert_unreached(`Pending promise should never be resolved. Instead it is fulfilled with: ${result}`);
+        }),
+        t.step_func(err => {
+          assert_unreached(`Pending promise should never be resolved. Instead it is rejected with: ${err}`);
+        }));
+
+      t.step_timeout(t.step_func_done(), 200)
+    }, testName);
+  }
+
+  // Helper function to generate answer based on given offer using a freshly
+  // created RTCPeerConnection object
+  function generateAnswer(offer) {
+    const pc = new RTCPeerConnection();
+    return pc.setRemoteDescription(offer)
+    .then(() => pc.createAnswer());
+  }
+
+  /*
+    4.7.3.  Updating the Negotiation-Needed flag
+
+      To update the negotiation-needed flag
+      5.  Set connection's [[needNegotiation]] slot to true.
+      6.  Queue a task that runs the following steps:
+          3.  Fire a simple event named negotiationneeded at connection.
+
+      To check if negotiation is needed
+      2.  If connection has created any RTCDataChannels, and no m= section has
+          been negotiated yet for data, return "true".
+
+    6.1.  RTCPeerConnection Interface Extensions
+
+      createDataChannel
+        14. If channel was the first RTCDataChannel created on connection,
+            update the negotiation-needed flag for connection.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const promise = awaitNegotiation(pc);
+    pc.createDataChannel('test');
+    return promise;
+  }, 'Creating first data channel should fire negotiationneeded event');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    pc.createDataChannel('test');
+    // Attaching the event handler after the negotiation-needed steps
+    // are performed should still receive the event, because the event
+    // firing is queued as a task
+    return awaitNegotiation(pc);
+  }, 'task for negotiationneeded event should be enqueued for next tick');
+
+  /*
+    4.7.3.  Updating the Negotiation-Needed flag
+
+      To update the negotiation-needed flag
+      6.  Queue a task that runs the following steps:
+          1.  If connection's [[isClosed]] slot is true, abort these steps.
+   */
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+    pc.createDataChannel('test');
+    pc.close();
+    return awaitNegotiation(pc);
+  }, 'negotiationneeded event should not fire if connection is closed');
+
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+    pc.createDataChannel('foo');
+
+    return awaitNegotiation(pc)
+      .then(({nextPromise}) => {
+      pc.createDataChannel('bar');
+      return nextPromise;
+    });
+  }, 'calling createDataChannel twice should fire negotiationneeded event once');
+
+  /*
+    4.7.3.  Updating the Negotiation-Needed flag
+      To check if negotiation is needed
+      3.  For each transceiver t in connection's set of transceivers, perform
+          the following checks:
+          1.  If t isn't stopped and isn't yet associated with an m= section
+              according to [JSEP] (section 3.4.1.), return "true".
+
+    5.1.  RTCPeerConnection Interface Extensions
+      addTransceiver
+        9.  Update the negotiation-needed flag for connection.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    pc.addTransceiver('audio');
+    return awaitNegotiation(pc);
+  }, 'addTransceiver() should fire negotiationneeded event');
+
+  /*
+    4.7.3.  Updating the Negotiation-Needed flag
+      To update the negotiation-needed flag
+      4.  If connection's [[needNegotiation]] slot is already true, abort these steps.
+   */
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+    pc.addTransceiver('audio');
+    return awaitNegotiation(pc)
+    .then(({nextPromise}) => {
+      pc.addTransceiver('video');
+      return nextPromise;
+    });
+  }, 'Calling addTransceiver() twice should fire negotiationneeded event once');
+
+  /*
+    4.7.3.  Updating the Negotiation-Needed flag
+      To update the negotiation-needed flag
+      4.  If connection's [[needNegotiation]] slot is already true, abort these steps.
+   */
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+    pc.createDataChannel('test');
+    return awaitNegotiation(pc)
+    .then(({nextPromise}) => {
+      pc.addTransceiver('video');
+      return nextPromise;
+    });
+  }, 'Calling both addTransceiver() and createDataChannel() should fire negotiationneeded event once');
+
+  /*
+    4.7.3.  Updating the Negotiation-Needed flag
+      To update the negotiation-needed flag
+      2.  If connection's signaling state is not "stable", abort these steps.
+   */
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+    const promise = awaitNegotiation(pc);
+
+    return pc.createOffer()
+    .then(offer => pc.setLocalDescription(offer))
+    .then(() => {
+      assert_equals(pc.signalingState, 'have-local-offer');
+      pc.createDataChannel('test');
+      return promise;
+    });
+  }, 'negotiationneeded event should not fire if signaling state is not stable');
+
+  /*
+    4.3.1.  RTCPeerConnection Operation
+      To set an RTCSessionDescription description
+        10. If connection's signaling state is now stable, update the
+            negotiation-needed flag. If connection's [[needNegotiation]] slot
+            was true both before and after this update, queue a task that runs
+            the following steps:
+          1.  If connection's [[isClosed]] slot is true, abort these steps.
+          2.  If connection's [[needNegotiation]] slot is false, abort these steps.
+          3.  Fire a simple event named negotiationneeded at connection.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return assert_first_promise_fulfill_after_second(
+      awaitNegotiation(pc),
+      pc.createOffer()
+      .then(offer =>
+        pc.setLocalDescription(offer)
+        .then(() => {
+          pc.createDataChannel('test');
+          return generateAnswer(offer);
+        }))
+      .then(answer => pc.setRemoteDescription(answer)),
+      'Expect negotiationneeded promise to resolve after pc has set remote answer and go back to stable state');
+  }, 'negotiationneeded event should fire only after signaling state go back to stable');
+
+  /*
+    TODO
+    4.7.3.  Updating the Negotiation-Needed flag
+
+      To update the negotiation-needed flag
+      1.  If connection's [[isClosed]] slot is true, abort these steps.
+      3.  If the result of checking if negotiation is needed is "false",
+          clear the negotiation-needed flag by setting connection's
+          [[needNegotiation]] slot to false, and abort these steps.
+      6.  Queue a task that runs the following steps:
+          2.  If connection's [[needNegotiation]] slot is false, abort these steps.
+
+      To check if negotiation is needed
+      3.  For each transceiver t in connection's set of transceivers, perform
+          the following checks:
+          2.  If t isn't stopped and is associated with an m= section according
+              to [JSEP] (section 3.4.1.), then perform the following checks:
+              1.  If t's direction is "sendrecv" or "sendonly", and the
+                  associated m= section in connection's currentLocalDescription
+                  doesn't contain an "a=msid" line, return "true".
+              2.  If connection's currentLocalDescription if of type "offer",
+                  and the direction of the associated m= section in neither the
+                  offer nor answer matches t's direction, return "true".
+              3.  If connection's currentLocalDescription if of type "answer",
+                  and the direction of the associated m= section in the answer
+                  does not match t's direction intersected with the offered
+                  direction (as described in [JSEP] (section 5.3.1.)),
+                  return "true".
+          3.  If t is stopped and is associated with an m= section according
+              to [JSEP] (section 3.4.1.), but the associated m= section is
+              not yet rejected in connection's currentLocalDescription or
+              currentRemoteDescription , return "true".
+      4.  If all the preceding checks were performed and "true" was not returned,
+          nothing remains to be negotiated; return "false".
+
+    4.3.1.  RTCPeerConnection Operation
+
+      When the RTCPeerConnection() constructor is invoked
+        7.  Let connection have a [[needNegotiation]] internal slot, initialized to false.
+
+    5.1.  RTCPeerConnection Interface Extensions
+
+      addTrack
+        10. Update the negotiation-needed flag for connection.
+
+      removeTrack
+        12. Update the negotiation-needed flag for connection.
+
+    5.4.  RTCRtpTransceiver Interface
+
+      setDirection
+        7.  Update the negotiation-needed flag for connection.
+
+      stop
+        11. Update the negotiation-needed flag for connection.
+   */
+
+</script>

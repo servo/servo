@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"/>
+<title>windows-949 decoding</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+<link rel="help" href="https://encoding.spec.whatwg.org/#names-and-labels">
+<meta name="assert" content="The browser produces the same decoding behavior for a document labeled 'windows-949' as for a document labeled 'euc-kr'.">
+<style>
+ iframe { display:none }
+</style>
+<script src="euckr_index.js"></script>
+<script src="euckr-decoder.js"></script>
+</head>
+
+<body onload="showNodes();">
+
+<iframe src="euckr_chars-windows-949.html" name="scriptWindow" id="scrwin"></iframe>
+
+<div id="log"></div>
+
+<script>
+var tests = [];
+
+function iframeRef(frameRef) {
+  return frameRef.contentWindow
+    ? frameRef.contentWindow.document
+    : frameRef.contentDocument;
+}
+
+function showNodes() {
+  var iframe = iframeRef(document.getElementById("scrwin"));
+  nodes = iframe.querySelectorAll("span");
+
+  for (var i = 0; i < nodes.length; i++) {
+    tests[i] = async_test(
+      "U+" +
+        nodes[i].dataset.cp +
+        " " +
+        String.fromCodePoint(parseInt(nodes[i].dataset.cp, 16)) +
+        " " +
+        euckrDecoder(nodes[i].dataset.bytes) +
+        " " +
+        nodes[i].dataset.bytes
+    );
+  }
+
+  for (var i = 0; i < nodes.length; i++) {
+    tests[i].step(function() {
+      assert_equals(nodes[i].textContent, euckrDecoder(nodes[i].dataset.bytes));
+    });
+    tests[i].done();
+  }
+}
+</script>
+</body>
+</html>

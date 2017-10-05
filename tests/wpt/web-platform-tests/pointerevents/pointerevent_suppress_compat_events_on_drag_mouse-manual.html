@@ -41,8 +41,9 @@
           on_event(document.getElementById("done"), "click", end_of_interaction);
 
           var target_list = ["target0", "target1"];
-          var pointer_event_list = ["pointerdown"];
+          var pointer_event_list = ["pointerdown" , "pointermove", "pointerup"];
           var mouse_event_list = ["mousedown", "mouseup", "mousemove"];
+          var last_pointer_event = null;
 
           target_list.forEach(function(targetId) {
               var target = document.getElementById(targetId);
@@ -52,12 +53,16 @@
                       detected_pointertypes[event.pointerType] = true;
                       var label = event.type + "@" + targetId;
 
-                      test(function () {
-                          assert_true(event.isPrimary);
-                      }, "primary pointer " + label);
+                      if (event.type == "pointerdown") {
+                          test(function () {
+                              assert_true(event.isPrimary);
+                          }, "primary pointer " + label);
+                      }
 
                       if (label === "pointerdown@target0")
                           event.preventDefault();
+
+                      last_pointer_event = event;
                   });
               });
 
@@ -69,6 +74,11 @@
                       event_log.push(event.type + "@" + targetId);
 
                       include_next_mousemove = (event.type == "mousedown");
+                      test(function() {
+                          test(function () {
+                              assert_equals(event.timeStamp, last_pointer_event.timeStamp, "The time stamp of the compat mouse event should be the same as its pointerevent");
+                          });
+                      }, event.type + "'s time stamp should be the same as " + last_pointer_event.type + "'s time stamp.");
                   });
               });
           });

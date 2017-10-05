@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+  <head>
+    <title>option selected value changes</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "attribute" : "aria-activedescendant",
+         "element" : "test1",
+         "title" : "step 1",
+         "type" : "attribute",
+         "value" : "\"test\" "
+      },
+      {
+         "attribute" : "aria-selected",
+         "element" : "test",
+         "title" : "step 2",
+         "type" : "attribute",
+         "value" : "\"true\""
+      },
+      {
+         "attribute" : "aria-selected",
+         "element" : "test2",
+         "title" : "step 3",
+         "type" : "attribute",
+         "value" : "\"false\""
+      },
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "object:state-changed:selected"
+               ],
+               [
+                  "event",
+                  "detail1",
+                  "is",
+                  "1"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "AXSelectedChildrenChanged"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "EVENT_OBJECT_SELECTION"
+               ],
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "EVENT_OBJECT_STATECHANGE"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "UIA_SelectionItem_ElementSelectedEventId"
+               ]
+            ]
+         },
+         "title" : "step 4",
+         "type" : "test"
+      },
+      {
+         "element" : "test1",
+         "test" : {
+            "ATK" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "object:selection-changed"
+               ]
+            ],
+            "AXAPI" : []
+         },
+         "title" : "step 5",
+         "type" : "test"
+      },
+      {
+         "element" : "test2",
+         "test" : {
+            "ATK" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "object:state-changed:selected"
+               ],
+               [
+                  "event",
+                  "detail1",
+                  "is",
+                  "0"
+               ]
+            ]
+         },
+         "title" : "step 6",
+         "type" : "test"
+      }
+   ],
+   "title" : "option selected value changes"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for option selected value changes.</p>
+    <div id="test1" aria-activedescendant="test2" role="listbox">
+   <div role="option" aria-selected="false" id="test">
+   Fish
+   </div>
+   <div id="test2" aria-selected="true" role="option">
+   beef
+   </div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+
