@@ -3618,7 +3618,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.52.0"
-source = "git+https://github.com/servo/webrender#29d325f54bbead84e97dcf7dc536463c45f8eece"
+source = "git+https://github.com/servo/webrender#faa9cfe116aa7b536623551ed3c97cdd427263b9"
 dependencies = [
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3646,7 +3646,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.52.0"
-source = "git+https://github.com/servo/webrender#29d325f54bbead84e97dcf7dc536463c45f8eece"
+source = "git+https://github.com/servo/webrender#faa9cfe116aa7b536623551ed3c97cdd427263b9"
 dependencies = [
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3656,7 +3656,6 @@ dependencies = [
  "core-graphics 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwrote 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "fxhash 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
