@@ -117,7 +117,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     match headers.get::<header::CacheControl>() {
         Some(&header::CacheControl(ref directive)) => {
             for directive in directive.iter() {
-                if let header::CacheDirective::NoStore = *directive {
+                if header::CacheDirective::NoStore == *directive {
                     return false;
                 }
             }
@@ -141,11 +141,7 @@ fn get_response_expiry(response: &Response) -> Duration {
     // Calculating Freshness Lifetime https://tools.ietf.org/html/rfc7234#section-4.2.1
     if let Some(&header::CacheControl(ref directives)) = response.headers.get::<header::CacheControl>() {
         let has_no_cache_directive = directives.iter().any(|directive| {
-            if header::CacheDirective::NoCache == *directive {
-                true
-            } else {
-                false
-            }
+            header::CacheDirective::NoCache == *directive
         });
         if has_no_cache_directive {
             // Requires validation on first use.
@@ -202,11 +198,7 @@ fn get_response_expiry(response: &Response) -> Duration {
                 // Other status codes can only use heuristic freshness if the public cache directive is present.
                 if let Some(&header::CacheControl(ref directives)) = response.headers.get::<header::CacheControl>() {
                     let has_public_directive = directives.iter().any(|directive| {
-                        if header::CacheDirective::Public == *directive {
-                            true
-                        } else {
-                           false
-                        }
+                        header::CacheDirective::Public == *directive
                     });
                     if has_public_directive {
                         return heuristic_freshness;
