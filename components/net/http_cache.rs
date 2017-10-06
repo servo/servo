@@ -226,7 +226,7 @@ impl HttpCache {
             let seconds = String::from_utf8(secs[0].to_vec()).unwrap();
             return Duration::seconds(seconds.parse::<i64>().unwrap());
         } else {
-             return Duration::seconds(self.base_time.sec);
+            return Duration::seconds(self.base_time.sec);
         }
     }
 
