@@ -132,22 +132,14 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
         _ => ()
     }
 
-    if let Some((ref code, _)) = metadata.status {
-        // Status codes that are cacheable by default https://tools.ietf.org/html/rfc7231#section-6.1
-        match *code {
-            200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => return true,
-            _ => {},
-        }
-    }
-
     return true;
 }
 
 /// Determine the expiry date of the given response headers,
 /// or uses a heuristic if none are present.
-fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
+fn get_response_expiry(response: &Response) -> Duration {
     // Calculating Freshness Lifetime https://tools.ietf.org/html/rfc7234#section-4.2.1
-    if let Some(&header::CacheControl(ref directives)) = headers.get::<header::CacheControl>() {
+    if let Some(&header::CacheControl(ref directives)) = response.headers.get::<header::CacheControl>() {
         let has_no_cache_directive = directives.iter().any(|directive| {
             if header::CacheDirective::NoCache == *directive {
                 true
@@ -173,8 +165,7 @@ fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
         }
 
     }
-    println!("received response with headers for {:?}", headers);
-    if let Some(&header::Expires(header::HttpDate(t))) = headers.get::<header::Expires>() {
+    if let Some(&header::Expires(header::HttpDate(t))) = response.headers.get::<header::Expires>() {
         println!("Expires headers for {:?}", t);
         // store the period of time from now until expiry
         let desired = t.to_timespec();
@@ -185,20 +176,47 @@ fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
             return Duration::min_value();
         }
     } else {
-       if let Some(val) = headers.get_raw("Expires") {
+       if let Some(val) = response.headers.get_raw("Expires") {
            // Malformed Expires header, shouldn't be used to construct a valid response.
            return Duration::seconds(0i64);
        }
     }
     // Calculating Heuristic Freshness https://tools.ietf.org/html/rfc7234#section-4.2.2
-    if let Some(&header::LastModified(header::HttpDate(t))) = headers.get::<header::LastModified>() {
-        let last_modified = t.to_timespec();
-        let current = time::now().to_timespec();
-        return (current - last_modified) / 10;
+    if let Some((ref code, _)) = response.raw_status {
+        let heuristic_freshness = if let Some(&header::LastModified(header::HttpDate(t))) =
+            response.headers.get::<header::LastModified>() {
+            let last_modified = t.to_timespec();
+            let current = time::now().to_timespec();
+            (current - last_modified) / 10
+        } else {
+            // https://tools.ietf.org/html/rfc7234#section-5.5.4
+            // Since we do not generate such a warning, 24 hours is the max for heuristic calculation.
+            Duration::hours(24)
+        };
+        match *code {
+            200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => {
+                // Status codes that are cacheable by default https://tools.ietf.org/html/rfc7231#section-6.1
+                return heuristic_freshness
+            },
+            _ => {
+                // Other status codes can only use heuristic freshness if the public cache directive is present.
+                if let Some(&header::CacheControl(ref directives)) = response.headers.get::<header::CacheControl>() {
+                    let has_public_directive = directives.iter().any(|directive| {
+                        if header::CacheDirective::Public == *directive {
+                            true
+                        } else {
+                           false
+                        }
+                    });
+                    if has_public_directive {
+                        return heuristic_freshness;
+                    }
+                }
+            },
+        }
     }
-    // https://tools.ietf.org/html/rfc7234#section-5.5.4
-    // Since we do not generate such a warning, 24 hours is the max for heuristic calculation.
-    Duration::hours(24)
+    // Default is 0 secs cache.
+    Duration::seconds(0i64)
 }
 
 impl HttpCache {
@@ -300,6 +318,7 @@ impl HttpCache {
             Ok(FetchMetadata::Unfiltered(metadata)) => {
                 println!("checking if response is cacheable: {:?}", response);
                 if response_is_cacheable(&metadata) {
+                    let expiry = get_response_expiry(&response);
                     let entry_key = CacheKey::new(request.clone());
                     let cacheable_metadata = CachedMetadata {
                         final_url: metadata.final_url,
@@ -314,7 +333,7 @@ impl HttpCache {
                         status: response.status,
                         raw_status: response.raw_status.clone(),
                         url_list: response.url_list.clone(),
-                        expires: get_response_expiry_from_headers(&response.headers),
+                        expires: expiry,
                         last_validated: time::now(),
                         awaiting_body: Arc::new(Mutex::new(vec![]))
                     };
