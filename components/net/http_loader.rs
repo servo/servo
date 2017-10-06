@@ -1387,11 +1387,7 @@ fn is_no_store_cache(headers: &Headers) -> bool {
     let mut has_no_cache_directive = false;
     if let Some(&CacheControl(ref directives)) = headers.get::<CacheControl>() {
         has_no_cache_directive = directives.iter().any(|directive| {
-            if CacheDirective::OnlyIfCached == *directive {
-                true
-            } else {
-                false
-            }
+            CacheDirective::OnlyIfCached == *directive
         });
     }
     headers.has::<IfModifiedSince>() | headers.has::<IfNoneMatch>() |
