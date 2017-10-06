@@ -149,7 +149,7 @@ fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
     // Calculating Freshness Lifetime https://tools.ietf.org/html/rfc7234#section-4.2.1
     if let Some(&header::CacheControl(ref directives)) = headers.get::<header::CacheControl>() {
         let has_no_cache_directive = directives.iter().any(|directive| {
-            if let header::CacheDirective::NoCache = *directive {
+            if header::CacheDirective::NoCache == *directive {
                 true
             } else {
                 false
