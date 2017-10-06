@@ -3086,7 +3086,7 @@ impl Fragment {
     pub fn can_fully_meld_with_next_inline_fragment(&self, next_fragment: &Fragment) -> bool {
         if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
             if let Some(ref inline_context_of_this_fragment) = self.inline_context {
-                inline_context_of_this_fragment.nodes.len() ==
+                inline_context_of_this_fragment.nodes.len() >=
                     inline_context_of_next_fragment.nodes.len() &&
                     inline_context_of_this_fragment
                         .nodes
@@ -3098,11 +3098,22 @@ impl Fragment {
                                 inline_context_node_from_this_fragment,
                                 inline_context_node_from_next_fragment,
                             )| {
-                                !inline_context_node_from_next_fragment
+                                if inline_context_node_from_next_fragment
                                     .flags
-                                    .contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) ||
-                                    inline_context_node_from_next_fragment.address ==
-                                        inline_context_node_from_this_fragment.address
+                                    .contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT)
+                                {
+                                    // We're not trying to meld in that direction!
+                                    return false;
+                                }
+                                if !inline_context_node_from_next_fragment
+                                    .flags
+                                    .contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT)
+                                {
+                                    // There's nothing to meld, so compatibility doesn't matter.
+                                    return true;
+                                }
+                                inline_context_node_from_next_fragment.address ==
+                                    inline_context_node_from_this_fragment.address
                             },
                         )
             } else {
@@ -3116,7 +3127,7 @@ impl Fragment {
     pub fn can_fully_meld_with_prev_inline_fragment(&self, prev_fragment: &Fragment) -> bool {
         if let Some(ref inline_context_of_prev_fragment) = prev_fragment.inline_context {
             if let Some(ref inline_context_of_this_fragment) = self.inline_context {
-                inline_context_of_this_fragment.nodes.len() ==
+                inline_context_of_this_fragment.nodes.len() >=
                     inline_context_of_prev_fragment.nodes.len() &&
                     inline_context_of_this_fragment
                         .nodes
@@ -3128,11 +3139,20 @@ impl Fragment {
                                 inline_context_node_from_this_fragment,
                                 inline_context_node_from_prev_fragment,
                             )| {
-                                !inline_context_node_from_prev_fragment
+                                if inline_context_node_from_prev_fragment
                                     .flags
-                                    .contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT) ||
-                                    inline_context_node_from_prev_fragment.address ==
-                                        inline_context_node_from_this_fragment.address
+                                    .contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT)
+                                {
+                                    return false;
+                                }
+                                if !inline_context_node_from_prev_fragment
+                                    .flags
+                                    .contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT)
+                                {
+                                    return true;
+                                }
+                                inline_context_node_from_prev_fragment.address ==
+                                    inline_context_node_from_this_fragment.address
                             },
                         )
             } else {
