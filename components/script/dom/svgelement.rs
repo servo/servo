@@ -18,7 +18,7 @@ use style::properties::declaration_block::{Importance, PropertyDeclarationBlock}
 use style::properties::{parse_one_declaration_into, SourcePropertyDeclaration};
 use style::properties::PropertyId;
 use style::shared_lock::Locked;
-use style::stylearc::Arc;
+use servo_arc::Arc;
 use style_traits::PARSING_MODE_ALLOW_UNITLESS_LENGTH;
 
 #[dom_struct]
@@ -60,7 +60,7 @@ impl SVGElement {
         let quirks_mode = document.quirks_mode();
         let url = win.get_url();
 
-        let id = PropertyId::parse(DOMString::from(&**attr.local_name()).into())
+        let id = PropertyId::parse(&attr.local_name(), None)
             .expect("This SVG presentation attribute is not a css property!");
         let mut declarations = SourcePropertyDeclaration::new();
         let result = parse_one_declaration_into(&mut declarations,

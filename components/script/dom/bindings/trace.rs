@@ -111,8 +111,6 @@ use time::Duration;
 use uuid::Uuid;
 use webrender_api::GeometryKey;
 use webrender_api::ImageKey;
-use webrender_api::{WebGLBufferId, WebGLError, WebGLFramebufferId, WebGLProgramId};
-use webrender_api::{WebGLRenderbufferId, WebGLShaderId, WebGLTextureId, WebGLVertexArrayId};
 use webvr_traits::WebVRGamepadHand;
 
 /// A trait to allow tracing (only) DOM objects.

@@ -333,6 +333,7 @@ impl From<Color> for RGBAColor {
 /// Specified value for the "color" property, which resolves the `currentcolor`
 /// keyword to the parent color instead of self's color.
 #[derive(Clone, Debug, PartialEq, ToCss)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ColorPropertyValue(pub Color);
 
 impl ToComputedValue for ColorPropertyValue {

@@ -14,10 +14,10 @@ opt-level = 3
 # debug = true
 # lto = false
 
-[patch.crates-io]
+[replace]
+"https://github.com/servo/webrender#webrender_api:0.50.0" = { path = "/home/stshine/Programs/webrender/webrender_api" }
+"https://github.com/servo/webrender#webrender:0.50.0" = { path = "/home/stshine/Programs/webrender/webrender" }
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #
 #     <crate> = { path = "/path/to/local/checkout" }
-"webrender" = { path = '../webrender/webrender/' }
-"webrender_api" = { path = '../webrender/webrender_api/' }

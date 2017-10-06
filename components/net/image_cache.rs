@@ -585,10 +585,14 @@ impl ImageCache for ImageCacheImpl {
     fn update_geometry(&self,
                        geometry_key: webrender_api::GeometryKey,
                        data: webrender_api::Geometry) {
-        self.store.lock().unwrap().webrender_api().update_geometry(geometry_key, data);
+        let mut updates = webrender_api::ResourceUpdates::new();
+        updates.update_geometry(geometry_key, data);
+        self.store.lock().unwrap().webrender_api().update_resources(updates);
     }
 
     fn delete_geometry(&self, key: webrender_api::GeometryKey) {
-        self.store.lock().unwrap().webrender_api().delete_geometry(key);
+        let mut updates = webrender_api::ResourceUpdates::new();
+        updates.delete_geometry(key);
+        self.store.lock().unwrap().webrender_api().update_resources(updates);
     }
 }

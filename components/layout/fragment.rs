@@ -3160,3 +3160,17 @@ impl Serialize for DebugId {
         serializer.serialize_u16(self.0)
     }
 }
+
+
+#[derive(Debug, Clone)]
+pub enum SVGData {
+    SVG,
+    Circle
+}
+
+/// Represent an SVG element in layout.
+#[derive(Debug, Clone)]
+pub struct SVGItem {
+    pub data: SVGData,
+    pub style: ServoArc<ComputedValues>
+}

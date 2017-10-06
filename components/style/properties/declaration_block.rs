@@ -79,6 +79,7 @@ pub struct PropertyDeclarationBlock {
     declarations: Vec<PropertyDeclaration>,
 
     /// The "important" flag for each declaration in `declarations`.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "bitvec")]
     declarations_importance: SmallBitVec,
 
     longhands: LonghandIdSet,
