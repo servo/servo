@@ -1303,22 +1303,27 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn get_css_transitions_info(
         &self,
-    ) -> FnvHashMap<TransitionProperty, Arc<AnimationValue>> {
+    ) -> FnvHashMap<LonghandId, Arc<AnimationValue>> {
         use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
         use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
-        use gecko_bindings::bindings::Gecko_ElementTransitions_PropertyAt;
 
         let collection_length =
-            unsafe { Gecko_ElementTransitions_Length(self.0) };
-        let mut map = FnvHashMap::with_capacity_and_hasher(collection_length, Default::default());
+            unsafe { Gecko_ElementTransitions_Length(self.0) } as usize;
+        let mut map = FnvHashMap::with_capacity_and_hasher(
+            collection_length,
+            Default::default()
+        );
+
         for i in 0..collection_length {
-            let (property, raw_end_value) = unsafe {
-                (Gecko_ElementTransitions_PropertyAt(self.0, i as usize).into(),
-                 Gecko_ElementTransitions_EndValueAt(self.0, i as usize))
+            let raw_end_value = unsafe {
+                 Gecko_ElementTransitions_EndValueAt(self.0, i)
             };
-            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value);
-            debug_assert!(end_value.is_some());
-            map.insert(property, end_value.unwrap().clone_arc());
+
+            let end_value = AnimationValue::arc_from_borrowed(&raw_end_value)
+                .expect("AnimationValue not found in ElementTransitions");
+
+            let property = end_value.id();
+            map.insert(property, end_value.clone_arc());
         }
         map
     }
@@ -1363,7 +1368,7 @@ impl<'le> TElement for GeckoElement<'le> {
         after_change_style: &ComputedValues
     ) -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
-        use std::collections::HashSet;
+        use properties::LonghandIdSet;
 
         debug_assert!(self.might_need_transitions_update(Some(before_change_style),
                                                          after_change_style),
@@ -1381,13 +1386,7 @@ impl<'le> TElement for GeckoElement<'le> {
                    property == nsCSSPropertyID::eCSSProperty_UNKNOWN;
         };
 
-        let mut transitions_to_keep = if !existing_transitions.is_empty() &&
-                                         (after_change_box_style.transition_nscsspropertyid_at(0) !=
-                                              nsCSSPropertyID::eCSSPropertyExtra_all_properties) {
-            Some(HashSet::<TransitionProperty>::with_capacity(transitions_count))
-        } else {
-            None
-        };
+        let mut transitions_to_keep = LonghandIdSet::new();
 
         for i in 0..transitions_count {
             let property = after_change_box_style.transition_nscsspropertyid_at(i);
@@ -1400,7 +1399,8 @@ impl<'le> TElement for GeckoElement<'le> {
 
             let transition_property: TransitionProperty = property.into();
 
-            let property_check_helper = |property: &LonghandId| -> bool {
+            let mut property_check_helper = |property: &LonghandId| -> bool {
+                transitions_to_keep.insert(*property);
                 self.needs_transitions_update_per_property(
                     property,
                     combined_duration,
@@ -1427,17 +1427,13 @@ impl<'le> TElement for GeckoElement<'le> {
                         return true;
                     }
                 },
-            };
-
-            if let Some(ref mut transitions_to_keep) = transitions_to_keep {
-                transitions_to_keep.insert(transition_property);
             }
         }
 
         // Check if we have to cancel the running transition because this is not
         // a matching transition-property value.
-        transitions_to_keep.map_or(false, |set| {
-            existing_transitions.keys().any(|property| !set.contains(property))
+        existing_transitions.keys().any(|property| {
+            !transitions_to_keep.contains(*property)
         })
     }
 
@@ -1447,7 +1443,7 @@ impl<'le> TElement for GeckoElement<'le> {
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
-        existing_transitions: &FnvHashMap<TransitionProperty, Arc<AnimationValue>>,
+        existing_transitions: &FnvHashMap<LonghandId, Arc<AnimationValue>>,
     ) -> bool {
         use values::animated::{Animate, Procedure};
 
@@ -1457,13 +1453,10 @@ impl<'le> TElement for GeckoElement<'le> {
         // If the end value has not changed, we should leave the currently
         // running transition as-is since we don't want to interrupt its timing
         // function.
-        //
-        // FIXME(emilio): The shorthand / longhand mapping with transitions
-        // looks pretty fishy!
-        if let Some(ref existing) = existing_transitions.get(&TransitionProperty::Longhand(*longhand_id)) {
+        if let Some(ref existing) = existing_transitions.get(longhand_id) {
             let after_value =
                 AnimationValue::from_computed_values(
-                    &longhand_id,
+                    longhand_id,
                     after_change_style
                 ).unwrap();
 
