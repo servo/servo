@@ -26,6 +26,7 @@
           },
           {
             expected_type: "cached",
+            response_status: [299, "Whatever"],
           }
         ]
       },
@@ -35,8 +36,7 @@
           {
             response_status: [299, "Whatever"],
             response_headers: [
-              ['Last-Modified', http_date(-3 * 100)],
-              ['Cache-Control', 'public']
+              ['Last-Modified', http_date(-3 * 100)]
             ],
           },
           {
