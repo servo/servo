@@ -81,7 +81,7 @@ struct CachedMetadata {
     pub charset: Option<String>,
 
     /// Headers
-    pub headers: Option<Vec<(String, String)>>,
+    pub headers: Arc<Mutex<Headers>>,
 
     /// HTTP Status
     pub status: Option<(u16, Vec<u8>)>
@@ -228,15 +228,7 @@ impl HttpCache {
         if let Some(cached_resource) = self.entries.get(&entry_key) {
             let mut response = Response::new(cached_resource.metadata.final_url.clone());
             let mut headers = Headers::new();
-            if let Some(ref header_list) = cached_resource.metadata.headers {
-                // TODO: translate raw headers into typed hyper::Header values.
-                for &(ref name, ref value) in header_list {
-                    let header_values: Vec<Vec<u8>> = value.split(",").map(|val| String::from(val).into_bytes())
-                        .collect();
-                    headers.set_raw(name.clone(), header_values);
-                }
-            };
-            response.headers = headers;
+            response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
             response.body = cached_resource.body.clone();
             response.status = cached_resource.status.clone();
             response.raw_status = cached_resource.raw_status.clone();
@@ -309,18 +301,12 @@ impl HttpCache {
                 println!("checking if response is cacheable: {:?}", response);
                 if response_is_cacheable(&metadata) {
                     let entry_key = CacheKey::new(request.clone());
-                    let raw_headers = metadata.headers.map_or(None, |headers|
-                        Some(headers.iter()
-                            .map(|header|
-                                    (String::from_str(header.name()).unwrap_or(String::from("None")),
-                                     header.value_string()))
-                            .collect()));
                     let cacheable_metadata = CachedMetadata {
                         final_url: metadata.final_url,
                         content_type: metadata.content_type,
                         charset: metadata.charset,
                         status: metadata.status,
-                        headers: raw_headers
+                        headers: Arc::new(Mutex::new(response.headers.clone()))
                     };
                     let entry_resource = CachedResource {
                         metadata: cacheable_metadata,

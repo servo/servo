@@ -921,6 +921,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
                             cached_response.response.headers.get::<LastModified>() {
                             http_request.headers.set(IfModifiedSince(HttpDate(t)));
                         }
+                        // TODO: find out why the typed version returns None.
                         if let Some(entity_tag) =
                             cached_response.response.headers.get_raw("ETag") {
                             http_request.headers.set_raw("If-None-Match", entity_tag.to_vec());
