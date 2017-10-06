@@ -1362,8 +1362,9 @@ impl<'le> TElement for GeckoElement<'le> {
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues
     ) -> bool {
+        use fnv::FnvBuildHasher;
         use gecko_bindings::structs::nsCSSPropertyID;
-        use std::collections::HashSet;
+        use hash::FnvHashSet;
 
         debug_assert!(self.might_need_transitions_update(Some(before_change_style),
                                                          after_change_style),
@@ -1384,7 +1385,10 @@ impl<'le> TElement for GeckoElement<'le> {
         let mut transitions_to_keep = if !existing_transitions.is_empty() &&
                                          (after_change_box_style.transition_nscsspropertyid_at(0) !=
                                               nsCSSPropertyID::eCSSPropertyExtra_all_properties) {
-            Some(HashSet::<TransitionProperty>::with_capacity(transitions_count))
+            Some(FnvHashSet::<TransitionProperty>::with_capacity_and_hasher(
+                transitions_count,
+                FnvBuildHasher::default()
+            ))
         } else {
             None
         };
