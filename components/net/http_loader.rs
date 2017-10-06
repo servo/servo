@@ -964,12 +964,12 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
         // Substep 5
         if response.is_none() {
-            // Subsubstep 1
-            response = Some(forward_response.clone());
-            // Subsubstep 2
+            // Subsubstep 2, doing it first to avoid a clone of forward_response.
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 http_cache.store(&http_request, &forward_response);
             }
+            // Subsubstep 1
+            response = Some(forward_response);
         }
     }
 
