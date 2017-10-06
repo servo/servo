@@ -339,6 +339,7 @@ class PRAddComment(Step):
     """Add an issue comment indicating that the code has been reviewed already"""
     def create(self, state):
         state.pr.issue.add_comment("Code reviewed upstream.")
+        state.pr.issue.add_label("servo-export")
 
 
 class MergePR(Step):
