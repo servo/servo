@@ -894,12 +894,12 @@ impl Stylist {
         // We need to compute visited values if we have visited rules or if our
         // parent has visited values.
         let visited_values = if inputs.visited_rules.is_some() || parent_style.visited_style().is_some() {
-            // Slightly annoying: we know that inputs has either rules or
-            // visited rules, but we can't do inputs.rules() up front because
-            // maybe it just has visited rules, so can't unwrap_or.
+            // At this point inputs may have visited rules, or rules, or both,
+            // or neither (e.g. if it's a text style it may have neither).  So
+            // we have to be a bit careful here.
             let rule_node = match inputs.visited_rules.as_ref() {
                 Some(rules) => rules,
-                None => inputs.rules.as_ref().unwrap(),
+                None => inputs.rules.as_ref().unwrap_or(self.rule_tree().root()),
             };
             let inherited_style;
             let inherited_style_ignoring_first_line;
