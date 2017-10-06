@@ -1383,9 +1383,20 @@ fn has_credentials(url: &ServoUrl) -> bool {
 }
 
 fn is_no_store_cache(headers: &Headers) -> bool {
+    println!("debug headers {:?}", headers);
+    let mut has_no_cache_directive = false;
+    if let Some(&CacheControl(ref directives)) = headers.get::<CacheControl>() {
+        has_no_cache_directive = directives.iter().any(|directive| {
+            if CacheDirective::OnlyIfCached == *directive {
+                true
+            } else {
+                false
+            }
+        });
+    }
     headers.has::<IfModifiedSince>() | headers.has::<IfNoneMatch>() |
     headers.has::<IfUnmodifiedSince>() | headers.has::<IfMatch>() |
-    headers.has::<IfRange>()
+    headers.has::<IfRange>() | has_no_cache_directive
 }
 
 /// https://fetch.spec.whatwg.org/#redirect-status
