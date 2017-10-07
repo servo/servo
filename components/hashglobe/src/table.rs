@@ -182,7 +182,7 @@ pub struct GapThenFull<K, V, M> {
 
 /// A hash that is not zero, since we use a hash of zero to represent empty
 /// buckets.
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub struct SafeHash {
     hash: HashUint,
 }
@@ -814,6 +814,12 @@ impl<K, V> RawTable<K, V> {
                 _marker: marker::PhantomData,
             }
         }
+    }
+
+    /// Returns a raw pointer to the table's buffer.
+    #[inline]
+    pub fn raw_buffer(&self) -> *const u8 {
+        self.hashes.ptr() as *const u8
     }
 
     /// Creates a new raw table from a given capacity. All buckets are

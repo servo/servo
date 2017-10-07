@@ -11,7 +11,7 @@ use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSeri
 use parser::ParserContext;
 use precomputed_hash::PrecomputedHash;
 use properties::{CSSWideKeyword, DeclaredValue};
-use selector_map::{PrecomputedHashSet, PrecomputedHashMap};
+use selector_map::{PrecomputedHashSet, PrecomputedDiagnosticHashMap};
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
@@ -105,7 +105,7 @@ where
     /// Key index.
     index: Vec<K>,
     /// Key-value map.
-    values: PrecomputedHashMap<K, V>,
+    values: PrecomputedDiagnosticHashMap<K, V>,
 }
 
 impl<K, V> OrderedMap<K, V>
@@ -116,7 +116,7 @@ where
     pub fn new() -> Self {
         OrderedMap {
             index: Vec::new(),
-            values: PrecomputedHashMap::default(),
+            values: PrecomputedDiagnosticHashMap::default(),
         }
     }
 
@@ -125,7 +125,9 @@ where
         if !self.values.contains_key(&key) {
             self.index.push(key.clone());
         }
-        self.values.insert(key, value);
+        self.values.begin_mutation();
+        self.values.try_insert(key, value).unwrap();
+        self.values.end_mutation();
     }
 
     /// Get a value given its key.
@@ -165,7 +167,10 @@ where
             None => return None,
         };
         self.index.remove(index);
-        self.values.remove(key)
+        self.values.begin_mutation();
+        let result = self.values.remove(key);
+        self.values.end_mutation();
+        result
     }
 }
 
@@ -196,7 +201,7 @@ where
         };
 
         self.pos += 1;
-        let value = &self.inner.values[key];
+        let value = &self.inner.values.get(key).unwrap();
 
         Some((key, value))
     }
