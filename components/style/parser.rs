@@ -130,11 +130,6 @@ impl<'a> ParserContext<'a> {
         };
         context.error_reporter.report_error(self.url_data, location, error)
     }
-
-    /// Returns whether this is a chrome stylesheets.
-    pub fn in_chrome_stylesheet(&self) -> bool {
-        self.url_data.is_chrome()
-    }
 }
 
 // XXXManishearth Replace all specified value parse impls with impls of this
