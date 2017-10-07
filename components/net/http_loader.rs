@@ -48,6 +48,7 @@ use std::io::{self, Read, Write};
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::RwLock;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
@@ -917,9 +918,10 @@ fn http_network_or_cache_fetch(request: &mut Request,
                 } else {
                     if revalidating_flag {
                         // Substep 5
-                        if let Some(&LastModified(HttpDate(t))) =
-                            cached_response.response.headers.get::<LastModified>() {
-                            http_request.headers.set(IfModifiedSince(HttpDate(t)));
+                        if let Some(date_slice) = cached_response.response.headers.get_raw("Last-Modified") {
+                            let date_string = String::from_utf8(date_slice[0].to_vec()).unwrap();
+                            let http_date = HttpDate::from_str(&date_string).unwrap();
+                            http_request.headers.set(IfModifiedSince(http_date));
                         }
                         // TODO: find out why the typed version returns None.
                         if let Some(entity_tag) =
@@ -949,16 +951,17 @@ fn http_network_or_cache_fetch(request: &mut Request,
                                                   done_chan, context);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
+            println!("maybe invalidating {:?} for method type {:?}", forward_response, http_request.method.safe());
             if !http_request.method.safe() {
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.invalidate(&http_request);
+                    http_cache.invalidate(&http_request, &forward_response);
                 }
             }
         }
         // Substep 4
         if revalidating_flag && forward_response.status.map_or(false, |s| s == StatusCode::NotModified) {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
-                http_cache.refresh(&http_request, &forward_response.clone());
+                response = http_cache.refresh(&http_request, &forward_response.clone());
             }
         }
 

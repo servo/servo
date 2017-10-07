@@ -63,7 +63,7 @@ struct CachedResource {
     status: Option<StatusCode>,
     raw_status: Option<(u16, Vec<u8>)>,
     url_list: Vec<ServoUrl>,
-    expires: Duration,
+    expires: Arc<Mutex<Duration>>,
     last_validated: Tm,
     awaiting_body: Arc<Mutex<Vec<Sender<Data>>>>
 }
@@ -211,6 +211,18 @@ fn get_response_expiry(response: &Response) -> Duration {
     Duration::seconds(0i64)
 }
 
+// Create a new response based on the cached resource.
+fn create_response(cached_resource: &CachedResource) -> Response {
+    let mut response = Response::new(cached_resource.metadata.final_url.clone());
+    let mut headers = Headers::new();
+    response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
+    response.body = cached_resource.body.clone();
+    response.status = cached_resource.status.clone();
+    response.raw_status = cached_resource.raw_status.clone();
+    response.url_list = cached_resource.url_list.clone();
+    response
+}
+
 impl HttpCache {
     /// Create a new memory cache instance.
     pub fn new() -> HttpCache {
@@ -236,19 +248,14 @@ impl HttpCache {
         let entry_key = CacheKey::new(request.clone());
         println!("received construct_response for {:?}", entry_key);
         if let Some(cached_resource) = self.entries.get(&entry_key) {
-            let mut response = Response::new(cached_resource.metadata.final_url.clone());
-            let mut headers = Headers::new();
-            response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
-            response.body = cached_resource.body.clone();
-            response.status = cached_resource.status.clone();
-            response.raw_status = cached_resource.raw_status.clone();
-            response.url_list = cached_resource.url_list.clone();
+            let response = create_response(&cached_resource);
             if let ResponseBody::Receiving(_) = *response.body.lock().unwrap() {
                 let (done_sender, done_receiver) = channel();
                 *done_chan = Some((done_sender.clone(), done_receiver));
                 cached_resource.awaiting_body.lock().unwrap().push(done_sender);
             }
-            let has_expired = self.calculate_response_age(&cached_resource, &response) + cached_resource.expires
+            let has_expired = self.calculate_response_age(&cached_resource, &response) +
+                *cached_resource.expires.lock().unwrap()
                 < Duration::seconds(time::now().to_timespec().sec);
             println!("constructing for: {:?} {:?}", response, has_expired);
             return Some(CachedResponse { response: response, needs_validation: has_expired });
@@ -257,10 +264,46 @@ impl HttpCache {
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
-    pub fn refresh(&mut self, request: &Request, response: &Response) {}
+    pub fn refresh(&mut self, request: &Request, response: &Response) -> Option<Response> {
+        for (key, cached_resource) in self.entries.iter_mut() {
+            if key.url() == request.url() {
+                let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
+                stored_headers.extend(response.headers.iter());
+                let response = create_response(&cached_resource);
+                return Some(response);
+            }
+        }
+        None
+    }
 
     /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
-    pub fn invalidate(&mut self, request: &Request) {}
+    pub fn invalidate(&mut self, request: &Request, response: &Response) {
+        let mut location = String::new();
+        let mut content_location = String::new();
+        if let Some(&header::Location(ref url)) = response.headers.get::<header::Location>() {
+            location = url.clone();
+        }
+        if let Some(url_data) = response.headers.get_raw("Content-Location") {
+            content_location = String::from_utf8(url_data[0].to_vec()).unwrap();
+        }
+        for (key, cached_resource) in self.entries.iter_mut() {
+            let string_resource_url = key.url().into_string();
+            let matches = (key.url() == request.url()) |
+                (string_resource_url == location) |
+                (string_resource_url == content_location);
+            if matches {
+                println!("invalidating: {:?}", key);
+                let mut body = cached_resource.body.lock().unwrap();
+                *body = ResponseBody::Empty;
+                let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
+                for done_sender in awaiting_consumers.drain(..) {
+                    done_sender.send(Data::Done);
+                };
+                let mut expires = cached_resource.expires.lock().unwrap();
+                *expires = Duration::seconds(0i64);
+            }
+        }
+    }
 
     /// Updating the cached response body from ResponseBody::Receiving to ResponseBody::Done.
     pub fn update_response_body(&mut self, request: &Request, response: &Response) {
@@ -287,8 +330,8 @@ impl HttpCache {
 
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
     pub fn store(&mut self, request: &Request, response: &Response) {
-        println!("received store: {:?}", response);
-        println!("received metatdata: {:?}", response.metadata());
+        let entry_key = CacheKey::new(request.clone());
+        println!("received store for key: {:?} response: {:?}", entry_key, response);
         match request.method {
             // Only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
             Method::Get => {},
@@ -300,6 +343,13 @@ impl HttpCache {
             | Some(StatusCode::TemporaryRedirect) | Some(StatusCode::Found) => return,
             _ => {}
         }
+        if let Some((ref code, _)) = response.raw_status {
+            println!("store for code {:?}", code);
+            if *code == 304 {
+                println!("not storing key because 304: {:?} response: {:?}", entry_key, response);
+                return
+            }
+        }
         match response.metadata() {
             Ok(FetchMetadata::Filtered {
                filtered: FilteredMetadata::Basic(metadata),
@@ -308,10 +358,9 @@ impl HttpCache {
                 filtered: FilteredMetadata::Cors(metadata),
                 unsafe_: _ }) |
             Ok(FetchMetadata::Unfiltered(metadata)) => {
-                println!("checking if response is cacheable: {:?}", response);
                 if response_is_cacheable(&metadata) {
                     let expiry = get_response_expiry(&response);
-                    let entry_key = CacheKey::new(request.clone());
+
                     let cacheable_metadata = CachedMetadata {
                         final_url: metadata.final_url,
                         content_type: metadata.content_type,
@@ -325,7 +374,7 @@ impl HttpCache {
                         status: response.status,
                         raw_status: response.raw_status.clone(),
                         url_list: response.url_list.clone(),
-                        expires: expiry,
+                        expires: Arc::new(Mutex::new(expiry)),
                         last_validated: time::now(),
                         awaiting_body: Arc::new(Mutex::new(vec![]))
                     };
