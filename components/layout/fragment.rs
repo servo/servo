@@ -2829,8 +2829,9 @@ impl Fragment {
     pub fn can_fully_meld_with_next_inline_fragment(&self, next_fragment: &Fragment) -> bool {
         if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
             if let Some(ref inline_context_of_this_fragment) = self.inline_context {
+                inline_context_of_this_fragment.nodes.len() >=
+                    inline_context_of_next_fragment.nodes.len() &&
                 inline_context_of_this_fragment.nodes.iter().rev()
-                    .map(Some).chain(::std::iter::repeat(None))
                     .zip(inline_context_of_next_fragment.nodes.iter().rev())
                     .all(|(inline_context_node_from_this_fragment,
                            inline_context_node_from_next_fragment)|
@@ -2845,9 +2846,8 @@ impl Fragment {
                                 // There's nothing to meld, so compatibility doesn't matter.
                                 return true;
                             }
-                            inline_context_node_from_this_fragment.map(|node| {
-                                inline_context_node_from_next_fragment.address == node.address
-                            }).unwrap_or(false)
+                            inline_context_node_from_next_fragment.address ==
+                                inline_context_node_from_this_fragment.address
                         })
             } else {
                 false
@@ -2860,8 +2860,9 @@ impl Fragment {
     pub fn can_fully_meld_with_prev_inline_fragment(&self, prev_fragment: &Fragment) -> bool {
         if let Some(ref inline_context_of_prev_fragment) = prev_fragment.inline_context {
             if let Some(ref inline_context_of_this_fragment) = self.inline_context {
+                inline_context_of_this_fragment.nodes.len() >=
+                    inline_context_of_prev_fragment.nodes.len() &&
                 inline_context_of_this_fragment.nodes.iter().rev()
-                    .map(Some).chain(::std::iter::repeat(None))
                     .zip(inline_context_of_prev_fragment.nodes.iter().rev())
                     .all(|(inline_context_node_from_this_fragment,
                            inline_context_node_from_prev_fragment)|
@@ -2874,9 +2875,8 @@ impl Fragment {
                                     FIRST_FRAGMENT_OF_ELEMENT) {
                                 return true;
                             }
-                            inline_context_node_from_this_fragment.map(|node| {
-                                inline_context_node_from_prev_fragment.address == node.address
-                            }).unwrap_or(false)
+                            inline_context_node_from_prev_fragment.address ==
+                                inline_context_node_from_this_fragment.address
                         })
             } else {
                 false
