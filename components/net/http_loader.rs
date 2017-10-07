@@ -961,7 +961,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
         // Substep 4
         if revalidating_flag && forward_response.status.map_or(false, |s| s == StatusCode::NotModified) {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
-                response = http_cache.refresh(&http_request, &forward_response.clone());
+                response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
             }
         }
 

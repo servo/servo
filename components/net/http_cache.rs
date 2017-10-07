@@ -211,17 +211,6 @@ fn get_response_expiry(response: &Response) -> Duration {
     Duration::seconds(0i64)
 }
 
-// Create a new response based on the cached resource.
-fn create_response(cached_resource: &CachedResource) -> Response {
-    let mut response = Response::new(cached_resource.metadata.final_url.clone());
-    let mut headers = Headers::new();
-    response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
-    response.body = cached_resource.body.clone();
-    response.status = cached_resource.status.clone();
-    response.raw_status = cached_resource.raw_status.clone();
-    response.url_list = cached_resource.url_list.clone();
-    response
-}
 
 impl HttpCache {
     /// Create a new memory cache instance.
@@ -248,7 +237,12 @@ impl HttpCache {
         let entry_key = CacheKey::new(request.clone());
         println!("received construct_response for {:?}", entry_key);
         if let Some(cached_resource) = self.entries.get(&entry_key) {
-            let response = create_response(&cached_resource);
+            let mut response = Response::new(cached_resource.metadata.final_url.clone());
+            response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
+            response.body = cached_resource.body.clone();
+            response.status = cached_resource.status.clone();
+            response.raw_status = cached_resource.raw_status.clone();
+            response.url_list = cached_resource.url_list.clone();
             if let ResponseBody::Receiving(_) = *response.body.lock().unwrap() {
                 let (done_sender, done_receiver) = channel();
                 *done_chan = Some((done_sender.clone(), done_receiver));
@@ -264,13 +258,24 @@ impl HttpCache {
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
-    pub fn refresh(&mut self, request: &Request, response: &Response) -> Option<Response> {
+    pub fn refresh(&mut self, request: &Request, response: Response, done_chan: &mut DoneChannel) -> Option<Response> {
         for (key, cached_resource) in self.entries.iter_mut() {
+            println!("comparing: {:?} with  {:?}", key.url(), request.url());
+            println!("result: {:?}", key.url() == request.url());
             if key.url() == request.url() {
-                let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
-                stored_headers.extend(response.headers.iter());
-                let response = create_response(&cached_resource);
-                return Some(response);
+                if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
+                    println!("starting refreshing: {:?}", stored_headers);
+                    stored_headers.extend(response.headers.iter());
+                    let mut response_200 = Response::new(cached_resource.metadata.final_url.clone());
+                    response_200.headers = stored_headers.clone();
+                    response_200.body = cached_resource.body.clone();
+                    response_200.status = cached_resource.status.clone();
+                    response_200.raw_status = cached_resource.raw_status.clone();
+                    response_200.url_list = cached_resource.url_list.clone();
+                    *done_chan = None;
+                    println!("refreshing: {:?}", response_200);
+                    return Some(response_200);
+                }
             }
         }
         None
@@ -307,6 +312,13 @@ impl HttpCache {
 
     /// Updating the cached response body from ResponseBody::Receiving to ResponseBody::Done.
     pub fn update_response_body(&mut self, request: &Request, response: &Response) {
+        if let Some((ref code, _)) = response.raw_status {
+            println!("updating for code {:?}", code);
+            if *code == 304 {
+                println!("not updating because 304: response: {:?}", response);
+                return
+            }
+        }
         let entry_key = CacheKey::new(request.clone());
         if let Some(mut cached_resource) = self.entries.get(&entry_key) {
             println!("updating response for {:?}", entry_key);
@@ -323,7 +335,6 @@ impl HttpCache {
                     },
                     _ => {},
                 }
-
             }
         }
     }
