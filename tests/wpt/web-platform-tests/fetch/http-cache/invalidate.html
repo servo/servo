@@ -17,15 +17,12 @@
         name: 'HTTP cache invalidates after a successful response from a POST',
         requests: [
           {
-            template: "fresh",
-            query_arg: "debug1",
+            template: "fresh"
           }, {
             request_method: "POST",
             request_body: "abc",
-            query_arg: "debug2",
           }, {
-            expected_type: "not_cached",
-            query_arg: "debug3",
+            expected_type: "not_cached"
           }
         ]
       },
