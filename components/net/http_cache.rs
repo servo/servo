@@ -273,6 +273,8 @@ impl HttpCache {
                     response_200.raw_status = cached_resource.raw_status.clone();
                     response_200.url_list = cached_resource.url_list.clone();
                     *done_chan = None;
+                    let mut expires = cached_resource.expires.lock().unwrap();
+                    *expires = get_response_expiry(&response_200);
                     println!("refreshing: {:?}", response_200);
                     return Some(response_200);
                 }
@@ -298,12 +300,6 @@ impl HttpCache {
                 (string_resource_url == content_location);
             if matches {
                 println!("invalidating: {:?}", key);
-                let mut body = cached_resource.body.lock().unwrap();
-                *body = ResponseBody::Empty;
-                let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
-                for done_sender in awaiting_consumers.drain(..) {
-                    done_sender.send(Data::Done);
-                };
                 let mut expires = cached_resource.expires.lock().unwrap();
                 *expires = Duration::seconds(0i64);
             }
@@ -371,7 +367,6 @@ impl HttpCache {
             Ok(FetchMetadata::Unfiltered(metadata)) => {
                 if response_is_cacheable(&metadata) {
                     let expiry = get_response_expiry(&response);
-
                     let cacheable_metadata = CachedMetadata {
                         final_url: metadata.final_url,
                         content_type: metadata.content_type,
