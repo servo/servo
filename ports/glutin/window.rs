@@ -39,6 +39,8 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
+use std::thread;
+use std::time;
 use style_traits::DevicePixel;
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
@@ -695,6 +697,11 @@ impl Window {
         }
 
         events.extend(mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new()).into_iter());
+
+        if opts::get().headless && events.is_empty() {
+            thread::sleep(time::Duration::from_millis(5));
+        }
+
         events
     }
 
