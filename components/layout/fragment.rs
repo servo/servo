@@ -2827,8 +2827,12 @@ impl Fragment {
     }
 
     pub fn can_fully_meld_with_next_inline_fragment(&self, next_fragment: &Fragment) -> bool {
-        if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
-            if let Some(ref inline_context_of_this_fragment) = self.inline_context {
+        match (&next_fragment.inline_context, &self.inline_context) {
+            (&None, _) => true,
+            (&Some(_), &None) => false,
+            (&Some(ref inline_context_of_next_fragment),
+             &Some(ref inline_context_of_this_fragment)) =>
+            {
                 inline_context_of_this_fragment.nodes.len() >=
                     inline_context_of_next_fragment.nodes.len() &&
                 inline_context_of_this_fragment.nodes.iter().rev()
@@ -2849,17 +2853,17 @@ impl Fragment {
                             inline_context_node_from_next_fragment.address ==
                                 inline_context_node_from_this_fragment.address
                         })
-            } else {
-                false
-            }
-        } else {
-            true
+            },
         }
     }
 
     pub fn can_fully_meld_with_prev_inline_fragment(&self, prev_fragment: &Fragment) -> bool {
-        if let Some(ref inline_context_of_prev_fragment) = prev_fragment.inline_context {
-            if let Some(ref inline_context_of_this_fragment) = self.inline_context {
+        match (&prev_fragment.inline_context, &self.inline_context) {
+            (&None, _) => true,
+            (&Some(_), &None) => false,
+            (&Some(ref inline_context_of_prev_fragment),
+             &Some(ref inline_context_of_this_fragment)) =>
+            {
                 inline_context_of_this_fragment.nodes.len() >=
                     inline_context_of_prev_fragment.nodes.len() &&
                 inline_context_of_this_fragment.nodes.iter().rev()
@@ -2878,17 +2882,15 @@ impl Fragment {
                             inline_context_node_from_prev_fragment.address ==
                                 inline_context_node_from_this_fragment.address
                         })
-            } else {
-                false
-            }
-        } else {
-            true
+            },
         }
     }
 
     pub fn meld_with_next_inline_fragment(&mut self, next_fragment: &Fragment) {
-        if let Some(ref mut inline_context_of_this_fragment) = self.inline_context {
-            if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
+        match (&mut self.inline_context, &next_fragment.inline_context) {
+            (&mut Some(ref mut inline_context_of_this_fragment),
+                 &Some(ref inline_context_of_next_fragment)) =>
+            {
                 for (inline_context_node_from_this_fragment,
                      inline_context_node_from_next_fragment)
                     in inline_context_of_this_fragment.nodes.iter_mut().rev()
@@ -2904,13 +2906,16 @@ impl Fragment {
                     }
                     inline_context_node_from_this_fragment.flags.insert(LAST_FRAGMENT_OF_ELEMENT);
                 }
-            }
+            },
+            (_, _) => {},
         }
     }
 
     pub fn meld_with_prev_inline_fragment(&mut self, prev_fragment: &Fragment) {
-        if let Some(ref mut inline_context_of_this_fragment) = self.inline_context {
-            if let Some(ref inline_context_of_prev_fragment) = prev_fragment.inline_context {
+        match (&mut self.inline_context, &prev_fragment.inline_context) {
+            (&mut Some(ref mut inline_context_of_this_fragment),
+                 &Some(ref inline_context_of_prev_fragment)) =>
+            {
                 for (inline_context_node_from_prev_fragment,
                      inline_context_node_from_this_fragment)
                     in inline_context_of_prev_fragment.nodes.iter().rev().zip(
@@ -2927,7 +2932,8 @@ impl Fragment {
                     inline_context_node_from_this_fragment.flags.insert(
                         FIRST_FRAGMENT_OF_ELEMENT);
                 }
-            }
+            },
+            (_, _) => {},
         }
     }
 
