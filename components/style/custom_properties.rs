@@ -461,7 +461,7 @@ fn parse_var_function<'i, 't>(
 /// properties.
 pub struct CustomPropertiesBuilder<'a> {
     seen: PrecomputedHashSet<&'a Name>,
-    custom_properties: Option<OrderedMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
+    specified_custom_properties: Option<OrderedMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
 }
 
@@ -470,7 +470,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
     pub fn new(inherited: Option<&'a Arc<CustomPropertiesMap>>) -> Self {
         Self {
             seen: PrecomputedHashSet::default(),
-            custom_properties: None,
+            specified_custom_properties: None,
             inherited,
         }
     }
@@ -486,7 +486,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
             return;
         }
 
-        let map = match self.custom_properties {
+        let map = match self.specified_custom_properties {
             Some(ref mut map) => map,
             None => {
                 let mut map = OrderedMap::new();
@@ -500,8 +500,8 @@ impl<'a> CustomPropertiesBuilder<'a> {
                         })
                     }
                 }
-                self.custom_properties = Some(map);
-                self.custom_properties.as_mut().unwrap()
+                self.specified_custom_properties = Some(map);
+                self.specified_custom_properties.as_mut().unwrap()
             }
         };
 
@@ -532,7 +532,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
     ///
     /// Otherwise, just use the inherited custom properties map.
     pub fn build(mut self) -> Option<Arc<CustomPropertiesMap>> {
-        let mut map = match self.custom_properties.take() {
+        let mut map = match self.specified_custom_properties.take() {
             Some(map) => map,
             None => return self.inherited.cloned(),
         };
