@@ -908,18 +908,18 @@ impl Parse for ColorStop {
 }
 
 impl Parse for PaintWorklet {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("paint")?;
         input.parse_nested_block(|input| {
             let name = Atom::from(&**input.expect_ident()?);
             let arguments = input.try(|input| {
                 input.expect_comma()?;
-                input.parse_comma_separated(|input| Ok(*SpecifiedValue::parse(context, input)?))
+                input.parse_comma_separated(|input| Ok(*SpecifiedValue::parse(input)?))
             }).unwrap_or(vec![]);
-            Ok(PaintWorklet {
-                name: name,
-                arguments: arguments,
-            })
+            Ok(PaintWorklet { name, arguments })
         })
     }
 }

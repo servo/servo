@@ -8,7 +8,6 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
-use parser::ParserContext;
 use precomputed_hash::PrecomputedHash;
 use properties::{CSSWideKeyword, DeclaredValue};
 use selector_map::{PrecomputedHashSet, PrecomputedDiagnosticHashMap};
@@ -246,15 +245,17 @@ impl ComputedValue {
 impl SpecifiedValue {
     /// Parse a custom property SpecifiedValue.
     pub fn parse<'i, 't>(
-        _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Box<Self>, ParseError<'i>> {
         let mut references = PrecomputedHashSet::default();
-        let (first, css, last) = parse_self_contained_declaration_value(input, Some(&mut references))?;
+
+        let (first_token_type, css, last_token_type) =
+            parse_self_contained_declaration_value(input, Some(&mut references))?;
+
         Ok(Box::new(SpecifiedValue {
             css: css.into_owned(),
-            first_token_type: first,
-            last_token_type: last,
+            first_token_type,
+            last_token_type,
             references
         }))
     }

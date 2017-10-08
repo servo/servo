@@ -1635,7 +1635,7 @@ impl PropertyDeclaration {
                 // This probably affects some test results.
                 let value = match input.try(|i| CSSWideKeyword::parse(i)) {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
-                    Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
+                    Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
                         Err(e) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into(),
                         ValueParseError::from_parse_error(e))),
