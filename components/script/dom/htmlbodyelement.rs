@@ -125,6 +125,14 @@ impl VirtualMethods for HTMLBodyElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        if attr.local_name() == &local_name!("bgcolor") {
+            return true;
+        }
+
+        self.super_type().unwrap().attribute_affects_presentational_hints(attr)
+    }
+
     fn bind_to_tree(&self, tree_in_doc: bool) {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
