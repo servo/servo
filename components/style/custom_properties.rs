@@ -119,6 +119,14 @@ where
         }
     }
 
+    /// Creates a new ordered map, with a given capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        OrderedMap {
+            index: Vec::with_capacity(capacity),
+            values: PrecomputedHashMap::with_capacity_and_hasher(capacity, Default::default()),
+        }
+    }
+
     /// Insert a new key-value pair.
     pub fn insert(&mut self, key: K, value: V) {
         if !self.values.contains_key(&key) {
@@ -578,7 +586,8 @@ fn remove_cycles(map: &mut OrderedMap<&Name, BorrowedSpecifiedValue>) {
 fn substitute_all(
     specified_values_map: OrderedMap<&Name, BorrowedSpecifiedValue>
 ) -> CustomPropertiesMap {
-    let mut custom_properties_map = CustomPropertiesMap::new();
+    let mut custom_properties_map =
+        CustomPropertiesMap::with_capacity(specified_values_map.len());
     let mut invalid = PrecomputedHashSet::default();
     for (name, value) in specified_values_map.iter() {
         // If this value is invalid at computed-time it won’t be inserted in computed_values_map.
