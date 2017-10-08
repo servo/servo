@@ -121,6 +121,7 @@ pub mod invalidation;
 pub mod logical_geometry;
 pub mod matching;
 pub mod media_queries;
+pub mod ordered_map;
 pub mod parallel;
 pub mod parser;
 pub mod rule_cache;
