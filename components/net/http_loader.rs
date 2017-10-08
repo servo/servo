@@ -49,7 +49,7 @@ use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::RwLock;
+use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use time;
@@ -816,6 +816,8 @@ fn http_network_or_cache_fetch(request: &mut Request,
         http_request.headers.set(UserAgent(user_agent));
     }
 
+    println!("request headers in fetch: {:?}", http_request.headers);
+
     match http_request.cache_mode {
         // Step 13
         CacheMode::Default if is_no_store_cache(&http_request.headers) => {
@@ -833,15 +835,18 @@ fn http_network_or_cache_fetch(request: &mut Request,
             if !http_request.headers.has::<Pragma>() {
                 http_request.headers.set(Pragma::NoCache);
             }
-
+            println!("CacheMode::NoStore");
             // Substep 2
             if !http_request.headers.has::<CacheControl>() {
+                println!("request headers are missing cache control");
                 http_request.headers.set(CacheControl(vec![CacheDirective::NoCache]));
             }
         },
 
         _ => {}
     }
+
+    println!("request headers 2 in fetch: {:?}", http_request.headers);
 
     // Step 16
     let current_url = http_request.current_url();
@@ -941,10 +946,22 @@ fn http_network_or_cache_fetch(request: &mut Request,
     // Step 22
     if response.is_none() {
         // Substep 1
-        if http_request.cache_mode == CacheMode::OnlyIfCached {
-            return Response::network_error(
-                NetworkError::Internal("Couldn't find response in cache".into()))
+        // Note: do we neeed to set http_request.cache_mode to CacheMode::OnlyIfCached here or elsewhere?
+        let mut only_if_cached = false;
+        if let Some(directive_data) = http_request.headers.get_raw("cache-control") {
+            let directives = String::from_utf8(directive_data[0].to_vec()).unwrap();
+            only_if_cached = directives.split(",").any(|val| val == "only-if-cached");
         }
+        if only_if_cached {
+            let mut response_504 = Response::new(http_request.url());
+            response_504.status = Some(StatusCode::GatewayTimeout);
+            response_504.raw_status = Some((504, b"Gateway Timeout".to_vec()));
+            response_504.body = Arc::new(Mutex::new(ResponseBody::Empty));
+            response = Some(response_504);
+        }
+    }
+    // More Step 22
+    if response.is_none() {
         println!("network fetch");
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
@@ -1386,16 +1403,9 @@ fn has_credentials(url: &ServoUrl) -> bool {
 }
 
 fn is_no_store_cache(headers: &Headers) -> bool {
-    println!("debug headers {:?}", headers);
-    let mut has_no_cache_directive = false;
-    if let Some(&CacheControl(ref directives)) = headers.get::<CacheControl>() {
-        has_no_cache_directive = directives.iter().any(|directive| {
-            CacheDirective::OnlyIfCached == *directive
-        });
-    }
     headers.has::<IfModifiedSince>() | headers.has::<IfNoneMatch>() |
     headers.has::<IfUnmodifiedSince>() | headers.has::<IfMatch>() |
-    headers.has::<IfRange>() | has_no_cache_directive
+    headers.has::<IfRange>()
 }
 
 /// https://fetch.spec.whatwg.org/#redirect-status
