@@ -4,7 +4,7 @@
 
 use cssparser::{Parser, ParserInput};
 use servo_arc::Arc;
-use style::custom_properties::{self, Name, SpecifiedValue, CustomPropertiesMap};
+use style::custom_properties::{Name, SpecifiedValue, CustomPropertiesMap, CustomPropertiesBuilder};
 use style::properties::DeclaredValue;
 use test::{self, Bencher};
 
@@ -18,19 +18,13 @@ fn cascade(
         (Name::from(name), SpecifiedValue::parse(&mut parser).unwrap())
     }).collect::<Vec<_>>();
 
-    let mut custom_properties = None;
-    let mut seen = Default::default();
+    let mut builder = CustomPropertiesBuilder::new(inherited);
+
     for &(ref name, ref val) in &values {
-        custom_properties::cascade(
-            &mut custom_properties,
-            inherited,
-            &mut seen,
-            name,
-            DeclaredValue::Value(val)
-        )
+        builder.cascade(name, DeclaredValue::Value(val));
     }
 
-    custom_properties::finish_cascade(custom_properties, inherited)
+    builder.build()
 }
 
 #[bench]

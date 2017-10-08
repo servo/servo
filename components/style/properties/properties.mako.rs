@@ -12,6 +12,7 @@
 
 #[cfg(feature = "servo")]
 use app_units::Au;
+use custom_properties::CustomPropertiesBuilder;
 use servo_arc::{Arc, UniqueArc};
 use smallbitvec::SmallBitVec;
 use std::borrow::Cow;
@@ -33,7 +34,6 @@ use media_queries::Device;
 use parser::ParserContext;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use rule_cache::{RuleCache, RuleCacheConditions};
-use selector_map::PrecomputedHashSet;
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
@@ -3228,26 +3228,18 @@ where
         }
     };
 
-    let inherited_custom_properties = inherited_style.custom_properties();
-    let mut custom_properties = None;
-    let mut seen_custom = PrecomputedHashSet::default();
-    for (declaration, _cascade_level) in iter_declarations() {
-        if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
-            ::custom_properties::cascade(
-                &mut custom_properties,
-                inherited_custom_properties,
-                &mut seen_custom,
-                name,
-                value.borrow(),
-            );
-        }
-    }
+    let custom_properties = {
+        let mut builder =
+            CustomPropertiesBuilder::new(inherited_style.custom_properties());
 
-    let custom_properties =
-        ::custom_properties::finish_cascade(
-            custom_properties,
-            inherited_custom_properties,
-        );
+        for (declaration, _cascade_level) in iter_declarations() {
+            if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
+                builder.cascade(name, value.borrow());
+            }
+        }
+
+        builder.build()
+    };
 
     let mut context = computed::Context {
         is_root_element: flags.contains(IS_ROOT_ELEMENT),

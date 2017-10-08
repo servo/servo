@@ -9,6 +9,7 @@
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseError as CssParseError};
+use custom_properties::CustomPropertiesBuilder;
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, ParserErrorContext};
 use properties::animated_properties::AnimationValue;
@@ -691,24 +692,15 @@ impl PropertyDeclarationBlock {
         &self,
         inherited_custom_properties: Option<&Arc<::custom_properties::CustomPropertiesMap>>,
     ) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
-        let mut custom_properties = None;
-        let mut seen_custom = PrecomputedHashSet::default();
+        let mut builder = CustomPropertiesBuilder::new(inherited_custom_properties);
 
         for declaration in self.normal_declaration_iter() {
             if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
-                ::custom_properties::cascade(
-                    &mut custom_properties,
-                    inherited_custom_properties,
-                    &mut seen_custom,
-                    name,
-                    value.borrow(),
-                );
+                builder.cascade(name, value.borrow());
             }
         }
-        ::custom_properties::finish_cascade(
-            custom_properties,
-            inherited_custom_properties,
-        )
+
+        builder.build()
     }
 }
 
