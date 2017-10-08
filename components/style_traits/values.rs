@@ -7,6 +7,7 @@
 use app_units::Au;
 use cssparser::{BasicParseError, ParseError, Parser, Token, UnicodeRange, serialize_string};
 use cssparser::ToCss as CssparserToCss;
+use servo_arc::Arc;
 use std::fmt::{self, Write};
 
 /// Serialises a value according to its CSS representation.
@@ -336,6 +337,14 @@ impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreSeparated {
 }
 
 impl<T> ToCss for Box<T> where T: ?Sized + ToCss {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: Write,
+    {
+        (**self).to_css(dest)
+    }
+}
+
+impl<T> ToCss for Arc<T> where T: ?Sized + ToCss {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: Write,
     {

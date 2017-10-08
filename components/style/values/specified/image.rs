@@ -917,7 +917,7 @@ impl Parse for PaintWorklet {
             let name = Atom::from(&**input.expect_ident()?);
             let arguments = input.try(|input| {
                 input.expect_comma()?;
-                input.parse_comma_separated(|input| Ok(*SpecifiedValue::parse(input)?))
+                input.parse_comma_separated(|input| SpecifiedValue::parse(input))
             }).unwrap_or(vec![]);
             Ok(PaintWorklet { name, arguments })
         })

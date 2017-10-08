@@ -24,6 +24,7 @@ extern crate euclid;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 #[cfg(feature = "servo")] extern crate webrender_api;
+extern crate servo_arc;
 #[cfg(feature = "servo")] extern crate servo_atoms;
 
 #[cfg(feature = "servo")] pub use webrender_api::DevicePixel;
