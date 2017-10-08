@@ -43,6 +43,12 @@ impl CacheKey {
             url: request.url().clone(),
             request_headers: request.headers
                                       .iter()
+                                      .filter(|header| {
+                                          match header.name().to_lowercase().as_ref() {
+                                              "cache-control" | "vary" | "expires" => false,
+                                              _ => true
+                                          }
+                                      })
                                       .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
                                                       header.value_string()))
                                       .collect(),
@@ -135,6 +141,16 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     return true;
 }
 
+/// Calculating Age https://tools.ietf.org/html/rfc7234#section-4.2.3
+fn calculate_response_age(response: &Response) -> Duration {
+    if let Some(secs) = response.headers.get_raw("Age") {
+        let seconds = String::from_utf8(secs[0].to_vec()).unwrap();
+        return Duration::seconds(seconds.parse::<i64>().unwrap());
+    } else {
+        return Duration::seconds(0i64);
+    }
+}
+
 /// Determine the expiry date of the given response headers,
 /// or uses a heuristic if none are present.
 fn get_response_expiry(response: &Response) -> Duration {
@@ -148,12 +164,14 @@ fn get_response_expiry(response: &Response) -> Duration {
             return Duration::seconds(0i64);
         } else {
             for directive in directives {
+                let age = calculate_response_age(&response);
                 match *directive {
-                    header::CacheDirective::SMaxAge(secs) => {
-                        return Duration::seconds(secs as i64);
-                    },
-                    header::CacheDirective::MaxAge(secs) => {
-                        return Duration::seconds(secs as i64);
+                    header::CacheDirective::SMaxAge(secs) | header::CacheDirective::MaxAge(secs) => {
+                        let max_age = Duration::seconds(secs as i64);
+                        if max_age < age {
+                            return age - max_age;
+                        }
+                        return max_age - age;
                     },
                     _ => (),
                 }
@@ -169,7 +187,7 @@ fn get_response_expiry(response: &Response) -> Duration {
         if desired > current {
             return desired - current;
         } else {
-            return Duration::min_value();
+            return Duration::seconds(0i64);
         }
     } else {
        if let Some(val) = response.headers.get_raw("Expires") {
@@ -207,7 +225,29 @@ fn get_response_expiry(response: &Response) -> Duration {
             },
         }
     }
-    // Default is 0 secs cache.
+    // Requires validation upon first use as default.
+    Duration::seconds(0i64)
+}
+
+fn get_max_stale_from_request_headers(request: &Request) -> Duration {
+    if let Some(directive_data) = request.headers.get_raw("cache-control") {
+        let directives_string = String::from_utf8(directive_data[0].to_vec()).unwrap();
+        println!("received request cache controle {:?}", directives_string);
+        let directives: Vec<&str> = directives_string.split(",").collect();
+        println!("received request cache controle split{:?}", directives);
+        for directive in directives {
+            let directive_info: Vec<&str> = directive.split("=").collect();
+            println!("received request cache controle directive {:?}", directive_info);
+            match directive_info[0] {
+                "max-stale" => {
+                    println!("received max-stale {:?}", directive_info[1]);
+                    let seconds = String::from_str(directive_info[1]).unwrap();
+                    return Duration::seconds(seconds.parse::<i64>().unwrap());
+                },
+                _ => {}
+            }
+        }
+    }
     Duration::seconds(0i64)
 }
 
@@ -218,16 +258,6 @@ impl HttpCache {
         HttpCache {
             entries: HashMap::new(),
             base_time: time::now().to_timespec(),
-        }
-    }
-
-    /// Calculating Age https://tools.ietf.org/html/rfc7234#section-4.2.3
-    fn calculate_response_age(&self, cached_resource: &CachedResource, response: &Response) -> Duration {
-        if let Some(secs) = response.headers.get_raw("Age") {
-            let seconds = String::from_utf8(secs[0].to_vec()).unwrap();
-            return Duration::seconds(seconds.parse::<i64>().unwrap());
-        } else {
-            return Duration::seconds(self.base_time.sec);
         }
     }
 
@@ -248,9 +278,18 @@ impl HttpCache {
                 *done_chan = Some((done_sender.clone(), done_receiver));
                 cached_resource.awaiting_body.lock().unwrap().push(done_sender);
             }
-            let has_expired = self.calculate_response_age(&cached_resource, &response) +
-                *cached_resource.expires.lock().unwrap()
-                < Duration::seconds(time::now().to_timespec().sec);
+            let expires = *cached_resource.expires.lock().unwrap();
+            println!("expires: {:?}", expires);
+            let max_stale = get_max_stale_from_request_headers(request);
+            println!("max stale: {:?}", max_stale);
+            let now = Duration::seconds(time::now().to_timespec().sec);
+            println!("now: {:?}", now);
+            let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
+            println!("now: {:?}", last_validated);
+            let remaining_freshness = expires + max_stale;
+            let time_since_validated = now - last_validated;
+            let has_expired = (remaining_freshness < time_since_validated)
+                | (remaining_freshness == time_since_validated);
             println!("constructing for: {:?} {:?}", response, has_expired);
             return Some(CachedResponse { response: response, needs_validation: has_expired });
         }
