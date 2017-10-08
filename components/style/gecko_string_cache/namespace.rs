@@ -4,7 +4,7 @@
 
 //! A type to represent a namespace.
 
-use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::nsAtom;
 use precomputed_hash::PrecomputedHash;
 use std::borrow::Borrow;
 use std::fmt;
@@ -76,7 +76,7 @@ impl Borrow<WeakNamespace> for Namespace {
 impl WeakNamespace {
     /// Trivially construct a WeakNamespace.
     #[inline]
-    pub unsafe fn new<'a>(atom: *mut nsIAtom) -> &'a Self {
+    pub unsafe fn new<'a>(atom: *mut nsAtom) -> &'a Self {
         &*(atom as *const WeakNamespace)
     }
 

@@ -175,7 +175,7 @@ impl Clone for ComputedValuesInner {
     }
 }
 
-type PseudoInfo = (*mut structs::nsIAtom, structs::CSSPseudoElementType);
+type PseudoInfo = (*mut structs::nsAtom, structs::CSSPseudoElementType);
 type ParentStyleContextInfo<'a> = Option< &'a ComputedValues>;
 
 impl ComputedValuesInner {
@@ -220,7 +220,7 @@ impl ComputedValuesInner {
         pres_context: bindings::RawGeckoPresContextBorrowed,
         parent: ParentStyleContextInfo,
         pseudo_ty: structs::CSSPseudoElementType,
-        pseudo_tag: *mut structs::nsIAtom
+        pseudo_tag: *mut structs::nsAtom
     ) -> Arc<ComputedValues> {
         let arc = unsafe {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
@@ -3456,7 +3456,7 @@ fn static_assert() {
 
     pub fn clone_will_change(&self) -> longhands::will_change::computed_value::T {
         use properties::longhands::will_change::computed_value::T;
-        use gecko_bindings::structs::nsIAtom;
+        use gecko_bindings::structs::nsAtom;
         use values::CustomIdent;
 
         if self.gecko.mWillChange.len() == 0 {
@@ -3464,7 +3464,7 @@ fn static_assert() {
         } else {
             T::AnimateableFeatures(
                 self.gecko.mWillChange.iter().map(|gecko_atom| {
-                    CustomIdent((gecko_atom.mRawPtr as *mut nsIAtom).into())
+                    CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
                 }).collect()
             )
         }
