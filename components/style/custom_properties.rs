@@ -466,6 +466,7 @@ fn parse_var_function<'i, 't>(
 /// properties.
 pub struct CustomPropertiesBuilder<'a> {
     seen: PrecomputedHashSet<&'a Name>,
+    may_have_cycles: bool,
     specified_custom_properties: OrderedMap<&'a Name, Option<BorrowedSpecifiedValue<'a>>>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
 }
@@ -475,6 +476,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
     pub fn new(inherited: Option<&'a Arc<CustomPropertiesMap>>) -> Self {
         Self {
             seen: PrecomputedHashSet::default(),
+            may_have_cycles: false,
             specified_custom_properties: OrderedMap::new(),
             inherited,
         }
@@ -493,6 +495,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
 
         match specified_value {
             DeclaredValue::Value(ref specified_value) => {
+                self.may_have_cycles |= !specified_value.references.is_empty();
                 self.specified_custom_properties.insert(name, Some(BorrowedSpecifiedValue {
                     css: &specified_value.css,
                     first_token_type: specified_value.first_token_type,
@@ -522,7 +525,9 @@ impl<'a> CustomPropertiesBuilder<'a> {
             return self.inherited.cloned();
         }
 
-        remove_cycles(&mut self.specified_custom_properties);
+        if self.may_have_cycles {
+            remove_cycles(&mut self.specified_custom_properties);
+        }
         Some(Arc::new(substitute_all(self.specified_custom_properties, self.inherited)))
     }
 }
