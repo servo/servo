@@ -481,13 +481,48 @@ impl<'a> CustomPropertiesBuilder<'a> {
         name: &'a Name,
         specified_value: DeclaredValue<'a, Box<SpecifiedValue>>,
     ) {
-        cascade(
-            &mut self.custom_properties,
-            self.inherited,
-            &mut self.seen,
-            name,
-            specified_value,
-        )
+        let was_already_present = !self.seen.insert(name);
+        if was_already_present {
+            return;
+        }
+
+        let map = match self.custom_properties {
+            Some(ref mut map) => map,
+            None => {
+                let mut map = OrderedMap::new();
+                if let Some(inherited) = self.inherited {
+                    for (name, inherited_value) in inherited.iter() {
+                        map.insert(name, BorrowedSpecifiedValue {
+                            css: &inherited_value.css,
+                            first_token_type: inherited_value.first_token_type,
+                            last_token_type: inherited_value.last_token_type,
+                            references: None
+                        })
+                    }
+                }
+                self.custom_properties = Some(map);
+                self.custom_properties.as_mut().unwrap()
+            }
+        };
+
+        match specified_value {
+            DeclaredValue::Value(ref specified_value) => {
+                map.insert(name, BorrowedSpecifiedValue {
+                    css: &specified_value.css,
+                    first_token_type: specified_value.first_token_type,
+                    last_token_type: specified_value.last_token_type,
+                    references: Some(&specified_value.references),
+                });
+            },
+            DeclaredValue::WithVariables(_) => unreachable!(),
+            DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+                CSSWideKeyword::Initial => {
+                    map.remove(&name);
+                }
+                CSSWideKeyword::Unset | // Custom properties are inherited by default.
+                CSSWideKeyword::Inherit => {} // The inherited value is what we already have.
+            }
+        }
     }
 
     /// Returns the final map of applicable custom properties.
@@ -504,58 +539,6 @@ impl<'a> CustomPropertiesBuilder<'a> {
 
         remove_cycles(&mut map);
         Some(Arc::new(substitute_all(map)))
-    }
-}
-
-/// Add one custom property declaration to a map, unless another with the same
-/// name was already there.
-fn cascade<'a>(
-    custom_properties: &mut Option<OrderedMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
-    inherited: Option<&'a Arc<CustomPropertiesMap>>,
-    seen: &mut PrecomputedHashSet<&'a Name>,
-    name: &'a Name,
-    specified_value: DeclaredValue<'a, Box<SpecifiedValue>>
-) {
-    let was_already_present = !seen.insert(name);
-    if was_already_present {
-        return;
-    }
-
-    let map = match *custom_properties {
-        Some(ref mut map) => map,
-        None => {
-            let mut map = OrderedMap::new();
-            if let Some(inherited) = inherited {
-                for (name, inherited_value) in inherited.iter() {
-                    map.insert(name, BorrowedSpecifiedValue {
-                        css: &inherited_value.css,
-                        first_token_type: inherited_value.first_token_type,
-                        last_token_type: inherited_value.last_token_type,
-                        references: None
-                    })
-                }
-            }
-            *custom_properties = Some(map);
-            custom_properties.as_mut().unwrap()
-        }
-    };
-    match specified_value {
-        DeclaredValue::Value(ref specified_value) => {
-            map.insert(name, BorrowedSpecifiedValue {
-                css: &specified_value.css,
-                first_token_type: specified_value.first_token_type,
-                last_token_type: specified_value.last_token_type,
-                references: Some(&specified_value.references),
-            });
-        },
-        DeclaredValue::WithVariables(_) => unreachable!(),
-        DeclaredValue::CSSWideKeyword(keyword) => match keyword {
-            CSSWideKeyword::Initial => {
-                map.remove(&name);
-            }
-            CSSWideKeyword::Unset | // Custom properties are inherited by default.
-            CSSWideKeyword::Inherit => {} // The inherited value is what we already have.
-        }
     }
 }
 
