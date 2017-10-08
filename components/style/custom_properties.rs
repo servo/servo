@@ -8,15 +8,14 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
-use precomputed_hash::PrecomputedHash;
+use ordered_map::OrderedMap;
 use properties::{CSSWideKeyword, DeclaredValue};
-use selector_map::{PrecomputedHashSet, PrecomputedDiagnosticHashMap};
+use selector_map::PrecomputedHashSet;
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 use std::fmt;
-use std::hash::Hash;
 use style_traits::{ToCss, StyleParseError, ParseError};
 
 /// A custom property name is just an `Atom`.
@@ -94,125 +93,6 @@ impl ToCss for ComputedValue {
 /// need to be stable. So we keep an array of property names which order is
 /// determined on the order that they are added to the name-value map.
 pub type CustomPropertiesMap = OrderedMap<Name, ComputedValue>;
-
-/// A map that preserves order for the keys, and that is easily indexable.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OrderedMap<K, V>
-where
-    K: PrecomputedHash + Hash + Eq + Clone,
-{
-    /// Key index.
-    index: Vec<K>,
-    /// Key-value map.
-    values: PrecomputedDiagnosticHashMap<K, V>,
-}
-
-impl<K, V> OrderedMap<K, V>
-where
-    K: Eq + PrecomputedHash + Hash + Clone,
-{
-    /// Creates a new ordered map.
-    pub fn new() -> Self {
-        OrderedMap {
-            index: Vec::new(),
-            values: PrecomputedDiagnosticHashMap::default(),
-        }
-    }
-
-    /// Creates a new ordered map, with a given capacity.
-    pub fn with_capacity(capacity: usize) -> Self {
-        OrderedMap {
-            index: Vec::with_capacity(capacity),
-            values: PrecomputedHashMap::with_capacity_and_hasher(capacity, Default::default()),
-        }
-    }
-
-    /// Insert a new key-value pair.
-    pub fn insert(&mut self, key: K, value: V) {
-        if !self.values.contains_key(&key) {
-            self.index.push(key.clone());
-        }
-        self.values.begin_mutation();
-        self.values.try_insert(key, value).unwrap();
-        self.values.end_mutation();
-    }
-
-    /// Get a value given its key.
-    pub fn get(&self, key: &K) -> Option<&V> {
-        let value = self.values.get(key);
-        debug_assert_eq!(value.is_some(), self.index.contains(key));
-        value
-    }
-
-    /// Get the key located at the given index.
-    pub fn get_key_at(&self, index: u32) -> Option<&K> {
-        self.index.get(index as usize)
-    }
-
-    /// Get an ordered map iterator.
-    pub fn iter<'a>(&'a self) -> OrderedMapIterator<'a, K, V> {
-        OrderedMapIterator {
-            inner: self,
-            pos: 0,
-        }
-    }
-
-    /// Get the count of items in the map.
-    pub fn len(&self) -> usize {
-        debug_assert_eq!(self.values.len(), self.index.len());
-        self.values.len()
-    }
-
-    /// Remove an item given its key.
-    fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
-    where
-        K: Borrow<Q>,
-        Q: PrecomputedHash + Hash + Eq,
-    {
-        let index = match self.index.iter().position(|k| k.borrow() == key) {
-            Some(p) => p,
-            None => return None,
-        };
-        self.index.remove(index);
-        self.values.begin_mutation();
-        let result = self.values.remove(key);
-        self.values.end_mutation();
-        result
-    }
-}
-
-/// An iterator for OrderedMap.
-///
-/// The iteration order is determined by the order that the values are
-/// added to the key-value map.
-pub struct OrderedMapIterator<'a, K, V>
-where
-    K: 'a + Eq + PrecomputedHash + Hash + Clone, V: 'a,
-{
-    /// The OrderedMap itself.
-    inner: &'a OrderedMap<K, V>,
-    /// The position of the iterator.
-    pos: usize,
-}
-
-impl<'a, K, V> Iterator for OrderedMapIterator<'a, K, V>
-where
-    K: Eq + PrecomputedHash + Hash + Clone,
-{
-    type Item = (&'a K, &'a V);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let key = match self.inner.index.get(self.pos) {
-            Some(k) => k,
-            None => return None,
-        };
-
-        self.pos += 1;
-        let value = &self.inner.values.get(key).unwrap();
-
-        Some((key, value))
-    }
-}
 
 impl ComputedValue {
     fn empty() -> ComputedValue {
@@ -544,7 +424,7 @@ fn remove_cycles(map: &mut OrderedMap<&Name, BorrowedSpecifiedValue>) {
     {
         let mut visited = PrecomputedHashSet::default();
         let mut stack = Vec::new();
-        for name in &map.index {
+        for name in map.keys() {
             walk(map, name, &mut stack, &mut visited, &mut to_remove);
 
             fn walk<'a>(
