@@ -57,7 +57,7 @@ pub struct BorrowedSpecifiedValue<'a> {
     css: &'a str,
     first_token_type: TokenSerializationType,
     last_token_type: TokenSerializationType,
-    references: Option<&'a PrecomputedHashSet<Name>>,
+    references: &'a PrecomputedHashSet<Name>,
 }
 
 /// A computed value is just a set of tokens as well, until we resolve variables
@@ -153,6 +153,11 @@ where
     pub fn len(&self) -> usize {
         debug_assert_eq!(self.values.len(), self.index.len());
         self.values.len()
+    }
+
+    /// Returns whether this map is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Remove an item given its key.
@@ -461,7 +466,7 @@ fn parse_var_function<'i, 't>(
 /// properties.
 pub struct CustomPropertiesBuilder<'a> {
     seen: PrecomputedHashSet<&'a Name>,
-    custom_properties: Option<OrderedMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
+    specified_custom_properties: OrderedMap<&'a Name, Option<BorrowedSpecifiedValue<'a>>>,
     inherited: Option<&'a Arc<CustomPropertiesMap>>,
 }
 
@@ -470,7 +475,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
     pub fn new(inherited: Option<&'a Arc<CustomPropertiesMap>>) -> Self {
         Self {
             seen: PrecomputedHashSet::default(),
-            custom_properties: None,
+            specified_custom_properties: OrderedMap::new(),
             inherited,
         }
     }
@@ -481,13 +486,29 @@ impl<'a> CustomPropertiesBuilder<'a> {
         name: &'a Name,
         specified_value: DeclaredValue<'a, Box<SpecifiedValue>>,
     ) {
-        cascade(
-            &mut self.custom_properties,
-            self.inherited,
-            &mut self.seen,
-            name,
-            specified_value,
-        )
+        let was_already_present = !self.seen.insert(name);
+        if was_already_present {
+            return;
+        }
+
+        match specified_value {
+            DeclaredValue::Value(ref specified_value) => {
+                self.specified_custom_properties.insert(name, Some(BorrowedSpecifiedValue {
+                    css: &specified_value.css,
+                    first_token_type: specified_value.first_token_type,
+                    last_token_type: specified_value.last_token_type,
+                    references: &specified_value.references,
+                }));
+            },
+            DeclaredValue::WithVariables(_) => unreachable!(),
+            DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+                CSSWideKeyword::Initial => {
+                    self.specified_custom_properties.insert(name, None);
+                }
+                CSSWideKeyword::Unset | // Custom properties are inherited by default.
+                CSSWideKeyword::Inherit => {} // The inherited value is what we already have.
+            }
+        }
     }
 
     /// Returns the final map of applicable custom properties.
@@ -497,65 +518,12 @@ impl<'a> CustomPropertiesBuilder<'a> {
     ///
     /// Otherwise, just use the inherited custom properties map.
     pub fn build(mut self) -> Option<Arc<CustomPropertiesMap>> {
-        let mut map = match self.custom_properties.take() {
-            Some(map) => map,
-            None => return self.inherited.cloned(),
-        };
-
-        remove_cycles(&mut map);
-        Some(Arc::new(substitute_all(map)))
-    }
-}
-
-/// Add one custom property declaration to a map, unless another with the same
-/// name was already there.
-fn cascade<'a>(
-    custom_properties: &mut Option<OrderedMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
-    inherited: Option<&'a Arc<CustomPropertiesMap>>,
-    seen: &mut PrecomputedHashSet<&'a Name>,
-    name: &'a Name,
-    specified_value: DeclaredValue<'a, Box<SpecifiedValue>>
-) {
-    let was_already_present = !seen.insert(name);
-    if was_already_present {
-        return;
-    }
-
-    let map = match *custom_properties {
-        Some(ref mut map) => map,
-        None => {
-            let mut map = OrderedMap::new();
-            if let Some(inherited) = inherited {
-                for (name, inherited_value) in inherited.iter() {
-                    map.insert(name, BorrowedSpecifiedValue {
-                        css: &inherited_value.css,
-                        first_token_type: inherited_value.first_token_type,
-                        last_token_type: inherited_value.last_token_type,
-                        references: None
-                    })
-                }
-            }
-            *custom_properties = Some(map);
-            custom_properties.as_mut().unwrap()
+        if self.specified_custom_properties.is_empty() {
+            return self.inherited.cloned();
         }
-    };
-    match specified_value {
-        DeclaredValue::Value(ref specified_value) => {
-            map.insert(name, BorrowedSpecifiedValue {
-                css: &specified_value.css,
-                first_token_type: specified_value.first_token_type,
-                last_token_type: specified_value.last_token_type,
-                references: Some(&specified_value.references),
-            });
-        },
-        DeclaredValue::WithVariables(_) => unreachable!(),
-        DeclaredValue::CSSWideKeyword(keyword) => match keyword {
-            CSSWideKeyword::Initial => {
-                map.remove(&name);
-            }
-            CSSWideKeyword::Unset | // Custom properties are inherited by default.
-            CSSWideKeyword::Inherit => {} // The inherited value is what we already have.
-        }
+
+        remove_cycles(&mut self.specified_custom_properties);
+        Some(Arc::new(substitute_all(self.specified_custom_properties, self.inherited)))
     }
 }
 
@@ -563,7 +531,7 @@ fn cascade<'a>(
 ///
 /// The initial value of a custom property is represented by this property not
 /// being in the map.
-fn remove_cycles(map: &mut OrderedMap<&Name, BorrowedSpecifiedValue>) {
+fn remove_cycles(map: &mut OrderedMap<&Name, Option<BorrowedSpecifiedValue>>) {
     let mut to_remove = PrecomputedHashSet::default();
     {
         let mut visited = PrecomputedHashSet::default();
@@ -572,7 +540,7 @@ fn remove_cycles(map: &mut OrderedMap<&Name, BorrowedSpecifiedValue>) {
             walk(map, name, &mut stack, &mut visited, &mut to_remove);
 
             fn walk<'a>(
-                map: &OrderedMap<&'a Name, BorrowedSpecifiedValue<'a>>,
+                map: &OrderedMap<&'a Name, Option<BorrowedSpecifiedValue<'a>>>,
                 name: &'a Name,
                 stack: &mut Vec<&'a Name>,
                 visited: &mut PrecomputedHashSet<&'a Name>,
@@ -582,10 +550,10 @@ fn remove_cycles(map: &mut OrderedMap<&Name, BorrowedSpecifiedValue>) {
                 if already_visited_before {
                     return
                 }
-                if let Some(value) = map.get(&name) {
-                    if let Some(references) = value.references {
+                if let Some(&Some(ref value)) = map.get(&name) {
+                    if !value.references.is_empty() {
                         stack.push(name);
-                        for next in references {
+                        for next in value.references {
                             if let Some(position) = stack.iter().position(|&x| x == next) {
                                 // Found a cycle
                                 for &in_cycle in &stack[position..] {
@@ -608,16 +576,33 @@ fn remove_cycles(map: &mut OrderedMap<&Name, BorrowedSpecifiedValue>) {
 
 /// Replace `var()` functions for all custom properties.
 fn substitute_all(
-    specified_values_map: OrderedMap<&Name, BorrowedSpecifiedValue>
+    specified_values_map: OrderedMap<&Name, Option<BorrowedSpecifiedValue>>,
+    inherited: Option<&Arc<CustomPropertiesMap>>,
 ) -> CustomPropertiesMap {
-    let mut custom_properties_map = CustomPropertiesMap::new();
+    let mut custom_properties_map = match inherited {
+        None => CustomPropertiesMap::new(),
+        Some(inherited) => (**inherited).clone(),
+    };
+
     let mut invalid = PrecomputedHashSet::default();
+
     for (name, value) in specified_values_map.iter() {
-        // If this value is invalid at computed-time it won’t be inserted in computed_values_map.
-        // Nothing else to do.
+        let value = match *value {
+            Some(ref v) => v,
+            None => {
+                custom_properties_map.remove(*name);
+                continue;
+            }
+        };
+
         let _ = substitute_one(
-            name, value, &specified_values_map, None,
-            &mut custom_properties_map, &mut invalid);
+            name,
+            value,
+            &specified_values_map,
+            None,
+            &mut custom_properties_map,
+            &mut invalid,
+        );
     }
 
     custom_properties_map
@@ -630,22 +615,23 @@ fn substitute_all(
 fn substitute_one(
     name: &Name,
     specified_value: &BorrowedSpecifiedValue,
-    specified_values_map: &OrderedMap<&Name, BorrowedSpecifiedValue>,
+    specified_values_map: &OrderedMap<&Name, Option<BorrowedSpecifiedValue>>,
     partial_computed_value: Option<&mut ComputedValue>,
     custom_properties_map: &mut CustomPropertiesMap,
     invalid: &mut PrecomputedHashSet<Name>,
 ) -> Result<TokenSerializationType, ()> {
-    if let Some(computed_value) = custom_properties_map.get(&name) {
-        if let Some(partial_computed_value) = partial_computed_value {
-            partial_computed_value.push_variable(computed_value)
-        }
-        return Ok(computed_value.last_token_type)
-    }
-
     if invalid.contains(name) {
         return Err(());
     }
-    let computed_value = if specified_value.references.map_or(false, |set| !set.is_empty()) {
+
+    let computed_value = if specified_value.references.is_empty() {
+        // The specified value contains no var() reference
+        ComputedValue {
+            css: specified_value.css.to_owned(),
+            first_token_type: specified_value.first_token_type,
+            last_token_type: specified_value.last_token_type,
+        }
+    } else {
         let mut partial_computed_value = ComputedValue::empty();
         let mut input = ParserInput::new(&specified_value.css);
         let mut input = Parser::new(&mut input);
@@ -653,9 +639,15 @@ fn substitute_one(
         let result = substitute_block(
             &mut input, &mut position, &mut partial_computed_value,
             &mut |name, partial_computed_value| {
-                if let Some(other_specified_value) = specified_values_map.get(&name) {
-                    substitute_one(name, other_specified_value, specified_values_map,
-                                   Some(partial_computed_value), custom_properties_map, invalid)
+                if let Some(other_specified_value) = specified_values_map.get(&name).and_then(|v| v.as_ref()) {
+                    substitute_one(
+                        name,
+                        other_specified_value,
+                        specified_values_map,
+                        Some(partial_computed_value),
+                        custom_properties_map,
+                        invalid,
+                    )
                 } else {
                     Err(())
                 }
@@ -667,13 +659,6 @@ fn substitute_one(
         } else {
             invalid.insert(name.clone());
             return Err(())
-        }
-    } else {
-        // The specified value contains no var() reference
-        ComputedValue {
-            css: specified_value.css.to_owned(),
-            first_token_type: specified_value.first_token_type,
-            last_token_type: specified_value.last_token_type,
         }
     };
     if let Some(partial_computed_value) = partial_computed_value {
