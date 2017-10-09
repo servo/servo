@@ -2039,7 +2039,7 @@ DOMClass {
     interface_chain: [ %s ],
     type_id: %s,
     malloc_size_of: %s as unsafe fn(&mut _, _) -> _,
-    global: InterfaceObjectMap::%s,
+    global: InterfaceObjectMap::Globals::%s,
 }""" % (prototypeChainString, DOMClassTypeId(descriptor), mallocSizeOf, globals_)
 
 
@@ -2445,7 +2445,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         iface = self.descriptor.interface
 
         bits = " | ".join(sorted(
-            "InterfaceObjectMap::" + camel_to_upper_snake(i) for i in iface.exposureSet
+            "InterfaceObjectMap::Globals::" + camel_to_upper_snake(i) for i in iface.exposureSet
         ))
         conditions.append("is_exposed_in(aObj, %s)" % bits)
 
@@ -7092,9 +7092,9 @@ class GlobalGenRoots():
             for (idx, d) in enumerate(global_descriptors)
         )
         global_flags = CGWrapper(CGIndenter(CGList([
-            CGGeneric("const %s = %#x," % args)
+            CGGeneric("const %s = %#x;" % args)
             for args in flags
-        ], "\n")), pre="pub flags Globals: u8 {\n", post="\n}")
+        ], "\n")), pre="pub struct Globals: u8 {\n", post="\n}")
         globals_ = CGWrapper(CGIndenter(global_flags), pre="bitflags! {\n", post="\n}")
 
         phf = CGGeneric("include!(concat!(env!(\"OUT_DIR\"), \"/InterfaceObjectMapPhf.rs\"));")

@@ -38,7 +38,7 @@ use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseErrorKind};
+use style_traits::{ParsingMode, ToCss, ParseError, StyleParseErrorKind};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -440,23 +440,23 @@ impl CSSWideKeyword {
 
 bitflags! {
     /// A set of flags for properties.
-    pub flags PropertyFlags: u8 {
+    pub struct PropertyFlags: u8 {
         /// This property requires a stacking context.
-        const CREATES_STACKING_CONTEXT = 1 << 0,
+        const CREATES_STACKING_CONTEXT = 1 << 0;
         /// This property has values that can establish a containing block for
         /// fixed positioned and absolutely positioned elements.
-        const FIXPOS_CB = 1 << 1,
+        const FIXPOS_CB = 1 << 1;
         /// This property has values that can establish a containing block for
         /// absolutely positioned elements.
-        const ABSPOS_CB = 1 << 2,
+        const ABSPOS_CB = 1 << 2;
         /// This shorthand property is an alias of another property.
-        const SHORTHAND_ALIAS_PROPERTY = 1 << 3,
+        const SHORTHAND_ALIAS_PROPERTY = 1 << 3;
         /// This longhand property applies to ::first-letter.
-        const APPLIES_TO_FIRST_LETTER = 1 << 4,
+        const APPLIES_TO_FIRST_LETTER = 1 << 4;
         /// This longhand property applies to ::first-line.
-        const APPLIES_TO_FIRST_LINE = 1 << 5,
+        const APPLIES_TO_FIRST_LINE = 1 << 5;
         /// This longhand property applies to ::placeholder.
-        const APPLIES_TO_PLACEHOLDER = 1 << 6,
+        const APPLIES_TO_PLACEHOLDER = 1 << 6;
     }
 }
 
@@ -948,7 +948,7 @@ impl UnparsedValue {
                 Origin::Author,
                 &self.url_data,
                 None,
-                PARSING_MODE_DEFAULT,
+                ParsingMode::DEFAULT,
                 quirks_mode,
             );
             let mut input = ParserInput::new(&css);
@@ -1428,7 +1428,7 @@ impl ToCss for PropertyDeclaration {
                     // Normally, we shouldn't be printing variables here if they came from
                     // shorthands. But we should allow properties that came from shorthand
                     // aliases. That also matches with the Gecko behavior.
-                    Some(shorthand) if shorthand.flags().contains(SHORTHAND_ALIAS_PROPERTY) =>
+                    Some(shorthand) if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) =>
                         dest.write_str(&*with_variables.css)?,
                     None => dest.write_str(&*with_variables.css)?,
                     _ => {},
@@ -1487,7 +1487,7 @@ impl PropertyDeclaration {
                     // should return None here. But we return Some to longhands if they
                     // came from a shorthand alias. Because for example, we should be able to
                     // get -moz-transform's value from transform.
-                    if shorthand.flags().contains(SHORTHAND_ALIAS_PROPERTY) {
+                    if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) {
                         return Some(&*with_variables.css);
                     }
                     None
@@ -1940,19 +1940,19 @@ pub mod style_structs {
                 /// Whether the text decoration has an underline.
                 #[inline]
                 pub fn has_underline(&self) -> bool {
-                    self.text_decoration_line.contains(longhands::text_decoration_line::UNDERLINE)
+                    self.text_decoration_line.contains(longhands::text_decoration_line::SpecifiedValue::UNDERLINE)
                 }
 
                 /// Whether the text decoration has an overline.
                 #[inline]
                 pub fn has_overline(&self) -> bool {
-                    self.text_decoration_line.contains(longhands::text_decoration_line::OVERLINE)
+                    self.text_decoration_line.contains(longhands::text_decoration_line::SpecifiedValue::OVERLINE)
                 }
 
                 /// Whether the text decoration has a line through.
                 #[inline]
                 pub fn has_line_through(&self) -> bool {
-                    self.text_decoration_line.contains(longhands::text_decoration_line::LINE_THROUGH)
+                    self.text_decoration_line.contains(longhands::text_decoration_line::SpecifiedValue::LINE_THROUGH)
                 }
             % elif style_struct.name == "Box":
                 /// Sets the display property, but without touching
@@ -2089,7 +2089,7 @@ pub struct ComputedValues {
 impl ComputedValues {
     /// Whether we're a visited style.
     pub fn is_style_if_visited(&self) -> bool {
-        self.flags.contains(IS_STYLE_IF_VISITED)
+        self.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED)
     }
 
     /// Gets a reference to the rule node. Panic if no rule node exists.
@@ -2109,9 +2109,9 @@ impl ComputedValues {
 
     /// Returns whether we're in a display: none subtree.
     pub fn is_in_display_none_subtree(&self) -> bool {
-        use properties::computed_value_flags::IS_IN_DISPLAY_NONE_SUBTREE;
+        use properties::computed_value_flags::ComputedValueFlags;
 
-        self.flags.contains(IS_IN_DISPLAY_NONE_SUBTREE)
+        self.flags.contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE)
     }
 
     /// Gets a reference to the custom properties map (if one exists).
@@ -2443,28 +2443,28 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
     match inheritedbox_style.clone_direction() {
         computed_values::direction::T::ltr => {},
         computed_values::direction::T::rtl => {
-            flags.insert(logical_geometry::FLAG_RTL);
+            flags.insert(logical_geometry::WritingMode::RTL);
         },
     }
     match inheritedbox_style.clone_writing_mode() {
         computed_values::writing_mode::T::horizontal_tb => {},
         computed_values::writing_mode::T::vertical_rl => {
-            flags.insert(logical_geometry::FLAG_VERTICAL);
+            flags.insert(logical_geometry::WritingMode::VERTICAL);
         },
         computed_values::writing_mode::T::vertical_lr => {
-            flags.insert(logical_geometry::FLAG_VERTICAL);
-            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
+            flags.insert(logical_geometry::WritingMode::VERTICAL);
+            flags.insert(logical_geometry::WritingMode::VERTICAL_LR);
         },
         % if product == "gecko":
         computed_values::writing_mode::T::sideways_rl => {
-            flags.insert(logical_geometry::FLAG_VERTICAL);
-            flags.insert(logical_geometry::FLAG_SIDEWAYS);
+            flags.insert(logical_geometry::WritingMode::VERTICAL);
+            flags.insert(logical_geometry::WritingMode::SIDEWAYS);
         },
         computed_values::writing_mode::T::sideways_lr => {
-            flags.insert(logical_geometry::FLAG_VERTICAL);
-            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
-            flags.insert(logical_geometry::FLAG_LINE_INVERTED);
-            flags.insert(logical_geometry::FLAG_SIDEWAYS);
+            flags.insert(logical_geometry::WritingMode::VERTICAL);
+            flags.insert(logical_geometry::WritingMode::VERTICAL_LR);
+            flags.insert(logical_geometry::WritingMode::LINE_INVERTED);
+            flags.insert(logical_geometry::WritingMode::SIDEWAYS);
         },
         % endif
     }
@@ -2472,14 +2472,14 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
     // If FLAG_SIDEWAYS is already set, this means writing-mode is either
     // sideways-rl or sideways-lr, and for both of these values,
     // text-orientation has no effect.
-    if !flags.intersects(logical_geometry::FLAG_SIDEWAYS) {
+    if !flags.intersects(logical_geometry::WritingMode::SIDEWAYS) {
         match inheritedbox_style.clone_text_orientation() {
             computed_values::text_orientation::T::mixed => {},
             computed_values::text_orientation::T::upright => {
-                flags.insert(logical_geometry::FLAG_UPRIGHT);
+                flags.insert(logical_geometry::WritingMode::UPRIGHT);
             },
             computed_values::text_orientation::T::sideways => {
-                flags.insert(logical_geometry::FLAG_SIDEWAYS);
+                flags.insert(logical_geometry::WritingMode::SIDEWAYS);
             },
         }
     }
@@ -2668,14 +2668,14 @@ impl<'a> StyleBuilder<'a> {
         // 99% sure it should give incorrect behavior for table anonymous box
         // backgrounds, for example.  This code doesn't attempt to make it play
         // nice with inherited_style_ignoring_first_line.
-        let reset_style = if cascade_flags.contains(INHERIT_ALL) {
+        let reset_style = if cascade_flags.contains(CascadeFlags::INHERIT_ALL) {
             inherited_style
         } else {
             reset_style
         };
 
-        if cascade_flags.contains(VISITED_DEPENDENT_ONLY) {
-            flags.insert(IS_STYLE_IF_VISITED);
+        if cascade_flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) {
+            flags.insert(ComputedValueFlags::IS_STYLE_IF_VISITED);
         }
 
         StyleBuilder {
@@ -2703,7 +2703,7 @@ impl<'a> StyleBuilder<'a> {
 
     /// Whether we're a visited style.
     pub fn is_style_if_visited(&self) -> bool {
-        self.flags.contains(IS_STYLE_IF_VISITED)
+        self.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED)
     }
 
     /// Creates a StyleBuilder holding only references to the structs of `s`, in
@@ -2765,16 +2765,16 @@ impl<'a> StyleBuilder<'a> {
         % endif
 
         % if not property.style_struct.inherited:
-        self.flags.insert(::properties::computed_value_flags::INHERITS_RESET_STYLE);
+        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_RESET_STYLE);
         self.modified_reset = true;
         % endif
 
         % if property.ident == "content":
-        self.flags.insert(::properties::computed_value_flags::INHERITS_CONTENT);
+        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_CONTENT);
         % endif
 
         % if property.ident == "display":
-        self.flags.insert(::properties::computed_value_flags::INHERITS_DISPLAY);
+        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
         self.${property.style_struct.ident}.mutate()
@@ -3070,17 +3070,17 @@ static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
 
 bitflags! {
     /// A set of flags to tweak the behavior of the `cascade` function.
-    pub flags CascadeFlags: u8 {
+    pub struct CascadeFlags: u8 {
         /// Whether to inherit all styles from the parent. If this flag is not
         /// present, non-inherited styles are reset to their initial values.
-        const INHERIT_ALL = 1,
+        const INHERIT_ALL = 1;
 
         /// Whether to skip any display style fixup for root element, flex/grid
         /// item, and ruby descendants.
-        const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 1 << 1,
+        const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 1 << 1;
 
         /// Whether to only cascade properties that are visited dependent.
-        const VISITED_DEPENDENT_ONLY = 1 << 2,
+        const VISITED_DEPENDENT_ONLY = 1 << 2;
 
         /// Whether the given element we're styling is the document element,
         /// that is, matches :root.
@@ -3090,23 +3090,23 @@ bitflags! {
         ///
         /// This affects some style adjustments, like blockification, and means
         /// that it may affect global state, like the Device's root font-size.
-        const IS_ROOT_ELEMENT = 1 << 3,
+        const IS_ROOT_ELEMENT = 1 << 3;
 
         /// Whether to convert display:contents into display:inline.  This
         /// is used by Gecko to prevent display:contents on generated
         /// content.
-        const PROHIBIT_DISPLAY_CONTENTS = 1 << 4,
+        const PROHIBIT_DISPLAY_CONTENTS = 1 << 4;
 
         /// Whether we're styling the ::-moz-fieldset-content anonymous box.
-        const IS_FIELDSET_CONTENT = 1 << 5,
+        const IS_FIELDSET_CONTENT = 1 << 5;
 
         /// Whether we're computing the style of a link, either visited or
         /// unvisited.
-        const IS_LINK = 1 << 6,
+        const IS_LINK = 1 << 6;
 
         /// Whether we're computing the style of a link element that happens to
         /// be visited.
-        const IS_VISITED_LINK = 1 << 7,
+        const IS_VISITED_LINK = 1 << 7;
     }
 }
 
@@ -3251,7 +3251,7 @@ where
     };
 
     let mut context = computed::Context {
-        is_root_element: flags.contains(IS_ROOT_ELEMENT),
+        is_root_element: flags.contains(CascadeFlags::IS_ROOT_ELEMENT),
         // We'd really like to own the rules here to avoid refcount traffic, but
         // animation's usage of `apply_declarations` make this tricky. See bug
         // 1375525.
@@ -3328,7 +3328,7 @@ where
             // Only a few properties are allowed to depend on the visited state
             // of links.  When cascading visited styles, we can save time by
             // only processing these properties.
-            if flags.contains(VISITED_DEPENDENT_ONLY) &&
+            if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) &&
                !longhand_id.is_visited_dependent() {
                 continue
             }

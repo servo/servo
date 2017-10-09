@@ -114,11 +114,9 @@ use style::invalidation::element::restyle_hints;
 use style::media_queries::{Device, MediaList, parse_media_query_list};
 use style::parser::{Parse, ParserContext, self};
 use style::properties::{CascadeFlags, ComputedValues, DeclarationSource, Importance};
-use style::properties::{IS_FIELDSET_CONTENT, IS_LINK, IS_VISITED_LINK, LonghandIdSet};
-use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
-use style::properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, SourcePropertyDeclaration, StyleBuilder};
-use style::properties::PROHIBIT_DISPLAY_CONTENTS;
+use style::properties::{SourcePropertyDeclaration, StyleBuilder};
 use style::properties::animated_properties::AnimationValue;
 use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
@@ -140,14 +138,14 @@ use style::thread_state;
 use style::timer::Timer;
 use style::traversal::DomTraversal;
 use style::traversal::resolve_style;
-use style::traversal_flags::{TraversalFlags, self};
+use style::traversal_flags::{self, TraversalFlags};
 use style::values::{CustomIdent, KeyframesName};
 use style::values::animated::{Animate, Procedure, ToAnimatedZero};
 use style::values::computed::{Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style::values::specified;
 use style::values::specified::gecko::IntersectionObserverRootMargin;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss};
+use style_traits::{ParsingMode, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -176,7 +174,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     };
 
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
-    thread_state::initialize(thread_state::LAYOUT);
+    thread_state::initialize(thread_state::ThreadState::LAYOUT);
 
     // Perform some debug-only runtime assertions.
     restyle_hints::assert_restyle_hints_match();
@@ -191,7 +189,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
 #[no_mangle]
 pub extern "C" fn Servo_InitializeCooperativeThread() {
     // Pretend that we're a Servo Layout thread to make some assertions happy.
-    thread_state::initialize(thread_state::LAYOUT);
+    thread_state::initialize(thread_state::ThreadState::LAYOUT);
 }
 
 #[no_mangle]
@@ -261,7 +259,7 @@ fn traverse_subtree(element: GeckoElement,
     debug!("Traversing subtree from {:?}", element);
 
     let thread_pool_holder = &*STYLE_THREAD_POOL;
-    let thread_pool = if traversal_flags.contains(traversal_flags::ParallelTraversal) {
+    let thread_pool = if traversal_flags.contains(TraversalFlags::ParallelTraversal) {
         thread_pool_holder.style_thread_pool.as_ref()
     } else {
         None
@@ -291,7 +289,7 @@ pub extern "C" fn Servo_TraverseSubtree(
     debug!("{:?}", ShowSubtreeData(element.as_node()));
     // It makes no sense to do an animation restyle when we're styling
     // newly-inserted content.
-    if !traversal_flags.contains(traversal_flags::UnstyledOnly) {
+    if !traversal_flags.contains(TraversalFlags::UnstyledOnly) {
         let needs_animation_only_restyle =
             element.has_animation_only_dirty_descendants() ||
             element.has_animation_restyle_hints();
@@ -301,7 +299,7 @@ pub extern "C" fn Servo_TraverseSubtree(
                    element.has_animation_only_dirty_descendants());
             traverse_subtree(element,
                              raw_data,
-                             traversal_flags | traversal_flags::AnimationOnly,
+                             traversal_flags | TraversalFlags::AnimationOnly,
                              unsafe { &*snapshots });
         }
     }
@@ -926,7 +924,7 @@ pub extern "C" fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element: RawGeck
     let element = GeckoElement(element);
     let data = element.borrow_data()
                       .expect("Invoking Servo_Element_IsPrimaryStyleReusedViaRuleNode on unstyled element");
-    data.flags.contains(data::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
+    data.flags.contains(data::ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
 }
 
 #[no_mangle]
@@ -1816,9 +1814,9 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon box pseudo?");
 
-    let mut cascade_flags = SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
+    let mut cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     if pseudo.is_fieldset_content() {
-        cascade_flags.insert(IS_FIELDSET_CONTENT);
+        cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
     }
     let metrics = get_metrics_provider_for_product();
 
@@ -2096,26 +2094,26 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBorrowed) -> u64 {
-    use style::properties::computed_value_flags::*;
+    use style::properties::computed_value_flags::ComputedValueFlags;
     // FIXME(emilio): We could do this more efficiently I'm quite sure.
     let flags = values.flags;
     let mut result = 0;
-    if flags.contains(IS_RELEVANT_LINK_VISITED) {
+    if flags.contains(ComputedValueFlags::IS_RELEVANT_LINK_VISITED) {
         result |= structs::NS_STYLE_RELEVANT_LINK_VISITED as u64;
     }
-    if flags.contains(HAS_TEXT_DECORATION_LINES) {
+    if flags.contains(ComputedValueFlags::HAS_TEXT_DECORATION_LINES) {
         result |= structs::NS_STYLE_HAS_TEXT_DECORATION_LINES as u64;
     }
-    if flags.contains(SHOULD_SUPPRESS_LINEBREAK) {
+    if flags.contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK) {
         result |= structs::NS_STYLE_SUPPRESS_LINEBREAK as u64;
     }
-    if flags.contains(IS_TEXT_COMBINED) {
+    if flags.contains(ComputedValueFlags::IS_TEXT_COMBINED) {
         result |= structs::NS_STYLE_IS_TEXT_COMBINED as u64;
     }
-    if flags.contains(IS_IN_PSEUDO_ELEMENT_SUBTREE) {
+    if flags.contains(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE) {
         result |= structs::NS_STYLE_HAS_PSEUDO_ELEMENT_DATA as u64;
     }
-    if flags.contains(IS_IN_DISPLAY_NONE_SUBTREE) {
+    if flags.contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE) {
         result |= structs::NS_STYLE_IN_DISPLAY_NONE_SUBTREE as u64;
     }
     result
@@ -2276,7 +2274,7 @@ pub extern "C" fn Servo_ParseEasing(
     let context = ParserContext::new(Origin::Author,
                                      url_data,
                                      Some(CssRuleType::Style),
-                                     PARSING_MODE_DEFAULT,
+                                     ParsingMode::DEFAULT,
                                      QuirksMode::NoQuirks);
     let easing = unsafe { (*easing).to_string() };
     let mut input = ParserInput::new(&easing);
@@ -2677,7 +2675,7 @@ pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text:
     let mut parser = Parser::new(&mut input);
     let url_data = unsafe { dummy_url_data() };
     let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
+                                               ParsingMode::DEFAULT,
                                                QuirksMode::NoQuirks);
      write_locked_arc(list, |list: &mut MediaList| {
         *list = parse_media_query_list(&context, &mut parser, &NullReporter);
@@ -2713,7 +2711,7 @@ pub extern "C" fn Servo_MediaList_AppendMedium(
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
+                                               ParsingMode::DEFAULT,
                                                QuirksMode::NoQuirks);
     write_locked_arc(list, |list: &mut MediaList| {
         list.append_medium(&context, new_medium);
@@ -2728,7 +2726,7 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
+                                               ParsingMode::DEFAULT,
                                                QuirksMode::NoQuirks);
     write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
 }
@@ -3114,7 +3112,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     let string = unsafe { (*value).to_string() };
     let context = ParserContext::new(Origin::Author, url_data,
-                                     Some(CssRuleType::Style), PARSING_MODE_DEFAULT,
+                                     Some(CssRuleType::Style), ParsingMode::DEFAULT,
                                      QuirksMode::NoQuirks);
     if let Ok(mut url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
         url.build_image_value();
@@ -3135,7 +3133,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(
     use style::properties::longhands::text_decoration_line;
 
     let mut decoration = text_decoration_line::computed_value::none;
-    decoration |= text_decoration_line::COLOR_OVERRIDE;
+    decoration |= text_decoration_line::SpecifiedValue::COLOR_OVERRIDE;
     let decl = PropertyDeclaration::TextDecorationLine(decoration);
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(decl, Importance::Normal, DeclarationSource::CssOm);
@@ -3175,7 +3173,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
             ParserContext::new_for_cssom(
                 url_data,
                 Some(CssRuleType::Style),
-                PARSING_MODE_DEFAULT,
+                ParsingMode::DEFAULT,
                 QuirksMode::NoQuirks,
             );
         cond.eval(&context)
@@ -3342,25 +3340,25 @@ pub extern "C" fn Servo_ReparentStyle(
 
     let mut cascade_flags = CascadeFlags::empty();
     if style_to_reparent.is_anon_box() {
-        cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
+        cascade_flags.insert(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
     }
     if let Some(element) = element {
         if element.is_link() {
-            cascade_flags.insert(IS_LINK);
+            cascade_flags.insert(CascadeFlags::IS_LINK);
             if element.is_visited_link() &&
                 doc_data.visited_styles_enabled() {
-                cascade_flags.insert(IS_VISITED_LINK);
+                cascade_flags.insert(CascadeFlags::IS_VISITED_LINK);
             }
         };
 
         if element.is_native_anonymous() {
-            cascade_flags.insert(PROHIBIT_DISPLAY_CONTENTS);
+            cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
         }
     }
     if let Some(pseudo) = pseudo.as_ref() {
-        cascade_flags.insert(PROHIBIT_DISPLAY_CONTENTS);
+        cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
         if pseudo.is_fieldset_content() {
-            cascade_flags.insert(IS_FIELDSET_CONTENT);
+            cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
         }
     }
 
@@ -4347,7 +4345,7 @@ pub extern "C" fn Servo_ParseIntersectionObserverRootMargin(
         Origin::Author,
         url_data,
         Some(CssRuleType::Style),
-        PARSING_MODE_DEFAULT,
+        ParsingMode::DEFAULT,
         QuirksMode::NoQuirks,
     );
 

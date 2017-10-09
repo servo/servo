@@ -25,51 +25,51 @@ pub enum InlineBaseDirection {
 // TODO: improve the readability of the WritingMode serialization, refer to the Debug:fmt()
 bitflags!(
     #[cfg_attr(feature = "servo", derive(MallocSizeOf, Serialize))]
-    pub flags WritingMode: u8 {
-        const FLAG_RTL = 1 << 0,
-        const FLAG_VERTICAL = 1 << 1,
-        const FLAG_VERTICAL_LR = 1 << 2,
+    pub struct WritingMode: u8 {
+        const RTL = 1 << 0;
+        const VERTICAL = 1 << 1;
+        const VERTICAL_LR = 1 << 2;
         /// For vertical writing modes only.  When set, line-over/line-under
         /// sides are inverted from block-start/block-end.  This flag is
         /// set when sideways-lr is used.
-        const FLAG_LINE_INVERTED = 1 << 3,
-        const FLAG_SIDEWAYS = 1 << 4,
-        const FLAG_UPRIGHT = 1 << 5,
+        const LINE_INVERTED = 1 << 3;
+        const SIDEWAYS = 1 << 4;
+        const UPRIGHT = 1 << 5;
     }
 );
 
 impl WritingMode {
     #[inline]
     pub fn is_vertical(&self) -> bool {
-        self.intersects(FLAG_VERTICAL)
+        self.intersects(WritingMode::VERTICAL)
     }
 
     /// Assuming .is_vertical(), does the block direction go left to right?
     #[inline]
     pub fn is_vertical_lr(&self) -> bool {
-        self.intersects(FLAG_VERTICAL_LR)
+        self.intersects(WritingMode::VERTICAL_LR)
     }
 
     /// Assuming .is_vertical(), does the inline direction go top to bottom?
     #[inline]
     pub fn is_inline_tb(&self) -> bool {
         // https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical
-        self.intersects(FLAG_RTL) == self.intersects(FLAG_LINE_INVERTED)
+        self.intersects(WritingMode::RTL) == self.intersects(WritingMode::LINE_INVERTED)
     }
 
     #[inline]
     pub fn is_bidi_ltr(&self) -> bool {
-        !self.intersects(FLAG_RTL)
+        !self.intersects(WritingMode::RTL)
     }
 
     #[inline]
     pub fn is_sideways(&self) -> bool {
-        self.intersects(FLAG_SIDEWAYS)
+        self.intersects(WritingMode::SIDEWAYS)
     }
 
     #[inline]
     pub fn is_upright(&self) -> bool {
-        self.intersects(FLAG_UPRIGHT)
+        self.intersects(WritingMode::UPRIGHT)
     }
 
     #[inline]
@@ -121,7 +121,7 @@ impl WritingMode {
 
     #[inline]
     pub fn inline_base_direction(&self) -> InlineBaseDirection {
-        if self.intersects(FLAG_RTL) {
+        if self.intersects(WritingMode::RTL) {
             InlineBaseDirection::RightToLeft
         } else {
             InlineBaseDirection::LeftToRight
@@ -150,10 +150,10 @@ impl fmt::Display for WritingMode {
             } else {
                 write!(formatter, " RL")?;
             }
-            if self.intersects(FLAG_SIDEWAYS) {
+            if self.intersects(WritingMode::SIDEWAYS) {
                 write!(formatter, " Sideways")?;
             }
-            if self.intersects(FLAG_LINE_INVERTED) {
+            if self.intersects(WritingMode::LINE_INVERTED) {
                 write!(formatter, " Inverted")?;
             }
         } else {

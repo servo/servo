@@ -6,8 +6,7 @@
 //! a computed style needs in order for it to adhere to the CSS spec.
 
 use app_units::Au;
-use properties::{self, CascadeFlags, ComputedValues};
-use properties::{IS_ROOT_ELEMENT, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, StyleBuilder};
+use properties::{self, CascadeFlags, ComputedValues, StyleBuilder};
 use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
@@ -68,8 +67,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             }
         }
 
-        if !flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
-            blockify_if!(flags.contains(IS_ROOT_ELEMENT));
+        if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
+            blockify_if!(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
             blockify_if!(layout_parent_style.get_box().clone_display().is_item_container());
         }
 
@@ -84,7 +83,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         let display = self.style.get_box().clone_display();
         let blockified_display =
-            display.equivalent_block_display(flags.contains(IS_ROOT_ELEMENT));
+            display.equivalent_block_display(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
         if display != blockified_display {
             self.style.mutate_box().set_adjusted_display(
                 blockified_display,
@@ -95,17 +94,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Compute a few common flags for both text and element's style.
     pub fn set_bits(&mut self) {
-        use properties::computed_value_flags::IS_IN_DISPLAY_NONE_SUBTREE;
-        use properties::computed_value_flags::IS_IN_PSEUDO_ELEMENT_SUBTREE;
+        use properties::computed_value_flags::ComputedValueFlags;
 
-        if self.style.inherited_flags().contains(IS_IN_DISPLAY_NONE_SUBTREE) ||
+        if self.style.inherited_flags().contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE) ||
             self.style.get_box().clone_display() == display::none {
-            self.style.flags.insert(IS_IN_DISPLAY_NONE_SUBTREE);
+            self.style.flags.insert(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE);
         }
 
-        if self.style.inherited_flags().contains(IS_IN_PSEUDO_ELEMENT_SUBTREE) ||
+        if self.style.inherited_flags().contains(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE) ||
             self.style.is_pseudo_element() {
-            self.style.flags.insert(IS_IN_PSEUDO_ELEMENT_SUBTREE);
+            self.style.flags.insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
     }
 
@@ -133,7 +131,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_text_combine_upright(&mut self) {
         use computed_values::text_combine_upright::T as text_combine_upright;
         use computed_values::writing_mode::T as writing_mode;
-        use properties::computed_value_flags::IS_TEXT_COMBINED;
+        use properties::computed_value_flags::ComputedValueFlags;
 
         let writing_mode =
             self.style.get_inheritedbox().clone_writing_mode();
@@ -142,7 +140,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if writing_mode != writing_mode::horizontal_tb &&
            text_combine_upright == text_combine_upright::all {
-            self.style.flags.insert(IS_TEXT_COMBINED);
+            self.style.flags.insert(ComputedValueFlags::IS_TEXT_COMBINED);
             self.style.mutate_inheritedbox().set_writing_mode(writing_mode::horizontal_tb);
         }
     }
@@ -153,10 +151,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// from them.
     #[cfg(feature = "gecko")]
     fn adjust_for_text_in_ruby(&mut self) {
-        use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        use properties::computed_value_flags::ComputedValueFlags;
         let parent_display = self.style.get_parent_box().clone_display();
         if parent_display.is_ruby_type() {
-            self.style.flags.insert(SHOULD_SUPPRESS_LINEBREAK);
+            self.style.flags.insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
         }
     }
 
@@ -190,14 +188,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     #[cfg(feature = "gecko")]
     fn adjust_for_contain(&mut self) {
-        use properties::longhands::contain;
+        use properties::longhands::contain::SpecifiedValue;
 
         // An element with contain: paint needs to be a formatting context, and
         // also implies overflow: clip.
         //
         // TODO(emilio): This mimics Gecko, but spec links are missing!
         let contain = self.style.get_box().clone_contain();
-        if !contain.contains(contain::PAINT) {
+        if !contain.contains(SpecifiedValue::PAINT) {
             return;
         }
 
@@ -208,7 +206,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
 
         // When 'contain: paint', update overflow from 'visible' to 'clip'.
-        if self.style.get_box().clone_contain().contains(contain::PAINT) {
+        if self.style.get_box().clone_contain().contains(SpecifiedValue::PAINT) {
             if self.style.get_box().clone_overflow_x() == overflow::visible {
                 let box_style = self.style.mutate_box();
                 box_style.set_overflow_x(overflow::_moz_hidden_unscrollable);
@@ -321,11 +319,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Native anonymous content converts display:contents into display:inline.
     #[cfg(feature = "gecko")]
     fn adjust_for_prohibited_display_contents(&mut self, flags: CascadeFlags) {
-        use properties::PROHIBIT_DISPLAY_CONTENTS;
+        use properties::CascadeFlags;
 
         // TODO: We should probably convert display:contents into display:none
         // in some cases too: https://drafts.csswg.org/css-display/#unbox
-        if !flags.contains(PROHIBIT_DISPLAY_CONTENTS) ||
+        if !flags.contains(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS) ||
            self.style.get_box().clone_display() != display::contents {
             return;
         }
@@ -345,8 +343,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         layout_parent_style: &ComputedValues,
         flags: CascadeFlags,
     ) {
-        use properties::IS_FIELDSET_CONTENT;
-        if !flags.contains(IS_FIELDSET_CONTENT) {
+        use properties::CascadeFlags;
+        if !flags.contains(CascadeFlags::IS_FIELDSET_CONTENT) {
             return;
         }
         debug_assert_eq!(self.style.get_box().clone_display(), display::block);
@@ -394,10 +392,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         &mut self,
         layout_parent_style: &ComputedValues,
     ) {
-        use properties::computed_value_flags::HAS_TEXT_DECORATION_LINES;
-        if layout_parent_style.flags.contains(HAS_TEXT_DECORATION_LINES) ||
+        use properties::computed_value_flags::ComputedValueFlags;
+        if layout_parent_style.flags.contains(ComputedValueFlags::HAS_TEXT_DECORATION_LINES) ||
            !self.style.get_text().clone_text_decoration_line().is_empty() {
-            self.style.flags.insert(HAS_TEXT_DECORATION_LINES);
+            self.style.flags.insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
         }
     }
 
@@ -406,13 +404,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         &self,
         layout_parent_style: &ComputedValues,
     ) -> bool {
-        use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        use properties::computed_value_flags::ComputedValueFlags;
         // Line break suppression should only be propagated to in-flow children.
         if self.style.floated() || self.style.out_of_flow_positioned() {
             return false;
         }
         let parent_display = layout_parent_style.get_box().clone_display();
-        if layout_parent_style.flags.contains(SHOULD_SUPPRESS_LINEBREAK) {
+        if layout_parent_style.flags.contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK) {
             // Line break suppression is propagated to any children of
             // line participants.
             if parent_display.is_line_participant() {
@@ -448,16 +446,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         layout_parent_style: &ComputedValues,
         flags: CascadeFlags,
     ) {
-        use properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
-        use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        use properties::CascadeFlags;
+        use properties::computed_value_flags::ComputedValueFlags;
         use properties::longhands::unicode_bidi::computed_value::T as unicode_bidi;
 
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
         if self.should_suppress_linebreak(layout_parent_style) {
-            self.style.flags.insert(SHOULD_SUPPRESS_LINEBREAK);
+            self.style.flags.insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
-            if !flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
+            if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
                 let inline_display = self_display.inlinify();
                 if self_display != inline_display {
                     self.style.mutate_box().set_display(inline_display);
@@ -498,21 +496,21 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// FIXME(emilio): This isn't technically a style adjustment thingie, could
     /// it move somewhere else?
     fn adjust_for_visited(&mut self, flags: CascadeFlags) {
-        use properties::{IS_LINK, IS_VISITED_LINK};
-        use properties::computed_value_flags::IS_RELEVANT_LINK_VISITED;
+        use properties::CascadeFlags;
+        use properties::computed_value_flags::ComputedValueFlags;
 
         if !self.style.has_visited_style() {
             return;
         }
 
-        let relevant_link_visited = if flags.contains(IS_LINK) {
-            flags.contains(IS_VISITED_LINK)
+        let relevant_link_visited = if flags.contains(CascadeFlags::IS_LINK) {
+            flags.contains(CascadeFlags::IS_VISITED_LINK)
         } else {
-            self.style.inherited_flags().contains(IS_RELEVANT_LINK_VISITED)
+            self.style.inherited_flags().contains(ComputedValueFlags::IS_RELEVANT_LINK_VISITED)
         };
 
         if relevant_link_visited {
-            self.style.flags.insert(IS_RELEVANT_LINK_VISITED);
+            self.style.flags.insert(ComputedValueFlags::IS_RELEVANT_LINK_VISITED);
         }
     }
 
@@ -526,14 +524,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_justify_items(&mut self) {
         use values::specified::align;
         let justify_items = self.style.get_position().clone_justify_items();
-        if justify_items.specified.0 != align::ALIGN_AUTO {
+        if justify_items.specified.0 != align::AlignFlags::AUTO {
             return;
         }
 
         let parent_justify_items =
             self.style.get_parent_position().clone_justify_items();
 
-        if !parent_justify_items.computed.0.contains(align::ALIGN_LEGACY) {
+        if !parent_justify_items.computed.0.contains(align::AlignFlags::LEGACY) {
             return;
         }
 

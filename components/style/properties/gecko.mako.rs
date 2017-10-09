@@ -1538,7 +1538,7 @@ fn static_assert() {
     }
 
     pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
-        debug_assert!(v.0 != ::values::specified::align::ALIGN_AUTO);
+        debug_assert!(v.0 != ::values::specified::align::AlignFlags::AUTO);
         self.gecko.mJustifyItems = v.into();
     }
 
@@ -3364,20 +3364,20 @@ fn static_assert() {
         use properties::longhands::will_change::computed_value::T;
 
         fn will_change_bitfield_from_prop_flags(prop: &LonghandId) -> u8 {
-            use properties::{ABSPOS_CB, CREATES_STACKING_CONTEXT, FIXPOS_CB};
+            use properties::PropertyFlags;
             use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_ABSPOS_CB;
             use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_FIXPOS_CB;
             use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
             let servo_flags = prop.flags();
             let mut bitfield = 0;
 
-            if servo_flags.contains(CREATES_STACKING_CONTEXT) {
+            if servo_flags.contains(PropertyFlags::CREATES_STACKING_CONTEXT) {
                 bitfield |= NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
             }
-            if servo_flags.contains(FIXPOS_CB) {
+            if servo_flags.contains(PropertyFlags::FIXPOS_CB) {
                 bitfield |= NS_STYLE_WILL_CHANGE_FIXPOS_CB;
             }
-            if servo_flags.contains(ABSPOS_CB) {
+            if servo_flags.contains(PropertyFlags::ABSPOS_CB) {
                 bitfield |= NS_STYLE_WILL_CHANGE_ABSPOS_CB;
             }
 
@@ -3470,26 +3470,26 @@ fn static_assert() {
         use gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
-        use properties::longhands::contain;
+        use properties::longhands::contain::SpecifiedValue;
 
         if v.is_empty() {
             self.gecko.mContain = NS_STYLE_CONTAIN_NONE as u8;
             return;
         }
 
-        if v.contains(contain::STRICT) {
+        if v.contains(SpecifiedValue::STRICT) {
             self.gecko.mContain = (NS_STYLE_CONTAIN_STRICT | NS_STYLE_CONTAIN_ALL_BITS) as u8;
             return;
         }
 
         let mut bitfield = 0;
-        if v.contains(contain::LAYOUT) {
+        if v.contains(SpecifiedValue::LAYOUT) {
             bitfield |= NS_STYLE_CONTAIN_LAYOUT;
         }
-        if v.contains(contain::STYLE) {
+        if v.contains(SpecifiedValue::STYLE) {
             bitfield |= NS_STYLE_CONTAIN_STYLE;
         }
-        if v.contains(contain::PAINT) {
+        if v.contains(SpecifiedValue::PAINT) {
             bitfield |= NS_STYLE_CONTAIN_PAINT;
         }
 
@@ -3502,25 +3502,25 @@ fn static_assert() {
         use gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
-        use properties::longhands::contain;
+        use properties::longhands::contain::{self, SpecifiedValue};
 
         let mut servo_flags = contain::computed_value::T::empty();
         let gecko_flags = self.gecko.mContain;
 
         if gecko_flags & (NS_STYLE_CONTAIN_STRICT as u8) != 0 &&
            gecko_flags & (NS_STYLE_CONTAIN_ALL_BITS as u8) != 0 {
-            servo_flags.insert(contain::STRICT | contain::STRICT_BITS);
+            servo_flags.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
             return servo_flags;
         }
 
         if gecko_flags & (NS_STYLE_CONTAIN_LAYOUT as u8) != 0 {
-            servo_flags.insert(contain::LAYOUT);
+            servo_flags.insert(SpecifiedValue::LAYOUT);
         }
         if gecko_flags & (NS_STYLE_CONTAIN_STYLE as u8) != 0{
-            servo_flags.insert(contain::STYLE);
+            servo_flags.insert(SpecifiedValue::STYLE);
         }
         if gecko_flags & (NS_STYLE_CONTAIN_PAINT as u8) != 0 {
-            servo_flags.insert(contain::PAINT);
+            servo_flags.insert(SpecifiedValue::PAINT);
         }
 
         return servo_flags;

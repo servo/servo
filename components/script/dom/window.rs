@@ -109,7 +109,7 @@ use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
-use style_traits::PARSING_MODE_DEFAULT;
+use style_traits::ParsingMode;
 use task::TaskCanceller;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
@@ -1016,7 +1016,7 @@ impl WindowMethods for Window {
         let url = self.get_url();
         let quirks_mode = self.Document().quirks_mode();
         let context = CssParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                      PARSING_MODE_DEFAULT,
+                                                      ParsingMode::DEFAULT,
                                                       quirks_mode);
         let media_query_list = media_queries::parse_media_query_list(&context, &mut parser,
                                                                      self.css_error_reporter());

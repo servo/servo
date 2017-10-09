@@ -31,7 +31,7 @@ use parser::{ParserContext, ParserErrorContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::PARSING_MODE_DEFAULT;
+use style_traits::ParsingMode;
 
 pub use self::counter_style_rule::CounterStyleRule;
 pub use self::document_rule::DocumentRule;
@@ -241,7 +241,7 @@ impl CssRule {
             parent_stylesheet_contents.origin,
             &url_data,
             None,
-            PARSING_MODE_DEFAULT,
+            ParsingMode::DEFAULT,
             parent_stylesheet_contents.quirks_mode,
         );
 

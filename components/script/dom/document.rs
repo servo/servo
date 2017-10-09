@@ -66,7 +66,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, IS_IN_DOC, LayoutNodeHelpers};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, NodeFlags, LayoutNodeHelpers};
 use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
@@ -99,7 +99,6 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::JS_GetRuntime;
-use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
@@ -130,7 +129,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
-use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
@@ -1276,10 +1275,10 @@ impl Document {
             (&None, &None) => self.window.upcast(),
         };
 
-        let ctrl = modifiers.contains(CONTROL);
-        let alt = modifiers.contains(ALT);
-        let shift = modifiers.contains(SHIFT);
-        let meta = modifiers.contains(SUPER);
+        let ctrl = modifiers.contains(KeyModifiers::CONTROL);
+        let alt = modifiers.contains(KeyModifiers::ALT);
+        let shift = modifiers.contains(KeyModifiers::SHIFT);
+        let meta = modifiers.contains(KeyModifiers::SUPER);
 
         let is_composing = false;
         let is_repeating = state == KeyState::Repeated;
@@ -2019,7 +2018,7 @@ impl LayoutDocumentHelpers for LayoutDom<Document> {
         // may no longer be true when the next layout occurs.
         let result = elements.drain()
             .map(|(k, v)| (k.to_layout(), v))
-            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(IS_IN_DOC))
+            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_IN_DOC))
             .collect();
         result
     }
@@ -2466,11 +2465,11 @@ impl Document {
             entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
         }
         if attr.local_name() == &local_name!("style") {
-            entry.hint.insert(RESTYLE_STYLE_ATTRIBUTE);
+            entry.hint.insert(RestyleHint::RESTYLE_STYLE_ATTRIBUTE);
         }
 
         if vtable_for(el.upcast()).attribute_affects_presentational_hints(attr) {
-            entry.hint.insert(RESTYLE_SELF);
+            entry.hint.insert(RestyleHint::RESTYLE_SELF);
         }
 
         let snapshot = entry.snapshot.as_mut().unwrap();

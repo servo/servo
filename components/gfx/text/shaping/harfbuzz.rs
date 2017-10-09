@@ -6,8 +6,7 @@
 
 use app_units::Au;
 use euclid::Point2D;
-use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontTableMethods, FontTableTag};
-use font::{IGNORE_LIGATURES_SHAPING_FLAG, KERN, RTL_FLAG, ShapingOptions};
+use font::{ShapingFlags, Font, FontTableMethods, FontTableTag, ShapingOptions, KERN};
 use harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
 use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
 use harfbuzz::{hb_buffer_create, hb_font_destroy};
@@ -189,7 +188,7 @@ impl ShaperMethods for Shaper {
     fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
-            hb_buffer_set_direction(hb_buffer, if options.flags.contains(RTL_FLAG) {
+            hb_buffer_set_direction(hb_buffer, if options.flags.contains(ShapingFlags::RTL_FLAG) {
                 HB_DIRECTION_RTL
             } else {
                 HB_DIRECTION_LTR
@@ -204,7 +203,7 @@ impl ShaperMethods for Shaper {
                                text.len() as c_int);
 
             let mut features = Vec::new();
-            if options.flags.contains(IGNORE_LIGATURES_SHAPING_FLAG) {
+            if options.flags.contains(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG) {
                 features.push(hb_feature_t {
                     tag: LIGA,
                     value: 0,
@@ -212,7 +211,7 @@ impl ShaperMethods for Shaper {
                     end: hb_buffer_get_length(hb_buffer),
                 })
             }
-            if options.flags.contains(DISABLE_KERNING_SHAPING_FLAG) {
+            if options.flags.contains(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG) {
                 features.push(hb_feature_t {
                     tag: KERN,
                     value: 0,

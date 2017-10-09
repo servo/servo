@@ -70,7 +70,7 @@ ${helpers.predefined_type(
     products="gecko",
     boxed=True,
     animation_value_type="ComputedValue",
-    flags="CREATES_STACKING_CONTEXT",
+    flags="PropertyFlags::CREATES_STACKING_CONTEXT",
     spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path",
 )}
 
@@ -167,4 +167,4 @@ ${helpers.predefined_type("mask-image", "ImageLayer",
     products="gecko",
     extra_prefixes="webkit",
     animation_value_type="discrete",
-    flags="CREATES_STACKING_CONTEXT")}
+    flags="PropertyFlags::CREATES_STACKING_CONTEXT")}

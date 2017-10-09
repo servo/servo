@@ -13,10 +13,10 @@ use display_list_builder::StackingContextCollectionState;
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, OpaqueFlow};
+use flow::{FlowFlags, EarlyAbsolutePositionInfo, OpaqueFlow};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
-use fragment::IS_ELLIPSIS;
+use fragment::FragmentFlags;
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
@@ -34,7 +34,7 @@ use style::computed_values::{display, overflow_x, position, text_align, text_jus
 use style::computed_values::{vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{longhands, ComputedValues};
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
+use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::box_::VerticalAlign;
 use text;
 use traversal::PreorderFlowTraversal;
@@ -344,7 +344,7 @@ impl LineBreaker {
             };
 
             // Do not reflow truncated fragments. Reflow the original fragment only.
-            let fragment = if fragment.flags.contains(IS_ELLIPSIS) {
+            let fragment = if fragment.flags.contains(FragmentFlags::IS_ELLIPSIS) {
                 continue
             } else if let SpecificFragmentInfo::TruncatedFragment(info) = fragment.specific {
                 info.full
@@ -667,7 +667,7 @@ impl LineBreaker {
                 inline_start_fragment.border_padding.inline_end = Au(0);
                 if let Some(ref mut inline_context) = inline_start_fragment.inline_context {
                     for node in &mut inline_context.nodes {
-                        node.flags.remove(LAST_FRAGMENT_OF_ELEMENT);
+                        node.flags.remove(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT);
                     }
                 }
                 inline_start_fragment.border_box.size.inline += inline_start_fragment.border_padding.inline_start;
@@ -675,7 +675,7 @@ impl LineBreaker {
                 inline_end_fragment.border_padding.inline_start = Au(0);
                 if let Some(ref mut inline_context) = inline_end_fragment.inline_context {
                     for node in &mut inline_context.nodes {
-                        node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT);
+                        node.flags.remove(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT);
                     }
                 }
                 inline_end_fragment.border_box.size.inline += inline_end_fragment.border_padding.inline_end;
@@ -899,7 +899,7 @@ impl InlineFlow {
         };
 
         if flow.fragments.fragments.iter().any(Fragment::is_unscanned_generated_content) {
-            flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT);
+            flow.base.restyle_damage.insert(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT);
         }
 
         flow
@@ -1315,7 +1315,7 @@ impl Flow for InlineFlow {
             flow::mut_base(kid).floats = Floats::new(writing_mode);
         }
 
-        self.base.flags.remove(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+        self.base.flags.remove(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
 
         let mut intrinsic_sizes_for_flow = IntrinsicISizesContribution::new();
         let mut intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
@@ -1374,10 +1374,10 @@ impl Flow for InlineFlow {
                 }
             }
 
-            fragment.restyle_damage.remove(BUBBLE_ISIZES);
+            fragment.restyle_damage.remove(ServoRestyleDamage::BUBBLE_ISIZES);
 
             if fragment.is_text_or_replaced() {
-                self.base.flags.insert(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+                self.base.flags.insert(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
             }
         }
 
@@ -1537,9 +1537,9 @@ impl Flow for InlineFlow {
             }
         });
 
-        self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+        self.base.restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
         for fragment in &mut self.fragments.fragments {
-            fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+            fragment.restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
         }
     }
 
@@ -1768,9 +1768,9 @@ pub struct InlineFragmentNodeInfo {
 }
 
 bitflags! {
-    pub flags InlineFragmentNodeFlags: u8 {
-        const FIRST_FRAGMENT_OF_ELEMENT = 0x01,
-        const LAST_FRAGMENT_OF_ELEMENT = 0x02,
+    pub struct InlineFragmentNodeFlags: u8 {
+        const FIRST_FRAGMENT_OF_ELEMENT = 0x01;
+        const LAST_FRAGMENT_OF_ELEMENT = 0x02;
     }
 }
 

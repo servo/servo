@@ -7,14 +7,14 @@
 use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use flow::{self, CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils};
+use flow::{self, FlowFlags, Flow, ImmutableFlowUtils};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
+use style::servo::restyle_damage::ServoRestyleDamage;
 use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeLayoutData};
@@ -209,7 +209,7 @@ fn construct_flows_at<N>(context: &LayoutContext, node: N)
             }
         }
 
-        tnode.mutate_layout_data().unwrap().flags.insert(::data::HAS_BEEN_TRAVERSED);
+        tnode.mutate_layout_data().unwrap().flags.insert(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED);
     }
 
     if let Some(el) = node.as_element() {
@@ -227,12 +227,12 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.bubble_inline_sizes();
-        flow::mut_base(flow).restyle_damage.remove(BUBBLE_ISIZES);
+        flow::mut_base(flow).restyle_damage.remove(ServoRestyleDamage::BUBBLE_ISIZES);
     }
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.contains(BUBBLE_ISIZES)
+        flow::base(flow).restyle_damage.contains(ServoRestyleDamage::BUBBLE_ISIZES)
     }
 }
 
@@ -250,7 +250,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW)
+        flow::base(flow).restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW)
     }
 }
 
@@ -280,9 +280,9 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
         let base = flow::base(flow);
-        base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) &&
+        base.restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW) &&
         // The fragmentation countainer is responsible for calling Flow::fragment recursively
-        !base.flags.contains(CAN_BE_FRAGMENTED)
+        !base.flags.contains(FlowFlags::CAN_BE_FRAGMENTED)
     }
 }
 
@@ -293,13 +293,13 @@ pub struct ComputeStackingRelativePositions<'a> {
 impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
     #[inline]
     fn should_process_subtree(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.contains(REPOSITION)
+        flow::base(flow).restyle_damage.contains(ServoRestyleDamage::REPOSITION)
     }
 
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.compute_stacking_relative_position(self.layout_context);
-        flow::mut_base(flow).restyle_damage.remove(REPOSITION)
+        flow::mut_base(flow).restyle_damage.remove(ServoRestyleDamage::REPOSITION)
     }
 }
 
@@ -318,7 +318,7 @@ impl<'a> BuildDisplayList<'a> {
             flow.clip_and_scroll_info(self.state.layout_context.id);
 
         flow.build_display_list(&mut self.state);
-        flow::mut_base(flow).restyle_damage.remove(REPAINT);
+        flow::mut_base(flow).restyle_damage.remove(ServoRestyleDamage::REPAINT);
 
         for kid in flow::child_iter_mut(flow) {
             self.traverse(kid);

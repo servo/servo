@@ -33,7 +33,7 @@ use servo_url::ServoUrl;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
-use style::thread_state::{self, IN_WORKER, SCRIPT};
+use style::thread_state::{self, ThreadState};
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {
@@ -154,7 +154,7 @@ impl ServiceWorkerGlobalScope {
         let serialized_worker_url = script_url.to_string();
         let origin = GlobalScope::current().expect("No current global object").origin().immutable().clone();
         thread::Builder::new().name(format!("ServiceWorker for {}", serialized_worker_url)).spawn(move || {
-            thread_state::initialize(SCRIPT | IN_WORKER);
+            thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
             let roots = RootCollection::new();
             let _stack_roots = ThreadLocalStackRoots::new(&roots);
 
