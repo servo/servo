@@ -5,6 +5,7 @@
 use attr::CaseSensitivity;
 use bloom::BloomFilter;
 use nth_index_cache::NthIndexCache;
+use tree::OpaqueElement;
 
 /// What kind of selector matching mode we should use.
 ///
@@ -88,6 +89,19 @@ pub struct MatchingContext<'a> {
     /// only.)
     pub relevant_link_found: bool,
 
+    /// The element which is going to match :scope pseudo-class. It can be
+    /// either one :scope element, or the scoping element.
+    ///
+    /// Note that, although in theory there can be multiple :scope elements,
+    /// in current specs, at most one is specified, and when there is one,
+    /// scoping element is not relevant anymore, so we use a single field for
+    /// them.
+    ///
+    /// When this is None, :scope will match the root element.
+    ///
+    /// See https://drafts.csswg.org/selectors-4/#scope-pseudo
+    pub scope_element: Option<OpaqueElement>,
+
     quirks_mode: QuirksMode,
     classes_and_ids_case_sensitivity: CaseSensitivity,
 }
@@ -125,6 +139,7 @@ impl<'a> MatchingContext<'a> {
             quirks_mode,
             relevant_link_found: false,
             classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
+            scope_element: None,
         }
     }
 
