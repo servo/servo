@@ -276,12 +276,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for ViewportRuleParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {

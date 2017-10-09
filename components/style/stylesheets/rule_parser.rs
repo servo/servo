@@ -16,7 +16,6 @@ use parser::{Parse, ParserContext, ParserErrorContext};
 use properties::parse_property_declaration_list;
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::SelectorList;
-use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
 use str::starts_with_ignore_ascii_case;
@@ -160,7 +159,7 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
     type PreludeNoBlock = AtRuleNonBlockPrelude;
     type PreludeBlock = AtRuleBlockPrelude;
     type AtRule = CssRule;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_prelude<'t>(
         &mut self,
@@ -280,7 +279,7 @@ pub struct QualifiedRuleParserPrelude {
 impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for TopLevelRuleParser<'a, R> {
     type Prelude = QualifiedRuleParserPrelude;
     type QualifiedRule = CssRule;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     #[inline]
     fn parse_prelude<'t>(
@@ -347,7 +346,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
     type PreludeNoBlock = AtRuleNonBlockPrelude;
     type PreludeBlock = AtRuleBlockPrelude;
     type AtRule = CssRule;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_prelude<'t>(
         &mut self,
@@ -550,7 +549,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
 impl<'a, 'b, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b, R> {
     type Prelude = QualifiedRuleParserPrelude;
     type QualifiedRule = CssRule;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_prelude<'t>(
         &mut self,

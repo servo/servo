@@ -187,7 +187,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = ();
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl Parse for Source {
@@ -288,7 +288,7 @@ macro_rules! font_face_descriptors_common {
 
        impl<'a, 'b, 'i> DeclarationParser<'i> for FontFaceRuleParser<'a, 'b> {
            type Declaration = ();
-           type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+           type Error = StyleParseErrorKind<'i>;
 
            fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                               -> Result<(), ParseError<'i>> {

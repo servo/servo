@@ -13,7 +13,6 @@ use custom_properties::CustomPropertiesBuilder;
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, ParserErrorContext};
 use properties::animated_properties::AnimationValue;
-use selectors::parser::SelectorParseErrorKind;
 use shared_lock::Locked;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
@@ -1060,7 +1059,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = Importance;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 /// Based on NonMozillaVendorIdentifier from Gecko's CSS parser.
@@ -1071,7 +1070,7 @@ fn is_non_mozilla_vendor_identifier(name: &str) -> bool {
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = Importance;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
@@ -1126,9 +1125,9 @@ pub fn parse_property_declaration_list<R>(context: &ParserContext,
 
                 // If the unrecognized property looks like a vendor-specific property,
                 // silently ignore it instead of polluting the error output.
-                if let ParseErrorKind::Custom(SelectorParseErrorKind::Custom(
+                if let ParseErrorKind::Custom(
                     StyleParseErrorKind::PropertyDeclaration(
-                        PropertyDeclarationParseErrorKind::UnknownVendorProperty))) = error.kind {
+                        PropertyDeclarationParseErrorKind::UnknownVendorProperty)) = error.kind {
                     continue;
                 }
 

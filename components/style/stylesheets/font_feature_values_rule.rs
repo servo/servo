@@ -16,7 +16,6 @@ use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
 use parser::{ParserContext, ParserErrorContext, Parse};
-use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
@@ -201,14 +200,14 @@ impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = ();
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
     where T: Parse
 {
     type Declaration = ();
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
@@ -392,14 +391,14 @@ macro_rules! font_feature_values_blocks {
         impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
             type Prelude = ();
             type QualifiedRule = ();
-            type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+            type Error = StyleParseErrorKind<'i>;
         }
 
         impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
             type PreludeNoBlock = ();
             type PreludeBlock = BlockType;
             type AtRule = ();
-            type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+            type Error = StyleParseErrorKind<'i>;
 
             fn parse_prelude<'t>(&mut self,
                                  name: CowRcStr<'i>,

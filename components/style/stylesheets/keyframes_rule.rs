@@ -12,7 +12,6 @@ use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, Prop
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
-use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
@@ -500,7 +499,7 @@ impl<'a, 'i, R> AtRuleParser<'i> for KeyframeListParser<'a, R> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = Arc<Locked<Keyframe>>;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 /// A wrapper to wraps the KeyframeSelector with its source location
@@ -512,7 +511,7 @@ struct KeyframeSelectorParserPrelude {
 impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListParser<'a, R> {
     type Prelude = KeyframeSelectorParserPrelude;
     type QualifiedRule = Arc<Locked<Keyframe>>;
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>) -> Result<Self::Prelude, ParseError<'i>> {
         let start_position = input.position();
@@ -580,12 +579,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = ();
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ();
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
