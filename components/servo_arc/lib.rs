@@ -389,11 +389,11 @@ impl<T: ?Sized> Drop for Arc<T> {
 
 impl<T: ?Sized + PartialEq> PartialEq for Arc<T> {
     fn eq(&self, other: &Arc<T>) -> bool {
-        *(*self) == *(*other)
+        self.p == other.p || *(*self) == *(*other)
     }
 
     fn ne(&self, other: &Arc<T>) -> bool {
-        *(*self) != *(*other)
+        self.p != other.p && *(*self) != *(*other)
     }
 }
 impl<T: ?Sized + PartialOrd> PartialOrd for Arc<T> {
