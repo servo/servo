@@ -38,8 +38,7 @@ use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, PropertyDeclarationParseError};
-use style_traits::{PropertyDeclarationParseErrorKind, StyleParseErrorKind};
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseErrorKind};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -554,7 +553,7 @@ impl LonghandId {
                         longhands::${property.ident}::parse_declared(context, input)
                     % else:
                         Err(input.new_custom_error(
-                            PropertyDeclarationParseErrorKind::UnknownProperty("${property.ident}".into())
+                            StyleParseErrorKind::UnknownProperty("${property.ident}".into())
                         ))
                     % endif
                 }
@@ -1632,7 +1631,7 @@ impl PropertyDeclaration {
     pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
                               id: PropertyId, name: CowRcStr<'i>,
                               context: &ParserContext, input: &mut Parser<'i, 't>)
-                              -> Result<(), PropertyDeclarationParseError<'i>> {
+                              -> Result<(), ParseError<'i>> {
         assert!(declarations.is_empty());
         let start = input.state();
         match id {
@@ -1644,7 +1643,7 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(e) => return Err(PropertyDeclarationParseErrorKind::new_invalid(name, e)),
+                        Err(e) => return Err(StyleParseErrorKind::new_invalid(name, e)),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(property_name, value));
@@ -1663,7 +1662,7 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    PropertyDeclarationParseErrorKind::new_invalid(name, e)
+                                    StyleParseErrorKind::new_invalid(name, e)
                                 })?;
                             Ok(PropertyDeclaration::WithVariables(id, Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1672,7 +1671,7 @@ impl PropertyDeclaration {
                                 from_shorthand: None,
                             })))
                         } else {
-                            Err(PropertyDeclarationParseErrorKind::new_invalid(name, err))
+                            Err(StyleParseErrorKind::new_invalid(name, err))
                         }
                     })
                 }).map(|declaration| {
@@ -1700,7 +1699,7 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    PropertyDeclarationParseErrorKind::new_invalid(name, e)
+                                    StyleParseErrorKind::new_invalid(name, e)
                                 })?;
                             let unparsed = Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1719,7 +1718,7 @@ impl PropertyDeclaration {
                             }
                             Ok(())
                         } else {
-                            Err(PropertyDeclarationParseErrorKind::new_invalid(name, err))
+                            Err(StyleParseErrorKind::new_invalid(name, err))
                         }
                     })
                 }

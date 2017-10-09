@@ -16,7 +16,6 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseErrorKind};
-use style_traits::PropertyDeclarationParseErrorKind;
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::{KeyframesName, serialize_percentage};
@@ -591,7 +590,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
         let property_context = PropertyParserContext::new(self.context);
 
         let id = PropertyId::parse(&name, Some(&property_context)).map_err(|()| {
-            input.new_custom_error(PropertyDeclarationParseErrorKind::UnknownProperty(name.clone()))
+            input.new_custom_error(StyleParseErrorKind::UnknownProperty(name.clone()))
         })?;
         match PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input) {
             Ok(()) => {
