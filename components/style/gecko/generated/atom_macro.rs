@@ -1122,6 +1122,8 @@ cfg_if! {
             pub static nsGkAtoms_integrity: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms12intersectionE"]
             pub static nsGkAtoms_intersection: *mut nsAtom;
+            #[link_name = "_ZN9nsGkAtoms24intersectionobserverlistE"]
+            pub static nsGkAtoms_intersectionobserverlist: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms2isE"]
             pub static nsGkAtoms_is: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms11iscontainerE"]
@@ -6291,6 +6293,8 @@ cfg_if! {
             pub static nsGkAtoms_integrity: *mut nsAtom;
             #[link_name = "?intersection@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_intersection: *mut nsAtom;
+            #[link_name = "?intersectionobserverlist@nsGkAtoms@@2PEAVnsAtom@@EA"]
+            pub static nsGkAtoms_intersectionobserverlist: *mut nsAtom;
             #[link_name = "?is@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_is: *mut nsAtom;
             #[link_name = "?iscontainer@nsGkAtoms@@2PEAVnsAtom@@EA"]
@@ -11460,6 +11464,8 @@ cfg_if! {
             pub static nsGkAtoms_integrity: *mut nsAtom;
             #[link_name = "\x01?intersection@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_intersection: *mut nsAtom;
+            #[link_name = "\x01?intersectionobserverlist@nsGkAtoms@@2PAVnsAtom@@A"]
+            pub static nsGkAtoms_intersectionobserverlist: *mut nsAtom;
             #[link_name = "\x01?is@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_is: *mut nsAtom;
             #[link_name = "\x01?iscontainer@nsGkAtoms@@2PAVnsAtom@@A"]
@@ -16632,6 +16638,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_integrity as *mut _) } };
 ("intersection") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intersection as *mut _) } };
+("intersectionobserverlist") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intersectionobserverlist as *mut _) } };
 ("is") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_is as *mut _) } };
 ("iscontainer") =>

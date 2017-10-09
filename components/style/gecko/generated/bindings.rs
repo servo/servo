@@ -45,6 +45,7 @@ use gecko_bindings::structs::RawGeckoStyleChildrenIterator;
 use gecko_bindings::structs::RawGeckoServoStyleRuleList;
 use gecko_bindings::structs::RawGeckoURLExtraData;
 use gecko_bindings::structs::RawGeckoXBLBinding;
+use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::RustString;
 use gecko_bindings::structs::CSSPseudoClassType;
@@ -250,6 +251,12 @@ pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMutOrNull<'a> = Option<&'a mut RawServoStyleSet>;
 enum RawServoStyleSetVoid { }
 pub struct RawServoStyleSet(RawServoStyleSetVoid);
+pub type RawServoSelectorListOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoSelectorList>;
+pub type RawServoSelectorListOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoSelectorList>;
+pub type RawServoSelectorListBorrowed<'a> = &'a RawServoSelectorList;
+pub type RawServoSelectorListBorrowedOrNull<'a> = Option<&'a RawServoSelectorList>;
+pub type RawServoSelectorListBorrowedMut<'a> = &'a mut RawServoSelectorList;
+pub type RawServoSelectorListBorrowedMutOrNull<'a> = Option<&'a mut RawServoSelectorList>;
 pub type ServoElementSnapshotOwned = ::gecko_bindings::sugar::ownership::Owned<ServoElementSnapshot>;
 pub type ServoElementSnapshotOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<ServoElementSnapshot>;
 pub type ServoElementSnapshotBorrowed<'a> = &'a ServoElementSnapshot;
@@ -515,6 +522,9 @@ extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
 }
 extern "C" {
+    pub fn Servo_SelectorList_Drop(ptr: RawServoSelectorListOwned);
+}
+extern "C" {
     pub fn Gecko_IsInDocument(node: RawGeckoNodeBorrowed) -> bool;
 }
 extern "C" {
@@ -628,9 +638,9 @@ extern "C" {
                          name: *mut nsAtom) -> bool;
 }
 extern "C" {
-    pub fn Gecko_AttrEquals(element: RawGeckoElementBorrowed,
-                            ns: *mut nsAtom, name: *mut nsAtom,
-                            str: *mut nsAtom, ignoreCase: bool) -> bool;
+    pub fn Gecko_AttrEquals(element: RawGeckoElementBorrowed, ns: *mut nsAtom,
+                            name: *mut nsAtom, str: *mut nsAtom,
+                            ignoreCase: bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_AttrDashEquals(element: RawGeckoElementBorrowed,
@@ -665,8 +675,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SnapshotAtomAttrValue(element: *const ServoElementSnapshot,
-                                       attribute: *mut nsAtom)
-     -> *mut nsAtom;
+                                       attribute: *mut nsAtom) -> *mut nsAtom;
 }
 extern "C" {
     pub fn Gecko_SnapshotLangValue(element: *const ServoElementSnapshot)
@@ -674,8 +683,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SnapshotHasAttr(element: *const ServoElementSnapshot,
-                                 ns: *mut nsAtom, name: *mut nsAtom)
-     -> bool;
+                                 ns: *mut nsAtom, name: *mut nsAtom) -> bool;
 }
 extern "C" {
     pub fn Gecko_SnapshotAttrEquals(element: *const ServoElementSnapshot,
@@ -698,10 +706,9 @@ extern "C" {
 extern "C" {
     pub fn Gecko_SnapshotAttrHasSubstring(element:
                                               *const ServoElementSnapshot,
-                                          ns: *mut nsAtom,
-                                          name: *mut nsAtom,
-                                          str: *mut nsAtom,
-                                          ignore_case: bool) -> bool;
+                                          ns: *mut nsAtom, name: *mut nsAtom,
+                                          str: *mut nsAtom, ignore_case: bool)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_SnapshotAttrHasPrefix(element: *const ServoElementSnapshot,
@@ -1015,8 +1022,7 @@ extern "C" {
                                          aImageValue: *mut ImageValue);
 }
 extern "C" {
-    pub fn Gecko_SetImageElement(image: *mut nsStyleImage,
-                                 atom: *mut nsAtom);
+    pub fn Gecko_SetImageElement(image: *mut nsStyleImage, atom: *mut nsAtom);
 }
 extern "C" {
     pub fn Gecko_CopyImageValueFrom(image: *mut nsStyleImage,
@@ -1581,9 +1587,6 @@ extern "C" {
     pub fn Gecko_ShouldCreateStyleThreadPool() -> bool;
 }
 extern "C" {
-    pub fn Gecko_GetSystemPageSize() -> usize;
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);
@@ -1903,6 +1906,10 @@ extern "C" {
     pub fn Gecko_SetJemallocThreadLocalArena(enabled: bool);
 }
 extern "C" {
+    pub fn Gecko_AddBufferToCrashReport(addr: *const ::std::os::raw::c_void,
+                                        len: usize);
+}
+extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
@@ -2089,6 +2096,15 @@ extern "C" {
                                                  declarations:
                                                      RawServoDeclarationBlockBorrowed)
      -> ServoStyleContextStrong;
+}
+extern "C" {
+    pub fn Servo_SelectorList_Parse(selector_list: *const nsACString)
+     -> *mut RawServoSelectorList;
+}
+extern "C" {
+    pub fn Servo_SelectorList_Matches(arg1: RawGeckoElementBorrowed,
+                                      arg2: RawServoSelectorListBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_AddSizeOfExcludingThis(malloc_size_of: MallocSizeOf,
