@@ -1530,6 +1530,7 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
         None,
         element.owner_document_quirks_mode(),
     );
+    context.scope_element = Some(element.opaque());
 
     selectors::matching::matches_selector_list(selectors, &element, &mut context)
 }
