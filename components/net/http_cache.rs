@@ -229,7 +229,7 @@ fn get_response_expiry(response: &Response) -> Duration {
     Duration::seconds(0i64)
 }
 
-fn get_max_stale_from_request_headers(request: &Request) -> Duration {
+fn get_expire_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
     if let Some(directive_data) = request.headers.get_raw("cache-control") {
         let directives_string = String::from_utf8(directive_data[0].to_vec()).unwrap();
         println!("received request cache controle {:?}", directives_string);
@@ -240,10 +240,29 @@ fn get_max_stale_from_request_headers(request: &Request) -> Duration {
             println!("received request cache controle directive {:?}", directive_info);
             match directive_info[0] {
                 "max-stale" => {
-                    println!("received max-stale {:?}", directive_info[1]);
+                    println!("received request max-stale {:?}", directive_info[1]);
                     let seconds = String::from_str(directive_info[1]).unwrap();
-                    return Duration::seconds(seconds.parse::<i64>().unwrap());
+                    return expires + Duration::seconds(seconds.parse::<i64>().unwrap());
                 },
+                "max-age" => {
+                    println!("received request max-age {:?}", directive_info[1]);
+                    let seconds = String::from_str(directive_info[1]).unwrap();
+                    let max_age = Duration::seconds(seconds.parse::<i64>().unwrap());
+                    if expires > max_age {
+                        return return Duration::min_value();
+                    }
+                    return expires - max_age;
+                },
+                "min-fresh" => {
+                    println!("received request min-fresh {:?}", directive_info[1]);
+                    let seconds = String::from_str(directive_info[1]).unwrap();
+                    let min_fresh = Duration::seconds(seconds.parse::<i64>().unwrap());
+                    if expires < min_fresh {
+                        return return Duration::min_value();
+                    }
+                    return expires - min_fresh;
+                },
+                "no-cache" | "no-store" => return Duration::min_value(),
                 _ => {}
             }
         }
@@ -280,16 +299,15 @@ impl HttpCache {
             }
             let expires = *cached_resource.expires.lock().unwrap();
             println!("expires: {:?}", expires);
-            let max_stale = get_max_stale_from_request_headers(request);
-            println!("max stale: {:?}", max_stale);
+            let adjusted_expires = get_expire_adjustment_from_request_headers(request, expires);
+            println!("adjusted_expires: {:?}", adjusted_expires);
             let now = Duration::seconds(time::now().to_timespec().sec);
             println!("now: {:?}", now);
             let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
             println!("now: {:?}", last_validated);
-            let remaining_freshness = expires + max_stale;
             let time_since_validated = now - last_validated;
-            let has_expired = (remaining_freshness < time_since_validated)
-                | (remaining_freshness == time_since_validated);
+            let has_expired = (adjusted_expires < time_since_validated)
+                | (adjusted_expires == time_since_validated);
             println!("constructing for: {:?} {:?}", response, has_expired);
             return Some(CachedResponse { response: response, needs_validation: has_expired });
         }
