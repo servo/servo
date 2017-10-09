@@ -45,7 +45,7 @@ impl CacheKey {
                                       .iter()
                                       .filter(|header| {
                                           match header.name().to_lowercase().as_ref() {
-                                              "cache-control" | "vary" | "expires" => false,
+                                              "cache-control" | "expires" => false,
                                               _ => true
                                           }
                                       })
@@ -58,6 +58,11 @@ impl CacheKey {
     /// Retrieve the URL associated with this key
     pub fn url(&self) -> ServoUrl {
         self.url.clone()
+    }
+
+    /// Retrieve the request headers associated with this key
+    pub fn request_headers(&self) -> Vec<(String, String)> {
+        self.request_headers.clone()
     }
 }
 
@@ -272,6 +277,35 @@ fn get_expire_adjustment_from_request_headers(request: &Request, expires: Durati
     expires
 }
 
+/// Create a CachedResponse from a request and a CachedResource.
+fn create_cached_response(request: &Request, cached_resource: &CachedResource, done_chan: &mut DoneChannel)
+    -> CachedResponse {
+    let mut response = Response::new(cached_resource.metadata.final_url.clone());
+    response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
+    response.body = cached_resource.body.clone();
+    response.status = cached_resource.status.clone();
+    response.raw_status = cached_resource.raw_status.clone();
+    response.url_list = cached_resource.url_list.clone();
+    if let ResponseBody::Receiving(_) = *response.body.lock().unwrap() {
+        let (done_sender, done_receiver) = channel();
+        *done_chan = Some((done_sender.clone(), done_receiver));
+        cached_resource.awaiting_body.lock().unwrap().push(done_sender);
+    }
+    let expires = *cached_resource.expires.lock().unwrap();
+    println!("expires: {:?}", expires);
+    let adjusted_expires = get_expire_adjustment_from_request_headers(request, expires);
+    println!("adjusted_expires: {:?}", adjusted_expires);
+    let now = Duration::seconds(time::now().to_timespec().sec);
+    println!("now: {:?}", now);
+    let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
+    println!("now: {:?}", last_validated);
+    let time_since_validated = now - last_validated;
+    let has_expired = (adjusted_expires < time_since_validated)
+        | (adjusted_expires == time_since_validated);
+    println!("constructing for: {:?} {:?}", response, has_expired);
+    CachedResponse { response: response, needs_validation: has_expired }
+}
+
 
 impl HttpCache {
     /// Create a new memory cache instance.
@@ -282,38 +316,64 @@ impl HttpCache {
         }
     }
 
+    /// Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
+    fn calculate_secondary_keys_with_vary(&self, request: &Request) -> Option<&CachedResource> {
+        let mut can_be_constructed = vec![];
+        for (key, cached_resource) in self.entries.iter() {
+            println!("comparing: {:?} with  {:?}", key.url(), request.url());
+            println!("result: {:?}", key.url() == request.url());
+            if key.url() == request.url() {
+                if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
+                    if let Some(vary_data) = stored_headers.get_raw("vary") {
+                        let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
+                        println!("received vary_data {:?}", vary_data_string);
+                        let vary_values: Vec<&str> = vary_data_string.split(",").collect();
+                        for vary_val in vary_values {
+                            if let Some(header_data) = request.headers.get_raw(vary_val) {
+                                let request_header_data_string = String::from_utf8(header_data[0].to_vec()).unwrap();
+                                println!("request_header_data_string {:?}", request_header_data_string);
+                                let request_vary_values: Vec<&str> = request_header_data_string.split(",").collect();
+                                let mut ok = true;
+                                for (name, value) in key.request_headers() {
+                                    println!("name 113{:?} {:?}", name, vary_val);
+                                    println!("name 223{:?}", name.to_lowercase() == vary_val.to_lowercase());
+                                    if name.to_lowercase() == vary_val.to_lowercase() {
+                                        let stored_vary_values: Vec<&str> = value.split(",").collect();
+                                        println!("stored_vary_values  {:?}", stored_vary_values);
+                                        ok = request_vary_values == stored_vary_values;
+                                    }
+                                }
+                                if ok {
+                                    can_be_constructed.push(cached_resource.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(resource) = can_be_constructed.first() {
+            return Some(resource.clone());
+        }
+        None
+    }
+
     /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
     pub fn construct_response(&self, request: &Request, done_chan: &mut DoneChannel)
         -> Option<CachedResponse> {
         let entry_key = CacheKey::new(request.clone());
         println!("received construct_response for {:?}", entry_key);
-        if let Some(cached_resource) = self.entries.get(&entry_key) {
-            let mut response = Response::new(cached_resource.metadata.final_url.clone());
-            response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
-            response.body = cached_resource.body.clone();
-            response.status = cached_resource.status.clone();
-            response.raw_status = cached_resource.raw_status.clone();
-            response.url_list = cached_resource.url_list.clone();
-            if let ResponseBody::Receiving(_) = *response.body.lock().unwrap() {
-                let (done_sender, done_receiver) = channel();
-                *done_chan = Some((done_sender.clone(), done_receiver));
-                cached_resource.awaiting_body.lock().unwrap().push(done_sender);
-            }
-            let expires = *cached_resource.expires.lock().unwrap();
-            println!("expires: {:?}", expires);
-            let adjusted_expires = get_expire_adjustment_from_request_headers(request, expires);
-            println!("adjusted_expires: {:?}", adjusted_expires);
-            let now = Duration::seconds(time::now().to_timespec().sec);
-            println!("now: {:?}", now);
-            let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
-            println!("now: {:?}", last_validated);
-            let time_since_validated = now - last_validated;
-            let has_expired = (adjusted_expires < time_since_validated)
-                | (adjusted_expires == time_since_validated);
-            println!("constructing for: {:?} {:?}", response, has_expired);
-            return Some(CachedResponse { response: response, needs_validation: has_expired });
-        }
-        None
+        return match (self.entries.get(&entry_key), self.calculate_secondary_keys_with_vary(request)) {
+            (None, Some(cached_resource)) => {
+                let cached_response = create_cached_response(request, cached_resource, done_chan);
+                Some(cached_response)
+            },
+            (Some(ref cached_resource), Some(_)) => {
+                let cached_response = create_cached_response(request, cached_resource, done_chan);
+                Some(cached_response)
+            },
+            _ => None,
+        };
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
