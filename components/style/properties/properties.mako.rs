@@ -1398,7 +1398,12 @@ pub enum PropertyDeclaration {
     ),
     /// A custom property declaration, with the property name and the declared
     /// value.
-    Custom(::custom_properties::Name, DeclaredValueOwned<Box<::custom_properties::SpecifiedValue>>),
+    #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
+    Custom(
+        ::custom_properties::Name,
+        #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
+        DeclaredValueOwned<Arc<::custom_properties::SpecifiedValue>>
+    ),
 }
 
 impl fmt::Debug for PropertyDeclaration {

@@ -9,6 +9,7 @@
 use Atom;
 use cssparser::serialize_identifier;
 use custom_properties;
+use servo_arc::Arc;
 use std::fmt;
 use style_traits::ToCss;
 
@@ -153,7 +154,8 @@ pub struct PaintWorklet {
     pub name: Atom,
     /// The arguments for the worklet.
     /// TODO: store a parsed representation of the arguments.
-    pub arguments: Vec<custom_properties::SpecifiedValue>,
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    pub arguments: Vec<Arc<custom_properties::SpecifiedValue>>,
 }
 
 trivial_to_computed_value!(PaintWorklet);

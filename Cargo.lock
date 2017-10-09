@@ -3234,6 +3234,7 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "selectors 0.19.0",
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_arc 0.0.1",
  "servo_atoms 0.0.1",
  "webrender_api 0.52.0 (git+https://github.com/servo/webrender)",
 ]
