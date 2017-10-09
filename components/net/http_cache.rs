@@ -267,7 +267,7 @@ fn get_expire_adjustment_from_request_headers(request: &Request, expires: Durati
             }
         }
     }
-    Duration::seconds(0i64)
+    expires
 }
 
 
