@@ -686,7 +686,13 @@ impl Window {
                         close_event = self.handle_window_event(event) || close_event;
                     }
                 }
-                WindowKind::Headless(..) => {}
+                WindowKind::Headless(..) => {
+                    // Sleep the main thread to avoid using 100% CPU
+                    // This can be done better, see comments in #18777
+                    if events.is_empty() {
+                        thread::sleep(time::Duration::from_millis(5));
+                    }
+                }
             }
         } else {
             close_event = self.handle_next_event();
@@ -697,11 +703,6 @@ impl Window {
         }
 
         events.extend(mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new()).into_iter());
-
-        if opts::get().headless && events.is_empty() {
-            thread::sleep(time::Duration::from_millis(5));
-        }
-
         events
     }
 
