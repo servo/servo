@@ -80,16 +80,12 @@ struct CachedResource {
 struct CachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
-
     /// MIME type / subtype.
     pub content_type: Option<Serde<ContentType>>,
-
     /// Character set.
     pub charset: Option<String>,
-
     /// Headers
     pub headers: Arc<Mutex<Headers>>,
-
     /// HTTP Status
     pub status: Option<(u16, Vec<u8>)>
 }
@@ -98,7 +94,6 @@ struct CachedMetadata {
 pub struct CachedResponse {
     /// The response constructed from the cached resource
     pub response: Response,
-
     /// The revalidation flag for the stored response
     pub needs_validation: bool
 }
@@ -117,7 +112,6 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     if metadata.headers.is_none() {
         return true;
     }
-
     let headers = metadata.headers.as_ref().unwrap();
     match headers.get::<header::CacheControl>() {
         Some(&header::CacheControl(ref directive)) => {
@@ -129,14 +123,12 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
         },
         None => ()
     }
-
     match headers.get::<header::Pragma>() {
         Some(&header::Pragma::NoCache) => {
             return false;
         },
         _ => ()
     }
-
     return true;
 }
 
@@ -177,7 +169,6 @@ fn get_response_expiry(response: &Response) -> Duration {
                 }
             }
         }
-
     }
     if let Some(&header::Expires(header::HttpDate(t))) = response.headers.get::<header::Expires>() {
         // store the period of time from now until expiry
@@ -235,7 +226,6 @@ fn get_expire_adjustment_from_request_headers(request: &Request, expires: Durati
         let directives: Vec<&str> = directives_string.split(",").collect();
         for directive in directives {
             let directive_info: Vec<&str> = directive.split("=").collect();
-
             match directive_info[0] {
                 "max-stale" => {
                     let seconds = String::from_str(directive_info[1]).unwrap();
