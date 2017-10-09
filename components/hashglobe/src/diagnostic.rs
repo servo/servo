@@ -1,7 +1,6 @@
 use hash_map::HashMap;
 use std::borrow::Borrow;
 use std::hash::{BuildHasher, Hash};
-use table::SafeHash;
 
 use FailedAllocationError;
 
@@ -12,9 +11,9 @@ const CANARY: usize = 0x42cafe9942cafe99;
 
 #[derive(Clone, Debug)]
 enum JournalEntry {
-    Insert(SafeHash),
-    GetOrInsertWith(SafeHash),
-    Remove(SafeHash),
+    Insert(usize),
+    GOIW(usize),
+    Remove(usize),
     DidClear(usize),
 }
 
@@ -37,17 +36,23 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         &self.map
     }
 
-    #[inline(always)]
+    #[inline(never)]
     pub fn begin_mutation(&mut self) {
+        self.map.verify();
         assert!(self.readonly);
         self.readonly = false;
+        self.verify();
     }
 
-    #[inline(always)]
+    #[inline(never)]
     pub fn end_mutation(&mut self) {
+        self.map.verify();
         assert!(!self.readonly);
         self.readonly = true;
+        self.verify();
+    }
 
+    fn verify(&self) {
         let mut position = 0;
         let mut bad_canary: Option<(usize, *const usize)> = None;
         for (_,v) in self.map.iter() {
@@ -105,7 +110,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         default: F
     ) -> Result<&mut V, FailedAllocationError> {
         assert!(!self.readonly);
-        self.journal.push(JournalEntry::GetOrInsertWith(self.map.make_hash(&key)));
+        self.journal.push(JournalEntry::GOIW(self.map.make_hash(&key).inspect()));
         let entry = self.map.try_entry(key)?;
         Ok(&mut entry.or_insert_with(|| (CANARY, default())).1)
     }
@@ -113,7 +118,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
     #[inline(always)]
     pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, FailedAllocationError> {
         assert!(!self.readonly);
-        self.journal.push(JournalEntry::Insert(self.map.make_hash(&k)));
+        self.journal.push(JournalEntry::Insert(self.map.make_hash(&k).inspect()));
         let old = self.map.try_insert(k, (CANARY, v))?;
         Ok(old.map(|x| x.1))
     }
@@ -124,7 +129,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
               Q: Hash + Eq
     {
         assert!(!self.readonly);
-        self.journal.push(JournalEntry::Remove(self.map.make_hash(k)));
+        self.journal.push(JournalEntry::Remove(self.map.make_hash(k).inspect()));
         self.map.remove(k).map(|x| x.1)
     }
 
@@ -141,19 +146,22 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
 
     #[inline(never)]
     fn report_corruption(
-        &mut self,
+        &self,
         canary: usize,
         canary_addr: *const usize,
         position: usize
     ) {
+        use ::std::ffi::CString;
+        let key = b"HashMapJournal\0";
+        let value = CString::new(format!("{:?}", self.journal)).unwrap();
         unsafe {
-            Gecko_AddBufferToCrashReport(
-                self.journal.as_ptr() as *const _,
-                self.journal.len() * ::std::mem::size_of::<JournalEntry>(),
+            Gecko_AnnotateCrashReport(
+                key.as_ptr() as *const ::std::os::raw::c_char,
+                value.as_ptr(),
             );
         }
         panic!(
-            "HashMap Corruption (sz={}, cap={}, pairsz={}, cnry={:#x}, pos={}, base_addr={:?}, cnry_addr={:?})",
+            "HashMap Corruption (sz={}, cap={}, pairsz={}, cnry={:#x}, pos={}, base_addr={:?}, cnry_addr={:?}, jrnl_len={})",
             self.map.len(),
             self.map.raw_capacity(),
             ::std::mem::size_of::<(K, (usize, V))>(),
@@ -161,6 +169,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
             position,
             self.map.raw_buffer(),
             canary_addr,
+            self.journal.len(),
         );
     }
 }
@@ -205,6 +214,6 @@ impl<K: Hash + Eq, V, S: BuildHasher> Drop for DiagnosticHashMap<K, V, S>
 }
 
 extern "C" {
-    pub fn Gecko_AddBufferToCrashReport(addr: *const ::std::os::raw::c_void,
-                                        bytes: usize);
+    pub fn Gecko_AnnotateCrashReport(key_str: *const ::std::os::raw::c_char,
+                                     value_str: *const ::std::os::raw::c_char);
 }

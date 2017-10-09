@@ -247,13 +247,21 @@ impl<K, V> RawBucket<K, V> {
         (self.hash(), self.pair())
     }
 
-    fn assert_bounds(&self, bytes_allocated: usize) {
+    fn assert_bounds(&self, bytes_allocated: usize, size: Option<usize>) {
         let base = self.hash_start as *mut u8;
         let (h, p) = unsafe { self.hash_pair() };
         assert!((h as *mut u8) < (p as *mut u8), "HashMap Corruption - hash offset not below pair offset");
         let end = unsafe { p.offset(1) } as *mut u8;
-        assert!(end > base, "HashMap Corruption - end={:?}, base={:?}", end, base);
-        assert!(end <= unsafe { base.offset(bytes_allocated as isize) }, "HashMap Corruption - end={:?}, base={:?}", end, base);
+        assert!(end > base, "HashMap Corruption - end={:?}, base={:?}, idx={}, alloc={}, size={:?}", end, base, self.idx, bytes_allocated, size);
+        assert!(
+            end <= unsafe { base.offset(bytes_allocated as isize) },
+            "HashMap Corruption - end={:?}, base={:?}, idx={}, alloc={}, size={:?}",
+            end,
+            base,
+            self.idx,
+            bytes_allocated,
+            size,
+        );
     }
 }
 
@@ -431,13 +439,13 @@ impl<K, V, M: Deref<Target = RawTable<K, V>>> Bucket<K, V, M> {
     /// Modifies the bucket in place to make it point to the next slot.
     pub fn next(&mut self) {
         self.raw.idx = self.raw.idx.wrapping_add(1) & self.table.capacity_mask;
-        self.raw.assert_bounds(self.table.bytes_allocated);
+        self.raw.assert_bounds(self.table.bytes_allocated, None);
     }
 
     /// Modifies the bucket in place to make it point to the previous slot.
     pub fn prev(&mut self) {
         self.raw.idx = self.raw.idx.wrapping_sub(1) & self.table.capacity_mask;
-        self.raw.assert_bounds(self.table.bytes_allocated);
+        self.raw.assert_bounds(self.table.bytes_allocated, None);
     }
 }
 
@@ -813,6 +821,7 @@ impl<K, V> RawTable<K, V> {
     }
 
     fn raw_bucket_at(&self, index: usize) -> RawBucket<K, V> {
+        self.verify();
         let hashes_size = self.capacity() * size_of::<HashUint>();
         let pairs_size = self.capacity() * size_of::<(K, V)>();
 
@@ -833,7 +842,7 @@ impl<K, V> RawTable<K, V> {
             }
         };
 
-        bucket.assert_bounds(self.bytes_allocated);
+        bucket.assert_bounds(self.bytes_allocated, Some(self.size));
         bucket
     }
 
@@ -841,6 +850,20 @@ impl<K, V> RawTable<K, V> {
     #[inline]
     pub fn raw_buffer(&self) -> *const u8 {
         self.hashes.ptr() as *const u8
+    }
+
+    /// Verify that the table metadata is internally consistent.
+    #[inline]
+    pub fn verify(&self) {
+        assert!(
+            self.capacity() == 0 || self.capacity().is_power_of_two(),
+            "HashMap Corruption: mask={}, sz={}, alloc={}", self.capacity_mask, self.size, self.bytes_allocated,
+        );
+        assert_eq!(
+            self.capacity() * (size_of::<usize>() + size_of::<(K, V)>()),
+            self.bytes_allocated,
+            "HashMap Corruption: mask={}, sz={}, alloc={}", self.capacity_mask, self.size, self.bytes_allocated,
+        );
     }
 
     /// Creates a new raw table from a given capacity. All buckets are
@@ -933,7 +956,7 @@ impl<K, V> RawTable<K, V> {
                 }
             }
             raw.idx = raw.idx.checked_sub(1).unwrap();
-            raw.assert_bounds(self.bytes_allocated);
+            raw.assert_bounds(self.bytes_allocated, Some(self.size));
         }
     }
 
@@ -993,12 +1016,12 @@ impl<'a, K, V> Iterator for RawBuckets<'a, K, V> {
                     self.elems_left = self.elems_left.checked_sub(1).unwrap();
                     if self.elems_left != 0 {
                         self.raw.as_mut().unwrap().idx += 1;
-                        self.raw.as_ref().unwrap().assert_bounds(self.bytes_allocated);
+                        self.raw.as_ref().unwrap().assert_bounds(self.bytes_allocated, None);
                     }
                     return Some(item);
                 }
                 self.raw.as_mut().unwrap().idx += 1;
-                self.raw.as_ref().unwrap().assert_bounds(self.bytes_allocated);
+                self.raw.as_ref().unwrap().assert_bounds(self.bytes_allocated, None);
             }
         }
     }
@@ -1207,9 +1230,9 @@ impl<K: Clone, V: Clone> Clone for RawTable<K, V> {
                 }
 
                 buckets.idx += 1;
-                buckets.assert_bounds(self.bytes_allocated);
+                buckets.assert_bounds(self.bytes_allocated, None);
                 new_buckets.idx += 1;
-                new_buckets.assert_bounds(new_ht.bytes_allocated);
+                new_buckets.assert_bounds(new_ht.bytes_allocated, None);
             }
 
             new_ht.size = self.size();

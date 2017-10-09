@@ -694,6 +694,12 @@ impl<K, V, S> HashMap<K, V, S>
         self.table.raw_buffer()
     }
 
+    /// Verify that the table metadata is internally consistent.
+    #[inline]
+    pub fn verify(&self) {
+        self.table.verify();
+    }
+
     /// Reserves capacity for at least `additional` more elements to be inserted
     /// in the `HashMap`. The collection may reserve more space to avoid
     /// frequent reallocations.
