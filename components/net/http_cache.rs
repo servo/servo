@@ -230,6 +230,7 @@ fn get_response_expiry(response: &Response) -> Duration {
     Duration::seconds(0i64)
 }
 
+/// Request Cache-Control Directives https://tools.ietf.org/html/rfc7234#section-5.2.1
 fn get_expire_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
     if let Some(directive_data) = request.headers.get_raw("cache-control") {
         let directives_string = String::from_utf8(directive_data[0].to_vec()).unwrap();
