@@ -1270,12 +1270,21 @@ impl Stylist {
             // ServoStyleSet::CreateXBLServoStyleSet() loads XBL style sheets
             // under eAuthorSheetFeatures level.
             if let Some(map) = stylist.cascade_data.author.borrow_for_pseudo(pseudo_element) {
+                // NOTE(emilio): This is needed because the XBL stylist may
+                // think it has a different quirks mode than the document.
+                let mut matching_context = MatchingContext::new(
+                    context.matching_mode,
+                    context.bloom_filter,
+                    context.nth_index_cache.as_mut().map(|s| &mut **s),
+                    stylist.quirks_mode,
+                );
+
                 map.get_all_matching_rules(
                     element,
                     &rule_hash_target,
                     applicable_declarations,
-                    context,
-                    self.quirks_mode,
+                    &mut matching_context,
+                    stylist.quirks_mode,
                     flags_setter,
                     CascadeLevel::XBL,
                 );

@@ -123,6 +123,11 @@ impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
     pub fn new(pres_context: RawGeckoPresContextOwned) -> Self {
         let device = Device::new(pres_context);
+
+        // FIXME(emilio, tlin): How is this supposed to work with XBL? This is
+        // right now not always honored, see bug 1405543...
+        //
+        // Should we just force XBL Stylists to be NoQuirks?
         let quirks_mode = unsafe {
             (*device.pres_context().mDocument.raw::<nsIDocument>()).mCompatMode
         };
