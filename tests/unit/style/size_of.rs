@@ -15,11 +15,9 @@ size_of_test!(test_size_of_property_declaration, properties::PropertyDeclaration
 size_of_test!(test_size_of_parsed_declaration, properties::SourcePropertyDeclaration, 576);
 
 size_of_test!(test_size_of_selector_parse_error_kind, SelectorParseErrorKind, 40);
-size_of_test!(test_size_of_style_parse_error_kind, ::style_traits::StyleParseErrorKind, 64);
+size_of_test!(test_size_of_style_parse_error_kind, ::style_traits::StyleParseErrorKind, 56);
 size_of_test!(test_size_of_value_parse_error_kind, ::style_traits::ValueParseErrorKind, 40);
-size_of_test!(test_size_of_declaration_parse_error_kind, ::style_traits::PropertyDeclarationParseErrorKind, 56);
 
 size_of_test!(test_size_of_selector_parse_error, SelectorParseError, 56);
-size_of_test!(test_size_of_style_traits_parse_error, ::style_traits::ParseError, 80);
+size_of_test!(test_size_of_style_traits_parse_error, ::style_traits::ParseError, 72);
 size_of_test!(test_size_of_value_parse_error, ::style_traits::ValueParseError, 56);
-size_of_test!(test_size_of_declaration_parse_error, ::style_traits::PropertyDeclarationParseError, 72);

@@ -90,9 +90,6 @@ pub type ParseError<'i> = cssparser::ParseError<'i, StyleParseErrorKind<'i>>;
 /// Error in property value parsing
 pub type ValueParseError<'i> = cssparser::ParseError<'i, ValueParseErrorKind<'i>>;
 
-/// Error in property parsing
-pub type PropertyDeclarationParseError<'i> = cssparser::ParseError<'i, PropertyDeclarationParseErrorKind<'i>>;
-
 #[derive(Clone, Debug, PartialEq)]
 /// Errors that can be encountered while parsing CSS values.
 pub enum StyleParseErrorKind<'i> {
@@ -106,8 +103,6 @@ pub enum StyleParseErrorKind<'i> {
     UnbalancedCloseSquareBracketInDeclarationValueBlock,
     /// Unexpected closing curly bracket in a DVB.
     UnbalancedCloseCurlyBracketInDeclarationValueBlock,
-    /// A property declaration parsing error.
-    PropertyDeclaration(PropertyDeclarationParseErrorKind<'i>),
     /// A property declaration value had input remaining after successfully parsing.
     PropertyDeclarationValueNotExhausted,
     /// An unexpected dimension token was encountered.
@@ -138,38 +133,7 @@ pub enum StyleParseErrorKind<'i> {
     ValueError(ValueParseErrorKind<'i>),
     /// An error was encountered while parsing a selector
     SelectorError(SelectorParseErrorKind<'i>),
-}
 
-impl<'i> From<ValueParseErrorKind<'i>> for StyleParseErrorKind<'i> {
-    fn from(this: ValueParseErrorKind<'i>) -> Self {
-        StyleParseErrorKind::ValueError(this)
-    }
-}
-
-impl<'i> From<SelectorParseErrorKind<'i>> for StyleParseErrorKind<'i> {
-    fn from(this: SelectorParseErrorKind<'i>) -> Self {
-        StyleParseErrorKind::SelectorError(this)
-    }
-}
-
-impl<'i> From<PropertyDeclarationParseErrorKind<'i>> for StyleParseErrorKind<'i> {
-    fn from(this: PropertyDeclarationParseErrorKind<'i>) -> Self {
-        StyleParseErrorKind::PropertyDeclaration(this)
-    }
-}
-
-/// Specific errors that can be encountered while parsing property values.
-#[derive(Clone, Debug, PartialEq)]
-pub enum ValueParseErrorKind<'i> {
-    /// An invalid token was encountered while parsing a color value.
-    InvalidColor(Token<'i>),
-    /// An invalid filter value was encountered.
-    InvalidFilter(Token<'i>),
-}
-
-/// The result of parsing a property declaration.
-#[derive(Clone, Debug, PartialEq)]
-pub enum PropertyDeclarationParseErrorKind<'i> {
     /// The property declaration was for an unknown property.
     UnknownProperty(CowRcStr<'i>),
     /// An unknown vendor-specific identifier was encountered.
@@ -191,21 +155,42 @@ pub enum PropertyDeclarationParseErrorKind<'i> {
     NotAllowedInPageRule,
 }
 
-impl<'i> PropertyDeclarationParseErrorKind<'i> {
+impl<'i> From<ValueParseErrorKind<'i>> for StyleParseErrorKind<'i> {
+    fn from(this: ValueParseErrorKind<'i>) -> Self {
+        StyleParseErrorKind::ValueError(this)
+    }
+}
+
+impl<'i> From<SelectorParseErrorKind<'i>> for StyleParseErrorKind<'i> {
+    fn from(this: SelectorParseErrorKind<'i>) -> Self {
+        StyleParseErrorKind::SelectorError(this)
+    }
+}
+
+/// Specific errors that can be encountered while parsing property values.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ValueParseErrorKind<'i> {
+    /// An invalid token was encountered while parsing a color value.
+    InvalidColor(Token<'i>),
+    /// An invalid filter value was encountered.
+    InvalidFilter(Token<'i>),
+}
+
+impl<'i> StyleParseErrorKind<'i> {
     /// Create an InvalidValue parse error
-    pub fn new_invalid(name: CowRcStr<'i>, value_error: ParseError<'i>) -> PropertyDeclarationParseError<'i> {
+    pub fn new_invalid(name: CowRcStr<'i>, value_error: ParseError<'i>) -> ParseError<'i> {
         let variant = match value_error.kind {
             cssparser::ParseErrorKind::Custom(StyleParseErrorKind::ValueError(e)) => {
                 match e {
                     ValueParseErrorKind::InvalidColor(token) => {
-                        PropertyDeclarationParseErrorKind::InvalidColor(name, token)
+                        StyleParseErrorKind::InvalidColor(name, token)
                     }
                     ValueParseErrorKind::InvalidFilter(token) => {
-                        PropertyDeclarationParseErrorKind::InvalidFilter(name, token)
+                        StyleParseErrorKind::InvalidFilter(name, token)
                     }
                 }
             }
-            _ => PropertyDeclarationParseErrorKind::OtherInvalidValue(name),
+            _ => StyleParseErrorKind::OtherInvalidValue(name),
         };
         cssparser::ParseError {
             kind: cssparser::ParseErrorKind::Custom(variant),

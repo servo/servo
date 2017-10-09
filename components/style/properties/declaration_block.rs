@@ -1079,9 +1079,9 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
             Ok(id) => id,
             Err(()) => {
                 return Err(input.new_custom_error(if is_non_mozilla_vendor_identifier(&name) {
-                    PropertyDeclarationParseErrorKind::UnknownVendorProperty
+                    StyleParseErrorKind::UnknownVendorProperty
                 } else {
-                    PropertyDeclarationParseErrorKind::UnknownProperty(name)
+                    StyleParseErrorKind::UnknownProperty(name)
                 }));
             }
         };
@@ -1125,9 +1125,7 @@ pub fn parse_property_declaration_list<R>(context: &ParserContext,
 
                 // If the unrecognized property looks like a vendor-specific property,
                 // silently ignore it instead of polluting the error output.
-                if let ParseErrorKind::Custom(
-                    StyleParseErrorKind::PropertyDeclaration(
-                        PropertyDeclarationParseErrorKind::UnknownVendorProperty)) = error.kind {
+                if let ParseErrorKind::Custom(StyleParseErrorKind::UnknownVendorProperty) = error.kind {
                     continue;
                 }
 
