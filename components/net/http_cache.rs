@@ -368,7 +368,7 @@ impl HttpCache {
                 let cached_response = create_cached_response(request, cached_resource, done_chan);
                 Some(cached_response)
             },
-            (Some(ref cached_resource), Some(_)) => {
+            (Some(ref cached_resource), Some(_)) | (Some(ref cached_resource), None) => {
                 let cached_response = create_cached_response(request, cached_resource, done_chan);
                 Some(cached_response)
             },
