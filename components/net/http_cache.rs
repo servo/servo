@@ -317,6 +317,7 @@ impl HttpCache {
                 }
             }
         }
+        // TODO: select most recent resource using the Date header.
         if let Some(resource) = can_be_constructed.first() {
             return Some(resource.clone());
         }
