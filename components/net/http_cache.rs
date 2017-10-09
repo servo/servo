@@ -143,6 +143,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 
 /// Calculating Age https://tools.ietf.org/html/rfc7234#section-4.2.3
 fn calculate_response_age(response: &Response) -> Duration {
+    // TODO: follow the spec more closely (Date headers, request/response lag, ...)
     if let Some(secs) = response.headers.get_raw("Age") {
         let seconds = String::from_utf8(secs[0].to_vec()).unwrap();
         return Duration::seconds(seconds.parse::<i64>().unwrap());
@@ -169,7 +170,7 @@ fn get_response_expiry(response: &Response) -> Duration {
                     header::CacheDirective::SMaxAge(secs) | header::CacheDirective::MaxAge(secs) => {
                         let max_age = Duration::seconds(secs as i64);
                         if max_age < age {
-                            return age - max_age;
+                            return return Duration::seconds(0i64);
                         }
                         return max_age - age;
                     },
