@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use msg::constellation_msg::{Key, KeyState, KeyModifiers, SHIFT};
+use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 
 
 /// Takes a character and returns an Option containing a tuple of the
@@ -174,7 +174,7 @@ pub fn keycodes_to_keys(key_codes: &[char]) -> Result<Vec<(Key, KeyModifiers, Ke
     for char_code in key_codes.iter() {
         let (key, with_shift) = key_from_char(char_code).ok_or(format!("Unsupported character code {}", char_code))?;
         let modifiers = if with_shift {
-            SHIFT
+            KeyModifiers::SHIFT
         } else {
             KeyModifiers::empty()
         };

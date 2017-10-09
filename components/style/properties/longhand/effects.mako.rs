@@ -11,7 +11,7 @@ ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
                           animation_value_type="ComputedValue",
-                          flags="CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER",
+                          flags="PropertyFlags::CREATES_STACKING_CONTEXT PropertyFlags::APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 ${helpers.predefined_type(
@@ -22,7 +22,7 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedBoxShadowList",
     extra_prefixes="webkit",
     ignored_when_colors_disabled=True,
-    flags="APPLIES_TO_FIRST_LETTER",
+    flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-backgrounds/#box-shadow",
 )}
 
@@ -42,7 +42,7 @@ ${helpers.predefined_type(
     separator="Space",
     animation_value_type="AnimatedFilterList",
     extra_prefixes="webkit",
-    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    flags="PropertyFlags::CREATES_STACKING_CONTEXT PropertyFlags::FIXPOS_CB",
     spec="https://drafts.fxtf.org/filters/#propdef-filter",
 )}
 
@@ -51,5 +51,5 @@ ${helpers.single_keyword("mix-blend-mode",
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
                          animation_value_type="discrete",
-                         flags="CREATES_STACKING_CONTEXT",
+                         flags="PropertyFlags::CREATES_STACKING_CONTEXT",
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}

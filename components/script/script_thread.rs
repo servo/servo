@@ -113,7 +113,7 @@ use std::result::Result;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
-use style::thread_state;
+use style::thread_state::{self, ThreadState};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -547,7 +547,7 @@ impl ScriptThreadFactory for ScriptThread {
         let (sender, receiver) = channel();
         let layout_chan = sender.clone();
         thread::Builder::new().name(format!("ScriptThread {:?}", state.id)).spawn(move || {
-            thread_state::initialize(thread_state::SCRIPT);
+            thread_state::initialize(ThreadState::SCRIPT);
             PipelineNamespace::install(state.pipeline_namespace_id);
             TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
             let roots = RootCollection::new();

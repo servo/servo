@@ -9,7 +9,7 @@
 //! as possible.
 
 use context::{LayoutContext, with_thread_local_font_context};
-use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
+use flow::{self, Flow, FlowFlags, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
@@ -19,7 +19,7 @@ use style::computed_values::{display, list_style_type};
 use style::computed_values::content::ContentItem;
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
+use style::servo::restyle_damage::ServoRestyleDamage;
 use text::TextRunScanner;
 use traversal::InorderFlowTraversal;
 
@@ -131,8 +131,8 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
 
     #[inline]
     fn should_process_subtree(&mut self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(RESOLVE_GENERATED_CONTENT) ||
-            flow::base(flow).flags.intersects(AFFECTS_COUNTERS | HAS_COUNTER_AFFECTING_CHILDREN)
+        flow::base(flow).restyle_damage.intersects(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT) ||
+            flow::base(flow).flags.intersects(FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN)
     }
 }
 
