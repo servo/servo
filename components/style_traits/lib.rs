@@ -176,8 +176,12 @@ pub enum PropertyDeclarationParseErrorKind<'i> {
     UnknownVendorProperty,
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
+    /// The property declaration contained an invalid color value.
+    InvalidColor(CowRcStr<'i>, Token<'i>),
+    /// The property declaration contained an invalid filter value.
+    InvalidFilter(CowRcStr<'i>, Token<'i>),
     /// The property declaration contained an invalid value.
-    InvalidValue(CowRcStr<'i>, Option<ValueParseErrorKind<'i>>),
+    OtherInvalidValue(CowRcStr<'i>),
     /// The declaration contained an animation property, and we were parsing
     /// this as a keyframe block (so that property should be ignored).
     ///
@@ -190,14 +194,21 @@ pub enum PropertyDeclarationParseErrorKind<'i> {
 impl<'i> PropertyDeclarationParseErrorKind<'i> {
     /// Create an InvalidValue parse error
     pub fn new_invalid(name: CowRcStr<'i>, value_error: ParseError<'i>) -> PropertyDeclarationParseError<'i> {
-        cssparser::ParseError {
-            kind: cssparser::ParseErrorKind::Custom(PropertyDeclarationParseErrorKind::InvalidValue(
-                name,
-                match value_error.kind {
-                    cssparser::ParseErrorKind::Custom(StyleParseErrorKind::ValueError(e)) => Some(e),
-                    _ => None,
+        let variant = match value_error.kind {
+            cssparser::ParseErrorKind::Custom(StyleParseErrorKind::ValueError(e)) => {
+                match e {
+                    ValueParseErrorKind::InvalidColor(token) => {
+                        PropertyDeclarationParseErrorKind::InvalidColor(name, token)
+                    }
+                    ValueParseErrorKind::InvalidFilter(token) => {
+                        PropertyDeclarationParseErrorKind::InvalidFilter(name, token)
+                    }
                 }
-            )),
+            }
+            _ => PropertyDeclarationParseErrorKind::OtherInvalidValue(name),
+        };
+        cssparser::ParseError {
+            kind: cssparser::ParseErrorKind::Custom(variant),
             location: value_error.location,
         }
     }

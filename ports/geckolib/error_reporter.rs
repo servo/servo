@@ -18,7 +18,7 @@ use style::gecko_bindings::structs::ErrorReporter as GeckoErrorReporter;
 use style::gecko_bindings::structs::URLExtraData as RawUrlExtraData;
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::stylesheets::UrlExtraData;
-use style_traits::{StyleParseErrorKind, PropertyDeclarationParseErrorKind, ValueParseErrorKind};
+use style_traits::{StyleParseErrorKind, PropertyDeclarationParseErrorKind};
 
 pub type ErrorKind<'i> = ParseErrorKind<'i, StyleParseErrorKind<'i>>;
 
@@ -92,7 +92,7 @@ fn extract_error_param<'a>(err: ErrorKind<'a>) -> Option<ErrorString<'a>> {
 
         ParseErrorKind::Custom(
             StyleParseErrorKind::PropertyDeclaration(
-                PropertyDeclarationParseErrorKind::InvalidValue(property, None)
+                PropertyDeclarationParseErrorKind::OtherInvalidValue(property)
             )
         ) => {
             ErrorString::Snippet(property)
@@ -124,13 +124,6 @@ fn extract_error_param<'a>(err: ErrorKind<'a>) -> Option<ErrorString<'a>> {
     })
 }
 
-fn extract_value_error_param<'a>(err: ValueParseErrorKind<'a>) -> ErrorString<'a> {
-    match err {
-        ValueParseErrorKind::InvalidColor(t) |
-        ValueParseErrorKind::InvalidFilter(t) => ErrorString::UnexpectedToken(t),
-    }
-}
-
 struct ErrorParams<'a> {
     prefix_param: Option<ErrorString<'a>>,
     main_param: Option<ErrorString<'a>>,
@@ -142,10 +135,15 @@ fn extract_error_params<'a>(err: ErrorKind<'a>) -> Option<ErrorParams<'a>> {
     let (main, prefix) = match err {
         ParseErrorKind::Custom(
             StyleParseErrorKind::PropertyDeclaration(
-                PropertyDeclarationParseErrorKind::InvalidValue(property, Some(e))
+                PropertyDeclarationParseErrorKind::InvalidColor(property, token)
+            )
+        ) |
+        ParseErrorKind::Custom(
+            StyleParseErrorKind::PropertyDeclaration(
+                PropertyDeclarationParseErrorKind::InvalidFilter(property, token)
             )
         ) => {
-            (Some(ErrorString::Snippet(property.into())), Some(extract_value_error_param(e)))
+            (Some(ErrorString::Snippet(property.into())), Some(ErrorString::UnexpectedToken(token)))
         }
 
         ParseErrorKind::Custom(
@@ -250,17 +248,23 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             }
             ContextualParseError::UnsupportedPropertyDeclaration(
                 _, ParseError { kind: ParseErrorKind::Custom(
-                    StyleParseErrorKind::PropertyDeclaration(
-                        PropertyDeclarationParseErrorKind::InvalidValue(_, ref err)
-                    )
+                    StyleParseErrorKind::PropertyDeclaration(ref err)
                 ), .. }
             ) => {
-                let prefix = match *err {
-                    Some(ValueParseErrorKind::InvalidColor(_)) => Some(&b"PEColorNotColor\0"[..]),
-                    Some(ValueParseErrorKind::InvalidFilter(_)) => Some(&b"PEExpectedNoneOrURLOrFilterFunction\0"[..]),
-                    _ => None,
-                };
-                return (prefix, b"PEValueParsingError\0", Action::Drop);
+                match *err {
+                    PropertyDeclarationParseErrorKind::InvalidColor(_, _) => {
+                        return (Some(b"PEColorNotColor\0"),
+                                b"PEValueParsingError\0", Action::Drop)
+                    }
+                    PropertyDeclarationParseErrorKind::InvalidFilter(_, _) => {
+                        return (Some(b"PEExpectedNoneOrURLOrFilterFunction\0"),
+                                b"PEValueParsingError\0", Action::Drop)
+                    }
+                    PropertyDeclarationParseErrorKind::OtherInvalidValue(_) => {
+                        (b"PEValueParsingError\0", Action::Drop)
+                    }
+                    _ => (b"PEUnknownProperty\0", Action::Drop)
+                }
             }
             ContextualParseError::UnsupportedPropertyDeclaration(..) =>
                 (b"PEUnknownProperty\0", Action::Drop),
