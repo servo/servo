@@ -273,6 +273,7 @@ class CommandBase(object):
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
         self.config["build"].setdefault("incremental", False)
+        self.config["build"].setdefault("thinlto", False)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -532,6 +533,8 @@ class CommandBase(object):
         if geckolib:
             geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
             env["CARGO_TARGET_DIR"] = geckolib_build_path
+        elif self.config["build"]["thinlto"]:
+            env['RUSTFLAGS'] += " -Z thinlto"
 
         return env
 

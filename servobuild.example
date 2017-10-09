@@ -57,6 +57,9 @@ debug-mozjs = false
 # Enable rustc’s incremental compilation
 #incremental = false
 
+# Whether to use ThinLTO or not
+#thinlto = false
+
 # Android information
 [android]
 # Defaults to the value of $ANDROID_SDK, $ANDROID_NDK, $ANDROID_TOOLCHAIN, $ANDROID_PLATFORM respectively
