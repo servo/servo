@@ -337,7 +337,7 @@ unsafe impl HasSimpleFFI for AnimationValueMap {}
 ///
 /// FIXME: We need to add a path for custom properties, but that's trivial after
 /// this (is a similar path to that of PropertyDeclaration).
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimationValue {
     % for prop in data.longhands:
@@ -350,12 +350,6 @@ pub enum AnimationValue {
             % endif
         % endif
     % endfor
-}
-
-impl fmt::Debug for AnimationValue {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(self.id().name())
-    }
 }
 
 impl AnimationValue {
