@@ -119,7 +119,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = ();
-    type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 macro_rules! accessor {
@@ -188,7 +188,7 @@ macro_rules! counter_style_descriptors {
 
         impl<'a, 'b, 'i> DeclarationParser<'i> for CounterStyleRuleParser<'a, 'b> {
             type Declaration = ();
-            type Error = SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>;
+            type Error = StyleParseErrorKind<'i>;
 
             fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                                -> Result<(), ParseError<'i>> {

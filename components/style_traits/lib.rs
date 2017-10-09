@@ -85,10 +85,7 @@ pub mod viewport;
 pub use values::{Comma, CommaWithSpace, OneOrMoreSeparated, Separator, Space, ToCss};
 
 /// The error type for all CSS parsing routines.
-pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseErrorKind<'i, StyleParseErrorKind<'i>>>;
-
-/// Error emitted by the style crate
-pub type StyleParseError<'i> = cssparser::ParseError<'i, StyleParseErrorKind<'i>>;
+pub type ParseError<'i> = cssparser::ParseError<'i, StyleParseErrorKind<'i>>;
 
 /// Error in property value parsing
 pub type ValueParseError<'i> = cssparser::ParseError<'i, ValueParseErrorKind<'i>>;
@@ -139,17 +136,25 @@ pub enum StyleParseErrorKind<'i> {
     UnexpectedTokenWithinNamespace(Token<'i>),
     /// An error was encountered while parsing a property value.
     ValueError(ValueParseErrorKind<'i>),
+    /// An error was encountered while parsing a selector
+    SelectorError(SelectorParseErrorKind<'i>),
 }
 
-impl<'i> From<ValueParseErrorKind<'i>> for SelectorParseErrorKind<'i, StyleParseErrorKind<'i>> {
+impl<'i> From<ValueParseErrorKind<'i>> for StyleParseErrorKind<'i> {
     fn from(this: ValueParseErrorKind<'i>) -> Self {
-        StyleParseErrorKind::ValueError(this).into()
+        StyleParseErrorKind::ValueError(this)
     }
 }
 
-impl<'i> From<PropertyDeclarationParseErrorKind<'i>> for SelectorParseErrorKind<'i, StyleParseErrorKind<'i>> {
+impl<'i> From<SelectorParseErrorKind<'i>> for StyleParseErrorKind<'i> {
+    fn from(this: SelectorParseErrorKind<'i>) -> Self {
+        StyleParseErrorKind::SelectorError(this)
+    }
+}
+
+impl<'i> From<PropertyDeclarationParseErrorKind<'i>> for StyleParseErrorKind<'i> {
     fn from(this: PropertyDeclarationParseErrorKind<'i>) -> Self {
-        StyleParseErrorKind::PropertyDeclaration(this).into()
+        StyleParseErrorKind::PropertyDeclaration(this)
     }
 }
 
@@ -189,11 +194,7 @@ impl<'i> PropertyDeclarationParseErrorKind<'i> {
             kind: cssparser::ParseErrorKind::Custom(PropertyDeclarationParseErrorKind::InvalidValue(
                 name,
                 match value_error.kind {
-                    cssparser::ParseErrorKind::Custom(
-                        SelectorParseErrorKind::Custom(
-                            StyleParseErrorKind::ValueError(e)
-                        )
-                    ) => Some(e),
+                    cssparser::ParseErrorKind::Custom(StyleParseErrorKind::ValueError(e)) => Some(e),
                     _ => None,
                 }
             )),
