@@ -815,8 +815,6 @@ fn http_network_or_cache_fetch(request: &mut Request,
         http_request.headers.set(UserAgent(user_agent));
     }
 
-    println!("request headers in fetch: {:?}", http_request.headers);
-
     match http_request.cache_mode {
         // Step 13
         CacheMode::Default if is_no_store_cache(&http_request.headers) => {
@@ -834,18 +832,14 @@ fn http_network_or_cache_fetch(request: &mut Request,
             if !http_request.headers.has::<Pragma>() {
                 http_request.headers.set(Pragma::NoCache);
             }
-            println!("CacheMode::NoStore");
             // Substep 2
             if !http_request.headers.has::<CacheControl>() {
-                println!("request headers are missing cache control");
                 http_request.headers.set(CacheControl(vec![CacheDirective::NoCache]));
             }
         },
 
         _ => {}
     }
-
-    println!("request headers 2 in fetch: {:?}", http_request.headers);
 
     // Step 16
     let current_url = http_request.current_url();
@@ -914,7 +908,6 @@ fn http_network_or_cache_fetch(request: &mut Request,
             if let Some(cached_response) = complete_http_response_from_cache {
                 // Substep 3
                 revalidating_flag = cached_response.needs_validation;
-                println!("revalidating_flag: {:?} {:?}", cached_response.response, revalidating_flag);
                 // Substep 4
                 if http_request.cache_mode == CacheMode::ForceCache ||
                    http_request.cache_mode == CacheMode::OnlyIfCached {
@@ -961,13 +954,11 @@ fn http_network_or_cache_fetch(request: &mut Request,
     }
     // More Step 22
     if response.is_none() {
-        println!("network fetch");
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
                                                   done_chan, context);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
-            println!("maybe invalidating {:?} for method type {:?}", forward_response, http_request.method.safe());
             if !http_request.method.safe() {
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
                     http_cache.invalidate(&http_request, &forward_response);
