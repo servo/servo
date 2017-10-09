@@ -250,7 +250,7 @@ fn get_expire_adjustment_from_request_headers(request: &Request, expires: Durati
                     let seconds = String::from_str(directive_info[1]).unwrap();
                     let max_age = Duration::seconds(seconds.parse::<i64>().unwrap());
                     if expires > max_age {
-                        return return Duration::min_value();
+                        return Duration::min_value();
                     }
                     return expires - max_age;
                 },
@@ -259,7 +259,7 @@ fn get_expire_adjustment_from_request_headers(request: &Request, expires: Durati
                     let seconds = String::from_str(directive_info[1]).unwrap();
                     let min_fresh = Duration::seconds(seconds.parse::<i64>().unwrap());
                     if expires < min_fresh {
-                        return return Duration::min_value();
+                        return Duration::min_value();
                     }
                     return expires - min_fresh;
                 },
