@@ -9,7 +9,7 @@
 
 use fetch::methods::{Data, DoneChannel};
 use hyper::header;
-use hyper::header::{ContentType, EntityTag};
+use hyper::header::ContentType;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
@@ -19,15 +19,11 @@ use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 use servo_url::ServoUrl;
 use std::collections::HashMap;
-use std::iter::Map;
-use std::mem;
 use std::str::FromStr;
-use std::str::Split;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
-use std::u64::{self, MAX, MIN};
 use time;
-use time::{Duration, Tm, Timespec};
+use time::{Duration, Tm};
 
 
 /// The key used to differentiate requests in the cache.
@@ -112,8 +108,6 @@ pub struct CachedResponse {
 pub struct HttpCache {
     /// cached responses.
     entries: HashMap<CacheKey, CachedResource>,
-    /// The time at which this cache was created for use by expiry checks.
-    base_time: Timespec,
 }
 
 
@@ -175,7 +169,7 @@ fn get_response_expiry(response: &Response) -> Duration {
                     header::CacheDirective::SMaxAge(secs) | header::CacheDirective::MaxAge(secs) => {
                         let max_age = Duration::seconds(secs as i64);
                         if max_age < age {
-                            return return Duration::seconds(0i64);
+                            return Duration::seconds(0i64);
                         }
                         return max_age - age;
                     },
@@ -196,7 +190,7 @@ fn get_response_expiry(response: &Response) -> Duration {
             return Duration::seconds(0i64);
         }
     } else {
-       if let Some(val) = response.headers.get_raw("Expires") {
+       if let Some(_) = response.headers.get_raw("Expires") {
            // Malformed Expires header, shouldn't be used to construct a valid response.
            return Duration::seconds(0i64);
        }
@@ -311,8 +305,7 @@ impl HttpCache {
     /// Create a new memory cache instance.
     pub fn new() -> HttpCache {
         HttpCache {
-            entries: HashMap::new(),
-            base_time: time::now().to_timespec(),
+            entries: HashMap::new()
         }
     }
 
@@ -435,7 +428,7 @@ impl HttpCache {
             }
         }
         let entry_key = CacheKey::new(request.clone());
-        if let Some(mut cached_resource) = self.entries.get(&entry_key) {
+        if let Some(cached_resource) = self.entries.get(&entry_key) {
             println!("updating response for {:?}", entry_key);
             if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
                 let mut body = cached_resource.body.lock().unwrap();
@@ -444,8 +437,8 @@ impl HttpCache {
                         *body = ResponseBody::Done(completed_body.clone());
                         let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
                         for done_sender in awaiting_consumers.drain(..) {
-                            done_sender.send(Data::Payload(completed_body.clone()));
-                            done_sender.send(Data::Done);
+                            let _ = done_sender.send(Data::Payload(completed_body.clone()));
+                            let _ = done_sender.send(Data::Done);
                         };
                     },
                     _ => {},
