@@ -80,7 +80,7 @@ use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
-use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsIAtom, nsCSSPropertyID};
+use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::IterationCompositeOperation;
@@ -1589,12 +1589,12 @@ pub extern "C" fn Servo_Keyframe_SetStyle(keyframe: RawServoKeyframeBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_KeyframesRule_GetName(rule: RawServoKeyframesRuleBorrowed) -> *mut nsIAtom {
+pub extern "C" fn Servo_KeyframesRule_GetName(rule: RawServoKeyframesRuleBorrowed) -> *mut nsAtom {
     read_locked_arc(rule, |rule: &KeyframesRule| rule.name.as_atom().as_ptr())
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed, name: *mut nsIAtom) {
+pub extern "C" fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed, name: *mut nsAtom) {
     write_locked_arc(rule, |rule: &mut KeyframesRule| {
         rule.name = KeyframesName::Ident(CustomIdent(unsafe { Atom::from_addrefed(name) }));
     })
@@ -1665,14 +1665,14 @@ pub extern "C" fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed) -> R
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NamespaceRule_GetPrefix(rule: RawServoNamespaceRuleBorrowed) -> *mut nsIAtom {
+pub extern "C" fn Servo_NamespaceRule_GetPrefix(rule: RawServoNamespaceRuleBorrowed) -> *mut nsAtom {
     read_locked_arc(rule, |rule: &NamespaceRule| {
         rule.prefix.as_ref().unwrap_or(&atom!("")).as_ptr()
     })
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NamespaceRule_GetURI(rule: RawServoNamespaceRuleBorrowed) -> *mut nsIAtom {
+pub extern "C" fn Servo_NamespaceRule_GetURI(rule: RawServoNamespaceRuleBorrowed) -> *mut nsAtom {
     read_locked_arc(rule, |rule: &NamespaceRule| rule.url.0.as_ptr())
 }
 
@@ -1726,7 +1726,7 @@ pub extern "C" fn Servo_FontFeatureValuesRule_GetValueText(rule: RawServoFontFea
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: ServoStyleContextBorrowedOrNull,
-                                                          pseudo_tag: *mut nsIAtom,
+                                                          pseudo_tag: *mut nsAtom,
                                                           raw_data: RawServoStyleSetBorrowed)
      -> ServoStyleContextStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1981,7 +1981,7 @@ fn get_pseudo_style(
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_Inherit(
     raw_data: RawServoStyleSetBorrowed,
-    pseudo_tag: *mut nsIAtom,
+    pseudo_tag: *mut nsAtom,
     parent_style_context: ServoStyleContextBorrowedOrNull,
     target: structs::InheritTarget
 ) -> ServoStyleContextStrong {
@@ -2662,7 +2662,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
                                                              property:
                                                              nsCSSPropertyID,
                                                              value:
-                                                             *mut nsIAtom) {
+                                                             *mut nsAtom) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_x_lang::computed_value::T as Lang;
 
@@ -3821,7 +3821,7 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetBorrowed,
-                                                     name: *mut nsIAtom) -> *mut nsCSSCounterStyleRule {
+                                                     name: *mut nsAtom) -> *mut nsCSSCounterStyleRule {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     unsafe {
@@ -3925,7 +3925,7 @@ pub extern "C" fn Servo_UACache_AddSizeOf(
 pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(
     raw_data: RawServoStyleSetBorrowed,
     element: RawGeckoElementBorrowed,
-    local_name: *mut nsIAtom,
+    local_name: *mut nsAtom,
 ) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let element = GeckoElement(element);

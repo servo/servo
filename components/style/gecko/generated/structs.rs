@@ -2411,7 +2411,7 @@ pub mod root {
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct Element_MappedAttributeEntry {
-                pub attribute: *mut *mut root::nsIAtom,
+                pub attribute: *mut *mut root::nsAtom,
             }
             #[test]
             fn bindgen_test_layout_Element_MappedAttributeEntry() {
@@ -2537,12 +2537,12 @@ pub mod root {
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct NodeInfo_NodeInfoInner {
-                pub mName: *const root::nsIAtom,
-                pub mPrefix: *mut root::nsIAtom,
+                pub mName: *const root::nsAtom,
+                pub mPrefix: *mut root::nsAtom,
                 pub mNamespaceID: i32,
                 pub mNodeType: u16,
                 pub mNameString: *const root::nsAString,
-                pub mExtraName: *mut root::nsIAtom,
+                pub mExtraName: *mut root::nsAtom,
                 pub mHash: root::PLHashNumber,
                 pub mHashInitialized: bool,
             }
@@ -6811,7 +6811,7 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug)]
         pub struct LangGroupFontPrefs {
-            pub mLangGroup: root::RefPtr<root::nsIAtom>,
+            pub mLangGroup: root::RefPtr<root::nsAtom>,
             pub mMinimumFontSize: root::nscoord,
             pub mDefaultVariableFont: root::nsFont,
             pub mDefaultFixedFont: root::nsFont,
@@ -7337,7 +7337,7 @@ pub mod root {
             pub mDuration: f32,
             pub mDelay: f32,
             pub mProperty: root::nsCSSPropertyID,
-            pub mUnknownProperty: root::RefPtr<root::nsIAtom>,
+            pub mUnknownProperty: root::RefPtr<root::nsAtom>,
         }
         #[test]
         fn bindgen_test_layout_StyleTransition() {
@@ -12399,7 +12399,7 @@ pub mod root {
         pub mScriptUnconstrainedSize: root::nscoord,
         pub mScriptMinSize: root::nscoord,
         pub mScriptSizeMultiplier: f32,
-        pub mLanguage: root::RefPtr<root::nsIAtom>,
+        pub mLanguage: root::RefPtr<root::nsAtom>,
     }
     pub const nsStyleFont_kHasFinishStyle: bool = false;
     #[test]
@@ -13038,7 +13038,7 @@ pub mod root {
         pub mMarkerMid: root::RefPtr<root::mozilla::css::URLValue>,
         pub mMarkerStart: root::RefPtr<root::mozilla::css::URLValue>,
         pub mStrokeDasharray: root::nsTArray<root::nsStyleCoord>,
-        pub mContextProps: root::nsTArray<root::RefPtr<root::nsIAtom>>,
+        pub mContextProps: root::nsTArray<root::RefPtr<root::nsAtom>>,
         pub mStrokeDashoffset: root::nsStyleCoord,
         pub mStrokeWidth: root::nsStyleCoord,
         pub mFillOpacity: f32,
@@ -13569,7 +13569,7 @@ pub mod root {
         pub mIsolation: u8,
         pub mTopLayer: u8,
         pub mWillChangeBitField: u8,
-        pub mWillChange: root::nsTArray<root::RefPtr<root::nsIAtom>>,
+        pub mWillChange: root::nsTArray<root::RefPtr<root::nsAtom>>,
         pub mTouchAction: u8,
         pub mScrollBehavior: u8,
         pub mScrollSnapTypeX: u8,
@@ -14793,7 +14793,7 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug)]
-    pub struct nsIAtom {
+    pub struct nsAtom {
         pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
         pub _bitfield_1: u32,
         pub mHash: u32,
@@ -14801,35 +14801,35 @@ pub mod root {
     }
     #[repr(u8)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsIAtom_AtomKind {
+    pub enum nsAtom_AtomKind {
         DynamicAtom = 0,
         StaticAtom = 1,
         HTML5Atom = 2,
     }
-    pub type nsIAtom_HasThreadSafeRefCnt = root::mozilla::TrueType;
+    pub type nsAtom_HasThreadSafeRefCnt = root::mozilla::TrueType;
     #[test]
-    fn bindgen_test_layout_nsIAtom() {
-        assert_eq!(::std::mem::size_of::<nsIAtom>() , 24usize , concat ! (
-                   "Size of: " , stringify ! ( nsIAtom ) ));
-        assert_eq! (::std::mem::align_of::<nsIAtom>() , 8usize , concat ! (
-                    "Alignment of " , stringify ! ( nsIAtom ) ));
+    fn bindgen_test_layout_nsAtom() {
+        assert_eq!(::std::mem::size_of::<nsAtom>() , 24usize , concat ! (
+                   "Size of: " , stringify ! ( nsAtom ) ));
+        assert_eq! (::std::mem::align_of::<nsAtom>() , 8usize , concat ! (
+                    "Alignment of " , stringify ! ( nsAtom ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsIAtom ) ) . mRefCnt as * const _ as
+                    & ( * ( 0 as * const nsAtom ) ) . mRefCnt as * const _ as
                     usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsIAtom ) , "::" ,
+                    "Alignment of field: " , stringify ! ( nsAtom ) , "::" ,
                     stringify ! ( mRefCnt ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsIAtom ) ) . mHash as * const _ as
+                    & ( * ( 0 as * const nsAtom ) ) . mHash as * const _ as
                     usize } , 12usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsIAtom ) , "::" ,
+                    "Alignment of field: " , stringify ! ( nsAtom ) , "::" ,
                     stringify ! ( mHash ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsIAtom ) ) . mString as * const _ as
+                    & ( * ( 0 as * const nsAtom ) ) . mString as * const _ as
                     usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsIAtom ) , "::" ,
+                    "Alignment of field: " , stringify ! ( nsAtom ) , "::" ,
                     stringify ! ( mString ) ));
     }
-    impl nsIAtom {
+    impl nsAtom {
         #[inline]
         pub fn mLength(&self) -> u32 {
             let mut unit_field_val: u32 =
@@ -19270,7 +19270,7 @@ pub mod root {
     pub struct nsCSSCounterStyleRule {
         pub _base: root::mozilla::css::Rule,
         pub _base_1: root::nsIDOMCSSCounterStyleRule,
-        pub mName: root::RefPtr<root::nsIAtom>,
+        pub mName: root::RefPtr<root::nsAtom>,
         pub mValues: [root::nsCSSValue; 10usize],
         pub mGeneration: u32,
     }
@@ -19375,7 +19375,7 @@ pub mod root {
     /// @param aCaseSensitive Whether to do a case-sensitive compare on the values.
     /// @return ATTR_MISSING, ATTR_VALUE_NO_MATCH or the non-negative index
     /// indicating the first value of aValues that matched
-    pub type nsIContent_AttrValuesArray = *const *const root::nsIAtom;
+    pub type nsIContent_AttrValuesArray = *const *const root::nsAtom;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsIContent_FlattenedParentType {
@@ -19425,7 +19425,7 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsStyleContext {
-        pub mPseudoTag: root::RefPtr<root::nsIAtom>,
+        pub mPseudoTag: root::RefPtr<root::nsAtom>,
         pub mBits: u64,
     }
     pub const nsStyleContext_kAllResolvedStructs:
@@ -19470,11 +19470,11 @@ pub mod root {
         pub mAnimationManager: root::RefPtr<root::nsAnimationManager>,
         pub mRestyleManager: root::RefPtr<root::mozilla::RestyleManager>,
         pub mCounterStyleManager: root::RefPtr<root::mozilla::CounterStyleManager>,
-        pub mMedium: *mut root::nsIAtom,
-        pub mMediaEmulated: root::RefPtr<root::nsIAtom>,
+        pub mMedium: *mut root::nsAtom,
+        pub mMediaEmulated: root::RefPtr<root::nsAtom>,
         pub mFontFeatureValuesLookup: root::RefPtr<root::gfxFontFeatureValueSet>,
         pub mLinkHandler: *mut root::nsILinkHandler,
-        pub mLanguage: root::RefPtr<root::nsIAtom>,
+        pub mLanguage: root::RefPtr<root::nsAtom>,
         pub mInflationDisabledForShrinkWrap: bool,
         pub mContainer: u64,
         pub mBaseMinFontSize: i32,
@@ -22484,7 +22484,7 @@ pub mod root {
         pub mBits: usize,
     }
     pub type nsAttrValue_AtomArray =
-        root::nsTArray<root::RefPtr<root::nsIAtom>>;
+        root::nsTArray<root::RefPtr<root::nsAtom>>;
     pub const nsAttrValue_ValueType_eSVGTypesBegin:
               root::nsAttrValue_ValueType =
         nsAttrValue_ValueType::eSVGAngle;
@@ -24918,7 +24918,7 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsLanguageAtomService {
         pub mLangToGroup: [u64; 4usize],
-        pub mLocaleLanguage: root::RefPtr<root::nsIAtom>,
+        pub mLocaleLanguage: root::RefPtr<root::nsAtom>,
     }
     pub type nsLanguageAtomService_Encoding = root::mozilla::Encoding;
     pub type nsLanguageAtomService_NotNull<T> = root::mozilla::NotNull<T>;
@@ -25985,7 +25985,7 @@ pub mod root {
         pub mFloat: root::__BindgenUnionField<f32>,
         pub mString: root::__BindgenUnionField<*mut root::nsStringBuffer>,
         pub mColor: root::__BindgenUnionField<root::nscolor>,
-        pub mAtom: root::__BindgenUnionField<*mut root::nsIAtom>,
+        pub mAtom: root::__BindgenUnionField<*mut root::nsAtom>,
         pub mArray: root::__BindgenUnionField<*mut root::nsCSSValue_Array>,
         pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
         pub mImage: root::__BindgenUnionField<*mut root::mozilla::css::ImageValue>,
@@ -29795,7 +29795,7 @@ pub mod root {
         pub mImage: root::__BindgenUnionField<*mut root::nsStyleImageRequest>,
         pub mGradient: root::__BindgenUnionField<*mut root::nsStyleGradient>,
         pub mURLValue: root::__BindgenUnionField<*mut root::nsStyleImage_URLValue>,
-        pub mElementId: root::__BindgenUnionField<*mut root::nsIAtom>,
+        pub mElementId: root::__BindgenUnionField<*mut root::nsAtom>,
         pub bindgen_union_field: u64,
     }
     #[test]
@@ -31907,7 +31907,7 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsMediaFeature {
-        pub mName: *mut *mut root::nsIAtom,
+        pub mName: *mut *mut root::nsAtom,
         pub mRangeType: root::nsMediaFeature_RangeType,
         pub mValueType: root::nsMediaFeature_ValueType,
         pub mReqFlags: u8,
@@ -31945,7 +31945,7 @@ pub mod root {
     pub struct nsMediaFeature__bindgen_ty_1 {
         pub mInitializer_: root::__BindgenUnionField<*const ::std::os::raw::c_void>,
         pub mKeywordTable: root::__BindgenUnionField<*const root::nsCSSProps_KTableEntry>,
-        pub mMetric: root::__BindgenUnionField<*const *const root::nsIAtom>,
+        pub mMetric: root::__BindgenUnionField<*const *const root::nsAtom>,
         pub bindgen_union_field: u64,
     }
     #[test]
@@ -32339,7 +32339,7 @@ pub mod root {
         pub mHasOnly: bool,
         pub mTypeOmitted: bool,
         pub mHadUnknownExpression: bool,
-        pub mMediaType: root::RefPtr<root::nsIAtom>,
+        pub mMediaType: root::RefPtr<root::nsAtom>,
         pub mExpressions: root::nsTArray<root::nsMediaExpression>,
     }
     #[test]
@@ -32691,15 +32691,15 @@ pub mod root {
                    root::nsTArray<*mut root::nsCSSSelector> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_RefPtr_open0_nsStyleImageRequest_close0_instantiation() {
@@ -32790,26 +32790,26 @@ pub mod root {
                    root::nsTArray<root::nsStyleCoord> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_nsIAtom_close1_close0_instantiation() {
-        assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::nsIAtom>>>()
+    fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_nsAtom_close1_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::nsAtom>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::nsTArray<root::RefPtr<root::nsIAtom>> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::nsIAtom>>>()
+                   root::nsTArray<root::RefPtr<root::nsAtom>> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::nsAtom>>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::nsTArray<root::RefPtr<root::nsIAtom>> ) ));
+                   root::nsTArray<root::RefPtr<root::nsAtom>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_1() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_1() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_UniquePtr_open0_nsStyleGridTemplate_DefaultDelete_open1_nsStyleGridTemplate_close1_close0_instantiation() {
@@ -32869,26 +32869,26 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_nsIAtom_close1_close0_instantiation_1() {
-        assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::nsIAtom>>>()
+    fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_nsAtom_close1_close0_instantiation_1() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::nsAtom>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::nsTArray<root::RefPtr<root::nsIAtom>> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::nsIAtom>>>()
+                   root::nsTArray<root::RefPtr<root::nsAtom>> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::nsAtom>>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::nsTArray<root::RefPtr<root::nsIAtom>> ) ));
+                   root::nsTArray<root::RefPtr<root::nsAtom>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_2() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_2() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsTArray_open0_Position_close0_instantiation() {
@@ -34504,15 +34504,15 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_3() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_3() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_RefPtr_open0_nsCSSFontFaceRule_close0_instantiation() {
@@ -34548,15 +34548,15 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_4() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_4() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIStyleRule_close0_instantiation() {
@@ -34761,15 +34761,15 @@ pub mod root {
                    root::RefPtr<root::mozilla::CounterStyleManager> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_5() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_5() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_RefPtr_open0_gfxFontFeatureValueSet_close0_instantiation_1() {
@@ -34783,15 +34783,15 @@ pub mod root {
                    root::RefPtr<root::gfxFontFeatureValueSet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_6() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_6() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsITheme_close0_instantiation() {
@@ -34882,37 +34882,37 @@ pub mod root {
                    root::nsAutoPtr<root::gfxMissingFontRecorder> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashKey_open0_nsIAtom_close0_instantiation() {
-        assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsIAtom>>()
+    fn __bindgen_test_layout_nsRefPtrHashKey_open0_nsAtom_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsAtom>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::nsRefPtrHashKey<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsRefPtrHashKey<root::nsIAtom>>()
+                   root::nsRefPtrHashKey<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsRefPtrHashKey<root::nsAtom>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::nsRefPtrHashKey<root::nsIAtom> ) ));
+                   root::nsRefPtrHashKey<root::nsAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_nsIAtom_close1_close0_instantiation_2() {
-        assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::nsIAtom>>>()
+    fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_nsAtom_close1_close0_instantiation_2() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::nsAtom>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::nsTArray<root::RefPtr<root::nsIAtom>> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::nsIAtom>>>()
+                   root::nsTArray<root::RefPtr<root::nsAtom>> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::nsAtom>>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::nsTArray<root::RefPtr<root::nsIAtom>> ) ));
+                   root::nsTArray<root::RefPtr<root::nsAtom>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_7() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_7() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsCOMPtr_open0_nsIPrincipal_close0_instantiation_4() {
@@ -35251,26 +35251,26 @@ pub mod root {
                    root::mozilla::StaticRefPtr<root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashKey_open0_nsIAtom_close0_instantiation_1() {
-        assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsIAtom>>()
+    fn __bindgen_test_layout_nsRefPtrHashKey_open0_nsAtom_close0_instantiation_1() {
+        assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsAtom>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::nsRefPtrHashKey<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsRefPtrHashKey<root::nsIAtom>>()
+                   root::nsRefPtrHashKey<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsRefPtrHashKey<root::nsAtom>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::nsRefPtrHashKey<root::nsIAtom> ) ));
+                   root::nsRefPtrHashKey<root::nsAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_8() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_8() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_UniquePtr_open0_TimeoutManager_DefaultDelete_open1_TimeoutManager_close1_close0_instantiation() {
@@ -35751,15 +35751,15 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_9() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_9() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsAutoPtr_open0_LangGroupFontPrefs_close0_instantiation() {
@@ -35786,15 +35786,15 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashKey_open0_nsIAtom_close0_instantiation_2() {
-        assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsIAtom>>()
+    fn __bindgen_test_layout_nsRefPtrHashKey_open0_nsAtom_close0_instantiation_2() {
+        assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsAtom>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::nsRefPtrHashKey<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsRefPtrHashKey<root::nsIAtom>>()
+                   root::nsRefPtrHashKey<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsRefPtrHashKey<root::nsAtom>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::nsRefPtrHashKey<root::nsIAtom> ) ));
+                   root::nsRefPtrHashKey<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_228468_close0_instantiation() {
@@ -36388,15 +36388,15 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_10() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_10() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsTArray_open0_nsStyleCoord_close0_instantiation_3() {
@@ -37301,15 +37301,15 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::css::DocumentRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_open0_nsIAtom_close0_instantiation_11() {
-        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsIAtom>>() ,
+    fn __bindgen_test_layout_RefPtr_open0_nsAtom_close0_instantiation_11() {
+        assert_eq!(::std::mem::size_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
-        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsIAtom>>() ,
+                   root::RefPtr<root::nsAtom> ) ));
+        assert_eq!(::std::mem::align_of::<root::RefPtr<root::nsAtom>>() ,
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::RefPtr<root::nsIAtom> ) ));
+                   root::RefPtr<root::nsAtom> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsTArray_open0_nsMediaExpression_close0_instantiation() {

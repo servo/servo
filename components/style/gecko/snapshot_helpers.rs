@@ -5,7 +5,7 @@
 //! Element an snapshot common logic.
 
 use CaseSensitivityExt;
-use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::nsAtom;
 use gecko_string_cache::WeakAtom;
 use selectors::attr::CaseSensitivity;
 use std::{ptr, slice};
@@ -13,7 +13,7 @@ use string_cache::Atom;
 
 /// A function that, given an element of type `T`, allows you to get a single
 /// class or a class list.
-pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsIAtom, *mut *mut *mut nsIAtom) -> u32;
+pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsAtom, *mut *mut *mut nsAtom) -> u32;
 
 /// Given an item `T`, a class name, and a getter function, return whether that
 /// element has the class that `name` represents.
@@ -23,8 +23,8 @@ pub fn has_class<T>(item: T,
                     getter: ClassOrClassList<T>) -> bool
 {
     unsafe {
-        let mut class: *mut nsIAtom = ptr::null_mut();
-        let mut list: *mut *mut nsIAtom = ptr::null_mut();
+        let mut class: *mut nsAtom = ptr::null_mut();
+        let mut list: *mut *mut nsAtom = ptr::null_mut();
         let length = getter(item, &mut class, &mut list);
         match length {
             0 => false,
@@ -46,8 +46,8 @@ pub fn each_class<F, T>(item: T,
     where F: FnMut(&Atom)
 {
     unsafe {
-        let mut class: *mut nsIAtom = ptr::null_mut();
-        let mut list: *mut *mut nsIAtom = ptr::null_mut();
+        let mut class: *mut nsAtom = ptr::null_mut();
+        let mut list: *mut *mut nsAtom = ptr::null_mut();
         let length = getter(item, &mut class, &mut list);
         match length {
             0 => {}

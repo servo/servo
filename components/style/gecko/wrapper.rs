@@ -54,7 +54,7 @@ use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
-use gecko_bindings::structs::{nsIAtom, nsIContent, nsINode_BooleanFlag};
+use gecko_bindings::structs::{nsAtom, nsIContent, nsINode_BooleanFlag};
 use gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
 use gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
@@ -2065,11 +2065,11 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 /// A few helpers to help with attribute selectors and snapshotting.
 pub trait NamespaceConstraintHelpers {
     /// Returns the namespace of the selector, or null otherwise.
-    fn atom_or_null(&self) -> *mut nsIAtom;
+    fn atom_or_null(&self) -> *mut nsAtom;
 }
 
 impl<'a> NamespaceConstraintHelpers for NamespaceConstraint<&'a Namespace> {
-    fn atom_or_null(&self) -> *mut nsIAtom {
+    fn atom_or_null(&self) -> *mut nsAtom {
         match *self {
             NamespaceConstraint::Any => ptr::null_mut(),
             NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
