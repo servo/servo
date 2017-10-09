@@ -724,6 +724,13 @@ fn matches_simple_selector<E, F>(
             flags_setter(element, HAS_EMPTY_SELECTOR);
             element.is_empty()
         }
+        Component::Scope => {
+            if let Some(ref scope_element) = context.shared.scope_element {
+                element.opaque() == *scope_element
+            } else {
+                element.is_root()
+            }
+        }
         Component::NthChild(a, b) => {
             matches_generic_nth_child(element, context, a, b, false, false, flags_setter)
         }
