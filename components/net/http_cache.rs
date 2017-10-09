@@ -180,7 +180,6 @@ fn get_response_expiry(response: &Response) -> Duration {
 
     }
     if let Some(&header::Expires(header::HttpDate(t))) = response.headers.get::<header::Expires>() {
-        println!("Expires headers for {:?}", t);
         // store the period of time from now until expiry
         let desired = t.to_timespec();
         let current = time::now().to_timespec();
@@ -233,20 +232,16 @@ fn get_response_expiry(response: &Response) -> Duration {
 fn get_expire_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
     if let Some(directive_data) = request.headers.get_raw("cache-control") {
         let directives_string = String::from_utf8(directive_data[0].to_vec()).unwrap();
-        println!("received request cache controle {:?}", directives_string);
         let directives: Vec<&str> = directives_string.split(",").collect();
-        println!("received request cache controle split{:?}", directives);
         for directive in directives {
             let directive_info: Vec<&str> = directive.split("=").collect();
-            println!("received request cache controle directive {:?}", directive_info);
+
             match directive_info[0] {
                 "max-stale" => {
-                    println!("received request max-stale {:?}", directive_info[1]);
                     let seconds = String::from_str(directive_info[1]).unwrap();
                     return expires + Duration::seconds(seconds.parse::<i64>().unwrap());
                 },
                 "max-age" => {
-                    println!("received request max-age {:?}", directive_info[1]);
                     let seconds = String::from_str(directive_info[1]).unwrap();
                     let max_age = Duration::seconds(seconds.parse::<i64>().unwrap());
                     if expires > max_age {
@@ -255,7 +250,6 @@ fn get_expire_adjustment_from_request_headers(request: &Request, expires: Durati
                     return expires - max_age;
                 },
                 "min-fresh" => {
-                    println!("received request min-fresh {:?}", directive_info[1]);
                     let seconds = String::from_str(directive_info[1]).unwrap();
                     let min_fresh = Duration::seconds(seconds.parse::<i64>().unwrap());
                     if expires < min_fresh {
@@ -286,17 +280,12 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource, d
         cached_resource.awaiting_body.lock().unwrap().push(done_sender);
     }
     let expires = *cached_resource.expires.lock().unwrap();
-    println!("expires: {:?}", expires);
     let adjusted_expires = get_expire_adjustment_from_request_headers(request, expires);
-    println!("adjusted_expires: {:?}", adjusted_expires);
     let now = Duration::seconds(time::now().to_timespec().sec);
-    println!("now: {:?}", now);
     let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
-    println!("now: {:?}", last_validated);
     let time_since_validated = now - last_validated;
     let has_expired = (adjusted_expires < time_since_validated)
         | (adjusted_expires == time_since_validated);
-    println!("constructing for: {:?} {:?}", response, has_expired);
     CachedResponse { response: response, needs_validation: has_expired }
 }
 
@@ -313,26 +302,19 @@ impl HttpCache {
     fn calculate_secondary_keys_with_vary(&self, request: &Request) -> Option<&CachedResource> {
         let mut can_be_constructed = vec![];
         for (key, cached_resource) in self.entries.iter() {
-            println!("comparing: {:?} with  {:?}", key.url(), request.url());
-            println!("result: {:?}", key.url() == request.url());
             if key.url() == request.url() {
                 if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
                     if let Some(vary_data) = stored_headers.get_raw("vary") {
                         let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
-                        println!("received vary_data {:?}", vary_data_string);
                         let vary_values: Vec<&str> = vary_data_string.split(",").collect();
                         for vary_val in vary_values {
                             if let Some(header_data) = request.headers.get_raw(vary_val) {
                                 let request_header_data_string = String::from_utf8(header_data[0].to_vec()).unwrap();
-                                println!("request_header_data_string {:?}", request_header_data_string);
                                 let request_vary_values: Vec<&str> = request_header_data_string.split(",").collect();
                                 let mut ok = true;
                                 for (name, value) in key.request_headers() {
-                                    println!("name 113{:?} {:?}", name, vary_val);
-                                    println!("name 223{:?}", name.to_lowercase() == vary_val.to_lowercase());
                                     if name.to_lowercase() == vary_val.to_lowercase() {
                                         let stored_vary_values: Vec<&str> = value.split(",").collect();
-                                        println!("stored_vary_values  {:?}", stored_vary_values);
                                         ok = request_vary_values == stored_vary_values;
                                     }
                                 }
@@ -355,7 +337,6 @@ impl HttpCache {
     pub fn construct_response(&self, request: &Request, done_chan: &mut DoneChannel)
         -> Option<CachedResponse> {
         let entry_key = CacheKey::new(request.clone());
-        println!("received construct_response for {:?}", entry_key);
         return match (self.entries.get(&entry_key), self.calculate_secondary_keys_with_vary(request)) {
             (None, Some(cached_resource)) => {
                 let cached_response = create_cached_response(request, cached_resource, done_chan);
@@ -372,11 +353,8 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
     pub fn refresh(&mut self, request: &Request, response: Response, done_chan: &mut DoneChannel) -> Option<Response> {
         for (key, cached_resource) in self.entries.iter_mut() {
-            println!("comparing: {:?} with  {:?}", key.url(), request.url());
-            println!("result: {:?}", key.url() == request.url());
             if key.url() == request.url() {
                 if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
-                    println!("starting refreshing: {:?}", stored_headers);
                     stored_headers.extend(response.headers.iter());
                     let mut response_200 = Response::new(cached_resource.metadata.final_url.clone());
                     response_200.headers = stored_headers.clone();
@@ -387,7 +365,6 @@ impl HttpCache {
                     *done_chan = None;
                     let mut expires = cached_resource.expires.lock().unwrap();
                     *expires = get_response_expiry(&response_200);
-                    println!("refreshing: {:?}", response_200);
                     return Some(response_200);
                 }
             }
@@ -411,7 +388,6 @@ impl HttpCache {
                 (string_resource_url == location) |
                 (string_resource_url == content_location);
             if matches {
-                println!("invalidating: {:?}", key);
                 let mut expires = cached_resource.expires.lock().unwrap();
                 *expires = Duration::seconds(0i64);
             }
@@ -421,15 +397,12 @@ impl HttpCache {
     /// Updating the cached response body from ResponseBody::Receiving to ResponseBody::Done.
     pub fn update_response_body(&mut self, request: &Request, response: &Response) {
         if let Some((ref code, _)) = response.raw_status {
-            println!("updating for code {:?}", code);
             if *code == 304 {
-                println!("not updating because 304: response: {:?}", response);
                 return
             }
         }
         let entry_key = CacheKey::new(request.clone());
         if let Some(cached_resource) = self.entries.get(&entry_key) {
-            println!("updating response for {:?}", entry_key);
             if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
                 let mut body = cached_resource.body.lock().unwrap();
                 match *body {
@@ -450,7 +423,6 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
     pub fn store(&mut self, request: &Request, response: &Response) {
         let entry_key = CacheKey::new(request.clone());
-        println!("received store for key: {:?} response: {:?}", entry_key, response);
         match request.method {
             // Only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
             Method::Get => {},
@@ -463,9 +435,7 @@ impl HttpCache {
             _ => {}
         }
         if let Some((ref code, _)) = response.raw_status {
-            println!("store for code {:?}", code);
             if *code == 304 {
-                println!("not storing key because 304: {:?} response: {:?}", entry_key, response);
                 return
             }
         }
@@ -496,11 +466,11 @@ impl HttpCache {
                         last_validated: time::now(),
                         awaiting_body: Arc::new(Mutex::new(vec![]))
                     };
-                    println!("storing: {:?} {:?}", entry_key, entry_resource);
+
                     self.entries.insert(entry_key, entry_resource);
                 }
             },
-            _ => { println!("not storing: {:?}", response); }
+            _ => {}
         }
     }
 
