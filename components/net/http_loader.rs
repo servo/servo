@@ -915,12 +915,12 @@ fn http_network_or_cache_fetch(request: &mut Request,
                 } else {
                     if revalidating_flag {
                         // Substep 5
+                        // TODO: find out why the typed header getter return None with cached responses.
                         if let Some(date_slice) = cached_response.response.headers.get_raw("Last-Modified") {
                             let date_string = String::from_utf8(date_slice[0].to_vec()).unwrap();
                             let http_date = HttpDate::from_str(&date_string).unwrap();
                             http_request.headers.set(IfModifiedSince(http_date));
                         }
-                        // TODO: find out why the typed version returns None.
                         if let Some(entity_tag) =
                             cached_response.response.headers.get_raw("ETag") {
                             http_request.headers.set_raw("If-None-Match", entity_tag.to_vec());
@@ -938,7 +938,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
     // Step 22
     if response.is_none() {
         // Substep 1
-        // Note: do we neeed to set http_request.cache_mode to CacheMode::OnlyIfCached here or elsewhere?
+        // Note: do we need to set http_request.cache_mode to CacheMode::OnlyIfCached here or elsewhere?
         let mut only_if_cached = false;
         if let Some(directive_data) = http_request.headers.get_raw("cache-control") {
             let directives = String::from_utf8(directive_data[0].to_vec()).unwrap();

@@ -370,6 +370,7 @@ impl HttpCache {
         if let Some(&header::Location(ref url)) = response.headers.get::<header::Location>() {
             location = url.clone();
         }
+        // TODO: update hyper to use typed getter.
         if let Some(url_data) = response.headers.get_raw("Content-Location") {
             content_location = String::from_utf8(url_data[0].to_vec()).unwrap();
         }
@@ -457,7 +458,6 @@ impl HttpCache {
                         last_validated: time::now(),
                         awaiting_body: Arc::new(Mutex::new(vec![]))
                     };
-
                     self.entries.insert(entry_key, entry_resource);
                 }
             },
