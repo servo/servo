@@ -13,6 +13,7 @@ use properties::{CSSWideKeyword, DeclaredValue};
 use selector_map::{PrecomputedHashSet, PrecomputedHashMap, PrecomputedDiagnosticHashMap};
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
+use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
 use std::fmt;
@@ -546,41 +547,48 @@ impl<'a> CustomPropertiesBuilder<'a> {
 fn remove_cycles(map: &mut CustomPropertiesMap) {
     let mut to_remove = PrecomputedHashSet::default();
     {
+        type VisitedNamesStack<'a> = SmallVec<[&'a Name; 10]>;
+
         let mut visited = PrecomputedHashSet::default();
-        let mut stack = Vec::new();
-        for name in &map.index {
-            walk(map, name, &mut stack, &mut visited, &mut to_remove);
+        let mut stack = VisitedNamesStack::new();
+        for (name, value) in map.iter() {
+            walk(map, name, value, &mut stack, &mut visited, &mut to_remove);
 
             fn walk<'a>(
                 map: &'a CustomPropertiesMap,
                 name: &'a Name,
-                stack: &mut Vec<&'a Name>,
+                value: &'a Arc<VariableValue>,
+                stack: &mut VisitedNamesStack<'a>,
                 visited: &mut PrecomputedHashSet<&'a Name>,
                 to_remove: &mut PrecomputedHashSet<Name>,
             ) {
+                if value.references.is_empty() {
+                    return;
+                }
+
                 let already_visited_before = !visited.insert(name);
                 if already_visited_before {
                     return
                 }
-                if let Some(ref value) = map.get(name) {
-                    if !value.references.is_empty() {
-                        stack.push(name);
-                        for next in value.references.iter() {
-                            if let Some(position) = stack.iter().position(|x| *x == next) {
-                                // Found a cycle
-                                for &in_cycle in &stack[position..] {
-                                    to_remove.insert(in_cycle.clone());
-                                }
-                            } else {
-                                walk(map, next, stack, visited, to_remove);
-                            }
+
+                stack.push(name);
+                for next in value.references.iter() {
+                    if let Some(position) = stack.iter().position(|x| *x == next) {
+                        // Found a cycle
+                        for &in_cycle in &stack[position..] {
+                            to_remove.insert(in_cycle.clone());
                         }
-                        stack.pop();
+                    } else {
+                        if let Some(value) = map.get(next) {
+                            walk(map, next, value, stack, visited, to_remove);
+                        }
                     }
                 }
+                stack.pop();
             }
         }
     }
+
     for name in to_remove {
         map.remove(&name);
     }
