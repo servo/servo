@@ -2944,7 +2944,9 @@ extern "C" {
                                   primary_style: ServoStyleContextBorrowed);
 }
 extern "C" {
-    pub fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed,
+    pub fn Servo_HasAuthorSpecifiedRules(style: ServoStyleContextBorrowed,
+                                         element: RawGeckoElementBorrowed,
+                                         pseudo_type: CSSPseudoElementType,
                                          rule_type_mask: u32,
                                          author_colors_allowed: bool) -> bool;
 }
