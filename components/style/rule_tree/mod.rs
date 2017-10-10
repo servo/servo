@@ -7,6 +7,8 @@
 //! The rule tree.
 
 use applicable_declarations::ApplicableDeclarationList;
+#[cfg(feature = "gecko")]
+use gecko::selector_parser::PseudoElement;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 #[cfg(feature = "gecko")]
@@ -1077,6 +1079,7 @@ impl StrongRuleNode {
     #[cfg(feature = "gecko")]
     pub fn has_author_specified_rules<E>(&self,
                                          mut element: E,
+                                         mut pseudo: Option<PseudoElement>,
                                          guards: &StylesheetGuards,
                                          rule_type_mask: u32,
                                          author_colors_allowed: bool)
@@ -1291,14 +1294,20 @@ impl StrongRuleNode {
             if !have_explicit_ua_inherit { break }
 
             // Continue to the parent element and search for the inherited properties.
-            element = match element.inheritance_parent() {
-                Some(parent) => parent,
-                None => break
-            };
+            if let Some(pseudo) = pseudo.take() {
+                if pseudo.inherits_from_default_values() {
+                    break;
+                }
+            } else {
+                element = match element.inheritance_parent() {
+                    Some(parent) => parent,
+                    None => break
+                };
 
-            let parent_data = element.mutate_data().unwrap();
-            let parent_rule_node = parent_data.styles.primary().rules().clone();
-            element_rule_node = Cow::Owned(parent_rule_node);
+                let parent_data = element.mutate_data().unwrap();
+                let parent_rule_node = parent_data.styles.primary().rules().clone();
+                element_rule_node = Cow::Owned(parent_rule_node);
+            }
 
             properties = inherited_properties;
         }

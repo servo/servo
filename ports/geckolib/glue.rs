@@ -1863,26 +1863,24 @@ pub extern "C" fn Servo_SetExplicitStyle(element: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed,
+pub extern "C" fn Servo_HasAuthorSpecifiedRules(style: ServoStyleContextBorrowed,
+                                                element: RawGeckoElementBorrowed,
+                                                pseudo_type: CSSPseudoElementType,
                                                 rule_type_mask: u32,
                                                 author_colors_allowed: bool)
     -> bool
 {
     let element = GeckoElement(element);
-
-    let data =
-        element.borrow_data()
-        .expect("calling Servo_HasAuthorSpecifiedRules on an unstyled element");
-
-    let primary_style = data.styles.primary();
+    let pseudo = PseudoElement::from_pseudo_type(pseudo_type);
 
     let guard = (*GLOBAL_STYLE_DATA).shared_lock.read();
     let guards = StylesheetGuards::same(&guard);
 
-    primary_style.rules().has_author_specified_rules(element,
-                                                     &guards,
-                                                     rule_type_mask,
-                                                     author_colors_allowed)
+    style.rules().has_author_specified_rules(element,
+                                             pseudo,
+                                             &guards,
+                                             rule_type_mask,
+                                             author_colors_allowed)
 }
 
 fn get_pseudo_style(
