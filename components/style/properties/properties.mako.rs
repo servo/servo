@@ -3233,17 +3233,25 @@ where
         }
     };
 
-    let custom_properties = {
-        let mut builder =
-            CustomPropertiesBuilder::new(inherited_style.custom_properties());
-
-        for (declaration, _cascade_level) in iter_declarations() {
-            if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
-                builder.cascade(name, value.borrow());
-            }
+    let custom_properties = match visited_style {
+        Some(ref visited_style) => {
+            // Custom properties are not allowed in visited style rules, so we
+            // know that any CustomPropertiesMap we computed for visited style
+            // must be the same for regular style.
+            visited_style.custom_properties().cloned()
         }
+        None => {
+            let mut builder =
+                CustomPropertiesBuilder::new(inherited_style.custom_properties());
 
-        builder.build()
+            for (declaration, _cascade_level) in iter_declarations() {
+                if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
+                    builder.cascade(name, value.borrow());
+                }
+            }
+
+            builder.build()
+        }
     };
 
     let mut context = computed::Context {
