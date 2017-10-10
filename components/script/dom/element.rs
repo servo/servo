@@ -1302,21 +1302,30 @@ impl Element {
 
     pub fn get_url_attribute(&self, local_name: &LocalName) -> DOMString {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        if !self.has_attribute(local_name) {
-            return DOMString::new();
-        }
-        let url = self.get_string_attribute(local_name);
-        let doc = document_from_node(self);
-        let base = doc.base_url();
-        // https://html.spec.whatwg.org/multipage/#reflect
-        // XXXManishearth this doesn't handle `javascript:` urls properly
-        match base.join(&url) {
-            Ok(parsed) => DOMString::from(parsed.into_string()),
-            Err(_) => DOMString::from(""),
+        let attr = match self.get_attribute(&ns!(), local_name) {
+            Some(attr) => attr,
+            None => return DOMString::new(),
+        };
+        let value = attr.value();
+        match *value {
+            AttrValue::Url(ref value, _) => {
+                // XXXManishearth this doesn't handle `javascript:` urls properly
+                let base = document_from_node(self).base_url();
+                let value = base.join(value)
+                    .map(|parsed| parsed.into_string())
+                    .unwrap_or_else(|_| value.clone());
+                DOMString::from(value)
+            },
+            _ => panic!("attribute value should be AttrValue::Url(..)"),
         }
     }
+
     pub fn set_url_attribute(&self, local_name: &LocalName, value: DOMString) {
-        self.set_string_attribute(local_name, value);
+        let value = AttrValue::from_url(
+            document_from_node(self).base_url(),
+            value.into(),
+        );
+        self.set_attribute(local_name, value);
     }
 
     pub fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {

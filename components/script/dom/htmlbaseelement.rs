@@ -16,7 +16,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use servo_url::ServoUrl;
-use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLBaseElement {
@@ -88,7 +87,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-base-href
-    make_url_setter!(SetHref, "href");
+    make_setter!(SetHref, "href");
 }
 
 impl VirtualMethods for HTMLBaseElement {

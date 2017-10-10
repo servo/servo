@@ -824,8 +824,9 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_url_getter!(Src, "src");
+
     // https://html.spec.whatwg.org/multipage/#dom-img-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
@@ -980,6 +981,7 @@ impl VirtualMethods for HTMLImageElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
+            &local_name!("src") => AttrValue::from_url(document_from_node(self).base_url(), value.into()),
             &local_name!("name") => AttrValue::from_atomic(value.into()),
             &local_name!("width") | &local_name!("height") => AttrValue::from_dimension(value.into()),
             &local_name!("hspace") | &local_name!("vspace") => AttrValue::from_u32(value.into(), 0),

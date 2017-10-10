@@ -208,6 +208,7 @@ impl VirtualMethods for HTMLLinkElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
+            &local_name!("href") => AttrValue::from_url(document_from_node(self).base_url(), value.into()),
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
@@ -373,7 +374,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     make_url_getter!(Href, "href");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-href
-    make_setter!(SetHref, "href");
+    make_url_setter!(SetHref, "href");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
     make_getter!(Rel, "rel");

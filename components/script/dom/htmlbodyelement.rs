@@ -73,7 +73,7 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     make_legacy_color_setter!(SetText, "text");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
-    make_getter!(Background, "background");
+    make_url_getter!(Background, "background");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_url_setter!(SetBackground, "background");
@@ -154,7 +154,7 @@ impl VirtualMethods for HTMLBodyElement {
             local_name!("bgcolor") |
             local_name!("text") => AttrValue::from_legacy_color(value.into()),
             local_name!("background") => {
-                AttrValue::from_url(document_from_node(self).url(), value.into())
+                AttrValue::from_url(document_from_node(self).base_url(), value.into())
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
