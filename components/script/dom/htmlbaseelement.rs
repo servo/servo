@@ -16,7 +16,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use servo_url::ServoUrl;
-use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLBaseElement {
@@ -67,28 +66,31 @@ impl HTMLBaseElement {
 impl HTMLBaseElementMethods for HTMLBaseElement {
     // https://html.spec.whatwg.org/multipage/#dom-base-href
     fn Href(&self) -> DOMString {
+        // Step 1.
         let document = document_from_node(self);
 
-        // Step 1.
-        if !self.upcast::<Element>().has_attribute(&local_name!("href")) {
-            return DOMString::from(document.base_url().as_str());
-        }
-
         // Step 2.
-        let fallback_base_url = document.fallback_base_url();
+        let attr = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"));
+        let value = attr.as_ref().map(|attr| attr.value());
+        let url = value.as_ref().map_or("", |value| &**value);
 
         // Step 3.
-        let url = self.upcast::<Element>().get_url_attribute(&local_name!("href"));
+        let url_record = document.fallback_base_url().join(url);
 
-        // Step 4.
-        let url_record = fallback_base_url.join(&*url);
-
-        // Step 5, 6.
-        DOMString::from(url_record.as_ref().map(|url| url.as_str()).unwrap_or(""))
+        match url_record {
+            Err(_) => {
+                // Step 4.
+                url.into()
+            }
+            Ok(url_record) => {
+                // Step 5.
+                url_record.into_string().into()
+            },
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-base-href
-    make_url_setter!(SetHref, "href");
+    make_setter!(SetHref, "href");
 }
 
 impl VirtualMethods for HTMLBaseElement {
