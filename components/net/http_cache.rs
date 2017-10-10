@@ -387,6 +387,8 @@ impl HttpCache {
             content_location = String::from_utf8(url_data[0].to_vec()).unwrap();
         }
         for (key, cached_resource) in self.entries.iter_mut() {
+            // Checking all entries for potential invalidation, as the values in location/content_location
+            // can refer to stored resources entirely unrelated to the current request url.
             let string_resource_url = key.url().into_string();
             let matches = (key.url() == request.url()) |
                 (string_resource_url == location) |
