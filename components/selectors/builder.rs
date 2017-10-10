@@ -284,7 +284,7 @@ fn complex_selector_specificity<Impl>(mut iter: slice::Iter<Component<Impl>>)
 
             Component::FirstChild | Component::LastChild |
             Component::OnlyChild | Component::Root |
-            Component::Empty |
+            Component::Empty | Component::Scope |
             Component::NthChild(..) |
             Component::NthLastChild(..) |
             Component::NthOfType(..) |

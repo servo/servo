@@ -87,6 +87,7 @@ use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
 use script_thread::ScriptThread;
+use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
@@ -2191,10 +2192,12 @@ impl ElementMethods for Element {
             Err(_) => Err(Error::Syntax),
             Ok(selectors) => {
                 let quirks_mode = document_from_node(self).quirks_mode();
+                let root = DomRoot::from_ref(self);
                 // FIXME(bholley): Consider an nth-index cache here.
                 let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
                                                    quirks_mode);
-                Ok(matches_selector_list(&selectors, &DomRoot::from_ref(self), &mut ctx))
+                ctx.scope_element = Some(root.opaque());
+                Ok(matches_selector_list(&selectors, &root, &mut ctx))
             }
         }
     }
@@ -2209,6 +2212,7 @@ impl ElementMethods for Element {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(_) => Err(Error::Syntax),
             Ok(selectors) => {
+                let self_root = DomRoot::from_ref(self);
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = DomRoot::downcast::<Element>(element) {
@@ -2216,6 +2220,7 @@ impl ElementMethods for Element {
                         // FIXME(bholley): Consider an nth-index cache here.
                         let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
                                                            quirks_mode);
+                        ctx.scope_element = Some(self_root.opaque());
                         if matches_selector_list(&selectors, &element, &mut ctx) {
                             return Ok(Some(element));
                         }
@@ -2500,7 +2505,7 @@ impl VirtualMethods for Element {
     }
 }
 
-impl<'a> ::selectors::Element for DomRoot<Element> {
+impl<'a> SelectorsElement for DomRoot<Element> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
