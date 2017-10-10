@@ -119,17 +119,21 @@
     impl Parse for Side {
         fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Side, ParseError<'i>> {
+            let location = input.current_source_location();
             match *input.next()? {
                 Token::Ident(ref ident) => {
-                    try_match_ident_ignore_ascii_case! { ident,
+                    match_ignore_ascii_case! { ident,
                         "clip" => Ok(Side::Clip),
                         "ellipsis" => Ok(Side::Ellipsis),
+                        _ => Err(location.new_custom_error(
+                            SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                        ))
                     }
                 }
                 Token::QuotedString(ref v) => {
                     Ok(Side::String(v.as_ref().to_owned().into_boxed_str()))
                 }
-                ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                ref t => Err(location.new_unexpected_token_error(t.clone())),
             }
         }
     }
@@ -222,6 +226,7 @@ ${helpers.single_keyword("unicode-bidi",
 
         loop {
             let result: Result<_, ParseError> = input.try(|input| {
+                let location = input.current_source_location();
                 match input.expect_ident() {
                     Ok(ident) => {
                         (match_ignore_ascii_case! { &ident,
@@ -234,7 +239,9 @@ ${helpers.single_keyword("unicode-bidi",
                             "blink" => if result.contains(BLINK) { Err(()) }
                                        else { empty = false; result.insert(BLINK); Ok(()) },
                             _ => Err(())
-                        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
+                        }).map_err(|()| {
+                            location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
+                        })
                     }
                     Err(e) => return Err(e.into())
                 }
@@ -244,7 +251,7 @@ ${helpers.single_keyword("unicode-bidi",
             }
         }
 
-        if !empty { Ok(result) } else { Err(StyleParseError::UnspecifiedError.into()) }
+        if !empty { Ok(result) } else { Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)) }
     }
 
     % if product == "servo":

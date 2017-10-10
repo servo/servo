@@ -19,10 +19,10 @@ use error_reporting::{ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext, Parse};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseError, ToCss};
+use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -100,7 +100,7 @@ impl Parse for FontWeight {
         result.or_else(|_| {
             font_weight::T::from_int(input.expect_integer()?)
                 .map(FontWeight::Weight)
-                .map_err(|()| StyleParseError::UnspecifiedError.into())
+                .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         })
     }
 }
@@ -123,9 +123,10 @@ pub fn parse_font_face_block<R>(context: &ParserContext,
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
-            if let Err(err) = declaration {
-                let error = ContextualParseError::UnsupportedFontFaceDescriptor(err.slice, err.error);
-                context.log_css_error(error_context, err.location, error)
+            if let Err((error, slice)) = declaration {
+                let location = error.location;
+                let error = ContextualParseError::UnsupportedFontFaceDescriptor(slice, error);
+                context.log_css_error(error_context, location, error)
             }
         }
     }
@@ -186,7 +187,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = ();
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl Parse for Source {
@@ -287,7 +288,7 @@ macro_rules! font_face_descriptors_common {
 
        impl<'a, 'b, 'i> DeclarationParser<'i> for FontFaceRuleParser<'a, 'b> {
            type Declaration = ();
-           type Error = SelectorParseError<'i, StyleParseError<'i>>;
+           type Error = StyleParseErrorKind<'i>;
 
            fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                               -> Result<(), ParseError<'i>> {
@@ -302,7 +303,7 @@ macro_rules! font_face_descriptors_common {
                             self.rule.$ident = Some(value)
                         }
                     )*
-                    _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
+                    _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
                 Ok(())
             }

@@ -132,7 +132,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
             _ => Err(()),
         }).or_else(|()| {
             let horizontal: Result<_, ParseError> = RepeatKeyword::from_ident(&ident)
-                .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into());
+                .map_err(|()| input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
             let horizontal = horizontal?;
             let vertical = input.try(RepeatKeyword::parse).ok();
             Ok(SpecifiedValue::Other(horizontal, vertical))

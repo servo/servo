@@ -4,7 +4,7 @@
 
 //! Specified angles.
 
-use cssparser::{Parser, Token, BasicParseError};
+use cssparser::{Parser, Token};
 use parser::{ParserContext, Parse};
 use std::ascii::AsciiExt;
 use std::fmt;
@@ -112,7 +112,7 @@ impl Parse for Angle {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }.map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
+        }.map_err(|()| input.new_unexpected_token_error(token.clone()))
     }
 }
 
@@ -155,6 +155,6 @@ impl Angle {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }.map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
+        }.map_err(|()| input.new_unexpected_token_error(token.clone()))
     }
 }

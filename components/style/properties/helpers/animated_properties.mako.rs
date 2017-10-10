@@ -25,7 +25,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")]
 use properties::PropertyId;
 use properties::{LonghandId, ShorthandId};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -134,6 +134,7 @@ impl TransitionProperty {
 
     /// Parse a transition-property value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
         let ident = input.expect_ident()?;
         match_ignore_ascii_case! { &ident,
             "all" => Ok(TransitionProperty::All),
@@ -143,8 +144,8 @@ impl TransitionProperty {
             % for prop in data.longhands:
                 "${prop.name}" => Ok(TransitionProperty::Longhand(LonghandId::${prop.camel_case})),
             % endfor
-            "none" => Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
-            _ => CustomIdent::from_ident(ident, &[]).map(TransitionProperty::Unsupported),
+            "none" => Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
+            _ => CustomIdent::from_ident(location, ident, &[]).map(TransitionProperty::Unsupported),
         }
     }
 

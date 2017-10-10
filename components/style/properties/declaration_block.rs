@@ -8,19 +8,18 @@
 
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
-use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseError as CssParseError};
+use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind};
 use custom_properties::CustomPropertiesBuilder;
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, ParserErrorContext};
 use properties::animated_properties::AnimationValue;
-use selectors::parser::SelectorParseError;
 use shared_lock::Locked;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
 use std::fmt;
 use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseError};
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseErrorKind};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use values::computed::Context;
@@ -1035,16 +1034,16 @@ pub fn parse_one_declaration_into<R>(declarations: &mut SourcePropertyDeclaratio
     let mut input = ParserInput::new(input);
     let mut parser = Parser::new(&mut input);
     let start_position = parser.position();
-    let start_location = parser.current_source_location();
     parser.parse_entirely(|parser| {
         let name = id.name().into();
         PropertyDeclaration::parse_into(declarations, id, name, &context, parser)
             .map_err(|e| e.into())
     }).map_err(|err| {
+        let location = err.location;
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
             parser.slice_from(start_position), err);
         let error_context = ParserErrorContext { error_reporter: error_reporter };
-        context.log_css_error(&error_context, start_location, error);
+        context.log_css_error(&error_context, location, error);
     })
 }
 
@@ -1060,7 +1059,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = Importance;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 /// Based on NonMozillaVendorIdentifier from Gecko's CSS parser.
@@ -1071,7 +1070,7 @@ fn is_non_mozilla_vendor_identifier(name: &str) -> bool {
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = Importance;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
@@ -1079,11 +1078,11 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
         let id = match PropertyId::parse(&name, Some(&prop_context)) {
             Ok(id) => id,
             Err(()) => {
-                return Err(if is_non_mozilla_vendor_identifier(&name) {
-                    PropertyDeclarationParseError::UnknownVendorProperty
+                return Err(input.new_custom_error(if is_non_mozilla_vendor_identifier(&name) {
+                    StyleParseErrorKind::UnknownVendorProperty
                 } else {
-                    PropertyDeclarationParseError::UnknownProperty(name)
-                }.into());
+                    StyleParseErrorKind::UnknownProperty(name)
+                }));
             }
         };
         input.parse_until_before(Delimiter::Bang, |input| {
@@ -1121,19 +1120,18 @@ pub fn parse_property_declaration_list<R>(context: &ParserContext,
             Ok(importance) => {
                 block.extend(iter.parser.declarations.drain(), importance);
             }
-            Err(err) => {
+            Err((error, slice)) => {
                 iter.parser.declarations.clear();
 
                 // If the unrecognized property looks like a vendor-specific property,
                 // silently ignore it instead of polluting the error output.
-                if let CssParseError::Custom(SelectorParseError::Custom(
-                    StyleParseError::PropertyDeclaration(
-                        PropertyDeclarationParseError::UnknownVendorProperty))) = err.error {
+                if let ParseErrorKind::Custom(StyleParseErrorKind::UnknownVendorProperty) = error.kind {
                     continue;
                 }
 
-                let error = ContextualParseError::UnsupportedPropertyDeclaration(err.slice, err.error);
-                context.log_css_error(error_context, err.location, error);
+                let location = error.location;
+                let error = ContextualParseError::UnsupportedPropertyDeclaration(slice, error);
+                context.log_css_error(error_context, location, error);
             }
         }
     }

@@ -6,7 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseError};
+use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseErrorKind};
 use values::generics::svg as generic;
 use values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::specified::{Number, Opacity, SpecifiedUrl};
@@ -39,7 +39,7 @@ fn parse_context_value<'i, 't, T>(input: &mut Parser<'i, 't>, value: T)
             return Ok(value);
         }
     }
-    Err(StyleParseError::UnspecifiedError.into())
+    Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
 }
 
 /// A value of <length> | <percentage> | <number> for stroke-dashoffset.
@@ -115,12 +115,12 @@ impl Parse for SVGOpacity {
         if let Ok(opacity) = input.try(|i| Opacity::parse(context, i)) {
             Ok(generic::SVGOpacity::Opacity(opacity))
         } else if is_context_value_enabled() {
-            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+            try_match_ident_ignore_ascii_case! { input,
                 "context-fill-opacity" => Ok(generic::SVGOpacity::ContextFillOpacity),
                 "context-stroke-opacity" => Ok(generic::SVGOpacity::ContextStrokeOpacity),
             }
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }

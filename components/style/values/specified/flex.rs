@@ -21,7 +21,7 @@ impl Parse for FlexBasis {
         if let Ok(length) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(GenericFlexBasis::Length(length));
         }
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input,
             "auto" => Ok(GenericFlexBasis::Auto),
             "content" => Ok(GenericFlexBasis::Content),
         }

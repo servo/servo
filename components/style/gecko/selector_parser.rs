@@ -4,18 +4,18 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::{BasicParseError, Parser, ToCss, Token, CowRcStr};
+use cssparser::{BasicParseError, BasicParseErrorKind, Parser, ToCss, Token, CowRcStr, SourceLocation};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selectors::SelectorList;
-use selectors::parser::{Selector, SelectorMethods, SelectorParseError};
+use selectors::parser::{Selector, SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use style_traits::{ParseError, StyleParseError};
+use style_traits::{ParseError, StyleParseErrorKind};
 
 pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, SIMPLE_PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
@@ -298,14 +298,14 @@ impl<'a> SelectorParser<'a> {
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
-    type Error = StyleParseError<'i>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn is_pseudo_element_allows_single_colon(name: &CowRcStr<'i>) -> bool {
         ::selectors::parser::is_css2_pseudo_element(name) ||
             name.starts_with("-moz-tree-") // tree pseudo-elements
     }
 
-    fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
+    fn parse_non_ts_pseudo_class(&self, location: SourceLocation, name: CowRcStr<'i>)
                                  -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -313,8 +313,9 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
              keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => NonTSPseudoClass::$name,)*
-                    _ => return Err(::selectors::parser::SelectorParseError::UnsupportedPseudoClassOrElement(
-                        name.clone()).into())
+                    _ => return Err(location.new_custom_error(
+                        SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())
+                    ))
                 }
             }
         }
@@ -322,7 +323,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         if self.is_pseudo_class_enabled(&pseudo_class) {
             Ok(pseudo_class)
         } else {
-            Err(SelectorParseError::UnsupportedPseudoClassOrElement(name).into())
+            Err(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
         }
     }
 
@@ -355,11 +356,15 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
                         if selectors.iter().flat_map(|x| x.iter_raw_match_order()).any(|s| s.is_combinator()) {
-                            return Err(SelectorParseError::UnexpectedIdent("-moz-any".into()).into())
+                            return Err(parser.new_custom_error(
+                                SelectorParseErrorKind::UnexpectedIdent("-moz-any".into())
+                            ))
                         }
                         NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
                     }
-                    _ => return Err(SelectorParseError::UnsupportedPseudoClassOrElement(name.clone()).into())
+                    _ => return Err(parser.new_custom_error(
+                        SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())
+                    ))
                 }
             }
         }
@@ -367,13 +372,14 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         if self.is_pseudo_class_enabled(&pseudo_class) {
             Ok(pseudo_class)
         } else {
-            Err(SelectorParseError::UnsupportedPseudoClassOrElement(name).into())
+            Err(parser.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
         }
     }
 
-    fn parse_pseudo_element(&self, name: CowRcStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_pseudo_element(&self, location: SourceLocation, name: CowRcStr<'i>)
+                            -> Result<PseudoElement, ParseError<'i>> {
         PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
-            .ok_or(SelectorParseError::UnsupportedPseudoClassOrElement(name.clone()).into())
+            .ok_or(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())))
     }
 
     fn parse_functional_pseudo_element<'t>(&self, name: CowRcStr<'i>,
@@ -384,11 +390,12 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             // separated by either comma or space.
             let mut args = Vec::new();
             loop {
+                let location = parser.current_source_location();
                 match parser.next() {
                     Ok(&Token::Ident(ref ident)) => args.push(ident.as_ref().to_owned()),
                     Ok(&Token::Comma) => {},
-                    Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
-                    Err(BasicParseError::EndOfInput) => break,
+                    Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
+                    Err(BasicParseError { kind: BasicParseErrorKind::EndOfInput, .. }) => break,
                     _ => unreachable!("Parser::next() shouldn't return any other error"),
                 }
             }
@@ -397,7 +404,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 return Ok(pseudo);
             }
         }
-        Err(SelectorParseError::UnsupportedPseudoClassOrElement(name.clone()).into())
+        Err(parser.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())))
     }
 
     fn default_namespace(&self) -> Option<Namespace> {

@@ -4,11 +4,11 @@
 
 //! Specified time values.
 
-use cssparser::{Parser, Token, BasicParseError};
+use cssparser::{Parser, Token};
 use parser::{ParserContext, Parse};
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
@@ -83,6 +83,7 @@ impl Time {
     ) -> Result<Self, ParseError<'i>> {
         use style_traits::PARSING_MODE_DEFAULT;
 
+        let location = input.current_source_location();
         // FIXME: remove early returns when lifetimes are non-lexical
         match input.next() {
             // Note that we generally pass ParserContext to is_ok() to check
@@ -92,15 +93,15 @@ impl Time {
             // PARSING_MODE_DEFAULT directly.
             Ok(&Token::Dimension { value, ref unit, .. }) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value) => {
                 return Time::parse_dimension(value, unit, /* from_calc = */ false)
-                    .map_err(|()| StyleParseError::UnspecifiedError.into())
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
             Ok(&Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {}
-            Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
             Err(e) => return Err(e.into())
         }
         match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
             Ok(time) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, time.seconds) => Ok(time),
-            _ => Err(StyleParseError::UnspecifiedError.into()),
+            _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         }
     }
 

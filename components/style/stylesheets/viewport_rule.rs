@@ -18,7 +18,7 @@ use media_queries::Device;
 use parser::{ParserContext, ParserErrorContext};
 use properties::StyleBuilder;
 use rule_cache::RuleCacheConditions;
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -26,7 +26,7 @@ use std::cell::RefCell;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
-use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseError};
+use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseErrorKind};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{StylesheetInDocument, Origin};
 use values::computed::{Context, ToComputedValue};
@@ -276,12 +276,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for ViewportRuleParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
@@ -323,7 +323,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
             "max-zoom" => ok!(MaxZoom(Zoom::parse)),
             "user-zoom" => ok!(UserZoom(UserZoom::parse)),
             "orientation" => ok!(Orientation(Orientation::parse)),
-            _ => Err(SelectorParseError::UnexpectedIdent(name.clone()).into()),
+            _ => Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))),
         }
     }
 }
@@ -368,9 +368,10 @@ impl ViewportRule {
                         cascade.add(Cow::Owned(declarations))
                     }
                 }
-                Err(err) => {
-                    let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(err.slice, err.error);
-                    context.log_css_error(error_context, err.location, error);
+                Err((error, slice)) => {
+                    let location = error.location;
+                    let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(slice, error);
+                    context.log_css_error(error_context, location, error);
                 }
             }
         }

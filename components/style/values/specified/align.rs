@@ -9,10 +9,10 @@
 use cssparser::Parser;
 use gecko_bindings::structs;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 
 bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
@@ -201,7 +201,7 @@ impl Parse for AlignJustifyContent {
             }
             return Ok(AlignJustifyContent::new(fallback))
         }
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -239,7 +239,7 @@ impl Parse for AlignJustifySelf {
         if let Ok(value) = input.try(parse_overflow_self_position) {
             return Ok(AlignJustifySelf(value))
         }
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -277,7 +277,7 @@ impl Parse for AlignItems {
         if let Ok(value) = input.try(parse_overflow_self_position) {
             return Ok(AlignItems(value))
         }
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -326,7 +326,7 @@ impl Parse for JustifyItems {
         if let Ok(value) = parse_overflow_self_position(input) {
             return Ok(JustifyItems(value))
         }
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -351,7 +351,7 @@ fn parse_auto_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>)
         return Ok(baseline);
     }
 
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+    try_match_ident_ignore_ascii_case! { input,
         "auto" => Ok(ALIGN_AUTO),
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
@@ -364,7 +364,7 @@ fn parse_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<A
         return Ok(baseline);
     }
 
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+    try_match_ident_ignore_ascii_case! { input,
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
     }
@@ -383,7 +383,7 @@ fn parse_normal_or_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignF
 // <baseline-position>
 fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
     // FIXME: remove clone() when lifetimes are non-lexical
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
+    try_match_ident_ignore_ascii_case! { input,
         "baseline" => Ok(ALIGN_BASELINE),
         "first" => {
             input.expect_ident_matching("baseline")?;
@@ -398,7 +398,7 @@ fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, Pars
 
 // <content-distribution>
 fn parse_content_distribution<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+    try_match_ident_ignore_ascii_case! { input,
         "stretch" => Ok(ALIGN_STRETCH),
         "space-between" => Ok(ALIGN_SPACE_BETWEEN),
         "space-around" => Ok(ALIGN_SPACE_AROUND),
@@ -421,12 +421,12 @@ fn parse_overflow_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result
             return Ok(overflow | content)
         }
     }
-    return Err(StyleParseError::UnspecifiedError.into())
+    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
 }
 
 // <content-position>
 fn parse_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+    try_match_ident_ignore_ascii_case! { input,
         "start" => Ok(ALIGN_START),
         "end" => Ok(ALIGN_END),
         "flex-start" => Ok(ALIGN_FLEX_START),
@@ -439,7 +439,7 @@ fn parse_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFla
 
 // <overflow-position>
 fn parse_overflow_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+    try_match_ident_ignore_ascii_case! { input,
         "safe" => Ok(ALIGN_SAFE),
         "unsafe" => Ok(ALIGN_UNSAFE),
     }
@@ -460,12 +460,12 @@ fn parse_overflow_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Al
             return Ok(overflow | self_position)
         }
     }
-    return Err(StyleParseError::UnspecifiedError.into())
+    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
 }
 
 // <self-position>
 fn parse_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+    try_match_ident_ignore_ascii_case! { input,
         "start" => Ok(ALIGN_START),
         "end" => Ok(ALIGN_END),
         "flex-start" => Ok(ALIGN_FLEX_START),
@@ -480,7 +480,9 @@ fn parse_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags,
 
 // [ legacy && [ left | right | center ] ]
 fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
+    let a_location = input.current_source_location();
     let a = input.expect_ident()?.clone();
+    let b_location = input.current_source_location();
     let b = input.expect_ident()?;
     if a.eq_ignore_ascii_case("legacy") {
         (match_ignore_ascii_case! { &b,
@@ -488,15 +490,15 @@ fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseE
             "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
             "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
             _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(b.clone()).into())
+        }).map_err(|()| b_location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(b.clone())))
     } else if b.eq_ignore_ascii_case("legacy") {
         (match_ignore_ascii_case! { &a,
             "left" => Ok(ALIGN_LEGACY | ALIGN_LEFT),
             "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
             "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
             _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(a).into())
+        }).map_err(|()| a_location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(a)))
     } else {
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(a_location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }

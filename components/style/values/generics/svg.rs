@@ -7,7 +7,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{ParseError, StyleParseError, ToCss};
+use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
 use values::computed::NumberOrPercentage;
 use values::computed::length::LengthOrPercentage;
@@ -54,7 +54,7 @@ pub enum SVGPaintKind<ColorType, UrlPaintServer> {
 impl<ColorType, UrlPaintServer> SVGPaintKind<ColorType, UrlPaintServer> {
     /// Parse a keyword value only
     fn parse_ident<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input,
             "none" => Ok(SVGPaintKind::None),
             "context-fill" => Ok(SVGPaintKind::ContextFill),
             "context-stroke" => Ok(SVGPaintKind::ContextStroke),
@@ -104,7 +104,7 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
                 fallback: None,
             })
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
@@ -189,7 +189,7 @@ impl <LengthOrPercentageType: Parse, NumberType: Parse> Parse for
         if let Ok(lop) = input.try(|i| LengthOrPercentageType::parse(context, i)) {
             return Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop));
         }
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 

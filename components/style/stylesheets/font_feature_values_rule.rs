@@ -8,7 +8,7 @@
 
 use Atom;
 use computed_values::font_family::FamilyName;
-use cssparser::{AtRuleParser, AtRuleType, BasicParseError, DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token, serialize_identifier};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")]
@@ -16,10 +16,9 @@ use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
 use parser::{ParserContext, ParserErrorContext, Parse};
-use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::{ParseError, StyleParseError, ToCss};
+use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRuleType;
 
 /// A @font-feature-values block declaration.
@@ -59,9 +58,10 @@ pub struct SingleValue(pub u32);
 impl Parse for SingleValue {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<SingleValue, ParseError<'i>> {
+        let location = input.current_source_location();
         match *input.next()? {
             Token::Number { int_value: Some(v), .. } if v >= 0 => Ok(SingleValue(v as u32)),
-            ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }
 }
@@ -87,16 +87,18 @@ pub struct PairValues(pub u32, pub Option<u32>);
 impl Parse for PairValues {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<PairValues, ParseError<'i>> {
+        let location = input.current_source_location();
         let first = match *input.next()? {
             Token::Number { int_value: Some(a), .. } if a >= 0 => a as u32,
-            ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         };
+        let location = input.current_source_location();
         match input.next() {
             Ok(&Token::Number { int_value: Some(b), .. }) if b >= 0 => {
                 Ok(PairValues(first, Some(b as u32)))
             }
             // It can't be anything other than number.
-            Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
             // It can be just one value.
             Err(_) => Ok(PairValues(first, None))
         }
@@ -136,18 +138,19 @@ impl Parse for VectorValues {
                      -> Result<VectorValues, ParseError<'i>> {
         let mut vec = vec![];
         loop {
+            let location = input.current_source_location();
             match input.next() {
                 Ok(&Token::Number { int_value: Some(a), .. }) if a >= 0 => {
                     vec.push(a as u32);
                 },
                 // It can't be anything other than number.
-                Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
             }
         }
 
         if vec.len() == 0 {
-            return Err(BasicParseError::EndOfInput.into());
+            return Err(input.new_error(BasicParseErrorKind::EndOfInput));
         }
 
         Ok(VectorValues(vec))
@@ -197,14 +200,14 @@ impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = ();
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
     where T: Parse
 {
     type Declaration = ();
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
@@ -271,9 +274,10 @@ macro_rules! font_feature_values_blocks {
                         rule: &mut rule,
                     });
                     while let Some(result) = iter.next() {
-                        if let Err(err) = result {
-                            let error = ContextualParseError::UnsupportedRule(err.slice, err.error);
-                            context.log_css_error(error_context, err.location, error);
+                        if let Err((error, slice)) = result {
+                            let location = error.location;
+                            let error = ContextualParseError::UnsupportedRule(slice, error);
+                            context.log_css_error(error_context, location, error);
                         }
                     }
                 }
@@ -387,24 +391,24 @@ macro_rules! font_feature_values_blocks {
         impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
             type Prelude = ();
             type QualifiedRule = ();
-            type Error = SelectorParseError<'i, StyleParseError<'i>>;
+            type Error = StyleParseErrorKind<'i>;
         }
 
         impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
             type PreludeNoBlock = ();
             type PreludeBlock = BlockType;
             type AtRule = ();
-            type Error = SelectorParseError<'i, StyleParseError<'i>>;
+            type Error = StyleParseErrorKind<'i>;
 
             fn parse_prelude<'t>(&mut self,
                                  name: CowRcStr<'i>,
-                                 _input: &mut Parser<'i, 't>)
+                                 input: &mut Parser<'i, 't>)
                                  -> Result<AtRuleType<(), BlockType>, ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
                         $name => Ok(AtRuleType::WithBlock(BlockType::$ident_camel)),
                     )*
-                    _ => Err(BasicParseError::AtRuleBodyInvalid.into()),
+                    _ => Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 }
             }
 
@@ -424,10 +428,12 @@ macro_rules! font_feature_values_blocks {
 
                             let mut iter = DeclarationListParser::new(input, parser);
                             while let Some(declaration) = iter.next() {
-                                if let Err(err) = declaration {
+                                if let Err((error, slice)) = declaration {
+                                    let location = error.location;
                                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
-                                        err.slice, err.error);
-                                    self.context.log_css_error(self.error_context, err.location, error);
+                                        slice, error
+                                    );
+                                    self.context.log_css_error(self.error_context, location, error);
                                 }
                             }
                         },

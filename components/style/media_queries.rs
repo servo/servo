@@ -12,11 +12,11 @@ use cssparser::{Delimiter, Parser};
 use cssparser::{Token, ParserInput};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use serialize_comma_separated_list;
 use std::fmt;
 use str::string_as_ascii_lowercase;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use values::CustomIdent;
 
 #[cfg(feature = "servo")]
@@ -210,13 +210,13 @@ impl MediaQuery {
         let media_type = match input.try(|i| i.expect_ident_cloned()) {
             Ok(ident) => {
                 let result: Result<_, ParseError> = MediaQueryType::parse(&*ident)
-                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into());
+                    .map_err(|()| input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
                 result?
             }
             Err(_) => {
                 // Media type is only optional if qualifier is not specified.
                 if qualifier.is_some() {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
 
                 // Without a media type, require at least one expression.
@@ -257,17 +257,17 @@ where
     let mut media_queries = vec![];
     loop {
         let start_position = input.position();
-        let start_location = input.current_source_location();
         match input.parse_until_before(Delimiter::Comma, |i| MediaQuery::parse(context, i)) {
             Ok(mq) => {
                 media_queries.push(mq);
             },
             Err(err) => {
                 media_queries.push(MediaQuery::never_matching());
+                let location = err.location;
                 let error = ContextualParseError::InvalidMediaRule(
                     input.slice_from(start_position), err);
                 let error_context = ParserErrorContext { error_reporter };
-                context.log_css_error(&error_context, start_location, error);
+                context.log_css_error(&error_context, location, error);
             },
         }
 

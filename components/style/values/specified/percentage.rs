@@ -4,7 +4,7 @@
 
 //! Specified percentages.
 
-use cssparser::{BasicParseError, Parser, Token};
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::fmt;
@@ -97,13 +97,14 @@ impl Percentage {
         input: &mut Parser<'i, 't>,
         num_context: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
         // FIXME: remove early returns when lifetimes are non-lexical
         match *input.next()? {
             Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
                 return Ok(Percentage::new(unit_value));
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
-            ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
 
         let result = input.parse_nested_block(|i| {
