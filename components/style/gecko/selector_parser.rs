@@ -7,7 +7,10 @@
 use cssparser::{BasicParseError, Parser, ToCss, Token, CowRcStr};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
+use gecko_bindings::structs::RawServoSelectorList;
+use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
+use selectors::SelectorList;
 use selectors::parser::{Selector, SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
@@ -438,3 +441,9 @@ fn utf16_to_ascii_lowercase(unit: u16) -> u16 {
         _ => unit
     }
 }
+
+unsafe impl HasFFI for SelectorList<SelectorImpl> {
+    type FFIType = RawServoSelectorList;
+}
+unsafe impl HasSimpleFFI for SelectorList<SelectorImpl> {}
+unsafe impl HasBoxFFI for SelectorList<SelectorImpl> {}

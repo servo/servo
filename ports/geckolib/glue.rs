@@ -43,6 +43,7 @@ use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaLi
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
+use style::gecko_bindings::bindings::{RawServoSelectorListBorrowed, RawServoSelectorListOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedDataBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ServoStyleContextBorrowed};
@@ -91,6 +92,7 @@ use style::gecko_bindings::structs::OriginFlags_User;
 use style::gecko_bindings::structs::OriginFlags_UserAgent;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
+use style::gecko_bindings::structs::RawServoSelectorList;
 use style::gecko_bindings::structs::SeenPtrs;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::ServoStyleSetSizes;
@@ -1521,8 +1523,10 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
 #[no_mangle]
 pub unsafe extern "C" fn Servo_SelectorList_Matches(
     element: RawGeckoElementBorrowed,
-    selectors: &::selectors::SelectorList<SelectorImpl>,
+    selectors: RawServoSelectorListBorrowed,
 ) -> bool {
+    use std::borrow::Borrow;
+
     let element = GeckoElement(element);
     let mut context = MatchingContext::new(
         MatchingMode::Normal,
@@ -1532,7 +1536,8 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
     );
     context.scope_element = Some(element.opaque());
 
-    selectors::matching::matches_selector_list(selectors, &element, &mut context)
+    let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
+    selectors::matching::matches_selector_list(&selectors, &element, &mut context)
 }
 
 #[no_mangle]
@@ -4113,7 +4118,7 @@ pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrow
 #[no_mangle]
 pub unsafe extern "C" fn Servo_SelectorList_Parse(
     selector_list: *const nsACString,
-) -> *mut ::selectors::SelectorList<SelectorImpl> {
+) -> *mut RawServoSelectorList {
     use style::selector_parser::SelectorParser;
 
     debug_assert!(!selector_list.is_null());
@@ -4124,10 +4129,10 @@ pub unsafe extern "C" fn Servo_SelectorList_Parse(
         Err(..) => return ptr::null_mut(),
     };
 
-    Box::into_raw(Box::new(selector_list))
+    Box::into_raw(Box::new(selector_list)) as *mut RawServoSelectorList
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_SelectorList_Drop(list: *mut ::selectors::SelectorList<SelectorImpl>) {
-    let _ = Box::from_raw(list);
+pub unsafe extern "C" fn Servo_SelectorList_Drop(list: RawServoSelectorListOwned) {
+    let _ = list.into_box::<::selectors::SelectorList<SelectorImpl>>();
 }
