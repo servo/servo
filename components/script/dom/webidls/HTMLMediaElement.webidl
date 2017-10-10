@@ -5,6 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#htmlmediaelement
 
 enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
+typedef /* (MediaStream or MediaSource or */ Blob /* ) */ MediaProvider;
 
 [Abstract]
 interface HTMLMediaElement : HTMLElement {
@@ -13,7 +14,7 @@ interface HTMLMediaElement : HTMLElement {
 
   // network state
   [CEReactions] attribute DOMString src;
-  // attribute MediaProvider? srcObject;
+  attribute MediaProvider? srcObject;
   readonly attribute DOMString currentSrc;
   // [CEReactions] attribute DOMString crossOrigin;
   const unsigned short NETWORK_EMPTY = 0;

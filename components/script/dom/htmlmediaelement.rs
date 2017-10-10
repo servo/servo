@@ -20,6 +20,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
+use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::eventtarget::EventTarget;
@@ -57,6 +58,8 @@ pub struct HTMLMediaElement {
     network_state: Cell<NetworkState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-readystate
     ready_state: Cell<ReadyState>,
+    /// https://html.spec.whatwg.org/multipage/#dom-media-srcobject
+    src_object: MutNullableDom<Blob>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
     current_src: DomRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
@@ -112,6 +115,7 @@ impl HTMLMediaElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
             ready_state: Cell::new(ReadyState::HaveNothing),
+            src_object: Default::default(),
             current_src: DomRefCell::new("".to_owned()),
             generation_id: Cell::new(0),
             fired_loadeddata_event: Cell::new(false),
@@ -448,13 +452,14 @@ impl HTMLMediaElement {
 
         // Step 6.
         enum Mode {
-            // FIXME(nox): Support media object provider.
-            #[allow(dead_code)]
             Object,
             Attribute(String),
             Children(DomRoot<HTMLSourceElement>),
         }
         fn mode(media: &HTMLMediaElement) -> Option<Mode> {
+            if media.src_object.get().is_some() {
+                return Some(Mode::Object);
+            }
             if let Some(attr) = media.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
                 return Some(Mode::Attribute(attr.Value().into()));
             }
@@ -500,7 +505,6 @@ impl HTMLMediaElement {
                 // Step 9.obj.3.
                 // Note that the resource fetch algorithm itself takes care
                 // of the cleanup in case of failure itself.
-                // FIXME(nox): Pass the assigned media provider here.
                 self.resource_fetch_algorithm(Resource::Object);
             },
             Mode::Attribute(src) => {
@@ -613,7 +617,7 @@ impl HTMLMediaElement {
                 document.loader().fetch_async_background(request, action_sender);
             },
             Resource::Object => {
-                // FIXME(nox): Use the current media resource.
+                // FIXME(nox): Actually do something with the object.
                 self.queue_dedicated_media_source_failure_steps();
             },
         }
@@ -835,6 +839,17 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-media-src
     make_setter!(SetSrc, "src");
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
+    fn GetSrcObject(&self) -> Option<DomRoot<Blob>> {
+        self.src_object.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
+    fn SetSrcObject(&self, value: Option<&Blob>) {
+        self.src_object.set(value);
+        self.media_element_load_algorithm();
+    }
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
     // Missing value default is user-agent defined.
