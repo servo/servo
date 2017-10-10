@@ -495,11 +495,45 @@ impl<'a> CustomPropertiesBuilder<'a> {
             return;
         }
 
+        // Check if we can avoid cloning the inherited CustomPropertiesMap.
+        match specified_value {
+            DeclaredValue::CSSWideKeyword(CSSWideKeyword::Unset) |
+            DeclaredValue::CSSWideKeyword(CSSWideKeyword::Inherit) => {
+                // Custom properties are inherited by default. So
+                // explicit 'inherit' or 'unset' means we can just use
+                // any existing value in the inherited CustomPropertiesMap.
+                return;
+            }
+            _ => {}
+        }
+
+        {
+            let existing_value = match self.custom_properties {
+                Some(ref custom_properties) => custom_properties.get(name),
+                None => None,
+            };
+            match (existing_value, &specified_value) {
+                (None, &DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial)) => {
+                    // The initial value of a custom property is the same as it
+                    // not existing in the map.
+                    return;
+                }
+                (Some(existing_value), &DeclaredValue::Value(specified_value)) => {
+                    // Don't bother overwriting an existing inherited value with
+                    // the same specified value.
+                    if existing_value == specified_value {
+                        return;
+                    }
+                }
+                _ => {}
+            }
+        }
+
         if self.custom_properties.is_none() {
             self.custom_properties = Some(match self.inherited {
                 Some(inherited) => (**inherited).clone(),
                 None => CustomPropertiesMap::new(),
-            })
+            });
         }
 
         let map = self.custom_properties.as_mut().unwrap();
@@ -513,8 +547,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 CSSWideKeyword::Initial => {
                     map.remove(name);
                 }
-                CSSWideKeyword::Unset | // Custom properties are inherited by default.
-                CSSWideKeyword::Inherit => {} // The inherited value is what we already have.
+                _ => unreachable!(),
             }
         }
     }
