@@ -235,6 +235,7 @@ use gecko_bindings::structs::UpdateAnimationsTasks;
 use gecko_bindings::structs::ParsingMode;
 use gecko_bindings::structs::InheritTarget;
 use gecko_bindings::structs::URLMatchingFunction;
+use gecko_bindings::structs::StyleAnimation;
 use gecko_bindings::structs::StyleRuleInclusion;
 use gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 unsafe impl Send for nsStyleTransformMatrix::MatrixTransformOperator {}
@@ -281,8 +282,6 @@ pub type RawServoDeclarationBlockStrongBorrowed<'a> = &'a RawServoDeclarationBlo
 pub type RawServoDeclarationBlockStrongBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlockStrong>;
 pub type RawGeckoPresContextBorrowed<'a> = &'a RawGeckoPresContext;
 pub type RawGeckoPresContextBorrowedOrNull<'a> = Option<&'a RawGeckoPresContext>;
-pub type RawGeckoStyleAnimationListBorrowed<'a> = &'a RawGeckoStyleAnimationList;
-pub type RawGeckoStyleAnimationListBorrowedOrNull<'a> = Option<&'a RawGeckoStyleAnimationList>;
 pub type RawGeckoXBLBindingBorrowed<'a> = &'a RawGeckoXBLBinding;
 pub type RawGeckoXBLBindingBorrowedOrNull<'a> = Option<&'a RawGeckoXBLBinding>;
 pub type nsCSSPropertyIDSetBorrowed<'a> = &'a nsCSSPropertyIDSet;
@@ -333,6 +332,10 @@ pub type RawGeckoServoAnimationValueListBorrowed<'a> = &'a RawGeckoServoAnimatio
 pub type RawGeckoServoAnimationValueListBorrowedOrNull<'a> = Option<&'a RawGeckoServoAnimationValueList>;
 pub type RawGeckoServoAnimationValueListBorrowedMut<'a> = &'a mut RawGeckoServoAnimationValueList;
 pub type RawGeckoServoAnimationValueListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoServoAnimationValueList>;
+pub type RawGeckoStyleAnimationListBorrowed<'a> = &'a RawGeckoStyleAnimationList;
+pub type RawGeckoStyleAnimationListBorrowedOrNull<'a> = Option<&'a RawGeckoStyleAnimationList>;
+pub type RawGeckoStyleAnimationListBorrowedMut<'a> = &'a mut RawGeckoStyleAnimationList;
+pub type RawGeckoStyleAnimationListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoStyleAnimationList>;
 pub type RawGeckoStyleChildrenIteratorBorrowed<'a> = &'a RawGeckoStyleChildrenIterator;
 pub type RawGeckoStyleChildrenIteratorBorrowedOrNull<'a> = Option<&'a RawGeckoStyleChildrenIterator>;
 pub type RawGeckoStyleChildrenIteratorBorrowedMut<'a> = &'a mut RawGeckoStyleChildrenIterator;
@@ -787,6 +790,15 @@ extern "C" {
                                        arg2:
                                            RawGeckoStyleAnimationListBorrowed)
      -> bool;
+}
+extern "C" {
+    pub fn Gecko_CopyAnimationNames(aDest:
+                                        RawGeckoStyleAnimationListBorrowedMut,
+                                    aSrc: RawGeckoStyleAnimationListBorrowed);
+}
+extern "C" {
+    pub fn Gecko_SetAnimationName(aStyleAnimation: *mut StyleAnimation,
+                                  aAtom: *mut nsAtom);
 }
 extern "C" {
     pub fn Gecko_UpdateAnimations(aElementOrPseudo: RawGeckoElementBorrowed,
@@ -2066,7 +2078,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_GetKeyframesForName(set: RawServoStyleSetBorrowed,
-                                              property: *const nsACString,
+                                              name: *mut nsAtom,
                                               timing_function:
                                                   nsTimingFunctionBorrowed,
                                               keyframe_list:

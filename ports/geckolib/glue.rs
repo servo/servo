@@ -3625,14 +3625,14 @@ fn fill_in_missing_keyframe_values(
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetBorrowed,
-                                                     name: *const nsACString,
+                                                     name: *mut nsAtom,
                                                      inherited_timing_function: nsTimingFunctionBorrowed,
                                                      keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     debug_assert!(keyframes.len() == 0,
                   "keyframes should be initially empty");
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
+    let name = Atom::from(name);
 
     let animation = match data.stylist.get_animation(&name) {
         Some(animation) => animation,

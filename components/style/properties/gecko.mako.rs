@@ -3215,42 +3215,33 @@ fn static_assert() {
         where I: IntoIterator<Item = longhands::animation_name::computed_value::single_value::T>,
               I::IntoIter: ExactSizeIterator
     {
-
         let v = v.into_iter();
         debug_assert!(v.len() != 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.len()) };
 
         self.gecko.mAnimationNameCount = v.len() as u32;
         for (servo, gecko) in v.zip(self.gecko.mAnimations.iter_mut()) {
-            // TODO This is inefficient. We should fix this in bug 1329169.
-            gecko.mName.assign(match servo.0 {
-                Some(ref name) => name.as_atom().as_slice(),
-                None => &[],  // Empty string for 'none'
-            });
+            let atom = match servo.0 {
+                None => atom!(""),
+                Some(ref name) => name.as_atom().clone(),
+            };
+            unsafe { bindings::Gecko_SetAnimationName(gecko, atom.into_addrefed()); }
         }
     }
     pub fn animation_name_at(&self, index: usize)
         -> longhands::animation_name::computed_value::SingleComputedValue {
         use properties::longhands::animation_name::single_value::SpecifiedValue as AnimationName;
-        // XXX: Is there any effective ways?
-        let atom = &self.gecko.mAnimations[index].mName;
-        if atom.is_empty() {
+
+        let atom = self.gecko.mAnimations[index].mName.mRawPtr;
+        if atom == atom!("").as_ptr() {
             AnimationName(None)
         } else {
-            AnimationName(Some(KeyframesName::from_ident(&atom.to_string())))
+            AnimationName(Some(KeyframesName::from_atom(atom.into())))
         }
     }
     pub fn copy_animation_name_from(&mut self, other: &Self) {
-        unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
-
-        let count = other.gecko.mAnimationNameCount;
-        self.gecko.mAnimationNameCount = count;
-
-        // The length of mAnimations is often greater than mAnimationXXCount,
-        // don't copy values over the count.
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
-            animation.mName.assign(&*other.gecko.mAnimations[index].mName);
-        }
+        self.gecko.mAnimationNameCount = other.gecko.mAnimationNameCount;
+        unsafe { bindings::Gecko_CopyAnimationNames(&mut self.gecko.mAnimations, &other.gecko.mAnimations); }
     }
 
     pub fn reset_animation_name(&mut self, other: &Self) {
