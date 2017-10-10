@@ -288,7 +288,7 @@ impl HttpCache {
     }
 
     /// Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
-    fn calculate_secondary_keys_with_vary(&self, request: &Request) -> Option<&CachedResource> {
+    fn search_with_secondary_key_using_vary(&self, request: &Request) -> Option<&CachedResource> {
         let mut can_be_constructed = vec![];
         for (key, cached_resource) in self.entries.iter() {
             if key.url() == request.url() {
@@ -327,35 +327,48 @@ impl HttpCache {
     pub fn construct_response(&self, request: &Request, done_chan: &mut DoneChannel)
         -> Option<CachedResponse> {
         let entry_key = CacheKey::new(request.clone());
-        return match (self.entries.get(&entry_key), self.calculate_secondary_keys_with_vary(request)) {
-            (None, Some(cached_resource)) => {
+        if let Some(ref cached_resource) = self.entries.get(&entry_key) {
+            let cached_response = create_cached_response(request, cached_resource, done_chan);
+            return Some(cached_response)
+        } else {
+            // Look for a resource using a secondary key calculated based on url and vary headers match.
+            // Since we include headers in the cache key, this only covers a case where a non-vary header changed.
+            // If we were to only incude the url in the key,
+            // this check would need to turn negative,
+            // and exclude positive url matches for requests whose vary headers changed.
+            if let Some(cached_resource) = self.search_with_secondary_key_using_vary(request) {
                 let cached_response = create_cached_response(request, cached_resource, done_chan);
-                Some(cached_response)
-            },
-            (Some(ref cached_resource), Some(_)) | (Some(ref cached_resource), None) => {
-                let cached_response = create_cached_response(request, cached_resource, done_chan);
-                Some(cached_response)
-            },
-            _ => None,
-        };
+                return Some(cached_response);
+            }
+        }
+        None
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
     pub fn refresh(&mut self, request: &Request, response: Response, done_chan: &mut DoneChannel) -> Option<Response> {
+        assert!(response.status == Some(StatusCode::NotModified));
         for (key, cached_resource) in self.entries.iter_mut() {
+            // Looking for a match based on url,
+            // since the current request will include IfModifiedSince and/or If-None-Match headers,
+            // that the original request, hence also the cache key, didn't include.
             if key.url() == request.url() {
                 if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
+                    // Received a response with 304 status code whose url matches a stored resource.
+                    // 1. update the headers of the stored resource.
+                    // 2. return a response, constructed from the updated stored resource.
                     stored_headers.extend(response.headers.iter());
-                    let mut response_200 = Response::new(cached_resource.metadata.final_url.clone());
-                    response_200.headers = stored_headers.clone();
-                    response_200.body = cached_resource.body.clone();
-                    response_200.status = cached_resource.status.clone();
-                    response_200.raw_status = cached_resource.raw_status.clone();
-                    response_200.url_list = cached_resource.url_list.clone();
+                    let mut constructed_response = Response::new(cached_resource.metadata.final_url.clone());
+                    constructed_response.headers = stored_headers.clone();
+                    constructed_response.body = cached_resource.body.clone();
+                    constructed_response.status = cached_resource.status.clone();
+                    constructed_response.raw_status = cached_resource.raw_status.clone();
+                    constructed_response.url_list = cached_resource.url_list.clone();
+                    // done_chan will have been set to Some by http_network_fetch,
+                    // set it back to None since the response returned here replaces the 304 one from the network.
                     *done_chan = None;
                     let mut expires = cached_resource.expires.lock().unwrap();
-                    *expires = get_response_expiry(&response_200);
-                    return Some(response_200);
+                    *expires = get_response_expiry(&constructed_response);
+                    return Some(constructed_response);
                 }
             }
         }
