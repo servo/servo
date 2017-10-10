@@ -84,7 +84,7 @@ servo_url = {path = "../url"}
 smallvec = "0.4"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
-swapper = "0.0.4"
+swapper = "0.1"
 time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
