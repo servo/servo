@@ -373,7 +373,7 @@ impl CalcNode {
                                 ret.em = Some(ret.em.unwrap_or(0.) + em * factor);
                             }
                             FontRelativeLength::Ex(ex) => {
-                                ret.ex = Some(ret.em.unwrap_or(0.) + ex * factor);
+                                ret.ex = Some(ret.ex.unwrap_or(0.) + ex * factor);
                             }
                             FontRelativeLength::Ch(ch) => {
                                 ret.ch = Some(ret.ch.unwrap_or(0.) + ch * factor);
