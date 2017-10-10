@@ -36,7 +36,7 @@ atomic_refcell = "0.1"
 bitflags = "0.7"
 byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.21.2"
+cssparser = "0.22.0"
 encoding = {version = "0.2", optional = true}
 euclid = "0.15"
 fallible = { path = "../fallible" }

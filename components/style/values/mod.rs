@@ -9,13 +9,13 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{RGBA, Token, Parser, serialize_identifier, BasicParseError, CowRcStr};
+pub use cssparser::{RGBA, Token, Parser, serialize_identifier, CowRcStr, SourceLocation};
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use std::ascii::AsciiExt;
 use std::fmt::{self, Debug};
 use std::hash;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 
 pub mod animated;
 pub mod computed;
@@ -57,9 +57,9 @@ pub enum Impossible {}
 impl Parse for Impossible {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        _input: &mut Parser<'i, 't>)
+        input: &mut Parser<'i, 't>)
     -> Result<Self, ParseError<'i>> {
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -103,16 +103,17 @@ pub struct CustomIdent(pub Atom);
 
 impl CustomIdent {
     /// Parse an already-tokenizer identifier
-    pub fn from_ident<'i>(ident: &CowRcStr<'i>, excluding: &[&str]) -> Result<Self, ParseError<'i>> {
+    pub fn from_ident<'i>(location: SourceLocation, ident: &CowRcStr<'i>, excluding: &[&str])
+                          -> Result<Self, ParseError<'i>> {
         let valid = match_ignore_ascii_case! { ident,
             "initial" | "inherit" | "unset" | "default" => false,
             _ => true
         };
         if !valid {
-            return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
+            return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
         }
         if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         } else {
             Ok(CustomIdent(Atom::from(ident.as_ref())))
         }
@@ -139,7 +140,8 @@ pub enum KeyframesName {
 impl KeyframesName {
     /// https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     pub fn from_ident(value: &str) -> Self {
-        let custom_ident = CustomIdent::from_ident(&value.into(), &["none"]).ok();
+        let location = SourceLocation { line: 0, column: 0 };
+        let custom_ident = CustomIdent::from_ident(location, &value.into(), &["none"]).ok();
         match custom_ident {
             Some(ident) => KeyframesName::Ident(ident),
             None => KeyframesName::QuotedString(value.into()),
@@ -182,10 +184,11 @@ impl hash::Hash for KeyframesName {
 
 impl Parse for KeyframesName {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
         match input.next() {
-            Ok(&Token::Ident(ref s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
+            Ok(&Token::Ident(ref s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(location, s, &["none"])?)),
             Ok(&Token::QuotedString(ref s)) => Ok(KeyframesName::QuotedString(Atom::from(s.as_ref()))),
-            Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
             Err(e) => Err(e.into()),
         }
     }

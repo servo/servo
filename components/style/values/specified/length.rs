@@ -7,14 +7,14 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use app_units::Au;
-use cssparser::{Parser, Token, BasicParseError};
+use cssparser::{Parser, Token};
 use euclid::Size2D;
 use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::{Add, Mul};
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
@@ -662,22 +662,23 @@ impl Length {
                               -> Result<Length, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
+            let location = input.current_source_location();
             let token = input.next()?;
             match *token {
                 Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     return Length::parse_dimension(context, value, unit)
-                        .map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
                 }
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     if value != 0. &&
                        !context.parsing_mode.allows_unitless_lengths() &&
                        !allow_quirks.allowed(context.quirks_mode) {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
                     return Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value))))
                 },
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-                ref token => return Err(BasicParseError::UnexpectedToken(token.clone()).into())
+                ref token => return Err(location.new_unexpected_token_error(token.clone()))
             }
         }
         input.parse_nested_block(|input| {
@@ -858,12 +859,13 @@ impl LengthOrPercentage {
     {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
+            let location = input.current_source_location();
             let token = input.next()?;
             match *token {
                 Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentage::Length)
-                        .map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
                 }
                 Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
                     return Ok(LengthOrPercentage::Percentage(computed::Percentage(unit_value)))
@@ -872,13 +874,13 @@ impl LengthOrPercentage {
                     if value != 0. &&
                        !context.parsing_mode.allows_unitless_lengths() &&
                        !allow_quirks.allowed(context.quirks_mode) {
-                        return Err(BasicParseError::UnexpectedToken(token.clone()).into())
+                        return Err(location.new_unexpected_token_error(token.clone()))
                     } else {
                         return Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value)))
                     }
                 }
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-                _ => return Err(BasicParseError::UnexpectedToken(token.clone()).into())
+                _ => return Err(location.new_unexpected_token_error(token.clone()))
             }
         }
 
@@ -935,7 +937,7 @@ impl LengthOrPercentage {
         if num >= 0. {
             Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(AbsoluteLength::Px(num))))
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 
@@ -1000,12 +1002,13 @@ impl LengthOrPercentageOrAuto {
                               -> Result<Self, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
+            let location = input.current_source_location();
             let token = input.next()?;
             match *token {
                 Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentageOrAuto::Length)
-                        .map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
                 }
                 Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
                     return Ok(LengthOrPercentageOrAuto::Percentage(computed::Percentage(unit_value)))
@@ -1014,7 +1017,7 @@ impl LengthOrPercentageOrAuto {
                     if value != 0. &&
                        !context.parsing_mode.allows_unitless_lengths() &&
                        !allow_quirks.allowed(context.quirks_mode) {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
                     return Ok(LengthOrPercentageOrAuto::Length(
                         NoCalcLength::Absolute(AbsoluteLength::Px(value))
@@ -1024,7 +1027,7 @@ impl LengthOrPercentageOrAuto {
                     return Ok(LengthOrPercentageOrAuto::Auto)
                 }
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-                _ => return Err(BasicParseError::UnexpectedToken(token.clone()).into())
+                _ => return Err(location.new_unexpected_token_error(token.clone()))
             }
         }
 
@@ -1105,12 +1108,13 @@ impl LengthOrPercentageOrNone {
     {
         // FIXME: remove early returns when lifetimes are non-lexical
         {
+            let location = input.current_source_location();
             let token = input.next()?;
             match *token {
                 Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentageOrNone::Length)
-                        .map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
+                        .map_err(|()| location.new_unexpected_token_error(token.clone()))
                 }
                 Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
                     return Ok(LengthOrPercentageOrNone::Percentage(computed::Percentage(unit_value)))
@@ -1118,7 +1122,7 @@ impl LengthOrPercentageOrNone {
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
                     if value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
                        !allow_quirks.allowed(context.quirks_mode) {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
                     return Ok(LengthOrPercentageOrNone::Length(
                         NoCalcLength::Absolute(AbsoluteLength::Px(value))
@@ -1128,7 +1132,7 @@ impl LengthOrPercentageOrNone {
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("none") => {
                     return Ok(LengthOrPercentageOrNone::None)
                 }
-                _ => return Err(BasicParseError::UnexpectedToken(token.clone()).into())
+                _ => return Err(location.new_unexpected_token_error(token.clone()))
             }
         }
 

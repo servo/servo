@@ -394,10 +394,11 @@ impl Stylesheet {
                             break;
                         }
                     },
-                    Err(err) => {
-                        let error = ContextualParseError::InvalidRule(err.slice, err.error);
+                    Err((error, slice)) => {
+                        let location = error.location;
+                        let error = ContextualParseError::InvalidRule(slice, error);
                         iter.parser.context.log_css_error(&iter.parser.error_context,
-                                                          err.location, error);
+                                                          location, error);
                     }
                 }
             }

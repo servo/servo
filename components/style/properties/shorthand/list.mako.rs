@@ -21,7 +21,7 @@
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 nones = nones + 1;
                 if nones > 2 {
-                    return Err(SelectorParseError::UnexpectedIdent("none".into()).into())
+                    return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("none".into())))
                 }
                 any = true;
                 continue
@@ -106,7 +106,7 @@
                     list_style_type: unwrap_or_initial!(list_style_type),
                 })
             }
-            _ => Err(StyleParseError::UnspecifiedError.into()),
+            _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         }
     }
 </%helpers:shorthand>

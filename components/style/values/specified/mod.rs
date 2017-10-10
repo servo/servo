@@ -8,13 +8,13 @@
 
 use Namespace;
 use context::QuirksMode;
-use cssparser::{Parser, Token, serialize_identifier, BasicParseError};
+use cssparser::{Parser, Token, serialize_identifier};
 use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
 use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{Context, ToComputedValue};
@@ -103,11 +103,12 @@ impl Eq for SpecifiedUrl {}
 /// Parse an `<integer>` value, handling `calc()` correctly.
 pub fn parse_integer<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<Integer, ParseError<'i>> {
+    let location = input.current_source_location();
     // FIXME: remove early returns when lifetimes are non-lexical
     match *input.next()? {
         Token::Number { int_value: Some(v), .. } => return Ok(Integer::new(v)),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-        ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into())
+        ref t => return Err(location.new_unexpected_token_error(t.clone()))
     }
 
     let result = input.parse_nested_block(|i| {
@@ -129,6 +130,7 @@ pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
                                                input: &mut Parser<'i, 't>,
                                                clamping_mode: AllowedNumericType)
                                                -> Result<Number, ParseError<'i>> {
+    let location = input.current_source_location();
     // FIXME: remove early returns when lifetimes are non-lexical
     match *input.next()? {
         Token::Number { value, .. } if clamping_mode.is_ok(context.parsing_mode, value) => {
@@ -138,7 +140,7 @@ pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
             })
         }
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-        ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into())
+        ref t => return Err(location.new_unexpected_token_error(t.clone()))
     }
 
     let result = input.parse_nested_block(|i| {
@@ -415,7 +417,7 @@ impl Integer {
             // It's not totally clear it's worth it though, and no other browser
             // does this.
             Ok(value) if value.value() >= min => Ok(value),
-            Ok(_value) => Err(StyleParseError::UnspecifiedError.into()),
+            Ok(_value) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
             Err(e) => Err(e),
         }
     }
@@ -473,7 +475,9 @@ impl IntegerOrAuto {
                                   input: &mut Parser<'i, 't>)
                                   -> Result<IntegerOrAuto, ParseError<'i>> {
         match IntegerOrAuto::parse(context, input) {
-            Ok(Either::First(integer)) if integer.value() <= 0 => Err(StyleParseError::UnspecifiedError.into()),
+            Ok(Either::First(integer)) if integer.value() <= 0 => {
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
             result => result,
         }
     }
@@ -741,17 +745,18 @@ impl Attr {
         if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
                 Token::Delim('|') => {
+                    let location = input.current_source_location();
                     // must be followed by an ident
                     let second_token = match *input.next_including_whitespace()? {
                         Token::Ident(ref second) => second,
-                        ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                        ref t => return Err(location.new_unexpected_token_error(t.clone())),
                     };
 
                     let ns_with_id = if let Some(ns) = first {
                         let ns = Namespace::from(ns.as_ref());
                         let id: Result<_, ParseError> =
                             get_id_for_namespace(&ns, context)
-                            .map_err(|()| StyleParseError::UnspecifiedError.into());
+                            .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                         Some((ns, id?))
                     } else {
                         None
@@ -764,7 +769,7 @@ impl Attr {
                 // In the case of attr(foobar    ) we don't want to error out
                 // because of the trailing whitespace
                 Token::WhiteSpace(_) => (),
-                ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                ref t => return Err(input.new_unexpected_token_error(t.clone())),
             }
         }
 
@@ -774,7 +779,7 @@ impl Attr {
                 attribute: first.as_ref().to_owned(),
             })
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }

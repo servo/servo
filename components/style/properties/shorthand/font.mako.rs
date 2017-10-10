@@ -98,7 +98,7 @@
         }
         if size.is_none() ||
            (count(&style) + count(&weight) + count(&variant_caps) + count(&stretch) + nb_normals) > 4 {
-            return Err(StyleParseError::UnspecifiedError.into())
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
         let line_height = if input.try(|input| input.expect_delim('/')).is_ok() {
             Some(LineHeight::parse(context, input)?)
@@ -262,7 +262,7 @@
             loop {
                 if input.try(|input| input.expect_ident_matching("normal")).is_ok() ||
                    input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
             % for prop in sub_properties:
                 if ${prop}.is_none() {
@@ -278,7 +278,7 @@
             }
 
             if !has_custom_value {
-                return Err(StyleParseError::UnspecifiedError.into())
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         }
 

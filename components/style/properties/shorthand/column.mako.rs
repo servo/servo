@@ -44,7 +44,7 @@
 
         let values = autos + column_count.iter().len() + column_width.iter().len();
         if values == 0 || values > 2 {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         } else {
             Ok(expanded! {
                 column_count: unwrap_or_initial!(column_count),
@@ -89,7 +89,7 @@
                 column_rule_color: unwrap_or_initial!(column_rule_color),
             })
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 </%helpers:shorthand>

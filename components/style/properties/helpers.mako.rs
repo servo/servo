@@ -93,9 +93,9 @@
             #[allow(unused_imports)]
             use properties::ShorthandId;
             #[allow(unused_imports)]
-            use selectors::parser::SelectorParseError;
+            use selectors::parser::SelectorParseErrorKind;
             #[allow(unused_imports)]
-            use style_traits::{ParseError, StyleParseError};
+            use style_traits::{ParseError, StyleParseErrorKind};
             #[allow(unused_imports)]
             use values::computed::{Context, ToComputedValue};
             #[allow(unused_imports)]
@@ -285,11 +285,11 @@
         #[allow(unused_imports)]
         use properties::style_structs;
         #[allow(unused_imports)]
-        use selectors::parser::SelectorParseError;
+        use selectors::parser::SelectorParseErrorKind;
         #[allow(unused_imports)]
         use servo_arc::Arc;
         #[allow(unused_imports)]
-        use style_traits::{ParseError, StyleParseError};
+        use style_traits::{ParseError, StyleParseErrorKind};
         #[allow(unused_imports)]
         use values::computed::{Context, ToComputedValue};
         #[allow(unused_imports)]
@@ -699,11 +699,11 @@
         use parser::ParserContext;
         use properties::{PropertyDeclaration, SourcePropertyDeclaration, MaybeBoxed, longhands};
         #[allow(unused_imports)]
-        use selectors::parser::SelectorParseError;
+        use selectors::parser::SelectorParseErrorKind;
         #[allow(unused_imports)]
         use std::fmt;
         #[allow(unused_imports)]
-        use style_traits::{ParseError, StyleParseError};
+        use style_traits::{ParseError, StyleParseErrorKind};
         #[allow(unused_imports)]
         use style_traits::ToCss;
 
@@ -992,7 +992,7 @@
             // Keyword values don't make sense in the block direction; don't parse them
             % if "block" in name:
                 if let Ok(${length_type}::ExtremumLength(..)) = ret {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
             % endif
             ret.map(SpecifiedValue)

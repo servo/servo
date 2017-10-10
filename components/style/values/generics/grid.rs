@@ -8,7 +8,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use values::{CSSFloat, CustomIdent, serialize_dimension};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
@@ -88,9 +88,10 @@ impl Parse for GridLine<specified::Integer> {
         let mut val_before_span = false;
 
         for _ in 0..3 {     // Maximum possible entities for <grid-line>
+            let location = input.current_source_location();
             if input.try(|i| i.expect_ident_matching("span")).is_ok() {
                 if grid_line.is_span {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
 
                 if grid_line.line_num.is_some() || grid_line.ident.is_some() {
@@ -101,31 +102,31 @@ impl Parse for GridLine<specified::Integer> {
             } else if let Ok(i) = input.try(|i| specified::Integer::parse(context, i)) {
                 // FIXME(emilio): Probably shouldn't reject if it's calc()...
                 if i.value() == 0 || val_before_span || grid_line.line_num.is_some() {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
 
                 grid_line.line_num = Some(i);
             } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
                 if val_before_span || grid_line.ident.is_some() {
-                    return Err(StyleParseError::UnspecifiedError.into());
+                    return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-                grid_line.ident = Some(CustomIdent::from_ident(&name, &[])?);
+                grid_line.ident = Some(CustomIdent::from_ident(location, &name, &[])?);
             } else {
                 break
             }
         }
 
         if grid_line.is_auto() {
-            return Err(StyleParseError::UnspecifiedError.into())
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
         if grid_line.is_span {
             if let Some(i) = grid_line.line_num {
                 if i.value() <= 0 {       // disallow negative integers for grid spans
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
             } else if grid_line.ident.is_none() {       // integer could be omitted
-                return Err(StyleParseError::UnspecifiedError.into())
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         }
 
@@ -369,7 +370,7 @@ impl Parse for RepeatCount<specified::Integer> {
             }
             Ok(RepeatCount::Number(i))
         } else {
-            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+            try_match_ident_ignore_ascii_case! { input,
                 "auto-fill" => Ok(RepeatCount::AutoFill),
                 "auto-fit" => Ok(RepeatCount::AutoFit),
             }
@@ -612,14 +613,14 @@ impl Parse for LineNameList {
                     RepeatCount::AutoFill if fill_idx.is_none() => {
                         // `repeat(autof-fill, ..)` should have just one line name.
                         if names_list.len() != 1 {
-                            return Err(StyleParseError::UnspecifiedError.into());
+                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                         }
                         let names = names_list.pop().unwrap();
 
                         line_names.push(names);
                         fill_idx = Some(line_names.len() as u32 - 1);
                     },
-                    _ => return Err(StyleParseError::UnspecifiedError.into()),
+                    _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
             } else if let Ok(names) = input.try(parse_line_names) {
                 line_names.push(names);

@@ -32,7 +32,7 @@
         }
 
         if direction.is_none() && wrap.is_none() {
-            return Err(StyleParseError::UnspecifiedError.into())
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
         Ok(expanded! {
             flex_direction: unwrap_or_initial!(flex_direction, direction),
@@ -87,7 +87,7 @@
         }
 
         if grow.is_none() && basis.is_none() {
-            return Err(StyleParseError::UnspecifiedError.into())
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
         Ok(expanded! {
             flex_grow: grow.unwrap_or(NonNegativeNumber::new(1.0)),
@@ -309,7 +309,7 @@
             }
 
             let template_areas = TemplateAreas::from_vec(strings)
-                .map_err(|()| StyleParseError::UnspecifiedError)?;
+                .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
             let template_rows = TrackList {
                 list_type: TrackListType::Normal,
                 values: values,
@@ -321,7 +321,7 @@
                 let value = GridTemplateComponent::parse_without_none(context, input)?;
                 if let GenericGridTemplateComponent::TrackList(ref list) = value {
                     if list.list_type != TrackListType::Explicit {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
                 }
 
@@ -340,7 +340,7 @@
                 if list.line_names[0].is_empty() {
                     list.line_names[0] = first_line_names;      // won't panic
                 } else {
-                    return Err(StyleParseError::UnspecifiedError.into());
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
             }
 
@@ -501,7 +501,7 @@
                     autoflow: flow,
                     dense: dense,
                 }
-            }).ok_or(StyleParseError::UnspecifiedError.into())
+            }).ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
         if let Ok((rows, cols, areas)) = input.try(|i| super::grid_template::parse_grid_template(context, i)) {
@@ -617,12 +617,12 @@
                                -> Result<Longhands, ParseError<'i>> {
         let align = align_content::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         let justify = input.try(|input| justify_content::parse(context, input))
                            .unwrap_or(justify_content::SpecifiedValue::from(align));
         if justify.has_extra_flags() {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
@@ -653,11 +653,11 @@
                                -> Result<Longhands, ParseError<'i>> {
         let align = AlignJustifySelf::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         let justify = input.try(|input| AlignJustifySelf::parse(context, input)).unwrap_or(align.clone());
         if justify.has_extra_flags() {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {
@@ -695,12 +695,12 @@
                                -> Result<Longhands, ParseError<'i>> {
         let align = AlignItems::parse(context, input)?;
         if align.has_extra_flags() {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         let justify = input.try(|input| JustifyItems::parse(context, input))
                            .unwrap_or(JustifyItems::from(align));
         if justify.has_extra_flags() {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {

@@ -6,7 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use std::ascii::AsciiExt;
 use style_traits::ParseError;
 use values::computed::{Context, ToComputedValue};
@@ -65,6 +65,7 @@ impl Parse for LineHeight {
         if let Ok(nlop) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
             return Ok(GenericLineHeight::Length(nlop))
         }
+        let location = input.current_source_location();
         let ident = input.expect_ident()?;
         match ident {
             ref ident if ident.eq_ignore_ascii_case("normal") => {
@@ -74,7 +75,7 @@ impl Parse for LineHeight {
             ref ident if ident.eq_ignore_ascii_case("-moz-block-height") => {
                 Ok(GenericLineHeight::MozBlockHeight)
             },
-            ident => Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
+            ident => Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
         }
     }
 }

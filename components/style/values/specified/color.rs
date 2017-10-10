@@ -4,7 +4,7 @@
 
 //! Specified color values.
 
-use cssparser::{Color as CSSParserColor, Parser, RGBA, Token, BasicParseError};
+use cssparser::{Color as CSSParserColor, Parser, RGBA, Token, BasicParseError, BasicParseErrorKind};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nscolor;
 use itoa;
@@ -13,7 +13,7 @@ use parser::{ParserContext, Parse};
 use properties::longhands::system_colors::SystemColor;
 use std::fmt;
 use std::io::Write;
-use style_traits::{ToCss, ParseError, StyleParseError, ValueParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind, ValueParseErrorKind};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
@@ -94,8 +94,11 @@ impl Parse for Color {
                     }
                 }
                 match e {
-                    BasicParseError::UnexpectedToken(t) =>
-                        Err(StyleParseError::ValueError(ValueParseError::InvalidColor(t)).into()),
+                    BasicParseError { kind: BasicParseErrorKind::UnexpectedToken(t), location } => {
+                        Err(location.new_custom_error(
+                            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(t))
+                        ))
+                    }
                     e => Err(e.into())
                 }
             }
@@ -179,6 +182,7 @@ impl Color {
     ///
     /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
     fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
+        let location = input.current_source_location();
         let (value, unit) = match *input.next()? {
             Token::Number { int_value: Some(integer), .. } => {
                 (integer, None)
@@ -188,17 +192,17 @@ impl Color {
             },
             Token::Ident(ref ident) => {
                 if ident.len() != 3 && ident.len() != 6 {
-                    return Err(StyleParseError::UnspecifiedError.into());
+                    return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 return parse_hash_color(ident.as_bytes())
-                    .map_err(|()| StyleParseError::UnspecifiedError.into());
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
             ref t => {
-                return Err(BasicParseError::UnexpectedToken(t.clone()).into());
+                return Err(location.new_unexpected_token_error(t.clone()));
             },
         };
         if value < 0 {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         let length = if value <= 9 {
             1
@@ -213,11 +217,11 @@ impl Color {
         } else if value <= 999999 {
             6
         } else {
-            return Err(StyleParseError::UnspecifiedError.into())
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         };
         let total = length + unit.as_ref().map_or(0, |d| d.len());
         if total > 6 {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         let mut serialization = [b'0'; 6];
         let space_padding = 6 - total;
@@ -227,7 +231,9 @@ impl Color {
             written += (&mut serialization[written..]).write(unit.as_bytes()).unwrap();
         }
         debug_assert!(written == 6);
-        parse_hash_color(&serialization).map_err(|()| StyleParseError::UnspecifiedError.into())
+        parse_hash_color(&serialization).map_err(|()| {
+            location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+        })
     }
 
     /// Returns false if the color is completely transparent, and

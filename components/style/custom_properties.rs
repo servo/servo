@@ -11,14 +11,14 @@ use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSeri
 use precomputed_hash::PrecomputedHash;
 use properties::{CSSWideKeyword, DeclaredValue};
 use selector_map::{PrecomputedHashSet, PrecomputedHashMap, PrecomputedDiagnosticHashMap};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
 use std::fmt;
 use std::hash::Hash;
-use style_traits::{ToCss, StyleParseError, ParseError};
+use style_traits::{ToCss, StyleParseErrorKind, ParseError};
 
 /// A custom property name is just an `Atom`.
 ///
@@ -357,16 +357,27 @@ fn parse_declaration_value_block<'i, 't>(
                 }
                 token.serialization_type()
             }
-            Token::BadUrl(u) =>
-                return Err(StyleParseError::BadUrlInDeclarationValueBlock(u).into()),
-            Token::BadString(s) =>
-                return Err(StyleParseError::BadStringInDeclarationValueBlock(s).into()),
-            Token::CloseParenthesis =>
-                return Err(StyleParseError::UnbalancedCloseParenthesisInDeclarationValueBlock.into()),
-            Token::CloseSquareBracket =>
-                return Err(StyleParseError::UnbalancedCloseSquareBracketInDeclarationValueBlock.into()),
-            Token::CloseCurlyBracket =>
-                return Err(StyleParseError::UnbalancedCloseCurlyBracketInDeclarationValueBlock.into()),
+            Token::BadUrl(u) => {
+                return Err(input.new_custom_error(StyleParseErrorKind::BadUrlInDeclarationValueBlock(u)))
+            }
+            Token::BadString(s) => {
+                return Err(input.new_custom_error(StyleParseErrorKind::BadStringInDeclarationValueBlock(s)))
+            }
+            Token::CloseParenthesis => {
+                return Err(input.new_custom_error(
+                    StyleParseErrorKind::UnbalancedCloseParenthesisInDeclarationValueBlock
+                ))
+            }
+            Token::CloseSquareBracket => {
+                return Err(input.new_custom_error(
+                    StyleParseErrorKind::UnbalancedCloseSquareBracketInDeclarationValueBlock
+                ))
+            }
+            Token::CloseCurlyBracket => {
+                return Err(input.new_custom_error(
+                    StyleParseErrorKind::UnbalancedCloseCurlyBracketInDeclarationValueBlock
+                ))
+            }
             Token::Function(ref name) => {
                 if name.eq_ignore_ascii_case("var") {
                     let args_start = input.state();
@@ -446,7 +457,7 @@ fn parse_var_function<'i, 't>(
     let name = input.expect_ident_cloned()?;
     let name: Result<_, ParseError> =
         parse_name(&name)
-        .map_err(|()| SelectorParseError::UnexpectedIdent(name.clone()).into());
+        .map_err(|()| input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())));
     let name = name?;
     if input.try(|input| input.expect_comma()).is_ok() {
         // Exclude `!` and `;` at the top level

@@ -207,8 +207,8 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
         let mut pos = 0;
 
         loop {
-            let result: Result<_, ParseError> = input.try(|i| {
-                try_match_ident_ignore_ascii_case! { i.expect_ident()?,
+            let result: Result<_, ParseError> = input.try(|input| {
+                try_match_ident_ignore_ascii_case! { input,
                     "fill" => Ok(PaintOrder::Fill),
                     "stroke" => Ok(PaintOrder::Stroke),
                     "markers" => Ok(PaintOrder::Markers),
@@ -219,7 +219,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                 Ok(val) => {
                     if (seen & (1 << val as u8)) != 0 {
                         // don't parse the same ident twice
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
 
                     value |= (val as u8) << (pos * SHIFT);
@@ -232,7 +232,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
 
         if value == 0 {
             // Couldn't find any keyword
-            return Err(StyleParseError::UnspecifiedError.into())
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
         // fill in rest
@@ -293,7 +293,8 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
+        let location = input.current_source_location();
         let i = input.expect_ident()?;
-        CustomIdent::from_ident(i, &["all", "none", "auto"])
+        CustomIdent::from_ident(location, i, &["all", "none", "auto"])
     }
 </%helpers:vector_longhand>

@@ -12,12 +12,10 @@ use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, Prop
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
-use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
-use style_traits::PropertyDeclarationParseError;
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseErrorKind};
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::{KeyframesName, serialize_percentage};
@@ -137,7 +135,7 @@ impl KeyframePercentage {
             if percentage >= 0. && percentage <= 1. {
                 KeyframePercentage::new(percentage)
             } else {
-                return Err(StyleParseError::UnspecifiedError.into());
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
         };
 
@@ -500,7 +498,7 @@ impl<'a, 'i, R> AtRuleParser<'i> for KeyframeListParser<'a, R> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = Arc<Locked<Keyframe>>;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 /// A wrapper to wraps the KeyframeSelector with its source location
@@ -512,7 +510,7 @@ struct KeyframeSelectorParserPrelude {
 impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListParser<'a, R> {
     type Prelude = KeyframeSelectorParserPrelude;
     type QualifiedRule = Arc<Locked<Keyframe>>;
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>) -> Result<Self::Prelude, ParseError<'i>> {
         let start_position = input.position();
@@ -525,8 +523,9 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListPars
                 })
             },
             Err(e) => {
+                let location = e.location;
                 let error = ContextualParseError::InvalidKeyframeRule(input.slice_from(start_position), e.clone());
-                self.context.log_css_error(self.error_context, start_location, error);
+                self.context.log_css_error(self.error_context, location, error);
                 Err(e)
             }
         }
@@ -552,10 +551,11 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListPars
                 Ok(()) => {
                     block.extend(iter.parser.declarations.drain(), Importance::Normal);
                 }
-                Err(err) => {
+                Err((error, slice)) => {
                     iter.parser.declarations.clear();
-                    let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(err.slice, err.error);
-                    context.log_css_error(self.error_context, err.location, error);
+                    let location = error.location;
+                    let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(slice, error);
+                    context.log_css_error(self.error_context, location, error);
                 }
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
@@ -578,25 +578,26 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type PreludeNoBlock = ();
     type PreludeBlock = ();
     type AtRule = ();
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 }
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ();
-    type Error = SelectorParseError<'i, StyleParseError<'i>>;
+    type Error = StyleParseErrorKind<'i>;
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
         let property_context = PropertyParserContext::new(self.context);
 
-        let id = PropertyId::parse(&name, Some(&property_context))
-            .map_err(|()| PropertyDeclarationParseError::UnknownProperty(name.clone()))?;
+        let id = PropertyId::parse(&name, Some(&property_context)).map_err(|()| {
+            input.new_custom_error(StyleParseErrorKind::UnknownProperty(name.clone()))
+        })?;
         match PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input) {
             Ok(()) => {
                 // In case there is still unparsed text in the declaration, we should roll back.
                 input.expect_exhausted().map_err(|e| e.into())
             }
-            Err(_e) => Err(StyleParseError::UnspecifiedError.into())
+            Err(e) => Err(e.into())
         }
     }
 }

@@ -10,9 +10,10 @@ use selectors::attr::*;
 use selectors::parser::*;
 use servo_arc::Arc;
 use servo_atoms::Atom;
+use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::sync::Mutex;
+use std::cell::RefCell;
 use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
@@ -259,6 +260,7 @@ fn test_parse_stylesheet() {
     assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));
 }
 
+#[derive(Debug)]
 struct CSSError {
     pub url : ServoUrl,
     pub line: u32,
@@ -266,71 +268,103 @@ struct CSSError {
     pub message: String
 }
 
-struct CSSInvalidErrorReporterTest {
-    pub errors: Arc<Mutex<Vec<CSSError>>>
+struct TestingErrorReporter {
+    errors: RefCell<Vec<CSSError>>,
 }
 
-impl CSSInvalidErrorReporterTest {
-    pub fn new() -> CSSInvalidErrorReporterTest {
-        return CSSInvalidErrorReporterTest{
-            errors: Arc::new(Mutex::new(Vec::new()))
+impl TestingErrorReporter {
+    pub fn new() -> Self {
+        TestingErrorReporter {
+            errors: RefCell::new(Vec::new()),
+        }
+    }
+
+    fn assert_messages_contain(&self, expected_errors: &[(u32, u32, &str)]) {
+        let errors = self.errors.borrow();
+        for (i, (error, &(line, column, message))) in errors.iter().zip(expected_errors).enumerate() {
+            assert_eq!((error.line, error.column), (line, column),
+                       "line/column numbers of the {}th error: {:?}", i + 1, error.message);
+            assert!(error.message.contains(message),
+                    "{:?} does not contain {:?}", error.message, message);
+        }
+        if errors.len() < expected_errors.len() {
+            panic!("Missing errors: {:#?}", &expected_errors[errors.len()..]);
+        }
+        if errors.len() > expected_errors.len() {
+            panic!("Extra errors: {:#?}", &errors[expected_errors.len()..]);
         }
     }
 }
 
-impl ParseErrorReporter for CSSInvalidErrorReporterTest {
+impl ParseErrorReporter for TestingErrorReporter {
     fn report_error(&self,
                     url: &ServoUrl,
                     location: SourceLocation,
                     error: ContextualParseError) {
-        let mut errors = self.errors.lock().unwrap();
-        errors.push(
+        self.errors.borrow_mut().push(
             CSSError{
                 url: url.clone(),
                 line: location.line,
                 column: location.column,
                 message: error.to_string(),
             }
-        );
+        )
     }
 }
 
 
 #[test]
 fn test_report_error_stylesheet() {
+    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
     let css = r"
     div {
         background-color: red;
         display: invalid;
+        background-image: linear-gradient(0deg, black, invalid, transparent);
         invalid: true;
     }
+    @media (min-width: 10px invalid 1000px) {}
+    @font-face { src: url(), invalid, url(); }
+    @counter-style foo { symbols: a 0invalid b }
+    @font-feature-values Sans Sans { @foo {} @swash { foo: 1 invalid 2 } }
+    @invalid;
+    @media screen { @invalid; }
+    @supports (color: green) and invalid and (margin: 0) {}
+    @keyframes foo { from invalid {} to { margin: 0 invalid 0; } }
+    @viewport { width: 320px invalid auto; }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
-    let error_reporter = CSSInvalidErrorReporterTest::new();
-
-    let errors = error_reporter.errors.clone();
+    let error_reporter = TestingErrorReporter::new();
 
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
                          None, &error_reporter, QuirksMode::NoQuirks, 5);
 
-    let mut errors = errors.lock().unwrap();
+    error_reporter.assert_messages_contain(&[
+        (8, 18, "Unsupported property declaration: 'display: invalid;'"),
+        (9, 27, "Unsupported property declaration: 'background-image:"),  // FIXME: column should be around 56
+        (10, 17, "Unsupported property declaration: 'invalid: true;'"),
+        (12, 28, "Invalid media rule"),
+        (13, 30, "Unsupported @font-face descriptor declaration"),
 
-    let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'invalid: true;', \
-                Custom(PropertyDeclaration(UnknownProperty(\"invalid\")))", error.message);
-    assert_eq!(9, error.line);
-    assert_eq!(9, error.column);
+        // When @counter-style is supported, this should be replaced with two errors
+        (14, 19, "Invalid rule: '@counter-style "),
 
-    let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'display: invalid;', \
-                Custom(PropertyDeclaration(InvalidValue(\"display\", None)))", error.message);
-    assert_eq!(8, error.line);
-    assert_eq!(9, error.column);
+        // When @font-feature-values is supported, this should be replaced with two errors
+        (15, 25, "Invalid rule: '@font-feature-values "),
 
-    // testing for the url
-    assert_eq!(url, error.url);
+        // FIXME: the message of these two should be consistent
+        (16, 13, "Invalid rule: '@invalid'"),
+        (17, 29, "Unsupported rule: '@invalid'"),
+
+        (18, 34, "Invalid rule: '@supports "),
+        (19, 26, "Invalid keyframe rule: 'from invalid '"),
+        (19, 52, "Unsupported keyframe property declaration: 'margin: 0 invalid 0;'"),
+        (20, 29, "Unsupported @viewport descriptor declaration: 'width: 320px invalid auto;'"),
+    ]);
+
+    assert_eq!(error_reporter.errors.borrow()[0].url, url);
 }
 
 #[test]
@@ -343,21 +377,16 @@ fn test_no_report_unrecognized_vendor_properties() {
     }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
-    let error_reporter = CSSInvalidErrorReporterTest::new();
-
-    let errors = error_reporter.errors.clone();
+    let error_reporter = TestingErrorReporter::new();
 
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     Stylesheet::from_str(css, url, Origin::UserAgent, media, lock,
                          None, &error_reporter, QuirksMode::NoQuirks, 0);
 
-    let mut errors = errors.lock().unwrap();
-    let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: '-moz-background-color: red;', \
-                Custom(PropertyDeclaration(UnknownProperty(\"-moz-background-color\")))",
-               error.message);
-    assert!(errors.is_empty());
+    error_reporter.assert_messages_contain(&[
+        (4, 31, "Unsupported property declaration: '-moz-background-color: red;'"),
+    ]);
 }
 
 #[test]

@@ -47,7 +47,7 @@
             // background-color can only be in the last element, so if it
             // is parsed anywhere before, the value is invalid.
             if background_color.is_some() {
-                return Err(StyleParseError::UnspecifiedError.into());
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
 
             % for name in "image position repeat size attachment origin clip".split():
@@ -112,7 +112,7 @@
                 % endfor
                 Ok(())
             } else {
-                Err(StyleParseError::UnspecifiedError.into())
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         })?;
 
@@ -217,7 +217,7 @@
             Ok(())
         })?;
         if !any {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {

@@ -6,8 +6,8 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
-use style_traits::{ParseError, StyleParseError};
+use selectors::parser::SelectorParseErrorKind;
+use style_traits::{ParseError, StyleParseErrorKind};
 use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
@@ -152,10 +152,11 @@ impl Parse for TimingFunction {
             let position = match_ignore_ascii_case! { &ident,
                 "step-start" => StepPosition::Start,
                 "step-end" => StepPosition::End,
-                _ => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
+                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
             };
             return Ok(GenericTimingFunction::Steps(Integer::new(1), position));
         }
+        let location = input.current_source_location();
         let function = input.expect_function()?.clone();
         input.parse_nested_block(move |i| {
             (match_ignore_ascii_case! { &function,
@@ -169,7 +170,7 @@ impl Parse for TimingFunction {
                     let y2 = Number::parse(context, i)?;
 
                     if x1.get() < 0.0 || x1.get() > 1.0 || x2.get() < 0.0 || x2.get() > 1.0 {
-                        return Err(StyleParseError::UnspecifiedError.into());
+                        return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                     }
 
                     Ok(GenericTimingFunction::CubicBezier { x1, y1, x2, y2 })
@@ -191,7 +192,7 @@ impl Parse for TimingFunction {
                     }
                 },
                 _ => Err(()),
-            }).map_err(|()| StyleParseError::UnexpectedFunction(function.clone()).into())
+            }).map_err(|()| location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone())))
         })
     }
 }
