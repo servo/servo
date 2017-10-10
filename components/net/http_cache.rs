@@ -219,7 +219,7 @@ fn get_response_expiry(response: &Response) -> Duration {
 }
 
 /// Request Cache-Control Directives https://tools.ietf.org/html/rfc7234#section-5.2.1
-fn get_expire_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
+fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
     if let Some(directive_data) = request.headers.get_raw("cache-control") {
         let directives_string = String::from_utf8(directive_data[0].to_vec()).unwrap();
         let directives: Vec<&str> = directives_string.split(",").collect();
@@ -269,7 +269,7 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource, d
         cached_resource.awaiting_body.lock().unwrap().push(done_sender);
     }
     let expires = *cached_resource.expires.lock().unwrap();
-    let adjusted_expires = get_expire_adjustment_from_request_headers(request, expires);
+    let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
     let now = Duration::seconds(time::now().to_timespec().sec);
     let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
     let time_since_validated = now - last_validated;
