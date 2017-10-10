@@ -430,6 +430,7 @@ impl HTMLMediaElement {
         let doc = document_from_node(self);
         let task = MediaElementMicrotask::ResourceSelectionTask {
             elem: DomRoot::from_ref(self),
+            generation_id: self.generation_id.get(),
             base_url: doc.base_url()
         };
 
@@ -672,12 +673,10 @@ impl HTMLMediaElement {
         // this invokation of the load algorithm.
         self.fired_loadeddata_event.set(false);
 
-        // Step 1.
-        // FIXME(nox): Abort any already-running instance of the
-        // resource selection algorithm.
-
-        // Steps 2-4.
+        // Step 1-2.
         self.generation_id.set(self.generation_id.get() + 1);
+
+        // Steps 3-4.
         while !self.in_flight_play_promises_queue.borrow().is_empty() {
             self.fulfill_in_flight_play_promises(|| ());
         }
@@ -929,7 +928,8 @@ impl VirtualMethods for HTMLMediaElement {
 pub enum MediaElementMicrotask {
     ResourceSelectionTask {
         elem: DomRoot<HTMLMediaElement>,
-        base_url: ServoUrl
+        generation_id: u32,
+        base_url: ServoUrl,
     },
     PauseIfNotInDocumentTask {
         elem: DomRoot<HTMLMediaElement>,
@@ -939,8 +939,10 @@ pub enum MediaElementMicrotask {
 impl MicrotaskRunnable for MediaElementMicrotask {
     fn handler(&self) {
         match self {
-            &MediaElementMicrotask::ResourceSelectionTask { ref elem, ref base_url } => {
-                elem.resource_selection_algorithm_sync(base_url.clone());
+            &MediaElementMicrotask::ResourceSelectionTask { ref elem, generation_id, ref base_url } => {
+                if generation_id == elem.generation_id.get() {
+                    elem.resource_selection_algorithm_sync(base_url.clone());
+                }
             },
             &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
                 if !elem.upcast::<Node>().is_in_doc() {
