@@ -98,8 +98,7 @@ pub struct CachedResponse {
     pub needs_validation: bool
 }
 
-/// A memory cache that tracks incomplete and complete responses, differentiated by
-/// the initial request.
+/// A memory cache.
 pub struct HttpCache {
     /// cached responses.
     entries: HashMap<CacheKey, CachedResource>,
