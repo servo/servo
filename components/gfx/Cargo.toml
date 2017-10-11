@@ -10,6 +10,9 @@ publish = false
 name = "gfx"
 path = "lib.rs"
 
+[features]
+unstable = ["simd"]
+
 [dependencies]
 app_units = "0.5"
 bitflags = "0.7"
@@ -58,7 +61,7 @@ servo-fontconfig = "0.2.1"
 xml5ever = {version = "0.10"}
 
 [target.'cfg(any(target_feature = "sse2", target_feature = "neon"))'.dependencies]
-simd = "0.2.0"
+simd = {version = "0.2.0", optional = true}
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.4"
