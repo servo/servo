@@ -314,6 +314,7 @@ class MachCommands(CommandBase):
             if not path.isdir(base):
                 continue
             for name in os.listdir(base):
+                full_path = path.join(base, name)
                 if name.startswith("rust-"):
                     name = name[len("rust-"):]
                 # We append `-alt` if LLVM assertions aren't enabled,
@@ -322,7 +323,6 @@ class MachCommands(CommandBase):
                 # but won't remove too many nightlies.
                 if name.partition('-')[0] not in to_keep:
                     removing_anything = True
-                    full_path = path.join(base, name)
                     if force:
                         print("Removing {}".format(full_path))
                         try:
