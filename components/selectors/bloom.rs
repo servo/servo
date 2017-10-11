@@ -346,7 +346,7 @@ fn create_and_insert_some_stuff() {
     }
 }
 
-#[cfg(feature = "unstable")]
+#[cfg(feature = "bench")]
 #[cfg(test)]
 mod bench {
     extern crate test;
