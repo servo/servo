@@ -452,7 +452,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
-    make_url_or_base_getter!(FormAction, "formaction");
+    make_form_action_getter!(FormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
     make_setter!(SetFormAction, "formaction");
@@ -1056,6 +1056,7 @@ impl VirtualMethods for HTMLInputElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
+            &local_name!("src") => AttrValue::from_url(document_from_node(self).base_url(), value.into()),
             &local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
             &local_name!("name") => AttrValue::from_atomic(value.into()),
             &local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
