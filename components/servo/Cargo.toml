@@ -19,6 +19,7 @@ energy-profiling = ["profile_traits/energy-profiling"]
 debugmozjs = ["script/debugmozjs"]
 googlevr = ["webvr/googlevr"]
 oculusvr = ["webvr/oculusvr"]
+unstable = ["euclid/unstable", "layout_thread/unstable"]
 
 [dependencies]
 bluetooth_traits = {path = "../bluetooth_traits"}

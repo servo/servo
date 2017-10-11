@@ -9,10 +9,6 @@ publish = false
 name = "servo_geometry"
 path = "lib.rs"
 
-[features]
-# servo as opposed to geckolib
-servo = ["euclid/unstable"]
-
 [dependencies]
 app_units = "0.5"
 euclid = "0.15"
