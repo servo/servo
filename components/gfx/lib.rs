@@ -4,7 +4,6 @@
 
 // For SIMD
 #![cfg_attr(feature = "unstable", feature(cfg_target_feature))]
-#![cfg_attr(any(target_os = "linux", target_os = "android"), feature(allocator_api))]
 
 #![deny(unsafe_code)]
 
