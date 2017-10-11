@@ -354,14 +354,8 @@ impl ReportsForest {
 
 mod system_reporter {
     #[cfg(not(target_os = "windows"))]
-    use libc::{c_char, c_int, c_void, size_t};
+    use libc::{c_int, size_t};
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
-    #[cfg(not(target_os = "windows"))]
-    use std::ffi::CString;
-    #[cfg(not(target_os = "windows"))]
-    use std::mem::size_of;
-    #[cfg(not(target_os = "windows"))]
-    use std::ptr::null_mut;
     use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "macos")]
     use task_info::task_basic_info::{virtual_size, resident_size};
@@ -397,17 +391,17 @@ mod system_reporter {
             // directly from the jemalloc documentation.
 
             // "Total number of bytes allocated by the application."
-            report(path![JEMALLOC_HEAP_ALLOCATED_STR], jemalloc_stat("stats.allocated"));
+            report(path![JEMALLOC_HEAP_ALLOCATED_STR], jemalloc_stat("stats.allocated\0"));
 
             // "Total number of bytes in active pages allocated by the application.
             // This is a multiple of the page size, and greater than or equal to
             // |stats.allocated|."
-            report(path!["jemalloc-heap-active"], jemalloc_stat("stats.active"));
+            report(path!["jemalloc-heap-active"], jemalloc_stat("stats.active\0"));
 
             // "Total number of bytes in chunks mapped on behalf of the application.
             // This is a multiple of the chunk size, and is at least as large as
             // |stats.active|. This does not include inactive chunks."
-            report(path!["jemalloc-heap-mapped"], jemalloc_stat("stats.mapped"));
+            report(path!["jemalloc-heap-mapped"], jemalloc_stat("stats.mapped\0"));
         }
 
         request.reports_channel.send(reports);
@@ -458,46 +452,21 @@ mod system_reporter {
     }
 
     #[cfg(not(target_os = "windows"))]
-    extern {
-        #[cfg_attr(any(target_os = "macos", target_os = "android"), link_name = "je_mallctl")]
-        fn mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
-                   newp: *mut c_void, newlen: size_t) -> c_int;
-    }
-
-    #[cfg(not(target_os = "windows"))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
-        // Before we request the measurement of interest, we first send an "epoch"
-        // request. Without that jemalloc gives cached statistics(!) which can be
-        // highly inaccurate.
-        let epoch_name = "epoch";
-        let epoch_c_name = CString::new(epoch_name).unwrap();
-        let mut epoch: u64 = 0;
-        let epoch_ptr = &mut epoch as *mut _ as *mut c_void;
-        let mut epoch_len = size_of::<u64>() as size_t;
+        unsafe {
+            // Before we request the measurement of interest, we first send an "epoch"
+            // request. Without that jemalloc gives cached statistics(!) which can be
+            // highly inaccurate.
+            if let Err(_) = ::jemallocator::mallctl_set(b"epoch\0", 0_u64) {
+                return None
+            }
 
-        let value_c_name = CString::new(value_name).unwrap();
-        let mut value: size_t = 0;
-        let value_ptr = &mut value as *mut _ as *mut c_void;
-        let mut value_len = size_of::<size_t>() as size_t;
-
-        // Using the same values for the `old` and `new` parameters is enough
-        // to get the statistics updated.
-        let rv = unsafe {
-            mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr,
-                       epoch_len)
-        };
-        if rv != 0 {
-            return None;
+            let mut value: size_t = 0;
+            if let Err(_) = ::jemallocator::mallctl_fetch(value_name.as_bytes(), &mut value) {
+                return None
+            }
+            Some(value as usize)
         }
-
-        let rv = unsafe {
-            mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len, null_mut(), 0)
-        };
-        if rv != 0 {
-            return None;
-        }
-
-        Some(value as usize)
     }
 
     #[cfg(target_os = "windows")]
