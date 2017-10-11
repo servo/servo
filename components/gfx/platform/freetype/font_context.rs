@@ -9,7 +9,7 @@ use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
 use heapsize::{HeapSizeOf, heap_size_of};
-use std::heap::{Heap, Alloc, Layout};
+use std::mem;
 use std::os::raw::{c_long, c_void};
 use std::ptr;
 use std::rc::Rc;
@@ -25,46 +25,59 @@ pub struct User {
 const FT_ALIGNMENT: usize = 1;
 
 extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
-    unsafe {
-        let layout = Layout::from_size_align(req_size as usize, FT_ALIGNMENT).unwrap();
-        let ptr = Heap.alloc(layout).unwrap() as *mut c_void;
-        let actual_size = heap_size_of(ptr as *const _);
+    assert!(FT_ALIGNMENT == 1);
+    let mut vec = Vec::<u8>::with_capacity(req_size as usize);
+    let ptr = vec.as_mut_ptr() as *mut c_void;
+    mem::forget(vec);
 
+    unsafe {
+        let actual_size = heap_size_of(ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size += actual_size;
-
-        ptr
     }
+
+    ptr
 }
 
 extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     unsafe {
         let actual_size = heap_size_of(ptr as *const _);
-
         let user = (*mem).user as *mut User;
         (*user).size -= actual_size;
 
-        let layout = Layout::from_size_align(actual_size, FT_ALIGNMENT).unwrap();
-        Heap.dealloc(ptr as *mut u8, layout);
+        assert!(FT_ALIGNMENT == 1);
+        mem::drop(Vec::<u8>::from_raw_parts(ptr as *mut u8, actual_size, 0))
     }
 }
 
 extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
                      old_ptr: *mut c_void) -> *mut c_void {
+    let old_actual_size;
+    let mut vec;
     unsafe {
-        let old_actual_size = heap_size_of(old_ptr as *const _);
-        let old_layout = Layout::from_size_align(old_actual_size, FT_ALIGNMENT).unwrap();
-        let new_layout = Layout::from_size_align(new_req_size as usize, FT_ALIGNMENT).unwrap();
-        let result = Heap.realloc(old_ptr as *mut u8, old_layout, new_layout);
-        let new_ptr = result.unwrap() as *mut c_void;
-        let new_actual_size = heap_size_of(new_ptr as *const _);
+        old_actual_size = heap_size_of(old_ptr as *const _);
+        vec = Vec::<u8>::from_raw_parts(old_ptr as *mut u8, old_actual_size, old_actual_size);
+    };
 
+    let new_req_size = new_req_size as usize;
+    if new_req_size > old_actual_size {
+        vec.reserve_exact(new_req_size - old_actual_size)
+    } else if new_req_size < old_actual_size {
+        vec.truncate(new_req_size);
+        vec.shrink_to_fit()
+    }
+
+    let new_ptr = vec.as_mut_ptr() as *mut c_void;
+    mem::forget(vec);
+
+    unsafe {
+        let new_actual_size = heap_size_of(new_ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size += new_actual_size;
         (*user).size -= old_actual_size;
-
-        new_ptr
     }
+
+    new_ptr
 }
 
 // A |*mut User| field in a struct triggers a "use of `#[derive]` with a raw pointer" warning from
