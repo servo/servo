@@ -26,6 +26,7 @@ unstable = [
     "compositing/unstable",
     "constellation/unstable",
     "gfx/unstable",
+    "profile/unstable",
 ]
 
 [dependencies]
