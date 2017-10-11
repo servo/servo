@@ -306,8 +306,8 @@ impl Shaper {
                 // have found a contiguous "cluster" and can stop extending it.
                 let mut all_glyphs_are_within_cluster: bool = true;
                 for j in glyph_span.clone() {
-                    let loc = glyph_data.byte_offset_of_glyph(j);
-                    if !byte_range.contains(loc as usize) {
+                    let loc = glyph_data.byte_offset_of_glyph(j) as usize;
+                    if !(byte_range.start <= loc && loc < byte_range.end) {
                         all_glyphs_are_within_cluster = false;
                         break
                     }
