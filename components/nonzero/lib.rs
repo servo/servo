@@ -39,6 +39,10 @@ mod imp {
             }
         }
 
+        pub unsafe fn new_unchecked(x: u32) -> Self {
+            NonZeroU32(x)
+        }
+
         pub fn get(self) -> u32 {
             self.0
         }
