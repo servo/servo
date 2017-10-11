@@ -377,12 +377,13 @@ impl TextRunScanner {
                     None
                 };
 
-                let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
+                let mut new_text_fragment_info = Box::new(ScannedTextFragmentInfo::new(
                     scanned_run.run,
                     byte_range,
                     text_size,
                     insertion_point,
-                    flags);
+                    flags
+                ));
 
                 let new_metrics = new_text_fragment_info.run.metrics_for_range(&byte_range);
                 let writing_mode = old_fragment.style.writing_mode;
@@ -506,10 +507,12 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
                 }
             };
         }
-        first_fragment.transform(first_fragment.border_box.size,
-                                 SpecificFragmentInfo::UnscannedText(
-                                     box UnscannedTextFragmentInfo::new(string_before,
-                                                                        selection_before)))
+        first_fragment.transform(
+            first_fragment.border_box.size,
+            SpecificFragmentInfo::UnscannedText(Box::new(
+                UnscannedTextFragmentInfo::new(string_before, selection_before)
+            ))
+        )
     };
 
     fragments.push_front(new_fragment);

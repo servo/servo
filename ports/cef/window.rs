@@ -302,10 +302,10 @@ impl WindowMethods for Window {
                 app_wakeup();
             }
             fn clone(&self) -> Box<EventLoopWaker + Send> {
-                box CefEventLoopWaker
+                Box::new(CefEventLoopWaker)
             }
         }
-        box CefEventLoopWaker
+        Box::new(CefEventLoopWaker)
     }
 
     fn prepare_for_composite(&self, width: usize, height: usize) -> bool {

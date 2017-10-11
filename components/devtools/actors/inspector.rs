@@ -196,7 +196,7 @@ impl NodeInfoToProtocol for NodeInfo {
                 pipeline: pipeline.clone(),
             };
             actors.register_script_actor(self.uniqueId, name.clone());
-            actors.register_later(box node_actor);
+            actors.register_later(Box::new(node_actor));
             name
         } else {
             actors.script_to_actor(self.uniqueId)
@@ -558,7 +558,7 @@ impl Actor for InspectorActor {
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
-                    registry.register_later(box walker);
+                    registry.register_later(Box::new(walker));
                 }
 
                 let (tx, rx) = ipc::channel().unwrap();
@@ -587,7 +587,7 @@ impl Actor for InspectorActor {
                     };
                     let mut pageStyle = self.pageStyle.borrow_mut();
                     *pageStyle = Some(style.name());
-                    registry.register_later(box style);
+                    registry.register_later(Box::new(style));
                 }
 
                 let msg = GetPageStyleReply {
@@ -610,7 +610,7 @@ impl Actor for InspectorActor {
                     };
                     let mut highlighter = self.highlighter.borrow_mut();
                     *highlighter = Some(highlighter_actor.name());
-                    registry.register_later(box highlighter_actor);
+                    registry.register_later(Box::new(highlighter_actor));
                 }
 
                 let msg = GetHighlighterReply {

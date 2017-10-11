@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![feature(box_syntax)]
 #![feature(nonzero)]
 
 extern crate core;

@@ -235,7 +235,7 @@ impl ListStyleTypeContent {
                 let text = generated_content::static_representation(list_style_type);
                 ListStyleTypeContent::StaticText(text)
             }
-            _ => ListStyleTypeContent::GeneratedContent(box GeneratedContentInfo::ListItem),
+            _ => ListStyleTypeContent::GeneratedContent(Box::new(GeneratedContentInfo::ListItem)),
         }
     }
 }

@@ -55,10 +55,10 @@ impl Profiler {
         // be unregistered, because as long as the memory profiler is running the system memory
         // reporter can make measurements.
         let (system_reporter_sender, system_reporter_receiver) = ipc::channel().unwrap();
-        ROUTER.add_route(system_reporter_receiver.to_opaque(), box |message| {
+        ROUTER.add_route(system_reporter_receiver.to_opaque(), Box::new(|message| {
             let request: ReporterRequest = message.to().unwrap();
             system_reporter::collect_reports(request)
-        });
+        }));
         mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(),
                                                              Reporter(system_reporter_sender)));
 

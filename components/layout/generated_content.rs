@@ -248,7 +248,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
             // so that it isn't processed again on the next layout.  FIXME (mbrubeck): When
             // processing an inline flow, this traversal should be allowed to insert or remove
             // fragments.  Then we can just remove these fragments rather than adding placeholders.
-            None => SpecificFragmentInfo::GeneratedContent(box GeneratedContentInfo::Empty)
+            None => SpecificFragmentInfo::GeneratedContent(Box::new(GeneratedContentInfo::Empty))
         };
     }
 
@@ -436,7 +436,8 @@ fn render_text(layout_context: &LayoutContext,
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();
     let info = SpecificFragmentInfo::UnscannedText(
-        box UnscannedTextFragmentInfo::new(string, None));
+        Box::new(UnscannedTextFragmentInfo::new(string, None))
+    );
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
                                                              pseudo,
                                                              style.clone(),

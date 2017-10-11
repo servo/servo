@@ -15,7 +15,6 @@
 
 
 #![deny(unsafe_code)]
-#![feature(box_syntax)]
 #![feature(plugin)]
 #![feature(plugin_registrar)]
 #![feature(rustc_private)]
@@ -34,7 +33,7 @@ mod utils;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
-    reg.register_late_lint_pass(box unrooted_must_root::UnrootedPass::new());
+    reg.register_late_lint_pass(Box::new(unrooted_must_root::UnrootedPass::new()));
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
     reg.register_attribute("must_root".to_string(), Whitelisted);
 }

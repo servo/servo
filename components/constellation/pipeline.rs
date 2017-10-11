@@ -232,14 +232,14 @@ impl Pipeline {
                     let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
                         .expect("Pipeline script to devtools chan");
                     let devtools_chan = (*devtools_chan).clone();
-                    ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
+                    ROUTER.add_route(script_to_devtools_port.to_opaque(), Box::new(move |message| {
                         match message.to::<ScriptToDevtoolsControlMsg>() {
                             Err(e) => error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e),
                             Ok(message) => if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromScript(message)) {
                                 warn!("Sending to devtools failed ({})", e)
                             },
                         }
-                    });
+                    }));
                     script_to_devtools_chan
                 });
 

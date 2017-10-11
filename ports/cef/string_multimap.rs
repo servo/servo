@@ -13,7 +13,7 @@ use types::{cef_string_multimap_t,cef_string_t};
 
 #[no_mangle]
 pub extern "C" fn cef_string_multimap_alloc() -> *mut cef_string_multimap_t {
-    Box::into_raw(box BTreeMap::new())
+    Box::into_raw(Box::new(BTreeMap::new()))
 }
 
 #[no_mangle]

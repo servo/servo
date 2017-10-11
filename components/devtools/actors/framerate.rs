@@ -52,7 +52,7 @@ impl FramerateActor {
         };
 
         actor.start_recording();
-        registry.register_later(box actor);
+        registry.register_later(Box::new(actor));
         actor_name
     }
 
