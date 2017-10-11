@@ -6,7 +6,7 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg, RenderListener};
-use core::nonzero::NonZero;
+use nonzero::NonZeroU32;
 use euclid::{Point2D, TypedPoint2D, TypedVector2D, ScaleFactor};
 use gfx_traits::Epoch;
 use gleam::gl;
@@ -62,7 +62,7 @@ impl ConvertPipelineIdFromWebRender for webrender_api::PipelineId {
     fn from_webrender(&self) -> PipelineId {
         PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
-            index: PipelineIndex(NonZero::new(self.1).expect("Webrender pipeline zero?")),
+            index: PipelineIndex(NonZeroU32::new(self.1).expect("Webrender pipeline zero?")),
         }
     }
 }
