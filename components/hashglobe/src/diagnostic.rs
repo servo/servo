@@ -209,7 +209,9 @@ impl<K: Hash + Eq, V, S: BuildHasher> Drop for DiagnosticHashMap<K, V, S>
           S: BuildHasher
 {
     fn drop(&mut self) {
+        self.map.verify();
         debug_assert!(self.readonly, "Dropped while mutating");
+        self.verify();
     }
 }
 
