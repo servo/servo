@@ -6,7 +6,7 @@
 //! element styles need to be invalidated.
 
 use Atom;
-use context::{SharedStyleContext, StackLimitChecker};
+use context::{QuirksMode, SharedStyleContext, StackLimitChecker};
 use data::ElementData;
 use dom::{TElement, TNode};
 use element_state::{ElementState, IN_VISITED_OR_UNVISITED_STATE};
@@ -262,7 +262,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                 state_changes,
                 element: self.element,
                 snapshot: &snapshot,
-                shared_context: self.shared_context,
+                quirks_mode: self.shared_context.quirks_mode(),
                 removed_id: id_removed.as_ref(),
                 added_id: id_added.as_ref(),
                 classes_removed: &classes_removed,
@@ -823,7 +823,7 @@ struct InvalidationCollector<'a, 'b: 'a, E>
     wrapper: ElementWrapper<'b, E>,
     nth_index_cache: Option<&'a mut NthIndexCache>,
     snapshot: &'a Snapshot,
-    shared_context: &'a SharedStyleContext<'b>,
+    quirks_mode: QuirksMode,
     lookup_element: E,
     removed_id: Option<&'a Atom>,
     added_id: Option<&'a Atom>,
@@ -842,7 +842,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         &mut self,
         map: &InvalidationMap,
     ) {
-        let quirks_mode = self.shared_context.quirks_mode();
+        let quirks_mode = self.quirks_mode;
         let removed_id = self.removed_id;
         if let Some(ref id) = removed_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
@@ -895,7 +895,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
     ) {
         map.lookup_with_additional(
             self.lookup_element,
-            self.shared_context.quirks_mode(),
+            self.quirks_mode,
             self.removed_id,
             self.classes_removed,
             &mut |dependency| {
@@ -912,7 +912,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
     ) {
         map.lookup_with_additional(
             self.lookup_element,
-            self.shared_context.quirks_mode(),
+            self.quirks_mode,
             self.removed_id,
             self.classes_removed,
             &mut |dependency| {
@@ -945,7 +945,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
                 None,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
                 visited_handling_mode,
-                self.shared_context.quirks_mode(),
+                self.quirks_mode,
             );
 
             let matches_now = matches_selector(
@@ -966,7 +966,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
                 None,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
                 visited_handling_mode,
-                self.shared_context.quirks_mode(),
+                self.quirks_mode,
             );
 
             let matched_then = matches_selector(
