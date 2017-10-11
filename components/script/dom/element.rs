@@ -98,7 +98,6 @@ use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
-use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
 use std::mem;
@@ -213,10 +212,8 @@ pub enum AdjacentPosition {
     BeforeEnd,
 }
 
-impl<'a> TryFrom<&'a str> for AdjacentPosition {
-    type Error = Error;
-
-    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Error> {
+impl AdjacentPosition {
+    fn try_from(position: &str) -> Result<AdjacentPosition, Error> {
         match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),

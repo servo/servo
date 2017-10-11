@@ -13,7 +13,6 @@
 #![feature(on_unimplemented)]
 #![feature(plugin)]
 #![feature(proc_macro)]
-#![feature(try_from)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
