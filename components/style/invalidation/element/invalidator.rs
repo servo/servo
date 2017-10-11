@@ -282,6 +282,10 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             // just at that map.
             let _cut_off_inheritance =
                 self.element.each_xbl_stylist(|stylist| {
+                    // FIXME(emilio): Replace with assert / remove when we
+                    // figure out what to do with the quirks mode mismatches
+                    // (that is, when bug 1406875 is properly fixed).
+                    collector.quirks_mode = stylist.quirks_mode();
                     stylist.each_invalidation_map(|invalidation_map| {
                         collector.collect_dependencies_in_invalidation_map(invalidation_map);
                     });
