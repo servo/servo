@@ -278,7 +278,12 @@ impl HttpCache {
                         let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
                         let vary_values: Vec<&str> = vary_data_string.split(",").collect();
                         for vary_val in vary_values {
-                            match request.headers.get_raw(vary_val.trim()) {
+                            if (vary_val.trim() == "*") {
+                                // A Vary header field-value of "*" always fails to match.
+                                can_be_constructed = false;
+                                break;
+                            }
+                            match request.headers.get_raw(vary_val) {
                                 Some(header_data) => {
                                     let request_header_data_string =
                                         String::from_utf8(header_data[0].to_vec()).unwrap();
@@ -287,11 +292,24 @@ impl HttpCache {
                                     for &(ref name, ref value) in cached_resource.request_headers.iter() {
                                         if name.to_lowercase() == vary_val.to_lowercase() {
                                             let original_vary_values: Vec<&str> = value.split(",").collect();
-                                            can_be_constructed = request_vary_values == original_vary_values;
+                                            if !(request_vary_values == original_vary_values) {
+                                                can_be_constructed = false;
+                                                break;
+                                            }
                                         }
                                     }
                                 },
-                                None => can_be_constructed = false,
+                                None => {
+                                    // If a header field is absent from a request,
+                                    // it can only match another request if it is also absent there.
+                                    can_be_constructed =
+                                        !cached_resource.request_headers.iter().any(|&(ref name, ref value)| {
+                                            name.to_lowercase() == vary_val.to_lowercase()
+                                    });
+                                },
+                            }
+                            if !can_be_constructed {
+                                break;
                             }
                         }
                     }
@@ -395,7 +413,7 @@ impl HttpCache {
                 if response_is_cacheable(&metadata) {
                     let request_headers = request.headers
                         .iter()
-                        .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
+                        .map(|header| (String::from_str(header.name().trim()).unwrap_or(String::from("None")),
                                                                   header.value_string()))
                         .collect();
                     let expiry = get_response_expiry(&response);
