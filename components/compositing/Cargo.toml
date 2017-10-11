@@ -9,6 +9,9 @@ publish = false
 name = "compositing"
 path = "lib.rs"
 
+[features]
+unstable = ["nonzero/unstable"]
+
 [dependencies]
 euclid = "0.15"
 gfx_traits = {path = "../gfx_traits"}
@@ -18,6 +21,7 @@ ipc-channel = "0.8"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+nonzero = {path = "../nonzero"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
