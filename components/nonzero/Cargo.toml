@@ -1,0 +1,15 @@
+[package]
+name = "nonzero"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[features]
+unstable = ["serde/unstable"]
+
+[dependencies]
+serde = "1.0.14"
