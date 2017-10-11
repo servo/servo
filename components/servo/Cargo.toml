@@ -22,7 +22,8 @@ unstable = [
     "euclid/unstable",
     "layout_thread/unstable",
     "msg/unstable",
-    "compositing/unstable"
+    "compositing/unstable",
+    "constellation/unstable",
 ]
 
 [dependencies]
