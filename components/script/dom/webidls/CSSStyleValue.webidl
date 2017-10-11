@@ -7,8 +7,4 @@
 [Pref="dom.worklet.enabled", Exposed=(Worklet)]
 interface CSSStyleValue {
     stringifier;
-    // static CSSStyleValue? parse(DOMString property, DOMString cssText);
-    // static sequence<CSSStyleValue>? parseAll(DOMString property, DOMString cssText);
-    // This is a deprecated property, it's not in the spec any more but is used in houdini-samples
-    readonly attribute DOMString cssText;
 };

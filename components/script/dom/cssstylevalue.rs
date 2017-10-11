@@ -38,14 +38,6 @@ impl CSSStyleValueMethods for CSSStyleValue {
     fn Stringifier(&self) -> DOMString {
         DOMString::from(&*self.value)
     }
-
-    /// This attribute is no longer part of the `CSSStyleValue` interface,
-    /// but is still used in some examples.
-    /// https://github.com/GoogleChrome/houdini-samples/issues/16
-    // check-tidy: no specs after this line
-    fn CssText(&self) -> DOMString {
-        self.Stringifier()
-    }
 }
 
 impl CSSStyleValue {
