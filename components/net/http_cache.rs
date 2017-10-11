@@ -7,7 +7,7 @@
 //! A memory cache Implements the logic specified in http://tools.ietf.org/html/rfc7234
 //! and http://tools.ietf.org/html/rfc7232.
 
-use fetch::methods::{Data, DoneChannel};
+use fetch::methods::DoneChannel;
 use hyper::header;
 use hyper::header::ContentType;
 use hyper::header::Headers;
@@ -21,7 +21,6 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{channel, Sender};
 use time;
 use time::{Duration, Tm};
 
@@ -29,25 +28,13 @@ use time::{Duration, Tm};
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CacheKey {
-    url: ServoUrl,
-    request_headers: Vec<(String, String)>,
+    url: ServoUrl
 }
 
 impl CacheKey {
     fn new(request: Request) -> CacheKey {
         CacheKey {
-            url: request.url().clone(),
-            request_headers: request.headers
-                                      .iter()
-                                      .filter(|header| {
-                                          match header.name().to_lowercase().as_ref() {
-                                              "cache-control" | "expires" => false,
-                                              _ => true
-                                          }
-                                      })
-                                      .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
-                                                      header.value_string()))
-                                      .collect(),
+            url: request.url().clone()
         }
     }
 
@@ -55,28 +42,23 @@ impl CacheKey {
     pub fn url(&self) -> ServoUrl {
         self.url.clone()
     }
-
-    /// Retrieve the request headers associated with this key
-    pub fn request_headers(&self) -> Vec<(String, String)> {
-        self.request_headers.clone()
-    }
 }
 
 /// A complete cached resource.
-#[derive(Debug)]
+#[derive(Clone)]
 struct CachedResource {
     metadata: CachedMetadata,
+    request_headers: Vec<(String, String)>,
     body: Arc<Mutex<ResponseBody>>,
     status: Option<StatusCode>,
     raw_status: Option<(u16, Vec<u8>)>,
     url_list: Vec<ServoUrl>,
     expires: Arc<Mutex<Duration>>,
-    last_validated: Tm,
-    awaiting_body: Arc<Mutex<Vec<Sender<Data>>>>
+    last_validated: Tm
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Debug)]
+#[derive(Clone)]
 struct CachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -101,7 +83,7 @@ pub struct CachedResponse {
 /// A memory cache.
 pub struct HttpCache {
     /// cached responses.
-    entries: HashMap<CacheKey, CachedResource>,
+    entries: HashMap<CacheKey, Vec<CachedResource>>,
 }
 
 
@@ -255,7 +237,7 @@ fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Durati
 }
 
 /// Create a CachedResponse from a request and a CachedResource.
-fn create_cached_response(request: &Request, cached_resource: &CachedResource, done_chan: &mut DoneChannel)
+fn create_cached_response(request: &Request, cached_resource: &CachedResource)
     -> CachedResponse {
     let mut response = Response::new(cached_resource.metadata.final_url.clone());
     response.headers = cached_resource.metadata.headers.lock().unwrap().clone();
@@ -263,11 +245,6 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource, d
     response.status = cached_resource.status.clone();
     response.raw_status = cached_resource.raw_status.clone();
     response.url_list = cached_resource.url_list.clone();
-    if let ResponseBody::Receiving(_) = *response.body.lock().unwrap() {
-        let (done_sender, done_receiver) = channel();
-        *done_chan = Some((done_sender.clone(), done_receiver));
-        cached_resource.awaiting_body.lock().unwrap().push(done_sender);
-    }
     let expires = *cached_resource.expires.lock().unwrap();
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
     let now = Duration::seconds(time::now().to_timespec().sec);
@@ -287,58 +264,45 @@ impl HttpCache {
         }
     }
 
-    /// Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
-    fn search_with_secondary_key_using_vary(&self, request: &Request) -> Option<&CachedResource> {
-        let mut can_be_constructed = vec![];
-        for (key, cached_resource) in self.entries.iter() {
-            if key.url() == request.url() {
+    /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
+    pub fn construct_response(&self, request: &Request)
+        -> Option<CachedResponse> {
+        let entry_key = CacheKey::new(request.clone());
+        if let Some(ref resources) = self.entries.get(&entry_key) {
+            for cached_resource in resources.iter() {
+                let mut can_be_constructed = true;
                 if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
-                    if let Some(vary_data) = stored_headers.get_raw("vary") {
+                    if let Some(vary_data) = stored_headers.get_raw("Vary") {
+                        // Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
+                        // TODO: A Vary header field-value of "*" always fails to match.
                         let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
                         let vary_values: Vec<&str> = vary_data_string.split(",").collect();
                         for vary_val in vary_values {
-                            if let Some(header_data) = request.headers.get_raw(vary_val) {
-                                let request_header_data_string = String::from_utf8(header_data[0].to_vec()).unwrap();
-                                let request_vary_values: Vec<&str> = request_header_data_string.split(",").collect();
-                                let mut ok = true;
-                                for (name, value) in key.request_headers() {
-                                    if name.to_lowercase() == vary_val.to_lowercase() {
-                                        let stored_vary_values: Vec<&str> = value.split(",").collect();
-                                        ok = request_vary_values == stored_vary_values;
+                            match request.headers.get_raw(vary_val.trim()) {
+                                Some(header_data) => {
+                                    let request_header_data_string =
+                                        String::from_utf8(header_data[0].to_vec()).unwrap();
+                                    let request_vary_values: Vec<&str> =
+                                        request_header_data_string.split(",").collect();
+                                    for &(ref name, ref value) in cached_resource.request_headers.iter() {
+                                        if name.to_lowercase() == vary_val.to_lowercase() {
+                                            let original_vary_values: Vec<&str> = value.split(",").collect();
+                                            can_be_constructed = request_vary_values == original_vary_values;
+                                        }
                                     }
-                                }
-                                if ok {
-                                    can_be_constructed.push(cached_resource.clone());
-                                }
+                                },
+                                None => can_be_constructed = false,
                             }
                         }
                     }
                 }
-            }
-        }
-        // TODO: select most recent resource using the Date header.
-        if let Some(resource) = can_be_constructed.first() {
-            return Some(resource.clone());
-        }
-        None
-    }
-
-    /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
-    pub fn construct_response(&self, request: &Request, done_chan: &mut DoneChannel)
-        -> Option<CachedResponse> {
-        let entry_key = CacheKey::new(request.clone());
-        if let Some(ref cached_resource) = self.entries.get(&entry_key) {
-            let cached_response = create_cached_response(request, cached_resource, done_chan);
-            return Some(cached_response)
-        } else {
-            // Look for a resource using a secondary key calculated based on url and vary headers match.
-            // Since we include headers in the cache key, this only covers a case where a non-vary header changed.
-            // If we were to only incude the url in the key,
-            // this check would need to turn negative,
-            // and exclude positive url matches for requests whose vary headers changed.
-            if let Some(cached_resource) = self.search_with_secondary_key_using_vary(request) {
-                let cached_response = create_cached_response(request, cached_resource, done_chan);
-                return Some(cached_response);
+                if can_be_constructed {
+                    // Returning the first response that can be constructed
+                    // TODO: select the most appropriate one, using a known mechanism selecting header field,
+                    // or using the Date header to return the most recent one.
+                    let cached_response = create_cached_response(request, cached_resource);
+                    return Some(cached_response);
+                }
             }
         }
         None
@@ -347,11 +311,9 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
     pub fn refresh(&mut self, request: &Request, response: Response, done_chan: &mut DoneChannel) -> Option<Response> {
         assert!(response.status == Some(StatusCode::NotModified));
-        for (key, cached_resource) in self.entries.iter_mut() {
-            // Looking for a match based on url,
-            // since the current request will include IfModifiedSince and/or If-None-Match headers,
-            // that the original request, hence also the cache key, didn't include.
-            if key.url() == request.url() {
+        let entry_key = CacheKey::new(request.clone());
+        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
+            for cached_resource in cached_resources.iter_mut() {
                 if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
                     // Received a response with 304 status code whose url matches a stored resource.
                     // 1. update the headers of the stored resource.
@@ -386,41 +348,18 @@ impl HttpCache {
         if let Some(url_data) = response.headers.get_raw("Content-Location") {
             content_location = String::from_utf8(url_data[0].to_vec()).unwrap();
         }
-        for (key, cached_resource) in self.entries.iter_mut() {
+        for (key, cached_resources) in self.entries.iter_mut() {
             // Checking all entries for potential invalidation, as the values in location/content_location
             // can refer to stored resources entirely unrelated to the current request url.
             let string_resource_url = key.url().into_string();
+            println!("comparing url for invalidation {:?} {:?}", key.url(), request.url());
             let matches = (key.url() == request.url()) |
                 (string_resource_url == location) |
                 (string_resource_url == content_location);
             if matches {
-                let mut expires = cached_resource.expires.lock().unwrap();
-                *expires = Duration::seconds(0i64);
-            }
-        }
-    }
-
-    /// Updating the cached response body from ResponseBody::Receiving to ResponseBody::Done.
-    pub fn update_response_body(&mut self, request: &Request, response: &Response) {
-        if let Some((ref code, _)) = response.raw_status {
-            if *code == 304 {
-                return
-            }
-        }
-        let entry_key = CacheKey::new(request.clone());
-        if let Some(cached_resource) = self.entries.get(&entry_key) {
-            if let ResponseBody::Done(ref completed_body) = *response.body.lock().unwrap() {
-                let mut body = cached_resource.body.lock().unwrap();
-                match *body {
-                    ResponseBody::Receiving(_) => {
-                        *body = ResponseBody::Done(completed_body.clone());
-                        let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
-                        for done_sender in awaiting_consumers.drain(..) {
-                            let _ = done_sender.send(Data::Payload(completed_body.clone()));
-                            let _ = done_sender.send(Data::Done);
-                        };
-                    },
-                    _ => {},
+                for cached_resource in cached_resources.iter_mut() {
+                    let mut expires = cached_resource.expires.lock().unwrap();
+                    *expires = Duration::seconds(0i64);
                 }
             }
         }
@@ -454,6 +393,11 @@ impl HttpCache {
                 unsafe_: _ }) |
             Ok(FetchMetadata::Unfiltered(metadata)) => {
                 if response_is_cacheable(&metadata) {
+                    let request_headers = request.headers
+                        .iter()
+                        .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
+                                                                  header.value_string()))
+                        .collect();
                     let expiry = get_response_expiry(&response);
                     let cacheable_metadata = CachedMetadata {
                         final_url: metadata.final_url,
@@ -464,15 +408,16 @@ impl HttpCache {
                     };
                     let entry_resource = CachedResource {
                         metadata: cacheable_metadata,
+                        request_headers: request_headers,
                         body: response.body.clone(),
                         status: response.status,
                         raw_status: response.raw_status.clone(),
                         url_list: response.url_list.clone(),
                         expires: Arc::new(Mutex::new(expiry)),
-                        last_validated: time::now(),
-                        awaiting_body: Arc::new(Mutex::new(vec![]))
+                        last_validated: time::now()
                     };
-                    self.entries.insert(entry_key, entry_resource);
+                    let entry = self.entries.entry(entry_key).or_insert(vec![]);
+                    entry.push(entry_resource);
                 }
             },
             _ => {}

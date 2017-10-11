@@ -901,7 +901,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
     // Step 21
     if let Ok(http_cache) = context.state.http_cache.read() {
-        let complete_http_response_from_cache = http_cache.construct_response(&http_request, done_chan);
+        let complete_http_response_from_cache = http_cache.construct_response(&http_request);
         if http_request.cache_mode != CacheMode::NoStore &&
            http_request.cache_mode != CacheMode::Reload {
             // TODO Substep 1 and 2. Select a response from HTTP cache.

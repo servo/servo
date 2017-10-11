@@ -17,7 +17,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use mime_guess::guess_mime_type;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
-use net_traits::request::{CacheMode, CredentialsMode, Referrer, Request, RequestMode, ResponseTainting};
+use net_traits::request::{CredentialsMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use servo_url::ServoUrl;
@@ -376,12 +376,6 @@ pub fn main_fetch(request: &mut Request,
 
     // Step 24.
     target.process_response_eof(&response);
-
-    if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
-        if let Ok(mut http_cache) = context.state.http_cache.write() {
-            http_cache.update_response_body(&request, &response);
-        }
-    }
 
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used
