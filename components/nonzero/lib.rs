@@ -19,10 +19,14 @@ mod imp {
     use self::core::nonzero::NonZero;
 
     pub type NonZeroU32 = NonZero<u32>;
+    pub type NonZeroUsize = NonZero<usize>;
 }
 
 #[cfg(not(feature = "unstable"))]
 mod imp {
+    use std::cmp;
+    use std::hash;
+
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
     pub struct NonZeroU32(u32);
 
@@ -37,6 +41,47 @@ mod imp {
 
         pub fn get(self) -> u32 {
             self.0
+        }
+    }
+
+    #[derive(Debug, Copy, Clone, Eq)]
+    pub struct NonZeroUsize(&'static ());
+
+    impl NonZeroUsize {
+        pub fn new(x: usize) -> Option<Self> {
+            if x != 0 {
+                Some(NonZeroUsize(unsafe { &*(x as *const ()) }))
+            } else {
+                None
+            }
+        }
+
+        pub fn get(self) -> usize {
+            self.0 as *const () as usize
+        }
+    }
+
+    impl PartialEq for NonZeroUsize {
+        fn eq(&self, other: &Self) -> bool {
+            self.get() == other.get()
+        }
+    }
+
+    impl PartialOrd for NonZeroUsize {
+        fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+            self.get().partial_cmp(&other.get())
+        }
+    }
+
+    impl Ord for NonZeroUsize {
+        fn cmp(&self, other: &Self) -> cmp::Ordering {
+            self.get().cmp(&other.get())
+        }
+    }
+
+    impl hash::Hash for NonZeroUsize {
+        fn hash<H: hash::Hasher>(&self, hasher: &mut H) {
+            self.get().hash(hasher)
         }
     }
 }
