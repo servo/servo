@@ -25,6 +25,7 @@ unstable = [
     "canvas_traits/unstable",
     "compositing/unstable",
     "constellation/unstable",
+    "gfx/unstable",
 ]
 
 [dependencies]
