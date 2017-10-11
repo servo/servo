@@ -93,7 +93,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
-    make_url_or_base_getter!(FormAction, "formaction");
+    make_form_action_getter!(FormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
     make_setter!(SetFormAction, "formaction");

@@ -452,7 +452,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
-    make_url_or_base_getter!(FormAction, "formaction");
+    make_form_action_getter!(FormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
     make_setter!(SetFormAction, "formaction");
