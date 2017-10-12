@@ -21,7 +21,7 @@ use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
 use fnv::FnvHashMap;
 use fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
-use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
+use fragment::SpecificFragmentInfo;
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClipScrollNode};
@@ -2012,14 +2012,12 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         match self.specific {
-            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
-                text_info: Some(ref text_fragment),
-                ..
-            }) |
-            SpecificFragmentInfo::ScannedText(box ref text_fragment) => {
+            SpecificFragmentInfo::TruncatedFragment(ref truncated_fragment)
+            if truncated_fragment.text_info.is_some() => {
+                let text_fragment = truncated_fragment.text_info.as_ref().unwrap();
                 // Create the main text display item.
                 self.build_display_list_for_text_fragment(state,
-                                                          &*text_fragment,
+                                                          &text_fragment,
                                                           &stacking_relative_content_box,
                                                           &self.style.get_inheritedtext().text_shadow.0,
                                                           clip);
@@ -2029,7 +2027,24 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                    self.style(),
                                                                    stacking_relative_border_box,
                                                                    &stacking_relative_content_box,
-                                                                   &*text_fragment,
+                                                                   &text_fragment,
+                                                                   clip);
+                }
+            }
+            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+                // Create the main text display item.
+                self.build_display_list_for_text_fragment(state,
+                                                          &text_fragment,
+                                                          &stacking_relative_content_box,
+                                                          &self.style.get_inheritedtext().text_shadow.0,
+                                                          clip);
+
+                if opts::get().show_debug_fragment_borders {
+                    self.build_debug_borders_around_text_fragments(state,
+                                                                   self.style(),
+                                                                   stacking_relative_border_box,
+                                                                   &stacking_relative_content_box,
+                                                                   &text_fragment,
                                                                    clip);
                 }
             }
