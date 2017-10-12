@@ -276,9 +276,9 @@ impl HttpCache {
                         // Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
                         // TODO: A Vary header field-value of "*" always fails to match.
                         let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
-                        let vary_values: Vec<&str> = vary_data_string.split(",").collect();
+                        let vary_values: Vec<&str> = vary_data_string.split(",").map(|val| val.trim()).collect();
                         for vary_val in vary_values {
-                            if (vary_val.trim() == "*") {
+                            if vary_val == "*" {
                                 // A Vary header field-value of "*" always fails to match.
                                 can_be_constructed = false;
                                 break;
@@ -303,7 +303,7 @@ impl HttpCache {
                                     // If a header field is absent from a request,
                                     // it can only match another request if it is also absent there.
                                     can_be_constructed =
-                                        !cached_resource.request_headers.iter().any(|&(ref name, ref value)| {
+                                        !cached_resource.request_headers.iter().any(|&(ref name, _)| {
                                             name.to_lowercase() == vary_val.to_lowercase()
                                     });
                                 },
@@ -413,7 +413,7 @@ impl HttpCache {
                 if response_is_cacheable(&metadata) {
                     let request_headers = request.headers
                         .iter()
-                        .map(|header| (String::from_str(header.name().trim()).unwrap_or(String::from("None")),
+                        .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
                                                                   header.value_string()))
                         .collect();
                     let expiry = get_response_expiry(&response);
