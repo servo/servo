@@ -20,8 +20,8 @@ googlevr = ["webvr/googlevr"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
-    "msg/unstable",
     "gfx/unstable",
+    "msg/unstable",
     "profile/unstable",
 ]
 
