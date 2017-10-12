@@ -42,10 +42,10 @@ pub mod wrapper_traits;
 
 use atomic_refcell::AtomicRefCell;
 use canvas_traits::canvas::CanvasMsg;
-use nonzero::NonZeroUsize;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use net_traits::image_cache::PendingImageId;
+use nonzero::NonZeroUsize;
 use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
 use std::marker::PhantomData;

@@ -353,10 +353,10 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
-    #[cfg(target_os = "linux")]
-    use libc::c_int;
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use libc::{c_char, c_void, size_t};
+    #[cfg(target_os = "linux")]
+    use libc::c_int;
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::ffi::CString;

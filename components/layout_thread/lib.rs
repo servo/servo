@@ -26,8 +26,8 @@ extern crate lazy_static;
 extern crate log;
 extern crate metrics;
 extern crate msg;
-extern crate nonzero;
 extern crate net_traits;
+extern crate nonzero;
 extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;

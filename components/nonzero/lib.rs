@@ -19,10 +19,10 @@ mod imp {
     extern crate core;
     use self::core::nonzero::NonZero;
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub struct NonZeroU32(NonZero<u32>);
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub struct NonZeroUsize(NonZero<usize>);
 
     impl NonZeroU32 {
@@ -43,7 +43,7 @@ mod imp {
     use std::cmp;
     use std::hash;
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub struct NonZeroU32(u32);
 
     impl NonZeroU32 {
@@ -67,7 +67,7 @@ mod imp {
         }
     }
 
-    #[derive(Debug, Copy, Clone, Eq)]
+    #[derive(Clone, Copy, Debug, Eq)]
     pub struct NonZeroUsize(&'static ());
 
     impl NonZeroUsize {
