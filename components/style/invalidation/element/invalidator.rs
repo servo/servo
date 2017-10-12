@@ -18,11 +18,14 @@ use smallvec::SmallVec;
 use std::fmt;
 
 /// A trait to abstract the collection of invalidations for a given pass.
-pub trait InvalidationProcessor {
+pub trait InvalidationProcessor<E>
+where
+    E: TElement,
+{
     /// Collect invalidations for a given element's descendants and siblings.
     ///
     /// Returns whether the element itself was invalidated.
-    fn collect_invalidations<E>(
+    fn collect_invalidations(
         &self,
         element: E,
         data: Option<&mut ElementData>,
@@ -30,56 +33,44 @@ pub trait InvalidationProcessor {
         shared_context: &SharedStyleContext,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
-    ) -> bool
-    where
-        E: TElement;
+    ) -> bool;
 
     /// Returns whether a given element should process its descendants.
-    fn should_process_descendants<E>(
+    fn should_process_descendants(
         &self,
         element: E,
         data: Option<&mut ElementData>,
-    ) -> bool
-    where
-        E: TElement;
+    ) -> bool;
 
     /// Executes an arbitrary action when the recursion limit is exceded (if
     /// any).
-    fn recursion_limit_exceeded<E>(
+    fn recursion_limit_exceeded(
         &self,
         _element: E,
         data: Option<&mut ElementData>,
-    )
-    where
-        E: TElement;
+    );
 
     /// Executes an arbitrary action when a direct child is invalidated.
-    fn invalidated_child<E>(
+    fn invalidated_child(
         &self,
         element: E,
         data: Option<&mut ElementData>,
         child: E,
-    )
-    where
-        E: TElement;
+    );
 
     /// Executes an action when `Self` is invalidated.
-    fn invalidated_self<E>(
+    fn invalidated_self(
         &self,
         element: E,
         data: Option<&mut ElementData>,
-    )
-    where
-        E: TElement;
+    );
 
     /// Executes an action when any descendant of `Self` is invalidated.
-    fn invalidated_descendants<E>(
+    fn invalidated_descendants(
         &self,
         element: E,
         data: Option<&mut ElementData>,
-    )
-    where
-        E: TElement;
+    );
 }
 
 /// The struct that takes care of encapsulating all the logic on where and how
@@ -87,7 +78,7 @@ pub trait InvalidationProcessor {
 pub struct TreeStyleInvalidator<'a, 'b: 'a, E, P: 'a>
 where
     E: TElement,
-    P: InvalidationProcessor
+    P: InvalidationProcessor<E>
 {
     element: E,
     // TODO(emilio): It's tempting enough to just avoid running invalidation for
@@ -238,7 +229,7 @@ impl InvalidationResult {
 impl<'a, 'b: 'a, E, P: 'a> TreeStyleInvalidator<'a, 'b, E, P>
 where
     E: TElement,
-    P: InvalidationProcessor,
+    P: InvalidationProcessor<E>,
 {
     /// Trivially constructs a new `TreeStyleInvalidator`.
     pub fn new(

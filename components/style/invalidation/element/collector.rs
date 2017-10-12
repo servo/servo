@@ -51,8 +51,11 @@ where
 ///  A collector for state and attribute invalidations.
 pub struct StateAndAttrInvalidationProcessor;
 
-impl InvalidationProcessor for StateAndAttrInvalidationProcessor {
-    fn collect_invalidations<E>(
+impl<E> InvalidationProcessor<E> for StateAndAttrInvalidationProcessor
+where
+    E: TElement,
+{
+    fn collect_invalidations(
         &self,
         element: E,
         mut data: Option<&mut ElementData>,
@@ -60,10 +63,7 @@ impl InvalidationProcessor for StateAndAttrInvalidationProcessor {
         shared_context: &SharedStyleContext,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
-    ) -> bool
-    where
-        E: TElement,
-    {
+    ) -> bool {
         debug_assert!(element.has_snapshot(), "Why bothering?");
         debug_assert!(data.is_some(), "How exactly?");
 
@@ -174,14 +174,11 @@ impl InvalidationProcessor for StateAndAttrInvalidationProcessor {
         invalidated_self
     }
 
-    fn should_process_descendants<E>(
+    fn should_process_descendants(
         &self,
         _element: E,
         data: Option<&mut ElementData>,
-    ) -> bool
-    where
-        E: TElement,
-    {
+    ) -> bool {
         let data = match data {
             None => return false,
             Some(ref data) => data,
@@ -194,28 +191,22 @@ impl InvalidationProcessor for StateAndAttrInvalidationProcessor {
         !data.hint.contains_subtree()
     }
 
-    fn recursion_limit_exceeded<E>(
+    fn recursion_limit_exceeded(
         &self,
         _element: E,
         data: Option<&mut ElementData>,
-    )
-    where
-        E: TElement,
-    {
+    ) {
         if let Some(data) = data {
             data.hint.insert(RESTYLE_DESCENDANTS);
         }
     }
 
-    fn invalidated_child<E>(
+    fn invalidated_child(
         &self,
         element: E,
         _data: Option<&mut ElementData>,
         child: E,
-    )
-    where
-        E: TElement,
-    {
+    ) {
         if child.get_data().is_none() {
             return;
         }
@@ -236,14 +227,11 @@ impl InvalidationProcessor for StateAndAttrInvalidationProcessor {
         }
     }
 
-    fn invalidated_descendants<E>(
+    fn invalidated_descendants(
         &self,
         element: E,
         data: Option<&mut ElementData>,
-    )
-    where
-        E: TElement,
-    {
+    ) {
         // FIXME(emilio): We probably want to walk the flattened tree here too,
         // and remove invalidated_child instead, or something like that.
         if data.as_ref().map_or(false, |d| !d.styles.is_display_none()) {
@@ -251,14 +239,11 @@ impl InvalidationProcessor for StateAndAttrInvalidationProcessor {
         }
     }
 
-    fn invalidated_self<E>(
+    fn invalidated_self(
         &self,
         _element: E,
         data: Option<&mut ElementData>,
-    )
-    where
-        E: TElement,
-    {
+    ) {
         if let Some(data) = data {
             data.hint.insert(RESTYLE_SELF);
         }
