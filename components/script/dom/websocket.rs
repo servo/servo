@@ -20,15 +20,15 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
-use dom::urlhelper::UrlHelper;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use js::typedarray::{ArrayBuffer, CreateWith};
-use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::CoreResourceMsg::WebsocketConnect;
+use net_traits::{CoreResourceMsg, FetchChannels};
+use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::MessageData;
+use net_traits::request::{RequestInit, RequestMode};
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use servo_url::ServoUrl;
@@ -176,12 +176,6 @@ impl WebSocket {
         let ws = WebSocket::new(global, url_record.clone());
         let address = Trusted::new(&*ws);
 
-        let connect_data = WebSocketConnectData {
-            resource_url: url_record,
-            origin: UrlHelper::Origin(&global.get_url()).0,
-            protocols: protocols,
-        };
-
         // Create the interface for communication with the resource thread
         let (dom_action_sender, resource_action_receiver):
                 (IpcSender<WebSocketDomAction>,
@@ -190,13 +184,18 @@ impl WebSocket {
                 (IpcSender<WebSocketNetworkEvent>,
                 IpcReceiver<WebSocketNetworkEvent>) = ipc::channel().unwrap();
 
-        let connect = WebSocketCommunicate {
+        // Step 8.
+        let request = RequestInit {
+            url: url_record,
+            origin: global.origin().immutable().clone(),
+            mode: RequestMode::WebSocket { protocols },
+            ..RequestInit::default()
+        };
+        let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,
             action_receiver: resource_action_receiver,
         };
-
-        // Step 8.
-        let _ = global.core_resource_thread().send(WebsocketConnect(connect, connect_data));
+        let _ = global.core_resource_thread().send(CoreResourceMsg::Fetch(request, channels));
 
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 

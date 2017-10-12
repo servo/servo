@@ -15,9 +15,10 @@ use hyper::method::Method;
 use hyper::net::HttpStream;
 use hyper::status::StatusCode;
 use hyper::version::HttpVersion;
-use net_traits::{CookieSource, MessageData, NetworkError, WebSocketCommunicate, WebSocketConnectData};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use net_traits::{CookieSource, MessageData, NetworkError};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::request::Destination;
+use net_traits::request::{Destination, RequestInit, RequestMode};
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::io::{self, Write};
@@ -32,22 +33,22 @@ use websocket::message::Type as MessageType;
 use websocket::receiver::Receiver;
 use websocket::sender::Sender;
 
-pub fn init(connect: WebSocketCommunicate,
-            connect_data: WebSocketConnectData,
-            http_state: Arc<HttpState>) {
-    thread::Builder::new().name(format!("WebSocket connection to {}", connect_data.resource_url)).spawn(move || {
-        let channel = establish_a_websocket_connection(connect_data.resource_url,
-                                                       connect_data.origin,
-                                                       connect_data.protocols,
-                                                       &http_state);
+pub fn init(
+    req_init: RequestInit,
+    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+    http_state: Arc<HttpState>
+) {
+    thread::Builder::new().name(format!("WebSocket connection to {}", req_init.url)).spawn(move || {
+        let channel = establish_a_websocket_connection(req_init, &http_state);
         let (ws_sender, mut receiver) = match channel {
             Ok((protocol_in_use, sender, receiver)) => {
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
                 (sender, receiver)
             },
             Err(e) => {
                 debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
                 return;
             }
 
@@ -58,7 +59,6 @@ pub fn init(connect: WebSocketCommunicate,
 
         let initiated_close_incoming = initiated_close.clone();
         let ws_sender_incoming = ws_sender.clone();
-        let resource_event_sender = connect.event_sender;
         thread::spawn(move || {
             for message in receiver.incoming_messages() {
                 let message: Message = match message {
@@ -92,7 +92,7 @@ pub fn init(connect: WebSocketCommunicate,
             }
         });
 
-        while let Ok(dom_action) = connect.action_receiver.recv() {
+        while let Ok(dom_action) = dom_action_receiver.recv() {
             match dom_action {
                 WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
                     ws_sender.lock().unwrap().send_message(&Message::text(data)).unwrap();
@@ -146,14 +146,15 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
 }
 
 // https://fetch.spec.whatwg.org/#concept-websocket-establish
-fn establish_a_websocket_connection(resource_url: ServoUrl,
-                                    origin: String,
-                                    protocols: Vec<String>,
-                                    http_state: &HttpState)
-                                    -> Result<(Option<String>,
-                                               Sender<Stream>,
-                                               Receiver<Stream>),
-                                              NetworkError> {
+fn establish_a_websocket_connection(
+    req_init: RequestInit,
+    http_state: &HttpState
+) -> Result<(Option<String>, Sender<Stream>, Receiver<Stream>), NetworkError>
+{
+    let protocols = match req_init.mode {
+        RequestMode::WebSocket { protocols } => protocols.clone(),
+        _ => panic!("Received a RequestInit with a non-websocket mode in websocket_loader"),
+    };
     // Steps 1 is not really applicable here, given we don't exactly go
     // through the same infrastructure as the Fetch spec.
 
@@ -184,7 +185,7 @@ fn establish_a_websocket_connection(resource_url: ServoUrl,
     // TODO: handle permessage-deflate extension.
 
     // Step 11 and network error check from step 12.
-    let response = fetch(resource_url, origin, headers, http_state)?;
+    let response = fetch(req_init.url, req_init.origin.ascii_serialization(), headers, http_state)?;
 
     // Step 12, the status code check.
     if response.status != StatusCode::SwitchingProtocols {
