@@ -772,6 +772,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.all_descendant_browsing_contexts_iter(BrowsingContextId::from(top_level_browsing_context_id))
     }
 
+    #[cfg(feature = "unstable")]
     /// The joint session future is the merge of the session future of every
     /// browsing_context, sorted chronologically.
     fn joint_session_future<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
@@ -782,12 +783,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .kmerge_by(|a, b| a.instant.cmp(&b.instant) == Ordering::Less)
     }
 
+    #[cfg(not(feature = "unstable"))]
+    /// The joint session future is the merge of the session future of every
+    /// browsing_context, sorted chronologically.
+    fn joint_session_future<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
+                                -> Box<Iterator<Item = &'a SessionHistoryEntry> + 'a>
+    {
+        Box::new(
+            self.all_browsing_contexts_iter(top_level_browsing_context_id)
+                .map(|browsing_context| browsing_context.next.iter().rev())
+                .kmerge_by(|a, b| a.instant.cmp(&b.instant) == Ordering::Less)
+        )
+    }
+
     /// Is the joint session future empty?
     fn joint_session_future_is_empty(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> bool {
         self.all_browsing_contexts_iter(top_level_browsing_context_id)
             .all(|browsing_context| browsing_context.next.is_empty())
     }
 
+    #[cfg(feature = "unstable")]
     /// The joint session past is the merge of the session past of every
     /// browsing_context, sorted reverse chronologically.
     fn joint_session_past<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
@@ -802,6 +817,25 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                  }))
             .kmerge_by(|a, b| a.0.cmp(&b.0) == Ordering::Greater)
             .map(|(_, entry)| entry)
+    }
+
+    #[cfg(not(feature = "unstable"))]
+    /// The joint session past is the merge of the session past of every
+    /// browsing_context, sorted reverse chronologically.
+    fn joint_session_past<'a>(&'a self, top_level_browsing_context_id: TopLevelBrowsingContextId)
+                              -> Box<Iterator<Item = &'a SessionHistoryEntry> + 'a>
+    {
+        Box::new(
+            self.all_browsing_contexts_iter(top_level_browsing_context_id)
+                .map(|browsing_context| browsing_context.prev.iter().rev()
+                     .scan(browsing_context.instant, |prev_instant, entry| {
+                         let instant = *prev_instant;
+                         *prev_instant = entry.instant;
+                         Some((instant, entry))
+                     }))
+                .kmerge_by(|a, b| a.0.cmp(&b.0) == Ordering::Greater)
+                .map(|(_, entry)| entry)
+        )
     }
 
     /// Is the joint session past empty?
