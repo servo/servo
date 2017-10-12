@@ -27,4 +27,5 @@ task_info = {path = "../../support/rust-task_info"}
 regex = "0.2"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
+jemallocator = "0.1"
 libc = "0.2"

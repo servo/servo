@@ -2,14 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(not(target_os = "windows"), feature(alloc_jemalloc))]
+#![cfg_attr(not(target_os = "windows"), feature(global_allocator))]
 #![feature(box_syntax)]
 
-#![deny(unsafe_code)]
-
-#[allow(unused_extern_crates)]
-#[cfg(not(target_os = "windows"))]
-extern crate alloc_jemalloc;
+#[cfg(not(target_os = "windows"))] extern crate jemallocator;
 extern crate heartbeats_simple;
 extern crate influent;
 extern crate ipc_channel;
@@ -29,9 +25,11 @@ extern crate servo_config;
 extern crate task_info;
 extern crate time as std_time;
 
-#[allow(unsafe_code)]
 mod heartbeats;
-#[allow(unsafe_code)]
 pub mod mem;
-pub mod time;
-pub mod trace_dump;
+#[deny(unsafe_code)] pub mod time;
+#[deny(unsafe_code)] pub mod trace_dump;
+
+#[cfg(not(target_os = "windows"))]
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
