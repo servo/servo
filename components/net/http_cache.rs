@@ -23,6 +23,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use time;
 use time::{Duration, Tm};
+use url::Url;
 
 
 /// The key used to differentiate requests in the cache.
@@ -35,6 +36,13 @@ impl CacheKey {
     fn new(request: Request) -> CacheKey {
         CacheKey {
             url: request.url().clone()
+        }
+    }
+
+    fn from_url_string(url: String) -> CacheKey {
+        let url = Url::parse(&url).unwrap();
+        CacheKey {
+            url: ServoUrl::from_url(url)
         }
     }
 
@@ -372,31 +380,27 @@ impl HttpCache {
         None
     }
 
+    fn invalidate_for_url(&mut self, url: String) {
+        let entry_key = CacheKey::from_url_string(url);
+        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
+            for cached_resource in cached_resources.iter_mut() {
+                let mut expires = cached_resource.expires.lock().unwrap();
+                *expires = Duration::seconds(0i64);
+            }
+        }
+    }
+
     /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
     pub fn invalidate(&mut self, request: &Request, response: &Response) {
-        let mut location = String::new();
-        let mut content_location = String::new();
-        if let Some(&header::Location(ref url)) = response.headers.get::<header::Location>() {
-            location = url.clone();
+        if let Some(&header::Location(ref location)) = response.headers.get::<header::Location>() {
+            self.invalidate_for_url(location.clone());
         }
         // TODO: update hyper to use typed getter.
         if let Some(url_data) = response.headers.get_raw("Content-Location") {
-            content_location = String::from_utf8(url_data[0].to_vec()).unwrap();
+            let content_location = String::from_utf8(url_data[0].to_vec()).unwrap();
+            self.invalidate_for_url(content_location);
         }
-        for (key, cached_resources) in self.entries.iter_mut() {
-            // Checking all entries for potential invalidation, as the values in location/content_location
-            // can refer to stored resources entirely unrelated to the current request url.
-            let string_resource_url = key.url().into_string();
-            let matches = (key.url() == request.url()) |
-                (string_resource_url == location) |
-                (string_resource_url == content_location);
-            if matches {
-                for cached_resource in cached_resources.iter_mut() {
-                    let mut expires = cached_resource.expires.lock().unwrap();
-                    *expires = Duration::seconds(0i64);
-                }
-            }
-        }
+        self.invalidate_for_url(request.url().into_string());
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
