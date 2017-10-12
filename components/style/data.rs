@@ -244,6 +244,7 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
+        use invalidation::element::collector::StateAndAttrInvalidationCollector;
         use invalidation::element::invalidator::TreeStyleInvalidator;
 
         debug!("invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
@@ -266,7 +267,8 @@ impl ElementData {
             nth_index_cache,
         );
 
-        let result = invalidator.invalidate();
+        let result =
+            invalidator.invalidate::<StateAndAttrInvalidationCollector>();
         unsafe { element.set_handled_snapshot() }
         debug_assert!(element.handled_snapshot());
         result
