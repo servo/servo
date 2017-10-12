@@ -8,7 +8,6 @@
 use context::{SharedStyleContext, StackLimitChecker};
 use data::ElementData;
 use dom::{TElement, TNode};
-use invalidation::element::restyle_hints::*;
 use selector_parser::SelectorImpl;
 use selectors::NthIndexCache;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
@@ -19,11 +18,12 @@ use smallvec::SmallVec;
 use std::fmt;
 
 /// A trait to abstract the collection of invalidations for a given pass.
-pub trait InvalidationCollector {
+pub trait InvalidationProcessor {
     /// Collect invalidations for a given element's descendants and siblings.
     ///
     /// Returns whether the element itself was invalidated.
     fn collect_invalidations<E>(
+        &self,
         element: E,
         data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
@@ -33,12 +33,61 @@ pub trait InvalidationCollector {
     ) -> bool
     where
         E: TElement;
+
+    /// Returns whether a given element should process its descendants.
+    fn should_process_descendants<E>(
+        &self,
+        element: E,
+        data: Option<&mut ElementData>,
+    ) -> bool
+    where
+        E: TElement;
+
+    /// Executes an arbitrary action when the recursion limit is exceded (if
+    /// any).
+    fn recursion_limit_exceeded<E>(
+        &self,
+        _element: E,
+        data: Option<&mut ElementData>,
+    )
+    where
+        E: TElement;
+
+    /// Executes an arbitrary action when a direct child is invalidated.
+    fn invalidated_child<E>(
+        &self,
+        element: E,
+        data: Option<&mut ElementData>,
+        child: E,
+    )
+    where
+        E: TElement;
+
+    /// Executes an action when `Self` is invalidated.
+    fn invalidated_self<E>(
+        &self,
+        element: E,
+        data: Option<&mut ElementData>,
+    )
+    where
+        E: TElement;
+
+    /// Executes an action when any descendant of `Self` is invalidated.
+    fn invalidated_descendants<E>(
+        &self,
+        element: E,
+        data: Option<&mut ElementData>,
+    )
+    where
+        E: TElement;
 }
 
 /// The struct that takes care of encapsulating all the logic on where and how
 /// element styles need to be invalidated.
-pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
-    where E: TElement,
+pub struct TreeStyleInvalidator<'a, 'b: 'a, E, P: 'a>
+where
+    E: TElement,
+    P: InvalidationProcessor
 {
     element: E,
     // TODO(emilio): It's tempting enough to just avoid running invalidation for
@@ -54,6 +103,10 @@ pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
     shared_context: &'a SharedStyleContext<'b>,
     stack_limit_checker: Option<&'a StackLimitChecker>,
     nth_index_cache: Option<&'a mut NthIndexCache>,
+
+    // TODO(emilio): Make a mutable reference, we're going to need that for
+    // QS/QSA.
+    processor: &'a P,
 }
 
 /// A vector of invalidations, optimized for small invalidation sets.
@@ -182,8 +235,10 @@ impl InvalidationResult {
     }
 }
 
-impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
-    where E: TElement,
+impl<'a, 'b: 'a, E, P: 'a> TreeStyleInvalidator<'a, 'b, E, P>
+where
+    E: TElement,
+    P: InvalidationProcessor,
 {
     /// Trivially constructs a new `TreeStyleInvalidator`.
     pub fn new(
@@ -192,6 +247,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         shared_context: &'a SharedStyleContext<'b>,
         stack_limit_checker: Option<&'a StackLimitChecker>,
         nth_index_cache: Option<&'a mut NthIndexCache>,
+        processor: &'a P,
     ) -> Self {
         Self {
             element,
@@ -199,17 +255,18 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             shared_context,
             stack_limit_checker,
             nth_index_cache,
+            processor,
         }
     }
 
     /// Perform the invalidation pass.
-    pub fn invalidate<C: InvalidationCollector>(mut self) -> InvalidationResult {
+    pub fn invalidate(mut self) -> InvalidationResult {
         debug!("StyleTreeInvalidator::invalidate({:?})", self.element);
 
         let mut descendant_invalidations = InvalidationVector::new();
         let mut sibling_invalidations = InvalidationVector::new();
 
-        let invalidated_self = C::collect_invalidations(
+        let invalidated_self = self.processor.collect_invalidations(
             self.element,
             self.data.as_mut().map(|d| &mut **d),
             self.nth_index_cache.as_mut().map(|c| &mut **c),
@@ -246,14 +303,14 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         while let Some(sibling) = current {
             let mut sibling_data = sibling.mutate_data();
-            let sibling_data = sibling_data.as_mut().map(|d| &mut **d);
 
             let mut sibling_invalidator = TreeStyleInvalidator::new(
                 sibling,
-                sibling_data,
+                sibling_data.as_mut().map(|d| &mut **d),
                 self.shared_context,
                 self.stack_limit_checker,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
+                self.processor,
             );
 
             let mut invalidations_for_descendants = InvalidationVector::new();
@@ -310,14 +367,14 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool {
         let mut child_data = child.mutate_data();
-        let child_data = child_data.as_mut().map(|d| &mut **d);
 
         let mut child_invalidator = TreeStyleInvalidator::new(
             child,
-            child_data,
+            child_data.as_mut().map(|d| &mut **d),
             self.shared_context,
             self.stack_limit_checker,
             self.nth_index_cache.as_mut().map(|c| &mut **c),
+            self.processor,
         );
 
         let mut invalidations_for_descendants = InvalidationVector::new();
@@ -341,16 +398,12 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         //
         // Since we keep the traversal flags in terms of the flattened tree,
         // we need to propagate it as appropriate.
-        if invalidated_child && child.get_data().is_some() {
-            let mut current = child.traversal_parent();
-            while let Some(parent) = current.take() {
-                if parent == self.element {
-                    break;
-                }
-
-                unsafe { parent.set_dirty_descendants() };
-                current = parent.traversal_parent();
-            }
+        if invalidated_child {
+            self.processor.invalidated_child(
+                self.element,
+                self.data.as_mut().map(|d| &mut **d),
+                child,
+            );
         }
 
         let invalidated_descendants = child_invalidator.invalidate_descendants(
@@ -424,20 +477,22 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                self.element);
         debug!(" > {:?}", invalidations);
 
-        match self.data {
-            None => return false,
-            Some(ref data) => {
-                // FIXME(emilio): Only needs to check RESTYLE_DESCENDANTS,
-                // really.
-                if data.hint.contains_subtree() {
-                    return false;
-                }
-            }
+        let should_process =
+            self.processor.should_process_descendants(
+                self.element,
+                self.data.as_mut().map(|d| &mut **d),
+            );
+
+        if !should_process {
+            return false;
         }
 
         if let Some(checker) = self.stack_limit_checker {
             if checker.limit_exceeded() {
-                self.data.as_mut().unwrap().hint.insert(RESTYLE_DESCENDANTS);
+                self.processor.recursion_limit_exceeded(
+                    self.element,
+                    self.data.as_mut().map(|d| &mut **d)
+                );
                 return true;
             }
         }
@@ -467,8 +522,11 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         any_descendant |= self.invalidate_nac(invalidations);
 
-        if any_descendant && self.data.as_ref().map_or(false, |d| !d.styles.is_display_none()) {
-            unsafe { self.element.set_dirty_descendants() };
+        if any_descendant {
+            self.processor.invalidated_descendants(
+                self.element,
+                self.data.as_mut().map(|d| &mut **d)
+            );
         }
 
         any_descendant
@@ -730,9 +788,10 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         }
 
         if invalidated_self {
-            if let Some(ref mut data) = self.data {
-                data.hint.insert(RESTYLE_SELF);
-            }
+            self.processor.invalidated_self(
+                self.element,
+                self.data.as_mut().map(|d| &mut **d),
+            );
         }
 
         SingleInvalidationResult { invalidated_self, matched, }

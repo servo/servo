@@ -244,7 +244,7 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        use invalidation::element::collector::StateAndAttrInvalidationCollector;
+        use invalidation::element::collector::StateAndAttrInvalidationProcessor;
         use invalidation::element::invalidator::TreeStyleInvalidator;
 
         debug!("invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
@@ -259,18 +259,21 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
+        let processor = StateAndAttrInvalidationProcessor;
         let invalidator = TreeStyleInvalidator::new(
             element,
             Some(self),
             shared_context,
             stack_limit_checker,
             nth_index_cache,
+            &processor,
         );
 
-        let result =
-            invalidator.invalidate::<StateAndAttrInvalidationCollector>();
+        let result = invalidator.invalidate();
+
         unsafe { element.set_handled_snapshot() }
         debug_assert!(element.handled_snapshot());
+
         result
     }
 
