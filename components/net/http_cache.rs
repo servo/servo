@@ -90,9 +90,18 @@ pub struct HttpCache {
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
 fn response_is_cacheable(metadata: &Metadata) -> bool {
-    if metadata.headers.is_none() {
-        return true;
-    }
+    // Note: this cache should be treated as shared for now.
+    // TODO: check for absence of private response directive https://tools.ietf.org/html/rfc7234#section-5.2.2.6
+    // TODO: check for absence of the Authorization header field.
+    // TODO: check that the response eihter:
+    // *  contains an Expires header field (see Section 5.3), or
+    // *  contains a max-age response directive (see Section 5.2.2.8), or
+    // *  contains a s-maxage response directive (see Section 5.2.2.9) and the cache is shared, or
+    // *  contains a Cache Control Extension (see Section 5.2.3) that allows it to be cached, or
+    // *  has a status code that is defined as cacheable by default (see Section 4.2.2), or
+    // *  contains a public response directive (see Section 5.2.2.5).
+    // TODO write a new http-cache/shared_cache.html wpt test suite for the above.
+
     let headers = metadata.headers.as_ref().unwrap();
     match headers.get::<header::CacheControl>() {
         Some(&header::CacheControl(ref directive)) => {
@@ -250,6 +259,9 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource)
     let now = Duration::seconds(time::now().to_timespec().sec);
     let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
     let time_since_validated = now - last_validated;
+    // TODO: take must-revalidate into account https://tools.ietf.org/html/rfc7234#section-5.2.2.1
+    // TODO: since this cache is shared, taking proxy-revalidate into account
+    // https://tools.ietf.org/html/rfc7234#section-5.2.2.7
     let has_expired = (adjusted_expires < time_since_validated)
         | (adjusted_expires == time_since_validated);
     CachedResponse { response: response, needs_validation: has_expired }
@@ -267,6 +279,7 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
     pub fn construct_response(&self, request: &Request)
         -> Option<CachedResponse> {
+        // TODO: generate warning headers as appropriate https://tools.ietf.org/html/rfc7234#section-5.5
         match request.method {
             // Only Get requests are cached, avoid a url based match for others.
             Method::Get => {},
@@ -320,7 +333,7 @@ impl HttpCache {
                 }
                 if can_be_constructed {
                     // Returning the first response that can be constructed
-                    // TODO: select the most appropriate one, using a known mechanism selecting header field,
+                    // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
                     // or using the Date header to return the most recent one.
                     let cached_response = create_cached_response(request, cached_resource);
                     return Some(cached_response);
