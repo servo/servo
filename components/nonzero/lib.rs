@@ -31,6 +31,7 @@ mod imp {
     pub struct NonZeroU32(u32);
 
     impl NonZeroU32 {
+        #[inline]
         pub fn new(x: u32) -> Option<Self> {
             if x != 0 {
                 Some(NonZeroU32(x))
@@ -39,10 +40,12 @@ mod imp {
             }
         }
 
+        #[inline]
         pub unsafe fn new_unchecked(x: u32) -> Self {
             NonZeroU32(x)
         }
 
+        #[inline]
         pub fn get(self) -> u32 {
             self.0
         }
@@ -52,38 +55,49 @@ mod imp {
     pub struct NonZeroUsize(&'static ());
 
     impl NonZeroUsize {
+        #[inline]
         pub fn new(x: usize) -> Option<Self> {
             if x != 0 {
-                Some(NonZeroUsize(unsafe { &*(x as *const ()) }))
+                Some(unsafe { Self::new_unchecked(x) })
             } else {
                 None
             }
         }
 
+        #[inline]
+        pub unsafe fn new_unchecked(x: usize) -> Self {
+            NonZeroUsize(&*(x as *const ()))
+        }
+
+        #[inline]
         pub fn get(self) -> usize {
             self.0 as *const () as usize
         }
     }
 
     impl PartialEq for NonZeroUsize {
+        #[inline]
         fn eq(&self, other: &Self) -> bool {
             self.get() == other.get()
         }
     }
 
     impl PartialOrd for NonZeroUsize {
+        #[inline]
         fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
             self.get().partial_cmp(&other.get())
         }
     }
 
     impl Ord for NonZeroUsize {
+        #[inline]
         fn cmp(&self, other: &Self) -> cmp::Ordering {
             self.get().cmp(&other.get())
         }
     }
 
     impl hash::Hash for NonZeroUsize {
+        #[inline]
         fn hash<H: hash::Hasher>(&self, hasher: &mut H) {
             self.get().hash(hasher)
         }

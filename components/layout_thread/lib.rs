@@ -6,11 +6,10 @@
 //! painted.
 
 #![feature(mpsc_select)]
-#![feature(nonzero)]
+#![cfg_attr(feature = "unstable", feature(nonzero))]
 
 extern crate app_units;
 extern crate atomic_refcell;
-extern crate core;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;
@@ -29,6 +28,7 @@ extern crate log;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
+extern crate nonzero;
 extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
