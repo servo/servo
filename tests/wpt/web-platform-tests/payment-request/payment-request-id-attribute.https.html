@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequest id attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  const methods = [{ supportedMethods: "foo" }];
+  const total = { label: "label", amount: { currency: "USD", value: "5.00" } };
+  const request1 = new PaymentRequest(methods, {
+    id: "pass",
+    total,
+  });
+  assert_idl_attribute(request1, "id");
+  assert_equals(request1.id, "pass", "Expected PaymentRequest.id to be 'pass'");
+  const request2 = new PaymentRequest(methods, {
+    total,
+  });
+  assert_true(
+    request2.id && typeof request2.id === "string",
+    "Expected PaymentRequest.id to be some auto-generated truthy string"
+  );
+}, "PaymentRequest id attribute");
+</script>

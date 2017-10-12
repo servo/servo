@@ -9,36 +9,32 @@
       setup({explicit_done: true})
 
       window.addEventListener('load', function() {
-        // there should be exactly two server-timing entries, 1 for document, 1 for img#one
-        test_entries(performance.getEntriesByType('server'), [{
-          name: document.location.href,
-          entryType: 'server',
-          startTime: 0,
-          duration: 1.2,
-          metric: 'metric1',
+        // there should be exactly three server-timing entries, 2 for document, 1 for img#one
+        test_entries(performance.getEntriesByType('navigation')[0].serverTiming, [{
+          duration: 1.1,
+          name: 'metric1',
           description: 'document',
         }, {
-          name: document.querySelector('img#one').src,
-          entryType: 'server',
-          startTime: 0,
-          duration: 3.4,
-          metric: 'metric2',
+          duration: 1.2,
+          name: 'metric1',
+          description: 'document',
+        }])
+        test_entries(performance.getEntriesByName(document.querySelector('img#one').src)[0].serverTiming, [{
+          duration: 2.1,
+          name: 'metric2',
           description: 'blue.png',
         }])
 
         new PerformanceObserver(function(entryList, observer) {
           // there should be exactly one server-timing entry, 1 for img#two
-          test_entries(entryList.getEntriesByType('server'), [{
-            name: document.querySelector('img#two').src,
-            entryType: 'server',
-            startTime: 0,
-            duration: 5.6,
-            metric: 'metric3',
+          test_entries(entryList.getEntriesByName(document.querySelector('img#two').src)[0].serverTiming, [{
+            duration: 3.1,
+            name: 'metric3',
             description: 'green.png',
           }])
           observer.disconnect()
           done()
-        }).observe({entryTypes: ['server']})
+        }).observe({entryTypes: ['resource']})
 
         var img = document.createElement('img')
         img.id = 'two'

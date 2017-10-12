@@ -1,4 +1,0 @@
-See http://lists.w3.org/Archives/Member/w3c-css-wg/2002OctDec/0079.html
-
-The fixed/ directory is for background-attachment: fixed tests, as
--moz-background-policy only applies to background-attachment: scroll.

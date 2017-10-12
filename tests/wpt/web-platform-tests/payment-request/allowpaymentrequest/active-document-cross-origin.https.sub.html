@@ -7,7 +7,7 @@
 <script>
 async_test((t) => {
   const iframe = document.getElementById('iframe');
-  const paymentArgs = [[{supportedMethods: ['foo']}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
+  const paymentArgs = [[{supportedMethods: 'foo'}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
 
   onload = () => {
     const win = window[0];

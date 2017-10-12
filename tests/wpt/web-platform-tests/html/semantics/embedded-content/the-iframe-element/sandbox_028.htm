@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>HTML5 Sandbox: Block sandbox iframe from accessing other content from the same origin.</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://dev.w3.org/html5/spec/Overview.html#sandboxed-origin-browsing-context-flag" />
+    <meta name="assert" content="Block sandbox iframe from accessing other content from the same origin." />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+
+        var t = async_test("Block sandbox iframe from accessing other content from the same origin.");
+
+        function callback(event)
+        {
+            t.step(function(){
+                assert_true('sandbox' in document.createElement('iframe'));
+                assert_equals(event.data, "!window.parent.document");
+            });
+            t.done();
+        }
+
+        var timer = setTimeout(callback, 4000);
+        window.addEventListener("message", callback, false);
+    </script>
+    <iframe src="support/iframe_sandbox_028.htm" sandbox="allow-scripts" style="display:none"></iframe>
+    <div id=log></div>
+
+</body>
+</html>

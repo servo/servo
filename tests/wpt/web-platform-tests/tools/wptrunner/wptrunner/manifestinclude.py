@@ -29,6 +29,10 @@ class IncludeManifest(ManifestItem):
         node = DataNode(None)
         return cls(node)
 
+    def set_defaults(self):
+        if not self.has_key("skip"):
+            self.set("skip", "False")
+
     def append(self, child):
         ManifestItem.append(self, child)
         self.child_map[child.name] = child

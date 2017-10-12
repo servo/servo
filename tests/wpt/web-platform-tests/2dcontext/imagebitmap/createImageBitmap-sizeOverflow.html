@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<title>createImageBitmap with size overflow</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(function() {
+    var imgData = new ImageData(20, 20);
+    return new Promise(function(resolve, reject) {
+        createImageBitmap(imgData, 4294967400, 10, 10, 10).then(resolve, reject);
+    });
+}, "createImageBitmap does not crash or reject the promise when passing very large sx");
+
+promise_test(function() {
+    var imgData = new ImageData(20, 20);
+    return new Promise(function(resolve, reject) {
+        createImageBitmap(imgData, 10, 4294967400, 10, 10).then(resolve, reject);
+    });
+}, "createImageBitmap does not crash or reject the promise when passing very large sy");
+
+promise_test(function() {
+    var imgData = new ImageData(20, 20);
+    return new Promise(function(resolve, reject) {
+        createImageBitmap(imgData, 10, 10, 4294967400, 10).then(resolve, reject);
+    });
+}, "createImageBitmap does not crash or reject the promise when passing very large sw");
+
+promise_test(function() {
+    var imgData = new ImageData(20, 20);
+    return new Promise(function(resolve, reject) {
+        createImageBitmap(imgData, 10, 10, 10, 4294967400).then(resolve, reject);
+    });
+}, "createImageBitmap does not crash or reject the promise when passing very large sh");
+
+promise_test(function() {
+    var imgData = new ImageData(20, 20);
+    return new Promise(function(resolve, reject) {
+        createImageBitmap(imgData, 4294967400, 4294967400, 4294967400, 4294967400).then(resolve, reject);
+    });
+}, "createImageBitmap does not crash or reject the promise when passing very large sx, sy, sw and sh");
+</script>
+</body>
+</html>

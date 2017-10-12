@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./support/helper.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types">
+</head>
+<body>
+<div id="container"></div>
+<script>
+  var container = document.querySelector('#container');
+
+  // String assignments throw.
+  test(t => {
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    assert_throws(new TypeError(), _ => {
+      d.insertAdjacentHTML('beforebegin', "<p>Fail</p>");
+    });
+    assert_throws(new TypeError(), _ => {
+      d.insertAdjacentHTML('afterbegin', "<p>Fail</p>");
+    });
+    assert_throws(new TypeError(), _ => {
+      d.insertAdjacentHTML('beforeend', "<p>Fail</p>");
+    });
+    assert_throws(new TypeError(), _ => {
+      d.insertAdjacentHTML('afterend', "<p>Fail</p>");
+    });
+
+    assert_equals(d.previousSibling, null);
+    assert_equals(d.firstChild, null);
+    assert_equals(d.lastChild, null);
+    assert_equals(d.nextSibling, null);
+  }, "`insertAdjacentHTML(string)` throws.");
+
+  // TrustedHTML assignments work.
+  test(t => {
+    var html = TrustedHTML.escape(STRINGS.unescapedHTML);
+
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    d.insertAdjacentHTML('beforebegin', html);
+    assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.previousSibling.data, STRINGS.unescapedHTML);
+
+    d.insertAdjacentHTML('afterbegin', html);
+    assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.firstChild.data, STRINGS.unescapedHTML);
+
+    d.insertAdjacentHTML('beforeend', html);
+    assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.lastChild.data, STRINGS.unescapedHTML);
+
+    d.insertAdjacentHTML('afterend', html);
+    assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.nextSibling.data, STRINGS.unescapedHTML);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "insertAdjacentHTML = TrustedHTML.escape().");
+
+  test(t => {
+    var html = TrustedHTML.unsafelyCreate(STRINGS.unescapedHTML);
+
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    d.insertAdjacentHTML('beforebegin', html);
+    assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.previousSibling.data, STRINGS.unescapedText);
+
+    d.insertAdjacentHTML('afterbegin', html);
+    assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.firstChild.data, STRINGS.unescapedText);
+
+    d.insertAdjacentHTML('beforeend', html);
+    assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.lastChild.data, STRINGS.unescapedText);
+
+    d.insertAdjacentHTML('afterend', html);
+    assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.nextSibling.data, STRINGS.unescapedText);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "insertAdjacentHTML = TrustedHTML.unsafelyCreate().");
+</script>
+</body>
+</html>

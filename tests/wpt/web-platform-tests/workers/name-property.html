@@ -14,6 +14,12 @@
 const worker = new Worker("support/name.js", { name: "my name" });
 fetch_tests_from_worker(worker);
 
+const worker2 = new Worker("support/name-as-accidental-global.js");
+fetch_tests_from_worker(worker2);
+
 const sharedWorker = new SharedWorker("support/name.js", { name: "my name" });
 fetch_tests_from_worker(sharedWorker);
+
+const sharedWorker2 = new SharedWorker("support/name-as-accidental-global.js");
+fetch_tests_from_worker(sharedWorker2);
 </script>

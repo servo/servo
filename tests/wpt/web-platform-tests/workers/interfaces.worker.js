@@ -16,5 +16,5 @@ request.onload = function() {
   idlArray.test();
   done();
 };
-request.open("GET", "interfaces.idl");
+request.open("GET", "/interfaces/dedicated-workers.idl");
 request.send();

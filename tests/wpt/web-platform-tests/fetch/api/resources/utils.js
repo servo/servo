@@ -81,6 +81,26 @@ function validateStreamFromString(reader, expectedValue, retrievedArrayBuffer) {
   });
 }
 
+function validateStreamFromPartialString(reader, expectedValue, retrievedArrayBuffer) {
+  return reader.read().then(function(data) {
+    if (!data.done) {
+      assert_true(data.value instanceof Uint8Array, "Fetch ReadableStream chunks should be Uint8Array");
+      var newBuffer;
+      if (retrievedArrayBuffer) {
+        newBuffer =  new ArrayBuffer(data.value.length + retrievedArrayBuffer.length);
+        newBuffer.set(retrievedArrayBuffer, 0);
+        newBuffer.set(data.value, retrievedArrayBuffer.length);
+      } else {
+        newBuffer = data.value;
+      }
+      return validateStreamFromPartialString(reader, expectedValue, newBuffer);
+    }
+
+    var string = new TextDecoder("utf-8").decode(retrievedArrayBuffer);
+    return assert_true(string.search(expectedValue) != -1, "Retrieve and verify stream");
+  });
+}
+
 // From streams tests
 function delay(milliseconds)
 {

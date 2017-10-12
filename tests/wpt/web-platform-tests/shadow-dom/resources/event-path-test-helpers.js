@@ -1,6 +1,7 @@
 
-function dispatchEventWithLog(shadow, target, event) {
+function dispatchEventWithEventLog(shadow, target, event) {
     var eventPath = [];
+    var targets = [];
     var relatedTargets = [];
     var pathAtTargets = [];
 
@@ -19,13 +20,14 @@ function dispatchEventWithLog(shadow, target, event) {
                     return;
 
                 pathAtTargets.push(event.composedPath().map(function (node) { return node.label; }));
+                targets.push(event.target);
             }).bind(node));
         }
     }
 
     target.dispatchEvent(event);
 
-    return {eventPath: eventPath, relatedTargets: relatedTargets, pathAtTargets: pathAtTargets};
+    return {event: event, targets: targets, eventPath: eventPath, relatedTargets: relatedTargets, pathAtTargets: pathAtTargets};
 }
 
 /*
@@ -37,7 +39,7 @@ A ------------------------------- A-SR
           + D1            + B1c-S   + B1b1
                                     + B1b2
 */
-function createTestTree(mode) {
+function createFixedTestTree(mode) {
     var namedNodes = {};
 
     function element(name) {

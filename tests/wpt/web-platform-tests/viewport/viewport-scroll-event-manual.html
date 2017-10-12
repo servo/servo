@@ -21,7 +21,7 @@
     <h1>Viewport: Scroll Event</h1>
     <h4>
         Test Description: This test checks that a scroll event is fired against
-        the window.view object when the viewport is scrolled.
+        the window.visualViewport object when the viewport is scrolled.
     </h4>
     <h2 style="color: red">THIS IS A MANUAL TEST</h2>
     <p id="skip">
@@ -57,7 +57,7 @@
 
         addManualTestStep(
             function() {
-                window.view.addEventListener('scroll', function(e) {
+                window.visualViewport.addEventListener('scroll', function(e) {
                     didGetScrollEvent = true;
                     cancelable = e.cancelable;
                     bubbles = e.bubbles;
@@ -115,8 +115,8 @@
                 continueBtn.style.left = "";
                 continueBtn.style.top = "";
 
-                offsetLeft = window.view.offsetLeft;
-                offsetTop = window.view.offsetTop;
+                offsetLeft = window.visualViewport.offsetLeft;
+                offsetTop = window.visualViewport.offsetTop;
 
                 // The visual viewport should be fully scrolled so even if
                 // scrollTo does normally "push" the layout viewport with the
@@ -124,9 +124,9 @@
                 window.scrollTo(10000, 10000);
 
                 requestAnimationFrame(continueTest);
-                assert_equals(window.view.offsetLeft, offsetLeft,
+                assert_equals(window.visualViewport.offsetLeft, offsetLeft,
                     "OffsetLeft Unchanged");
-                assert_equals(window.view.offsetTop, offsetTop,
+                assert_equals(window.visualViewport.offsetTop, offsetTop,
                     "OffsetTop Unchanged");
                 assert_false(didGetScrollEvent,
                     "Should not get view scroll event");
@@ -161,8 +161,8 @@
                 // make sure it's at least rational if it does change the
                 // offset values.
                 var scrollChangedOffset =
-                  offsetLeft != window.view.offsetLeft ||
-                  offsetTop != window.view.offsetTop;
+                  offsetLeft != window.visualViewport.offsetLeft ||
+                  offsetTop != window.visualViewport.offsetTop;
 
                 document.body.style.width = "";
                 document.body.style.height = "";
@@ -171,7 +171,7 @@
                     'If the scrollTo changed offsets it must have fired a ' +
                     'scroll event');
             },
-            'scrollTo must fire scroll event if it changes view.offsetLeft|Top',
+            'scrollTo must fire scroll event if it changes visualViewport.offsetLeft|Top',
             '6. Pinch-zoom out fully');
 
         addManualTestStep(

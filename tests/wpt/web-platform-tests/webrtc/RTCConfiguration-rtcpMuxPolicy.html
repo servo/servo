@@ -1,0 +1,143 @@
+<!doctype html>
+<title>RTCConfiguration rtcpMuxPolicy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCConfiguration-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper function is called from RTCConfiguration-helper.js:
+  //   config_test
+
+  /*
+    [Constructor(optional RTCConfiguration configuration)]
+    interface RTCPeerConnection : EventTarget {
+      RTCConfiguration                   getConfiguration();
+      void                               setConfiguration(RTCConfiguration configuration);
+      ...
+    };
+
+    dictionary RTCConfiguration {
+      RTCRtcpMuxPolicy         rtcpMuxPolicy = "require";
+      ...
+    };
+
+    enum RTCRtcpMuxPolicy {
+      "negotiate",
+      "require"
+    };
+  */
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `new RTCPeerConnection() should have default rtcpMuxPolicy require`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ rtcpMuxPolicy: undefined });
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `new RTCPeerConnection({ rtcpMuxPolicy: undefined }) should have default rtcpMuxPolicy require`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ rtcpMuxPolicy: 'require' });
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `new RTCPeerConnection({ rtcpMuxPolicy: 'require' }) should succeed`);
+
+  /*
+    4.3.1.1.  Constructor
+      3.  If configuration.rtcpMuxPolicy is negotiate, and the user agent does not
+          implement non-muxed RTCP, throw a NotSupportedError.
+   */
+  test(() => {
+    let pc;
+    try {
+      pc = new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' });
+    } catch(err) {
+      // NotSupportedError is a DOMException with code 9
+      if(err.code === 9 && err.name === 'NotSupportedError') {
+        // ignore error and pass test if negotiate is not supported
+        return;
+      } else {
+        throw err;
+      }
+    }
+
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'negotiate');
+
+  }, `new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' }) may succeed or throw NotSupportedError`);
+
+  config_test(makePc => {
+    assert_throws(new TypeError(), () =>
+      makePc({ rtcpMuxPolicy: null }));
+  }, `with { rtcpMuxPolicy: null } should throw TypeError`);
+
+  config_test(makePc => {
+    assert_throws(new TypeError(), () =>
+      makePc({ rtcpMuxPolicy: 'invalid' }));
+  }, `with { rtcpMuxPolicy: 'invalid' } should throw TypeError`);
+
+  /*
+    4.3.2.  Set a configuration
+      6.  If configuration.rtcpMuxPolicy is set and its value differs from the
+          connection's rtcpMux policy, throw an InvalidModificationError.
+   */
+
+  test(() => {
+    const pc = new RTCPeerConnection({ rtcpMuxPolicy: 'require' });
+    assert_idl_attribute(pc, 'setConfiguration');
+    assert_throws('InvalidModificationError', () =>
+      pc.setConfiguration({ rtcpMuxPolicy: 'negotiate' }));
+
+  }, `setConfiguration({ rtcpMuxPolicy: 'negotiate' }) with initial rtcpMuxPolicy require should throw InvalidModificationError`);
+
+  test(() => {
+    let pc;
+    try {
+      pc = new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' });
+    } catch(err) {
+      // NotSupportedError is a DOMException with code 9
+      if(err.code === 9 && err.name === 'NotSupportedError') {
+        // ignore error and pass test if negotiate is not supported
+        return;
+      } else {
+        throw err;
+      }
+    }
+
+    assert_idl_attribute(pc, 'setConfiguration');
+    assert_throws('InvalidModificationError', () =>
+      pc.setConfiguration({ rtcpMuxPolicy: 'require' }));
+
+  }, `setConfiguration({ rtcpMuxPolicy: 'require' }) with initial rtcpMuxPolicy negotiate should throw InvalidModificationError`);
+
+  test(() => {
+    let pc;
+    try {
+      pc = new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' });
+    } catch(err) {
+      // NotSupportedError is a DOMException with code 9
+      if(err.code === 9 && err.name === 'NotSupportedError') {
+        // ignore error and pass test if negotiate is not supported
+        return;
+      } else {
+        throw err;
+      }
+    }
+
+    assert_idl_attribute(pc, 'setConfiguration');
+    // default value for rtcpMuxPolicy is require
+    assert_throws('InvalidModificationError', () =>
+      pc.setConfiguration({}));
+
+  }, `setConfiguration({}) with initial rtcpMuxPolicy negotiate should throw InvalidModificationError`);
+
+  /*
+    Coverage Report
+
+      Tested    2
+      Total     2
+   */
+</script>

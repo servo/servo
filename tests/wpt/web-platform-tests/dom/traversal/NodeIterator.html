@@ -52,6 +52,23 @@ test(function() {
   assert_throws({name: "failed"}, function() { iter.nextNode() });
 }, "Propagate exception from filter function");
 
+test(function() {
+  var depth = 0;
+  var iter = document.createNodeIterator(document, NodeFilter.SHOW_ALL,
+    function() {
+      if (iter.referenceNode != document && depth == 0) {
+        depth++;
+        iter.nextNode();
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    });
+  iter.nextNode();
+  iter.nextNode();
+  assert_throws("InvalidStateError", function() { iter.nextNode() });
+  depth--;
+  assert_throws("InvalidStateError", function() { iter.previousNode() });
+}, "Recursive filters need to throw");
+
 function testIterator(root, whatToShow, filter) {
   var iter = document.createNodeIterator(root, whatToShow, filter);
 

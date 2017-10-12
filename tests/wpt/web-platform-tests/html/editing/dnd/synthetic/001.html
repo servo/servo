@@ -1,120 +1,120 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Synthetic drag events</title>
-		<script type="text/javascript" src="/resources/testharness.js"></script>
-		<script type="text/javascript" src="/resources/testharnessreport.js"></script>
-	</head>
-	<body>
-		<div id="log"></div>
-		<script type="text/javascript">
+  <head>
+    <title>Synthetic drag events</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script type="text/javascript">
 test(function() {
-	assert_own_property(window,'DragEvent');
+  assert_own_property(window,'DragEvent');
 }, 'window.DragEvent should be exposed' );
 test(function() {
- assert_throws('NOT_SUPPORTED_ERR', function() {
- 	var evt = document.createEvent('DragEvent');
- });
+  assert_throws('NOT_SUPPORTED_ERR', function() {
+    var evt = document.createEvent('DragEvent');
+  });
 }, 'createEvent should not be able to create a DragEvent' );
 test(function() {
-	var evt = new DragEvent('dragstart');
-	assert_false( !!evt.initDragEvent, 'initDragEvent' );
-	assert_true( !!evt.initMouseEvent, 'initMouseEvent' );
-	assert_true( !!evt.initUIEvent, 'initUIEvent' );
-	assert_true( !!evt.initEvent, 'initEvent' );
+  var evt = new DragEvent('dragstart');
+  assert_false( !!evt.initDragEvent, 'initDragEvent' );
+  assert_true( !!evt.initMouseEvent, 'initMouseEvent' );
+  assert_true( !!evt.initUIEvent, 'initUIEvent' );
+  assert_true( !!evt.initEvent, 'initEvent' );
 }, 'DragEvent should have all of the inherited init*Event methods' );
 
 //cannot test non-synthetic dataTransfer objects as the param here because that needs a real DragEvent to create a proper one with global storage
 //will be tested in another file
 test(function() {
-	var evt = new DragEvent('dragstart');
-	evt.initMouseEvent('dragstart', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, document.body);
+  var evt = new DragEvent('dragstart');
+  evt.initMouseEvent('dragstart', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, document.body);
 }, 'initMouseEvent should not throw' );
 test(function() {
-	var evt = new DragEvent('dragstart');
-	evt.initUIEvent('dragstart', true, true, window, 1);
+  var evt = new DragEvent('dragstart');
+  evt.initUIEvent('dragstart', true, true, window, 1);
 }, 'initUIEvent should not throw' );
 test(function() {
-	var evt = new DragEvent('dragstart');
-	evt.initEvent('dragstart', true, true);
+  var evt = new DragEvent('dragstart');
+  evt.initEvent('dragstart', true, true);
 }, 'initEvent should not throw' );
 
 test(function() {
-	var evt = new DragEvent('dragstart', {dataTransfer:null}), div = document.createElement('div'), ranlistener = false;
-	div.ondragstart = function () { ranlistener = true; };
-	div.dispatchEvent(evt);
-	assert_true(ranlistener);
+  var evt = new DragEvent('dragstart', {dataTransfer:null}), div = document.createElement('div'), ranlistener = false;
+  div.ondragstart = function () { ranlistener = true; };
+  div.dispatchEvent(evt);
+  assert_true(ranlistener);
 }, 'DragEvent constructor with null as the dataTransfer parameter should be able to fire the event' );
 test(function() {
-	var evt = new DragEvent('dragstart', {dataTransfer:undefined}), div = document.createElement('div'), ranlistener = false;
-	div.ondragstart = function () { ranlistener = true; };
-	div.dispatchEvent(evt);
-	assert_true(ranlistener);
+  var evt = new DragEvent('dragstart', {dataTransfer:undefined}), div = document.createElement('div'), ranlistener = false;
+  div.ondragstart = function () { ranlistener = true; };
+  div.dispatchEvent(evt);
+  assert_true(ranlistener);
 }, 'DragEvent constructor with undefined as the dataTransfer parameter should be able to fire the event' );
 test(function() {
- assert_throws(new TypeError(), function() {
- 	var evt = new DragEvent('dragstart', {dataTransfer:{}});
- });
+  assert_throws(new TypeError(), function() {
+    var evt = new DragEvent('dragstart', {dataTransfer:{}});
+  });
 }, 'DragEvent constructor with custom object as the dataTransfer parameter should throw TypeError' );
 test(function() {
-	var evt = new DragEvent('dragstart'), div = document.createElement('div'), ranlistener = false;
-	div.ondragstart = function () { ranlistener = true; };
-	evt.initMouseEvent('dragstart', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, document.body);
-	div.dispatchEvent(evt);
-	assert_true(ranlistener);
+  var evt = new DragEvent('dragstart'), div = document.createElement('div'), ranlistener = false;
+  div.ondragstart = function () { ranlistener = true; };
+  evt.initMouseEvent('dragstart', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, document.body);
+  div.dispatchEvent(evt);
+  assert_true(ranlistener);
 }, 'initMouseEvent should be able to fire the event' );
 test(function() {
-	var evt = new DragEvent('dragstart'), div = document.createElement('div'), ranlistener = false;
-	div.ondragstart = function () { ranlistener = true; };
-	evt.initUIEvent('dragstart', true, true, window, 1);
-	div.dispatchEvent(evt);
-	assert_true(ranlistener);
+  var evt = new DragEvent('dragstart'), div = document.createElement('div'), ranlistener = false;
+  div.ondragstart = function () { ranlistener = true; };
+  evt.initUIEvent('dragstart', true, true, window, 1);
+  div.dispatchEvent(evt);
+  assert_true(ranlistener);
 }, 'initUIEvent should be able to fire the event' );
 test(function() {
-	var evt = new DragEvent('dragstart'), div = document.createElement('div'), ranlistener = false;
-	div.ondragstart = function () { ranlistener = true; };
-	evt.initEvent('dragstart', true, true);
-	div.dispatchEvent(evt);
-	assert_true(ranlistener);
+  var evt = new DragEvent('dragstart'), div = document.createElement('div'), ranlistener = false;
+  div.ondragstart = function () { ranlistener = true; };
+  evt.initEvent('dragstart', true, true);
+  div.dispatchEvent(evt);
+  assert_true(ranlistener);
 }, 'initEvent should be able to fire the event' );
 
 test(function() {
-	var evt = new DragEvent('dragstart', {dataTransfer:null}), div = document.createElement('div'), dTrans = 'fail';
-	div.ondragstart = function (e) { dTrans = e.dataTransfer };
-	div.dispatchEvent(evt);
-	assert_equals(dTrans,null);
+  var evt = new DragEvent('dragstart', {dataTransfer:null}), div = document.createElement('div'), dTrans = 'fail';
+  div.ondragstart = function (e) { dTrans = e.dataTransfer };
+  div.dispatchEvent(evt);
+  assert_equals(dTrans,null);
 }, 'DragEvent constructor with null as the dataTransfer parameter should give null as the dataTransfer' );
 test(function() {
-	var evt = new DragEvent('dragstart', {dataTransfer:undefined}), div = document.createElement('div'), dTrans = 'fail';
-	div.ondragstart = function (e) { dTrans = e.dataTransfer };
-	div.dispatchEvent(evt);
-	assert_equals(dTrans,null);
+  var evt = new DragEvent('dragstart', {dataTransfer:undefined}), div = document.createElement('div'), dTrans = 'fail';
+  div.ondragstart = function (e) { dTrans = e.dataTransfer };
+  div.dispatchEvent(evt);
+  assert_equals(dTrans,null);
 }, 'DragEvent constructor with undefined as the dataTransfer parameter should give null as the dataTransfer' );
 test(function() {
-	var evt = new DragEvent('dragstart'), div = document.createElement('div'), dTrans = 'fail';
-	div.ondragstart = function (e) { dTrans = e.dataTransfer };
-	evt.initMouseEvent('dragstart', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, document.body);
-	div.dispatchEvent(evt);
-	assert_equals(dTrans,null);
+  var evt = new DragEvent('dragstart'), div = document.createElement('div'), dTrans = 'fail';
+  div.ondragstart = function (e) { dTrans = e.dataTransfer };
+  evt.initMouseEvent('dragstart', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 1, document.body);
+  div.dispatchEvent(evt);
+  assert_equals(dTrans,null);
 }, 'initMouseEvent should give null as the dataTransfer' );
 test(function() {
-	var evt = new DragEvent('dragstart'), div = document.createElement('div'), dTrans = 'fail';
-	div.ondragstart = function (e) { dTrans = e.dataTransfer };
-	evt.initUIEvent('dragstart', true, true, window, 1);
-	div.dispatchEvent(evt);
-	assert_equals(dTrans,null);
+  var evt = new DragEvent('dragstart'), div = document.createElement('div'), dTrans = 'fail';
+  div.ondragstart = function (e) { dTrans = e.dataTransfer };
+  evt.initUIEvent('dragstart', true, true, window, 1);
+  div.dispatchEvent(evt);
+  assert_equals(dTrans,null);
 }, 'initUIEvent should give null as the dataTransfer' );
 test(function() {
-	var evt = new DragEvent('dragstart'), div = document.createElement('div'), dTrans = 'fail';
-	div.ondragstart = function (e) { dTrans = e.dataTransfer };
-	evt.initEvent('dragstart', true, true);
-	div.dispatchEvent(evt);
-	assert_equals(dTrans,null);
+  var evt = new DragEvent('dragstart'), div = document.createElement('div'), dTrans = 'fail';
+  div.ondragstart = function (e) { dTrans = e.dataTransfer };
+  evt.initEvent('dragstart', true, true);
+  div.dispatchEvent(evt);
+  assert_equals(dTrans,null);
 }, 'initEvent should give null as the dataTransfer' );
 
 //cannot test that synthetic event does not use the same data store as non-synthetic event because that needs a real DragEvent to create a proper one with global storage
 //will be tested in another file
-		</script>
-		<noscript><p>Enable JavaScript and reload</p></noscript>
-	</body>
+    </script>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+  </body>
 </html>

@@ -201,11 +201,3 @@ enum IDBTransactionMode {
   "readwrite",
   "versionchange"
 };
-
-interface DOMStringList {
-    readonly attribute unsigned long length;
-    getter DOMString (unsigned long index);
-    DOMString? item(unsigned long index);
-
-    boolean contains(DOMString str);
-};

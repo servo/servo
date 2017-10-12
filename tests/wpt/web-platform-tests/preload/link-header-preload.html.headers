@@ -1,4 +1,4 @@
-Link: </preload/resources/dummy.js>;rel=preload;as=script
-Link: </preload/resources/dummy.css>;rel=preload;as=style
-Link: </preload/resources/square.png>;rel=preload;as=image
+Link: </preload/resources/dummy.js?link-header-preload>;rel=preload;as=script
+Link: </preload/resources/dummy.css?link-header-preload>;rel=preload;as=style
+Link: </preload/resources/square.png?link-header-preload>;rel=preload;as=image
 

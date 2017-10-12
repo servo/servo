@@ -1,62 +1,62 @@
 <!doctype html>
 <html>
-	<head>
-		<title>allowTargetOrigin after leaving browser window</title>
-		<style type="text/css">
+  <head>
+    <title>allowTargetOrigin after leaving browser window</title>
+    <style type="text/css">
 div { float: left; height: 100px; width: 100px; margin-right: 10px; background: orange; }
 iframe { height: 100px; width: 100px; border: none; }
 .note { float: right; color: silver; }
-		</style>
-		<script type="text/javascript" src="../resources/crossorigin.sub.js"></script>
-		<script type="text/javascript">
+    </style>
+    <script type="text/javascript" src="../resources/crossorigin.sub.js"></script>
+    <script type="text/javascript">
 function addNote(el,str) {
-	var par = document.createElement(el);
-	par.textContent = str;
-	document.body.appendChild(par);
+  var par = document.createElement(el);
+  par.textContent = str;
+  document.body.appendChild(par);
 }
 function testFrame(text,frameorigin,framepath) {
-	var persist = arguments;
-	addNote('p',(done++)+'. '+text);
-	var div = document.createElement('div');
-	var frame = document.createElement('iframe');
-	frame.src = frameorigin+framepath;
-	div.draggable = true;
-	div.ondragstart = function (e) {
-		e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text','dummy text');
-		for( var i = 3; i < persist.length; i++ ) {
-			e.dataTransfer.allowTargetOrigin(persist[i]);
-		}
-	};
-	var par = document.createElement('p');
-	par.className = 'note';
-	par.appendChild(document.createTextNode('Target: '+frameorigin));
-	par.appendChild(document.createElement('br'));
-	par.appendChild(document.createTextNode('Allowing: '+([]).slice.call(persist,3).join(' and ')));
-	if( framepath.match(/\?domain\b/) ) {
-		par.appendChild(document.createElement('br'));
-		par.appendChild(document.createTextNode('document.domain set to parent domain'));
-	}
-	document.body.appendChild(par);
-	document.body.appendChild(div);
-	document.body.appendChild(frame);
+  var persist = arguments;
+  addNote('p',(done++)+'. '+text);
+  var div = document.createElement('div');
+  var frame = document.createElement('iframe');
+  frame.src = frameorigin+framepath;
+  div.draggable = true;
+  div.ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','dummy text');
+    for( var i = 3; i < persist.length; i++ ) {
+      e.dataTransfer.allowTargetOrigin(persist[i]);
+    }
+  };
+  var par = document.createElement('p');
+  par.className = 'note';
+  par.appendChild(document.createTextNode('Target: '+frameorigin));
+  par.appendChild(document.createElement('br'));
+  par.appendChild(document.createTextNode('Allowing: '+([]).slice.call(persist,3).join(' and ')));
+  if( framepath.match(/\?domain\b/) ) {
+    par.appendChild(document.createElement('br'));
+    par.appendChild(document.createTextNode('document.domain set to parent domain'));
+  }
+  document.body.appendChild(par);
+  document.body.appendChild(div);
+  document.body.appendChild(frame);
 }
 var done = 1;
 window.onload = function () {
-	var allowText = 'Drag the orange box below outside the browser window (not onto the system taskbar) then back over the blue box the right, and release it. Fail if nothing happens in the blue box.';
-	var blockText = 'Drag the orange box below outside the browser window (not onto the system taskbar) then back over the pink box the right, and release it. Pass if nothing happens in the pink box.';
-	var allowHelper = location.pathname.replace(/[^\/]*$/,'HELPER-mustallow.html');
-	var blockHelper = location.pathname.replace(/[^\/]*$/,'HELPER-mustblock.html');
-	if( location.hostname != httpHostMain || location.host != httpHostMain ) {
-		addNote('p','This test must be loaded over http:\/\/'+httpHostMain+'\/');
-	} else {
-		/* 07 */ testFrame(allowText,'http://'+httpHostMain,allowHelper,'http://'+httpHostMain);
-		/* 09 */ testFrame(blockText,'http://'+httpHostAlias,blockHelper,'http://'+httpHostMain);
-	}
+  var allowText = 'Drag the orange box below outside the browser window (not onto the system taskbar) then back over the blue box the right, and release it. Fail if nothing happens in the blue box.';
+  var blockText = 'Drag the orange box below outside the browser window (not onto the system taskbar) then back over the pink box the right, and release it. Pass if nothing happens in the pink box.';
+  var allowHelper = location.pathname.replace(/[^\/]*$/,'HELPER-mustallow.html');
+  var blockHelper = location.pathname.replace(/[^\/]*$/,'HELPER-mustblock.html');
+  if( location.hostname != httpHostMain || location.host != httpHostMain ) {
+    addNote('p','This test must be loaded over http:\/\/'+httpHostMain+'\/');
+  } else {
+    /* 07 */ testFrame(allowText,'http://'+httpHostMain,allowHelper,'http://'+httpHostMain);
+    /* 09 */ testFrame(blockText,'http://'+httpHostAlias,blockHelper,'http://'+httpHostMain);
+  }
 };
-		</script>
-	</head>
-	<body>
-		<noscript><p>Enable JavaScript and reload</p></noscript>
-	</body>
+    </script>
+  </head>
+  <body>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+  </body>
 </html>

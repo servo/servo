@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender.getCapabilities</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCRtpCapabilities-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpCapabilities-helper.js:
+  //   validateRtpCapabilities
+
+  /*
+    5.2.  RTCRtpSender Interface
+      interface RTCRtpSender {
+        ...
+        static RTCRtpCapabilities getCapabilities(DOMString kind);
+      };
+
+      getCapabilities
+        The getCapabilities() method returns the most optimist view on the capabilities
+        of the system for sending media of the given kind. It does not reserve any
+        resources, ports, or other state but is meant to provide a way to discover
+        the types of capabilities of the browser including which codecs may be supported.
+   */
+  test(() => {
+    const capabilities = RTCRtpSender.getCapabilities('audio');
+    validateRtpCapabilities(capabilities);
+  }, `RTCRtpSender.getCapabilities('audio') should return RTCRtpCapabilities dictionary`);
+
+  test(() => {
+    const capabilities = RTCRtpSender.getCapabilities('video');
+    validateRtpCapabilities(capabilities);
+  }, `RTCRtpSender.getCapabilities('video') should return RTCRtpCapabilities dictionary`);
+
+ </script>

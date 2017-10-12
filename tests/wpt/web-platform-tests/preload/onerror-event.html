@@ -28,7 +28,7 @@
 <link rel=preload href="non-existent/dummy.xml?foo" as=foobarxmlthing onerror="gibberishFailed = true;">
 <link rel=preload href="non-existent/dummy.xml?fetch" as=fetch onerror="fetchFailed = true;">
 <link rel=preload href="non-existent/dummy.xml?empty" onerror="emptyFailed = true;">
-<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<script src="resources/dummy.js?pipe=trickle(d5)&onerror-event"></script>
 <script>
     window.onload = t.step_func(function() {
         verifyPreloadAndRTSupport();

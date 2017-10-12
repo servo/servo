@@ -2,11 +2,11 @@
 // requestAnimationFrame. In the second frame, we take a screenshot, that makes
 // sure that we already have a full frame.
 function importPaintWorkletAndTerminateTestAfterAsyncPaint(code) {
-    if (typeof paintWorklet == "undefined") {
+    if (typeof CSS.paintWorklet == "undefined") {
         takeScreenshot();
     } else {
         var blob = new Blob([code], {type: 'text/javascript'});
-        paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+        CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
             requestAnimationFrame(function() {
                 requestAnimationFrame(function() {
                     takeScreenshot();

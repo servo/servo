@@ -14,13 +14,14 @@ indexeddb_test(
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
 
-    const buffer = new Uint8Array([1,2,3,4]).buffer;
-    assert_equals(buffer.byteLength, 4);
+    const array = new Uint8Array([1,2,3,4]);
+    const buffer = array.buffer;
+    assert_equals(array.byteLength, 4);
 
     // Detach the ArrayBuffer by transferring it to a worker.
     const worker = new Worker(URL.createObjectURL(new Blob([])));
     worker.postMessage('', [buffer]);
-    assert_equals(buffer.byteLength, 0);
+    assert_equals(array.byteLength, 0);
 
     assert_throws(new TypeError, () => { store.put('', buffer); });
     t.done();

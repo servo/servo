@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share no known fields</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        promise_test(t => {
+          return promise_rejects(t, new TypeError(), navigator.share());
+        }, 'share with no arguments (same as empty dictionary)');
+
+        promise_test(t => {
+          return promise_rejects(t, new TypeError(), navigator.share({}));
+        }, 'share with an empty dictionary');
+
+        promise_test(t => {
+          return promise_rejects(t, new TypeError(), navigator.share(undefined));
+        }, 'share with a undefined argument (same as empty dictionary)');
+
+        promise_test(t => {
+          return promise_rejects(t, new TypeError(), navigator.share(null));
+        }, 'share with a null argument (same as empty dictionary)');
+
+        promise_test(t => {
+          return promise_rejects(t,
+              new TypeError(), navigator.share({unused: 'unexpected field'}));
+        }, 'share with a dictionary containing only surplus fields');
+    </script>
+  </body>
+</html>

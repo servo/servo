@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Subresource Integrity</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/sriharness.js"></script>
+
+<div id="log"></div>
+
+<div id="container"></div>
+<script>
+    var public_key = "otDax00eEy6QTMK61lfzrHgZDsXw++rdJkYi02N6X0c="
+    var style_tests = [];
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Passes, with correct key + signature.",
+        {
+            href: "ed25519-style.css?1",
+            integrity: "ed25519-" + public_key
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Fails, because the key is malformed.",
+        {
+            href: "ed25519-style.css?2",
+            integrity: "ed25519-PotatoPotatoPotato"
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Fails because of wrong key.",
+        {
+            href: "ed25519-style.css?3",
+            integrity: "ed25519-PotatoPotatoPotatoPotatoPotatoAvocadoPotato="
+
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Fails, because of missing key.",
+        {
+            href: "ed25519-style-no-signature.css",
+            integrity: "ed25519-" + public_key
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        false,
+        "Fails, because of wrong key.",
+        {
+            href: "ed25519-style-wrong-signature.css",
+            integrity: "ed25519-" + public_key
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Passes, because the first of two keys passes.",
+        {
+            href: "ed25519-style.css?1",
+            integrity: "ed25519-" + public_key +
+              " ed25519-PotatoPotatoPotatoPotatoPotatoAvocadoPotato="
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Passes, because the second of two keys passes.",
+        {
+            href: "ed25519-style.css?1",
+            integrity: "ed25519-PotatoPotatoPotatoPotatoPotatoAvocadoPotato= " +
+              "ed25519-" + public_key
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Passes, because at least one signature matches.",
+        {
+            href: "ed25519-style-multi-signature.css",
+            integrity: "ed25519-" + public_key
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Passes (as above), with commas between values.",
+        {
+            href: "ed25519-style-multi-signature2.css",
+            integrity: "ed25519-" + public_key
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Passes (as above), with multiple headers.",
+        {
+            href: "ed25519-style-multi-signature-headers.css",
+            integrity: "ed25519-" + public_key
+        }
+    );
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Passes, with multiple signatures + multiple keys.",
+        {
+            href: "ed25519-style-multi-signature.css?2",
+            integrity: "ed25519-PotatoPotatoPotatoPotatoPotatoAvocadoPotato= " +
+                "ed25519-" + public_key
+        }
+    );
+
+    // Run all style_tests in sequence.
+    function execute_next_style_test() {
+      if (style_tests.length > 0)
+        style_tests.shift().execute();
+    }
+    add_result_callback(execute_next_style_test);
+    execute_next_style_test();
+</script>

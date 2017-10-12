@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender.prototype.getStats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCStats-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+  // https://w3c.github.io/webrtc-stats/archives/20170614/webrtc-stats.html
+
+  // The following helper function is called from RTCStats-helper.js
+  //   validateStatsReport
+  //   assert_stats_report_has_stats
+
+  /*
+    5.2.  RTCRtpSender Interface
+      interface RTCRtpSender {
+         Promise<RTCStatsReport> getStats();
+          ...
+      };
+
+      getStats
+        1.  Let selector be the RTCRtpSender object on which the method was invoked.
+        2.  Let p be a new promise, and run the following steps in parallel:
+          1.  Gather the stats indicated by selector according to the stats selection
+              algorithm.
+          2.  Resolve p with the resulting RTCStatsReport object, containing the
+              gathered stats.
+        3.  Return p.
+
+    8.5. The stats selection algorithm
+      3.  If selector is an RTCRtpSender, gather stats for and add the following objects
+          to result:
+        - All RTCOutboundRTPStreamStats objects corresponding to selector.
+        - All stats objects referenced directly or indirectly by the RTCOutboundRTPStreamStats
+          objects added.
+   */
+
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+
+    return sender.getStats()
+    .then(statsReport => {
+      validateStatsReport(statsReport);
+      assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
+    });
+  }, 'sender.getStats() should return stats report containing outbound-rtp stats');
+
+</script>

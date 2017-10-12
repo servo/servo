@@ -26,7 +26,7 @@ function coalesce_headers_test() {
 
       return new Promise(function(resolve) {
           window.addEventListener('message', function handle(evt) {
-              if (event.data !== 'ACK') {
+              if (evt.data !== 'ACK') {
                 return;
               }
 
@@ -40,7 +40,7 @@ function coalesce_headers_test() {
 window.addEventListener('message', function(evt) {
     var port;
 
-    if (event.data !== 'START') {
+    if (evt.data !== 'START') {
       return;
     }
 

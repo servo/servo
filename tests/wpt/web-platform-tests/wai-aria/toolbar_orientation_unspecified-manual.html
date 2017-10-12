@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>toolbar orientation unspecified</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -59,15 +60,21 @@
             "IAccessible2" : [
                [
                   "property",
-                  "states",
-                  "doesNotContain",
-                  "IA2_STATE_VERTICAL cleared"
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_TOOLBAR"
                ],
                [
                   "property",
                   "states",
                   "doesNotContain",
-                  "IA2_STATE_HORIZONTAL set"
+                  "IA2_STATE_VERTICAL"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_HORIZONTAL"
                ]
             ],
             "MSAA" : [
@@ -114,4 +121,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

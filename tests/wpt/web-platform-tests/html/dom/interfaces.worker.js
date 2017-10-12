@@ -3,10 +3,10 @@
 importScripts("/resources/testharness.js");
 importScripts("/resources/WebIDLParser.js", "/resources/idlharness.js");
 
-function doTest([untested, tested]) {
+function doTest([html, dom, cssom, touchevents, uievents]) {
   var idlArray = new IdlArray();
-  idlArray.add_untested_idls(untested);
-  idlArray.add_idls(tested);
+  idlArray.add_untested_idls(dom + cssom + touchevents + uievents);
+  idlArray.add_idls(html);
 
   idlArray.add_objects({
     WorkerNavigator: ['self.navigator'],
@@ -25,8 +25,11 @@ function fetchData(url) {
 }
 
 promise_test(function() {
-  return Promise.all([fetchData("resources/untested-interfaces.idl"),
-                      fetchData("resources/interfaces.idl")])
+  return Promise.all([fetchData("/interfaces/html.idl"),
+                      fetchData("/interfaces/dom.idl"),
+                      fetchData("/interfaces/cssom.idl"),
+                      fetchData("/interfaces/touchevents.idl"),
+                      fetchData("/interfaces/uievents.idl")])
                 .then(doTest);
 }, "Test driver");
 

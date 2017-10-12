@@ -8,7 +8,7 @@
   'use strict';
 
   // Test is based on the following editor draft:
-  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   generateOffer()
@@ -27,18 +27,16 @@
           readonly attribute unsigned long    maxMessageSize;
         };
 
-    4.3.1.  Operation
-      When the RTCPeerConnection() constructor is invoked
-        8.  Let connection have an [[sctpTransport]] internal slot,
-            initialized to null.
+    4.4.1.1.  Constructor
+      8.  Let connection have an [[sctpTransport]] internal slot, initialized to null.
 
-      To set an RTCSessionDescription description
-      6.  If description is of type "answer" or "pranswer", then run the
-          following steps:
-        1.  If description initiates the establishment of a new SCTP
-            association, as defined in [SCTP-SDP], Sections 10.3 and 10.4,
-            set the value of connection's [[sctpTransport]] internal slot
-            to a newly created RTCSctpTransport.
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.2.6.  If description is of type "answer" or "pranswer", then run the
+              following steps:
+        1.  If description initiates the establishment of a new SCTP association,
+            as defined in [SCTP-SDP], Sections 10.3 and 10.4, set the value of
+            connection's [[SctpTransport]] internal slot to a newly created
+            RTCSctpTransport.
    */
 
   promise_test(t => {
@@ -69,7 +67,7 @@
     const pc = new RTCPeerConnection();
     assert_equals(pc.sctp, null);
 
-    return generateOffer({ data: true })
+    return generateOffer({ pc, data: true })
     .then(offer => pc.setRemoteDescription(offer))
     .then(() => pc.createAnswer())
     .then(answer => pc.setLocalDescription(answer))

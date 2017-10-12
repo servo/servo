@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="stylesheet" href="font-matching.css">
+<!-- Tests CSS Fonts Level 4, section 5.2. font matching algorithm. Precedence
+  of properties (stretch over style, style over weight) and search
+  direction for style. -->
+<style>
+    /* Matches, 2 & 3 in stretch, has wrong style, but in the right search
+     direction, so weight 400 gets chosen for 1-3. */
+    @font-face {
+    font-family: variable_axes;
+    src: url("resources/variabletest_matching.ttf");
+    font-stretch: 62.5% 75%;
+    font-style: oblique -90deg;
+    font-weight: 400;
+    }
+
+    /* Matches 2 & 3 in stretch and weight but has wrong style and in the wrong
+    search direction, chosen for 4 and 5. */
+    @font-face {
+    font-family: variable_axes;
+    src: url("resources/variabletest_matching.ttf");
+    font-stretch: 62.5% 75%;
+    font-style: oblique -20deg;
+    font-weight: 200 300;
+    }
+
+
+    /* Matches 7 & 8 in stretch, has wrong style, but in the right search
+    direction from 7 and above, so weight 600 gets chosen for 7-9. */
+    @font-face {
+    font-family: variable_axes;
+    src: url("resources/variabletest_matching.ttf");
+    font-stretch: 125% 150%;
+    font-style: oblique 90deg;
+    font-weight: 500;
+    }
+
+
+    /* Matches 7 & 8 in stretch and weight, but has wrong style and in the wrong
+    search direction for 7 and above, gets chosen for 6. */
+    @font-face {
+    font-family: variable_axes;
+    src: url("resources/variabletest_matching.ttf");
+    font-stretch: 125% 150%;
+    font-style: oblique 20deg;
+    font-weight: 700 800;
+    }
+</style>
+<link rel="match" href="style-ranges-over-weight-direction-ref.html">
+<span id="stretch_style_weight_1">MNOP</span>
+ <span id="stretch_style_weight_2">MNOP</span>
+ <span id="stretch_style_weight_3">MNOP</span>
+ <span id="stretch_style_weight_4">MNOP</span>
+ <span id="stretch_style_weight_5">MNOP</span>
+ <span id="stretch_style_weight_6">MNOP</span>
+ <span id="stretch_style_weight_7">MNOP</span>
+ <span id="stretch_style_weight_8">MNOP</span>
+ <span id="stretch_style_weight_9">MNOP</span>
+<script>
+    document.fonts.ready.then(
+        () => { document.documentElement.classList.remove("reftest-wait"); });
+</script>
+</html>

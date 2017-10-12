@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+</style>
+
+<div id="host"></div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+
+var entries = [];
+var target;
+
+runTestCycle(function() {
+  var shadowHost = document.getElementById("host");
+  assert_true(!!shadowHost, "Host exists");
+  var shadowRoot = shadowHost.createShadowRoot();
+  assert_true(!!shadowRoot, "Shadow root exists");
+  shadowRoot.innerHTML = "<div id='target' style='width: 100px; height: 100px; background-color: green;'></div>";
+  target = shadowRoot.getElementById("target");
+  assert_true(!!target, "target exists");
+
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF after creating shadow DOM.");
+}, "Observing a target inside shadow DOM.");
+
+function step0() {
+  checkLastEntry(entries, 0, [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true]);
+}
+</script>

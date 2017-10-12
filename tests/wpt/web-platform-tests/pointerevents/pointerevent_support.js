@@ -90,15 +90,13 @@ function check_PointerEvent(event, testNamePrefix) {
         assert_greater_than_equal(event.pressure, 0, "pressure is greater than or equal to 0");
         assert_less_than_equal(event.pressure, 1, "pressure is less than or equal to 1");
 
-        if (event.type === "pointerup") {
-            assert_equals(event.pressure, 0, "pressure is 0 during pointerup");
+        if (event.buttons === 0) {
+            assert_equals(event.pressure, 0, "pressure is 0 for mouse with no buttons pressed");
         }
 
         // TA: 1.7, 1.8
         if (event.pointerType === "mouse") {
-            if (event.buttons === 0) {
-                assert_equals(event.pressure, 0, "pressure is 0 for mouse with no buttons pressed");
-            } else {
+            if (event.buttons !== 0) {
                 assert_equals(event.pressure, 0.5, "pressure is 0.5 for mouse with a button pressed");
             }
         }

@@ -23,11 +23,20 @@ interface Performance {
 };
 
 interface PerformanceEntry {
+  readonly attribute DOMString           name;
+  readonly attribute DOMString           entryType;
+  readonly attribute DOMHighResTimeStamp startTime;
+  readonly attribute DOMHighResTimeStamp duration;
+  [Default] object toJSON();
 };
 
+[Exposed=(Window,Worker)]
 interface EventHandler {
 };
 
+typedef double DOMHighResTimeStamp;
+
+[Exposed=(Window,Worker)]
 partial interface Performance {
   PerformanceEntryList getEntries();
   PerformanceEntryList getEntriesByType(DOMString entryType);
@@ -40,9 +49,11 @@ partial interface Window {
 </pre>
 
 <pre id='idl'>
-[Exposed=(Window)]
+[Exposed=(Window,Worker)]
 interface PerformanceResourceTiming : PerformanceEntry {
     readonly attribute DOMString           initiatorType;
+    readonly attribute DOMString           nextHopProtocol;
+    readonly attribute DOMHighResTimeStamp workerStart;
     readonly attribute DOMHighResTimeStamp redirectStart;
     readonly attribute DOMHighResTimeStamp redirectEnd;
     readonly attribute DOMHighResTimeStamp fetchStart;
@@ -54,8 +65,12 @@ interface PerformanceResourceTiming : PerformanceEntry {
     readonly attribute DOMHighResTimeStamp requestStart;
     readonly attribute DOMHighResTimeStamp responseStart;
     readonly attribute DOMHighResTimeStamp responseEnd;
-    serializer = {inherit, attribute};
+    readonly attribute unsigned long long  transferSize;
+    readonly attribute unsigned long long  encodedBodySize;
+    readonly attribute unsigned long long  decodedBodySize;
+    [Default] object toJSON();
 };
+
 partial interface Performance {
     void clearResourceTimings();
     void setResourceTimingBufferSize(unsigned long maxSize);
@@ -71,7 +86,8 @@ partial interface Performance {
   idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
   idl_array.add_idls(document.getElementById("idl").textContent);
 
-  idl_array.add_objects({Performance: ['window.performance']});
+  idl_array.add_objects({Performance: ['window.performance'],
+                         PerformanceResourceTiming: ["window.performance.getEntriesByType('resource')[0]"]});
 
   idl_array.test();
 })();

@@ -1,0 +1,190 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCIceTransport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //  createDataChannelPair
+  //  awaitMessage
+
+  /*
+    5.6.  RTCIceTransport Interface
+      interface RTCIceTransport {
+        readonly attribute RTCIceRole           role;
+        readonly attribute RTCIceComponent      component;
+        readonly attribute RTCIceTransportState state;
+        readonly attribute RTCIceGathererState  gatheringState;
+        sequence<RTCIceCandidate> getLocalCandidates();
+        sequence<RTCIceCandidate> getRemoteCandidates();
+        RTCIceCandidatePair?      getSelectedCandidatePair();
+        RTCIceParameters?         getLocalParameters();
+        RTCIceParameters?         getRemoteParameters();
+        ...
+      };
+
+      getLocalCandidates
+        Returns a sequence describing the local ICE candidates gathered for this
+        RTCIceTransport and sent in onicecandidate
+
+      getRemoteCandidates
+        Returns a sequence describing the remote ICE candidates received by this
+        RTCIceTransport via addIceCandidate()
+
+      getSelectedCandidatePair
+        Returns the selected candidate pair on which packets are sent, or null if
+        there is no such pair.
+
+      getLocalParameters
+        Returns the local ICE parameters received by this RTCIceTransport via
+        setLocalDescription , or null if the parameters have not yet been received.
+
+      getRemoteParameters
+        Returns the remote ICE parameters received by this RTCIceTransport via
+        setRemoteDescription or null if the parameters have not yet been received.
+   */
+  function getIceTransportFromSctp(pc) {
+    const sctpTransport = pc.sctp;
+    assert_true(sctpTransport instanceof RTCSctpTransport,
+      'Expect pc.sctp to be instantiated from RTCSctpTransport');
+
+    const dtlsTransport = sctpTransport.transport;
+    assert_true(dtlsTransport instanceof RTCDtlsTransport,
+      'Expect sctp.transport to be an RTCDtlsTransport');
+
+    const iceTransport = dtlsTransport.transport;
+    assert_true(iceTransport instanceof RTCIceTransport,
+      'Expect dtlsTransport.transport to be an RTCIceTransport');
+
+    return iceTransport;
+  }
+
+  function validateCandidates(candidates) {
+    assert_greater_than(candidates.length, 0,
+      'Expect at least one ICE candidate returned from get*Candidates()');
+
+    for(const candidate of candidates) {
+      assert_true(candidate instanceof RTCIceCandidate,
+        'Expect candidate elements to be instance of RTCIceCandidate');
+    }
+  }
+
+  function validateCandidateParameter(param) {
+    assert_not_equals(param, null,
+      'Expect candidate parameter to be non-null after data channels are connected');
+
+    assert_equals(typeof param.usernameFragment, 'string',
+      'Expect param.usernameFragment to be set with string value');
+
+    assert_equals(typeof param.password, 'string',
+      'Expect param.password to be set with string value');
+  }
+
+  function validateConnectedIceTransport(iceTransport) {
+    const { state, gatheringState, role, component } = iceTransport;
+
+    assert_true(role === 'controlling' || role === 'controlled',
+      'Expect RTCIceRole to be either controlling or controlled');
+
+    assert_true(component === 'rtp' || component === 'rtcp',
+      'Expect RTCIceComponent to be either rtp or rtcp');
+
+    assert_true(state === 'connected' || state === 'completed',
+      'Expect ICE transport to be in connected or completed state after data channels are connected');
+
+    assert_true(gatheringState === 'gathering' || gatheringState === 'completed',
+      'Expect ICE transport to be in gathering or completed gatheringState after data channels are connected');
+
+    validateCandidates(iceTransport.getLocalCandidates());
+    validateCandidates(iceTransport.getRemoteCandidates());
+
+    const candidatePair = iceTransport.getSelectedCandidatePair();
+    assert_not_equals(candidatePair, null,
+      'Expect selected candidate pair to be non-null after ICE transport is connected');
+
+    assert_true(candidatePair.local instanceof RTCIceCandidate,
+      'Expect candidatePair.local to be instance of RTCIceCandidate');
+
+    assert_true(candidatePair.remote instanceof RTCIceCandidate,
+      'Expect candidatePair.remote to be instance of RTCIceCandidate');
+
+    validateCandidateParameter(iceTransport.getLocalParameters());
+    validateCandidateParameter(iceTransport.getRemoteParameters());
+  }
+
+  promise_test(() => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+
+    return createDataChannelPair(pc1, pc2)
+    .then(([channel1, channel2]) => {
+      // Send a ping message and wait for it just to make sure
+      // that the connection is fully working before testing
+      channel1.send('ping');
+      return awaitMessage(channel2);
+    })
+    .then(() => {
+      const iceTransport1 = getIceTransportFromSctp(pc1);
+      const iceTransport2 = getIceTransportFromSctp(pc2);
+
+      validateConnectedIceTransport(iceTransport1);
+      validateConnectedIceTransport(iceTransport2);
+
+      assert_equals(
+        iceTransport1.getLocalCandidates().length,
+        iceTransport2.getRemoteCandidates().length,
+        `Expect iceTransport1 to have same number of local candidate as iceTransport2's remote candidates`);
+
+      assert_equals(
+        iceTransport1.getRemoteCandidates().length,
+        iceTransport2.getLocalCandidates().length,
+        `Expect iceTransport1 to have same number of remote candidate as iceTransport2's local candidates`);
+
+      const candidatePair1 = iceTransport1.getSelectedCandidatePair();
+      const candidatePair2 = iceTransport2.getSelectedCandidatePair();
+
+      assert_equals(candidatePair1.local.candidate, candidatePair2.remote.candidate,
+        'Expect selected local candidate of one pc is the selected remote candidate or another');
+
+      assert_equals(candidatePair1.remote.candidate, candidatePair2.local.candidate,
+        'Expect selected local candidate of one pc is the selected remote candidate or another');
+
+      assert_equals(iceTransport1.role, 'controlling',
+        `Expect offerer's iceTransport to take the controlling role`);
+
+      assert_equals(iceTransport2.role, 'controlled',
+        `Expect answerer's iceTransport to take the controlled role`);
+    });
+  }, 'Two connected iceTransports should has matching local/remote candidates returned');
+
+  promise_test(() => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    pc1.createDataChannel('');
+
+    // setRemoteDescription(answer) without the other peer
+    // setting answer it's localDescription
+    return pc1.createOffer()
+    .then(offer =>
+      pc1.setLocalDescription(offer)
+      .then(() => pc2.setRemoteDescription(offer))
+      .then(() => pc2.createAnswer()))
+    .then(answer => pc1.setRemoteDescription(answer))
+    .then(() => {
+      const iceTransport = getIceTransportFromSctp(pc1);
+
+      assert_array_equals(iceTransport.getRemoteCandidates(), [],
+        'Expect iceTransport to not have any remote candidate');
+
+      assert_equals(iceTransport.getSelectedCandidatePair(), null,
+        'Expect selectedCandidatePair to be null');
+    });
+  }, 'Unconnected iceTransport should have empty remote candidates and selected pair');
+
+</script>

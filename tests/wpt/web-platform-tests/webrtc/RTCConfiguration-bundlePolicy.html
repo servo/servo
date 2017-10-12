@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCConfiguration bundlePolicy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        ...
+        RTCConfiguration                   getConfiguration();
+        void                               setConfiguration(RTCConfiguration configuration);
+      };
+
+    4.2.1.  RTCConfiguration Dictionary
+      dictionary RTCConfiguration {
+        RTCBundlePolicy          bundlePolicy = "balanced";
+        ...
+      };
+
+    4.2.6.  RTCBundlePolicy Enum
+      enum RTCBundlePolicy {
+        "balanced",
+        "max-compat",
+        "max-bundle"
+      };
+   */
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.getConfiguration().bundlePolicy, 'balanced');
+  }, 'Default bundlePolicy should be balanced');
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: undefined });
+    assert_equals(pc.getConfiguration().bundlePolicy, 'balanced');
+  }, `new RTCPeerConnection({ bundlePolicy: undefined }) should have bundlePolicy balanced`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'balanced' });
+    assert_equals(pc.getConfiguration().bundlePolicy, 'balanced');
+  }, `new RTCPeerConnection({ bundlePolicy: 'balanced' }) should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'max-compat' });
+    assert_equals(pc.getConfiguration().bundlePolicy, 'max-compat');
+  }, `new RTCPeerConnection({ bundlePolicy: 'max-compat' }) should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+    assert_equals(pc.getConfiguration().bundlePolicy, 'max-bundle');
+  }, `new RTCPeerConnection({ bundlePolicy: 'max-bundle' }) should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    pc.setConfiguration({});
+  }, 'setConfiguration({}) with initial default bundlePolicy balanced should succeed');
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'balanced' });
+    pc.setConfiguration({});
+  }, 'setConfiguration({}) with initial bundlePolicy balanced should succeed');
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    pc.setConfiguration({ bundlePolicy: 'balanced' });
+  }, 'setConfiguration({ bundlePolicy: balanced }) with initial default bundlePolicy balanced should succeed');
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'balanced' });
+    pc.setConfiguration({ bundlePolicy: 'balanced' });
+  }, `setConfiguration({ bundlePolicy: 'balanced' }) with initial bundlePolicy balanced should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'max-compat' });
+    pc.setConfiguration({ bundlePolicy: 'max-compat' });
+  }, `setConfiguration({ bundlePolicy: 'max-compat' }) with initial bundlePolicy max-compat should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+    pc.setConfiguration({ bundlePolicy: 'max-bundle' });
+  }, `setConfiguration({ bundlePolicy: 'max-bundle' }) with initial bundlePolicy max-bundle should succeed`);
+
+  test(() => {
+    assert_throws(new TypeError(), () =>
+      new RTCPeerConnection({ bundlePolicy: null }));
+  }, `new RTCPeerConnection({ bundlePolicy: null }) should throw TypeError`);
+
+  test(() => {
+    assert_throws(new TypeError(), () =>
+      new RTCPeerConnection({ bundlePolicy: 'invalid' }));
+  }, `new RTCPeerConnection({ bundlePolicy: 'invalid' }) should throw TypeError`);
+
+  /*
+    4.3.2.  Interface Definition
+      To set a configuration
+        5.  If configuration.bundlePolicy is set and its value differs from the
+            connection's bundle policy, throw an InvalidModificationError.
+   */
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+    assert_idl_attribute(pc, 'setConfiguration');
+
+    assert_throws('InvalidModificationError', () =>
+      pc.setConfiguration({ bundlePolicy: 'max-compat' }));
+  }, `setConfiguration({ bundlePolicy: 'max-compat' }) with initial bundlePolicy max-bundle should throw InvalidModificationError`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+    assert_idl_attribute(pc, 'setConfiguration');
+
+    // the default value for bundlePolicy is balanced
+    assert_throws('InvalidModificationError', () =>
+      pc.setConfiguration({}));
+  }, `setConfiguration({}) with initial bundlePolicy max-bundle should throw InvalidModificationError`);
+
+  /*
+    Coverage Report
+      Tested    2
+      Total     2
+   */
+</script>

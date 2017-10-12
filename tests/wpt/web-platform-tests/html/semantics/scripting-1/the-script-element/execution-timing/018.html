@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: DOM added scripts and doc.write</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script>log('inline script #1');
+                testlib.addScript('', { 'src':'scripts/include-3.js' }, document.getElementsByTagName('head')[0], false);
+                testlib.addScript('log(\'body script #2\')', {}, document.getElementsByTagName('body')[0], true);
+                log('end script #1');
+        </script>
+
+        <script type="text/javascript">
+        log( 'inline script #2' );
+        var t = async_test()
+
+        //XXX Need to test this delaying the document after we insert the external script and delaying the external script itself; afaict the spec allows us to race here on whether the document.write
+        //ever actually happens or not according to whether the insertion point is defined at the point at which the script is executed.
+        function test() {
+                assert_any(assert_array_equals, eventOrder, [
+                    ['inline script #1', 'body script #2', 'end script #1', 'external script before doc write', 'document.write external script', 'external script after doc write', 'inline script #2'],
+                    ['inline script #1', 'body script #2', 'end script #1', 'inline script #2', 'external script before doc write', 'document.write external script', 'external script after doc write'],
+                    ['inline script #1', 'body script #2', 'end script #1', 'inline script #2', 'external script before doc write', 'external script after doc write']
+                ]);
+                t.done();
+}
+        onload = t.step_func(function(){setTimeout(test.apply(t), 100); })
+        </script>
+
+</body></html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Testing a basic asynchronous CORS XHR request</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async_test(function(test) {
+      const xhr = new XMLHttpRequest;
+
+      xhr.onreadystatechange = test.step_func(function() {
+        if (xhr.readyState == xhr.DONE) {
+          assert_equals(xhr.responseText, "PASS: Cross-domain access allowed.");
+          test.done();
+        }
+      });
+
+      xhr.onerror = test.unreached_func("FAIL: Network error.");
+
+      xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/XMLHttpRequest/resources/access-control-basic-allow.py", true);
+      xhr.send();
+    }, "Basic async cross-origin XHR request");
+    </script>
+  </body>
+</html>

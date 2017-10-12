@@ -14,129 +14,129 @@ var fails = [], finished = false, donecount = 0;
 window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragover = orange.ondragenter = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-		if( !e.dataTransfer.files ) {
-			fails[fails.length] = 'No dataTransfer.files for '+e.type;
-		}
-		if( !window.FileList ) {
-			fails[fails.length] = 'No FileList interface object';
-			return;
-		}
-		if( !( e.dataTransfer.files instanceof FileList ) ) {
-			fails[fails.length] = 'dataTransfer.files is not a FileList';
-		}
-		if( e.dataTransfer.files.length ) {
-			fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 0 for '+e.type;
-		}
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = 'No dataTransfer.files for '+e.type;
+    }
+    if( !window.FileList ) {
+      fails[fails.length] = 'No FileList interface object';
+      return;
+    }
+    if( !( e.dataTransfer.files instanceof FileList ) ) {
+      fails[fails.length] = 'dataTransfer.files is not a FileList';
+    }
+    if( e.dataTransfer.files.length ) {
+      fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 0 for '+e.type;
+    }
   };
-	orange.ondrop = function(e) {
-   	e.preventDefault();
-		if( !e.dataTransfer.files ) {
-			fails[fails.length] = 'No dataTransfer.files for '+e.type;
-		}
-		if( !window.FileList ) {
-			fails[fails.length] = 'No FileList interface object';
-			finish();
-			return;
-		}
-		if( !( e.dataTransfer.files instanceof FileList ) ) {
-			fails[fails.length] = 'dataTransfer.files is not a FileList';
-		}
-		if( e.dataTransfer.files.length != 2 ) {
-			fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 2 for '+e.type;
-		}
-		if( !e.dataTransfer.files[0] ) {
-			fails[fails.length] = 'no dataTransfer.files[0] for drop';
-			finish();
-			return;
-		}
-		if( !e.dataTransfer.files[1] ) {
-			fails[fails.length] = 'no dataTransfer.files[1] for drop';
-			finish();
-			return;
-		}
-		//allow files to be dropped in any order, since this will be determined by the OS
-		var i0 = 0, i1 = 1;
-		if( e.dataTransfer.files[0].name == filename2 ) {
-			i0 = 1;
-			i1 = 0;
-		}
-		if( e.dataTransfer.files[i0].size != filesize1 ) {
-			fails[fails.length] = 'dataTransfer.files['+i0+'].size '+e.dataTransfer.files[i0].size+' instead of '+filesize1;
-		}
-		/*
-		if( !e.dataTransfer.files[i0].lastModifiedDate ) {
-			fails[fails.length] = 'no dataTransfer.files['+i0+'].lastModifiedDate';
-		}
-		*/
-		if( e.dataTransfer.files[i0].name != filename1 ) {
-			fails[fails.length] = 'dataTransfer.files['+i0+'].name '+e.dataTransfer.files[i0].name+' instead of '+filename1;
-		}
-		if( e.dataTransfer.files[i0].type != filetype1 ) {
-			fails[fails.length] = 'dataTransfer.files['+i0+'].type '+e.dataTransfer.files[i0].type+' instead of '+filetype1;
-		}
-		if( e.dataTransfer.files[i1].size != filesize2 ) {
-			fails[fails.length] = 'dataTransfer.files['+i1+'].size '+e.dataTransfer.files[i1].size+' instead of '+filesize2;
-		}
-		/*
-		if( !e.dataTransfer.files[i1].lastModifiedDate ) {
-			fails[fails.length] = 'no dataTransfer.files['+i1+'].lastModifiedDate';
-		}
-		*/
-		if( e.dataTransfer.files[i1].name != filename2 ) {
-			fails[fails.length] = 'dataTransfer.files['+i1+'].name '+e.dataTransfer.files[i1].name+' instead of '+filename2;
-		}
-		if( e.dataTransfer.files[i1].type != filetype2 ) {
-			fails[fails.length] = 'dataTransfer.files['+i1+'].type '+e.dataTransfer.files[i1].type+' instead of '+filetype2;
-		}
-		if( !window.FileReader ) {
-			fails[fails.length] = 'No FileReader constructor';
-			finish();
-			return;
-		}
-		var reader1 = new FileReader();
-		reader1.readAsBinaryString(e.dataTransfer.files[i0]);
-		reader1.onload = function () {
-			if( !reader1.result ) {
-				fails[fails.length] = 'No files['+i0+'] data after load';
-			}
-			if( reader1.result.length != filesize1 ) {
-				fails[fails.length] = 'files['+i0+'] file data length '+reader1.result.length+' instead of '+filesize1;
-			}
-			if( donecount++ ) {
-				finish();
-			}
-		};
-		var reader2 = new FileReader();
-		reader2.onload = function () {
-			if( !reader2.result ) {
-				fails[fails.length] = 'No files['+i1+'] data after load';
-			}
-			if( reader2.result.length != filesize2 ) {
-				fails[fails.length] = 'files['+i1+'] file data length '+reader2.result.length+' instead of '+filesize2;
-			}
-			if( donecount++ ) {
-				finish();
-			}
-		};
-		reader2.readAsBinaryString(e.dataTransfer.files[i1]);
-		setTimeout(function () {
-			if( !reader1.result ) {
-				fails[fails.length] = 'No files['+i0+'] data after timeout';
-			}
-			if( !reader2.result ) {
-				fails[fails.length] = 'No files['+i1+'] data after timeout';
-			}
-			finish();
-		},1000);
+  orange.ondrop = function(e) {
+    e.preventDefault();
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = 'No dataTransfer.files for '+e.type;
+    }
+    if( !window.FileList ) {
+      fails[fails.length] = 'No FileList interface object';
+      finish();
+      return;
+    }
+    if( !( e.dataTransfer.files instanceof FileList ) ) {
+      fails[fails.length] = 'dataTransfer.files is not a FileList';
+    }
+    if( e.dataTransfer.files.length != 2 ) {
+      fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 2 for '+e.type;
+    }
+    if( !e.dataTransfer.files[0] ) {
+      fails[fails.length] = 'no dataTransfer.files[0] for drop';
+      finish();
+      return;
+    }
+    if( !e.dataTransfer.files[1] ) {
+      fails[fails.length] = 'no dataTransfer.files[1] for drop';
+      finish();
+      return;
+    }
+    //allow files to be dropped in any order, since this will be determined by the OS
+    var i0 = 0, i1 = 1;
+    if( e.dataTransfer.files[0].name == filename2 ) {
+      i0 = 1;
+      i1 = 0;
+    }
+    if( e.dataTransfer.files[i0].size != filesize1 ) {
+      fails[fails.length] = 'dataTransfer.files['+i0+'].size '+e.dataTransfer.files[i0].size+' instead of '+filesize1;
+    }
+    /*
+    if( !e.dataTransfer.files[i0].lastModifiedDate ) {
+      fails[fails.length] = 'no dataTransfer.files['+i0+'].lastModifiedDate';
+    }
+    */
+    if( e.dataTransfer.files[i0].name != filename1 ) {
+      fails[fails.length] = 'dataTransfer.files['+i0+'].name '+e.dataTransfer.files[i0].name+' instead of '+filename1;
+    }
+    if( e.dataTransfer.files[i0].type != filetype1 ) {
+      fails[fails.length] = 'dataTransfer.files['+i0+'].type '+e.dataTransfer.files[i0].type+' instead of '+filetype1;
+    }
+    if( e.dataTransfer.files[i1].size != filesize2 ) {
+      fails[fails.length] = 'dataTransfer.files['+i1+'].size '+e.dataTransfer.files[i1].size+' instead of '+filesize2;
+    }
+    /*
+    if( !e.dataTransfer.files[i1].lastModifiedDate ) {
+      fails[fails.length] = 'no dataTransfer.files['+i1+'].lastModifiedDate';
+    }
+    */
+    if( e.dataTransfer.files[i1].name != filename2 ) {
+      fails[fails.length] = 'dataTransfer.files['+i1+'].name '+e.dataTransfer.files[i1].name+' instead of '+filename2;
+    }
+    if( e.dataTransfer.files[i1].type != filetype2 ) {
+      fails[fails.length] = 'dataTransfer.files['+i1+'].type '+e.dataTransfer.files[i1].type+' instead of '+filetype2;
+    }
+    if( !window.FileReader ) {
+      fails[fails.length] = 'No FileReader constructor';
+      finish();
+      return;
+    }
+    var reader1 = new FileReader();
+    reader1.readAsBinaryString(e.dataTransfer.files[i0]);
+    reader1.onload = function () {
+      if( !reader1.result ) {
+        fails[fails.length] = 'No files['+i0+'] data after load';
+      }
+      if( reader1.result.length != filesize1 ) {
+        fails[fails.length] = 'files['+i0+'] file data length '+reader1.result.length+' instead of '+filesize1;
+      }
+      if( donecount++ ) {
+        finish();
+      }
+    };
+    var reader2 = new FileReader();
+    reader2.onload = function () {
+      if( !reader2.result ) {
+        fails[fails.length] = 'No files['+i1+'] data after load';
+      }
+      if( reader2.result.length != filesize2 ) {
+        fails[fails.length] = 'files['+i1+'] file data length '+reader2.result.length+' instead of '+filesize2;
+      }
+      if( donecount++ ) {
+        finish();
+      }
+    };
+    reader2.readAsBinaryString(e.dataTransfer.files[i1]);
+    setTimeout(function () {
+      if( !reader1.result ) {
+        fails[fails.length] = 'No files['+i0+'] data after timeout';
+      }
+      if( !reader2.result ) {
+        fails[fails.length] = 'No files['+i1+'] data after timeout';
+      }
+      finish();
+    },1000);
   };
 
 };
 function finish() {
-	if( finished ) { return; }
-	finished = true;
-	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+  if( finished ) { return; }
+  finished = true;
+  document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
 }
 </script>
 

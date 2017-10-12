@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test that sync CORS requests with custom headers are not sent with OPTIONS preflight</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="/common/utils.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    test(function() {
+      let xhr = new XMLHttpRequest;
+      const uuid = token();
+
+      xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/XMLHttpRequest/resources/reset-token.py?token=" + uuid, false);
+      xhr.send();
+
+      xhr = new XMLHttpRequest;
+      xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/XMLHttpRequest/resources/no-custom-header-on-preflight.py?token=" + uuid, false);
+      xhr.setRequestHeader("x-test", "foobar");
+      xhr.send();
+      assert_equals(xhr.responseText, "PASS");
+    }, "Preflighted sync request with custom header");
+    </script>
+  </body>
+</html>

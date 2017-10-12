@@ -92,7 +92,7 @@
 
                 // create the test end mark using the test delay; this will allow for a significant difference between
                 // the mark values that should be represented in the duration of measures using these marks
-                setTimeout(measure_test_cb, measureTestDelay);
+                step_timeout(measure_test_cb, measureTestDelay);
             }
         }
 

@@ -5,23 +5,23 @@
 window.onload = function() {
   var li1 = document.getElementsByTagName('li')[3], li2 = document.getElementsByTagName('li')[4];
   li1.ondragstart = li2.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
     this.innerHTML = 'FAIL';
   };
   li1.onmousedown = function () { window.moveBy(0,10); };
   li2.onmousedown = function () { setTimeout(function () {
-  	window.moveBy(0,10);
+    window.moveBy(0,10);
   },10); };
 };
 
 </script>
 <p></p>
 <ol>
-	<li onclick="window.open(location.href,'_blank','width=500,height=300');">Click here to open this page in a popup window.</li>
-	<li>Ensure that this popup window is not maximised (or tab, in the case of tabs being rendered as an MDI).</li>
-	<li>Ensure that your browser settings allow browser windows to be moved by scripts.</li>
-	<li draggable='true'>Press your mouse down on this text but do not move it afterwards. Fail if a drag operation has started (eg. if the mouse cursor shows that you are dragging something, or if some drag placeholder text appears, or if this text changes).</li>
-	<li draggable='true'>Press your mouse down on this text but do not move it afterwards. Fail if a drag operation has started (eg. if the mouse cursor shows that you are dragging something, or if some drag placeholder text appears, or if this text changes).</li>
+  <li onclick="window.open(location.href,'_blank','width=500,height=300');">Click here to open this page in a popup window.</li>
+  <li>Ensure that this popup window is not maximised (or tab, in the case of tabs being rendered as an MDI).</li>
+  <li>Ensure that your browser settings allow browser windows to be moved by scripts.</li>
+  <li draggable='true'>Press your mouse down on this text but do not move it afterwards. Fail if a drag operation has started (eg. if the mouse cursor shows that you are dragging something, or if some drag placeholder text appears, or if this text changes).</li>
+  <li draggable='true'>Press your mouse down on this text but do not move it afterwards. Fail if a drag operation has started (eg. if the mouse cursor shows that you are dragging something, or if some drag placeholder text appears, or if this text changes).</li>
 </ol>
 <noscript><p>Enable JavaScript and reload</p></noscript>

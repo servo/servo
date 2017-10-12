@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+
+if __name__ == "__main__":
+    from tools.wpt import wpt
+    wpt.main()

@@ -4,25 +4,25 @@
 <title>Removing div element during drag and drop with text/plain data</title>
 <style type="text/css">
 div
-	{width:40px;
-	height:40px;
-	margin-top:20px;
-	padding:40px;
-	color:white;
-	background-color:gray;}
+  {width:40px;
+  height:40px;
+  margin-top:20px;
+  padding:40px;
+  color:white;
+  background-color:gray;}
 p + div
-	{background-color:navy;}
+  {background-color:navy;}
 </style>
 </head>
 <body>
 <div
-	draggable="true"
-	ondragstart="event.dataTransfer.effectAllowed = 'copy';event.dataTransfer.setData('text/plain','PASS');document.querySelector('body').removeChild(document.querySelector('div'))"
+  draggable="true"
+  ondragstart="event.dataTransfer.effectAllowed = 'copy';event.dataTransfer.setData('text/plain','PASS');document.querySelector('body').removeChild(document.querySelector('div'))"
 />
 <p>Drag gray box above to the navy box below and drop it. You should see word PASS once you drop it.</p>
 <div
-	ondragover="return false"
-	ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
+  ondragover="return false"
+  ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
 />
 </body>
 </html>

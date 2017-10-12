@@ -542,3 +542,23 @@ def test_no_parse():
 def test_relpath_normalized(input, expected):
     s = create(input, b"")
     assert s.rel_path == expected
+
+
+@pytest.mark.parametrize("url", [b"ref.html",
+                                 b"\x20ref.html",
+                                 b"ref.html\x20",
+                                 b"\x09\x0a\x0c\x0d\x20ref.html\x09\x0a\x0c\x0d\x20"])
+def test_reftest_url_whitespace(url):
+    content = b"<link rel=match href='%s'>" % url
+    s = create("foo/test.html", content)
+    assert s.references == [("/foo/ref.html", "==")]
+
+
+@pytest.mark.parametrize("url", [b"http://example.com/",
+                                 b"\x20http://example.com/",
+                                 b"http://example.com/\x20",
+                                 b"\x09\x0a\x0c\x0d\x20http://example.com/\x09\x0a\x0c\x0d\x20"])
+def test_spec_links_whitespace(url):
+    content = b"<link rel=help href='%s'>" % url
+    s = create("foo/test.html", content)
+    assert s.spec_links == {"http://example.com/"}

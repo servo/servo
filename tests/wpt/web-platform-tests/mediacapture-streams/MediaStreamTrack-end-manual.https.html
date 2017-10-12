@@ -16,11 +16,10 @@ correctly set into inactive state when permission is revoked.</p>
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
 <script>
 var t = async_test("Tests that the video MediaStreamTrack objects are properly ended on permission revocation", {timeout: 20000}); // longer timeout since requires user interaction
 t.step(function () {
-  navigator.getUserMedia({audio: true,video: true}, t.step_func(function (stream) {
+  navigator.mediaDevices.getUserMedia({audio: true,video: true}).then(t.step_func(function (stream) {
     var vidTrack = stream.getVideoTracks()[0];
     assert_equals(vidTrack.readyState, "live", "The video track object is in live state");
     var audTrack = stream.getAudioTracks()[0];

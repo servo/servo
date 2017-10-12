@@ -1,0 +1,396 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpParameters-helper.js:
+  //   validateSenderRtpParameters
+
+  /*
+    5.1.  RTCPeerConnection Interface Extensions
+      partial interface RTCPeerConnection {
+        RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+                                                   optional RTCRtpTransceiverInit init);
+        ...
+      };
+
+      dictionary RTCRtpTransceiverInit {
+        RTCRtpTransceiverDirection         direction = "sendrecv";
+        sequence<MediaStream>              streams;
+        sequence<RTCRtpEncodingParameters> sendEncodings;
+      };
+
+    5.2.  RTCRtpSender Interface
+      interface RTCRtpSender {
+        Promise<void>           setParameters(optional RTCRtpParameters parameters);
+        RTCRtpParameters        getParameters();
+      };
+
+      dictionary RTCRtpParameters {
+        DOMString                                 transactionId;
+        sequence<RTCRtpEncodingParameters>        encodings;
+        sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
+        RTCRtcpParameters                         rtcp;
+        sequence<RTCRtpCodecParameters>           codecs;
+        RTCDegradationPreference                  degradationPreference;
+      };
+
+      dictionary RTCRtpEncodingParameters {
+        [readonly]
+        unsigned long       ssrc;
+
+        [readonly]
+        RTCRtpRtxParameters rtx;
+
+        [readonly]
+        RTCRtpFecParameters fec;
+
+        RTCDtxStatus        dtx;
+        boolean             active;
+        RTCPriorityType     priority;
+        unsigned long       ptime;
+        unsigned long       maxBitrate;
+        double              maxFramerate;
+
+        [readonly]
+        DOMString           rid;
+
+        double              scaleResolutionDownBy;
+      };
+
+      dictionary RTCRtpRtxParameters {
+        [readonly]
+        unsigned long ssrc;
+      };
+
+      dictionary RTCRtpFecParameters {
+        [readonly]
+        unsigned long ssrc;
+      };
+
+      enum RTCDtxStatus {
+        "disabled",
+        "enabled"
+      };
+
+      enum RTCPriorityType {
+        "very-low",
+        "low",
+        "medium",
+        "high"
+      };
+
+      getParameters
+        - encodings is set to the value of the [[send encodings]] internal slot.
+   */
+
+  // Get the first encoding in param.encodings.
+  // Asserts that param.encodings has at least one element.
+  function getFirstEncoding(param) {
+    const { encodings } = param;
+    assert_equals(encodings.length, 1);
+    return encodings[0];
+  }
+
+  /*
+    5.1.  addTransceiver
+      7. Create an RTCRtpSender with track, streams and sendEncodings and let sender
+         be the result.
+
+    5.2.  create an RTCRtpSender
+      5.  Let sender have a [[send encodings]] internal slot, representing a list
+          of RTCRtpEncodingParameters dictionaries.
+      6.  If sendEncodings is given as input to this algorithm, and is non-empty,
+          set the [[send encodings]] slot to sendEncodings.
+
+          Otherwise, set it to a list containing a single RTCRtpEncodingParameters
+          with active set to true.
+   */
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const param = transceiver.sender.getParameters();
+    validateSenderRtpParameters(param);
+    const { encodings } = param;
+    const encoding = getFirstEncoding(param);
+
+    assert_equals(encoding.active, true);
+  }, 'addTransceiver() with undefined sendEncodings should have default encoding parameter with active set to true');
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio', { sendEncodings: [] });
+
+    const param = transceiver.sender.getParameters();
+    validateSenderRtpParameters(param);
+    const { encodings } = param;
+    const encoding = getFirstEncoding(param);
+
+    assert_equals(encoding.active, true);
+  }, 'addTransceiver() with empty list sendEncodings should have default encoding parameter with active set to true');
+
+  /*
+    5.2.  create an RTCRtpSender
+      To create an RTCRtpSender with a MediaStreamTrack , track, a list of MediaStream
+      objects, streams, and optionally a list of RTCRtpEncodingParameters objects,
+      sendEncodings, run the following steps:
+        5.  Let sender have a [[send encodings]] internal slot, representing a list
+            of RTCRtpEncodingParameters dictionaries.
+
+        6.  If sendEncodings is given as input to this algorithm, and is non-empty,
+            set the [[send encodings]] slot to sendEncodings.
+
+    5.2.  getParameters
+      - encodings is set to the value of the [[send encodings]] internal slot.
+   */
+  test(() => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio', {
+      sendEncodings: [{
+        dtx: 'enabled',
+        active: false,
+        priority: 'low',
+        ptime: 5,
+        maxBitrate: 8,
+        maxFramerate: 25,
+        rid: 'foo'
+      }]
+    });
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = getFirstEncoding(param);
+
+    assert_equals(encoding.dtx, 'enabled');
+    assert_equals(encoding.active, false);
+    assert_equals(encoding.priority, 'low');
+    assert_equals(encoding.ptime, 5);
+    assert_equals(encoding.maxBitrate, 8);
+    assert_equals(encoding.maxFramerate, 25);
+    assert_equals(encoding.rid, 'foo');
+
+  }, `sender.getParameters() should return sendEncodings set by addTransceiver()`);
+
+  /*
+    5.2.  setParameters
+      3.  Let N be the number of RTCRtpEncodingParameters stored in sender's internal
+          [[send encodings]] slot.
+      7.  If parameters.encodings.length is different from N, or if any parameter
+          in the parameters argument, marked as a Read-only parameter, has a value
+          that is different from the corresponding parameter value returned from
+          sender.getParameters(), abort these steps and return a promise rejected
+          with a newly created InvalidModificationError. Note that this also applies
+          to transactionId.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const { encodings } = param;
+    assert_equals(encodings.length, 1);
+
+    // {} is valid RTCRtpEncodingParameters because all fields are optional
+    encodings.push({});
+    assert_equals(param.encodings.length, 2);
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, `sender.setParameters() with mismatch number of encodings should reject with InvalidModificationError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    param.encodings = undefined;
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, `sender.setParameters() with encodings unset should reject with InvalidModificationError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = getFirstEncoding(param);
+    const { ssrc } = encoding;
+
+    // ssrc may not be set since it is optional
+    if(ssrc === undefined) {
+      encoding.ssrc = 2;
+    } else {
+      // If it is set, increase the number by 1 to make it different from original
+      encoding.ssrc = ssrc + 1;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, `setParameters() with modified encoding.ssrc field should reject with InvalidModificationError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = getFirstEncoding(param);
+    const { rtx } = encoding;
+
+    if(rtx === undefined) {
+      encoding.rtx = { ssrc: 2 };
+    } else if(rtx.ssrc === undefined) {
+      rtx.ssrc = 2;
+    } else {
+      rtx.ssrc += 1;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, `setParameters() with modified encoding.rtx field should reject with InvalidModificationError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = getFirstEncoding(param);
+    const { fec } = encoding;
+
+    if(fec === undefined) {
+      encoding.fec = { ssrc: 2 };
+    } else if(fec.ssrc === undefined) {
+      fec.ssrc = 2;
+    } else {
+      fec.ssrc += 1;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, `setParameters() with modified encoding.fec field should reject with InvalidModificationError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio', {
+      sendEncodings: [{ rid: 'foo' }],
+    });
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = getFirstEncoding(param);
+
+    assert_equals(encoding.rid, 'foo');
+
+    encoding.rid = 'bar';
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, `setParameters() with modified encoding.rid field should reject with InvalidModificationError`);
+
+  /*
+    5.2.  setParameters
+      8.  If the scaleResolutionDownBy parameter in the parameters argument has a
+          value less than 1.0, abort these steps and return a promise rejected with
+          a newly created RangeError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = getFirstEncoding(param);
+
+    encoding.scaleResolutionDownBy = 0.5;
+    return promise_rejects(t, 'RangeError',
+      sender.setParameters(param));
+
+  }, `setParameters() with encoding.scaleResolutionDownBy field set to less than 1.0 should reject with RangeError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+    const encoding = getFirstEncoding(param);
+
+    encoding.scaleResolutionDownBy = 1.5;
+    return sender.setParameters(param)
+    .then(() => {
+      const param = sender.getParameters();
+      validateSenderRtpParameters(param);
+      const encoding = getFirstEncoding(param);
+
+      assert_approx_equals(encoding.scaleResolutionDownBy, 1.5, 0.01);
+    });
+
+  }, `setParameters() with encoding.scaleResolutionDownBy field set to greater than 1.0 should succeed`);
+
+  // Helper function to test that modifying an encoding field should succeed
+  function test_modified_encoding(field, value1, value2, desc) {
+    promise_test(t => {
+      const pc = new RTCPeerConnection();
+      const { sender } = pc.addTransceiver('audio', {
+        sendEncodings: [{
+          [field]: value1
+        }]
+      });
+
+      const param = sender.getParameters();
+      validateSenderRtpParameters(param);
+      const encoding = getFirstEncoding(param);
+
+      assert_equals(encoding[field], value1);
+      encoding[field] = value2;
+
+      return sender.setParameters(param)
+      .then(() => {
+        const param = sender.getParameters();
+        validateSenderRtpParameters(param);
+        const encoding = getFirstEncoding(param);
+        assert_equals(encoding[field], value2);
+      });
+    }, desc);
+  }
+
+  test_modified_encoding('dtx', 'enabled', 'disabled',
+    'setParameters() with modified encoding.dtx should succeed');
+
+  test_modified_encoding('dtx', 'enabled', undefined,
+    'setParameters() with unset encoding.dtx should succeed');
+
+  test_modified_encoding('active', true, false,
+    'setParameters() with modified encoding.active should succeed');
+
+  test_modified_encoding('priority', 'very-low', 'high',
+    'setParameters() with modified encoding.priority should succeed');
+
+  test_modified_encoding('ptime', 2, 4,
+    'setParameters() with modified encoding.ptime should succeed');
+
+  test_modified_encoding('maxBitrate', 2, 4,
+    'setParameters() with modified encoding.maxBitrate should succeed');
+
+  test_modified_encoding('maxBitrate', 24, 16,
+    'setParameters() with modified encoding.maxFramerate should succeed');
+
+</script>

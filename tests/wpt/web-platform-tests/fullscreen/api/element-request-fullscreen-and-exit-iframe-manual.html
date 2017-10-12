@@ -15,8 +15,12 @@ async_test(t => {
   document.onfullscreenchange = iframeDoc.onfullscreenchange = t.step_func(event => {
     count++;
     assert_between_inclusive(count, 1, 4, 'number of fullscreenchange events');
+    // Both when entering and exiting, the fullscreenchange event is fired first
+    // on the outer document and then on the iframe's document. This is because
+    // the events are fired in animation frame tasks, which run in "frame tree"
+    // order.
     const expected = {
-      target: count == 1 || count == 4 ? iframe : iframeBody,
+      target: count == 1 || count == 3 ? iframe : iframeBody,
       outerFullscreenElement: count <= 2 ? iframe : null,
       innerFullscreenElement: count <= 2 ? iframeBody : null,
     };

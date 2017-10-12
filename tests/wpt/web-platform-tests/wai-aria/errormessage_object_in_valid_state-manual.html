@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>errormessage object in valid state</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -18,10 +19,10 @@
          "test" : {
             "ATK" : [
                [
-                  "relation",
-                  "RELATION_ERROR_MESSAGE",
-                  "is",
-                  "error"
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "RELATION_ERROR_MESSAGE"
                ]
             ],
             "AXAPI" : [
@@ -34,18 +35,18 @@
             ],
             "IAccessible2" : [
                [
-                  "relation",
-                  "IA2_RELATION_ERROR_MESSAGE",
-                  "is",
-                  "error"
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "IA2_RELATION_ERROR_MESSAGE"
                ]
             ],
             "UIA" : [
                [
                   "property",
                   "IUIAutomationElement.ControllerFor",
-                  "is",
-                  "error"
+                  "exists",
+                  "false"
                ]
             ]
          },
@@ -57,21 +58,20 @@
          "test" : {
             "ATK" : [
                [
-                  "relation",
-                  "RELATION_ERROR_FOR",
-                  "is",
-                  "test"
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "RELATION_ERROR_FOR"
                ]
             ],
             "IAccessible2" : [
                [
-                  "relation",
-                  "IA2_RELATION_ERROR_FOR",
-                  "is",
-                  "test"
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "IA2_RELATION_ERROR_FOR"
                ]
-            ],
-            "UIA" : []
+            ]
          },
          "title" : "step 2",
          "type" : "test"
@@ -86,8 +86,8 @@
   <body>
   <p>This test examines the ARIA properties for errormessage object in valid state.</p>
     <div role="form">
-  <label for="test">date</label><input type="text" id="test" value="April 12" aria-errormessage="error">
-  <label for="test1">surname</label><input type="text" id="test1" value="April 14">
+  <label for="test">date</label><input type="text" id="test" value="April 12" aria-invalid="false" aria-errormessage="error">
+  <label for="test1">surname</label><input type="text" id="test1">
   </div>
   <div id="error">
      You did not enter a valid date!
@@ -99,4 +99,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

@@ -1,25 +1,25 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Non-rendered body should still become current target element</title>
-		<style type="text/css">
+  <head>
+    <title>Non-rendered body should still become current target element</title>
+    <style type="text/css">
 html { background: blue; }
-		</style>
-	</head>
-	<body>
+    </style>
+  </head>
+  <body>
 
-		<script type="text/javascript">
+    <script type="text/javascript">
 var seentypes = {};
 document.body.ondragenter = document.body.ondragover = document.body.ondrop = function (e) {
-	e.preventDefault();
-	//document.body.innerHTML += e.type;
-	if( e.type == 'drop' ) {
-		document.body.innerHTML = ( seentypes.dragenter && seentypes.dragover ) ? 'PASS' : 'FAIL';
-	} else {
-		seentypes[e.type] = true;
-	}
+  e.preventDefault();
+  //document.body.innerHTML += e.type;
+  if( e.type == 'drop' ) {
+    document.body.innerHTML = ( seentypes.dragenter && seentypes.dragover ) ? 'PASS' : 'FAIL';
+  } else {
+    seentypes[e.type] = true;
+  }
 }
-		</script>
+    </script>
 
-	</body>
+  </body>
 </html>

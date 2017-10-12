@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.prototype.getSynchronizationSources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  /*
+    5.3.  RTCRtpReceiver Interface
+      interface RTCRtpReceiver {
+        ...
+        sequence<RTCRtpSynchronizationSource> getSynchronizationSources();
+      };
+
+      interface RTCRtpSynchronizationSource {
+        readonly attribute DOMHighResTimeStamp timestamp;
+        readonly attribute unsigned long       source;
+        readonly attribute byte                audioLevel;
+        readonly attribute boolean?            voiceActivityFlag;
+      };
+   */
+
+  promise_test(() => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+
+    const ontrackPromise = new Promise(resolve => {
+      pc2.addEventListener('track', trackEvent => {
+        const { receiver } = trackEvent;
+        assert_true(receiver instanceof RTCRtpReceiver,
+          'Expect trackEvent.receiver to be instance of RTCRtpReceiver');
+
+        resolve(receiver);
+      });
+    });
+
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      pc1.addTrack(track, mediaStream);
+      exchangeIceCandidates(pc1, pc2);
+      return doSignalingHandshake(pc1, pc2);
+    })
+    .then(() => ontrackPromise)
+    .then(receiver => {
+      const syncSources = receiver.getSynchronizationSources();
+      assert_greater_than(syncSources.length, 0,
+        'Expect SSRCs to be available after RTP connection is established');
+
+      for(const ssrc of syncSources) {
+        assert_true(ssrc instanceof RTCRtpSynchronizationSource,
+          'Expect synchronizationSources elements to be instance of RTCSynchronizationSource');
+
+        assert_equals(typeof ssrc.timestamp, 'number',
+          'Expect ssrc.timestamp attribute to be DOMHighResTimeStamp');
+
+        assert_true(Number.isInteger(ssrc.source) && ssrc.source > 0,
+          'Expect SSRC identifier to be unsigned long');
+
+        assert_true(Number.isInteger(ssrc.audioLevel) &&
+          ssrc.audioLevel >= 0 && ssrc.audioLevel <= 127,
+          'Expect ssrc.audioLevel to be byte value from 0-127.');
+
+        if(ssrc.voiceActivityFlag !== null) {
+          assert_equals(typeof ssrc.voiceActivityFlag, 'boolean',
+            'Expect ssrc.voiceActivity to be either null or boolean');
+        }
+      }
+    });
+  }, `getContributingSources() should return list of CSRC after connection is established`);
+
+</script>

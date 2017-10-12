@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that preflight requests returning invalid 400 status code result in error.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async_test((test) => {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN + "/XMLHttpRequest/resources/access-control-preflight-request-invalid-status.py?code=400");
+
+      xhr.setRequestHeader("x-pass", "pass");
+
+      xhr.onerror = test.step_func_done(function() {
+        assert_equals(xhr.status, 0);
+      });
+
+      xhr.onload = test.unreached_func("Invalid 400 response to preflight should result in error.");
+
+      xhr.send();
+    }, "Request with 400 preflight response");
+    </script>
+  </body>
+</html>

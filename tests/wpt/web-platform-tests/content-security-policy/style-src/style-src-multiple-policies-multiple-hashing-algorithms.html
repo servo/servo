@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Multiple policies with different hashing algorithms still work.</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script>
+    var t = async_test("Test that style loads if allowed by proper hash values");
+    document.addEventListener("securitypolicyviolation", t.unreached_func("Should not have triggered a security event"));
+  </script>
+
+  <!-- test will time out if this style is not allowed to load -->
+  <style onload="t.done();" onerror="t.unreached_func('Should have loaded the style');">p {color:blue;}</style>
+
+  <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+</html>

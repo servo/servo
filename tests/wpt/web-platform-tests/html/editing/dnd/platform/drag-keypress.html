@@ -10,16 +10,16 @@
     height: 5000px;
   }
   p {
-  	margin-top: 1000px;
+    margin-top: 1000px;
   }
 </style>
 
 <script>
 window.onload = function() {
-	window.scrollBy(0,1000);
+  window.scrollBy(0,1000);
   document.getElementsByTagName('div')[0].ondragstart = function(e) {
     e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text', 'dummy text');
+    e.dataTransfer.setData('text', 'dummy text');
   };
 };
 </script>

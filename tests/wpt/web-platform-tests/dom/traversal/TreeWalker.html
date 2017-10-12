@@ -11,6 +11,32 @@
 
 // TODO .previousNode, .nextNode
 
+test(function() {
+  var depth = 0;
+  var walker = document.createTreeWalker(document, NodeFilter.SHOW_ALL,
+    function() {
+      if (depth == 0) {
+        depth++;
+        walker.firstChild();
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    });
+  walker.currentNode = document.body;
+  assert_throws("InvalidStateError", function() { walker.parentNode() });
+  depth--;
+  assert_throws("InvalidStateError", function() { walker.firstChild() });
+  depth--;
+  assert_throws("InvalidStateError", function() { walker.lastChild() });
+  depth--;
+  assert_throws("InvalidStateError", function() { walker.previousSibling() });
+  depth--;
+  assert_throws("InvalidStateError", function() { walker.nextSibling() });
+  depth--;
+  assert_throws("InvalidStateError", function() { walker.previousNode() });
+  depth--;
+  assert_throws("InvalidStateError", function() { walker.nextNode() });
+}, "Recursive filters need to throw");
+
 function filterNode(node, whatToShow, filter) {
     // "If active flag is set throw an "InvalidStateError"."
     // Ignore active flag for these tests, we aren't calling recursively

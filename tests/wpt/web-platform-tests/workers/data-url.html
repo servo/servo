@@ -26,6 +26,7 @@ function assert_worker_construction_fails(test_desc, mime_type, worker_code) {
       assert_unreached('Should not receive any message back.');
     });
     w.onerror = t.step_func_done(function(e) {
+      assert_true(true, 'Should throw ' + e.message);
       // Stop the error from being propagated to the WPT test harness
       e.preventDefault();
     });
@@ -52,8 +53,9 @@ assert_worker_throws('Web SQL Database inaccessible', 'self.openDatabase("someDB
 assert_worker_sends_pass('cross-origin worker', '', 'fetch("/").then(() => self.postMessage("FAIL"), () => self.postMessage("PASS"))');
 
 // 'data:' workers have opaque origin
-assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'if (self.location.origin == "null") postMessage("PASS"); else postMessage("FAIL");');
+assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'if (self.location.origin == "null") {postMessage("PASS");} else {postMessage("FAIL");}');
 
+setup({allow_uncaught_exception:true});
 // invalid javascript will trigger an ErrorEvent
 assert_worker_construction_fails('invalid javascript produces error', 'application/javascript', '}x=3');
 

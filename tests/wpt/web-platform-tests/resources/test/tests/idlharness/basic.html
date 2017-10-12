@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>idlharness basic</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+    "use strict";
+    test(function() {
+        assert_true("IdlArray" in window);
+    }, 'IdlArray constructor should be a global object');
+    test(function() {
+        assert_true(new IdlArray() instanceof IdlArray);
+    }, 'IdlArray constructor should be constructible');
+    test(function() {
+        assert_true("WebIDL2" in window);
+    }, 'WebIDL2 namespace should be a global object');
+    test(function() {
+        assert_equals(typeof WebIDL2.parse, "function");
+    }, 'WebIDL2 namespace should have a parse method');
+    test(function() {
+        assert_throws(new TypeError(), function() {  WebIDL2.parse("I'm a syntax error"); });
+    }, 'WebIDL2 parse method should bail on incorrect WebIDL');
+    test(function() {
+        assert_equals(typeof WebIDL2.parse("interface Foo {};"), "object");
+    }, 'WebIDL2 parse method should produce an AST for correct WebIDL');
+</script>
+</body>
+</html>
+

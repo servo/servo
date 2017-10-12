@@ -8,70 +8,41 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
-<style>
-  pre {
-    display: none;
-  }
-</style>
 <div id="log"></div>
 
-<pre id="idl">
-interface Event {
-};
-
-interface Error {
-};
-
-dictionary EventInit {
-};
-
+<script id="idl" type="text/plain">
 interface EventTarget {
 };
 
 interface EventHandler {
 };
-</pre>
+</script>
 
-<pre id="generic-idl">
-[SecureContext]
+<script id="ambient-light-idl" type="text/plain">
+// The interface of Sensor is defined in
+// https://www.w3.org/TR/generic-sensor/#idl-index
+[SecureContext, Exposed=Window]
 interface Sensor : EventTarget {
   readonly attribute boolean activated;
   readonly attribute DOMHighResTimeStamp? timestamp;
   void start();
   void stop();
-  attribute EventHandler onchange;
+  attribute EventHandler onreading;
   attribute EventHandler onactivate;
   attribute EventHandler onerror;
 };
 
-dictionary SensorOptions {
-  double? frequency;
-};
-
-[SecureContext, Constructor(DOMString type, SensorErrorEventInit errorEventInitDict)]
-interface SensorErrorEvent : Event {
-  readonly attribute Error error;
-};
-
-dictionary SensorErrorEventInit : EventInit {
-  required Error error;
-};
-</pre>
-
-<pre id="ambient-light-idl">
-[Constructor(optional SensorOptions sensorOptions)]
+[Constructor(optional SensorOptions sensorOptions), Exposed=Window]
 interface AmbientLightSensor : Sensor {
   readonly attribute unrestricted double? illuminance;
 };
-</pre>
+</script>
 
 <script>
-
 (() => {
   "use strict";
   let idl_array = new IdlArray();
   idl_array.add_untested_idls(document.getElementById('idl').textContent);
-  idl_array.add_untested_idls(document.getElementById('generic-idl').textContent);
   idl_array.add_idls(document.getElementById('ambient-light-idl').textContent);
 
   idl_array.add_objects({
@@ -80,5 +51,4 @@ interface AmbientLightSensor : Sensor {
 
   idl_array.test();
 })();
-
 </script>

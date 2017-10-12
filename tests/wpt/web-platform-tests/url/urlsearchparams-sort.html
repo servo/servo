@@ -47,4 +47,11 @@
     }
   }, "URL parse and sort: " + val.input)
 })
+
+test(function() {
+  const url = new URL("http://example.com/?")
+  url.searchParams.sort()
+  assert_equals(url.href, "http://example.com/")
+  assert_equals(url.search, "")
+}, "Sorting non-existent params removes ? from URL")
 </script>

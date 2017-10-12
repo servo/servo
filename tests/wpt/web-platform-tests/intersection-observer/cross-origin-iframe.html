@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+iframe {
+  width: 160px;
+  height: 100px;
+  overflow-y: scroll;
+}
+.spacer {
+  height: calc(100vh + 100px);
+}
+</style>
+
+<div class="spacer"></div>
+<iframe src="resources/cross-origin-subframe.html" sandbox="allow-scripts"></iframe>
+<div class="spacer"></div>
+
+<script>
+async_test(function(t) {
+  var iframe = document.querySelector("iframe");
+
+  function handleMessage(event) {
+    if (event.data.hasOwnProperty('scrollTo')) {
+      document.scrollingElement.scrollTop = event.data.scrollTo;
+      waitForNotification(t, function() { iframe.contentWindow.postMessage("", "*"); },
+        "document.scrollingElement.scrollTop = " + event.data.scrollTo);
+    } else if (event.data.hasOwnProperty('actual')) {
+      checkJsonEntries(event.data.actual, event.data.expected, event.data.description);
+    } else if (event.data.hasOwnProperty('DONE')) {
+      document.scrollingElement.scrollTop = 0;
+      t.done();
+    } else {
+      var description = event.data.description;
+      waitForNotification(t, function() { iframe.contentWindow.postMessage("", "*"); }, description);
+    }
+  }
+
+  window.addEventListener("message", t.step_func(handleMessage));
+
+  iframe.onload = t.step_func(function() {
+    waitForNotification(t, function() { iframe.contentWindow.postMessage("", "*") }, "setup");
+  });
+}, "Intersection observer test with no explicit root and target in a cross-origin iframe.");
+</script>

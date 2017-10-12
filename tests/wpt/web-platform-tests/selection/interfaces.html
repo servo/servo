@@ -36,12 +36,41 @@ interface Selection {
                            optional boolean allowPartialContainment = false);
     stringifier DOMString ();
 };
+
+partial interface Document {
+    Selection? getSelection();
+};
+
+partial interface Window {
+    Selection? getSelection();
+};
+
+partial interface GlobalEventHandlers {
+    attribute EventHandler onselectstart;
+    attribute EventHandler onselectionchange;
+};
 </script>
 <script>
 "use strict";
 
-var idlArray = new IdlArray();
-idlArray.add_idls(document.querySelector("script[type=text\\/plain]").textContent);
-idlArray.add_objects({Selection: ['getSelection()']});
-idlArray.test();
+function doTest([dom, cssom, touchevents, uievents, html]) {
+  var idlArray = new IdlArray();
+  idlArray.add_untested_idls(dom + cssom + touchevents + uievents + html);
+  idlArray.add_idls(document.querySelector("script[type=text\\/plain]").textContent);
+  idlArray.add_objects({Selection: ['getSelection()']});
+  idlArray.test();
+}
+
+function fetchData(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(function() {
+  return Promise.all([fetchData("/interfaces/dom.idl"),
+                      fetchData("/interfaces/cssom.idl"),
+                      fetchData("/interfaces/touchevents.idl"),
+                      fetchData("/interfaces/uievents.idl"),
+                      fetchData("/interfaces/html.idl")])
+                .then(doTest);
+}, "Test driver");
 </script>

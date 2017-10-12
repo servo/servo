@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share with an invalid URL</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+        promise_test(t => {
+          // URL is invalid in that the URL Parser returns failure (port is too
+          // large).
+          const url = 'http://example.com:65536';
+          return promise_rejects(
+              t, new TypeError(), navigator.share({url}));
+        }, 'share with an invalid URL');
+    </script>
+  </body>
+</html>

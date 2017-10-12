@@ -127,8 +127,10 @@ for (const c in expected) {
                         `${name} should take ${properties[name].length} arguments`);
           if (type === 'constructor') {
             assert_true(IsConstructor(prototype[name]), `${name} should be a constructor`);
+            assert_equals(prototype[name].name, c, `${name}.name should be '${c}'`);
           } else {
             assert_false(IsConstructor(prototype[name]), `${name} should not be a constructor`);
+            assert_equals(prototype[name].name, name, `${name}.name should be '${name}`);
           }
         }, `${fullName} should be a ${type}`);
         break;

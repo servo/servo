@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<p>The test result should show only one black rect border. It should not paint
+any content in the rect because registerPaint will be called twice and the
+inputArguments will return two different strings, that will throw an exception
+and paint won't be executed.</p>
+<canvas id ="canvas" width="100" height="100" style="border:1px solid black"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext("2d");
+context.clearRect(0, 0, 100, 100);
+</script>
+</body>
+</html>

@@ -4,12 +4,12 @@
 <title>RTL text selection drag and drop from text input to block element</title>
 <style type="text/css">
 div[ondragenter]
-	{width:300px;
-	height:100px;
-	margin-top:20px;
-	padding:10px;
-	color:white;
-	background-color:navy;}
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;
+  color:white;
+  background-color:navy;}
 </style>
 </head>
 <body onload="document.querySelector('input').select()">
@@ -17,9 +17,9 @@ div[ondragenter]
 <div dir="rtl">
 <p><input value="&#x202E;FAIL|SSAP&#x202C;"/></p>
 <div
-	ondragenter="event.preventDefault()"
-	ondragover="return false"
-	ondrop="document.querySelector('div > div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+  ondrop="document.querySelector('div > div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
 />
 </div>
 </body>

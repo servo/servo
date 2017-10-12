@@ -24,10 +24,10 @@
 
 <script>
 window.onload = function() {
-	var doneonce = false;
+  var doneonce = false;
   document.getElementsByTagName('div')[0].ondragstart = function(e) {
-		alert( doneonce ? 'Dismiss this dialog. PASS if the browser does not crash.' : 'Dismiss this dialog. The browser should not crash. Without re-focusing the page first, try dragging the orange square a second time. If a second alert does not appear, release the drag, and then try dragging the orange square a third time.' );
-		doneonce = true;
+    alert( doneonce ? 'Dismiss this dialog. PASS if the browser does not crash.' : 'Dismiss this dialog. The browser should not crash. Without re-focusing the page first, try dragging the orange square a second time. If a second alert does not appear, release the drag, and then try dragging the orange square a third time.' );
+    doneonce = true;
   };
 };
 </script>

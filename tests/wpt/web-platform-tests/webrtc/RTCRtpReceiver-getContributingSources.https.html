@@ -1,0 +1,86 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.prototype.getContributingSources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper function is called from RTCPeerConnection-helper.js
+  //   getTrackFromUserMedia
+  //   exchangeIceCandidates
+  //   doSignalingHandshake
+
+  /*
+    5.3.  RTCRtpReceiver Interface
+      interface RTCRtpReceiver {
+        ...
+        sequence<RTCRtpContributingSource>    getContributingSources();
+      };
+
+      interface RTCRtpContributingSource {
+        readonly attribute DOMHighResTimeStamp timestamp;
+        readonly attribute unsigned long       source;
+        readonly attribute byte?               audioLevel;
+      };
+
+      audioLevel
+        The audio level contained in the last RTP packet played from this source.
+        audioLevel will be the level value defined in [RFC6465] if the RFC 6465
+        header extension is present, and otherwise null. RFC 6465 defines the
+        level as a integral value from 0 to 127 representing the audio level in
+        negative decibels relative to the loudest signal that the system could
+        possibly encode. Thus, 0 represents the loudest signal the system could
+        possibly encode, and 127 represents silence.
+   */
+
+  promise_test(() => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+
+    const ontrackPromise = new Promise(resolve => {
+      pc2.addEventListener('track', trackEvent => {
+        const { receiver } = trackEvent;
+        assert_true(receiver instanceof RTCRtpReceiver,
+          'Expect trackEvent.receiver to be instance of RTCRtpReceiver');
+
+        resolve(receiver);
+      });
+    });
+
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      pc1.addTrack(track, mediaStream);
+      exchangeIceCandidates(pc1, pc2);
+      return doSignalingHandshake(pc1, pc2);
+    })
+    .then(() => ontrackPromise)
+    .then(receiver => {
+      const contributingSources = receiver.getContributingSources();
+      assert_greater_than(contributingSources.length, 0,
+        'Expect CSRCs to be available after RTP connection is established');
+
+      for(const csrc of contributingSources) {
+        assert_true(csrc instanceof RTCRtpContributingSource,
+          'Expect contributingSources elements to be instance of RTCRtpContributingSource');
+
+        assert_equals(typeof csrc.timestamp, 'number',
+          'Expect csrc.timestamp attribute to be DOMHighResTimeStamp');
+
+        assert_true(Number.isInteger(csrc.source) && csrc.source > 0,
+          'Expect CSRC identifier to be unsigned long');
+
+        if(csrc.audioLevel !== null) {
+          assert_true(Number.isInteger(csrc.audioLevel) &&
+             csrc.audioLevel >= 0 && csrc.audioLevel <= 127,
+            'Expect csrc.audioLevel to be either null or byte value from 0-127.');
+        }
+      }
+    });
+  }, `getContributingSources() should return list of CSRC after connection is established`);
+
+</script>

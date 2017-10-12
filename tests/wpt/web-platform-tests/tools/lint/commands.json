@@ -1,0 +1,3 @@
+{"lint":
+ {"path": "lint.py", "script": "main", "parser": "create_parser", "help": "Run the lint",
+  "virtualenv": false}}

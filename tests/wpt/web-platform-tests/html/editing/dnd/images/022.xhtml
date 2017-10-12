@@ -4,19 +4,19 @@
 <title>Dropping image on vertical iframe scrollbar</title>
 <style type="text/css">
 p:first-child
-	{padding-left:1em;}
+  {padding-left:1em;}
 iframe
-	{height:6em;
-	width:3em;}
+  {height:6em;
+  width:3em;}
 img
-	{width:5px;
-	height:5px;}
+  {width:5px;
+  height:5px;}
 </style>
 <script type="application/ecmascript">
 function dragImage()
-	{event.dataTransfer.effectAllowed = 'copy';}
+  {event.dataTransfer.effectAllowed = 'copy';}
 function dropImage(event)
-	{document.querySelector('p + p').firstChild.nodeValue = 'PASS';}
+  {document.querySelector('p + p').firstChild.nodeValue = 'PASS';}
 </script>
 </head>
 <body ondragenter="event.preventDefault()" ondragover="return false">

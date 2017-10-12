@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.prototype.getParameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpParameters-helper.js:
+  //   validateReceiverRtpParameters
+
+  /*
+    Validates the RTCRtpParameters returned from RTCRtpReceiver.prototype.getParameters
+
+    5.3.  RTCRtpReceiver Interface
+      getParameters
+        When getParameters is called, the RTCRtpParameters dictionary is constructed
+        as follows:
+
+        - encodings is populated based on SSRCs and RIDs present in the current remote
+          description, including SSRCs used for RTX and FEC, if signaled. Every member
+          of the RTCRtpEncodingParameters dictionaries other than the SSRC and RID fields
+          is left undefined.
+
+        - The headerExtensions sequence is populated based on the header extensions that
+          the receiver is currently prepared to receive.
+
+        - The codecs sequence is populated based on the codecs that the receiver is currently
+          prepared to receive.
+
+        - rtcp.reducedSize is set to true if the receiver is currently prepared to receive
+          reduced-size RTCP packets, and false otherwise. rtcp.cname is left undefined.
+
+        - transactionId and degradationPreference are left undefined.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const { receiver } = pc.addTransceiver('audio');
+    const param = pc.getParameters();
+    validateReceiverRtpParameters(param);
+  });
+</script>

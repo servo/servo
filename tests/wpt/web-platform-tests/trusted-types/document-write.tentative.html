@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<body>
+<script>
+  promise_test(t => {
+    var html = TrustedHTML.escape(STRINGS.unescapedHTML);
+    return createFrameAndWrite(html).then(i => {
+      assert_equals(i.contentDocument.body.innerText, STRINGS.unescapedHTML, "innerText");
+      i.remove();
+    });
+  }, "document.write(TrustedHTML).");
+</script>

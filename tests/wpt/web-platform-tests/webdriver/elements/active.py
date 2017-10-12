@@ -1,8 +1,8 @@
 import pytest
 
-from support.asserts import assert_error, assert_success, assert_dialog_handled, assert_same_element
-from support.fixtures import create_dialog
-from support.inline import inline
+from tests.support.asserts import assert_error, assert_success, assert_dialog_handled, assert_same_element
+from tests.support.fixtures import create_dialog
+from tests.support.inline import inline
 
 def assert_result_is_active_element(session, result):
     """Ensure that the provided object is a successful WebDriver response

@@ -49,7 +49,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
     convert_result = testharness_result_converter
 
     def __init__(self, browser, server_config, timeout_multiplier=1, debug_info=None,
-                 pause_after_test=False):
+                 pause_after_test=False, **kwargs):
         ProcessTestExecutor.__init__(self, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
                                      debug_info=debug_info)
@@ -179,7 +179,9 @@ class ServoRefTestExecutor(ProcessTestExecutor):
     convert_result = reftest_result_converter
 
     def __init__(self, browser, server_config, binary=None, timeout_multiplier=1,
-                 screenshot_cache=None, debug_info=None, pause_after_test=False):
+                 screenshot_cache=None, debug_info=None, pause_after_test=False,
+                 **kwargs):
+        do_delayed_imports()
         ProcessTestExecutor.__init__(self,
                                      browser,
                                      server_config,

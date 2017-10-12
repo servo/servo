@@ -86,4 +86,4 @@ On Linux, copy the file to `~/.local/share/fonts` and then run
 `fc-cache`.
 
 [ahem-readme]: https://www.w3.org/Style/CSS/Test/Fonts/Ahem/README
-[download-ahem]: https://www.w3.org/Style/CSS/Test/Fonts/Ahem/AHEM____.TTF
+[download-ahem]: https://github.com/w3c/web-platform-tests/raw/master/fonts/Ahem.ttf

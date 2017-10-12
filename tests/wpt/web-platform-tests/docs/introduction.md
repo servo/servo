@@ -74,7 +74,7 @@ The testsuite has a few types of tests, outlined below:
 
 ## GitHub
 
-GitHub is used both for issue tracking and test submissions; we
+[GitHub](https://github.com/w3c/web-platform-tests/) is used both for [issue tracking](https://github.com/w3c/web-platform-tests/issues) and [test submissions](https://github.com/w3c/web-platform-tests/pulls); we
 provide [a limited introduction][github-intro] to both git and
 GitHub.
 

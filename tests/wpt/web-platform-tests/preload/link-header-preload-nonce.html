@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<script nonce="abc" src="/preload/resources/preload_helper.js"></script>
+<script nonce="abc">
+    var t = async_test('Makes sure that Link headers preload resources with CSP nonce');
+</script>
+<script nonce="abc" src="resources/dummy.js?pipe=trickle(d5)&link-header-preload-nonce"></script>
+<script nonce="abc">
+    window.addEventListener('load', t.step_func(function() {
+        verifyPreloadAndRTSupport();
+        verifyNumberOfDownloads("resources/dummy.js?without-nonce", 0);
+        verifyNumberOfDownloads("resources/dummy.js?with-nonce", 1);
+        t.done();
+    }));
+</script>

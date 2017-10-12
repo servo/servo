@@ -93,4 +93,107 @@ root.domFixture = function(selector) {
         throw new Error('domFixture must be initialized first!');
     }
 };
+
+/*
+ * The recommended minimum precision to use for time values.
+ *
+ * Based on Web Animations:
+ * https://w3c.github.io/web-animations/#precision-of-time-values
+ */
+const TIME_PRECISION = 0.0005; // ms
+
+/*
+ * Allow implementations to substitute an alternative method for comparing
+ * times based on their precision requirements.
+ */
+root.assert_times_equal = function(actual, expected, description) {
+  assert_approx_equals(actual, expected, TIME_PRECISION, description);
+}
+
+/**
+ * Assert that CSSTransition event, |evt|, has the expected property values
+ * defined by |propertyName|, |elapsedTime|, and |pseudoElement|.
+ */
+root.assert_end_events_equal = function(evt, propertyName, elapsedTime,
+                                        pseudoElement = '') {
+  assert_equals(evt.propertyName, propertyName);
+  assert_times_equal(evt.elapsedTime, elapsedTime);
+  assert_equals(evt.pseudoElement, pseudoElement);
+}
+
+/**
+ * Assert that array of simultaneous CSSTransition events, |evts|, have the
+ * corresponding property names listed in |propertyNames|, and the expected
+ * |elapsedTimes| and |pseudoElement| members.
+ *
+ * |elapsedTimes| may be a single value if all events are expected to have the
+ * same elapsedTime, or an array parallel to |propertyNames|.
+ */
+root.assert_end_event_batch_equal = function(evts, propertyNames, elapsedTimes,
+                                             pseudoElement = '') {
+  assert_equals(
+    evts.length,
+    propertyNames.length,
+    'Test harness error: should have waited for the correct number of events'
+  );
+  assert_true(
+    typeof elapsedTimes === 'number' ||
+      (Array.isArray(elapsedTimes) &&
+        elapsedTimes.length === propertyNames.length),
+    'Test harness error: elapsedTimes must either be a number or an array of' +
+      ' numbers with the same length as propertyNames'
+  );
+
+  if (typeof elapsedTimes === 'number') {
+    elapsedTimes = Array(propertyNames.length).fill(elapsedTimes);
+  }
+  const testPairs = propertyNames.map((propertyName, index) => ({
+    propertyName,
+    elapsedTime: elapsedTimes[index]
+  }));
+
+  const sortByPropertyName = (a, b) =>
+    a.propertyName.localeCompare(b.propertyName);
+  evts.sort(sortByPropertyName);
+  testPairs.sort(sortByPropertyName);
+
+  for (let evt of evts) {
+    const expected = testPairs.shift();
+    assert_end_events_equal(
+      evt,
+      expected.propertyName,
+      expected.elapsedTime,
+      pseudoElement
+    );
+  }
+}
+
+/**
+ * Appends a div to the document body.
+ *
+ * @param t  The testharness.js Test object. If provided, this will be used
+ *           to register a cleanup callback to remove the div when the test
+ *           finishes.
+ *
+ * @param attrs  A dictionary object with attribute names and values to set on
+ *               the div.
+ */
+root.addDiv = function(t, attrs) {
+  var div = document.createElement('div');
+  if (attrs) {
+    for (var attrName in attrs) {
+      div.setAttribute(attrName, attrs[attrName]);
+    }
+  }
+  document.body.appendChild(div);
+  if (t && typeof t.add_cleanup === 'function') {
+    t.add_cleanup(function() {
+      if (div.parentNode) {
+        div.remove();
+      }
+    });
+  }
+  return div;
+}
+
 })(window);

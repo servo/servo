@@ -44,6 +44,8 @@ test(function() {
     assert_equals(document.body.style.overflowY, "scroll", "Could not set document.body.style.overflowY to 'scroll'.");
     document.documentElement.style.overflowY = "scroll";
     assert_equals(document.documentElement.style.overflowY, "scroll", "Could not set document.documentElement.style.overflow to 'scroll'.");
+    document.documentElement.style.overflowY = "";
+    document.body.style.overflowY = "";
 }, "Ensure that style.overflowY can be set properly.")
 
 test(function() {

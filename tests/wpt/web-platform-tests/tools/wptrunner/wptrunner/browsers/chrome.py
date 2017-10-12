@@ -3,13 +3,15 @@ from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorselenium import (SeleniumTestharnessExecutor,
                                           SeleniumRefTestExecutor)
+from ..executors.executorchrome import ChromeDriverWdspecExecutor
 
 
 __wptrunner__ = {"product": "chrome",
                  "check_args": "check_args",
                  "browser": "ChromeBrowser",
                  "executor": {"testharness": "SeleniumTestharnessExecutor",
-                              "reftest": "SeleniumRefTestExecutor"},
+                              "reftest": "SeleniumRefTestExecutor",
+                              "wdspec": "ChromeDriverWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -44,6 +46,11 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
         if kwargs[kwarg] is not None:
             capabilities["chromeOptions"][capability] = kwargs[kwarg]
+    if test_type == "testharness":
+        capabilities["chromeOptions"]["useAutomationExtension"] = False
+        capabilities["chromeOptions"]["excludeSwitches"] = ["enable-automation"]
+    if test_type == "wdspec":
+        capabilities["chromeOptions"]["w3c"] = True
     executor_kwargs["capabilities"] = capabilities
     return executor_kwargs
 

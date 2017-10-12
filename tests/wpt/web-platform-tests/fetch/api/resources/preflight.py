@@ -12,6 +12,12 @@ def main(request, response):
     else:
         headers.append(("Access-Control-Allow-Origin", "*"))
 
+    if "clear-stash" in request.GET:
+        if request.server.stash.take(token) is not None:
+            return headers, "1"
+        else:
+            return headers, "0"
+
     if "credentials" in request.GET:
         headers.append(("Access-Control-Allow-Credentials", "true"))
 

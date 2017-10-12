@@ -4,31 +4,31 @@
 <title>Drag and drop of overlapping images: absolute position</title>
 <style type="text/css">
 span, strong
-	{color:green;
-	background-color:yellow;}
+  {color:green;
+  background-color:yellow;}
 strong
-	{color:red;}
+  {color:red;}
 div
-	{height:100px;
-	position:relative;}
+  {height:100px;
+  position:relative;}
 img
-	{display:block;
-	position:absolute;
-	top:0;
-	bottom:0;
-	width:100px;
-	height:100px;}
+  {display:block;
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:100px;
+  height:100px;}
 </style>
 <script type="application/ecmascript">
 function start(event,feedback)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.addElement(document.querySelector(feedback));}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.addElement(document.querySelector(feedback));}
 </script>
 </head>
 <body>
 <div>
-	<img ondragstart="start(event,'strong')" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4z8DwHwAFAAH/VscvDQAAAABJRU5ErkJggg=="/>
-	<img ondragstart="start(event,'span')" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNgaGD4DwAChAGAJVtEDQAAAABJRU5ErkJggg=="/>
+  <img ondragstart="start(event,'strong')" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4z8DwHwAFAAH/VscvDQAAAABJRU5ErkJggg=="/>
+  <img ondragstart="start(event,'span')" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNgaGD4DwAChAGAJVtEDQAAAABJRU5ErkJggg=="/>
 </div>
 <p>Try to drag box above. You should see word <span>PASS</span> not <strong>FAIL</strong> in feedback overlay all the time.</p>
 </body>

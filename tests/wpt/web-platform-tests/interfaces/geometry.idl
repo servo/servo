@@ -12,7 +12,7 @@ interface DOMPointReadOnly {
 
     DOMPoint matrixTransform(optional DOMMatrixInit matrix);
 
-    serializer = { attribute };
+    [Default] toJSON();
 };
 
 [Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
@@ -52,7 +52,7 @@ interface DOMRectReadOnly {
     readonly attribute unrestricted double bottom;
     readonly attribute unrestricted double left;
 
-    serializer = { attribute };
+    [Default] toJSON();
 };
 
 [Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
@@ -76,6 +76,13 @@ dictionary DOMRectInit {
     unrestricted double height = 0;
 };
 
+[NoInterfaceObject,
+ LegacyArrayClass]
+interface DOMRectList {
+    readonly attribute unsigned long length;
+    getter DOMRect? item(unsigned long index);
+};
+
 [Constructor(optional DOMPointInit p1, optional DOMPointInit p2,
              optional DOMPointInit p3, optional DOMPointInit p4),
  Exposed=(Window,Worker),
@@ -90,7 +97,7 @@ interface DOMQuad {
     [SameObject] readonly attribute DOMPoint p4;
     [NewObject] DOMRect getBounds();
 
-    serializer = { attribute };
+    [Default] toJSON();
 };
 
 dictionary DOMQuadInit {
@@ -171,7 +178,7 @@ interface DOMMatrixReadOnly {
     [NewObject] Float64Array toFloat64Array();
 
     [Exposed=Window] stringifier;
-    serializer = { attribute };
+    [Default] toJSON();
 };
 
 [Constructor(optional (DOMString or sequence<unrestricted double>) init),
@@ -240,7 +247,7 @@ interface DOMMatrix : DOMMatrixReadOnly {
     [Exposed=Window] DOMMatrix setMatrixValue(DOMString transformList);
 };
 
-dictionary DOMMatrixInit {
+dictionary DOMMatrix2DInit {
     unrestricted double a;
     unrestricted double b;
     unrestricted double c;
@@ -249,18 +256,21 @@ dictionary DOMMatrixInit {
     unrestricted double f;
     unrestricted double m11;
     unrestricted double m12;
-    unrestricted double m13 = 0;
-    unrestricted double m14 = 0;
     unrestricted double m21;
     unrestricted double m22;
+    unrestricted double m41;
+    unrestricted double m42;
+};
+
+dictionary DOMMatrixInit : DOMMatrix2DInit {
+    unrestricted double m13 = 0;
+    unrestricted double m14 = 0;
     unrestricted double m23 = 0;
     unrestricted double m24 = 0;
     unrestricted double m31 = 0;
     unrestricted double m32 = 0;
     unrestricted double m33 = 1;
     unrestricted double m34 = 0;
-    unrestricted double m41;
-    unrestricted double m42;
     unrestricted double m43 = 0;
     unrestricted double m44 = 1;
     boolean is2D;

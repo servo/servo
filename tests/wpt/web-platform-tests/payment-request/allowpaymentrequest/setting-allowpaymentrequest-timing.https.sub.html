@@ -6,6 +6,10 @@
 <script>
 // Set allowpaymentrequest attribute in a timeout after <iframe> has been inserted to the document.
 // The iframe's response is delayed so it happens after the attribute is set.
+// The allowpaymentrequest flag is *not* set when the browsing context is created
+// (when the <iframe> is inserted), because there's no attribute at that time,
+// and the flag stays as not set when the attribute is added because per spec
+// the flag is only set when a browsing context is created and when it's navigated.
 
 async_test((t) => {
   const iframe = document.createElement('iframe');
@@ -19,7 +23,7 @@ async_test((t) => {
 
   window.onmessage = t.step_func_done((e) => {
     assert_equals(e.data.message, 'Exception');
-    assert_array_equals(e.data.details, [true /* ex instanceof DOMException*/, 18 /* ex.code */, 'SecurityError' /* ex.name */]);
+    assert_array_equals(e.data.details, [true /* ex instanceof DOMException */, DOMException.SECURITY_ERR, 'SecurityError']);
   });
 
   document.body.appendChild(iframe);

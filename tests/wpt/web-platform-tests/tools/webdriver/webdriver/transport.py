@@ -2,6 +2,8 @@ import httplib
 import json
 import urlparse
 
+import error
+
 class Response(object):
     """Describes an HTTP response received from a remote en"Describes an HTTP
     response received from a remote end whose body has been read and parsed as
@@ -27,19 +29,19 @@ class Response(object):
         # >       "application/json; charset=utf-8"
         # >    "cache-control"
         # >       "no-cache"
-        assert http_response.getheader("Content-Type") == "application/json; charset=utf-8"
-        assert http_response.getheader("Cache-Control") == "no-cache"
 
         if body:
-            body = json.loads(body)
-
-            # SpecID: dfn-send-a-response
-            #
-            # > 4. If data is not null, let response's body be a JSON Object
-            #      with a key `value` set to the JSON Serialization of data.
-            assert "value" in body
+            try:
+                body = json.loads(body)
+            except:
+                raise error.UnknownErrorException("Failed to decode body as json:\n%s" % body)
 
         return cls(status, body)
+
+
+class ToJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        return getattr(obj.__class__, "json", json.JSONEncoder().default)(obj)
 
 
 class HTTPWireProtocol(object):
@@ -79,7 +81,7 @@ class HTTPWireProtocol(object):
             body = {}
 
         if isinstance(body, dict):
-            body = json.dumps(body)
+            body = json.dumps(body, cls=ToJsonEncoder)
 
         if isinstance(body, unicode):
             body = body.encode("utf-8")

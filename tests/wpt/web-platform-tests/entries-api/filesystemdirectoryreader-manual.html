@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryReader manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-directoryreader">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  const reader = entry.createReader();
+
+  assert_idl_attribute(reader, 'readEntries', 'FileSystemDirectoryReader has readEntries');
+  assert_equals(typeof reader.readEntries, 'function', 'readEntries() is a method');
+
+  t.done();
+}, 'FileSystemDirectoryReader - interface');
+
+
+entry_test((t, entry) => {
+  getChildEntry(entry, 'subdir', t.step_func(dir => {
+    const reader = dir.createReader();
+    assert_equals(typeof reader.readEntries, 'function');
+
+    const found_names = [];
+    const do_chunk = t.step_func(() =>
+      reader.readEntries(t.step_func(entries => {
+
+        if (entries.length > 0) {
+          entries.forEach(t.step_func(entry => found_names.push(entry.name)));
+          do_chunk();
+          return;
+        }
+
+        found_names.sort();
+        assert_array_equals(found_names, ['1.txt', '2.txt', '3.txt'],
+                            'directory contents should match');
+        t.done();
+      })));
+
+    do_chunk();
+  }), t.unreached_func('A child entry should be found'));
+}, 'FileSystemDirectoryReader - basic enumeration');
+
+entry_test((t, entry) => {
+  const reader = entry.createReader();
+  reader.readEntries(() => {}, t.unreached_func('readEntries should succeed'));
+  reader.readEntries(
+    t.unreached_func('readEntries() should fail if already reading'),
+    t.step_func(error => {
+      assert_equals(error.name, 'InvalidStateError', 'invalid state if already reading');
+      t.done();
+    }));
+}, 'FileSystemDirectoryReader - reading flag');
+
+entry_test((t, entry) => {
+  const reader = entry.createReader();
+
+  const do_chunk = t.step_func(() =>
+    reader.readEntries(t.step_func(entries => {
+      if (entries.length > 0) {
+        do_chunk();
+        return;
+      }
+      reader.readEntries(t.step_func(entries => {
+        assert_equals(
+          entries.length, 0,
+          'calling readEntries() when done should yield and empty sequence');
+        t.done();
+      }));
+    })));
+
+  do_chunk();
+}, 'FileSystemDirectoryReader - done flag');
+
+// TODO: Manual tests where directory contents are changed during the test.
+</script>

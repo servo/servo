@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCDTMFSender.prototype.ontonechange (Long Timeout)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="RTCDTMFSender-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCDTMFSender-helper.js
+  //   test_tone_change_events
+
+  /*
+    7.  Peer-to-peer DTMF
+      partial interface RTCRtpSender {
+        readonly attribute RTCDTMFSender? dtmf;
+      };
+
+      interface RTCDTMFSender : EventTarget {
+        void insertDTMF(DOMString tones,
+                        optional unsigned long duration = 100,
+                        optional unsigned long interToneGap = 70);
+                 attribute EventHandler ontonechange;
+        readonly attribute DOMString    toneBuffer;
+      };
+
+      [Constructor(DOMString type, RTCDTMFToneChangeEventInit eventInitDict)]
+      interface RTCDTMFToneChangeEvent : Event {
+        readonly attribute DOMString tone;
+      };
+   */
+
+  /*
+    7.2.  insertDTMF
+      8. If the value of the duration parameter is less than 40, set it to 40.
+         If, on the other hand, the value is greater than 6000, set it to 6000.
+   */
+  test_tone_change_events((t, dtmfSender) => {
+    dtmfSender.insertDTMF('A', 8000, 70);
+  }, [
+    ['A', '', 0],
+    ['', '', 6070]
+  ],'insertDTMF with duration greater than 6000 should be clamped to 6000');
+
+</script>

@@ -1,19 +1,11 @@
-self.state = 'starting';
-
-self.addEventListener('install', function() {
-    self.state = 'installing';
-  });
+var saw_activate_event = false
 
 self.addEventListener('activate', function() {
-    self.state = 'activating';
+    saw_activate_event = true;
   });
 
 self.addEventListener('message', function(event) {
     var port = event.data.port;
-    if (self.state !== 'installing') {
-      port.postMessage('FAIL: Worker should be waiting in installed state');
-      return;
-    }
     event.waitUntil(self.skipWaiting()
       .then(function(result) {
           if (result !== undefined) {
@@ -21,9 +13,15 @@ self.addEventListener('message', function(event) {
             return;
           }
 
-          if (self.state === 'activating') {
+          if (!saw_activate_event) {
             port.postMessage(
-                'FAIL: Promise should be resolved before worker is activated');
+                'FAIL: Promise should be resolved after activate event is dispatched');
+            return;
+          }
+
+          if (self.registration.active.state !== 'activating') {
+            port.postMessage(
+                'FAITL: Promise should be resolved before ServiceWorker#state is set to activated');
             return;
           }
 

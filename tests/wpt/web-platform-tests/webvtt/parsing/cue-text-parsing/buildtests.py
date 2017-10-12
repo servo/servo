@@ -1,11 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
-import urllib
+import urllib.parse
 import hashlib
 
-doctmpl = """<!doctype html>
+doctmpl = """\
+<!doctype html>
 <title>WebVTT cue data parser test %s</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#cue-text-parsing-rules">
 <style>video { display:none }</style>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -17,51 +19,53 @@ doctmpl = """<!doctype html>
 runTests([
 %s
 ]);
-</script>"""
+</script>
+"""
 
 testobj = "{name:'%s', input:'%s', expected:'%s'}"
 
 def appendtest(tests, input, expected):
-    tests.append(testobj % (hashlib.sha1(input).hexdigest(), urllib.quote(input[:-1]),  urllib.quote(expected[:-1])))
+    tests.append(testobj % (hashlib.sha1(input.encode('UTF-8')).hexdigest(), urllib.parse.quote(input[:-1]),  urllib.parse.quote(expected[:-1])))
 
 files = os.listdir('dat/')
 for file in files:
     if os.path.isdir('dat/'+file) or file[0] == ".":
         continue
+
     tests = []
     input = ""
     expected = ""
     state = ""
-    f = open('dat/'+file, "r")
-    while 1:
-        line = f.readline()
-        if not line:
-            if state != "":
-                appendtest(tests, input, expected)
-                input = ""
-                expected = ""
-                state = ""
-            break
-        if line[0] == "#":
-            state = line
-            if line == "#document-fragment\n":
-                expected = expected + line
-        elif state == "#data\n":
-            input = input + line
-        elif state == "#errors\n":
-            pass
-        elif state == "#document-fragment\n":
-            if line == "\n":
-                appendtest(tests, input, expected)
-                input = ""
-                expected = ""
-                state = ""
+    with open('dat/'+file, "r") as f:
+        while True:
+            line = f.readline()
+            if not line:
+                if state != "":
+                    appendtest(tests, input, expected)
+                    input = ""
+                    expected = ""
+                    state = ""
+                break
+
+            if line[0] == "#":
+                state = line
+                if line == "#document-fragment\n":
+                    expected += bytes(line, 'UTF-8').decode('unicode-escape')
+            elif state == "#data\n":
+                input += bytes(line, 'UTF-8').decode('unicode-escape')
+            elif state == "#errors\n":
+                pass
+            elif state == "#document-fragment\n":
+                if line == "\n":
+                    appendtest(tests, input, expected)
+                    input = ""
+                    expected = ""
+                    state = ""
+                else:
+                    expected += bytes(line, 'UTF-8').decode('unicode-escape')
             else:
-                expected = expected + line
-        else:
-            raise Exception("failed to parse file "+file+" line:"+line+" (state: "+state+")")
-    f.close()
-    barename = file.replace(".dat", "")
-    out = open('tests/'+barename+".html", "w")
-    out.write(doctmpl % (barename, ",\n".join(tests)))
-    out.close()
+                raise Exception("failed to parse file %s:%s (state: %s)" % (file, line, state))
+
+    name = os.path.splitext(file)[0]
+    with open('tests/'+name+".html", "w") as out:
+        out.write(doctmpl % (name, ",\n".join(tests)))

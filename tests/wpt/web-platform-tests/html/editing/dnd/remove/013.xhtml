@@ -4,9 +4,9 @@
 <title>Changing iframe content during drag and drop of selection</title>
 <style type="text/css">
 iframe
-	{height:100px;
-	width:300px;
-	border:solid medium navy;}
+  {height:100px;
+  width:300px;
+  border:solid medium navy;}
 </style>
 </head>
 <body ondragenter="event.preventDefault();document.querySelector('iframe').src = 'data:text/plain,Drop%20selection%20outside%20this%20frame'" ondragover="return false" ondrop="document.querySelector('p').firstChild.nodeValue = (event.dataTransfer.getData('text/plain') == 'Drag me')?'PASS':'FAIL'">

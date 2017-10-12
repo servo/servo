@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>tablist orientation horizontal</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -71,9 +72,15 @@
             "IAccessible2" : [
                [
                   "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_PAGETABLIST"
+               ],
+               [
+                  "property",
                   "states",
                   "doesNotContain",
-                  "IA2_STATE_VERTICAL set"
+                  "IA2_STATE_VERTICAL"
                ],
                [
                   "property",
@@ -134,4 +141,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

@@ -1,6 +1,6 @@
 <!-- Submitted from TestTWF Paris -->
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
 	<title>CSS Values and Units Test: vh-based dimension doesn't change when the element's other dimension doesn't change.</title>
 	<link rel="author" title="Marc Bourlon" href="mailto:marc@bourlon.com">
@@ -8,6 +8,7 @@
 	<link rel="match" href="reference/vh_not_refreshing_on_chrome-ref.html">
 	<meta name="assert" content="vh-based dimension doesn't change when the element's other dimension doesn't change.">
 	<!-- This test exhibits a bug for Chrome 19.0.1084.56 / Mac OS X 10.6.8 -->
+	<script src="/common/reftest-wait.js"></script>
 
 	<style type="text/css">
 
@@ -18,6 +19,19 @@
 	</style>
 
 	<script type="text/javascript">
+		'use strict';
+
+		// We must not capture the screen until the frameTest, referenceBoxGrownHorizontallyByJS
+		// and testBoxWithTransition elements have finished changing height.
+		var elementsPending = 3;
+		function receiveMessage() {
+			if (--elementsPending === 0) {
+				takeScreenshot();
+			}
+		}
+
+		window.addEventListener('message', receiveMessage, false);
+
 		var height = 200;
 
 		function resizeReference() {
@@ -37,6 +51,7 @@
 				// uncomment the next line to see how a width resize triggers a layout recalculation
 				//frameTest.style.width = (parseInt(window.getComputedStyle(document.getElementById('frameTest'))['width'], 10) + 1) + "px";
 
+				window.postMessage('frameTest', '*');
 			}
 
 		}
@@ -47,7 +62,7 @@
 </head>
 <body>
 
-<iframe id="frameTest" src="vh_not_refreshing_on_chrome_iframe.html" frameborder="0"></iframe>
+<iframe id="frameTest" src="support/vh_not_refreshing_on_chrome_iframe.html" frameborder="0"></iframe>
 
 </body>
 </html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<title>Service Worker: Registration-updateViaCache</title>
+<script src="/resources/testharness.js"></script>
+<script src="resources/testharness-helpers.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+  const UPDATE_VIA_CACHE_VALUES = [undefined, 'imports', 'all', 'none'];
+  const SCRIPT_URL = 'resources/update-max-aged-worker.py';
+  const SCOPE = 'resources/blank.html';
+
+  async function cleanup() {
+    const reg = await navigator.serviceWorker.getRegistration(SCOPE);
+    if (!reg) return;
+    if (reg.scope == new URL(SCOPE, location).href) {
+      return reg.unregister();
+    };
+  }
+
+  function getScriptTimes(sw, testName) {
+    return new Promise(resolve => {
+      navigator.serviceWorker.addEventListener('message', function listener(event) {
+        if (event.data.test !== testName) return;
+        navigator.serviceWorker.removeEventListener('message', listener);
+        resolve({
+          mainTime: event.data.mainTime,
+          importTime: event.data.importTime
+        });
+      });
+
+      sw.postMessage('');
+    });
+  }
+
+  function registerViaApi(scriptUrl, opts) {
+    return navigator.serviceWorker.register(scriptUrl, opts);
+  }
+
+  function registerViaLinkElement(scriptUrl, opts) {
+    return new Promise((resolve, reject) => {
+      const link = document.createElement('link');
+
+      if (link.relList.supports('serviceworker') == false) throw Error("link rel=serviceworker not supported");
+
+      link.rel = 'serviceworker';
+      link.href = scriptUrl;
+      link.scope = opts.scope;
+
+      if (opts.updateViaCache) {
+        link.updateViaCache = opts.updateViaCache;
+      }
+
+      link.onload = async () => {
+        const fullScope = new URL(opts.scope, window.location).href;
+
+        const regs = await navigator.serviceWorker.getRegistrations();
+        const reg = regs.find(r => r.scope == fullScope && (r.installing || r.waiting || r.active));
+
+        if (reg) {
+          document.head.removeChild(link);
+          resolve(reg);
+        }
+        else {
+          reject(Error('Service worker not registered'));
+        }
+      };
+
+      document.head.appendChild(link);
+    });
+  }
+
+  async function registerViaLinkHeader(scriptUrl, opts) {
+    const link = document.createElement('link');
+
+    const fullScope = new URL(opts.scope, window.location).href;
+    scriptUrl = new URL(scriptUrl, location).href;
+
+    // Assume that if the link element doesn't support serviceworker, the header doesn't either.
+    if (link.relList.supports('serviceworker') == false) throw Error("link rel=serviceworker not supported");
+
+    let linkHeader = `<${scriptUrl}>; rel=serviceworker; scope="${fullScope}"`;
+
+    if (opts.updateViaCache) {
+      linkHeader += `; updateviacache="${opts.updateViaCache}"`;
+    }
+
+    const linkHeaderSenderURL = new URL('resources/link-header.py', location);
+    linkHeaderSenderURL.searchParams.set('Link', linkHeader);
+
+    await fetch(linkHeaderSenderURL);
+    const frame = await with_iframe(fullScope);
+    await frame.contentWindow.navigator.serviceWorker.ready;
+
+    const regs = await navigator.serviceWorker.getRegistrations();
+    const reg = regs.find(r => r.scope == fullScope && (r.installing || r.waiting || r.active));
+
+    if (!reg) throw Error('Service worker not registered');
+
+    frame.parentNode.removeChild(frame);
+    return reg;
+  }
+
+  const registrationMethods = [
+    [registerViaApi, 'via-api'],
+    [registerViaLinkElement, 'via-link-element'],
+    [registerViaLinkHeader, 'via-link-header']
+  ];
+
+  // Test creating registrations & triggering an update.
+  for (const [registrationMethod, registrationMethodName] of registrationMethods) {
+    for (const updateViaCache of UPDATE_VIA_CACHE_VALUES) {
+      const testName = `register-${registrationMethodName}-updateViaCache-${updateViaCache}`;
+
+      promise_test(async t => {
+        await cleanup();
+
+        const opts = {scope: SCOPE};
+
+        if (updateViaCache) opts.updateViaCache = updateViaCache;
+
+        const reg = await registrationMethod(
+          `${SCRIPT_URL}?test=${testName}`,
+          opts
+        );
+
+        assert_equals(reg.updateViaCache, updateViaCache || 'imports', "reg.updateViaCache");
+
+        const sw = reg.installing || reg.waiting || reg.active;
+        await wait_for_state(t, sw, 'activated');
+        const values = await getScriptTimes(sw, testName);
+        await reg.update();
+
+        if (updateViaCache == 'all') {
+          assert_equals(reg.installing, null, "No new service worker");
+        }
+        else {
+          const newWorker = reg.installing;
+          assert_true(!!newWorker, "New worker installing");
+          const newValues = await getScriptTimes(newWorker, testName);
+
+          if (!updateViaCache || updateViaCache == 'imports') {
+            assert_not_equals(values.mainTime, newValues.mainTime, "Main script should have updated");
+            assert_equals(values.importTime, newValues.importTime, "Imported script should be the same");
+          }
+          else if (updateViaCache == 'none') {
+            assert_not_equals(values.mainTime, newValues.mainTime, "Main script should have updated");
+            assert_not_equals(values.importTime, newValues.importTime, "Imported script should have updated");
+          }
+          else {
+            // We should have handled all of the possible values for updateViaCache.
+            // If this runs, something's gone very wrong.
+            throw Error(`Unexpected updateViaCache value: ${updateViaCache}`);
+          }
+        }
+
+        await cleanup();
+      }, testName);
+    }
+  }
+
+  // Test changing the updateViaCache value of an existing registration.
+  for (const updateViaCache1 of UPDATE_VIA_CACHE_VALUES) {
+    for (const updateViaCache2 of UPDATE_VIA_CACHE_VALUES) {
+      const testName = `register-with-updateViaCache-${updateViaCache1}-then-${updateViaCache2}`;
+
+      promise_test(async t => {
+        await cleanup();
+
+        const fullScriptUrl = `${SCRIPT_URL}?test=${testName}`;
+        let opts = {scope: SCOPE};
+        if (updateViaCache1) opts.updateViaCache = updateViaCache1;
+
+        const reg = await navigator.serviceWorker.register(fullScriptUrl, opts);
+
+        const sw = reg.installing;
+        await wait_for_state(t, sw, 'activated');
+        const values = await getScriptTimes(sw, testName);
+
+        opts = {scope: SCOPE};
+        if (updateViaCache2) opts.updateViaCache = updateViaCache2;
+
+        await navigator.serviceWorker.register(fullScriptUrl, opts);
+
+        assert_equals(reg.updateViaCache, updateViaCache2 || 'imports', "reg.updateViaCache updated");
+
+        // If the update happens via the cache, the scripts will come back byte-identical.
+        // We bypass the byte-identical check if the script URL has changed, but not if
+        // only the updateViaCache value has changed.
+        if (updateViaCache2 == 'all') {
+          assert_equals(reg.installing, null, "No new service worker");
+        }
+        // If there's no change to the updateViaCache value, register should be a no-op.
+        // The default value should behave as 'imports'.
+        else if ((updateViaCache1 || 'imports') == (updateViaCache2 || 'imports')) {
+          assert_equals(reg.installing, null, "No new service worker");
+        }
+        else {
+          const newWorker = reg.installing;
+          assert_true(!!newWorker, "New worker installing");
+          const newValues = await getScriptTimes(newWorker, testName);
+
+          if (!updateViaCache2 || updateViaCache2 == 'imports') {
+            assert_not_equals(values.mainTime, newValues.mainTime, "Main script should have updated");
+            assert_equals(values.importTime, newValues.importTime, "Imported script should be the same");
+          }
+          else if (updateViaCache2 == 'none') {
+            assert_not_equals(values.mainTime, newValues.mainTime, "Main script should have updated");
+            assert_not_equals(values.importTime, newValues.importTime, "Imported script should have updated");
+          }
+          else {
+            // We should have handled all of the possible values for updateViaCache2.
+            // If this runs, something's gone very wrong.
+            throw Error(`Unexpected updateViaCache value: ${updateViaCache}`);
+          }
+        }
+
+        await cleanup();
+      }, testName);
+    }
+  }
+
+</script>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>HTMLImageElement.prototype.decode(), src/srcset mutation tests.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+// src tests
+// -------------------
+promise_test(function(t) {
+  var img = new Image();
+  img.src = "/images/green.png";
+  var promise = img.decode();
+  img.src = "/images/green.svg";
+  return promise_rejects(t, "EncodingError", promise);
+}, document.title + " src changes fail decode.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.src = "/images/green.png";
+  var first_promise = img.decode();
+  img.src = "/images/blue.png";
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects(t, "EncodingError", first_promise),
+    second_promise
+  ]);
+}, document.title + " src changes fail decode; following good png decode succeeds.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.src = "/images/green.png";
+  var first_promise = img.decode();
+  img.src = "/images/green.svg";
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects(t, "EncodingError", first_promise),
+    second_promise
+  ]);
+}, document.title + " src changes fail decode; following good svg decode succeeds.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.src = "/images/green.png";
+  var first_promise = img.decode();
+  img.src = "/non/existent/path.png";
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects(t, "EncodingError", first_promise),
+    promise_rejects(t, "EncodingError", second_promise)
+  ]);
+}, document.title + " src changes fail decode; following bad decode fails.");
+
+promise_test(function(t) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    // We wait for an onload, since the "Updating the image data" spec states
+    // that if a new microtask is scheduled, the old one is canceled so
+    // without the onload, the first decode request would be requested when the
+    // img.src is empty. With an onload, we ensure that the img.src is set and
+    // the image exists before issuing the first decode, then we verify that the
+    // src change to the same value does not prevent that request from
+    // succeeding.
+    img.onload = t.step_func(function() {
+      img.onload = null;
+
+      var first_promise = img.decode();
+      img.src = "/images/green.png";
+      var second_promise = img.decode();
+      assert_not_equals(first_promise, second_promise);
+      resolve(Promise.all([first_promise, second_promise]));
+    });
+    img.src = "/images/green.png";
+  });
+}, document.title + " src changes to the same path succeed.");
+
+// srcset tests
+// -------------------
+promise_test(function(t) {
+  var img = new Image();
+  img.srcset = "/images/green.png 100w";
+  var promise = img.decode();
+  img.srcset = "/images/green.svg 100w";
+  return promise_rejects(t, "EncodingError", promise);
+}, document.title + " srcset changes fail decode.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.srcset = "/images/green.png 100w";
+  var first_promise = img.decode();
+  img.srcset = "/images/green.svg 100w";
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects(t, "EncodingError", first_promise),
+    second_promise
+  ]);
+}, document.title + " srcset changes fail decode; following good decode succeeds.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.srcset = "/images/green.png 100w";
+  var first_promise = img.decode();
+  img.srcset = "/non/existent/path.png 100w";
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    promise_rejects(t, "EncodingError", first_promise),
+    promise_rejects(t, "EncodingError", second_promise)
+  ]);
+}, document.title + " srcset changes fail decode; following bad decode fails.");
+
+</script>

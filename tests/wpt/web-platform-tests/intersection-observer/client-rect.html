@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+iframe {
+  width: 180px;
+  height: 100px;
+}
+</style>
+
+<iframe id="iframe" srcdoc="<div id='target' style='width:1000px;height:1000px;'></div>"></iframe>
+
+<script>
+var target;
+var entries = [];
+var observer;
+var iframe = document.getElementById("iframe");
+
+iframe.onload = function() {
+  runTestCycle(function() {
+    target = iframe.contentDocument.getElementById("target");
+    assert_true(!!target, "Target element exists.");
+    observer = new IntersectionObserver(function(changes) {
+      entries = entries.concat(changes);
+    });
+    observer.observe(target);
+    entries = entries.concat(observer.takeRecords());
+    assert_equals(entries.length, 0, "No initial notifications.");
+    runTestCycle(test0, "First rAF should generate notification.");
+  }, "IntersectionObserverEntry.boundingClientRect should match target.boundingClientRect()");
+};
+
+function test0() {
+  assert_equals(entries.length, 1, "One notification.");
+  var bcr = target.getBoundingClientRect();
+  checkLastEntry(entries, 0, [bcr.left, bcr.right, bcr.top, bcr.bottom]);
+}
+</script>

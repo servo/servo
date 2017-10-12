@@ -1,0 +1,21 @@
+<meta charset="utf-8">
+<title>AbsoluteOrientationSensor Test: insecure context</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://w3c.github.io/orientation-sensor/">
+<link rel="help" href="https://w3c.github.io/sensors/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<div id="log"></div>
+<h2>Note:</h2>
+<ol>
+  <li>
+    Run test in an insecure context, e.g. http://example.com/.
+  </li>
+</ol>
+<script>
+
+runGenericSensorInsecureContext(AbsoluteOrientationSensor);
+runGenericSensorInsecureContext(RelativeOrientationSensor);
+
+</script>

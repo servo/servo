@@ -16,6 +16,7 @@ def main(request, response):
 
     if type == "no-location-with-body":
         response.status = 302
+        response.headers.append("Content-Type", "text/html")
         response.headers.append("Custom-Header", "hello")
         return "<body>BODY</body>"
 

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Self-Baseline alignment may change grid area height</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#column-align">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-align-self">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-by-baseline">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Column-Axis Self-Baseline alignment may change grid area height on a fixed grid.">
+<style>
+.block, .grid { font: 10px/1 Ahem; }
+.big { font-size: 20px; }
+.block {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+.block > div {
+  position: absolute;
+  color: red;
+}
+.grid {
+  display: grid;
+  width: 100px;
+  height: 100px;
+  color: green;
+  grid-auto-columns: 50px;
+  align-items: baseline;
+  align-content: start;
+}
+.firstRowFirstColumn {
+  grid-row: 1;
+  grid-column: 1;
+}
+.firstRowSecondColumn {
+  grid-row: 1;
+  grid-column: 2;
+}
+.secondRowFirstColumn {
+  grid-row: 2;
+  grid-column: 1;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="block">
+    <div style="top: 8px; left: 0px;">XX<br>XXXX<br>XX<br>XX X</div>
+    <div style="top: 0px; left: 50px" class="big">X</div>
+</div>
+<div class="grid">
+  <div class="firstRowFirstColumn">XX XXXX XX</div>
+  <div class="firstRowSecondColumn big">X</div>
+  <div class="secondRowFirstColumn">XX X</div>
+</div>

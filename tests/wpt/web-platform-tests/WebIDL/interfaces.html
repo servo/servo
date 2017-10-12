@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>WebIDL IDL tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<div id=log></div>
+<script>
+"use strict";
+var idlArray = new IdlArray();
+
+function doTest(idl) {
+  idlArray.add_idls(idl);
+  idlArray.add_objects({
+    DOMException: ['new DOMException()',
+                   'new DOMException("my message")',
+                   'new DOMException("my message", "myName")'],
+  });
+  idlArray.test();
+}
+
+promise_test(function() {
+  return fetch("/interfaces/webidl.idl").then(response => response.text())
+                                        .then(doTest);
+}, "Test driver");
+</script>

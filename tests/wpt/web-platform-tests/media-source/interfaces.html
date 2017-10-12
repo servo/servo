@@ -129,7 +129,7 @@ mediaSource = new MediaSource();
 video.src = URL.createObjectURL(mediaSource);
 mediaSource.addEventListener("sourceopen", function () {
   var defaultType ='video/webm;codecs="vp8,vorbis"';
-  if (video.canPlayType(defaultType)) {
+  if (MediaSource.isTypeSupported(defaultType)) {
     sourceBuffer = mediaSource.addSourceBuffer(defaultType);
   } else {
     sourceBuffer = mediaSource.addSourceBuffer('video/mp4');

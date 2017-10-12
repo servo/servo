@@ -5,7 +5,7 @@ RESPONSE = """
 <html>
   <head>
     <title>Clear-Site-Data</title>
-    <script src="test_utils.js"></script>
+    <script src="test_utils.sub.js"></script>
   </head>
   <body>
     <script>
@@ -34,7 +34,7 @@ RESPONSE = """
 # embedder whether the data deletion succeeded.
 def main(request, response):
     types = [key for key in request.GET.keys()]
-    header = json.dumps({ "types": types })
+    header = ",".join("\"" + type + "\"" for type in types)
     return ([("Clear-Site-Data", header),
              ("Content-Type", "text/html")],
             RESPONSE)

@@ -6,23 +6,23 @@ p.gone + ul { display: block; }
 </style>
 <script type="text/javascript">
 window.onload = function() {
-	if( location.href.match(/#popup$/) ) { document.getElementsByTagName('p')[0].className = 'gone'; }
+  if( location.href.match(/#popup$/) ) { document.getElementsByTagName('p')[0].className = 'gone'; }
   document.getElementsByTagName('ul')[0].ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
-		setTimeout(function () { window.close(); },2000);
+    setTimeout(function () { window.close(); },2000);
   };
 };
 </script>
 <p><a href="javascript:alert('Click the link normally');" onclick="window.open('close-drag-003.html#popup','_blank');return false;">Open this page in a popup</a>.</p>
 <ul draggable='true'>
-	<li>Close all pages/browser windows except the popup.</li>
-	<li>Ensure that the browser window is not maximised.</li>
-	<li>Quickly drag this text out of the browser window (not over the taskbar), and do not release the drag.</li>
-	<li>The browser may optionally cancel the drag. The browser may optionally close the popup/window. Fail if the drag placeholder gets stuck. Fail if the browser crashes. Fail if anything horrible happens. Fail if your grandmother does not invite you over for Christmas.</li>
-	<li>After 2 seconds, fail if the address field shows that the page has closed, but it is still visibly rendered.</li>
-	<li>Continue dragging back into the browser window (if it is still open).</li>
-	<li>Release the drag.</li>
-	<li>Fail if the drag placeholder gets stuck. Fail if the browser crashes or hangs.</li>
+  <li>Close all pages/browser windows except the popup.</li>
+  <li>Ensure that the browser window is not maximised.</li>
+  <li>Quickly drag this text out of the browser window (not over the taskbar), and do not release the drag.</li>
+  <li>The browser may optionally cancel the drag. The browser may optionally close the popup/window. Fail if the drag placeholder gets stuck. Fail if the browser crashes. Fail if anything horrible happens. Fail if your grandmother does not invite you over for Christmas.</li>
+  <li>After 2 seconds, fail if the address field shows that the page has closed, but it is still visibly rendered.</li>
+  <li>Continue dragging back into the browser window (if it is still open).</li>
+  <li>Release the drag.</li>
+  <li>Fail if the drag placeholder gets stuck. Fail if the browser crashes or hangs.</li>
 </ul>
 <noscript><p>Enable JavaScript and reload</p></noscript>

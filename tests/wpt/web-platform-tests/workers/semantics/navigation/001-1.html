@@ -16,7 +16,7 @@ onload = function() {
   }
 }
 </script>
-<a href='data:text/html,<title>foo</title><script>onload=function(){parent.after_load()}</script>'>link</a>
+<a href='data:text/html,<title>foo</title><script>onload=function(){window.parent.postMessage({title: window.document.title}, "*")}</script>'>link</a>
 <!--
 */
 //-->

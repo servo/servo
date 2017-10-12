@@ -32,6 +32,7 @@
 <div id="referenceBoxGrownHorizontallyByJS"></div>
 
 <script type="text/javascript">
+	'use strict';
 
 	// In case this file was opened by mistake, redirects to proper test
 	if (window.top.location.href  === document.location.href) {
@@ -63,7 +64,11 @@
 		setDimension('referenceBoxGrownHorizontallyByJS', 'width', referenceDimension);
 		setDimension('referenceBoxGrownHorizontallyByJS', 'height', referenceDimension);
 
-		setTimeout(animate, 20);
+		if (referenceDimension < 60) {
+			setTimeout(animate, 20);
+		} else {
+			parent.postMessage('testBoxWithVhOnly', '*');
+		}
 	}
 
 	setTimeout(animate, 20);

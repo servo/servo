@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>menuitemcheckbox posinset and setsize</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -112,14 +113,14 @@
                   "setsize:8"
                ],
                [
-                  "result",
-                  "groupPosition()",
+                  "property",
+                  "groupPosition",
                   "contains",
                   "similarItemsInGroup:8"
                ],
                [
-                  "result",
-                  "groupPosition()",
+                  "property",
+                  "groupPosition",
                   "contains",
                   "positionInGroup:4"
                ]
@@ -128,7 +129,7 @@
                [
                   "property",
                   "role",
-                  "anyOf",
+                  "isAny",
                   "[ROLE_SYSTEM_MENUITEM, ROLE_SYSTEM_CHECKBUTTON]"
                ]
             ],
@@ -183,4 +184,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

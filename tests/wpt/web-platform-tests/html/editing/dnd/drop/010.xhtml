@@ -4,26 +4,26 @@
 <title>Selection drag and drop: allowed effects 'all','uninitialized'</title>
 <style type="text/css">
 div
-	{display:inline-block;
-	vertical-align:top;
-	background-color:olive;
-	color:white;
-	padding:20px;
-	width:100px;
-	height:100px;}
+  {display:inline-block;
+  vertical-align:top;
+  background-color:olive;
+  color:white;
+  padding:20px;
+  width:100px;
+  height:100px;}
 div:nth-child(2)
-	{background-color:green;}
+  {background-color:green;}
 </style>
 <script type="application/ecmascript">
 var effects = ['all','uninitialized'], i = 0;
 function selectText()
-	{window.getSelection().selectAllChildren(document.querySelector('p'))}
+  {window.getSelection().selectAllChildren(document.querySelector('p'))}
 function dropSelection(event)
-	{event.target.appendChild(document.createTextNode((event.dataTransfer.dropEffect == 'copy' &amp;&amp; event.dataTransfer.effectAllowed == effects[i])?' PASS ':' FAIL '));
-	i = (i + 1)%2;
-	selectText();}
+  {event.target.appendChild(document.createTextNode((event.dataTransfer.dropEffect == 'copy' &amp;&amp; event.dataTransfer.effectAllowed == effects[i])?' PASS ':' FAIL '));
+  i = (i + 1)%2;
+  selectText();}
 function start(event)
-	{event.dataTransfer.effectAllowed = effects[i]}
+  {event.dataTransfer.effectAllowed = effects[i]}
 </script>
 </head>
 <body onload="selectText()">

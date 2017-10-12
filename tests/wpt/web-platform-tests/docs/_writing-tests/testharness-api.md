@@ -261,7 +261,7 @@ tests".
 In order for a test to be interpreted as a single page test, then
 it must simply not call `test()` or `async_test()` anywhere on the page, and
 must call the `done()` function to indicate that the test is complete. All
-the `assert_*` functions are avaliable as normal, but are called without
+the `assert_*` functions are available as normal, but are called without
 the normal step function wrapper. For example:
 
 ```html
@@ -281,7 +281,7 @@ The test title for single page tests is always taken from `document.title`.
 ## Making assertions ##
 
 Functions for making assertions start `assert_`. The full list of
-asserts avaliable is documented in the [asserts](#list-of-assertions) section
+asserts available is documented in the [asserts](#list-of-assertions) section
 below. The general signature is:
 
 ```js
@@ -428,7 +428,7 @@ event in a document. Therefore these worker tests always behave as if the
 event which is fired following the completion of [running the
 worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker).
 
-## Generating tests ##
+## **DEPRECATED** Generating tests ##
 
 There are scenarios in which is is desirable to create a large number of
 (synchronous) tests that are internally similar but vary in the parameters
@@ -451,8 +451,14 @@ generate_tests(assert_equals, [
 Is equivalent to:
 
 ```js
-test(function() {assert_equals(1+1, 2)}, "Sum one and one")
-test(function() {assert_equals(1+0, 1)}, "Sum one and zero")
+var a_got = 1+1;
+var a_exp = 2;
+var a_nam = "Sum one and one";
+var b_got = 1+0;
+var b_exp = 1;
+var b_nam = "Sum one and zero";
+test(function() {assert_equals(a_got, a_exp)}, a_nam);
+test(function() {assert_equals(b_got, b_exp)}, b_nam);
 ```
 
 Note that the first item in each parameter list corresponds to the name of
@@ -460,6 +466,11 @@ the test.
 
 The properties argument is identical to that for `test()`. This may be a
 single object (used for all generated tests) or an array.
+
+This is deprecated because it runs all the tests outside of the test functions
+and as a result any test throwing an exception will result in no tests being
+run. In almost all cases, you should simply call test within the loop you would
+use to generate the parameter list array.
 
 ## Callback API ##
 
@@ -594,7 +605,7 @@ workers](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/).
 Testing from a worker script is different from testing from an HTML document in
 several ways:
 
-* Workers have no reporting capability since they are runing in the background.
+* Workers have no reporting capability since they are running in the background.
   Hence they rely on `testharness.js` running in a companion client HTML document
   for reporting.
 
@@ -682,6 +693,11 @@ members i.e. `expected.indexOf(actual) != -1`
 asserts that `actual` and `expected` have the same
 length and the value of each indexed property in `actual` is the strictly equal
 to the corresponding property value in `expected`
+
+### `assert_array_approx_equals(actual, expected, epsilon, description)`
+asserts that `actual` and `expected` have the same
+length and each indexed property in `actual` is a number
+within ±`epsilon` of the corresponding property in `expected`
 
 ### `assert_approx_equals(actual, expected, epsilon, description)`
 asserts that `actual` is a number within ±`epsilon` of `expected`

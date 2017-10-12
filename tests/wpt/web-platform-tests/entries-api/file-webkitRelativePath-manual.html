@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: File webitRelativePath manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#file-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+Select the <b>support/a</b> directory:
+
+<input type=file multiple webkitdirectory>
+
+<script>
+setup({explicit_timeout: true});
+
+const filesPromise = new Promise(resolve => {
+  const elem = document.querySelector('input[type=file]');
+  elem.addEventListener('change', e => resolve(elem.files));
+});
+
+promise_test(t => filesPromise.then(files => {
+  assert_equals(files.length, 3, 'expected 3 items');
+  files = Array.from(files).sort(
+    (a, b) => a.name < b.name ? -1 : b.name < a.name ? 1 : 0);
+  assert_equals(files[0].name, '1.txt');
+  assert_equals(files[1].name, '2.txt');
+  assert_equals(files[0].webkitRelativePath, 'c/d/1.txt');
+  assert_equals(files[1].webkitRelativePath, 'c/d/2.txt');
+  assert_equals(files[2].webkitRelativePath, 'c/3.txt');
+
+}), 'webkitRelativePath is shortest common ancestor');
+
+</script>

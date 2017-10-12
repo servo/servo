@@ -187,14 +187,16 @@ function checkPropertyDescriptor(desc, propName, expectWritable) {
   var isSymbol = (typeof(propName) == "symbol");
   propName = String(propName);
   assert_true(isObject(desc), "property descriptor for " + propName + " should exist");
-  assert_equals(desc.enumerable, false, "property descriptor for " + propName + " should be non-enumerable");
   assert_equals(desc.configurable, true, "property descriptor for " + propName + " should be configurable");
   if (isSymbol) {
+    assert_equals(desc.enumerable, false, "symbol-property descriptor for " + propName + " should not be enumerable");
     assert_true("value" in desc,
                 "property descriptor for " + propName + " should be a value descriptor");
     assert_equals(desc.value, undefined,
                   "symbol-named cross-origin visible prop " + propName +
                   " should come back as undefined");
+  } else {
+    assert_equals(desc.enumerable, true, "property descriptor for " + propName + " should be enumerable");
   }
   if ('value' in desc)
     assert_equals(desc.writable, expectWritable, "property descriptor for " + propName + " should have writable: " + expectWritable);
@@ -256,15 +258,23 @@ addTest(function() {
 }, "[[DefineOwnProperty]] Should throw for cross-origin objects");
 
 /*
- * [[Enumerate]]
+ * EnumerateObjectProperties (backed by [[OwnPropertyKeys]])
  */
 
 addTest(function() {
-  for (var prop in C)
-    assert_unreached("Shouldn't have been able to enumerate " + prop + " on cross-origin Window");
-  for (var prop in C.location)
-    assert_unreached("Shouldn't have been able to enumerate " + prop + " on cross-origin Location");
-}, "[[Enumerate]] should return an empty iterator");
+  let i = 0;
+  for (var prop in C) {
+    i++;
+    assert_true(whitelistedWindowPropNames.includes(prop), prop + " is not safelisted for a cross-origin Window");
+  }
+  assert_equals(i, whitelistedWindowPropNames.length, "Enumerate all safelisted cross-origin Window properties");
+  i = 0;
+  for (var prop in C.location) {
+    i++;
+    assert_true(whitelistedLocationPropNames.includes(prop), prop + " is not safelisted for a cross-origin Location");
+  }
+  assert_equals(i, whitelistedLocationPropNames.length, "Enumerate all safelisted cross-origin Location properties");
+}, "Can only enumerate safelisted properties");
 
 /*
  * [[OwnPropertyKeys]]
@@ -274,9 +284,15 @@ addTest(function() {
   assert_array_equals(Object.getOwnPropertyNames(C).sort(),
                       whitelistedWindowPropNames,
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Window");
+  assert_array_equals(Object.keys(C).sort(),
+                      whitelistedWindowPropNames,
+                      "Object.keys() gives the right answer for cross-origin Window");
   assert_array_equals(Object.getOwnPropertyNames(C.location).sort(),
                       whitelistedLocationPropNames,
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Location");
+  assert_array_equals(Object.keys(C.location).sort(),
+                      whitelistedLocationPropNames,
+                      "Object.keys() gives the right answer for cross-origin Location");
 }, "[[OwnPropertyKeys]] should return all properties from cross-origin objects");
 
 addTest(function() {

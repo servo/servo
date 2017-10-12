@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Async Clipboard writeText -> read (dt/text) tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+  var test_data = "Clipboard writeText -> read(dt/text) test data";
+  var cb = navigator.clipboard;
+  cb.writeText(test_data).then(t.step_func(() => {
+    cb.read().then(t.step_func((data) => {
+      assert_equals(data.items.length, 1);
+      data.items[0].getAsString(t.step_func((s) => {
+        assert_equals(s, test_data);
+        t.done();
+      }));
+    }), function() {
+      t.unreached_func("clipboard.read() fail");
+    });
+  }), function() {
+    t.unreached_func("clipboard.writeText() fail");
+  });
+}, "Verify write and read clipboard (DOMString)");
+</script>
+Note: This is a manual test because it writes/reads to the shared system
+clipboard and thus cannot be run async with other tests that might interact
+with the clipboard.

@@ -1,21 +1,21 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Must be blocked</title>
-		<style type="text/css">
+  <head>
+    <title>Must be blocked</title>
+    <style type="text/css">
 html { background: fuchsia; }
 html, body { margin: 0; padding: 0; height: 100%; width: 100%; }
-		</style>
-	</head>
-	<body>
-		<script type="text/javascript">
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
 if( location.search && location.search.indexOf('domain') != -1 ) {
-	document.domain = location.hostname.replace(/^[^.]+\./,'');
+  document.domain = location.hostname.replace(/^[^.]+\./,'');
 }
 document.body.ondragenter = document.body.ondragleave = document.body.ondragover = document.body.ondrop = function (e) {
-	e.preventDefault();
-	document.body.innerHTML = 'FAIL';
+  e.preventDefault();
+  document.body.innerHTML = 'FAIL';
 }
-		</script>
-	</body>
+    </script>
+  </body>
 </html>

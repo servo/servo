@@ -19,6 +19,12 @@
 <pre id='untested_idl' style='display:none'>
 interface Performance {
 };
+
+typedef double DOMHighResTimeStamp;
+
+[Exposed=(Window,Worker)]
+interface PerformanceMark : PerformanceEntry {
+};
 </pre>
 
 <pre id='idl'>
@@ -28,17 +34,11 @@ interface PerformanceEntry {
     readonly attribute DOMString           entryType;
     readonly attribute DOMHighResTimeStamp startTime;
     readonly attribute DOMHighResTimeStamp duration;
-    serializer = {attribute};
-};
-
-dictionary PerformanceEntryFilterOptions {
-    DOMString name;
-    DOMString entryType;
-    DOMString initiatorType;
+    [Default] object toJSON();
 };
 
 partial interface Performance {
-    PerformanceEntryList getEntries(optional PerformanceEntryFilterOptions filter);
+    PerformanceEntryList getEntries();
     PerformanceEntryList getEntriesByType(DOMString type);
     PerformanceEntryList getEntriesByName(DOMString name,
                                           optional DOMString type);
@@ -48,11 +48,12 @@ typedef sequence &lt;PerformanceEntry> PerformanceEntryList;
 
 dictionary PerformanceObserverInit {
     required sequence&lt;DOMString> entryTypes;
+    boolean             buffered = false;
 };
 
 [Exposed=(Window,Worker)]
 interface PerformanceObserverEntryList {
-    PerformanceEntryList getEntries(optional PerformanceEntryFilterOptions filter);
+    PerformanceEntryList getEntries();
     PerformanceEntryList getEntriesByType(DOMString type);
     PerformanceEntryList getEntriesByName(DOMString name,
                                           optional DOMString type);
@@ -75,8 +76,11 @@ setup(function() {
   idl_array = new IdlArray();
   idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
   idl_array.add_idls(document.getElementById("idl").textContent);
+  // create first mark
+  self.performance.mark("mark");
   idl_array.add_objects({
-    Performance: ["window.performance"]
+    Performance: ["window.performance"],
+    PerformanceMark: [self.performance.getEntriesByName("mark")[0]]
   });
 });
 idl_array.test();

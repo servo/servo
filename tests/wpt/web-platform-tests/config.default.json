@@ -9,7 +9,7 @@
  "check_subdomains": true,
  "log_level":"debug",
  "bind_hostname": true,
- "ssl": {"type": "openssl",
+ "ssl": {"type": "pregenerated",
          "encrypt_after_connect": false,
          "openssl": {
              "openssl_binary": "openssl",
@@ -18,8 +18,8 @@
              "base_conf_path": null
          },
          "pregenerated": {
-             "host_key_path": null,
-             "host_cert_path": null
+             "host_key_path": "tools/certs/web-platform.test.key",
+             "host_cert_path": "tools/certs/web-platform.test.pem"
          },
          "none": {}
         },

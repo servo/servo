@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Payment Method Basic Card: Tests that basic card is a supported method</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#show-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const basicCard = Object.freeze({ supportedMethods: "basic-card", data: {} });
+const defaultMethods = Object.freeze([basicCard]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+const notSupportedMethod = Object.freeze({
+  supportedMethods: "this-is-not-supported",
+});
+
+promise_test(async t => {
+  const request = new PaymentRequest([notSupportedMethod], defaultDetails);
+  assert_false(
+    await request.canMakePayment(),
+    `canMakePaymentPromise should be false`
+  );
+}, `Must return false when the PMI is not supported at by the user agent.`);
+
+function* pmiGenerator(howMany = 256) {
+  for (i = 0; i < howMany; i++) {
+    yield {
+      supportedMethods: `this-is-not-supported-${i}`,
+      data: { key: "value" },
+    };
+  }
+}
+
+promise_test(async t => {
+  //Smoke test
+  const canMakePaymentPromise = new PaymentRequest(
+    [notSupportedMethod],
+    defaultDetails
+  ).canMakePayment();
+  assert_false(
+    await canMakePaymentPromise,
+    "Expected canMakePaymentPromise smoke test to resolve with false"
+  );
+  // Actual test - Make a big array with random PMIs,
+  // put basic-card in the middle of it!
+  const pmis = []
+    .concat(Array.from(pmiGenerator(250)))
+    .concat(basicCard)
+    .concat(Array.from(pmiGenerator(250)));
+  const request = new PaymentRequest(pmis, defaultDetails);
+  assert_true(
+    await request.canMakePayment(),
+    `canMakePaymentPromise should be true, because basic-card is present`
+  );
+}, `Must return true when basic-card is amongst unsupported PMIs.`);
+
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  try {
+    assert_true(
+      await request.canMakePayment(),
+      `canMakePaymentPromise must resolve to true`
+    );
+    assert_true(
+      await request.canMakePayment(),
+      `canMakePaymentPromise must resolve to true`
+    );
+    // try to trigger optional behavior
+    for (let i = 0; i < 1024; i++) {
+      const temp = new PaymentRequest(defaultMethods, defaultDetails);
+      await Promise.all([temp.canMakePayment(), request.canMakePayment()]);
+    }
+  } catch (err) {
+    assert_equals(
+      err.name,
+      "NotAllowedError",
+      "if it throws, then it must be a NotAllowedError."
+    );
+  }
+}, `If basic-card is supported, then return a promise that resolves to true.`);
+</script>

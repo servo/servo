@@ -7,7 +7,7 @@
 'use strict';
 
 // Test is based on the following editor draft:
-// https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+// https://rawgit.com/w3c/webrtc-pc/cc8d80f455b86c8041d63bceb8b457f45c72aa89/webrtc.html
 
 /*
   6.1.  RTCPeerConnection Interface Extensions
@@ -19,6 +19,19 @@
     };
 
   6.2.  RTCDataChannel
+
+    interface RTCDataChannel : EventTarget {
+       readonly attribute USVString           label;
+       readonly attribute boolean             ordered;
+       readonly attribute unsigned short?     maxPacketLifeTime;
+       readonly attribute unsigned short?     maxRetransmits;
+       readonly attribute USVString           protocol;
+       readonly attribute boolean             negotiated;
+       readonly attribute unsigned short?     id;
+       readonly attribute RTCPriorityType     priority;
+       readonly attribute RTCDataChannelState readyState;
+    };
+
     dictionary RTCDataChannelInit {
       boolean         ordered = true;
       unsigned short  maxPacketLifeTime;
@@ -28,6 +41,15 @@
       [EnforceRange]
       unsigned short  id;
       RTCPriorityType priority = "low";
+    };
+
+  4.9.1.  RTCPriorityType Enum
+
+    enum RTCPriorityType {
+      "very-low",
+      "low",
+      "medium",
+      "high"
     };
  */
 
@@ -49,33 +71,85 @@ test(() => {
 }, 'createDataChannel with closed connection should throw InvalidStateError');
 
 /*
-  6.2.  createDataChannel
-    4.  Initialize channel's label attribute to the value of the first argument.
-    5.  Set channel's ordered , maxPacketLifeTime , maxRetransmits , protocol,
-        negotiated , id and priority attributes to the values of the corresponding
-        members of the dataChannelDict argument, using a value of null if the
-        corresponding dictionary member is missing.
+  6.1.  createDataChannel
+    4.  Let channel have a [[Label]] internal slot initialized to the value of the
+        first argument.
+    5.  Let options be the second argument.
+    6.  Let channel have an [[MaxPacketLifeTime]] internal slot initialized to
+        option's maxPacketLifeTime member, if present, otherwise null.
+    7.  Let channel have an [[MaxRetransmits]] internal slot initialized to
+        option's maxRetransmits member, if present, otherwise null.
+    8.  Let channel have an [[DataChannelId]] internal slot initialized to
+        option's id member, if present, otherwise null.
+    9.  Let channel have an [[Ordered]] internal slot initialized to option's
+        ordered member.
+    10. Let channel have an [[Protocol]] internal slot initialized to option's
+        protocol member.
+    11. Let channel have an [[Negotiated]] internal slot initialized to option's
+        negotiated member.
+    12. Let channel have an [[DataChannelPriority]] internal slot initialized
+        to option's priority member.
+
+  6.2.  RTCDataChannel
+
+    A RTCDataChannel, created with createDataChannel or dispatched via a
+    RTCDataChannelEvent, MUST initially be in the connecting state
+
+    binaryType
+      When a RTCDataChannel object is created, the binaryType attribute MUST
+      be initialized to the string "blob".
  */
 test(() => {
   const pc = new RTCPeerConnection();
   const channel = pc.createDataChannel('');
   assert_true(channel instanceof RTCDataChannel, 'is RTCDataChannel');
-  assert_equals(channel.label, '', 'label');
-  assert_equals(channel.ordered, true, 'ordered');
-  assert_equals(channel.maxPacketLifeTime, null, 'maxPacketLifeTime');
-  assert_equals(channel.maxRetransmits, null, 'maxRetransmits');
-  assert_equals(channel.protocol, '', 'protocol');
-  assert_equals(channel.negotiated, false, 'negotiated');
+  assert_equals(channel.label, '');
+  assert_equals(channel.ordered, true);
+  assert_equals(channel.maxPacketLifeTime, null);
+  assert_equals(channel.maxRetransmits, null);
+  assert_equals(channel.protocol, '');
+  assert_equals(channel.negotiated, false);
+
   // Since no offer/answer exchange has occurred yet, the DTLS role is unknown
   // and so the ID should be null.
-  assert_equals(channel.id, null, 'id');
-  assert_equals(channel.priority, 'low', 'priority');
+  assert_equals(channel.id, null);
+  assert_equals(channel.priority, 'low');
+
+  assert_equals(channel.readyState, 'connecting');
+  assert_equals(channel.binaryType, 'blob');
+
 }, 'createDataChannel attribute default values');
 
+test(() => {
+  const pc = new RTCPeerConnection();
+  const channel = pc.createDataChannel('test', {
+    ordered: false,
+    maxPacketLifeTime: null,
+    maxRetransmits: 1,
+    protocol: 'custom',
+    negotiated: true,
+    id: 3,
+    priority: 'high'
+  });
+
+  assert_true(channel instanceof RTCDataChannel, 'is RTCDataChannel');
+  assert_equals(channel.label, 'test');
+  assert_equals(channel.ordered, false);
+  assert_equals(channel.maxPacketLifeTime, null);
+  assert_equals(channel.maxRetransmits, 1);
+  assert_equals(channel.protocol, 'custom');
+  assert_equals(channel.negotiated, true);
+  assert_equals(channel.id, 3);
+  assert_equals(channel.priority, 'high');
+  assert_equals(channel.readyState, 'connecting');
+  assert_equals(channel.binaryType, 'blob');
+
+}, 'createDataChannel with provided parameters should initialize attributes to provided values');
 
 /*
   6.2.  createDataChannel
-    4.  Initialize channel's label attribute to the value of the first argument.
+    4.  Let channel have a [[Label]] internal slot initialized to the value of the
+        first argument.
 
   [ECMA262] 7.1.12. ToString(argument)
     undefined -> "undefined"
@@ -99,10 +173,9 @@ for (const [description, label, expected] of labels) {
 
 /*
   6.2.  RTCDataChannel
-    dictionary RTCDataChannelInit {
-      boolean         ordered = true;
-      ...
-    }
+    createDataChannel
+      9.  Let channel have an [[Ordered]] internal slot initialized to option's
+          ordered member.
  */
 test(() => {
   const pc = new RTCPeerConnection();
@@ -122,10 +195,9 @@ test(() => {
 
 /*
   6.2.  RTCDataChannel
-    dictionary RTCDataChannelInit {
-      unsigned short  maxPacketLifeTime;
-      ...
-    }
+    createDataChannel
+      6.  Let channel have an [[MaxPacketLifeTime]] internal slot initialized to
+          option's maxPacketLifeTime member, if present, otherwise null.
  */
 test(() => {
   const pc = new RTCPeerConnection;
@@ -135,10 +207,9 @@ test(() => {
 
 /*
   6.2.  RTCDataChannel
-    dictionary RTCDataChannelInit {
-      unsigned short  maxRetransmits;
-      ...
-    }
+    createDataChannel
+      7.  Let channel have an [[MaxRetransmits]] internal slot initialized to
+          option's maxRetransmits member, if present, otherwise null.
  */
 test(() => {
   const pc = new RTCPeerConnection;
@@ -148,12 +219,12 @@ test(() => {
 
 /*
   6.2.  createDataChannel
-    8.  If both the maxPacketLifeTime and maxRetransmits attributes are set
-        (not null), throw a SyntaxError.
+    15. If both [[MaxPacketLifeTime]] and [[MaxRetransmits]] attributes are set
+        (not null), throw a TypeError.
  */
 test(() => {
   const pc = new RTCPeerConnection;
-  assert_throws('SyntaxError', () => pc.createDataChannel('', {
+  assert_throws(new TypeError(), () => pc.createDataChannel('', {
     maxPacketLifeTime: 0,
     maxRetransmits: 0
   }));
@@ -161,10 +232,9 @@ test(() => {
 
 /*
   6.2.  RTCDataChannel
-    dictionary RTCDataChannelInit {
-      USVString       protocol = "";
-      ...
-    }
+    createDataChannel
+      10. Let channel have an [[Protocol]] internal slot initialized to option's
+          protocol member.
  */
 const protocols = [
   ['"foo"', 'foo', 'foo'],
@@ -182,10 +252,9 @@ for (const [description, protocol, expected] of protocols) {
 
 /*
   6.2.  RTCDataChannel
-    dictionary RTCDataChannelInit {
-      boolean         negotiated = false;
-      ...
-    }
+    createDataChannel
+      11. Let channel have an [[Negotiated]] internal slot initialized to option's
+          negotiated member.
  */
 test(() => {
   const pc = new RTCPeerConnection;
@@ -196,12 +265,6 @@ test(() => {
 
 /*
   6.2.  RTCDataChannel
-    dictionary RTCDataChannelInit {
-      [EnforceRange]
-      unsigned short  id;
-      ...
-    }
-
     createDataChannel
       10. If id is equal to 65535, which is greater than the maximum allowed ID
           of 65534 but still qualifies as an unsigned short, throw a TypeError.
@@ -223,18 +286,10 @@ for (const id of [-1, 65535, 65536]) {
 
 /*
   6.2.  RTCDataChannel
-    dictionary RTCDataChannelInit {
-      RTCPriorityType priority = "low";
-      ...
-    }
+    createDataChannel
+      12. Let channel have an [[DataChannelPriority]] internal slot initialized
+          to option's priority member.
 
-  4.9.1.  RTCPriorityType Enum
-    enum RTCPriorityType {
-      "very-low",
-      "low",
-      "medium",
-      "high"
-    };
  */
 test(() => {
   const pc = new RTCPeerConnection();
@@ -250,9 +305,8 @@ test(() => {
 
 /*
   6.2.  createDataChannel
-    6.  If negotiated is false and label is longer than 65535 bytes long,
-        throw a TypeError.
- */
+    13. If [[Negotiated]] is false and [[Label]] is longer than 65535 bytes
+        long, throw a TypeError.  */
 test(() => {
   const pc = new RTCPeerConnection();
   assert_throws(new TypeError(), () =>
@@ -264,7 +318,7 @@ test(() => {
 
 /*
   6.2.  createDataChannel
-    7.  If negotiated is false and protocol is longer than 65535 bytes long,
+    14. If [[Negotiated]] is false and [[Protocol]] is longer than 65535 bytes long,
         throw a TypeError.
  */
 test(() => {
@@ -278,29 +332,106 @@ test(() => {
 
 test(() => {
   const pc = new RTCPeerConnection();
-  pc.createDataChannel('', {
-    label: ' '.repeat(65536),
+  const label = ' '.repeat(65536)
+
+  const channel = pc.createDataChannel('', {
+    label,
     protocol: ' '.repeat(65536),
     negotiated: true
   });
+
+  assert_equals(channel.label, label);
 }, 'createDataChannel with negotiated true and long label and long protocol should succeed');
 
 /*
-  TODO
+  4.4.1.6.  Set the RTCSessionSessionDescription
+    2.2.6.  If description is of type "answer" or "pranswer", then run the
+            following steps:
+      1.  If description initiates the establishment of a new SCTP association,
+          as defined in [SCTP-SDP], Sections 10.3 and 10.4, set the value of
+          connection's [[sctpTransport]] internal slot to a newly created RTCSctpTransport.
+      2.  If description negotiates the DTLS role of the SCTP transport, and
+          there is an RTCDataChannel with a null id, then generate an ID according
+          to [RTCWEB-DATA-PROTOCOL].
+
   6.2.  createDataChannel
-    11. If the id attribute is null (due to no ID being passed into
+    18. If the [[DataChannelId]] slot is null (due to no ID being passed into
         createDataChannel), and the DTLS role of the SCTP transport has already
-        been negotiated, then initialize id to a value generated by the user
-        agent, according to [RTCWEB-DATA-PROTOCOL], and skip to the next step.
-        If no available ID could be generated, or if the value of the id member
-        of the dictionary is taken by an existing RTCDataChannel , throw a
-        ResourceInUse exception.
+        been negotiated, then initialize [[DataChannelId]] to a value generated
+        by the user agent, according to [RTCWEB-DATA-PROTOCOL].
+ */
+promise_test(t => {
+  const pc = new RTCPeerConnection();
+  const channel1 = pc.createDataChannel('channel');
+  assert_equals(channel1.id, null,
+    'Expect initial id to be null');
+
+  return pc.createOffer()
+  .then(offer =>
+    pc.setLocalDescription(offer)
+    .then(() => generateAnswer(offer)))
+  .then(answer => pc.setRemoteDescription(answer))
+  .then(() => {
+    assert_not_equals(channel1.id, null,
+      'Expect channel1.id to be assigned');
+
+    assert_greater_than_equals(channel1.id, 0,
+      'Expect channel1.id to be set to valid unsigned short');
+
+    assert_less_than(channel1.id, 65535,
+      'Expect channel1.id to be set to valid unsigned short');
+
+    const channel2 = pc.createDataChannel('channel');
+
+    assert_not_equals(channel2.id, null,
+      'Expect channel2.id to be assigned');
+
+    assert_greater_than_equals(channel2.id, 0,
+      'Expect channel2.id to be set to valid unsigned short');
+
+    assert_less_than(channel2.id, 65535,
+      'Expect channel2.id to be set to valid unsigned short');
+
+    assert_not_equals(channel2, channel1,
+      'Expect channels created from same label to be different');
+
+    assert_equals(channel2.label, channel1.label,
+      'Expect different channnels can have the same label but different id');
+
+    assert_not_equals(channel2.id, channel1.id,
+      'Expect different channnels can have the same label but different id');
+  });
+}, 'Channels created after SCTP transport is established should have id assigned');
+
+/*
+  TODO
+    6.1.  createDataChannel
+      18. If no available ID could be generated, or if the value of the
+          id member of the dictionary is taken by an existing RTCDataChannel, throw
+          a ResourceInUse exception.
 
   Untestable
-  6.2.  createDataChannel
-    9.  If an attribute, either maxPacketLifeTime or maxRetransmits , has been
-        set to indicate unreliable mode, and that value exceeds the maximum
-        value supported by the user agent, the value must be set to the user
-        agents maximum value.
- */
+    6.1.  createDataChannel
+      16. If a setting, either [[MaxPacketLifeTime]] or [[MaxRetransmits]], has
+          been set to indicate unreliable mode, and that value exceeds the maximum
+          value supported by the user agent, the value MUST be set to the user
+          agents maximum value.
+
+      20. Create channel's associated underlying data transport and configure
+          it according to the relevant properties of channel.
+
+  Tested in RTCPeerConnection-onnegotiationneeded.html
+    21. If channel was the first RTCDataChannel created on connection, update
+        the negotiation-needed flag for connection.
+
+  Issues
+    w3c/webrtc-pc#1412
+      ResourceInUse exception is not defined
+
+  Coverage Report
+    Tested        22
+    Not Tested     1
+    Untestable     2
+    Total         25
+*/
 </script>

@@ -11,15 +11,15 @@
 </style>
 <script type="text/javascript">
 window.onload = function () {
-	var orange = document.getElementsByTagName('span')[0];
-	orange.ondragstart = function (e) {
-		e.dataTransfer.setData('text','dummy text');
-		e.dataTransfer.effectAllowed = 'all';
-		document.getElementsByTagName('iframe')[0].contentWindow.postMessage('dummy message','*');
-		setTimeout(function () {
-			document.getElementsByTagName('p')[0].removeChild(document.getElementsByTagName('iframe')[0]);
-		},4000);
-	};
+  var orange = document.getElementsByTagName('span')[0];
+  orange.ondragstart = function (e) {
+    e.dataTransfer.setData('text','dummy text');
+    e.dataTransfer.effectAllowed = 'all';
+    document.getElementsByTagName('iframe')[0].contentWindow.postMessage('dummy message','*');
+    setTimeout(function () {
+      document.getElementsByTagName('p')[0].removeChild(document.getElementsByTagName('iframe')[0]);
+    },4000);
+  };
 };
 </script>
 <p><span draggable="true"></span> <iframe height="200" width="200" src="022-1.html"></iframe></p>

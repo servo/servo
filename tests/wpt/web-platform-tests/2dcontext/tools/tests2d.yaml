@@ -118,6 +118,7 @@
     }
     if (ctx.setTransform) {
         @assert ctx.setTransform(1, 0, 0, 1, 0, 0) === undefined;
+        @assert ctx.setTransform() === undefined;
     }
     @assert ctx.clearRect(0, 0, 0, 0) === undefined;
     @assert ctx.fillRect(0, 0, 0, 0) === undefined;
@@ -162,7 +163,6 @@
         @assert throws TypeError ctx.transform(1, 0, 0, 1, 0);
     }
     if (ctx.setTransform) {
-        @assert throws TypeError ctx.setTransform();
         @assert throws TypeError ctx.setTransform(1);
         @assert throws TypeError ctx.setTransform(1, 0);
         @assert throws TypeError ctx.setTransform(1, 0, 0);
@@ -871,6 +871,7 @@
     ctx.fillRect(0, 0, 100, 50);
 
     ctx.setTransform(1/2,0, 0,1/2, 0,0);
+    ctx.setTransform();
     ctx.setTransform(2,0, 0,2, 0,0);
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 50, 25);

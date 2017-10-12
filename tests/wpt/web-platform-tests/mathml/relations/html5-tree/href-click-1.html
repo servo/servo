@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
 <meta charset="utf-8"/>
 <title>href click</title>
@@ -11,6 +11,7 @@
   {
     var event = new MouseEvent('click', {bubbles: true, cancelable: true});
     document.getElementById('link').dispatchEvent(event);
+    document.documentElement.className = "";
   }
 </script>
 </head>

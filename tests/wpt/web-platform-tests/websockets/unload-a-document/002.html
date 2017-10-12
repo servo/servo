@@ -21,6 +21,6 @@ t.step(function() {
   });
 });
 navigate = t.step_func(function() {
-  w.location = 'data:text/html,<body onload="history.back()">';
+  w.location = w.location.href.replace("002-1.html", "002-2.html");
 });
 </script>

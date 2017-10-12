@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>button haspopup false</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -54,15 +55,15 @@
                   "actions",
                   "doesNotContain",
                   "AXShowMenu"
-               ],
-               [
-                  "property",
-                  "actions",
-                  "doesNotContain",
-                  "AXPress"
                ]
             ],
             "IAccessible2" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_PUSHBUTTON"
+               ],
                [
                   "property",
                   "objectAttributes",
@@ -121,4 +122,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

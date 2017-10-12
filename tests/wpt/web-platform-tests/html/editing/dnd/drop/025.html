@@ -28,129 +28,129 @@
 <script>
 
 window.onload = function() {
-	var orange = document.getElementsByTagName('div')[0], fails = [], doneonce = false, seenevent = {};
+  var orange = document.getElementsByTagName('div')[0], fails = [], doneonce = false, seenevent = {};
   orange.ondragstart = function(e) {
     e.dataTransfer.setData('Text', 'dummy text');
-		e.dataTransfer.effectAllowed = 'all';
-		if( seenevent[e.type] ) { return; }
-  	seenevent[e.type] = true;
+    e.dataTransfer.effectAllowed = 'all';
+    if( seenevent[e.type] ) { return; }
+    seenevent[e.type] = true;
     if( e.dataTransfer.dropEffect != 'none' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of none';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of none';
     }
     try{ e.dataTransfer.dropEffect = 'move' } catch(err) {
-			fails[fails.length] = e.type + ' dropEffect threw on setting';
+      fails[fails.length] = e.type + ' dropEffect threw on setting';
     }
     if( e.dataTransfer.dropEffect != 'move' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
     }
   };
   orange.ondrag = orange.nextSibling.ondragleave = function(e) {
-		if( seenevent[e.type] ) { return; }
-  	seenevent[e.type] = true;
+    if( seenevent[e.type] ) { return; }
+    seenevent[e.type] = true;
     if( e.dataTransfer.dropEffect != 'none' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of none';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of none';
     }
     try{ e.dataTransfer.dropEffect = 'move' } catch(err) {
-			fails[fails.length] = e.type + ' dropEffect threw on setting';
+      fails[fails.length] = e.type + ' dropEffect threw on setting';
     }
     if( e.dataTransfer.dropEffect != 'move' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
     }
   };
   orange.nextSibling.ondragenter = function(e) {
-  	e.preventDefault();
-		if( seenevent[e.type] ) { return; }
-  	seenevent[e.type] = true;
+    e.preventDefault();
+    if( seenevent[e.type] ) { return; }
+    seenevent[e.type] = true;
     if( e.dataTransfer.dropEffect != 'copy' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy';
     }
     try{ e.dataTransfer.dropEffect = 'move' } catch(err) {
-			fails[fails.length] = e.type + ' dropEffect threw on setting';
+      fails[fails.length] = e.type + ' dropEffect threw on setting';
     }
     if( e.dataTransfer.dropEffect != 'move' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
     }
   };
   orange.nextSibling.ondragover = function(e) {
-  	e.preventDefault();
-		if( seenevent[e.type] ) {
-			e.dataTransfer.dropEffect = 'link';
-			return;
-		}
-  	if( !doneonce ) {
-	    if( e.dataTransfer.dropEffect != 'copy' ) {
-				fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy';
-	    }
-	    try{ e.dataTransfer.dropEffect = 'move' } catch(err) {
-				fails[fails.length] = e.type + ' dropEffect threw on setting';
-	    }
-	    if( e.dataTransfer.dropEffect != 'move' ) {
-				fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
-	    }
-	  	doneonce = true;
-	  } else {
-	  	seenevent[e.type] = true;
-	    if( e.dataTransfer.dropEffect != 'copy' ) {
-				fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy on second attempt';
-	    }
-	    try{ e.dataTransfer.dropEffect = 'link' } catch(err2) {
-				fails[fails.length] = e.type + ' dropEffect threw on setting';
-	    }
-	    if( e.dataTransfer.dropEffect != 'link' ) {
-				fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of link on second attempt (seems to be readonly)';
-	    }
-	  	doneonce = true;
-	  }
+    e.preventDefault();
+    if( seenevent[e.type] ) {
+      e.dataTransfer.dropEffect = 'link';
+      return;
+    }
+    if( !doneonce ) {
+      if( e.dataTransfer.dropEffect != 'copy' ) {
+        fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy';
+      }
+      try{ e.dataTransfer.dropEffect = 'move' } catch(err) {
+        fails[fails.length] = e.type + ' dropEffect threw on setting';
+      }
+      if( e.dataTransfer.dropEffect != 'move' ) {
+        fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
+      }
+      doneonce = true;
+    } else {
+      seenevent[e.type] = true;
+      if( e.dataTransfer.dropEffect != 'copy' ) {
+        fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy on second attempt';
+      }
+      try{ e.dataTransfer.dropEffect = 'link' } catch(err2) {
+        fails[fails.length] = e.type + ' dropEffect threw on setting';
+      }
+      if( e.dataTransfer.dropEffect != 'link' ) {
+        fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of link on second attempt (seems to be readonly)';
+      }
+      doneonce = true;
+    }
   };
   orange.nextSibling.ondrop = function(e) {
-  	e.preventDefault();
-		if( seenevent[e.type] ) { return; }
-  	seenevent[e.type] = true;
+    e.preventDefault();
+    if( seenevent[e.type] ) { return; }
+    seenevent[e.type] = true;
     if( e.dataTransfer.dropEffect != 'link' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of link';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of link';
     }
     try{ e.dataTransfer.dropEffect = 'move' } catch(err) {
-			fails[fails.length] = e.type + ' dropEffect threw on setting';
+      fails[fails.length] = e.type + ' dropEffect threw on setting';
     }
     if( e.dataTransfer.dropEffect != 'move' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move (seems to be readonly)';
     }
   };
   orange.ondragend = function(e) {
-		if( seenevent[e.type] ) { return; }
-  	seenevent[e.type] = true;
+    if( seenevent[e.type] ) { return; }
+    seenevent[e.type] = true;
     if( e.dataTransfer.dropEffect != 'move' ) {
-    	//under-specified in the spec, but part of the spec related to cancelling a drag says:
-    	//"set the current drag operation to the value of the dropEffect attribute of the DragEvent
-    	//object's dataTransfer object as it stood after the event dispatch finished."
-    	//this does not cover successful drags, but it makes sense to be consistent
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move';
+      //under-specified in the spec, but part of the spec related to cancelling a drag says:
+      //"set the current drag operation to the value of the dropEffect attribute of the DragEvent
+      //object's dataTransfer object as it stood after the event dispatch finished."
+      //this does not cover successful drags, but it makes sense to be consistent
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of move';
     }
     try{ e.dataTransfer.dropEffect = 'copy' } catch(err) {
-			fails[fails.length] = e.type + ' dropEffect threw on setting';
+      fails[fails.length] = e.type + ' dropEffect threw on setting';
     }
     if( e.dataTransfer.dropEffect != 'copy' ) {
-			fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy (seems to be readonly)';
+      fails[fails.length] = e.type + ' dropEffect ' + e.dataTransfer.dropEffect + ' instead of copy (seems to be readonly)';
     }
     if( !seenevent.dragstart ) {
-			fails[fails.length] = 'dragstart did not fire';
+      fails[fails.length] = 'dragstart did not fire';
     }
     if( !seenevent.drag ) {
-			fails[fails.length] = 'drag did not fire';
+      fails[fails.length] = 'drag did not fire';
     }
     if( !seenevent.dragenter ) {
-			fails[fails.length] = 'dragenter did not fire';
+      fails[fails.length] = 'dragenter did not fire';
     }
     if( !seenevent.dragover ) {
-			fails[fails.length] = 'dragover did not fire enough times';
+      fails[fails.length] = 'dragover did not fire enough times';
     }
     if( !seenevent.dragleave ) {
-			fails[fails.length] = 'dragleave did not fire';
+      fails[fails.length] = 'dragleave did not fire';
     }
     if( !seenevent.drop ) {
-			fails[fails.length] = 'drop did not fire';
+      fails[fails.length] = 'drop did not fire';
     }
-   	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+    document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
   };
 };
 

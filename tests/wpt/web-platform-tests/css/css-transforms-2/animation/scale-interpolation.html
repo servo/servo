@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>scale interpolation</title>
+    <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#propdef-scale">
+    <meta name="assert" content="scale supports animation.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/interpolation-testcommon.js"></script>
+  </head>
+  <body>
+    <script>
+      test_interpolation({
+        property: 'scale',
+        from: '2 30 400',
+        to: '10 110 1200',
+      }, [
+        {at: -1, expect: '-6 -50 -400'},
+        {at: 0, expect: '2 30 400'},
+        {at: 0.125, expect: '3 40 500'},
+        {at: 0.875, expect: '9 100 1100'},
+        {at: 1, expect: '10 110 1200'},
+        {at: 2, expect: '18 190 2000'}
+      ]);
+
+      test_interpolation({
+        property: 'scale',
+        from: '26 17 9',
+        to: '2',
+      }, [
+        {at: -1, expect: '50 33 17'},
+        {at: 0, expect: '26 17 9'},
+        {at: 0.125, expect: '23 15 8'},
+        {at: 0.875, expect: '5 3 2'},
+        {at: 1, expect: '2'},
+        {at: 2, expect: '-22 -15 -7'}
+      ]);
+
+      test_interpolation({
+        property: 'scale',
+        from: 'none',
+        to: '4 3 2',
+      }, [
+        {at: -1, expect: '-2 -1 0'},
+        {at: 0, expect: 'none'},
+        {at: 0.125, expect: '1.375 1.25 1.125'},
+        {at: 0.875, expect: '3.625 2.75 1.875'},
+        {at: 1, expect: '4 3 2'},
+        {at: 2, expect: '7 5 3'}
+      ]);
+
+      test_interpolation({
+        property: 'scale',
+        from: 'none',
+        to: 'none',
+      }, [
+        {at: -1, expect: 'none'},
+        {at: 0, expect: 'none'},
+        {at: 0.125, expect: 'none'},
+        {at: 0.875, expect: 'none'},
+        {at: 1, expect: 'none'},
+        {at: 2, expect: 'none'}
+      ]);
+    </script>
+  </body>
+</html>

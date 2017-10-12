@@ -63,8 +63,8 @@
               continueBtn.style.left = "400%";
               continueBtn.style.top = "400%";
 
-              assert_approx_equals(window.view.scale, 1.5, 0.2,
-                  "window.view.scale reflects pinch-zoom level");
+              assert_approx_equals(window.visualViewport.scale, 1.5, 0.2,
+                  "window.visualViewport.scale reflects pinch-zoom level");
             },
             'Tester pinch zoomed in correctly',
             '3. Scroll fully to the bottom right. Click the continue button there.');
@@ -74,13 +74,13 @@
               var expectedLeft =
                   document.documentElement.clientWidth * 4 +
                   continueBtn.clientWidth -
-                  window.view.width;
+                  window.visualViewport.width;
               var expectedTop =
                   document.documentElement.clientHeight * 4 +
                   continueBtn.clientHeight -
-                  window.view.height;
-              var viewPageLeft = window.view.pageLeft;
-              var viewPageTop = window.view.pageTop;
+                  window.visualViewport.height;
+              var viewPageLeft = window.visualViewport.pageLeft;
+              var viewPageTop = window.visualViewport.pageTop;
 
               // This needs to happen before assertions in case they fail. A
               // failed assertion stops running this function.
@@ -91,9 +91,9 @@
               window.scrollTo(0, 0);
 
               assert_approx_equals(viewPageLeft, expectedLeft, 10,
-                  "window.view.scale reflects pinch-zoom level");
+                  "window.visualViewport.scale reflects pinch-zoom level");
               assert_approx_equals(viewPageTop, expectedTop, 10,
-                  "window.view.scale reflects pinch-zoom level");
+                  "window.visualViewport.scale reflects pinch-zoom level");
             },
             'PageLeft and PageTop correct when scrolled',
             '4. Pinch-zoom out fully');

@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>spinbutton all values unspecified</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -89,25 +90,31 @@
             "IAccessible2" : [
                [
                   "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_SPINBUTTON"
+               ],
+               [
+                  "property",
                   "interfaces",
                   "contains",
                   "AccessibleValue"
                ],
                [
-                  "result",
-                  "AccessibleValue.minimumValue",
+                  "property",
+                  "minimumValue",
                   "isLTE",
                   "-9007199254740992"
                ],
                [
-                  "result",
-                  "AccessibleValue.currentValue",
+                  "property",
+                  "currentValue",
                   "is",
                   "0"
                ],
                [
-                  "result",
-                  "AccessibleValue.maximumValue",
+                  "property",
+                  "maximumValue",
                   "isGTE",
                   "9007199254740992"
                ]
@@ -175,4 +182,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

@@ -8,7 +8,7 @@
         <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
         <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#computed">
         <meta name="assert" content="The basic shape can contain relative length formats, which resolve to the computed (absolute) length value">
-        <meta name="flags" content="dom">
+        <meta name="flags" content="ahem dom">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="support/parsing-utils.js"></script>
@@ -18,15 +18,17 @@
         <script type="text/javascript">
             // font relative units: em, ex, ch, rem
             var units = ['em', 'ex', 'ch', 'rem'];
-            var div = document.createElement('div');
-            document.body.appendChild(div);
             var resolveds = {};
-            units.forEach(function(unit) {
-                div.style.width = '10' + unit;
-                var s = getComputedStyle(div);
-                resolveds[unit] = parseFloat(s.width);
-            });
-            document.body.removeChild(div);
+            ParsingUtils.setupFonts(function () {
+                var div = document.createElement('div');
+                document.body.appendChild(div);
+                units.forEach(function(unit) {
+                    div.style.width = '10' + unit;
+                    var s = getComputedStyle(div);
+                    resolveds[unit] = parseFloat(s.width);
+                });
+                document.body.removeChild(div);
+            })();
 
             function fillArray(string, length) {
                 return Array.apply(null, new Array(length)).map(String.prototype.valueOf, string);

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryEntry attributes manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-directoryentry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  assert_idl_attribute(entry, 'isFile', 'FileSystemDirectoryEntry has isFile attribute');
+  assert_equals(typeof entry.isFile, 'boolean', 'isFile is boolean');
+
+  assert_idl_attribute(entry, 'isDirectory', 'FileSystemDirectoryEntry has isDirectory attribute');
+  assert_equals(typeof entry.isDirectory, 'boolean', 'isDirectory is boolean');
+
+  assert_idl_attribute(entry, 'name', 'FileSystemDirectoryEntry has name attribute');
+  assert_equals(typeof entry.name, 'string', 'name is a string');
+
+  assert_idl_attribute(entry, 'fullPath', 'FileSystemDirectoryEntry has fullPath attribute');
+  assert_equals(typeof entry.fullPath, 'string', 'fullPath is a string');
+
+  assert_idl_attribute(entry, 'filesystem', 'FileSystemDirectoryEntry has filesystem attribute');
+  assert_equals(typeof entry.filesystem, 'object', 'filesystem is an object');
+
+  t.done();
+}, 'FileSystemDirectoryEntry - attribute types');
+
+entry_test((t, entry) => {
+  assert_false(entry.isFile, 'isFile is false');
+  assert_true(entry.isDirectory, 'isDirectory is true');
+  assert_equals(entry.name, 'upload', 'expected directory was uploaded');
+  assert_equals(entry.fullPath, '/upload', 'directory is child of root directory');
+  t.done();
+}, 'FileSystemDirectoryEntry - attribute values');
+
+</script>

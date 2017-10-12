@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Script @type and @language: empty strings</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#prepare-a-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Setup -->
+<script>
+window.run1 = window.run2 = window.run3 = window.run4 = false;
+</script>
+
+<!-- Systems under test -->
+<script type="">
+window.run1 = true;
+</script>
+
+<script type="" language="foo">
+window.run2 = true;
+</script>
+
+<script type="" language="">
+window.run3 = true;
+</script>
+
+<script language="">
+window.run4 = true;
+</script>
+
+<!-- Asserts -->
+<script>
+test(() => {
+  assert_true(window.run1);
+}, "A script with empty type and no language should run");
+
+test(() => {
+  assert_true(window.run2);
+}, "A script with empty type and a random language should run");
+
+test(() => {
+  assert_true(window.run3);
+}, "A script with empty type and empty language should run");
+
+test(() => {
+  assert_true(window.run4);
+}, "A script with no type and empty language should run");
+</script>

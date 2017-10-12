@@ -28,7 +28,8 @@ partial interface Navigator {
     readonly attribute Presentation presentation;
 };
 
-[SecureContext]
+[SecureContext,
+ Exposed=Window]
 interface Presentation {
 };
 
@@ -36,9 +37,10 @@ partial interface Presentation {
     attribute PresentationRequest? defaultRequest;
 };
 
-[SecureContext,
- Constructor(USVString url),
- Constructor(sequence<USVString> urls)]
+[Constructor(USVString url),
+ Constructor(sequence<USVString> urls),
+ SecureContext,
+ Exposed=Window]
 interface PresentationRequest : EventTarget {
     Promise<PresentationConnection>   start();
     Promise<PresentationConnection>   reconnect(USVString presentationId);
@@ -47,14 +49,16 @@ interface PresentationRequest : EventTarget {
     attribute EventHandler onconnectionavailable;
 };
 
-[SecureContext]
+[SecureContext,
+ Exposed=Window]
 interface PresentationAvailability : EventTarget {
     readonly attribute boolean      value;
              attribute EventHandler onchange;
 };
 
-[SecureContext,
- Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict)]
+[Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict),
+ SecureContext,
+ Exposed=Window]
 interface PresentationConnectionAvailableEvent : Event {
     [SameObject]
     readonly attribute PresentationConnection connection;
@@ -76,7 +80,8 @@ enum BinaryType {
     "arraybuffer"
 };
 
-[SecureContext]
+[SecureContext,
+ Exposed=Window]
 interface PresentationConnection : EventTarget {
     readonly attribute USVString                   id;
     readonly attribute USVString                   url;
@@ -102,8 +107,9 @@ enum PresentationConnectionCloseReason {
     "wentaway"
 };
 
-[SecureContext,
- Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict)]
+[Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict),
+ SecureContext,
+ Exposed=Window]
 interface PresentationConnectionCloseEvent : Event {
     readonly attribute PresentationConnectionCloseReason reason;
     readonly attribute DOMString                         message;

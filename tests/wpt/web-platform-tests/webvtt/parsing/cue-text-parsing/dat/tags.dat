@@ -9,18 +9,17 @@
 #document-fragment
 
 #data
-<	
+<\t
 #errors
 #document-fragment
 
 #data
-<
-
+<\n
 #errors
 #document-fragment
 
 #data
-< 
+<\x20
 #errors
 #document-fragment
 
@@ -54,3 +53,162 @@ c>x
 #document-fragment
 | <span>
 |   "x"
+
+#data
+<c>test
+#errors
+#document-fragment
+| <span>
+|   "test"
+
+#data
+a<c.d e>b</c>c
+#errors
+#document-fragment
+| "a"
+| <span>
+|   class="d"
+|   "b"
+| "c"
+
+#data
+<i>test
+#errors
+#document-fragment
+| <i>
+|   "test"
+
+#data
+a<i.d e>b</i>c
+#errors
+#document-fragment
+| "a"
+| <i>
+|   class="d"
+|   "b"
+| "c"
+
+#data
+<b>test
+#errors
+#document-fragment
+| <b>
+|   "test"
+
+#data
+a<b.d e>b</b>c
+#errors
+#document-fragment
+| "a"
+| <b>
+|   class="d"
+|   "b"
+| "c"
+
+#data
+<u>test
+#errors
+#document-fragment
+| <u>
+|   "test"
+
+#data
+a<u.d e>b</u>c
+#errors
+#document-fragment
+| "a"
+| <u>
+|   class="d"
+|   "b"
+| "c"
+
+#data
+<ruby>test
+#errors
+#document-fragment
+| <ruby>
+|   "test"
+
+#data
+a<ruby.f g>b<rt.h j>c</rt>d</ruby>e
+#errors
+#document-fragment
+| "a"
+| <ruby>
+|   class="f"
+|   "b"
+|   <rt>
+|     class="h"
+|     "c"
+|   "d"
+| "e"
+
+#data
+<rt>test
+#errors
+#document-fragment
+| "test"
+
+#data
+<v>test
+#errors
+#document-fragment
+| <span>
+|   title=""
+|   "test"
+
+#data
+<v a>test
+#errors
+#document-fragment
+| <span>
+|   title="a"
+|   "test"
+
+#data
+<v a b>test
+#errors
+#document-fragment
+| <span>
+|   title="a b"
+|   "test"
+
+#data
+<v.a>test
+#errors
+#document-fragment
+| <span>
+|   class="a"
+|   title=""
+|   "test"
+
+#data
+<v.a.b>test
+#errors
+#document-fragment
+| <span>
+|   class="a b"
+|   title=""
+|   "test"
+
+#data
+a<v.d e>b</v>c
+#errors
+#document-fragment
+| "a"
+| <span>
+|   class="d"
+|   title="e"
+|   "b"
+| "c"
+
+#data
+a<lang.d e>b</lang>c
+#errors
+#document-fragment
+| "a"
+| <span>
+|   class="d"
+|   lang="e"
+|   "b"
+| "c"

@@ -169,7 +169,7 @@ class CreateSyncPatch(Step):
     """Add the updated test files to a commit/patch in the local tree."""
 
     def create(self, state):
-        if state.no_patch:
+        if not state.patch:
             return
 
         local_tree = state.local_tree

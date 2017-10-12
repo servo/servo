@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <!-- Submitted from TestTWF Paris -->
 <head>
 
 	<title>CSS Reference File</title>
 	<link rel="author" title="Marc Bourlon" href="mailto:marc@bourlon.com">
+	<script src="/common/reftest-wait.js"></script>
 
 	<style type="text/css">
 
@@ -15,6 +16,19 @@
 	</style>
 
 	<script type="text/javascript">
+		'use strict';
+
+		// We must not capture the screen until the frameTest
+		// and testBoxWithVhOnly elements have finished changing height.
+		var elementsPending = 2;
+		function receiveMessage() {
+			if (--elementsPending === 0) {
+				takeScreenshot();
+			}
+		}
+
+		window.addEventListener('message', receiveMessage, false);
+
 		var height = 200;
 
 		function resizeReference() {
@@ -34,6 +48,7 @@
 				// uncomment the next line to see how a width resize triggers a layout recalculation
 				//frameTest.style.width = (parseInt(window.getComputedStyle(document.getElementById('frameTest'))['width'], 10) + 1) + "px";
 
+				window.postMessage('frameTest', '*');
 			}
 
 		}

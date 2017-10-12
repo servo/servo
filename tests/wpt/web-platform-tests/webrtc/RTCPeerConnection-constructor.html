@@ -23,68 +23,6 @@ const testArgs = {
   'undefined': false,
   '{}': false,
 
-  // iceServers
-  '{ iceServers: null }': new TypeError,
-  '{ iceServers: undefined }': false,
-  '{ iceServers: [] }': false,
-  '{ iceServers: [{}] }': new TypeError,
-  '{ iceServers: [null] }': new TypeError,
-  '{ iceServers: [undefined] }': new TypeError,
-  '{ iceServers: [{ urls: "stun:stun1.example.net" }] }': false,
-  '{ iceServers: [{ urls: [] }] }': false,
-  '{ iceServers: [{ urls: ["stun:stun1.example.net"] }] }': false,
-  '{ iceServers: [{ urls: ["stun:stun1.example.net", "stun:stun2.example.net"] }] }': false,
-  // username and password required for turn: and turns:
-  '{ iceServers: [{ urls: "turns:turn.example.org", username: "user", credential: "cred" }] }': false,
-  '{ iceServers: [{ urls: "turn:turn.example.net", username: "user", credential: "cred" }] }': false,
-  '{ iceServers: [{ urls: "turns:turn.example.org", username: "", credential: "" }] }': false,
-  '{ iceServers: [{ urls: "turn:turn.example.net", username: "", credential: "" }] }': false,
-  '{ iceServers: [{ urls: ["turns:turn.example.org", "turn:turn.example.net"], username: "user", credential: "cred" }] }': false,
-  '{ iceServers: [{ urls: "stun:stun1.example.net", credentialType: "password" }] }': false,
-  '{ iceServers: [{ urls: "stun:stun1.example.net", credentialType: "token" }] }': false,
-  '{ iceServers: [{ urls: "turn:turn.example.net" }] }': 'InvalidAccessError',
-  '{ iceServers: [{ urls: "turn:turn.example.net", username: "user" }] }': 'InvalidAccessError',
-  '{ iceServers: [{ urls: "turn:turn.example.net", credential: "cred" }] }': 'InvalidAccessError',
-  '{ iceServers: [{ urls: "turns:turn.example.org" }] }': 'InvalidAccessError',
-  '{ iceServers: [{ urls: "turns:turn.example.org", username: "user" }] }': 'InvalidAccessError',
-  '{ iceServers: [{ urls: "turns:turn.example.org", credential: "cred" }] }': 'InvalidAccessError',
-  '{ iceServers: [{ urls: "relative-url" }] }': 'SyntaxError',
-  '{ iceServers: [{ urls: "http://example.com" }] }': 'SyntaxError',
-  // credentialType
-  '{ iceServers: [{ urls: [] }] }': false,
-  '{ iceServers: [{ urls: [], credentialType: "password" }] }': false,
-  '{ iceServers: [{ urls: [], credentialType: "token" }] }': false,
-  '{ iceServers: [{ urls: [], credentialType: "invalid" }] }': new TypeError,
-  // Blink and Gecko fall back to url, but it's not in the spec.
-  '{ iceServers: [{ url: "stun:stun1.example.net" }] }': new TypeError,
-
-  // iceTransportPolicy
-  '{ iceTransportPolicy: null }': new TypeError,
-  '{ iceTransportPolicy: undefined }': false,
-  '{ iceTransportPolicy: "relay" }': false,
-  '{ iceTransportPolicy: "all" }': false,
-  '{ iceTransportPolicy: "invalid" }': new TypeError,
-  // "none" is in Blink and Gecko's IDL, but not in the spec.
-  '{ iceTransportPolicy: "none" }': new TypeError,
-  // iceTransportPolicy is called iceTransports in Blink.
-  '{ iceTransports: "invalid" }': false,
-  '{ iceTransports: "none" }': false,
-
-  // bundlePolicy
-  '{ bundlePolicy: null }': new TypeError,
-  '{ bundlePolicy: undefined }': false,
-  '{ bundlePolicy: "balanced" }': false,
-  '{ bundlePolicy: "max-compat" }': false,
-  '{ bundlePolicy: "max-bundle" }': false,
-  '{ bundlePolicy: "invalid" }': new TypeError,
-
-  // rtcpMuxPolicy
-  '{ rtcpMuxPolicy: null }': new TypeError,
-  '{ rtcpMuxPolicy: undefined }': false,
-  '{ rtcpMuxPolicy: "negotiate" }': false,
-  '{ rtcpMuxPolicy: "require" }': false,
-  '{ rtcpMuxPolicy: "invalid" }': new TypeError,
-
   // peerIdentity
   '{ peerIdentity: toStringThrows }': new Error,
 

@@ -29,6 +29,7 @@ if (ctx.transform) { // (avoid spurious failures, since the aim here is not to t
 }
 if (ctx.setTransform) {
     _assertSame(ctx.setTransform(1, 0, 0, 1, 0, 0), undefined, "ctx.setTransform(1, 0, 0, 1, 0, 0)", "undefined");
+    _assertSame(ctx.setTransform(), undefined, "ctx.setTransform()", "undefined");
 }
 _assertSame(ctx.clearRect(0, 0, 0, 0), undefined, "ctx.clearRect(0, 0, 0, 0)", "undefined");
 _assertSame(ctx.fillRect(0, 0, 0, 0), undefined, "ctx.fillRect(0, 0, 0, 0)", "undefined");

@@ -17,11 +17,11 @@
     </head>
     <body>
     <h1>Viewport: Scroll in iframe - no page scale</h1>
-    <h4>Test Description: This test checks that window.view returns correct offset and scroll values without any pinch-zoom page scale applied.</h4>
+    <h4>Test Description: This test checks that window.visualViewport returns correct offset and scroll values without any pinch-zoom page scale applied.</h4>
     <iframe></iframe>
     <div id="complete-notice">
-        <p>frames[0].window.view's offsetLeft and offsetTop is (<span id="scroll-offset-log"></span>).</p>
-        <p>frames[0].window.view's pageLeft and pageTop is (<span id="scroll-page-log"></span>).</p>
+        <p>frames[0].window.visualViewport's offsetLeft and offsetTop is (<span id="scroll-offset-log"></span>).</p>
+        <p>frames[0].window.visualViewport's pageLeft and pageTop is (<span id="scroll-page-log"></span>).</p>
     </div>
     <div id="log"></div>
     </body>
@@ -36,19 +36,19 @@
 
 
         test(function() {
-              assert_equals(iframe.view.offsetLeft, 0);
+              assert_equals(iframe.visualViewport.offsetLeft, 0);
             }, "offsetLeft must be 0.");
         test(function() {
-              assert_equals(iframe.view.offsetTop, 0);
+              assert_equals(iframe.visualViewport.offsetTop, 0);
             }, "offsetTop must be 0.");
         test(function() {
-              assert_equals(iframe.view.pageLeft, 1000);
+              assert_equals(iframe.visualViewport.pageLeft, 1000);
             }, "pageLeft must reflect location of viewport in document.");
         test(function() {
-              assert_equals(iframe.view.pageTop, 1200);
+              assert_equals(iframe.visualViewport.pageTop, 1200);
             }, "pageTop must reflect location of viewport in document.");
 
-        document.getElementById("scroll-offset-log").innerText = iframe.view.offsetLeft+ ", " + iframe.view.offsetTop;
-        document.getElementById("scroll-page-log").innerText = iframe.view.pageLeft + ", " + iframe.view.pageTop;
+        document.getElementById("scroll-offset-log").innerText = iframe.visualViewport.offsetLeft+ ", " + iframe.visualViewport.offsetTop;
+        document.getElementById("scroll-page-log").innerText = iframe.visualViewport.pageLeft + ", " + iframe.visualViewport.pageTop;
     </script>
 </html>

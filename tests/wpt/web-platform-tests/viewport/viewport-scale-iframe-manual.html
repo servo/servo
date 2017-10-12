@@ -19,7 +19,7 @@
     </head>
     <body>
     <h1>Viewport: Scale iframe</h1>
-    <h4>Test Description: Tests the view.scale property inside an iframe</h4>
+    <h4>Test Description: Tests the visualViewport.scale property inside an iframe</h4>
     <h2 style="color: red">THIS IS A MANUAL TEST</h2>
     <p id="skip">
         <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
@@ -58,10 +58,10 @@
         addManualTestStep(
             function() {
                 // Ensure we zoomed in to about what we expect.
-                assert_approx_equals(window.view.scale, 2.0, 0.2,
-                    "Main window.view.scale reflects pinch-zoom level");
+                assert_approx_equals(window.visualViewport.scale, 2.0, 0.2,
+                    "Main window.visualViewport.scale reflects pinch-zoom level");
 
-                assert_equals(frames[0].window.view.scale, 1.0,
+                assert_equals(frames[0].window.visualViewport.scale, 1.0,
                     "Iframe scale unchanged even when pinch-zoomed");
             },
             'Check iframe scale is unchanged when page is pinch-zoomed',

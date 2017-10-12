@@ -25,12 +25,6 @@ async_test(function(t) {
 });
 
 test(function() {
-  var e = document.createEvent("ErrorEvent");
-  var eProto = Object.getPrototypeOf(e);
-  assert_equals(eProto, ErrorEvent.prototype);
-}, "document.createEvent('ErrorEvent')");
-
-test(function() {
   var e = new ErrorEvent("error");
   assert_false("initErrorEvent" in e, "should not be supported");
 }, "initErrorEvent");

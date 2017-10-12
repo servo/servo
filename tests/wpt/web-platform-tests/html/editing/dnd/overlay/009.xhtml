@@ -4,17 +4,17 @@
 <title>Adding element to datastore on drag</title>
 <style type="text/css">
 span, strong
-	{color:green;
-	background-color:yellow;}
+  {color:green;
+  background-color:yellow;}
 strong
-	{color:red;}
+  {color:red;}
 </style>
 <script type="application/ecmascript">
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.addElement(document.querySelector('span'));}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.addElement(document.querySelector('span'));}
 function resetImage(event)
-	{event.dataTransfer.addElement(document.querySelector('strong'));}
+  {event.dataTransfer.addElement(document.querySelector('strong'));}
 </script>
 </head>
 <body>

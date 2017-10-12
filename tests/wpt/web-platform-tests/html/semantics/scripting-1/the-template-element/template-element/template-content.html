@@ -14,63 +14,49 @@
 <div id="log"></div>
 <script type="text/javascript">
 
+HTML5_ELEMENTS.forEach(function(value) {
+    if (value !== 'body' && value !== 'html' && value !== 'head' && value !== 'frameset') {
+
+        test(function() {
+            var doc = newHTMLDocument();
+            var template = doc.createElement('template');
+            var element = doc.createElement(value);
+            template.content.appendChild(element);
+            var valueToTest = template.content.querySelector(value);
+
+            doc.body.appendChild(template);
+
+            assert_not_equals(valueToTest, null);
+        }, 'Template may contain ' + value + ' element');
+
+    }
+});
+
+
+
 var parameters = [];
 
 HTML5_ELEMENTS.forEach(function(value) {
     if (value !== 'body' && value !== 'html' && value !== 'head' && value !== 'frameset') {
 
-        var doc = newHTMLDocument();
-        var template = doc.createElement('template');
-        var element = doc.createElement(value);
-        template.content.appendChild(element);
-        var valueToTest = template.content.querySelector(value);
+        test(function() {
+            var doc = newHTMLDocument();
 
-        doc.body.appendChild(template);
+            if (isVoidElement(value)) {
+                doc.body.innerHTML = '<template><' + value + '/></template>';
+            } else {
+                doc.body.innerHTML = '<template><' + value + '></' + value + '></template>';
+            }
 
-        parameters.push([
-                'Template may contain ' + value + ' element',
-                valueToTest,
-                null
-            ]);
+            var template = doc.querySelector('template');
+            var element = template.content.querySelector(value);
+
+            assert_not_equals(element, null);
+        }, 'Template may contain ' + value + ' element. '
+             + 'The template element and contents are added via body.innerHTML');
+
     }
 });
-
-generate_tests(assert_not_equals, parameters,
-        'Template may contain any element, except the html element, '
-        + 'the head element, the body element, or the frameset element');
-
-
-
-
-var parameters = [];
-
-HTML5_ELEMENTS.forEach(function(value) {
-   if (value !== 'body' && value !== 'html' && value !== 'head' && value !== 'frameset') {
-
-      var doc = newHTMLDocument();
-
-      if (isVoidElement(value)) {
-         doc.body.innerHTML = '<template><' + value + '/></template>';
-      } else {
-         doc.body.innerHTML = '<template><' + value + '></' + value + '></template>';
-      }
-
-      var template = doc.querySelector('template');
-      var element = template.content.querySelector(value);
-
-      parameters.push([
-              'Template may contain ' + value + ' element. '
-              +'The template element and contents are added via body.innerHTML',
-              element,
-              null
-          ]);
-      }
-});
-
-generate_tests(assert_not_equals, parameters,
-        'Template may contain any element, except the html element, '
-        + 'the head element, the body element, or the frameset element. '
-        +'The template element and contents are added via body.innerHTML');
 
 </script>
 </body>

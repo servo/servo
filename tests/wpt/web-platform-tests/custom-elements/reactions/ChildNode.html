@@ -3,8 +3,8 @@
 <head>
 <title>Custom Elements: CEReactions on ChildNode interface</title>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
-<meta name="assert" content="before, after, after, replaceWith, and remove of ChildNode interface must have CEReactions">
-<meta name="help" content="https://dom.spec.whatwg.org/#parentnode">
+<meta name="assert" content="before, after, replaceWith, and remove of ChildNode interface must have CEReactions">
+<meta name="help" content="https://dom.spec.whatwg.org/#childnode">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/custom-elements-helpers.js"></script>
@@ -28,7 +28,7 @@ testNodeConnector(function (newContainer, customElement) {
 
 testNodeDisconnector(function (customElement) {
     customElement.remove();
-}, 'replaceWith on ChildNode');
+}, 'remove on ChildNode');
 
 </script>
 </body>

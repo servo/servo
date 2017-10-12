@@ -199,15 +199,22 @@ function testClassList(e, desc) {
 
   // add() method
 
-  function checkAdd(before, argument, after, expectedException) {
+  function checkAdd(before, argument, after, param) {
+    var expectedException = undefined;
+    var noop = false;
+    if (param == "noop") {
+      noop = true;
+    } else {
+      expectedException = param;
+    }
     checkModification(e, "add", argument, undefined, before, after,
                       expectedException, desc);
-    // Also check force toggle
-    // XXX https://github.com/whatwg/dom/issues/443
-    //if (!Array.isArray(argument)) {
-    //  checkModification(e, "toggle", [argument, true], true, before, after,
-    //                    expectedException);
-    //}
+    // Also check force toggle.  The only difference is that it doesn't run the
+    // update steps for a no-op.
+    if (!Array.isArray(argument)) {
+      checkModification(e, "toggle", [argument, true], true, before,
+                        noop ? before : after, expectedException, desc);
+    }
   }
 
   checkAdd(null, "", null, "SyntaxError");
@@ -229,7 +236,7 @@ function testClassList(e, desc) {
   checkAdd("a", "a", "a");
   checkAdd("aa", "AA", "aa AA");
   checkAdd("a b c", "a", "a b c");
-  checkAdd("a a a  b", "a", "a b");
+  checkAdd("a a a  b", "a", "a b", "noop");
   checkAdd(null, "a", "a");
   checkAdd("", "a", "a");
   checkAdd(" ", "a", "a");
@@ -238,7 +245,7 @@ function testClassList(e, desc) {
   checkAdd("a b c", "d", "a b c d");
   checkAdd("a b c ", "d", "a b c d");
   checkAdd("   a  a b", "c", "a b c");
-  checkAdd("   a  a b", "a", "a b");
+  checkAdd("   a  a b", "a", "a b", "noop");
   checkAdd("\t\n\f\r a\t\n\f\r b\t\n\f\r ", "c", "a b c");
 
   // multiple add
@@ -254,15 +261,22 @@ function testClassList(e, desc) {
 
   // remove() method
 
-  function checkRemove(before, argument, after, expectedException) {
+  function checkRemove(before, argument, after, param) {
+    var expectedException = undefined;
+    var noop = false;
+    if (param == "noop") {
+      noop = true;
+    } else {
+      expectedException = param;
+    }
     checkModification(e, "remove", argument, undefined, before, after,
                       expectedException, desc);
-    // Also check force toggle
-    // XXX https://github.com/whatwg/dom/issues/443
-    //if (!Array.isArray(argument)) {
-    //  checkModification(e, "toggle", [argument, false], false, before, after,
-    //                    expectedException);
-    //}
+    // Also check force toggle.  The only difference is that it doesn't run the
+    // update steps for a no-op.
+    if (!Array.isArray(argument)) {
+      checkModification(e, "toggle", [argument, false], false, before,
+                        noop ? before : after, expectedException, desc);
+    }
   }
 
   checkRemove(null, "", null, "SyntaxError");
@@ -281,8 +295,8 @@ function testClassList(e, desc) {
 
   checkRemove(null, "a", null);
   checkRemove("", "a", "");
-  checkRemove("a b  c", "d", "a b c");
-  checkRemove("a b  c", "A", "a b c");
+  checkRemove("a b  c", "d", "a b c", "noop");
+  checkRemove("a b  c", "A", "a b c", "noop");
   checkRemove(" a a a ", "a", "");
   checkRemove("a  b", "a", "b");
   checkRemove("a  b  ", "a", "b");
@@ -355,24 +369,6 @@ function testClassList(e, desc) {
   checkToggle("", undefined, true, "undefined");
 
 
-  // tests for the force argument handling
-  // XXX Remove these if https://github.com/whatwg/dom/issues/443 is fixed
-
-  function checkForceToggle(before, argument, force, expectedRes, after, expectedException) {
-    checkModification(e, "toggle", [argument, force], expectedRes, before,
-                      after, expectedException, desc);
-  }
-
-  checkForceToggle("", "a", true, true, "a");
-  checkForceToggle("a", "a", true, true, "a");
-  checkForceToggle("a", "b", true, true, "a b");
-  checkForceToggle("a b", "b", true, true, "a b");
-  checkForceToggle("", "a", false, false, "");
-  checkForceToggle("a", "a", false, false, "");
-  checkForceToggle("a", "b", false, false, "a");
-  checkForceToggle("a b", "b", false, false, "a");
-
-
   // replace() method
   function checkReplace(before, token, newToken, after, expectedException) {
     checkModification(e, "replace", [token, newToken], undefined, before,
@@ -420,9 +416,6 @@ function testClassList(e, desc) {
   checkReplace(" ", "a", "b", " ");
   checkReplace(" a  \f", "a", "b", "b");
   checkReplace("a b c", "b", "d", "a d c");
-  // https://github.com/whatwg/dom/issues/442
-  // Implementations agree on the first one here, so I test it, but disagree on
-  // the second, so no test until the spec decides what to say.
   checkReplace("a b c", "c", "a", "a b");
   checkReplace("c b a", "c", "a", "a b");
   checkReplace("a b a", "a", "c", "c b");

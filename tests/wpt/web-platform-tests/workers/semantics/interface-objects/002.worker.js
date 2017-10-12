@@ -41,6 +41,9 @@ var unexpected = [
   "InputEvent",
   "KeyboardEvent",
   "CompositionEvent",
+  // https://w3c.github.io/webvtt/
+  "VTTCue",
+  "VTTRegion",
 ];
 for (var i = 0; i < unexpected.length; ++i) {
   test(function () {

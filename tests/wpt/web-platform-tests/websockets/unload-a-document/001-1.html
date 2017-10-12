@@ -22,7 +22,7 @@ t.step(function() {
       }, 1000);
       controller.navigate();
     })
-    ws.onerror = ws.onmessage = ws.onclose = t.step_func(e => assert_unreached("Got unexpected event " + e.type));
+    ws.onerror = ws.onmessage = t.step_func(e => assert_unreached("Got unexpected event " + e.type));
   }
 });
 </script>

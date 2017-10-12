@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share null and undefined values</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        // Expect null to be converted into the string 'null'. On the other
+        // hand, undefined should be equivalent to omitting the attribute.
+        setupManualShareTest(
+            {title: 'null', text: '', url: getAbsoluteUrl('null')});
+        callWhenButtonClicked(() => navigator.share(
+              {title: null, text: undefined, url: null}));
+    </script>
+  </body>
+</html>

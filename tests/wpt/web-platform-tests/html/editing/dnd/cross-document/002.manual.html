@@ -14,7 +14,7 @@ window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragstart = function(e) {
     e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text', 'dummy text');
+    e.dataTransfer.setData('text', 'dummy text');
   };
 };
 </script>

@@ -4,23 +4,30 @@
 <title>XMLHttpRequest: upload progress event for cross-origin requests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onprogress" data-tested-assertations="../.." />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::*//a[contains(@href,'#make-upload-progress-notifications')] following::ol[1]/li[8]" />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-upload" data-tested-assertations=".." />
-
-<div id="log"></div>
 <script src="/common/get-host-info.sub.js"></script>
+<div id="log"></div>
 <script>
-  var test = async_test();
-  test.step(function() {
-    var client = new XMLHttpRequest();
-    client.upload.onprogress = test.step_func(function() {
-      test.done();
-    });
-    client.onload = test.step_func(function() {
-      assert_unreached("onprogress not called.");
-    });
-    client.open("POST", get_host_info().HTTP_REMOTE_ORIGIN + "/XMLHttpRequest/resources/corsenabled.py");
-    client.send("This is a test string.");
-  });
+const remote = get_host_info().HTTP_REMOTE_ORIGIN + "/XMLHttpRequest/resources/corsenabled.py",
+      redirect = "resources/redirect.py?code=307&location=" + remote;
+
+[remote, redirect].forEach(url => {
+  async_test(test => {
+    const client = new XMLHttpRequest();
+    client.upload.onprogress = test.step_func_done()
+    client.onload = test.unreached_func()
+    client.open("POST", url)
+    client.send("On time: " + url)
+  }, "Upload events registered on time (" + url + ")");
+});
+
+[remote, redirect].forEach(url => {
+  async_test(test => {
+    const client = new XMLHttpRequest();
+    client.onload = test.step_func_done();
+    client.open("POST", url);
+    client.send("Too late: " + url);
+    client.upload.onloadstart = test.unreached_func(); // registered too late
+    client.upload.onprogress = test.unreached_func(); // registered too late
+  }, "Upload events registered too late (" + url + ")");
+});
 </script>

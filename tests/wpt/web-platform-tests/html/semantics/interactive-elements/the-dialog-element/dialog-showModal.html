@@ -38,6 +38,9 @@
   <input id="i82" value="foobar" autofocus>
   <button id="b8">OK</button>
 </dialog>
+<dialog id="d9"></dialog>
+<dialog id="d10"></dialog>
+<dialog id="d11"></dialog>
 <script>
   var d1 = document.getElementById('d1'),
       d2 = document.getElementById('d2'),
@@ -47,6 +50,9 @@
       d6 = document.getElementById('d6'),
       d7 = document.getElementById('d7'),
       d8 = document.getElementById('d8'),
+      d9 = document.getElementById('d9'),
+      d10 = document.getElementById('d10'),
+      d11 = document.getElementById('d11'),
       b0 = document.getElementById('b0'),
       b1 = document.getElementById('b1'),
       b3 = document.getElementById('b3'),
@@ -55,9 +61,11 @@
 
   test(function(){
     assert_false(d1.open);
+    assert_false(d1.hasAttribute("open"));
     d1.showModal();
     this.add_cleanup(function() { d1.close(); });
     assert_true(d1.open);
+    assert_equals(d1.getAttribute("open"), "");
     assert_equals(document.activeElement, b1);
   });
 
@@ -67,6 +75,16 @@
       this.add_cleanup(function() { d2.close(); });
     });
   }, "showModal() on a <dialog> that already has an open attribute throws an InvalidStateError exception");
+
+  test(function(){
+    d9.showModal();
+    this.add_cleanup(function() { d9.close(); });
+    assert_true(d9.open);
+    d9.removeAttribute("open");
+    assert_false(d9.open);
+    d9.showModal();
+    assert_true(d9.open);
+  }, "showModal() on a <dialog> after initial showModal() and removing the open attribute");
 
   test(function(){
     var d = document.createElement("dialog");
@@ -114,4 +132,41 @@
     assert_true(d8.open);
     assert_equals(document.activeElement, document.getElementById("i82"));
   }, "opening dialog with multiple focusable children, one having the autofocus attribute");
+
+  test(function(){
+    assert_false(d10.open);
+    assert_false(d11.open);
+    d10.showModal();
+    this.add_cleanup(function() { d10.close(); });
+    d11.showModal();
+    this.add_cleanup(function() { d11.close(); });
+    var rect10 = d10.getBoundingClientRect();
+    var rect11 = d11.getBoundingClientRect();
+
+    // The two <dialog>s are both in top layer, with the same position/size.
+    assert_equals(rect10.left, rect11.left);
+    assert_equals(rect10.top, rect11.top);
+    assert_equals(rect10.width, rect11.width);
+    assert_equals(rect10.height, rect11.height);
+
+    var pointX = rect10.left + rect10.width / 2,
+        pointY = rect10.top + rect10.height / 2;
+    function topElement() {
+      return document.elementFromPoint(pointX, pointY);
+    }
+
+    // d11 was most recently openened, and thus on top.
+    assert_equals(topElement(), d11);
+
+    // Removing the open attribute and running through the showModal() algorithm
+    // again should not promote d10 to the top.
+    d10.removeAttribute("open");
+    assert_equals(topElement(), d11);
+    d10.showModal();
+    assert_equals(topElement(), d11);
+
+    // Closing d11 with close() should cause d10 to be the topmost element.
+    d11.close();
+    assert_equals(topElement(), d10);
+  }, "when opening multiple dialogs, the most recently opened is rendered on top");
 </script>

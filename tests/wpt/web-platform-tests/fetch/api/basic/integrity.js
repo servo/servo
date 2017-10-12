@@ -3,16 +3,26 @@ if (this.document === undefined) {
   importScripts("../resources/utils.js");
 }
 
-function integrity(desc, url, integrity, shouldPass) {
-   if (shouldPass) {
+function integrity(desc, url, integrity, initRequestMode, shouldPass) {
+  var fetchRequestInit = {'integrity': integrity}
+  if (!!initRequestMode && initRequestMode !== "") {
+    fetchRequestInit.mode = initRequestMode;
+  }
+
+  if (shouldPass) {
     promise_test(function(test) {
-      return fetch(url, {'integrity': integrity}).then(function(resp) {
-        assert_equals(resp.status, 200, "Response's status is 200");
+      return fetch(url, fetchRequestInit).then(function(resp) {
+        if (initRequestMode !== "no-cors") {
+          assert_equals(resp.status, 200, "Response's status is 200");
+        } else {
+          assert_equals(resp.status, 0, "Opaque response's status is 0");
+          assert_equals(resp.type, "opaque");
+        }
       });
     }, desc);
   } else {
     promise_test(function(test) {
-      return promise_rejects(test, new TypeError(), fetch(url, {'integrity': integrity}));
+      return promise_rejects(test, new TypeError(), fetch(url, fetchRequestInit));
     }, desc);
   }
 }
@@ -27,19 +37,43 @@ var url = "../resources/top.txt";
 var corsUrl = "http://{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "top.txt";
 /* Enable CORS*/
 corsUrl += "?pipe=header(Access-Control-Allow-Origin,*)";
+var corsUrl2 = "https://{{host}}:{{ports[https][0]}}/fetch/api/resource/top.txt";
 
-integrity("Empty string integrity", url, "", true);
-integrity("SHA-256 integrity", url, topSha256, true);
-integrity("SHA-384 integrity", url, topSha384, true);
-integrity("SHA-512 integrity", url, topSha512, true);
-integrity("Invalid integrity", url, invalidSha256, false);
-integrity("Multiple integrities: valid stronger than invalid", url, invalidSha256 + " " + topSha384, true);
-integrity("Multiple integrities: invalid stronger than valid", url, invalidSha512 + " " + topSha384, false);
-integrity("Multiple integrities: invalid as strong as valid", url, invalidSha512 + " " + topSha512, true);
-integrity("Multiple integrities: both are valid", url,  topSha384 + " " + topSha512, true);
-integrity("Multiple integrities: both are invalid", url, invalidSha256 + " " + invalidSha512, false);
-integrity("CORS empty integrity", corsUrl, "", true);
-integrity("CORS SHA-512 integrity", corsUrl, topSha512, true);
-integrity("CORS invalid integrity", corsUrl, invalidSha512, false);
+integrity("Empty string integrity", url, "", /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("SHA-256 integrity", url, topSha256, /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("SHA-384 integrity", url, topSha384, /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("SHA-512 integrity", url, topSha512, /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("Invalid integrity", url, invalidSha256,
+          /* initRequestMode */ undefined, /* shouldPass */  false);
+integrity("Multiple integrities: valid stronger than invalid", url,
+          invalidSha256 + " " + topSha384, /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("Multiple integrities: invalid stronger than valid",
+          url, invalidSha512 + " " + topSha384, /* initRequestMode */ undefined,
+          /* shouldPass */ false);
+integrity("Multiple integrities: invalid as strong as valid", url,
+          invalidSha512 + " " + topSha512, /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("Multiple integrities: both are valid", url,
+          topSha384 + " " + topSha512, /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("Multiple integrities: both are invalid", url,
+          invalidSha256 + " " + invalidSha512, /* initRequestMode */ undefined,
+          /* shouldPass */ false);
+integrity("CORS empty integrity", corsUrl, "", /* initRequestMode */ undefined,
+          /* shouldPass */ true);
+integrity("CORS SHA-512 integrity", corsUrl, topSha512,
+          /* initRequestMode */ undefined, /* shouldPass */ true);
+integrity("CORS invalid integrity", corsUrl, invalidSha512,
+          /* initRequestMode */ undefined, /* shouldPass */ false);
+
+integrity("Empty string integrity for opaque response", corsUrl2, "",
+          /* initRequestMode */ "no-cors", /* shouldPass */ true);
+integrity("SHA-* integrity for opaque response", corsUrl2, topSha512,
+          /* initRequestMode */ "no-cors", /* shouldPass */ false);
 
 done();

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+
+<body>
+
+<script>
+  function wait_for_error_from_window(w, test) {
+    window.addEventListener('message', test.step_func(e => {
+      if (e.source != w)
+        return;
+      assert_equals(e.data, "error");
+      w.close();
+      test.done();
+    }));
+  }
+
+  async_test(t => {
+    var w = window.open();
+
+    var img = document.createElement('img');
+    img.onerror = t.step_func_done(_ => w.close());
+    img.onload = t.unreached_func();
+    w.document.body.appendChild(img);
+    img.src = "/images/red-16x16.png";
+  }, "window.open() inherits policy.");
+
+  async_test(t => {
+    var w = window.open();
+
+    wait_for_error_from_window(w, t);
+
+    w.document.write(`
+      <img src='/images/red-16x16.png'
+        onload='window.opener.postMessage("load", "*");'
+        onerror='window.opener.postMessage("error", "*");'
+      >
+    `);
+  }, "`document.write` into `window.open()` inherits policy.");
+
+  async_test(t => {
+    var b = new Blob(
+      [`
+        <img src='${window.origin}/images/red-16x16.png'
+          onload='window.opener.postMessage("load", "*");'
+          onerror='window.opener.postMessage("error", "*");'
+        >
+      `], {type:"text/html"});
+
+    wait_for_error_from_window(window.open(URL.createObjectURL(b)), t);
+  }, "window.open('blob:...') inherits policy.");
+
+  // Navigation to top-level `data:` is blocked.
+
+  async_test(t => {
+    var url =
+        `javascript:"<img src='${window.origin}/images/red-16x16.png'
+          onload='window.opener.postMessage(\\"load\\", \\"*\\");'
+          onerror='window.opener.postMessage(\\"error\\", \\"*\\");'
+        >"`;
+
+    wait_for_error_from_window(window.open(url), t);
+  }, "window.open('javascript:...') inherits policy.");
+</script>

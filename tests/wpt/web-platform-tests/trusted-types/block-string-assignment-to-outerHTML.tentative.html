@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./support/helper.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types">
+</head>
+<body>
+<div id="container"></div>
+<script>
+  var container = document.querySelector('#container')
+
+  // String assignments throw.
+  test(t => {
+    var d = document.createElement('div');
+    container.appendChild(d);
+    assert_throws(new TypeError(), _ => {
+      d.outerHTML = "Fail.";
+    });
+    assert_equals(container.innerText, "");
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "`outerHTML = string` throws.");
+
+  // TrustedHTML assignments work.
+  test(t => {
+    var html = TrustedHTML.escape(STRINGS.unescapedHTML);
+
+    var d = document.createElement('div');
+    document.querySelector('#container').appendChild(d);
+    d.outerHTML = html;
+    assert_equals(container.innerText, STRINGS.unescapedHTML);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "outerHTML = TrustedHTML.escape().");
+
+  test(t => {
+    var html = TrustedHTML.unsafelyCreate(STRINGS.unescapedHTML);
+
+    var d = document.createElement('div');
+    container.appendChild(d);
+    d.outerHTML = html;
+    assert_equals(container.innerText, STRINGS.unescapedText);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "outerHTML = TrustedHTML.unsafelyCreate().");
+</script>
+</body>
+</html>

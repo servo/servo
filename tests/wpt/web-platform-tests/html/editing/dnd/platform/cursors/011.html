@@ -18,28 +18,28 @@
 window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'all';
+    e.dataTransfer.effectAllowed = 'all';
     e.dataTransfer.setData('Text', 'dummy text');
   };
   var copydiv = document.getElementsByTagName('div')[1];
   copydiv.ondragenter = copydiv.ondragover = function(e) {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = 'copy';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   };
   var movediv = document.getElementsByTagName('div')[2];
   movediv.ondragenter = movediv.ondragover = function(e) {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = 'move';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
   var linkdiv = document.getElementsByTagName('div')[3];
   linkdiv.ondragenter = linkdiv.ondragover = function(e) {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = 'link';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'link';
   };
   var nodrop = document.getElementsByTagName('div')[4];
   nodrop.ondragenter = nodrop.ondragover = function(e) {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = 'none';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'none';
   };
 };
 

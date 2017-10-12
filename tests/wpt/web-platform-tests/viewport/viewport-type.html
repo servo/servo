@@ -1,30 +1,30 @@
 <!doctype html>
 <html>
     <head>
-        <title>Viewport: window.view type</title>
+        <title>Viewport: window.visualViewport type</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
-    <h1>Viewport: window.view type</h1>
-    <h4>Test Description: This test checks that window.view is an object of type VisualViewport.</h4>
+    <h1>Viewport: window.visualViewport type</h1>
+    <h4>Test Description: This test checks that window.visualViewport is an object of type VisualViewport.</h4>
     <script>
         test(function() {
-              assert_equals(typeof(window.view), "object");
-            }, "window.view is an object");
+              assert_equals(typeof(window.visualViewport), "object");
+            }, "window.visualViewport is an object");
 
         test(function() {
-              assert_equals(window.view.toString(), "[object VisualViewport]");
-            }, "window.view has type `VisualViewport`");
+              assert_equals(window.visualViewport.toString(), "[object VisualViewport]");
+            }, "window.visualViewport has type `VisualViewport`");
 
         addEventListener("load", function() {
-            document.getElementById("viewtype-log").innerText = typeof(window.view);
+            document.getElementById("viewtype-log").innerText = typeof(window.visualViewport);
         });
     </script>
     <div id="complete-notice">
-        <p>window.view is of type: <span id="viewtype-log"></span>.</p>
+        <p>window.visualViewport is of type: <span id="viewtype-log"></span>.</p>
     </div>
     <div id="log"></div>
     </body>

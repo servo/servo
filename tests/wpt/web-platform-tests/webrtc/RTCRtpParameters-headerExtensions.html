@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters headerExtensions</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpParameters-helper.js:
+  //   validateSenderRtpParameters
+
+  /*
+    5.2.  RTCRtpSender Interface
+      interface RTCRtpSender {
+        Promise<void>           setParameters(optional RTCRtpParameters parameters);
+        RTCRtpParameters        getParameters();
+      };
+
+      dictionary RTCRtpParameters {
+        DOMString                                 transactionId;
+        sequence<RTCRtpEncodingParameters>        encodings;
+        sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
+        RTCRtcpParameters                         rtcp;
+        sequence<RTCRtpCodecParameters>           codecs;
+        RTCDegradationPreference                  degradationPreference;
+      };
+
+      dictionary RTCRtpHeaderExtensionParameters {
+        [readonly]
+        DOMString      uri;
+
+        [readonly]
+        unsigned short id;
+
+        [readonly]
+        boolean        encrypted;
+      };
+
+      getParameters
+        - The headerExtensions sequence is populated based on the header extensions
+          that have been negotiated for sending.
+   */
+
+  /*
+    5.2.  setParameters
+      7.  If parameters.encodings.length is different from N, or if any parameter
+          in the parameters argument, marked as a Read-only parameter, has a value
+          that is different from the corresponding parameter value returned from
+          sender.getParameters(), abort these steps and return a promise rejected
+          with a newly created InvalidModificationError. Note that this also applies
+          to transactionId.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    param.headerExtensions = [{
+      uri: 'non-existent.example.org',
+      id: 404,
+      encrypted: false
+    }];
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, `setParameters() with modified headerExtensions should reject with InvalidModificationError`);
+
+</script>

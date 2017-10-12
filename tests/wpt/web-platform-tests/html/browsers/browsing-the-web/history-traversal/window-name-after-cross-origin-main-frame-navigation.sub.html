@@ -1,0 +1,13 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <!-- window.name should equal "" after a cross-origin main frame navigation. -->
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <script>
+        document.location = "support/window-name-navigation.sub.html?hostname={{domains[www1]}}&shouldhavename=false&sendmessage=false";
+    </script>
+</body>
+</html>

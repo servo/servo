@@ -15,7 +15,7 @@
     <h1>Viewport: Window Resize Fires Event</h1>
     <h4>
         Test Description: This test checks that a resize event is fired against
-        the window.view object when the browser window is resized.
+        the window.visualViewport object when the browser window is resized.
     </h4>
     <h2 style="color: red">THIS IS A MANUAL TEST</h2>
     <p id="skip">
@@ -51,7 +51,7 @@
         addManualTestStep(
             function() {
                 resetValues();
-                window.view.addEventListener('resize', function(e) {
+                window.visualViewport.addEventListener('resize', function(e) {
                     didResizeView = true;
                     cancelable = e.cancelable;
                     bubbles = e.bubbles;
@@ -67,7 +67,7 @@
                 assert_false(cancelable);
                 assert_false(bubbles);
              },
-            'Resize event fired at window.view after window resized',
+            'Resize event fired at window.visualViewport after window resized',
             '2. Unrotate the device or reset window size if needed.');
 
         addManualTestStep(

@@ -61,11 +61,11 @@ function run_test() {
             }, upCase + " with " + size + " source data");
 
             promise_test(function(test) {
-                var promise = subtle.digest({name: mixedCase}, sourceData[size])
+                var promise = subtle.digest({name: downCase}, sourceData[size])
                 .then(function(result) {
                     assert_true(equalBuffers(result, digestedData[alg][size]), "digest() yielded expected result for " + alg + ":" + size);
                 }, function(err) {
-                    assert_unreached("digest() threw an error for " + alg + ":" + size + " - " + err.message);mixedCase
+                    assert_unreached("digest() threw an error for " + alg + ":" + size + " - " + err.message);
                 });
 
                 return promise;

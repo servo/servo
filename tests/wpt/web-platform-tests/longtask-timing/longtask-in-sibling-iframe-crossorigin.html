@@ -8,22 +8,22 @@
 
 <script>
   async_test(t => {
-    window.addEventListener("message", t.step_func(e => {
-      assert_equals(e.data, "longtask+cross-origin-unreachable+frame");
+    window.addEventListener('message', t.step_func(e => {
+      assert_equals(e.data, 'longtask+cross-origin-unreachable+script+++');
       t.done();
     }));
-}, "Performance longtask entries in parent are observable in child iframe");
+}, 'Performance longtask entries in parent are observable in child iframe.');
 </script>
 
 <iframe src="resources/subframe-observing-longtask.html"></iframe>
 
 <script>
   /* Create a cross-origin iframe that generates a long task. */
-  var iframe = document.createElement('iframe');
+  const iframe = document.createElement('iframe');
   iframe.id = 'child-iframe-id';
   iframe.name = 'child-iframe-name';
   document.body.appendChild(iframe);
-  iframe.src = 'http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html'
+  iframe.src = 'http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html';
 </script>
 
 </body>

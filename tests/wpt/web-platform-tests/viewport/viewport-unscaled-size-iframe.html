@@ -17,11 +17,11 @@
     </head>
     <body>
     <h1>Viewport: Size in iframe - no page scale</h1>
-    <h4>Test Description: This test checks that window.view returns correct sizes without any pinch-zoom page scale applied but with scrollbars.</h4>
+    <h4>Test Description: This test checks that window.visualViewport returns correct sizes without any pinch-zoom page scale applied but with scrollbars.</h4>
     <iframe></iframe>
     <div id="complete-notice">
-        <p>frames[0].window.view width and height is (<span id="size-log"></span>).</p>
-        <p>frames[0].window.view width and height when scrollbars are present is (<span id="size-scrollbars-log"></span>).</p>
+        <p>frames[0].window.visualViewport width and height is (<span id="size-log"></span>).</p>
+        <p>frames[0].window.visualViewport width and height when scrollbars are present is (<span id="size-scrollbars-log"></span>).</p>
     </div>
     <div id="log"></div>
     </body>
@@ -29,25 +29,25 @@
         var scrollbarThickness = calculateScrollbarThickness();
 
         test(function() {
-              assert_equals(frames[0].window.view.width, 200);
-            }, "window.view.width of iframe viewport should match iframe width.");
+              assert_equals(frames[0].window.visualViewport.width, 200);
+            }, "window.visualViewport.width of iframe viewport should match iframe width.");
         test(function() {
-              assert_equals(frames[0].window.view.height, 300);
-            }, "window.view.height of iframe viewport should match iframe height.");
+              assert_equals(frames[0].window.visualViewport.height, 300);
+            }, "window.visualViewport.height of iframe viewport should match iframe height.");
 
-        document.getElementById("size-log").innerText = frames[0].window.view.width + ", " + frames[0].window.view.height;
+        document.getElementById("size-log").innerText = frames[0].window.visualViewport.width + ", " + frames[0].window.visualViewport.height;
 
         // Add overflow so scrollbars appear.
         window.frames[0].window.document.body.style.width = "2000px";
         window.frames[0].window.document.body.style.height = "2000px";
 
         test(function() {
-              assert_equals(frames[0].window.view.width, 200 - scrollbarThickness);
-            }, "window.view.width of iframe viewport should not include scrollbar.");
+              assert_equals(frames[0].window.visualViewport.width, 200 - scrollbarThickness);
+            }, "window.visualViewport.width of iframe viewport should not include scrollbar.");
         test(function() {
-              assert_equals(frames[0].window.view.height, 300 - scrollbarThickness);
-            }, "window.view.height of iframe viewport should not include scrollbar.");
+              assert_equals(frames[0].window.visualViewport.height, 300 - scrollbarThickness);
+            }, "window.visualViewport.height of iframe viewport should not include scrollbar.");
 
-        document.getElementById("size-scrollbars-log").innerText = frames[0].window.view.width + ", " + frames[0].window.view.height;
+        document.getElementById("size-scrollbars-log").innerText = frames[0].window.visualViewport.width + ", " + frames[0].window.visualViewport.height;
     </script>
 </html>

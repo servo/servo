@@ -11,36 +11,33 @@
 <div id="log"></div>
 <script>
   async_test(function (t) {
-    var observer = new PerformanceObserver(
+    const observer = new PerformanceObserver(
         t.step_func(function (entryList) {
-            var entries = entryList.getEntries();
+            const entries = entryList.getEntries();
             assert_equals(entries.length, 1,
-                "Exactly one entry is expected.");
-            var longtask = entries[0];
-            assert_equals(longtask.entryType, "longtask");
-            assert_equals(longtask.name, "same-origin-self");
+                'Exactly one entry is expected.');
+            const longtask = entries[0];
+            assert_equals(longtask.entryType, 'longtask');
+            assert_equals(longtask.name, 'self');
             assert_greater_than(longtask.duration, 50);
-            assert_equals(longtask.startTime, Math.floor(longtask.startTime),
-                "startTime expected to have 1 millisecond granularity");
 
             // Assert the TaskAttributionTiming entry in attribution.
             assert_equals(longtask.attribution.length, 1,
-                "Exactly one attribution entry is expected");
-            var attribution = longtask.attribution[0];
-            assert_equals(attribution.entryType, "taskattribution");
-            assert_equals(attribution.name, "frame");
+                'Exactly one attribution entry is expected');
+            const attribution = longtask.attribution[0];
+            assert_equals(attribution.entryType, 'taskattribution');
+            assert_equals(attribution.name, 'script');
             assert_equals(attribution.duration, 0);
             assert_equals(attribution.startTime, 0);
-            assert_equals(attribution.frameId, "");
-            assert_equals(attribution.frameName, "");
-            assert_equals(attribution.frameSrc, "");
+            assert_equals(attribution.containerId, '');
+            assert_equals(attribution.containerName, '');
+            assert_equals(attribution.containerSrc, '');
             observer.disconnect();
             t.done();
         })
     );
-    observer.observe({entryTypes: ["longtask"]});
-
-}, "Performance longtask entries are observable");
+    observer.observe({entryTypes: ['longtask']});
+}, 'Performance longtask entries are observable.');
 </script>
 
 </body>

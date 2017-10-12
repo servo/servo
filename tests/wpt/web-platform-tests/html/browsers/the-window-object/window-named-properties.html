@@ -60,7 +60,7 @@ var t = async_test("Dynamic name")
 var t2 = async_test("Ghost name")
 t.step(function() {
   var iframe = document.getElementsByTagName("iframe")[0];
-  iframe.setAttribute("src", "data:text/html,<script>window.name='foo'<\/script>");
+  iframe.setAttribute("srcdoc", "<script>window.name='foo'<\/script>");
   iframe.onload = function() {
     t.step(function() {
       assert_true("foo" in window, "foo not in window");

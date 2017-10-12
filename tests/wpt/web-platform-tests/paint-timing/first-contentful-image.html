@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to image</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="image"></div>
+
+<script>
+async_test(function (t) {
+    const img = document.createElement("IMG");
+    img.src = "resources/circles.png";
+    img.onload = function() {
+        function testPaintEntries() {
+            const bufferedEntries = performance.getEntriesByType('paint');
+            if (bufferedEntries.length < 2) {
+                t.step_timeout(function() {
+                    testPaintEntries();
+                }, 20);
+                return;
+            }
+            t.step(function() {
+                assert_equals(bufferedEntries.length, 2, "There should be two paint timing instances.");
+                assert_equals(bufferedEntries[0].entryType, "paint");
+                assert_equals(bufferedEntries[0].name, "first-paint");
+                assert_equals(bufferedEntries[1].entryType, "paint");
+                assert_equals(bufferedEntries[1].name, "first-contentful-paint");
+                t.done();
+            })
+        }
+        t.step(function() {
+            testPaintEntries();
+        });
+    };
+    document.getElementById('image').appendChild(img);
+}, "First contentful paint fires due to image render.");
+</script>
+</body>
+</html>

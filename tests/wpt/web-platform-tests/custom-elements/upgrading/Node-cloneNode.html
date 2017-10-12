@@ -12,6 +12,7 @@
 <body>
 <div id="log"></div>
 <script>
+setup({allow_uncaught_exception:true});
 
 test(function () {
     class MyCustomElement extends HTMLElement {}
@@ -99,69 +100,70 @@ test_with_window(function (contentWindow) {
         'An upgraded element must have its nextSibling set before the custom element constructor is called');
 }, 'Node.prototype.cloneNode(true) must set parentNode, previousSibling, and nextSibling before upgrading custom elements');
 
-test_with_window(function (contentWindow) {
-    class MyCustomElement extends contentWindow.HTMLElement {
+// The error reporting isn't clear yet when multiple globals involved in custom
+// element, see w3c/webcomponents#635, so using test_with_window is not a good
+// idea here.
+test(function () {
+    class MyCustomElement extends HTMLElement {
         constructor(doNotCreateItself) {
             super();
             if (!doNotCreateItself)
                 new MyCustomElement(true);
         }
     }
-    contentWindow.customElements.define('my-custom-element', MyCustomElement);
+    customElements.define('my-custom-element-constructed-after-super', MyCustomElement);
 
     var instance = new MyCustomElement(false);
     var uncaughtError;
-    contentWindow.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
+    window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     instance.cloneNode(false);
     assert_equals(uncaughtError.name, 'InvalidStateError');
 }, 'HTMLElement constructor must throw an InvalidStateError when the top of the construction stack is marked AlreadyConstructed'
     + ' due to a custom element constructor constructing itself after super() call');
 
-test_with_window(function (contentWindow) {
-    class MyCustomElement extends contentWindow.HTMLElement {
+test(function () {
+    class MyCustomElement extends HTMLElement {
         constructor(doNotCreateItself) {
             if (!doNotCreateItself)
                 new MyCustomElement(true);
             super();
         }
     }
-    contentWindow.customElements.define('my-custom-element', MyCustomElement);
+    customElements.define('my-custom-element-constructed-before-super', MyCustomElement);
 
     var instance = new MyCustomElement(false);
     var uncaughtError;
-    contentWindow.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
+    window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     instance.cloneNode(false);
     assert_equals(uncaughtError.name, 'InvalidStateError');
 }, 'HTMLElement constructor must throw an InvalidStateError when the top of the construction stack is marked AlreadyConstructed'
     + ' due to a custom element constructor constructing itself before super() call');
 
-test_with_window(function (contentWindow) {
-    var contentDocument = contentWindow.document;
+test(function () {
     var returnSpan = false;
-    class MyCustomElement extends contentWindow.HTMLElement {
+    class MyCustomElement extends HTMLElement {
         constructor() {
             super();
             if (returnSpan)
-                return contentDocument.createElement('span');
+                return document.createElement('span');
         }
     }
-    contentWindow.customElements.define('my-custom-element', MyCustomElement);
+    customElements.define('my-custom-element-return-another', MyCustomElement);
 
     var instance = new MyCustomElement(false);
     returnSpan = true;
     var uncaughtError;
-    contentWindow.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
+    window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
     instance.cloneNode(false);
     assert_equals(uncaughtError.name, 'InvalidStateError');
 }, 'Upgrading a custom element must throw InvalidStateError when the custom element\'s constructor returns another element');
 
-test_with_window(function (contentWindow) {
-    var contentDocument = contentWindow.document;
-    var instance = contentDocument.createElement('my-custom-element');
-    contentDocument.body.appendChild(instance);
+test(function () {
+    var instance = document.createElement('my-custom-element-throw-exception');
+    document.body.appendChild(instance);
 
     var calls = [];
-    class MyCustomElement extends contentWindow.HTMLElement {
+    class MyCustomElement extends HTMLElement {
         constructor() {
             super();
             calls.push(this);
@@ -170,13 +172,13 @@ test_with_window(function (contentWindow) {
     }
 
     var uncaughtError;
-    contentWindow.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
-    contentWindow.customElements.define('my-custom-element', MyCustomElement);
+    window.onerror = function (message, url, lineNumber, columnNumber, error) { uncaughtError = error; return true; }
+    customElements.define('my-custom-element-throw-exception', MyCustomElement);
     assert_equals(uncaughtError, 'bad');
 
     assert_array_equals(calls, [instance]);
-    contentDocument.body.removeChild(instance);
-    contentDocument.body.appendChild(instance);
+    document.body.removeChild(instance);
+    document.body.appendChild(instance);
     assert_array_equals(calls, [instance]);
 }, 'Inserting an element must not try to upgrade a custom element when it had already failed to upgrade once');
 

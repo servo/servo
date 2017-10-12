@@ -52,6 +52,9 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
     // Spec: Generally, a user agent should never return "probably" for a type
     // that allows the codecs parameter if that parameter is not present.
     t(type, 'maybe');
+    t(type + ';', 'maybe');
+    t(type + ';codecs', 'maybe');
+    t(type + ';codecs=', 'maybe');
     typeSupported = true;
   }, type + ' (optional)');
 
@@ -87,7 +90,7 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
         });
       });
     }, type + ' codecs order');
- }
+  }
 
   test(function() {
     t(mime(type, ['bogus']), '');

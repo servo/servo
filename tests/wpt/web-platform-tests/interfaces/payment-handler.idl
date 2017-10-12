@@ -1,0 +1,55 @@
+[SecureContext,
+ Exposed=(Window,Worker)]
+interface PaymentManager {
+    [SameObject]
+    readonly attribute PaymentInstruments instruments;
+    [Exposed=Window] static Promise<PermissionState> requestPermission();
+};
+[SecureContext,
+ Exposed=(Window,Worker)]
+interface PaymentInstruments {
+    Promise<boolean>             delete(DOMString instrumentKey);
+    Promise<PaymentInstrument>   get(DOMString instrumentKey);
+    Promise<sequence<DOMString>> keys();
+    Promise<boolean>             has(DOMString instrumentKey);
+    Promise<void>                set(DOMString instrumentKey,
+                                     PaymentInstrument details);
+    Promise<void>                clear();
+};
+dictionary PaymentInstrument {
+    required DOMString             name;
+             sequence<ImageObject> icons;
+             sequence<DOMString>   enabledMethods;
+             object                capabilities;
+};
+dictionary ImageObject {
+    required USVString src;
+             DOMString sizes;
+             DOMString type;
+};
+[Constructor(DOMString type, PaymentRequestEventInit eventInitDict),
+ Exposed=ServiceWorker]
+interface PaymentRequestEvent : ExtendableEvent {
+    readonly attribute USVString                           topLevelOrigin;
+    readonly attribute USVString                           paymentRequestOrigin;
+    readonly attribute DOMString                           paymentRequestId;
+    readonly attribute FrozenArray<PaymentMethodData>      methodData;
+    readonly attribute object                              total;
+    readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
+    readonly attribute DOMString                           instrumentKey;
+    Promise<WindowClient?> openWindow(USVString url);
+    void                   respondWith(Promise<PaymentHandlerResponse> handlerResponse);
+};
+dictionary PaymentRequestEventInit : ExtendableEventInit {
+    USVString                        topLevelOrigin;
+    USVString                        paymentRequestOrigin;
+    DOMString                        paymentRequestId;
+    sequence<PaymentMethodData>      methodData;
+    PaymentCurrencyAmount            total;
+    sequence<PaymentDetailsModifier> modifiers;
+    DOMString                        instrumentKey;
+};
+dictionary PaymentHandlerResponse {
+    DOMString methodName;
+    object    details;
+};

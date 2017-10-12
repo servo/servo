@@ -1,0 +1,24 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis and first character</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="reference/text-overflow-008-ref.html">
+<meta name="flags" content="ahem">
+<meta name="assert" content="The first character on a line must be clipped rather than ellipsed.">
+<!--
+	If the ellipsis character appears, it will be red (as it is styled after the block), and the test will fail.
+	If the first character is omitted rather than clipped, there will be no box at all, and the test will fail.
+-->
+<style>
+.test {
+  font: 100px/1 ahem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 0.5em;
+  color: red;
+}
+</style>
+
+<p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+<div class=test><span style="color:green">x</span></div>

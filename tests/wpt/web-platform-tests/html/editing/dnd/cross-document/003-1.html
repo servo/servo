@@ -12,88 +12,88 @@
 window.onload = function() {
   var blue = document.getElementsByTagName('div')[0], fails = [];
   blue.ondragover = blue.ondragenter = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-		if( !parent.evs[e.type] ) { parent.evs[e.type] = {}; }
-		parent.evs[e.type].dataTransfer = e.dataTransfer;
-		parent.evs[e.type].items = e.dataTransfer.items;
-		parent.evs[e.type].types = e.dataTransfer.types;
-		parent.evs[e.type].files = e.dataTransfer.files;
-		if( parent.evs[e.type].dataTransfer != e.dataTransfer ) {
-			fails[fails.length] = '.dataTransfer is not returning the same object during '+e.type;
-		}
-		if( !e.dataTransfer.items ) {
-			fails[fails.length] = '.items is not returning anything during '+e.type;
-		} else if( parent.evs[e.type].items !== e.dataTransfer.items ) {
-			fails[fails.length] = '.items is not returning the same object during '+e.type;
-		}
-		if( !e.dataTransfer.types ) {
-			fails[fails.length] = '.types is not returning anything during '+e.type;
-		} else if( parent.evs[e.type].types !== e.dataTransfer.types ) {
-			fails[fails.length] = '.types is not returning the same object during '+e.type;
-		}
-		if( !e.dataTransfer.files ) {
-			fails[fails.length] = '.files is not returning anything during '+e.type;
-		} else if( parent.evs[e.type].files !== e.dataTransfer.files ) {
-			fails[fails.length] = '.files is not returning the same object during '+e.type;
-		}
-		//http://dev.w3.org/html5/spec/dnd.html#datatransfer
-		//"The * attribute must return a * object associated with the DataTransfer object."
-		//Note that it is associated with the DataTransfer object, *not* the data store
-		//http://dev.w3.org/html5/spec/dnd.html#dragevent
-		//"when a user agent is required to fire a DND event named e at an element, using a particular drag data store...
-		//Let dataTransfer be a newly created DataTransfer object associated with the given drag data store."
-		//A new DataTransfer object therefore means a new set of properties, not the same ones as last event
-		if( parent.evs.dragstart.dataTransfer === e.dataTransfer ) {
-			fails[fails.length] = '.dataTransfer is returning the same object during '+e.type+' as it did during dragstart';
-		}
-		if( e.dataTransfer.items && parent.evs.dragstart.items === e.dataTransfer.items ) {
-			fails[fails.length] = '.items is returning the same object during '+e.type+' as it did during dragstart';
-		}
-		if( e.dataTransfer.types && parent.evs.dragstart.types === e.dataTransfer.types ) {
-			fails[fails.length] = '.types is returning the same object during '+e.type+' as it did during dragstart';
-		}
-		if( e.dataTransfer.files && parent.evs.dragstart.files === e.dataTransfer.files ) {
-			fails[fails.length] = '.files is returning the same object during '+e.type+' as it did during dragstart';
-		}
+    if( !parent.evs[e.type] ) { parent.evs[e.type] = {}; }
+    parent.evs[e.type].dataTransfer = e.dataTransfer;
+    parent.evs[e.type].items = e.dataTransfer.items;
+    parent.evs[e.type].types = e.dataTransfer.types;
+    parent.evs[e.type].files = e.dataTransfer.files;
+    if( parent.evs[e.type].dataTransfer != e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning anything during '+e.type;
+    } else if( parent.evs[e.type].items !== e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning anything during '+e.type;
+    } else if( parent.evs[e.type].types !== e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning anything during '+e.type;
+    } else if( parent.evs[e.type].files !== e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning the same object during '+e.type;
+    }
+    //http://dev.w3.org/html5/spec/dnd.html#datatransfer
+    //"The * attribute must return a * object associated with the DataTransfer object."
+    //Note that it is associated with the DataTransfer object, *not* the data store
+    //http://dev.w3.org/html5/spec/dnd.html#dragevent
+    //"when a user agent is required to fire a DND event named e at an element, using a particular drag data store...
+    //Let dataTransfer be a newly created DataTransfer object associated with the given drag data store."
+    //A new DataTransfer object therefore means a new set of properties, not the same ones as last event
+    if( parent.evs.dragstart.dataTransfer === e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.items && parent.evs.dragstart.items === e.dataTransfer.items ) {
+      fails[fails.length] = '.items is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.types && parent.evs.dragstart.types === e.dataTransfer.types ) {
+      fails[fails.length] = '.types is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.files && parent.evs.dragstart.files === e.dataTransfer.files ) {
+      fails[fails.length] = '.files is returning the same object during '+e.type+' as it did during dragstart';
+    }
   };
-	blue.ondrop = function(e) {
-		parent.evs[e.type] = {};
-		parent.evs[e.type].dataTransfer = e.dataTransfer;
-		parent.evs[e.type].items = e.dataTransfer.items;
-		parent.evs[e.type].types = e.dataTransfer.types;
-		parent.evs[e.type].files = e.dataTransfer.files;
-		if( parent.evs[e.type].dataTransfer !== e.dataTransfer ) {
-			fails[fails.length] = '.dataTransfer is not returning the same object during '+e.type;
-		}
-		if( !e.dataTransfer.items ) {
-			fails[fails.length] = '.items is not returning anything during '+e.type;
-		} else if( parent.evs[e.type].items !== e.dataTransfer.items ) {
-			fails[fails.length] = '.items is not returning the same object during '+e.type;
-		}
-		if( !e.dataTransfer.types ) {
-			fails[fails.length] = '.types is not returning anything during '+e.type;
-		} else if( parent.evs[e.type].types !== e.dataTransfer.types ) {
-			fails[fails.length] = '.types is not returning the same object during '+e.type;
-		}
-		if( !e.dataTransfer.files ) {
-			fails[fails.length] = '.files is not returning anything during '+e.type;
-		} else if( parent.evs[e.type].files !== e.dataTransfer.files ) {
-			fails[fails.length] = '.files is not returning the same object during '+e.type;
-		}
-		if( parent.evs.dragstart.dataTransfer === e.dataTransfer ) {
-			fails[fails.length] = '.dataTransfer is returning the same object during '+e.type+' as it did during dragstart';
-		}
-		if( e.dataTransfer.items && parent.evs.dragstart.items === e.dataTransfer.items ) {
-			fails[fails.length] = '.items is returning the same object during '+e.type+' as it did during dragstart';
-		}
-		if( e.dataTransfer.types && parent.evs.dragstart.types === e.dataTransfer.types ) {
-			fails[fails.length] = '.types is returning the same object during '+e.type+' as it did during dragstart';
-		}
-		if( e.dataTransfer.files && parent.evs.dragstart.files === e.dataTransfer.files ) {
-			fails[fails.length] = '.files is returning the same object during '+e.type+' as it did during dragstart';
-		}
-		document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL:<br>' + fails.join('<br>') ) : 'PASS';
+  blue.ondrop = function(e) {
+    parent.evs[e.type] = {};
+    parent.evs[e.type].dataTransfer = e.dataTransfer;
+    parent.evs[e.type].items = e.dataTransfer.items;
+    parent.evs[e.type].types = e.dataTransfer.types;
+    parent.evs[e.type].files = e.dataTransfer.files;
+    if( parent.evs[e.type].dataTransfer !== e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning anything during '+e.type;
+    } else if( parent.evs[e.type].items !== e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning anything during '+e.type;
+    } else if( parent.evs[e.type].types !== e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning anything during '+e.type;
+    } else if( parent.evs[e.type].files !== e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning the same object during '+e.type;
+    }
+    if( parent.evs.dragstart.dataTransfer === e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.items && parent.evs.dragstart.items === e.dataTransfer.items ) {
+      fails[fails.length] = '.items is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.types && parent.evs.dragstart.types === e.dataTransfer.types ) {
+      fails[fails.length] = '.types is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.files && parent.evs.dragstart.files === e.dataTransfer.files ) {
+      fails[fails.length] = '.files is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL:<br>' + fails.join('<br>') ) : 'PASS';
   };
 };
 </script>

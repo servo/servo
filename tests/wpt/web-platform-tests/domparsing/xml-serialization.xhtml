@@ -68,6 +68,18 @@ test(function() {
 }, "DocumentType: 'APOSTROPHE' (U+0027) and 'QUOTATION MARK' (U+0022)");
 
 test(function() {
+  var el = document.createElement("a");
+  el.setAttribute("href", "\u3042\u3044\u3046 !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+  assert_equals(serialize(el), "<a xmlns=\"http://www.w3.org/1999/xhtml\" href=\"\u3042\u3044\u3046 !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\"></a>");
+}, "Element: href attributes are not percent-encoded");
+
+test(function() {
+  var el = document.createElement("a");
+  el.setAttribute("href", "?\u3042\u3044\u3046 !\"$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+  assert_equals(serialize(el), "<a xmlns=\"http://www.w3.org/1999/xhtml\" href=\"?\u3042\u3044\u3046 !&quot;$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\"></a>");
+}, "Element: query parts in href attributes are not percent-encoded");
+
+test(function() {
   var pi = document.createProcessingInstruction("a", "");
   assert_equals(serialize(pi), "<?a ?>");
 }, "ProcessingInstruction: empty data");

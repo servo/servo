@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>tab posinset and setsize</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -89,6 +90,12 @@
             "IAccessible2" : [
                [
                   "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_PAGETAB"
+               ],
+               [
+                  "property",
                   "objectAttributes",
                   "contains",
                   "posinset:3"
@@ -100,14 +107,14 @@
                   "setsize:7"
                ],
                [
-                  "result",
-                  "groupPosition()",
+                  "property",
+                  "groupPosition",
                   "contains",
                   "similarItemsInGroup:7"
                ],
                [
-                  "result",
-                  "groupPosition()",
+                  "property",
+                  "groupPosition",
                   "contains",
                   "positionInGroup:3"
                ]
@@ -181,4 +188,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

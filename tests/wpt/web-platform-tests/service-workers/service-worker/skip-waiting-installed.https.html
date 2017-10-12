@@ -20,15 +20,14 @@ promise_test(function(t) {
           assert_equals(
             message, 'PASS',
             'skipWaiting promise should be resolved with undefined');
-
-          assert_equals(registration.active.scriptURL, normalizeURL(url2),
-                        'skipWaiting should make worker become active');
         });
     var saw_controllerchanged = new Promise(function(resolve) {
         oncontrollerchanged = function() {
             assert_equals(
                 frame_sw.controller.scriptURL, normalizeURL(url2),
                 'Controller scriptURL should change to the second one');
+            assert_equals(registration.active.scriptURL, normalizeURL(url2),
+                          'Worker which calls skipWaiting should be active by controllerchange');
             resolve();
         };
       });

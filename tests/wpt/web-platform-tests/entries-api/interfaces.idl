@@ -1,0 +1,70 @@
+
+partial interface File {
+    readonly attribute USVString webkitRelativePath;
+};
+
+partial interface HTMLInputElement {
+    attribute boolean webkitdirectory;
+    readonly attribute FrozenArray<FileSystemEntry> webkitEntries;
+};
+
+partial interface DataTransferItem {
+    FileSystemEntry? webkitGetAsEntry();
+};
+
+callback interface ErrorCallback {
+    void handleEvent(DOMException err);
+};
+
+interface FileSystemEntry {
+    readonly attribute boolean isFile;
+    readonly attribute boolean isDirectory;
+    readonly attribute USVString name;
+    readonly attribute USVString fullPath;
+    readonly attribute FileSystem filesystem;
+
+    void getParent(optional FileSystemEntryCallback successCallback,
+                   optional ErrorCallback errorCallback);
+};
+
+interface FileSystemDirectoryEntry : FileSystemEntry {
+    FileSystemDirectoryReader createReader();
+    void getFile(optional USVString? path,
+                 optional FileSystemFlags options,
+                 optional FileSystemEntryCallback successCallback,
+                 optional ErrorCallback errorCallback);
+    void getDirectory(optional USVString? path,
+                      optional FileSystemFlags options,
+                      optional FileSystemEntryCallback successCallback,
+                      optional ErrorCallback errorCallback);
+};
+
+dictionary FileSystemFlags {
+    boolean create = false;
+    boolean exclusive = false;
+};
+
+callback interface FileSystemEntryCallback {
+    void handleEvent(FileSystemEntry entry);
+};
+
+interface FileSystemDirectoryReader {
+    void readEntries(FileSystemEntriesCallback successCallback,
+                     optional ErrorCallback errorCallback);
+};
+callback interface FileSystemEntriesCallback {
+    void handleEvent(sequence<FileSystemEntry> entries);
+};
+
+interface FileSystemFileEntry : FileSystemEntry {
+    void file(FileCallback successCallback,
+              optional ErrorCallback errorCallback);
+};
+callback interface FileCallback {
+    void handleEvent(File file);
+};
+
+interface FileSystem {
+    readonly attribute USVString name;
+    readonly attribute FileSystemDirectoryEntry root;
+};

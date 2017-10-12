@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>searchbox activedescendant value changes</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -87,21 +88,9 @@
                   "false"
                ],
                [
-                  "event",
-                  "type",
-                  "is",
-                  "AXSelectedChildrenChanged"
-               ],
-               [
                   "result",
                   "AXUIElementIsAttributeSettable(AXFocused)",
                   "is",
-                  "true"
-               ],
-               [
-                  "result",
-                  "array",
-                  "isNot",
                   "true"
                ]
             ],
@@ -272,7 +261,7 @@
   <body>
   <p>This test examines the ARIA properties for searchbox activedescendant value changes.</p>
      <div id='test' tabindex="0" role='searchbox'>
-     <div id='bob'>Hello world</div>
+     <div id='bob' role='group'>Hello world</div>
   </div>
  then role:searchbox, aria-activedescendant: bob
 
@@ -281,4 +270,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

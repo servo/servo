@@ -25,14 +25,24 @@ integer that follows is normally just increased incrementally, and
 padded to three digits. (If you'd end up with more than 999 tests,
 your `test-topic` is probably too broad!)
 
-In csswg-test, the file names should be unique within the repository,
-regardless of where they are in the directory structure.
+The test filename is significant in enabling specific optional features, such as HTTPS
+or server-side substitution. See the documentation on [file names flags][file-name-flags]
+for more details.
 
+In the css directory, the file names should be unique within the whole
+css/ directory, regardless of where they are in the directory structure.
+
+### HTTPS
+
+By default, tests are served over plain HTTP. If a test requires HTTPS
+it must be given a filename containing `.https` before the extension,
+e.g. `test-secure.https.html`. For more details see the documentation
+on [file names][file-name-flags].
 
 #### Support Files
 
 Various support files are available in in the `/common/` and `/media/`
-directories (web-platform-tests) and `/support/` (csswg-test). Reusing
+directories (web-platform-tests) and `/support/` (in css/). Reusing
 existing resources is encouraged where possible, as is adding
 generally useful files to these common areas rather than to specific
 testsuites.
@@ -138,17 +148,16 @@ not uniformly enforced throughout the existing tests, but will be for
 new tests. Any of these rules may be broken if the test demands it:
 
  * No trailing whitespace
-
  * Use spaces rather than tabs for indentation
-
- * Use UNIX-style line endings (i.e. no CR characters at EOL).
+ * Use UNIX-style line endings (i.e. no CR characters at EOL)
 
 We have a lint tool for catching these and other common mistakes. You
-can run it manually by starting the `lint` executable from the root of
-your local web-platform-tests working directory like this:
+can run it manually by starting the `wpt` executable from the root of
+your local web-platform-tests working directory, and invoking the
+`lint` subcommand, like this:
 
 ```
-./lint
+./wpt lint
 ```
 
 The lint tool is also run automatically for every submitted pull request,
@@ -178,3 +187,4 @@ for CSS have some additional requirements for:
 [lint-tool]: {{ site.baseurl }}{% link _writing-tests/lint-tool.md %}
 [css-metadata]: {{ site.baseurl }}{% link _writing-tests/css-metadata.md %}
 [css-user-styles]: {{ site.baseurl }}{% link _writing-tests/css-user-styles.md %}
+[file-name-flags]: {{ site.baseurl }}{% link _writing-tests/file-names.md %}

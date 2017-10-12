@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>A report-only policy that does not allow a script should not affect an enforcing policy using hashes.</title>
+  <!-- nonces are here just to let all of our scripts run -->
+  <script nonce="abc" src='/resources/testharness.js'></script>
+  <script nonce="abc" src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script nonce="abc">
+    var t = async_test("Test that script executes if allowed by proper hash values");
+    var t_spv = async_test("Test that the securitypolicyviolation event is fired");
+    document.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+      assert_equals(e.violatedDirective, "script-src");
+      assert_equals(e.disposition, "report");
+      assert_equals(e.blockedURI, "inline");
+    }));
+    var executed = false;
+  </script>
+
+  <!-- test will fail if this script is not allowed to run -->
+  <script>executed = true;</script>
+
+  <script nonce="abc">
+    t.step(function() {
+      assert_true(executed);
+      t.done();
+    });
+  </script>
+
+  <script nonce="abc" async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27nonce-abc%27'></script>
+</body>
+</html>

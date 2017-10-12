@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemEntry attributes manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-entry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  assert_idl_attribute(entry, 'isFile', 'FileSystemEntry has isFile attribute');
+  assert_equals(typeof entry.isFile, 'boolean', 'isFile is boolean');
+
+  assert_idl_attribute(entry, 'isDirectory', 'FileSystemEntry has isDirectory attribute');
+  assert_equals(typeof entry.isDirectory, 'boolean', 'isFile is boolean');
+
+  assert_idl_attribute(entry, 'name', 'FileSystemEntry has name attribute');
+  assert_equals(typeof entry.name, 'string', 'name is a string');
+
+  assert_idl_attribute(entry, 'fullPath', 'FileSystemEntry has fullPath attribute');
+  assert_equals(typeof entry.fullPath, 'string', 'fullPath is a string');
+
+  assert_idl_attribute(entry, 'filesystem', 'FileSystemEntry has filesystem attribute');
+  assert_equals(typeof entry.filesystem, 'object', 'filesystem is an object');
+
+  t.done();
+}, 'FileSystemEntry - attribute types');
+
+</script>

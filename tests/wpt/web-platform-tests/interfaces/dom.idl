@@ -1,5 +1,5 @@
-[Constructor(DOMString type, optional EventInit eventInitDict)/*,
- Exposed=(Window,Worker)*/]
+[Constructor(DOMString type, optional EventInit eventInitDict),
+ Exposed=(Window,Worker)]
 interface Event {
   readonly attribute DOMString type;
   readonly attribute EventTarget? target;
@@ -31,8 +31,8 @@ dictionary EventInit {
 };
 
 
-[Constructor(DOMString type, optional CustomEventInit eventInitDict)/*,
- Exposed=(Window,Worker)*/]
+[Constructor(DOMString type, optional CustomEventInit eventInitDict),
+ Exposed=(Window,Worker)]
 interface CustomEvent : Event {
   readonly attribute any detail;
 
@@ -44,7 +44,8 @@ dictionary CustomEventInit : EventInit {
 };
 
 
-//[Exposed=(Window,Worker)]
+[Constructor,
+ Exposed=(Window,Worker)]
 interface EventTarget {
   void addEventListener(DOMString type, EventListener? callback, optional (EventListenerOptions or boolean) options);
   void removeEventListener(DOMString type, EventListener? callback, optional (EventListenerOptions or boolean) options);
@@ -58,6 +59,23 @@ callback interface EventListener {
 dictionary EventListenerOptions {
   boolean capture;
   boolean passive;
+};
+
+
+[Constructor,
+ Exposed=(Window,Worker)]
+interface AbortController {
+  [SameObject] readonly attribute AbortSignal signal;
+
+  void abort();
+};
+
+
+[Exposed=(Window,Worker)]
+interface AbortSignal : EventTarget {
+  readonly attribute boolean aborted;
+
+  attribute EventHandler onabort;
 };
 
 
@@ -402,7 +420,7 @@ interface Attr : Node {
 
 [Exposed=Window]
 interface CharacterData : Node {
-  [TreatNullAs=EmptyString] attribute DOMString data;
+  attribute [TreatNullAs=EmptyString] DOMString data;
   readonly attribute unsigned long length;
   DOMString substringData(unsigned long offset, unsigned long count);
   void appendData(DOMString data);

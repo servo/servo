@@ -12,14 +12,15 @@
         var link = document.createElement("link");
         link.as = "script";
         link.rel = "preload";
-        link.href = "resources/dummy.js";
+        link.href = "resources/dummy.js?dynamic-adding-preload";
         link.onload = t.step_func(function() {
             t.step_timeout(function() {
-                verifyNumberOfDownloads("resources/dummy.js", 1);
+                verifyNumberOfDownloads("resources/dummy.js?dynamic-adding-preload", 1);
                 t.done();
             }, 0);
         });
         document.body.appendChild(link);
     });
 </script>
+<script src="resources/dummy.js?pipe=trickle(d5)&dynamic-adding-preload"></script>
 </body>

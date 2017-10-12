@@ -14,73 +14,73 @@ var fails = [], finished = false;
 window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragover = orange.ondragenter = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
-	orange.ondrop = function(e) {
-   	e.preventDefault();
-		if( !e.dataTransfer.files ) {
-			fails[fails.length] = 'No dataTransfer.files for '+e.type;
-		}
-		if( !window.FileList ) {
-			fails[fails.length] = 'No FileList interface object';
-			finish();
-			return;
-		}
-		if( !( e.dataTransfer.files instanceof FileList ) ) {
-			fails[fails.length] = 'dataTransfer.files is not a FileList';
-		}
-		if( e.dataTransfer.files.length != 1 ) {
-			fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 1 for '+e.type;
-		}
-		if( !e.dataTransfer.files[0] ) {
-			fails[fails.length] = 'no dataTransfer.files[0] for drop';
-			finish();
-			return;
-		}
-		if( e.dataTransfer.files[0].size != filesize ) {
-			fails[fails.length] = 'dataTransfer.files[0].size '+e.dataTransfer.files[0].size+' instead of '+filesize;
-		}
-		/*
-		if( !e.dataTransfer.files[0].lastModifiedDate ) {
-			fails[fails.length] = 'no dataTransfer.files[0].lastModifiedDate';
-		}
-		*/
-		if( e.dataTransfer.files[0].name != filename ) {
-			fails[fails.length] = 'dataTransfer.files[0].name '+e.dataTransfer.files[0].name+' instead of '+filename;
-		}
-		if( e.dataTransfer.files[0].type != filetype ) {
-			fails[fails.length] = 'dataTransfer.files[0].type '+e.dataTransfer.files[0].type+' instead of '+filetype;
-		}
-		if( !window.FileReader ) {
-			fails[fails.length] = 'No FileReader constructor';
-			finish();
-			return;
-		}
-		var reader = new FileReader();
-		reader.onload = function () {
-			if( !reader.result ) {
-				fails[fails.length] = 'No file data after load';
-			}
-			if( reader.result.length != filesize ) {
-				fails[fails.length] = 'File data length '+reader.result.length+' instead of '+filesize;
-			}
-			finish();
-		};
-		reader.readAsBinaryString(e.dataTransfer.files[0]);
-		setTimeout(function () {
-			if( !reader.result ) {
-				fails[fails.length] = 'No file data after timeout';
-			}
-			finish();
-		},1000);
+  orange.ondrop = function(e) {
+    e.preventDefault();
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = 'No dataTransfer.files for '+e.type;
+    }
+    if( !window.FileList ) {
+      fails[fails.length] = 'No FileList interface object';
+      finish();
+      return;
+    }
+    if( !( e.dataTransfer.files instanceof FileList ) ) {
+      fails[fails.length] = 'dataTransfer.files is not a FileList';
+    }
+    if( e.dataTransfer.files.length != 1 ) {
+      fails[fails.length] = 'dataTransfer.files.length is '+e.dataTransfer.files.length+' instead of 1 for '+e.type;
+    }
+    if( !e.dataTransfer.files[0] ) {
+      fails[fails.length] = 'no dataTransfer.files[0] for drop';
+      finish();
+      return;
+    }
+    if( e.dataTransfer.files[0].size != filesize ) {
+      fails[fails.length] = 'dataTransfer.files[0].size '+e.dataTransfer.files[0].size+' instead of '+filesize;
+    }
+    /*
+    if( !e.dataTransfer.files[0].lastModifiedDate ) {
+      fails[fails.length] = 'no dataTransfer.files[0].lastModifiedDate';
+    }
+    */
+    if( e.dataTransfer.files[0].name != filename ) {
+      fails[fails.length] = 'dataTransfer.files[0].name '+e.dataTransfer.files[0].name+' instead of '+filename;
+    }
+    if( e.dataTransfer.files[0].type != filetype ) {
+      fails[fails.length] = 'dataTransfer.files[0].type '+e.dataTransfer.files[0].type+' instead of '+filetype;
+    }
+    if( !window.FileReader ) {
+      fails[fails.length] = 'No FileReader constructor';
+      finish();
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      if( !reader.result ) {
+        fails[fails.length] = 'No file data after load';
+      }
+      if( reader.result.length != filesize ) {
+        fails[fails.length] = 'File data length '+reader.result.length+' instead of '+filesize;
+      }
+      finish();
+    };
+    reader.readAsBinaryString(e.dataTransfer.files[0]);
+    setTimeout(function () {
+      if( !reader.result ) {
+        fails[fails.length] = 'No file data after timeout';
+      }
+      finish();
+    },1000);
   };
 
 };
 function finish() {
-	if( finished ) { return; }
-	finished = true;
-	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+  if( finished ) { return; }
+  finished = true;
+  document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
 }
 </script>
 

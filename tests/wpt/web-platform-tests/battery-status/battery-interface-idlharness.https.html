@@ -29,6 +29,7 @@ partial interface Navigator {
     Promise<BatteryManager> getBattery ();
 };
 
+[Exposed=Window]
 interface BatteryManager : EventTarget {
     readonly attribute boolean             charging;
     readonly attribute unrestricted double chargingTime;

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Page Visibility IDL tests</title>
 <link rel="author" title="W3C" href="http://www.w3.org/" />
-<link rel="help" href="http://www.w3.org/TR/page-visibility/#sec-document-interface"/>
+<link rel="help" href="https://w3c.github.io/page-visibility/"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
@@ -16,6 +16,9 @@
 <pre id='untested_idl' style='display:none'>
 interface Document {
 };
+[TreatNonObjectAsNull]
+callback EventHandlerNonNull = any (Event event);
+typedef EventHandlerNonNull? EventHandler;
 </pre>
 
 <pre id='idl'>

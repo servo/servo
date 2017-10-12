@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>position: sticky should create a stacking context</title>
+<link rel="match" href="position-sticky-stacking-context-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="position:sticky elements should create a stacking context" />
+
+<style>
+.indicator {
+  position: absolute;
+  background-color: green;
+  z-index: 1;
+}
+
+.sticky {
+  position: sticky;
+  z-index: 0;
+}
+
+.child {
+  position: relative;
+  background-color: red;
+  z-index: 2;
+}
+
+.box {
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<div class="indicator box"></div>
+<div class="sticky box">
+  <!-- Because sticky forms a stacking context, this child remains on bottom
+       even though it has a higher z-index than the indicator box. -->
+  <div class="child box"></div>
+</div>
+
+<div>You should see a single green box above. No red should be visible.</div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head>
+  <title>scheduler: external HTML script added by SVG script </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test();
+  log("inline script #1")
+</script>
+<svg>
+<script>
+log("inline script #2")
+var s = document.createElement("script");
+s.src = "scripts/include-1.js"
+document.getElementsByTagName("svg")[0].appendChild(s);
+log("end inline script #2");
+</script>
+</svg>
+<script>
+onload = t.step_func(function() {
+  assert_array_equals(eventOrder, ["inline script #1", "inline script #2",
+                                   "end inline script #2", "external script #1"]);
+  t.done();
+});
+</script>

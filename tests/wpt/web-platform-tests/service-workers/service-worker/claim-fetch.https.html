@@ -4,11 +4,12 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
+<body>
 <script>
 
 promise_test(function(t) {
   var frame;
-  var resource = 'resources/simple.txt';
+  var resource = 'simple.txt';
 
   var worker;
   var scope = 'resources/';
@@ -65,3 +66,4 @@ promise_test(function(t) {
 }, 'fetch() should be intercepted after the client is claimed.')
 
 </script>
+</body>

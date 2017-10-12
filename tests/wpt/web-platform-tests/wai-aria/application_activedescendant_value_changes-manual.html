@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>application activedescendant value changes</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -79,18 +80,6 @@
                   "AXUIElementIsAttributeSettable(AXFocused)",
                   "is",
                   "true"
-               ],
-               [
-                  "result",
-                  "array",
-                  "isNot",
-                  "true"
-               ],
-               [
-                  "event",
-                  "type",
-                  "is",
-                  "AXSelectedChildrenChanged"
                ]
             ],
             "IAccessible2" : [
@@ -254,7 +243,7 @@
   <body>
   <p>This test examines the ARIA properties for application activedescendant value changes.</p>
      <div id='test' tabindex="0" role='application'>
-     <div id='bob' class='bobber'>Hello world</div>
+     <div id='bob' role='group'>Hello world</div>
   </div>
  then role:application, aria-activedescendant: bob generates a state change event
 
@@ -263,4 +252,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

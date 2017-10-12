@@ -1,6 +1,5 @@
 import os
-
-import mozinfo
+from collections import defaultdict
 
 from wptmanifest.parser import atoms
 
@@ -66,6 +65,8 @@ def get_run_info(metadata_root, product, **kwargs):
 
 class RunInfo(dict):
     def __init__(self, metadata_root, product, debug, extras=None):
+        import mozinfo
+
         self._update_mozinfo(metadata_root)
         self.update(mozinfo.info)
         self["product"] = product
@@ -74,12 +75,20 @@ class RunInfo(dict):
         elif "debug" not in self:
             # Default to release
             self["debug"] = False
+        if product == "firefox" and "stylo" not in self:
+            self["stylo"] = False
+        if "STYLO_FORCE_ENABLED" in os.environ:
+            self["stylo"] = True
+        if "STYLO_FORCE_DISABLED" in os.environ:
+            self["stylo"] = False
         if extras is not None:
             self.update(extras)
 
     def _update_mozinfo(self, metadata_root):
         """Add extra build information from a mozinfo.json file in a parent
         directory"""
+        import mozinfo
+
         path = metadata_root
         dirs = set()
         while path != os.path.expanduser('~'):
@@ -112,6 +121,11 @@ class Test(object):
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def update_metadata(self, metadata=None):
+        if metadata is None:
+            metadata = {}
+        return metadata
 
     @classmethod
     def from_manifest(cls, manifest_item, inherit_metadata, test_metadata):
@@ -319,6 +333,17 @@ class ReftestTest(Test):
             node.references.append((reference, ref_type))
 
         return node
+
+    def update_metadata(self, metadata):
+        if not "url_count" in metadata:
+            metadata["url_count"] = defaultdict(int)
+        for reference, _ in self.references:
+            # We assume a naive implementation in which a url with multiple
+            # possible screenshots will need to take both the lhs and rhs screenshots
+            # for each possible match
+            metadata["url_count"][(self.environment["protocol"], reference.url)] += 1
+            reference.update_metadata(metadata)
+        return metadata
 
     @property
     def id(self):

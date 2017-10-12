@@ -1,0 +1,184 @@
+enum ScrollBehavior { "auto", "instant", "smooth" };
+
+dictionary ScrollOptions {
+    ScrollBehavior behavior = "auto";
+};
+dictionary ScrollToOptions : ScrollOptions {
+    unrestricted double left;
+    unrestricted double top;
+};
+
+partial interface Window {
+    [NewObject] MediaQueryList matchMedia(CSSOMString query);
+    [SameObject, Replaceable] readonly attribute Screen screen;
+
+    // browsing context
+    void moveTo(long x, long y);
+    void moveBy(long x, long y);
+    void resizeTo(long x, long y);
+    void resizeBy(long x, long y);
+
+    // viewport
+    [Replaceable] readonly attribute long innerWidth;
+    [Replaceable] readonly attribute long innerHeight;
+
+    // viewport scrolling
+    [Replaceable] readonly attribute double scrollX;
+    [Replaceable] readonly attribute double pageXOffset;
+    [Replaceable] readonly attribute double scrollY;
+    [Replaceable] readonly attribute double pageYOffset;
+    void scroll(optional ScrollToOptions options);
+    void scroll(unrestricted double x, unrestricted double y);
+    void scrollTo(optional ScrollToOptions options);
+    void scrollTo(unrestricted double x, unrestricted double y);
+    void scrollBy(optional ScrollToOptions options);
+    void scrollBy(unrestricted double x, unrestricted double y);
+
+    // client
+    [Replaceable] readonly attribute long screenX;
+    [Replaceable] readonly attribute long screenY;
+    [Replaceable] readonly attribute long outerWidth;
+    [Replaceable] readonly attribute long outerHeight;
+    [Replaceable] readonly attribute double devicePixelRatio;
+};
+
+[Exposed=Window]
+interface MediaQueryList : EventTarget {
+  readonly attribute CSSOMString media;
+  readonly attribute boolean matches;
+  void addListener(EventListener? listener);
+  void removeListener(EventListener? listener);
+           attribute EventHandler onchange;
+};
+
+[Exposed=Window,
+ Constructor(CSSOMString type, optional MediaQueryListEventInit eventInitDict)]
+interface MediaQueryListEvent : Event {
+  readonly attribute CSSOMString media;
+  readonly attribute boolean matches;
+};
+
+dictionary MediaQueryListEventInit : EventInit {
+  CSSOMString media = "";
+  boolean matches = false;
+};
+
+[Exposed=Window]
+interface Screen {
+  readonly attribute long availWidth;
+  readonly attribute long availHeight;
+  readonly attribute long width;
+  readonly attribute long height;
+  readonly attribute unsigned long colorDepth;
+  readonly attribute unsigned long pixelDepth;
+};
+
+partial interface Document {
+  Element? elementFromPoint(double x, double y);
+  sequence<Element> elementsFromPoint(double x, double y);
+  CaretPosition? caretPositionFromPoint(double x, double y);
+  readonly attribute Element? scrollingElement;
+};
+
+[Exposed=Window]
+interface CaretPosition {
+  readonly attribute Node offsetNode;
+  readonly attribute unsigned long offset;
+  [NewObject] DOMRect? getClientRect();
+};
+
+enum ScrollLogicalPosition { "start", "center", "end", "nearest" };
+dictionary ScrollIntoViewOptions : ScrollOptions {
+  ScrollLogicalPosition block = "center";
+  ScrollLogicalPosition inline = "center";
+};
+
+partial interface Element {
+  DOMRectList getClientRects();
+  [NewObject] DOMRect getBoundingClientRect();
+  void scrollIntoView();
+  void scrollIntoView((boolean or object) arg);
+  void scroll(optional ScrollToOptions options);
+  void scroll(unrestricted double x, unrestricted double y);
+  void scrollTo(optional ScrollToOptions options);
+  void scrollTo(unrestricted double x, unrestricted double y);
+  void scrollBy(optional ScrollToOptions options);
+  void scrollBy(unrestricted double x, unrestricted double y);
+  attribute unrestricted double scrollTop;
+  attribute unrestricted double scrollLeft;
+  readonly attribute long scrollWidth;
+  readonly attribute long scrollHeight;
+  readonly attribute long clientTop;
+  readonly attribute long clientLeft;
+  readonly attribute long clientWidth;
+  readonly attribute long clientHeight;
+};
+
+partial interface HTMLElement {
+  readonly attribute Element? offsetParent;
+  readonly attribute long offsetTop;
+  readonly attribute long offsetLeft;
+  readonly attribute long offsetWidth;
+  readonly attribute long offsetHeight;
+};
+
+partial interface HTMLImageElement {
+  readonly attribute long x;
+  readonly attribute long y;
+};
+
+partial interface Range {
+  DOMRectList getClientRects();
+  [NewObject] DOMRect getBoundingClientRect();
+};
+
+/* TODO This is commented out because: "Partial interface MouseEvent with no original interface"
+partial interface MouseEvent {
+  readonly attribute double screenX;
+  readonly attribute double screenY;
+  readonly attribute double pageX;
+  readonly attribute double pageY;
+  readonly attribute double clientX;
+  readonly attribute double clientY;
+  readonly attribute double x;
+  readonly attribute double y;
+  readonly attribute double offsetX;
+  readonly attribute double offsetY;
+};
+
+partial dictionary MouseEventInit {
+  double screenX = 0.0;
+  double screenY = 0.0;
+  double clientX = 0.0;
+  double clientY = 0.0;
+};
+*/
+
+enum CSSBoxType { "margin", "border", "padding", "content" };
+dictionary BoxQuadOptions {
+  CSSBoxType box = "border";
+  GeometryNode relativeTo; // XXX default document (i.e. viewport)
+};
+
+dictionary ConvertCoordinateOptions {
+  CSSBoxType fromBox = "border";
+  CSSBoxType toBox = "border";
+};
+
+[Exposed=Window,
+ NoInterfaceObject]
+interface GeometryUtils {
+  sequence<DOMQuad> getBoxQuads(optional BoxQuadOptions options);
+  DOMQuad convertQuadFromNode(DOMQuadInit quad, GeometryNode from, optional ConvertCoordinateOptions options);
+  DOMQuad convertRectFromNode(DOMRectReadOnly rect, GeometryNode from, optional ConvertCoordinateOptions options);
+  DOMPoint convertPointFromNode(DOMPointInit point, GeometryNode from, optional ConvertCoordinateOptions options); // XXX z,w turns into 0
+};
+
+Text implements GeometryUtils; // like Range
+Element implements GeometryUtils;
+/* TODO Commented out because: "CSSPseudoElement implements GeometryUtils, but CSSPseudoElement is undefined."
+CSSPseudoElement implements GeometryUtils;
+*/
+Document implements GeometryUtils;
+
+typedef (Text or Element or CSSPseudoElement or Document) GeometryNode;

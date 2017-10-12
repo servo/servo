@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequest shippingAddress attribute</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#shippingaddress-attribute">
+<link rel="help" href="https://w3c.github.io/payment-request/#onshippingaddresschange-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+const validMethod = Object.freeze({ supportedMethods: "basic-card" });
+const validMethods = Object.freeze([validMethod]);
+const validAmount = Object.freeze({ currency: "USD", value: "5.00" });
+const validTotal = Object.freeze({
+  label: "label",
+  amount: validAmount,
+});
+const validShippingOption = Object.freeze({
+  id: "valid",
+  label: "Shipping Option",
+  amount: validAmount,
+  selected: false,
+});
+const validDetails = Object.freeze({
+  total: validTotal,
+  shippingOptions: [validShippingOption],
+});
+const requestShipping = Object.freeze({
+  requestShipping: true,
+});
+
+function testShippingAddressChange() {
+  promise_test(async t => {
+    const request = new PaymentRequest(
+      validMethods,
+      validDetails,
+      requestShipping
+    );
+    assert_equals(
+      request.shippingAddress,
+      null,
+      "request.shippingAddress must initially be null"
+    );
+    const listenerPromise = new Promise(resolve => {
+      request.addEventListener("shippingaddresschange", () => {
+        resolve(request.shippingAddress);
+      });
+    });
+    const handlerPromise = new Promise(resolve => {
+      request.onshippingaddresschange = () => {
+        resolve(request.shippingAddress);
+      };
+    });
+    request.show().catch(err => err);
+    const results = await Promise.all([listenerPromise, handlerPromise]);
+    assert_true(
+      results.every(obj => obj instanceof PaymentAddress),
+      "Expected instances of PaymentAddress"
+    );
+    await request.abort();
+  });
+  done();
+}
+
+</script>
+
+<h2>PaymentRequest shippingAddress attribute</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When the payment sheet is presented, enter or select a shipping address.
+</p>
+<ol>
+  <li>
+    <button onclick="testShippingAddressChange()">
+      When the shipping address is manually changed, request.shippingAddress is a PaymentAddress.
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/w3c/web-platform-tests/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/w3c/web-platform-tests/blob/master/payment-request/OWNERS">owners</a>.
+</small>

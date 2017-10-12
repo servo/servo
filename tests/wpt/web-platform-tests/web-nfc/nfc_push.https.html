@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: Test exceptions in nfc.push</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc_help.js"></script>
+
+<div id="log"></div>
+
+<script>
+
+"use strict";
+
+const invalid_type_messages =
+    [
+      // Invalid NFCPushMessage type
+      undefined,
+
+      // NFCMessage.records: should have at least 1 valid record.
+      // https://w3c.github.io/web-nfc/#the-push-method - Step 8.
+      createMessage([{}]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-text-to-ndef
+      // NFCRecord must have data.
+      createMessage([createTextRecord()]),
+
+      // NFCRecord.data for 'text' record must be number or string.
+      createMessage([createTextRecord(test_buffer_data)]),
+      createMessage([createTextRecord(test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-a-json-object-to-ndef
+      // NFCRecord must have data.
+      createMessage([createJsonRecord()]),
+
+      // NFCRecord.data for 'json' record must be object.
+      createMessage([createJsonRecord(test_buffer_data)]),
+      createMessage([createJsonRecord(test_number_data)]),
+      createMessage([createJsonRecord(test_text_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-a-url-to-ndef
+      // NFCRecord must have data.
+      createMessage([createUrlRecord()]),
+
+      // NFCRecord.data for 'url' record must be string.
+      createMessage([createUrlRecord(test_buffer_data)]),
+      createMessage([createUrlRecord(test_number_data)]),
+      createMessage([createUrlRecord(test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-binary-data-to-ndef
+      // NFCRecord must have data.
+      createMessage([createOpaqueRecord()]),
+
+      // NFCRecord.data for 'opaque' record must be ArrayBuffer.
+      createMessage([createOpaqueRecord(test_text_data)]),
+      createMessage([createOpaqueRecord(test_number_data)]),
+      createMessage([createOpaqueRecord(test_json_data)])
+    ];
+
+const invalid_syntax_messages =
+    [
+      // NFCRecord.mediaType for 'text' record must be 'text/*'.
+      createMessage([createRecord('text', 'application/json',
+          test_number_data)]),
+
+      // Data for 'url' record, must be a valid URL.
+      createMessage([createUrlRecord('Invalid URL:// Data')]),
+
+      // NFCRecord.mediaType for 'json' record must be 'application/json' or
+      // starts with 'application/' and ends with '+json'.
+      createMessage([createRecord('json', 'image/png', test_json_data)]),
+      createMessage([createRecord('json', 'application/x+y', test_json_data)]),
+      createMessage([createRecord('json', 'custom/app+json', test_json_data)]),
+    ];
+
+promise_test(t => {
+  let promises = [];
+  invalid_type_messages.forEach(message => {
+    promises.push(
+      promise_rejects(t, new TypeError(), navigator.nfc.push(message)));
+  });
+  return Promise.all(promises);
+}, "Test that promise is rejected with TypeError if NFCMessage is invalid.");
+
+promise_test(t => {
+  let promises = [];
+  invalid_syntax_messages.forEach(message => {
+    promises.push(
+      promise_rejects(t, 'SyntaxError', navigator.nfc.push(message)));
+  });
+  return Promise.all(promises);
+}, "'Test that promise is rejected with SyntaxError if NFCMessage contains invalid records.");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.nfc.push(test_text_data, { timeout: "invalid"}));
+}, "nfc.push should fail with TypeError when invalid timeout is provided.");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.nfc.push(test_text_data, { timeout: -1 }));
+}, "nfc.push should fail with TypeError when invalid negative timeout value is provided.");
+
+promise_test(t => {
+  return promise_rejects(t, 'TimeoutError', navigator.nfc.push(test_text_data, { timeout: 1 }));
+}, "nfc.push should fail with TimeoutError when timer expires.");
+
+promise_test(t => {
+  let promise = navigator.nfc.push(test_text_data, { timeout: 100 });
+  navigator.nfc.cancelPush();
+  return promise_rejects(t, 'AbortError', promise);
+}, "nfc.cancelPush should reject pending promise with AbortError.");
+
+promise_test(t => {
+  return promise_rejects(t, 'NotSupportedError', navigator.nfc.push(new ArrayBuffer(32 * 1024 + 1)));
+}, "Reject promise with NotSupportedError if NFC message size exceeds 32KB.");
+
+promise_test(t => {
+  let message = createMessage([createTextRecord(test_text_data)]);
+  message.url = '%00/invalid/ path';
+  return promise_rejects(t, 'SyntaxError', navigator.nfc.push(message));
+}, "Reject promise with SyntaxError if WebNFC Id cannot be created from provided URL.");
+
+promise_test(t => {
+  let message = createMessage([createRecord('json','application/json',
+      { get x(){ return this; } })]);
+  return promise_rejects(t, 'SyntaxError', navigator.nfc.push(message));
+}, "Reject promise with SyntaxError if 'json' record cannot be serialized.");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.nfc.push(test_text_data, {target: "invalid"}));
+}, "nfc.push should fail with TypeError when invalid target value is provided.");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.nfc.cancelPush("invalid"));
+}, "nfc.cancelPush should fail with TypeError when invalid id value is provided.");
+
+promise_test(() => {
+  return new Promise((resolve,reject) => {
+    let iframe = document.createElement('iframe');
+    iframe.srcdoc = '<script>' +
+                    '  window.onmessage = message => {' +
+                    '    if (message.data === "Ready") {' +
+                    '      let onSuccess = () => { parent.postMessage("Failure", "*"); };' +
+                    '      let onError = error => {' +
+                    '        if (error.name == "SecurityError") {' +
+                    '          parent.postMessage("Success", "*");' +
+                    '        } else {' +
+                    '          parent.postMessage("Failure", "*");' +
+                    '        }' +
+                    '      };' +
+                    '      navigator.nfc.push("Test").then(onSuccess, onError);' +
+                    '    }' +
+                    '  };' +
+                    '<\/script>';
+    iframe.onload = () => iframe.contentWindow.postMessage('Ready', '*');
+    document.body.appendChild(iframe);
+    window.onmessage = message => {
+      if (message.data == 'Success') {
+        resolve();
+      } else if (message.data == 'Failure') {
+        reject();
+      }
+    }
+  });
+}, 'Test that WebNFC API is not accessible from iframe context.');
+
+</script>

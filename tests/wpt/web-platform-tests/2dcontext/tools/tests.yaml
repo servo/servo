@@ -1057,7 +1057,7 @@
   expected: green
 
 - name: security.reset
-  desc: Resetting the canvas state does not reset the origin-clean flag
+  desc: Resetting the canvas state resets the origin-clean flag
   mozilla: { disabled } # relies on external resources
   testing:
     - initial.reset
@@ -1071,4 +1071,6 @@
     ctx.drawImage(document.getElementById('yellow.png'), 0, 0);
     @assert throws SECURITY_ERR canvas.toDataURL();
     canvas.width = 100;
-    @assert throws SECURITY_ERR canvas.toDataURL();
+    canvas.toDataURL();
+    ctx.getImageData(0, 0, 1, 1);
+    @assert true; // okay if there was no exception

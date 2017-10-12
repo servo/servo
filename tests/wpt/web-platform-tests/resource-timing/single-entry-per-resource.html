@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>One resource when reusing data</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  var img_entries = 0;
+  var observed = 0;
+  var img_url = "resources/blue.png";
+  var observer = new PerformanceObserver(
+    function (entryList, obs) {
+      var entries = entryList.getEntriesByType("resource");
+      for (var i = 0; i < entries.length; ++i) {
+        ++observed;
+        if (entries[i].name.indexOf(img_url) != -1)
+            ++img_entries;
+      }
+    });
+  observer.observe({entryTypes: ["resource"]});
+  window.onload = function() {
+    // A timeout is needed as PerformanceObserver is not guaranteed to run before onload triggered.
+    setTimeout(function() {
+      test(function(){
+        assert_equals(observed, 1);
+        assert_equals(img_entries, 1);
+      }, "Only one resource entry per resource");
+    },0)
+  };
+  // Images are added dynamically to make sure the observer is registered before their download finishes.
+  var img1 = document.createElement("img");
+  img1.src = img_url;
+  document.body.appendChild(img1);
+  var img2 = document.createElement("img");
+  img2.src = img_url;
+  document.body.appendChild(img2);
+</script>
+<h1>One resource when reusing data</h1>
+<p>
+If the user agent is to reuse the data from another existing or completed fetch initiated from the current document, abort the remaining steps.
+</p>
+<div id="log"></div>
+</body>
+

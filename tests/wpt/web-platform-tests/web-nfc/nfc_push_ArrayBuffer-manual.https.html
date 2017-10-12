@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC Test: push ArrayBuffer message</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc_help.js"></script>
+<meta name="flags" content="interact">
+<meta name="timeout" content="long">
+
+<p>Tap an NFC tag to the test device with NFC support.</p>
+
+<p>Note: All the actions need to be done in 60 seconds, otherwise it will get TIMEOUT.</p>
+
+<div id="log"></div>
+
+<script>
+
+"use strict";
+
+setup({ explicit_timeout: true });
+
+promise_test(t => {
+  return navigator.nfc.push(test_buffer_data)
+    .then(() => {
+      return new Promise(resolve => {
+        navigator.nfc.watch(message => resolve(message))
+      }).then((message) => {
+        for (let record of message.records) {
+          assert_equals(record.recordType, "opaque");
+          assert_equals(record.mediaType, "application/octet-stream");
+          assert_array_equals(new Uint8Array(record.data),
+              new Uint8Array(test_buffer_data));
+        }
+      });
+    });
+}, "Test that nfc.push succeeds when message is ArrayBuffer.");
+
+</script>

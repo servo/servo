@@ -18,10 +18,10 @@
                 });
             } else {
                 var t = async_test(
-                    "Resize event fired exactly once against window.view if " +
+                    "Resize event fired exactly once against window.visualViewport if " +
                     "scrollbars affect layout.");
                 var numViewResizes = 0;
-                window.view.addEventListener('resize', function() {
+                window.visualViewport.addEventListener('resize', function() {
                     numViewResizes++;
                 });
 
@@ -51,7 +51,7 @@
     <h1>Viewport: Resize Event On Load Overflowing Page</h1>
     <h4>
         Test Description: This test ensures that we fire a resize event against
-        window.view if the page has overflow (since this creates a scrollbar
+        window.visualViewport if the page has overflow (since this creates a scrollbar
         and thus changes the viewport size).
     </h4>
     <div id="log"></div>

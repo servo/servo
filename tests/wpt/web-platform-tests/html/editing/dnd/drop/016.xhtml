@@ -4,25 +4,25 @@
 <title>Text input selection drag and drop: dropzone 'copy','move' and 'link'</title>
 <style type="text/css">
 div
-	{display:inline-block;
-	vertical-align:top;
-	background-color:olive;
-	color:white;
-	padding:20px;
-	width:100px;
-	height:100px;}
+  {display:inline-block;
+  vertical-align:top;
+  background-color:olive;
+  color:white;
+  padding:20px;
+  width:100px;
+  height:100px;}
 div:nth-child(2)
-	{background-color:green;}
+  {background-color:green;}
 div:nth-child(3)
-	{background-color:teal;}
+  {background-color:teal;}
 </style>
 <script type="application/ecmascript">
 var effects = ['copy','move','link'];
 function selectText()
-	{document.querySelector('input').select()}
+  {document.querySelector('input').select()}
 function dropSelection(event,element)
-	{document.querySelectorAll('div')[element].appendChild(document.createTextNode((event.dataTransfer.dropEffect == effects[element])?' PASS ':' FAIL '));
-	selectText();}
+  {document.querySelectorAll('div')[element].appendChild(document.createTextNode((event.dataTransfer.dropEffect == effects[element])?' PASS ':' FAIL '));
+  selectText();}
 </script>
 </head>
 <body onload="selectText()">

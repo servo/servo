@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+  <head>
+    <title>menu child of menu item</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_MENU"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Selection"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXMenu"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "menu"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "result",
+                  "IAccessible::accSelect()",
+                  "is",
+                  "TBD"
+               ],
+               [
+                  "result",
+                  "IAccessible::get_accSelection()",
+                  "is",
+                  "TBD"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_MENUPOPUP"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControlType",
+                  "is",
+                  "Menu"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "menu child of menu item"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for menu child of menu item.</p>
+    <div role='menu'>
+    <div role='menuitem'>
+      <div role='menu' id='test'>
+        <div role='menuitemradio'>content</div>
+      </div>
+    <div role='menuitem'>content</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

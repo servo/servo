@@ -87,4 +87,10 @@ test(function() {
   a.href = "http://example.org/?\u00E4";
   assert_equals(a.href, "http://example.org/?%C3%A4");
 }, "createHTMLDocument(): URL parsing")
+
+// Test the document location getter is null outside of browser context
+test(function() {
+  var doc = document.implementation.createHTMLDocument();
+  assert_equals(doc.location, null);
+}, "createHTMLDocument(): document location getter is null")
 </script>

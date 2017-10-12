@@ -41,7 +41,8 @@ var invalidSelectors = [
   {name: "Undeclared namespace",         selector: "ns|div"},
   {name: "Undeclared namespace",         selector: ":not(ns|div)"},
   {name: "Invalid namespace",            selector: "^|div"},
-  {name: "Invalid namespace",            selector: "$|div"}
+  {name: "Invalid namespace",            selector: "$|div"},
+  {name: "Relative selector",            selector: ">*"},
 ];
 
 /*
@@ -309,14 +310,20 @@ var validSelectors = [
   {name: "Descendant combinator, not matching element with id that is not a descendant of an element with id", selector: "#descendant-div1 #descendant-div4", expect: [] /*no matches*/,                                      level: 1, testType: TEST_QSA},
   {name: "Descendant combinator, whitespace characters",                                                       selector: "#descendant\t\r\n#descendant-div2", expect: ["descendant-div2"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
 
-  // - Descendant combinator '>>'
-  {name: "Descendant combinator '>>', matching element that is a descendant of an element with id",                 selector: "#descendant>>div",                   expect: ["descendant-div1", "descendant-div2", "descendant-div3", "descendant-div4"], level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with id that is a descendant of an element",                 selector: "body>>#descendant-div1",             expect: ["descendant-div1"], exclude: ["detached", "fragment"], level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with id that is a descendant of an element",                 selector: "div>>#descendant-div1",              expect: ["descendant-div1"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with id that is a descendant of an element with id",         selector: "#descendant>>#descendant-div2",      expect: ["descendant-div2"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with class that is a descendant of an element with id",      selector: "#descendant>>.descendant-div2",      expect: ["descendant-div2"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with class that is a descendant of an element with class",   selector: ".descendant-div1>>.descendant-div3", expect: ["descendant-div3"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Descendant combinator '>>', not matching element with id that is not a descendant of an element with id", selector: "#descendant-div1>>#descendant-div4", expect: [] /*no matches*/,                                      level: 1, testType: TEST_QSA},
+  /* The future of this combinator is uncertain, see
+   * https://github.com/w3c/csswg-drafts/issues/641
+   * These tests are commented out until a final decision is made on whether to
+   * keep the feature in the spec.
+   */
+
+  // // - Descendant combinator '>>'
+  // {name: "Descendant combinator '>>', matching element that is a descendant of an element with id",                 selector: "#descendant>>div",                   expect: ["descendant-div1", "descendant-div2", "descendant-div3", "descendant-div4"], level: 1, testType: TEST_QSA | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with id that is a descendant of an element",                 selector: "body>>#descendant-div1",             expect: ["descendant-div1"], exclude: ["detached", "fragment"], level: 1, testType: TEST_QSA | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with id that is a descendant of an element",                 selector: "div>>#descendant-div1",              expect: ["descendant-div1"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with id that is a descendant of an element with id",         selector: "#descendant>>#descendant-div2",      expect: ["descendant-div2"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with class that is a descendant of an element with id",      selector: "#descendant>>.descendant-div2",      expect: ["descendant-div2"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with class that is a descendant of an element with class",   selector: ".descendant-div1>>.descendant-div3", expect: ["descendant-div3"],                                    level: 1, testType: TEST_QSA | TEST_MATCH},
+  // {name: "Descendant combinator '>>', not matching element with id that is not a descendant of an element with id", selector: "#descendant-div1>>#descendant-div4", expect: [] /*no matches*/,                                      level: 1, testType: TEST_QSA},
 
   // - Child combinator '>'
   {name: "Child combinator, matching element that is a child of an element with id",                       selector: "#child>div",                          expect: ["child-div1", "child-div4"], level: 2, testType: TEST_QSA | TEST_MATCH},
@@ -440,9 +447,6 @@ var scopedSelectors = [
   //{name: "", selector: "", ctx: "", ref: "", expect: [], level: 1, testType: TEST_FIND | TEST_MATCH},
 
   // Universal Selector
-  {name: "Universal selector, matching all children of the specified reference element",       selector: ">*",   ctx: "#universal", expect: ["universal-p1", "universal-hr1", "universal-pre1", "universal-p2", "universal-address1"], unexpected: ["universal", "empty"], level: 2, testType: TEST_FIND | TEST_MATCH},
-  {name: "Universal selector, matching all grandchildren of the specified reference element",  selector: ">*>*", ctx: "#universal", expect: ["universal-code1", "universal-span1", "universal-a1", "universal-code2"],                 unexpected: ["universal", "empty"], level: 2, testType: TEST_FIND | TEST_MATCH},
-  {name: "Universal selector, matching all children of the specified empty reference element", selector: ">*",   ctx: "#empty",     expect: [] /*no matches*/,                                                                         unexpected: ["universal", "empty"], level: 2, testType: TEST_QSA},
   {name: "Universal selector, matching all descendants of the specified reference element",    selector: "*",    ctx: "#universal", expect: ["universal-p1", "universal-code1", "universal-hr1", "universal-pre1", "universal-span1",
                                                                                                                                              "universal-p2", "universal-a1", "universal-address1", "universal-code2", "universal-a2"], unexpected: ["universal", "empty"], level: 2, testType: TEST_FIND | TEST_MATCH},
 
@@ -684,14 +688,14 @@ var scopedSelectors = [
   {name: "Descendant combinator, not matching element with id that is not a descendant of an element with id", selector: "#descendant-div1 #descendant-div4", ctx: "", expect: [] /*no matches*/,                                      level: 1, testType: TEST_FIND},
   {name: "Descendant combinator, whitespace characters (1)",                                                       selector: "#descendant\t\r\n#descendant-div2", ctx: "", expect: ["descendant-div2"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
 
-  // - Descendant combinator '>>'
-  {name: "Descendant combinator '>>', matching element that is a descendant of an element with id (1)",                 selector: "#descendant>>div",                   ctx: "", expect: ["descendant-div1", "descendant-div2", "descendant-div3", "descendant-div4"], level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with id that is a descendant of an element (1)",                 selector: "body>>#descendant-div1",             ctx: "", expect: ["descendant-div1"], exclude: ["detached", "fragment"], level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with id that is a descendant of an element (1)",                 selector: "div>>#descendant-div1",              ctx: "", expect: ["descendant-div1"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with id that is a descendant of an element with id (1)",         selector: "#descendant>>#descendant-div2",      ctx: "", expect: ["descendant-div2"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Descendant combinator '>>', matching element with class that is a descendant of an element with id (1)",      selector: "#descendant>>.descendant-div2",      ctx: "", expect: ["descendant-div2"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Descendant combinator, '>>', matching element with class that is a descendant of an element with class (1)",   selector: ".descendant-div1>>.descendant-div3", ctx: "", expect: ["descendant-div3"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Descendant combinator '>>', not matching element with id that is not a descendant of an element with id", selector: "#descendant-div1>>#descendant-div4", ctx: "", expect: [] /*no matches*/,                                      level: 1, testType: TEST_FIND},
+  // // - Descendant combinator '>>'
+  // {name: "Descendant combinator '>>', matching element that is a descendant of an element with id (1)",                 selector: "#descendant>>div",                   ctx: "", expect: ["descendant-div1", "descendant-div2", "descendant-div3", "descendant-div4"], level: 1, testType: TEST_FIND | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with id that is a descendant of an element (1)",                 selector: "body>>#descendant-div1",             ctx: "", expect: ["descendant-div1"], exclude: ["detached", "fragment"], level: 1, testType: TEST_FIND | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with id that is a descendant of an element (1)",                 selector: "div>>#descendant-div1",              ctx: "", expect: ["descendant-div1"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with id that is a descendant of an element with id (1)",         selector: "#descendant>>#descendant-div2",      ctx: "", expect: ["descendant-div2"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
+  // {name: "Descendant combinator '>>', matching element with class that is a descendant of an element with id (1)",      selector: "#descendant>>.descendant-div2",      ctx: "", expect: ["descendant-div2"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
+  // {name: "Descendant combinator, '>>', matching element with class that is a descendant of an element with class (1)",   selector: ".descendant-div1>>.descendant-div3", ctx: "", expect: ["descendant-div3"],                                    level: 1, testType: TEST_FIND | TEST_MATCH},
+  // {name: "Descendant combinator '>>', not matching element with id that is not a descendant of an element with id", selector: "#descendant-div1>>#descendant-div4", ctx: "", expect: [] /*no matches*/,                                      level: 1, testType: TEST_FIND},
 
   // - Child combinator '>'
   {name: "Child combinator, matching element that is a child of an element with id (1)",                       selector: "#child>div",                          ctx: "", expect: ["child-div1", "child-div4"], level: 2, testType: TEST_FIND | TEST_MATCH},

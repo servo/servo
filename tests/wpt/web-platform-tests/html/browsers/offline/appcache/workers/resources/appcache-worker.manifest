@@ -1,0 +1,10 @@
+CACHE MANIFEST
+
+appcache-worker.py?type=cached
+appcache-worker-import.py?type=cached
+appcache-worker-data.py?type=cached
+
+FALLBACK:
+appcache-worker.py?type=fallingback appcache-worker.py?type=fallbacked
+appcache-worker-import.py?type=fallingback appcache-worker-import.py?type=fallbacked
+appcache-worker-data.py?type=fallingback appcache-worker-data.py?type=fallbacked

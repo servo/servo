@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html><head>
+  <title>scheduler: altering the type attribute </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test();
+</script>
+<script id="test" type="text/plain">t.step(function() {assert_unreached()}</script>
+<script>
+t.step(function() {
+  document.getElementById("test").removeAttribute("type");
+  setTimeout(t.step_func(function() {t.done()}), 100);
+});
+</script>

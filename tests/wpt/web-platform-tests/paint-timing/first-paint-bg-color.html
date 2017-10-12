@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FP due to background color</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="main"></div>
+</body>
+
+<footer>
+<script>
+async_test(function (t) {
+    document.body.style.backgroundColor = "#AA0000";
+
+    function testPaintEntries() {
+      const bufferedEntries = performance.getEntriesByType('paint');
+      if (bufferedEntries.length < 1) {
+        t.step_timeout(function() {
+          testPaintEntries();
+        }, 20);
+        return;
+      }
+      t.step(function() {
+        assert_equals(bufferedEntries.length, 1, "FP should fire for background color, not FCP");
+        assert_equals(bufferedEntries[0].entryType, "paint");
+        assert_equals(bufferedEntries[0].name, "first-paint");
+        t.done();
+      });
+    }
+    t.step(function() {
+      testPaintEntries();
+    })
+}, "First paint fires due to background color. No FCP");
+</script>
+<footer>
+</html>

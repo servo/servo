@@ -28,74 +28,74 @@
 <script>
 
 function makeEl(eltype,props,contents) {
-	var elem = document.createElement(eltype);
-	for( var i in props ) {
-		if( props.hasOwnProperty(i) ) {
-			elem.setAttribute(i,props[i]);
-		}
-	}
-	if( contents ) {
-		elem.innerHTML = contents;
-	}
-	return elem;
+  var elem = document.createElement(eltype);
+  for( var i in props ) {
+    if( props.hasOwnProperty(i) ) {
+      elem.setAttribute(i,props[i]);
+    }
+  }
+  if( contents ) {
+    elem.innerHTML = contents;
+  }
+  return elem;
 }
 
 var orange, fails = [], doneonce = false;
 window.onload = function() {
   orange = document.getElementsByTagName('div')[2];
-	orange.childNodes[1].appendChild( makeEl('span',{itemprop:'foo'},'test') );
-	orange.childNodes[3].appendChild( makeEl('span',{itemprop:'bar'},'test') );
+  orange.childNodes[1].appendChild( makeEl('span',{itemprop:'foo'},'test') );
+  orange.childNodes[3].appendChild( makeEl('span',{itemprop:'bar'},'test') );
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
   };
   orange.previousSibling.ondragenter = orange.previousSibling.ondragleave = orange.previousSibling.ondragover =
   orange.ondrag = orange.ondragend = function(e) {
     if( e.type == 'dragover' || e.type == 'dragenter' ) {
-    	e.preventDefault();
-	    e.dataTransfer.dropEffect = 'copy';
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
     }
     if( e.dataTransfer.getData('application/microdata+json') ) {
-			fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
+      fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
     }
   };
-	orange.previousSibling.ondrop = function(e) {
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
-	  if( e.type != 'drop' ) { return; }
-  	if( doneonce ) { return; }
-  	doneonce = true;
+  orange.previousSibling.ondrop = function(e) {
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
+    if( e.type != 'drop' ) { return; }
+    if( doneonce ) { return; }
+    doneonce = true;
     setTimeout(function () {
-    	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
-    	fails = [];
+      document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+      fails = [];
     }, 200 );
   };
 
 };
 function checkprops(md) {
-	// http://dev.w3.org/html5/spec/dnd.html#list-of-dragged-nodes
-	//"If it is a selection that is being dragged, then the list of dragged nodes contains, in tree order, every node that is partially or completely included in the selection (including all their ancestors)."
-	//given this "ancestors" situation, what is to stop every item in the body from being included? oversight perhaps? tests 18-20 cover this more extensively
-	var i;
-	if( !md ) { return 'no microdata'; }
-	md = JSON.parse(md);
-	if( !md.items ) { return 'no items'; }
-	if( md.items.length != 2 ) { return md.items.length+' items instead of 2'; }
-	if( !md.items[0].properties ) { return 'no items[0].properties'; }
-	if( !md.items[0].properties.foo ) { return 'no items[0].properties.foo'; }
-	if( md.items[0].properties.foo.length != 1 ) { return 'items[0].properties.foo length '+md.items[0].properties.foo.length+' instead of 1'; }
-	if( md.items[0].properties.foo[0] != orange.childNodes[1].properties.namedItem('foo').getValues()[0] ) { return 'items[0].properties.foo[0] <i>'+md.items[0].properties.foo[0]+'</i> instead of <i>'+orange.childNodes[1].properties.namedItem('foo').getValues()[0]+'</i>'; }
-	if( !md.items[1].properties ) { return 'no items[1].properties'; }
-	if( !md.items[1].properties.bar ) { return 'no items[1].properties.bar'; }
-	if( md.items[1].properties.bar.length != 1 ) { return 'items[1].properties.bar length '+md.items[1].properties.bar.length+' instead of 1'; }
-	if( md.items[1].properties.bar[0] != orange.childNodes[1].properties.namedItem('foo').getValues()[0] ) { return 'items[1].properties.bar[0] <i>'+md.items[1].properties.bar[0]+'</i> instead of <i>'+orange.childNodes[1].properties.namedItem('foo').getValues()[0]+'</i>'; }
-	return '';
+  // http://dev.w3.org/html5/spec/dnd.html#list-of-dragged-nodes
+  //"If it is a selection that is being dragged, then the list of dragged nodes contains, in tree order, every node that is partially or completely included in the selection (including all their ancestors)."
+  //given this "ancestors" situation, what is to stop every item in the body from being included? oversight perhaps? tests 18-20 cover this more extensively
+  var i;
+  if( !md ) { return 'no microdata'; }
+  md = JSON.parse(md);
+  if( !md.items ) { return 'no items'; }
+  if( md.items.length != 2 ) { return md.items.length+' items instead of 2'; }
+  if( !md.items[0].properties ) { return 'no items[0].properties'; }
+  if( !md.items[0].properties.foo ) { return 'no items[0].properties.foo'; }
+  if( md.items[0].properties.foo.length != 1 ) { return 'items[0].properties.foo length '+md.items[0].properties.foo.length+' instead of 1'; }
+  if( md.items[0].properties.foo[0] != orange.childNodes[1].properties.namedItem('foo').getValues()[0] ) { return 'items[0].properties.foo[0] <i>'+md.items[0].properties.foo[0]+'</i> instead of <i>'+orange.childNodes[1].properties.namedItem('foo').getValues()[0]+'</i>'; }
+  if( !md.items[1].properties ) { return 'no items[1].properties'; }
+  if( !md.items[1].properties.bar ) { return 'no items[1].properties.bar'; }
+  if( md.items[1].properties.bar.length != 1 ) { return 'items[1].properties.bar length '+md.items[1].properties.bar.length+' instead of 1'; }
+  if( md.items[1].properties.bar[0] != orange.childNodes[1].properties.namedItem('foo').getValues()[0] ) { return 'items[1].properties.bar[0] <i>'+md.items[1].properties.bar[0]+'</i> instead of <i>'+orange.childNodes[1].properties.namedItem('foo').getValues()[0]+'</i>'; }
+  return '';
 }
 
 </script>

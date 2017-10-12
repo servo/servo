@@ -4,32 +4,32 @@
 <title>Drag feedback when multiple elements are added to dragstore</title>
 <style type="text/css">
 div > div
-	{height:100px;
-	width:100px;
-	float:left;
-	background-color:navy;}
+  {height:100px;
+  width:100px;
+  float:left;
+  background-color:navy;}
 div + div
-	{margin-left:-60px;
-	background-color:maroon;}
+  {margin-left:-60px;
+  background-color:maroon;}
 div[draggable]
-	{background-color:teal;
-	margin-top:50px;}
+  {background-color:teal;
+  margin-top:50px;}
 </style>
 <script type="application/ecmascript">
 function start(event)
-	{var div = document.querySelectorAll('div > div:nth-child(odd)');
-	event.dataTransfer.effectAllowed = 'copy';
-	for(var i = 0; i != div.length; i++)
-		{event.dataTransfer.addElement(div[i]);}
-	}
+  {var div = document.querySelectorAll('div > div:nth-child(odd)');
+  event.dataTransfer.effectAllowed = 'copy';
+  for(var i = 0; i != div.length; i++)
+    {event.dataTransfer.addElement(div[i]);}
+  }
 </script>
 </head>
 <body>
 <p>Try to drag green box below. Feedback overlay should include all three boxes when you drag green one.</p>
 <div ondragstart="start(event)">
-	<div/>
-	<div draggable="true"/>
-	<div/>
+  <div/>
+  <div draggable="true"/>
+  <div/>
 </div>
 </body>
 </html>

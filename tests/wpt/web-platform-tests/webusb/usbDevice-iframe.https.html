@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/fake-devices.js"></script>
+<script src="resources/usb-helpers.js"></script>
+<script>
+'use strict';
+
+function runIframeDisconnectTest(onDeviceConnected) {
+  return new Promise((resolve, reject) => {
+    let opened = false;
+
+    let iframe = document.createElement('iframe');
+    iframe.src = 'resources/open-in-iframe.html';
+    iframe.onload = () => {
+      navigator.usb.test.attachToWindow(iframe.contentWindow).then(() => {
+        iframe.contentWindow.postMessage('Ready', '*');
+      });
+    };
+
+    window.onmessage = messageEvent => {
+      if (messageEvent.data == 'Ready') {
+        let fakeDevice = navigator.usb.test.addFakeDevice(fakeDeviceInit);
+        fakeDevice.onclose = () => {
+          assert_true(opened);
+          resolve();
+        };
+      } else if (messageEvent.data == 'Success') {
+        opened = true;
+        onDeviceConnected(iframe);
+      } else {
+        reject(messageEvent.data);
+      }
+    };
+
+    document.body.appendChild(iframe);
+  });
+}
+
+usb_test(() => {
+  return runIframeDisconnectTest(iframe => {
+    document.body.removeChild(iframe);
+  });
+}, 'detaching iframe disconnects device.');
+
+usb_test(() => {
+  return runIframeDisconnectTest(iframe => {
+    iframe.src = 'about:blank';
+  });
+}, 'navigating iframe disconnects device.');
+</script>

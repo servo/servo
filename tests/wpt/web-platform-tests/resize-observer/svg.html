@@ -1,0 +1,333 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<p>ResizeObserver svg tests</p>
+<svg height="430" width="500" >
+  <circle cx="10" cy="10" r="5" style="fill:orange;stroke:black;stroke-width:1" />
+  <ellipse cx="10" cy="30" rx="5" ry="5" style="fill:orange;stroke:black;stroke-width:1"/>
+  <foreignObject cy="50" width="100" height="20">
+    <body>
+      <p>Here is a paragraph that requires word wrap</p>
+    </body>
+  </foreignObject>
+  <image xlink:href="" x="0" y="100" height="30" width="100" />
+  <line x1="0" y1="50" x2="20" y2="70" stroke="black" stroke-width="2"/>
+  <path d="M 0 100 L 100 100 L 50 150 z"
+        style="fill:orange;stroke:black;stroke-width:1" />
+  <polygon points="0,200 100,200 50,250" style="fill:orange;stroke:black;stroke-width:1" />
+  <polyline points="0,300 100,300 50,350" style="fill:orange;stroke:black;stroke-width:1"/>
+  <rect x="0" y="380" width="10" height="10" style="fill:orange; stroke:black; stroke-width:1" />
+  <text x="0" y="400" font-size="20">svg text tag</text>
+</svg>
+<script>
+'use strict';
+
+setup({allow_uncaught_exception: true});
+
+function test0() {
+  let target = document.querySelector('circle');
+  let helper = new ResizeTestHelper(
+    "test0: observe svg:circle",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('r', 10);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test1() {
+  let target = document.querySelector('ellipse');
+  let helper = new ResizeTestHelper(
+    "test1: observe svg:ellipse",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('rx', 10);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 20);
+        assert_equals(entries[0].contentRect.height, 10);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test2() {
+  let target = document.querySelector('foreignObject');
+  let helper = new ResizeTestHelper(
+    "test2: observe svg:foreignObject",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('width', 200);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 200);
+        assert_equals(entries[0].contentRect.height, 20);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test3() {
+  let target = document.querySelector('image');
+  let helper = new ResizeTestHelper(
+    "test3: observe svg:image",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('height', 40);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 100);
+        assert_equals(entries[0].contentRect.height, 40);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test4() {
+  let target = document.querySelector('line');
+  let helper = new ResizeTestHelper(
+    "test4: observe svg:line",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('y2', 80);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 20);
+        assert_equals(entries[0].contentRect.height, 30);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test5() {
+  let target = document.querySelector('path');
+  let helper = new ResizeTestHelper(
+    "test5: observe svg:path",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('d', "M 0 100 L 100 100 L 50 160 z");
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 100);
+        assert_equals(entries[0].contentRect.height, 60);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test6() {
+  let target = document.querySelector('polygon');
+  let helper = new ResizeTestHelper(
+    "test6: observe svg:path",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('points', "0,200 100,200 50,260");
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 100);
+        assert_equals(entries[0].contentRect.height, 60);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test7() {
+  let target = document.querySelector('polyline');
+  let helper = new ResizeTestHelper(
+    "test7: observe svg:polyline",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('points', "0,300 100,300 50,360");
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 100);
+        assert_equals(entries[0].contentRect.height, 60);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test8() {
+  let target = document.querySelector('rect');
+  let helper = new ResizeTestHelper(
+    "test8: observe svg:rect",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('width', "20");
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 20);
+        assert_equals(entries[0].contentRect.height, 10);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test9() {
+  let target = document.querySelector('text');
+  let helper = new ResizeTestHelper(
+    "test9: observe svg:text",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    },
+    {
+      setup: observer => {
+        target.setAttribute('font-size', "25");
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+
+function test10() {
+  let target = document.querySelector('svg');
+  let helper = new ResizeTestHelper(
+    "test10: observe svg:svg, top/left is 0 even with padding",
+  [
+    {
+      setup: observer => {
+        observer.observe(target);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.top, 0);
+        assert_equals(entries[0].contentRect.left, 0);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+let guard;
+test(_ => {
+  assert_own_property(window, "ResizeObserver");
+  guard = async_test('guard');
+}, "ResizeObserver implemented")
+
+test0()
+  .then(() => { return test1(); })
+  .then(() => { return test2(); })
+  .then(() => { return test3(); })
+  .then(() => { return test4(); })
+  .then(() => { return test5(); })
+  .then(() => { return test6(); })
+  .then(() => { return test7(); })
+  .then(() => { return test8(); })
+  .then(() => { return test9(); })
+  .then(() => { return test10(); })
+  .then(() => { guard.done(); });
+
+</script>

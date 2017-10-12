@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Attribute event handlers test</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_timeout: true, explicit_done: true})
+        </script>
+    </head>
+    <body>
+    <h1>Viewport: Attribute event handlers test</h1>
+    <h4>
+        Test Description: This test checks that attribute event handlers function correctly.
+    </h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        var didFireResize = false;
+        var didFireScroll = false;
+
+        addManualTestStep(
+            function() {
+                test(() => {
+                    assert_not_equals(typeof(window.visualViewport.onresize),
+                                      'undefined',
+                                      'onresize is defined');
+                    assert_not_equals(typeof(window.visualViewport.onscroll),
+                                      'undefined',
+                                      'onscroll is defined');
+                }, 'Attribute event handlers defined');
+
+                window.visualViewport.onresize = function(e) {
+                  didFireResize = true;
+                };
+                window.visualViewport.onscroll = function(e) {
+                  didFireScroll = true;
+                };
+            },
+            null,
+            '1. Pinch-zoom into the screen anywhere by any amount.');
+
+        addManualTestStep(
+            function() {
+              test(() => {
+                  assert_true(didFireResize, 'Resize event fired');
+                  assert_true(didFireScroll, 'Scroll event fired');
+              }, 'Event handler functionality');
+              continueBtn.remove();
+            },
+            null,
+            'Test Complete');
+    </script>
+</html>

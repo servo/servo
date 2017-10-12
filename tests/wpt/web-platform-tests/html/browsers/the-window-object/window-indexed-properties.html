@@ -17,6 +17,12 @@ test(function() {
   window[-1] = "foo";
   assert_equals(window[-1], "foo");
 });
+test(() => {
+  const desc = Object.getOwnPropertyDescriptor(window, "0");
+  assert_true(desc.configurable);
+  assert_true(desc.enumerable);
+  assert_false(desc.writable);
+}, "Ensure indexed properties have the correct configuration");
 test(function() {
   window[0] = "foo";
   assert_throws(new TypeError(), () => Object.defineProperty(window, 0, { value: "bar" }))

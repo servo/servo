@@ -282,10 +282,10 @@ class TestDirectoryHandler(TestUsingServer):
         assert resp.info()["Content-Type"] == "text/html"
 
     def test_subdirectory_no_trailing_slash(self):
-        with pytest.raises(HTTPError) as cm:
-            self.request("/subdir")
-
-        assert cm.value.code == 404
+        # This seems to resolve the 301 transparently, so test for 200
+        resp = self.request("/subdir")
+        assert resp.getcode() == 200
+        assert resp.info()["Content-Type"] == "text/html"
 
 
 class TestAsIsHandler(TestUsingServer):

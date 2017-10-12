@@ -248,7 +248,7 @@ indexeddb_test(
     const array = [];
     array[99] = 1;
 
-    const getter_called = 0;
+    let getter_called = 0;
     const prop = '50';
     Object.defineProperty(Object.prototype, prop, {
       enumerable: true, configurable: true,

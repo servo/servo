@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC Test: NFC HW Disabled</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc_help.js"></script>
+<meta name="flags" content="interact">
+
+<h2>Precondition</h2>
+<ol>
+  <li>
+    Disable the NFC Module.
+  </li>
+</ol>
+
+<div id="log"></div>
+
+<script>
+
+"use strict";
+
+promise_test(t => {
+ return promise_rejects(t, 'NotSupportedError', navigator.nfc.watch(noop));
+}, "Test that nfc.watch fails if NFC HW is disabled.");
+
+promise_test(t => {
+  return promise_rejects(t, 'NotSupportedError', navigator.nfc.push(test_text_data));
+}, "nfc.push should fail when NFC HW is disabled.");
+
+</script>

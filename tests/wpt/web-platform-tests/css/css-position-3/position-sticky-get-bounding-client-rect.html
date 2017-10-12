@@ -19,6 +19,7 @@ body {
 }
 
 .spacer {
+  width: 2000px;
   height: 2000px;
 }
 
@@ -26,29 +27,73 @@ body {
   width: 100px;
   height: 100px;
   background-color: green;
-  top: 50px;
 }
 
 .sticky {
   position: sticky;
+  top: 50px;
+  left: 20px;
 }
 </style>
 
-<div id="scroller" class="container">
-  <div id="sticky" class="sticky box"></div>
+<div id="scroller1" class="container">
+  <div id="sticky1" class="sticky box"></div>
   <div class="spacer"></div>
 </div>
 
 <script>
 test(() => {
-  var element = document.getElementById('sticky');
-  assert_equals(element.getBoundingClientRect().top, 50);
-  document.getElementById('scroller').scrollTop = 100;
-  assert_equals(element.getBoundingClientRect().top, 50);
+  var sticky = document.getElementById('sticky1');
+  assert_equals(sticky.getBoundingClientRect().top, 50);
+  document.getElementById('scroller1').scrollTop = 100;
+  assert_equals(sticky.getBoundingClientRect().top, 50);
   sticky.style.position = 'relative';
-  assert_equals(element.getBoundingClientRect().top, -50);
+  assert_equals(sticky.getBoundingClientRect().top, -50);
   sticky.style.position = 'sticky';
-  assert_equals(element.getBoundingClientRect().top, 50);
+  assert_equals(sticky.getBoundingClientRect().top, 50);
 }, 'sticky positioned element should be observable by getBoundingClientRect.');
 </script>
 
+<div id="scroller2" class="container">
+  <div class="spacer"></div>
+</div>
+
+<script>
+test(() => {
+  var scroller = document.getElementById('scroller2');
+  scroller.scrollTop = 100;
+  scroller.scrollLeft = 75;
+
+  var sticky = document.createElement('div');
+  sticky.className = 'sticky box';
+  scroller.insertBefore(sticky, scroller.querySelector('.spacer'));
+
+  var sticky_bounds = sticky.getBoundingClientRect();
+  var scroller_bounds = scroller.getBoundingClientRect();
+  assert_equals(sticky_bounds.top, scroller_bounds.top + 50);
+  assert_equals(sticky_bounds.left, scroller_bounds.left + 20);
+}, 'getBoundingClientRect should be correct for sticky after script insertion');
+</script>
+
+<div id="scroller3" class="container">
+  <div id="sticky3" class="sticky box"></div>
+  <div class="spacer"></div>
+</div>
+
+<script>
+test(() => {
+  var scroller = document.getElementById('scroller3');
+  var sticky = document.getElementById('sticky3');
+  scroller.scrollTop = 100;
+  scroller.scrollLeft = 75;
+
+  var div = document.createElement('div');
+  div.style.height = '65px';
+  scroller.insertBefore(div, sticky);
+
+  var sticky_bounds = sticky.getBoundingClientRect();
+  var scroller_bounds = scroller.getBoundingClientRect();
+  assert_equals(sticky_bounds.top, scroller_bounds.top + 50);
+  assert_equals(sticky_bounds.left, scroller_bounds.left + 20);
+}, 'getBoundingClientRect should be correct for sticky after script-caused layout');
+</script>

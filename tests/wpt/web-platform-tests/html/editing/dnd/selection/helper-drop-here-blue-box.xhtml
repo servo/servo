@@ -4,19 +4,19 @@
 <title>Selection drag and drop: helper file</title>
 <style type="text/css">
 div[ondragenter]
-	{width:300px;
-	height:100px;
-	margin-top:20px;
-	padding:10px;
-	color:white;
-	background-color:navy;}
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;
+  color:white;
+  background-color:navy;}
 </style>
 </head>
 <body>
 <div
-	ondragenter="event.preventDefault()"
-	ondragover="return false"
-	ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+  ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
 />
 </body>
 </html>

@@ -78,7 +78,8 @@ function createStyle(test, rules, doc) {
 // Create a pseudo element
 function createPseudo(test, type) {
   createStyle(test, { '@keyframes anim': '',
-                      ['.pseudo::' + type]: 'animation: anim 10s;' });
+                      ['.pseudo::' + type]: 'animation: anim 10s; ' +
+                                            'content: \'\';'  });
   var div = createDiv(test);
   div.classList.add('pseudo');
   var anims = document.getAnimations();
@@ -238,6 +239,6 @@ function assert_matrix_equals(actual, expected, description) {
     'dimension of the matrix: ' + description);
   for (var i = 0; i < actualMatrixArray.length; i++) {
     assert_approx_equals(actualMatrixArray[i], expectedMatrixArray[i], 0.0001,
-      'expecetd ' + expected + ' but got ' + actual + ": " + description);
+      'expected ' + expected + ' but got ' + actual + ": " + description);
   }
 }

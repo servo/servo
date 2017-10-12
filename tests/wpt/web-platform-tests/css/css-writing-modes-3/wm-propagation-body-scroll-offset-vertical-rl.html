@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Writing Modes Test: body vertical-rl propagated to viewport - scroll direction</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#principal-flow">
+<meta name="assert" content="Test that propagating writing-mode from body to viewport affects scroll direction">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  html { writing-mode: vertical-lr; }
+  body { writing-mode: vertical-rl; width: 10000px; }
+
+  .result-wm, .result-wm > body {
+    writing-mode: horizontal-tb;
+    width: auto;
+  }
+</style>
+<body>
+<script>
+  test(function() {
+    assert_equals(document.documentElement.scrollLeft, 0, "scrollLeft should be 0.");
+  }, "Check initial scroll position of viewport.");
+
+  test(function() {
+    document.documentElement.scrollLeft = -1000;
+    assert_equals(document.documentElement.scrollLeft, -1000, "scrollLeft should be -1000.");
+  }, "Scroll to scrollLeft = -1000 should be possible.");
+
+  test(function() {
+    document.documentElement.scrollLeft = 1000;
+    assert_equals(document.documentElement.scrollLeft, 0, "scrollLeft should be 0.");
+  }, "Scroll to scrollLeft = 1000 should not be possible.");
+
+  // Reset back to horizontal-tb to make the result readable on-screen.
+  document.documentElement.className = "result-wm";
+</script>

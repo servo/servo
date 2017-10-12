@@ -1,0 +1,3 @@
+{"manifest":
+ {"path": "update.py", "script": "run", "parser": "create_parser", "help": "Update the MANIFEST.json file",
+  "virtualenv": false}}

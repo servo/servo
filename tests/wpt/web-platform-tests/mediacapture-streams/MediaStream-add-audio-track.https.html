@@ -14,16 +14,15 @@
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
 <script>
 var t = async_test("Tests that adding a track to a MediaStream works as expected", {timeout: 20000}); // longer timeout since requires double user interaction
 t.step(function () {
   var audio, video;
 
-  navigator.getUserMedia({audio: true}, gotAudio, function(error) {});
+  navigator.mediaDevices.getUserMedia({audio: true}).then(gotAudio);
   function gotAudio(stream) {
     audio = stream;
-    navigator.getUserMedia({video: true}, gotVideo, function(error) {});
+    navigator.mediaDevices.getUserMedia({video: true}).then(gotVideo);
   }
 
   function gotVideo(stream) {

@@ -1,0 +1,165 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCDTMFSender.prototype.insertDTMF</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="RTCDTMFSender-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js
+  //   generateAnswer
+
+  // The following helper functions are called from RTCDTMFSender-helper.js
+  //   createDtmfSender
+  //   test_tone_change_events
+  //   getTransceiver
+
+  /*
+    7.  Peer-to-peer DTMF
+      partial interface RTCRtpSender {
+        readonly attribute RTCDTMFSender? dtmf;
+      };
+
+      interface RTCDTMFSender : EventTarget {
+        void insertDTMF(DOMString tones,
+                        optional unsigned long duration = 100,
+                        optional unsigned long interToneGap = 70);
+                 attribute EventHandler ontonechange;
+        readonly attribute DOMString    toneBuffer;
+      };
+   */
+
+  /*
+    7.2.  insertDTMF
+      The tones parameter is treated as a series of characters.
+
+      The characters 0 through 9, A through D, #, and * generate the associated
+      DTMF tones.
+
+      The characters a to d MUST be normalized to uppercase on entry and are
+      equivalent to A to D.
+
+      As noted in [RTCWEB-AUDIO] Section 3, support for the characters 0 through 9,
+      A through D, #, and * are required.
+
+      The character ',' MUST be supported, and indicates a delay of 2 seconds
+      before processing the next character in the tones parameter.
+
+      All other characters (and only those other characters) MUST be considered
+      unrecognized.
+   */
+  promise_test(t => {
+    return createDtmfSender()
+    .then(dtmfSender => {
+      dtmfSender.insertDTMF('');
+      dtmfSender.insertDTMF('012345689');
+      dtmfSender.insertDTMF('ABCD');
+      dtmfSender.insertDTMF('abcd');
+      dtmfSender.insertDTMF('#*');
+      dtmfSender.insertDTMF(',');
+      dtmfSender.insertDTMF('0123456789ABCDabcd#*,');
+    });
+  }, 'insertDTMF() should succeed if tones contains valid DTMF characters');
+
+
+  /*
+    7.2.  insertDTMF
+      6.  If tones contains any unrecognized characters, throw an
+          InvalidCharacterError.
+   */
+  promise_test(t => {
+    return createDtmfSender()
+    .then(dtmfSender => {
+      assert_throws('InvalidCharacterError', () =>
+        // 'F' is invalid
+        dtmfSender.insertDTMF('123FFABC'));
+
+      assert_throws('InvalidCharacterError', () =>
+        // 'E' is invalid
+        dtmfSender.insertDTMF('E'));
+
+      assert_throws('InvalidCharacterError', () =>
+        // ' ' is invalid
+        dtmfSender.insertDTMF('# *'));
+    });
+  }, 'insertDTMF() should throw InvalidCharacterError if tones contains invalid DTMF characters');
+
+  /*
+    7.2.  insertDTMF
+      3.  If transceiver.stopped is true, throw an InvalidStateError.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const dtmfSender = transceiver.sender.dtmf;
+
+    transceiver.stop();
+    assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
+
+  }, 'insertDTMF() should throw InvalidStateError if transceiver is stopped');
+
+  /*
+    7.2.  insertDTMF
+      4.  If transceiver.currentDirection is recvonly or inactive, throw an InvalidStateError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio', {
+      direction: 'recvonly'
+    });
+    const dtmfSender = transceiver.sender.dtmf;
+
+    return pc.createOffer()
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(() => generateAnswer(offer)))
+    .then(() => {
+      assert_equals(transceiver.currentDirection, 'inactive');
+      assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
+    });
+  }, 'insertDTMF() should throw InvalidStateError if transceiver.currentDirection is recvonly');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio', {
+      direction: 'inactive'
+    });
+    const dtmfSender = transceiver.sender.dtmf;
+
+    return pc.createOffer()
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(() => generateAnswer(offer)))
+    .then(() => {
+      assert_equals(transceiver.currentDirection, 'inactive');
+      assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
+    });
+  }, 'insertDTMF() should throw InvalidStateError if transceiver.currentDirection is inactive');
+
+  /*
+    7.2.  insertDTMF
+      The characters a to d MUST be normalized to uppercase on entry and are
+      equivalent to A to D.
+
+      7.  Set the object's toneBuffer attribute to tones.
+   */
+  promise_test(() => {
+    return createDtmfSender()
+    .then(dtmfSender => {
+      dtmfSender.insertDTMF('123');
+      assert_equals(dtmfSender.toneBuffer, '123');
+
+      dtmfSender.insertDTMF('ABC');
+      assert_equals(dtmfSender.toneBuffer, 'ABC');
+
+      dtmfSender.insertDTMF('bcd');
+      assert_equals(dtmfSender.toneBuffer, 'BCD');
+    });
+  }, 'insertDTMF() should set toneBuffer to provided tones normalized, with old tones overridden');
+
+</script>

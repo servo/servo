@@ -83,7 +83,7 @@ class Indexer:
     # Load toc data
     self.sections = {}
     for uri, numstr, title in sections:
-      uri = intern(uri.encode('ascii'))
+      uri = intern(uri.encode('utf-8'))
       uriKey = intern(self._normalizeScheme(uri))
       numstr = escapeToNamedASCII(numstr)
       title = escapeToNamedASCII(title) if title else None

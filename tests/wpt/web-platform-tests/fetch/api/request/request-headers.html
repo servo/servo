@@ -168,6 +168,19 @@
         });
       }, "Testing empty Request Content-Type header");
 
+      test(function() {
+        const request1 = new Request("");
+        assert_equals(request1.headers, request1.headers);
+
+        const request2 = new Request("", {"headers": {"X-Foo": "bar"}});
+        assert_equals(request2.headers, request2.headers);
+        const headers = request2.headers;
+        request2.headers.set("X-Foo", "quux");
+        assert_equals(headers, request2.headers);
+        headers.set("X-Other-Header", "baz");
+        assert_equals(headers, request2.headers);
+      }, "Test that Request.headers has the [SameObject] extended attribute");
+
     </script>
   </body>
 </html>

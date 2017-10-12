@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>InputEvent.getTargetRanges() behavior</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>To manually run this test, please follow the steps below:<br/>
+1. Place caret at the end of 'hel<i>lo wo</i><b>rld</b>'.<br/>
+2. Press Ctrl-Backspace (Alt-Backspace on macOS) to delete word backwards.<br/>
+3. Place caret at the end of 'test2' => Press 'a' key.<br/>
+4. Select 'test2a' => Press 'b' key.<br/>
+5. Select 'b' => Bold text through context menu or Command-b on macOS.<br/>
+6. Place caret at the end of 'test3' => Press 'a' key => Press Backspace key.<br/>
+<br/>
+If a "PASS" result appears the test passes, otherwise it fails</p>
+<p id="test1_editable" contenteditable>hel<i>lo wo</i><b>rld</b></p>
+<p id="test2_editable" contenteditable>test2</p>
+<textarea id="test3_plain">test3</textarea>
+<script>
+async_test(t => {
+    const test1_editable = document.getElementById('test1_editable');
+    let lastBeforeInput;
+    test1_editable.addEventListener('beforeinput', t.step_func(event => {
+        assert_equals(event.inputType, 'deleteWordBackward');
+        const ranges = event.getTargetRanges();
+        assert_equals(ranges.length, 1);
+        const range = ranges[0];
+        assert_true(range instanceof StaticRange);
+        assert_equals(range.startOffset, 3);
+        assert_equals(range.startContainer.textContent, 'lo wo');
+        assert_equals(range.endOffset, 3);
+        assert_equals(range.endContainer.textContent, 'rld');
+        assert_equals(test1_editable.innerHTML, 'hel<i>lo wo</i><b>rld</b>');
+        lastBeforeInput = event;
+    }));
+
+    test1_editable.addEventListener('input', t.step_func(event => {
+        assert_equals(event.inputType, 'deleteWordBackward');
+        assert_equals(test1_editable.innerHTML, 'hel<i>lo&nbsp;</i>');
+        assert_equals(lastBeforeInput.inputType, 'deleteWordBackward');
+        assert_equals(lastBeforeInput.getTargetRanges().length, 0,
+            'getTargetRanges() should be empty after the event has finished dispatching.');
+        t.done();
+    }));
+}, 'getTargetRanges() returns correct range and cleared after dispatch.');
+
+async_test(t => {
+    const expectedEventLog = ['test2-5-test2-5', 'test2a-0-test2a-6', 'b-0-b-1'];
+    const actualEventLog = [];
+
+    const test2_editable = document.getElementById('test2_editable');
+    test2_editable.addEventListener('beforeinput', t.step_func(event => {
+        const ranges = event.getTargetRanges();
+        assert_equals(ranges.length, 1);
+        const range = ranges[0];
+        actualEventLog.push(
+            `${range.startContainer.textContent}-${range.startOffset}-${range.endContainer.textContent}-${range.endOffset}`);
+
+        if (actualEventLog.length == expectedEventLog.length) {
+            assert_array_equals(actualEventLog, expectedEventLog,
+                `Expected: ${expectedEventLog}; Actual: ${actualEventLog}.`);
+            t.done();
+        }
+    }));
+}, 'Actions other than deletion should have current selection as target ranges.');
+
+async_test(t => {
+    const test3_plain = document.getElementById('test3_plain');
+    test3_plain.addEventListener('beforeinput', t.step_func(event => {
+        assert_equals(event.getTargetRanges().length, 0,
+            'getTargetRanges() should return empty array on textarea.');
+
+        if (event.inputType === 'deleteContentBackward')
+            t.done();
+    }));
+}, 'Textarea should have empty target range.');
+</script>

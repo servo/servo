@@ -19,15 +19,15 @@
 <link rel=preload href="resources/dummy.js" as=script onload="scriptLoaded = true;">
 <link rel=preload href="resources/dummy.css" as=style onload="styleLoaded = true;">
 <link rel=preload href="resources/square.png" as=image onload="imageLoaded = true;">
-<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin onload="fontLoaded = true;">
-<link rel=preload href="/media/white.mp4" as=video onload="videoLoaded = true;">
-<link rel=preload href="/media/sound_5.oga" as=audio onload="audioLoaded = true;">
-<link rel=preload href="/media/foo.vtt" as=track onload="trackLoaded = true;">
+<link rel=preload href="resources/CanvasTest.ttf" as=font crossorigin onload="fontLoaded = true;">
+<link rel=preload href="resources/white.mp4" as=video onload="videoLoaded = true;">
+<link rel=preload href="resources/sound_5.oga" as=audio onload="audioLoaded = true;">
+<link rel=preload href="resources/foo.vtt" as=track onload="trackLoaded = true;">
 <link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing onload="gibberishLoaded = true;" onerror="gibberishErrored = true;">
 <link rel=preload href="resources/dummy.xml?fetch" as=fetch onload="fetchLoaded = true;">
 <link rel=preload href="resources/dummy.xml" onload="noTypeLoaded = true;">
 <body>
-<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<script src="resources/dummy.js?pipe=trickle(d5)&onload-event"></script>
 <script>
     window.onload = t.step_func(function() {
         verifyPreloadAndRTSupport();

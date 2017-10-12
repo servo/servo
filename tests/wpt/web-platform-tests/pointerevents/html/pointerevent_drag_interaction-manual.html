@@ -1,0 +1,87 @@
+<html>
+    <head>
+        <title>Pointer Events interaction with drag and drop</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <script>
+           var eventList = ['pointerdown', 'pointerup', 'pointercancel', 'gotpointercapture', 'lostpointercapture', 'dragstart'];
+        
+           PhaseEnum = {
+              DndWithoutCapture:   0,
+              DndWithCapture:      1,
+              DndPrevented:        2,
+              Done:                3,
+            };
+            var phase = PhaseEnum.DndWithoutCapture;
+            var received_events = [];
+        
+            function resetTestState() {
+                phase = PhaseEnum.DndWithoutCapture;
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointer events vs drag and drop", ['mouse']);
+
+                var target0 = document.querySelector('#target0');
+                var target1 = document.querySelector('#target1');
+                
+                function handleEvent(e) {
+                    if (e.type == 'pointerdown') {
+                       received_events = [];
+                       if (phase == PhaseEnum.DndWithCapture)
+                          target0.setPointerCapture(e.pointerId);
+                    }
+                    received_events.push(e.type + "@" + e.target.id);
+                    if (e.type == 'dragstart') {
+                        e.dataTransfer.setData('text/plain', 'dragstart test');
+                        if (phase == PhaseEnum.DndPrevented)
+                            e.preventDefault();
+                    }
+                    if (phase == PhaseEnum.DndWithoutCapture && e.type == 'pointercancel') {
+                        phase++;
+                        test(() => {
+                            assert_equals(received_events.join(', '), "pointerdown@target0, dragstart@target0, pointercancel@target0", "Pointercancel should be fired with the expected order when drag operation starts.");
+                        }, "Pointercancel when drag operation starts");
+                    } else if (phase == PhaseEnum.DndWithCapture && e.type == 'lostpointercapture') {
+                        test(() => {
+                            assert_equals(received_events.join(', '), "pointerdown@target0, gotpointercapture@target0, dragstart@target0, pointercancel@target0, lostpointercapture@target0", "Pointercancel and lostpointercapture should be fired with the expected order when drag operation starts.");
+                        }, "Pointercancel while capturing when drag operation starts");
+                        phase++;
+                    } else if (phase == PhaseEnum.DndPrevented && e.type == 'pointerup') {
+                        test(() => {
+                            assert_equals(received_events.join(', '), "pointerdown@target0, dragstart@target0, pointerup@target1", "Pointerevent stream shouldn't get interrupted when drag is prevented.");
+                        }, "Pointerevent stream when drag is prevented.");
+                        phase++;
+                        test_pointerEvent.done();
+                    }
+                }
+                eventList.forEach(function(eventName) {
+                    on_event(target0, eventName, handleEvent);
+                    on_event(target1, eventName, handleEvent);
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events interaction with drag and drop</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks that the pointercancel (and if needed lostpointercapture) is dispatched when drag starts.
+            <ol>
+                 <li>Press down on the black square.</li>
+                 <li>Move your pointer to purple square and release.</li>
+                 <li>Repeat the first two steps.</li>
+                 <li>Repeat the first two steps once again.</li>
+            </ol>
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div draggable="true" id="target0"></div>
+            <div id="target1"></div>
+        </div>
+    </body>
+</html>

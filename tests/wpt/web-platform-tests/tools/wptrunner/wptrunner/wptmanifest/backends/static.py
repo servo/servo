@@ -139,6 +139,9 @@ class ManifestItem(object):
             rv.extend("  %s" % line for line in str(item).split("\n"))
         return "\n".join(rv)
 
+    def set_defaults(self):
+        pass
+
     @property
     def is_empty(self):
         if self._data:

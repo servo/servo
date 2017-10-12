@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>searchbox placeholder</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -28,12 +29,6 @@
                   "interfaces",
                   "contains",
                   "EditableText"
-               ],
-               [
-                  "property",
-                  "states",
-                  "contains",
-                  "STATE_SINGLE_LINE"
                ],
                [
                   "property",
@@ -69,6 +64,12 @@
                ]
             ],
             "IAccessible2" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_TEXT"
+               ],
                [
                   "property",
                   "states",
@@ -138,4 +139,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

@@ -19,3 +19,26 @@ function checkEntries(perfEntriesToCheck, expectedEntries) {
     assert_not_equals(findMatch(pe1), null, "Entry matches");
   });
 }
+
+// Waits for performance.now to advance. Since precision reduction might
+// cause it to return the same value across multiple calls.
+function wait() {
+  var now = performance.now();
+  while (now === performance.now())
+    continue;
+}
+
+// Ensure the entries list is sorted by startTime.
+function checkSorted(entries) {
+  assert_not_equals(entries.length, 0, "entries list must not be empty");
+  if (!entries.length)
+    return;
+
+  var sorted = false;
+  var lastStartTime = entries[0].startTime;
+  for (var i = 1; i < entries.length; ++i) {
+    var currStartTime = entries[i].startTime;
+    assert_less_than_equal(lastStartTime, currStartTime, "entry list must be sorted by startTime");
+    lastStartTime = currStartTime;
+  }
+}

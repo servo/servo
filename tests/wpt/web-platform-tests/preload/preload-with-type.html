@@ -23,31 +23,31 @@
         }
         return null;
     };
-    var videoURL = getVideoURI("/media/A4");
-    var audioURL = getAudioURI("/media/sound_5");
+    var videoURL = getVideoURI("resources/A4");
+    var audioURL = getAudioURI("resources/sound_5");
     var videoFormat = getFormat(videoURL);
     var audioFormat = getFormat(audioURL);
 </script>
 <link rel=preload href="resources/dummy.js" as=script type="text/javascript" onload="scriptLoaded = true;">
 <link rel=preload href="resources/dummy.css" as=style type="text/css" onload="styleLoaded = true;">
 <link rel=preload href="resources/square.png" as=image type="image/png" onload="imageLoaded = true;">
-<link rel=preload href="/fonts/CanvasTest.ttf" as=font type="font/ttf" crossorigin onload="fontLoaded = true;">
+<link rel=preload href="resources/CanvasTest.ttf" as=font type="font/ttf" crossorigin onload="fontLoaded = true;">
 <script>
     document.write('<link rel=preload href="' + videoURL + '" as=video type="video/' + videoFormat + '" onload="videoLoaded = true;">');
     document.write('<link rel=preload href="' + audioURL + '" as=audio type="audio/' + audioFormat + '" onload="audioLoaded = true;">');
 </script>
-<link rel=preload href="/media/foo.vtt" as=track type="text/vtt" onload="trackLoaded = true;">
+<link rel=preload href="resources/foo.vtt" as=track type="text/vtt" onload="trackLoaded = true;">
 <link rel=preload href="resources/dummy.js" as=script type="application/foobar" onload="gibberishLoaded++;">
 <link rel=preload href="resources/dummy.css" as=style type="text/foobar" onload="gibberishLoaded++;">
 <link rel=preload href="resources/square.png" as=image type="image/foobar" onload="gibberishLoaded++;">
-<link rel=preload href="/fonts/CanvasTest.ttf" as=font type="font/foobar" crossorigin onload="gibberishLoaded++;">
+<link rel=preload href="resources/CanvasTest.ttf" as=font type="font/foobar" crossorigin onload="gibberishLoaded++;">
 <script>
     document.write('<link rel=preload href="' + videoURL + '" as=video type="video/foobar" onload="gibberishLoaded++;">');
     document.write('<link rel=preload href="' + audioURL + '" as=audio type="audio/foobar" onload="gibberishLoaded++;">');
 </script>
-<link rel=preload href="/media/foo.vtt" as=track type="text/foobar" onload="gibberishLoaded++;">
+<link rel=preload href="resources/foo.vtt" as=track type="text/foobar" onload="gibberishLoaded++;">
 <body>
-<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<script src="resources/dummy.js?pipe=trickle(d5)&preload-with-type"></script>
 <script>
     window.onload = t.step_func(function() {
         verifyPreloadAndRTSupport();

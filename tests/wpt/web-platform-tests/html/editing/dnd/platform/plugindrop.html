@@ -1,24 +1,24 @@
 <!doctype html>
 <html>
-	<head>
-		<title>drag and drop sequence should end when dropping over a plugin</title>
-		<style type="text/css">
+  <head>
+    <title>drag and drop sequence should end when dropping over a plugin</title>
+    <style type="text/css">
 div {
-	background: orange;
-	height: 100px;
-	width: 100px;
+  background: orange;
+  height: 100px;
+  width: 100px;
 }
 object {
-	height: 100px;
-	width: 100px;
+  height: 100px;
+  width: 100px;
 }
-		</style>
-	</head>
-	<body>
+    </style>
+  </head>
+  <body>
 
-		<p>Use your pointing device to drag the orange square onto the blue square, and release it. The drag placeholder should disappear after releasing (or as the pointer moves over the blue square). Try dragging the orange square again. Fail if it does not respond when trying to drag it.</p>
-		<div draggable="true" ondragstart="event.dataTransfer.setData('Text','dummy text');"></div>
-		<p><object data="../resources/boxnavy.swf"></object></p>
+    <p>Use your pointing device to drag the orange square onto the blue square, and release it. The drag placeholder should disappear after releasing (or as the pointer moves over the blue square). Try dragging the orange square again. Fail if it does not respond when trying to drag it.</p>
+    <div draggable="true" ondragstart="event.dataTransfer.setData('Text','dummy text');"></div>
+    <p><object data="../resources/boxnavy.swf"></object></p>
 
-	</body>
+  </body>
 </html>

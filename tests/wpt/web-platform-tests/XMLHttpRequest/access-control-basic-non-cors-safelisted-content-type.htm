@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests cross-origin request with non-CORS-safelisted content type</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    test(() => {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("PUT", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/XMLHttpRequest/resources/access-control-basic-put-allow.py", false);
+      xhr.setRequestHeader("Content-Type", "text/plain");
+      xhr.send("PASS: PUT data received");
+
+      assert_equals(xhr.responseText, "PASS: Cross-domain access allowed.\nPASS: PUT data received");
+
+      xhr.open("PUT", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/XMLHttpRequest/resources/access-control-basic-put-allow.py", false);
+      xhr.setRequestHeader("Content-Type", "application/xml");
+
+      try {
+        xhr.send("FAIL: PUT data received");
+      } catch(e) {
+        assert_equals(xhr.status, 0, "Cross-domain access was denied in 'send'.");
+        return;
+      }
+      assert_unreached("Cross-domain access was not denied in 'send'.");
+    }, "Deny cross-origin request with non-CORS-safelisted content type");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share cancelled by user</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        setupManualShareTestRequiringCancellation();
+
+        promise_test(t => {
+          return callWhenButtonClicked(() => promise_rejects(
+              t, 'AbortError',
+              navigator.share({title: 'the title', text: 'the message',
+                               url: 'data:the url'})));
+        }, 'share with user cancellation');
+    </script>
+  </body>
+</html>

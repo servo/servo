@@ -37,7 +37,7 @@
     promise_test(function() {
         var testCanvas = document.createElement("canvas");
         initializeTestCanvas(testCanvas);
-        testDrawImageBitmap(testCanvas);
+        return testDrawImageBitmap(testCanvas);
     }, "createImageBitmap from a HTMLCanvasElement, and drawImage on the created ImageBitmap");
 
     promise_test(function() {

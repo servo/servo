@@ -19,9 +19,12 @@ var expected_only_shared_worker = [
 var expected_only_dedicated_worker = [
     [undefined, undefined, new URL(dedicated_worker_url, location).href, 'worker', 'none']
 ];
+
+// These are explicitly sorted by URL in the service worker script.
 var expected_all_clients = [
-    expected_only_window[0], expected_only_shared_worker[0],
-    expected_only_dedicated_worker[0]
+    expected_only_dedicated_worker[0],
+    expected_only_window[0],
+    expected_only_shared_worker[0],
 ];
 
 function test_matchall(frame, expected, query_options) {

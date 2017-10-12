@@ -69,7 +69,7 @@
   // Helper function that takes in an RTCDtlsFingerprint
   // and return an a=fingerprint SDP line
   function fingerprintToSdpLine(fingerprint) {
-    return `\r\na=fingerprint ${fingerprint.algorithm} ${fingerprint.value.toUpperCase()}\r\n`;
+    return `\r\na=fingerprint:${fingerprint.algorithm} ${fingerprint.value.toUpperCase()}\r\n`;
   }
 
   // Assert that an SDP string has fingerprint line for all the cert's fingerprints
@@ -159,7 +159,7 @@
   promise_test(t => {
     return generateCertificate()
     .then(cert => {
-      assert_own_property(cert, 'getFingerprints');
+      assert_idl_attribute(cert, 'getFingerprints');
 
       const fingerprints = cert.getFingerprints();
       assert_true(Array.isArray(fingerprints),

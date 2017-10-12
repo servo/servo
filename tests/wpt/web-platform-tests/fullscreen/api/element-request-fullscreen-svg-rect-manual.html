@@ -11,7 +11,7 @@ async_test(function(t)
     var rect = document.querySelector("rect");
     assert_true(rect instanceof SVGRectElement);
     trusted_request(t, rect, document.body);
-    document.onfullscreenchange = t.unreached_func("fullscreenerror event");
+    document.onfullscreenchange = t.unreached_func("fullscreenchange event");
     document.onfullscreenerror = t.step_func_done();
 });
 </script>
