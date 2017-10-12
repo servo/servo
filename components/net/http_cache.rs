@@ -279,7 +279,6 @@ impl HttpCache {
                 if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
                     if let Some(vary_data) = stored_headers.get_raw("Vary") {
                         // Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
-                        // TODO: A Vary header field-value of "*" always fails to match.
                         let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
                         let vary_values: Vec<&str> = vary_data_string.split(",").map(|val| val.trim()).collect();
                         for vary_val in vary_values {
