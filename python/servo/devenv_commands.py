@@ -32,7 +32,7 @@ class MachCommands(CommandBase):
             self.set_use_stable_rust()
             crate_dir = path.join('ports', 'geckolib')
         else:
-            crate_dir = path.join('components', 'servo')
+            crate_dir = path.join('ports', 'servo')
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()

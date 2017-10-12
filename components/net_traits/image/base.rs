@@ -50,7 +50,8 @@ pub struct ImageMetadata {
 fn byte_swap_and_premultiply(data: &mut [u8]) {
     let length = data.len();
 
-    for i in Iterator::step_by(0..length, 4) {
+    let mut i = 0;
+    while i < length {
         let r = data[i + 2];
         let g = data[i + 1];
         let b = data[i + 0];
@@ -58,6 +59,8 @@ fn byte_swap_and_premultiply(data: &mut [u8]) {
         data[i + 0] = r;
         data[i + 1] = g;
         data[i + 2] = b;
+
+        i += 4;
     }
 }
 

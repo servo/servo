@@ -98,11 +98,11 @@ use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
-use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
 use std::mem;
 use std::rc::Rc;
+use std::str::FromStr;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -213,10 +213,10 @@ pub enum AdjacentPosition {
     BeforeEnd,
 }
 
-impl<'a> TryFrom<&'a str> for AdjacentPosition {
-    type Error = Error;
+impl FromStr for AdjacentPosition {
+    type Err = Error;
 
-    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Error> {
+    fn from_str(position: &str) -> Result<Self, Self::Err> {
         match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
@@ -2243,7 +2243,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
                              -> Fallible<Option<DomRoot<Element>>> {
-        let where_ = AdjacentPosition::try_from(&*where_)?;
+        let where_ = where_.parse::<AdjacentPosition>()?;
         let inserted_node = self.insert_adjacent(where_, element.upcast())?;
         Ok(inserted_node.map(|node| DomRoot::downcast(node).unwrap()))
     }
@@ -2255,7 +2255,7 @@ impl ElementMethods for Element {
         let text = Text::new(data, &document_from_node(self));
 
         // Step 2.
-        let where_ = AdjacentPosition::try_from(&*where_)?;
+        let where_ = where_.parse::<AdjacentPosition>()?;
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
 
@@ -2263,7 +2263,7 @@ impl ElementMethods for Element {
     fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString)
                           -> ErrorResult {
         // Step 1.
-        let position = AdjacentPosition::try_from(&*position)?;
+        let position = position.parse::<AdjacentPosition>()?;
 
         let context = match position {
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {

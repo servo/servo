@@ -64,7 +64,7 @@ impl Scope {
         STATE_KEY.with(|ref r| {
             if let Some(ref mut state) = *r.borrow_mut() {
                 let flow_trace = to_value(&flow::base(&*state.flow_root)).unwrap();
-                let data = box ScopeData::new(name.clone(), flow_trace);
+                let data = Box::new(ScopeData::new(name.clone(), flow_trace));
                 state.scope_stack.push(data);
             }
         });
@@ -102,7 +102,7 @@ pub fn begin_trace(flow_root: FlowRef) {
     STATE_KEY.with(|ref r| {
         let flow_trace = to_value(&flow::base(&*flow_root)).unwrap();
         let state = State {
-            scope_stack: vec![box ScopeData::new("root".to_owned(), flow_trace)],
+            scope_stack: vec![Box::new(ScopeData::new("root".to_owned(), flow_trace))],
             flow_root: flow_root.clone(),
         };
         *r.borrow_mut() = Some(state);

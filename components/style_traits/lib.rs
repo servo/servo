@@ -11,8 +11,6 @@
 
 #![deny(unsafe_code, missing_docs)]
 
-#![cfg_attr(feature = "servo", feature(plugin))]
-
 extern crate app_units;
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate cssparser;

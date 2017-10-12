@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![allow(non_camel_case_types)]
-#![feature(box_syntax)]
 #![feature(core_intrinsics)]
 #![feature(link_args)]
 

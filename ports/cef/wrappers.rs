@@ -205,11 +205,11 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch
             // stack space to create the object in. What a botch.
-            Box::into_raw(box cef_string_utf16 {
+            Box::into_raw(Box::new(cef_string_utf16 {
                 str: ptr,
                 length: buffer.len(),
                 dtor: Some(free_boxed_utf16_string as extern "C" fn(*mut c_ushort)),
-            }) as *const _
+            })) as *const _
         }
     }
     unsafe fn to_rust(cef_string: *const cef_string_t) -> &'a [u16] {

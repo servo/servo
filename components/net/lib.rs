@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![feature(box_syntax)]
-#![feature(iterator_step_by)]
 
 extern crate base64;
 extern crate brotli;

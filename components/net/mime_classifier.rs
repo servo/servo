@@ -454,73 +454,73 @@ impl GroupedClassifier {
     fn image_classifer() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::image_x_icon(),
-                box ByteMatcher::image_x_icon_cursor(),
-                box ByteMatcher::image_bmp(),
-                box ByteMatcher::image_gif89a(),
-                box ByteMatcher::image_gif87a(),
-                box ByteMatcher::image_webp(),
-                box ByteMatcher::image_png(),
-                box ByteMatcher::image_jpeg(),
+                Box::new(ByteMatcher::image_x_icon()),
+                Box::new(ByteMatcher::image_x_icon_cursor()),
+                Box::new(ByteMatcher::image_bmp()),
+                Box::new(ByteMatcher::image_gif89a()),
+                Box::new(ByteMatcher::image_gif87a()),
+                Box::new(ByteMatcher::image_webp()),
+                Box::new(ByteMatcher::image_png()),
+                Box::new(ByteMatcher::image_jpeg()),
             ]
         }
     }
     fn audio_video_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::video_webm(),
-                box ByteMatcher::audio_basic(),
-                box ByteMatcher::audio_aiff(),
-                box ByteMatcher::audio_mpeg(),
-                box ByteMatcher::application_ogg(),
-                box ByteMatcher::audio_midi(),
-                box ByteMatcher::video_avi(),
-                box ByteMatcher::audio_wave(),
-                box Mp4Matcher
+                Box::new(ByteMatcher::video_webm()),
+                Box::new(ByteMatcher::audio_basic()),
+                Box::new(ByteMatcher::audio_aiff()),
+                Box::new(ByteMatcher::audio_mpeg()),
+                Box::new(ByteMatcher::application_ogg()),
+                Box::new(ByteMatcher::audio_midi()),
+                Box::new(ByteMatcher::video_avi()),
+                Box::new(ByteMatcher::audio_wave()),
+                Box::new(Mp4Matcher)
             ]
         }
     }
     fn scriptable_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::text_html_doctype(),
-                box ByteMatcher::text_html_page(),
-                box ByteMatcher::text_html_head(),
-                box ByteMatcher::text_html_script(),
-                box ByteMatcher::text_html_iframe(),
-                box ByteMatcher::text_html_h1(),
-                box ByteMatcher::text_html_div(),
-                box ByteMatcher::text_html_font(),
-                box ByteMatcher::text_html_table(),
-                box ByteMatcher::text_html_a(),
-                box ByteMatcher::text_html_style(),
-                box ByteMatcher::text_html_title(),
-                box ByteMatcher::text_html_b(),
-                box ByteMatcher::text_html_body(),
-                box ByteMatcher::text_html_br(),
-                box ByteMatcher::text_html_p(),
-                box ByteMatcher::text_html_comment(),
-                box ByteMatcher::text_xml(),
-                box ByteMatcher::application_pdf()
+                Box::new(ByteMatcher::text_html_doctype()),
+                Box::new(ByteMatcher::text_html_page()),
+                Box::new(ByteMatcher::text_html_head()),
+                Box::new(ByteMatcher::text_html_script()),
+                Box::new(ByteMatcher::text_html_iframe()),
+                Box::new(ByteMatcher::text_html_h1()),
+                Box::new(ByteMatcher::text_html_div()),
+                Box::new(ByteMatcher::text_html_font()),
+                Box::new(ByteMatcher::text_html_table()),
+                Box::new(ByteMatcher::text_html_a()),
+                Box::new(ByteMatcher::text_html_style()),
+                Box::new(ByteMatcher::text_html_title()),
+                Box::new(ByteMatcher::text_html_b()),
+                Box::new(ByteMatcher::text_html_body()),
+                Box::new(ByteMatcher::text_html_br()),
+                Box::new(ByteMatcher::text_html_p()),
+                Box::new(ByteMatcher::text_html_comment()),
+                Box::new(ByteMatcher::text_xml()),
+                Box::new(ByteMatcher::application_pdf())
             ]
         }
     }
     fn plaintext_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::text_plain_utf_8_bom(),
-                box ByteMatcher::text_plain_utf_16le_bom(),
-                box ByteMatcher::text_plain_utf_16be_bom(),
-                box ByteMatcher::application_postscript()
+                Box::new(ByteMatcher::text_plain_utf_8_bom()),
+                Box::new(ByteMatcher::text_plain_utf_16le_bom()),
+                Box::new(ByteMatcher::text_plain_utf_16be_bom()),
+                Box::new(ByteMatcher::application_postscript())
             ]
         }
     }
     fn archive_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::application_x_gzip(),
-                box ByteMatcher::application_zip(),
-                box ByteMatcher::application_x_rar_compressed()
+                Box::new(ByteMatcher::application_x_gzip()),
+                Box::new(ByteMatcher::application_zip()),
+                Box::new(ByteMatcher::application_x_rar_compressed())
             ]
         }
     }
@@ -528,11 +528,11 @@ impl GroupedClassifier {
     fn font_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
-                box ByteMatcher::application_font_woff(),
-                box ByteMatcher::true_type_collection(),
-                box ByteMatcher::open_type(),
-                box ByteMatcher::true_type(),
-                box ByteMatcher::application_vnd_ms_font_object(),
+                Box::new(ByteMatcher::application_font_woff()),
+                Box::new(ByteMatcher::true_type_collection()),
+                Box::new(ByteMatcher::open_type()),
+                Box::new(ByteMatcher::true_type()),
+                Box::new(ByteMatcher::application_vnd_ms_font_object()),
             ]
         }
     }

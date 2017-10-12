@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 #![feature(box_patterns)]
-#![feature(box_syntax)]
 #![feature(conservative_impl_trait)]
 #![feature(nonzero)]
 #![feature(raw)]

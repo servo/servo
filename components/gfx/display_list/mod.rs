@@ -586,10 +586,10 @@ pub struct ClipScrollNode {
 
 impl ClipScrollNode {
     pub fn to_define_item(&self, pipeline_id: PipelineId) -> DisplayItem {
-        DisplayItem::DefineClipScrollNode(box DefineClipScrollNodeItem {
+        DisplayItem::DefineClipScrollNode(Box::new(DefineClipScrollNodeItem {
             base: BaseDisplayItem::empty(pipeline_id),
             node: self.clone(),
-        })
+        }))
     }
 }
 

@@ -790,12 +790,13 @@ impl Fragment {
             },
             _ => (ScannedTextFlags::empty(), None)
         };
-        let info = box ScannedTextFragmentInfo::new(
+        let info = Box::new(ScannedTextFragmentInfo::new(
             text_run,
             split.range,
             size,
             insertion_point,
-            flags);
+            flags,
+        ));
         self.transform(size, SpecificFragmentInfo::ScannedText(info))
     }
 
@@ -808,7 +809,9 @@ impl Fragment {
         let mut ellipsis_fragment = self.transform(
             self.border_box.size,
             SpecificFragmentInfo::UnscannedText(
-                box UnscannedTextFragmentInfo::new(text_overflow_string, None)));
+                Box::new(UnscannedTextFragmentInfo::new(text_overflow_string, None))
+            )
+        );
         unscanned_ellipsis_fragments.push_back(ellipsis_fragment);
         let ellipsis_fragments = with_thread_local_font_context(layout_context, |font_context| {
             TextRunScanner::new().scan_for_runs(font_context, unscanned_ellipsis_fragments)
@@ -1706,10 +1709,10 @@ impl Fragment {
                 (LogicalSize::zero(self.style.writing_mode), None)
         };
         let mut result = self.transform(size, SpecificFragmentInfo::Generic);
-        result.specific = SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+        result.specific = SpecificFragmentInfo::TruncatedFragment(Box::new(TruncatedFragmentInfo {
             text_info: text_info,
             full: self,
-        });
+        }));
         result
     }
 

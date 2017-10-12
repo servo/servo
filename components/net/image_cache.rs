@@ -109,7 +109,8 @@ fn is_image_opaque(format: webrender_api::ImageFormat, bytes: &[u8]) -> bool {
 fn premultiply(data: &mut [u8]) {
     let length = data.len();
 
-    for i in Iterator::step_by(0..length, 4) {
+    let mut i = 0;
+    while i < length {
         let b = data[i + 0] as u32;
         let g = data[i + 1] as u32;
         let r = data[i + 2] as u32;
@@ -118,6 +119,8 @@ fn premultiply(data: &mut [u8]) {
         data[i + 0] = (b * a / 255) as u8;
         data[i + 1] = (g * a / 255) as u8;
         data[i + 2] = (r * a / 255) as u8;
+
+        i += 4;
     }
 }
 

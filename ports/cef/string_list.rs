@@ -11,7 +11,7 @@ use types::{cef_string_list_t,cef_string_t};
 
 #[no_mangle]
 pub extern "C" fn cef_string_list_alloc() -> *mut cef_string_list_t {
-    Box::into_raw(box vec!())
+    Box::into_raw(Box::new(vec!()))
 }
 
 #[no_mangle]
@@ -63,6 +63,6 @@ pub extern "C" fn cef_string_list_copy(lt: *mut cef_string_list_t) -> *mut cef_s
     unsafe {
         if lt.is_null() { return 0 as *mut cef_string_list_t; }
         let copy = (*lt).clone();
-        Box::into_raw(box copy)
+        Box::into_raw(Box::new(copy))
     }
 }

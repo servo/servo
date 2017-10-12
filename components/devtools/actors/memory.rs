@@ -45,7 +45,7 @@ impl MemoryActor {
             name: actor_name.clone()
         };
 
-        registry.register_later(box actor);
+        registry.register_later(Box::new(actor));
         actor_name
     }
 

@@ -118,15 +118,15 @@ impl HeapSizeOf for FontContextHandle {
 
 impl FontContextHandle {
     pub fn new() -> FontContextHandle {
-        let user = Box::into_raw(box User {
+        let user = Box::into_raw(Box::new(User {
             size: 0,
-        });
-        let mem = Box::into_raw(box FT_MemoryRec_ {
+        }));
+        let mem = Box::into_raw(Box::new(FT_MemoryRec_ {
             user: user as *mut c_void,
             alloc: Some(ft_alloc),
             free: Some(ft_free),
             realloc: Some(ft_realloc),
-        });
+        }));
         unsafe {
             let mut ctx: FT_Library = ptr::null_mut();
 

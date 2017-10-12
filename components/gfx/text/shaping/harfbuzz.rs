@@ -306,8 +306,8 @@ impl Shaper {
                 // have found a contiguous "cluster" and can stop extending it.
                 let mut all_glyphs_are_within_cluster: bool = true;
                 for j in glyph_span.clone() {
-                    let loc = glyph_data.byte_offset_of_glyph(j);
-                    if !byte_range.contains(loc as usize) {
+                    let loc = glyph_data.byte_offset_of_glyph(j) as usize;
+                    if !(byte_range.start <= loc && loc < byte_range.end) {
                         all_glyphs_are_within_cluster = false;
                         break
                     }
@@ -509,7 +509,7 @@ extern fn font_table_func(_: *mut hb_face_t,
                 // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
                 // while HarfBuzz is using it.  When HarfBuzz is done with the buffer, it will pass
                 // this raw pointer back to `destroy_blob_func` which will deallocate the Box.
-                let font_table_ptr = Box::into_raw(box font_table);
+                let font_table_ptr = Box::into_raw(Box::new(font_table));
 
                 let buf = (*font_table_ptr).buffer();
                 // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.

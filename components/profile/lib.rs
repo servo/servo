@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![cfg_attr(not(target_os = "windows"), feature(alloc_jemalloc))]
-#![feature(box_syntax)]
 
 #![deny(unsafe_code)]
 

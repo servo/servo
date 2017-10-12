@@ -1088,15 +1088,15 @@ impl WindowMethods for Window {
                 }
             }
             fn clone(&self) -> Box<EventLoopWaker + Send> {
-                box GlutinEventLoopWaker {
+                Box::new(GlutinEventLoopWaker {
                     window_proxy: self.window_proxy.clone(),
-                }
+                })
             }
         }
         let window_proxy = create_window_proxy(self);
-        box GlutinEventLoopWaker {
+        Box::new(GlutinEventLoopWaker {
             window_proxy: window_proxy,
-        }
+        })
     }
 
     #[cfg(not(target_os = "windows"))]

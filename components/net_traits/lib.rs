@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(box_syntax)]
-#![feature(iterator_step_by)]
 
 #![deny(unsafe_code)]
 
@@ -393,7 +391,7 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
 {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     ROUTER.add_route(action_receiver.to_opaque(),
-                     box move |message| f(message.to().unwrap()));
+                     Box::new(move |message| f(message.to().unwrap())));
     core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
 }
 

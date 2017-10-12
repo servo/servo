@@ -348,15 +348,15 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) => {
-                let image_info = box ImageFragmentInfo::new(node.image_url(),
-                                                            node,
-                                                            &self.layout_context);
+                let image_info = Box::new(ImageFragmentInfo::new(
+                    node.image_url(), node, &self.layout_context
+                ));
                 SpecificFragmentInfo::Image(image_info)
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
-                let image_info = box ImageFragmentInfo::new(node.object_data(),
-                                                            node,
-                                                            &self.layout_context);
+                let image_info = Box::new(ImageFragmentInfo::new(
+                    node.object_data(), node, &self.layout_context
+                 ));
                 SpecificFragmentInfo::Image(image_info)
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLTableElement)) => {
@@ -374,11 +374,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => {
                 let data = node.canvas_data().unwrap();
-                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(data))
+                SpecificFragmentInfo::Canvas(Box::new(CanvasFragmentInfo::new(data)))
             }
             Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => {
                 let data = node.svg_data().unwrap();
-                SpecificFragmentInfo::Svg(box SvgFragmentInfo::new(data))
+                SpecificFragmentInfo::Svg(Box::new(SvgFragmentInfo::new(data)))
             }
             _ => {
                 // This includes pseudo-elements.
@@ -553,7 +553,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
-                    box UnscannedTextFragmentInfo::new(" ".to_owned(), None));
+                    Box::new(UnscannedTextFragmentInfo::new(" ".to_owned(), None))
+                );
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_pseudo,
                                                                     whitespace_style,
@@ -686,7 +687,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         match text_content {
             TextContent::Text(string) => {
-                let info = box UnscannedTextFragmentInfo::new(string, node.selection());
+                let info = Box::new(UnscannedTextFragmentInfo::new(string, node.selection()));
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),
@@ -700,11 +701,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 for content_item in content_items.into_iter() {
                     let specific_fragment_info = match content_item {
                         ContentItem::String(string) => {
-                            let info = box UnscannedTextFragmentInfo::new(string, None);
+                            let info = Box::new(UnscannedTextFragmentInfo::new(string, None));
                             SpecificFragmentInfo::UnscannedText(info)
                         }
                         content_item => {
-                            let content_item = box GeneratedContentInfo::ContentItem(content_item);
+                            let content_item = Box::new(GeneratedContentInfo::ContentItem(content_item));
                             SpecificFragmentInfo::GeneratedContent(content_item)
                         }
                     };
@@ -821,7 +822,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = SpecificFragmentInfo::UnscannedText(
-                        box UnscannedTextFragmentInfo::new(" ".to_owned(), None));
+                        Box::new(UnscannedTextFragmentInfo::new(" ".to_owned(), None))
+                    );
                     let fragment =
                         Fragment::from_opaque_node_and_style(whitespace_node,
                                                              whitespace_pseudo,
@@ -842,7 +844,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         if is_empty && node_style.has_padding_or_border() {
             // An empty inline box needs at least one fragment to draw its background and borders.
             let info = SpecificFragmentInfo::UnscannedText(
-                box UnscannedTextFragmentInfo::new(String::new(), None));
+                Box::new(UnscannedTextFragmentInfo::new(String::new(), None))
+            );
             let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                                 node.get_pseudo_element_type().strip(),
                                                                 node_style.clone(),
@@ -1199,9 +1202,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
             list_style_image::computed_value::T(Either::First(ref url_value)) => {
-                let image_info = box ImageFragmentInfo::new(url_value.url().map(|u| u.clone()),
-                                                            node,
-                                                            &self.layout_context);
+                let image_info = Box::new(ImageFragmentInfo::new(
+                    url_value.url().map(|u| u.clone()), node, &self.layout_context
+                ));
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
             list_style_image::computed_value::T(Either::Second(_none)) => {
@@ -1215,7 +1218,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         unscanned_marker_fragments.push_back(Fragment::new(
                             node,
                             SpecificFragmentInfo::UnscannedText(
-                                box UnscannedTextFragmentInfo::new(text, None)),
+                                Box::new(UnscannedTextFragmentInfo::new(text, None))
+                            ),
                             self.layout_context));
                         let marker_fragments =
                             with_thread_local_font_context(self.layout_context, |mut font_context| {
@@ -1825,7 +1829,8 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
                              restyle_damage: RestyleDamage)
                              -> Fragment {
     let info = SpecificFragmentInfo::UnscannedText(
-        box UnscannedTextFragmentInfo::new(String::from(text), None));
+        Box::new(UnscannedTextFragmentInfo::new(String::from(text), None))
+    );
     let text_style = context.stylist.style_for_anonymous(
         &context.guards, &PseudoElement::ServoText, &node.style);
     Fragment::from_opaque_node_and_style(node.address,

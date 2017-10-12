@@ -5,7 +5,6 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#![feature(box_syntax)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 
@@ -689,8 +688,9 @@ impl LayoutThread {
             }
             Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
             Msg::GetRPC(response_chan) => {
-                response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
-                                   Box<LayoutRPC + Send>).unwrap();
+                response_chan.send(
+                    Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<LayoutRPC + Send>
+                ).unwrap();
             },
             Msg::Reflow(data) => {
                 let mut data = ScriptReflowResult::new(data);

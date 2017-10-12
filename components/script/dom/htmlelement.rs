@@ -375,11 +375,19 @@ impl HTMLElementMethods for HTMLElement {
 static DATA_PREFIX: &str = "data-";
 static DATA_HYPHEN_SEPARATOR: char = '\x2d';
 
+fn is_ascii_uppercase(c: char) -> bool {
+    'A' <= c && c <= 'Z'
+}
+
+fn is_ascii_lowercase(c: char) -> bool {
+    'a' <= c && c <= 'w'
+}
+
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = String::with_capacity(name.len() + DATA_PREFIX.len());
     attr_name.push_str(DATA_PREFIX);
     for ch in name.chars() {
-        if ch.is_ascii_uppercase() {
+        if is_ascii_uppercase(ch) {
             attr_name.push(DATA_HYPHEN_SEPARATOR);
             attr_name.push(ch.to_ascii_lowercase());
         } else {
@@ -400,7 +408,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
         return None;
     }
     let name = &name[5..];
-    let has_uppercase = name.chars().any(|curr_char| curr_char.is_ascii_uppercase());
+    let has_uppercase = name.chars().any(|curr_char| is_ascii_uppercase(curr_char));
     if has_uppercase {
         return None;
     }
@@ -410,7 +418,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
         //check for hyphen followed by character
         if curr_char == DATA_HYPHEN_SEPARATOR {
             if let Some(next_char) = name_chars.next() {
-                if next_char.is_ascii_lowercase() {
+                if is_ascii_lowercase(next_char) {
                     result.push(next_char.to_ascii_uppercase());
                 } else {
                     result.push(curr_char);

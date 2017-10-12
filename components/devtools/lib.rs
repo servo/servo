@@ -12,7 +12,6 @@
 
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
-#![feature(box_syntax)]
 
 extern crate devtools_traits;
 extern crate hyper;
@@ -143,9 +142,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     let mut registry = ActorRegistry::new();
 
-    let root = box RootActor {
+    let root = Box::new(RootActor {
         tabs: vec!(),
-    };
+    });
 
     registry.register(root);
     registry.find::<RootActor>("root");
@@ -262,17 +261,17 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 id: id,
             };
             actor_workers.insert((pipeline, id), worker.name.clone());
-            actors.register(box worker);
+            actors.register(Box::new(worker));
         }
 
         actor_pipelines.insert(pipeline, tab.name.clone());
-        actors.register(box tab);
-        actors.register(box console);
-        actors.register(box inspector);
-        actors.register(box timeline);
-        actors.register(box profiler);
-        actors.register(box performance);
-        actors.register(box thread);
+        actors.register(Box::new(tab));
+        actors.register(Box::new(console));
+        actors.register(Box::new(inspector));
+        actors.register(Box::new(timeline));
+        actors.register(Box::new(profiler));
+        actors.register(Box::new(performance));
+        actors.register(Box::new(thread));
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
@@ -467,7 +466,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 let actor_name = actors.new_name("netevent");
                 let actor = NetworkEventActor::new(actor_name.clone());
                 entry.insert(actor_name.clone());
-                actors.register(box actor);
+                actors.register(Box::new(actor));
                 actor_name
             }
         }
