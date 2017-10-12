@@ -25,12 +25,14 @@
 
 <section id="section">
     <div id="scrollable"></div>
+    <div id="unrelated"></div>
 </section>
 
 <script>
     setup({explicit_done:true});
     window.onload = function () {
         var section = document.getElementById("section");
+        var unrelated = document.getElementById("unrelated");
 
         test(function () {
             assert_equals(section.scrollTop, 0, "initial scrollTop should be 0");
@@ -41,6 +43,8 @@
 
             assert_equals(section.scrollTop, 30, "changed scrollTop should be 40");
             assert_equals(section.scrollLeft, 40, "changed scrollLeft should be 40");
+            assert_equals(unrelated.scrollTop, 0, "unrelated element should not scroll");
+            assert_equals(unrelated.scrollLeft, 0, "unrelated element should not scroll");
         },  "Element scrollTop/Left getter/setter test");
 
         test(function () {
