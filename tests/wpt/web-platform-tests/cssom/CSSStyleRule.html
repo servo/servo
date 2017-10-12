@@ -67,7 +67,24 @@
             assert_idl_attribute(rule, "selectorText");
             assert_equals(typeof rule.selectorText, "string");
             assert_idl_attribute(rule, "style");
-        }, "Existence, writability and type of CSSStyleRule attributes");
+        }, "Existence and type of CSSStyleRule attributes");
+
+        test(function() {
+            // CSSStyleRule.style has PutForwards=cssText and SameObject.
+            var initial = rule.style.cssText;
+            var style = rule.style;
+
+            rule.style = "";
+            assert_equals(rule.style.cssText, "");
+            assert_equals(rule.style, style);
+
+            rule.style = "margin: 42px;";
+            assert_equals(rule.style.margin, "42px");
+            assert_equals(rule.style, style);
+
+            rule.style = initial;
+            assert_equals(rule.style, style);
+        }, "Assigning to CSSStyleRule.style assigns to cssText; CSSStyleRule.style returns the same object");
 
         test(function() {
             assert_equals(rule.selectorText, "div");
