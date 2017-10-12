@@ -32,7 +32,7 @@ use display_list_builder::{DisplayListBuildState, StackingContextCollectionState
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
-use flow_list::{FlowList, MutFlowListIterator};
+use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::StackingContextId;
@@ -459,7 +459,7 @@ pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
 }
 
 /// Iterates over the children of this immutable flow.
-pub fn child_iter<'a>(flow: &'a Flow) -> impl Iterator<Item = &'a Flow> {
+pub fn child_iter<'a>(flow: &'a Flow) -> FlowListIterator {
     base(flow).children.iter()
 }
 

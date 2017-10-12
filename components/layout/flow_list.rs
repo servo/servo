@@ -7,6 +7,7 @@ use flow_ref::FlowRef;
 use serde::ser::{Serialize, SerializeSeq, Serializer};
 use serde_json::{Map, Value, to_value};
 use std::collections::{LinkedList, linked_list};
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// This needs to be reworked now that we have dynamically-sized types in Rust.
@@ -51,6 +52,10 @@ impl Serialize for FlowList {
 
 pub struct MutFlowListIterator<'a> {
     it: linked_list::IterMut<'a, FlowRef>,
+}
+
+pub struct FlowListIterator<'a> {
+    it: linked_list::Iter<'a, FlowRef>,
 }
 
 impl FlowList {
@@ -101,8 +106,10 @@ impl FlowList {
     /// SECURITY-NOTE(pcwalton): This does not hand out `FlowRef`s by design. Do not add a method
     /// to do so! See the comment above in `FlowList`.
     #[inline]
-    pub fn iter<'a>(&'a self) -> impl DoubleEndedIterator<Item = &'a Flow> {
-        self.flows.iter().map(|flow| &**flow)
+    pub fn iter<'a>(&'a self) -> FlowListIterator {
+        FlowListIterator {
+            it: self.flows.iter(),
+        }
     }
 
     /// Provide a forward iterator with mutable references
@@ -150,9 +157,28 @@ impl FlowList {
     }
 }
 
+impl<'a> DoubleEndedIterator for FlowListIterator<'a> {
+    fn next_back(&mut self) -> Option<&'a Flow> {
+        self.it.next_back().map(Deref::deref)
+    }
+}
+
 impl<'a> DoubleEndedIterator for MutFlowListIterator<'a> {
     fn next_back(&mut self) -> Option<&'a mut Flow> {
         self.it.next_back().map(FlowRef::deref_mut)
+    }
+}
+
+impl<'a> Iterator for FlowListIterator<'a> {
+    type Item = &'a Flow;
+    #[inline]
+    fn next(&mut self) -> Option<&'a Flow> {
+        self.it.next().map(Deref::deref)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.it.size_hint()
     }
 }
 
