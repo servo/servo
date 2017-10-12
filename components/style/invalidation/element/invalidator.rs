@@ -34,7 +34,7 @@ where
     ///
     /// Returns whether the element itself was invalidated.
     fn collect_invalidations(
-        &self,
+        &mut self,
         element: E,
         data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
@@ -46,7 +46,7 @@ where
     /// Returns whether the invalidation process should process the descendants
     /// of the given element.
     fn should_process_descendants(
-        &self,
+        &mut self,
         element: E,
         data: Option<&mut ElementData>,
     ) -> bool;
@@ -54,21 +54,21 @@ where
     /// Executes an arbitrary action when the recursion limit is exceded (if
     /// any).
     fn recursion_limit_exceeded(
-        &self,
+        &mut self,
         element: E,
         data: Option<&mut ElementData>,
     );
 
     /// Executes an action when `Self` is invalidated.
     fn invalidated_self(
-        &self,
+        &mut self,
         element: E,
         data: Option<&mut ElementData>,
     );
 
     /// Executes an action when any descendant of `Self` is invalidated.
     fn invalidated_descendants(
-        &self,
+        &mut self,
         element: E,
         data: Option<&mut ElementData>,
         child: E,
@@ -96,10 +96,7 @@ where
     shared_context: &'a SharedStyleContext<'b>,
     stack_limit_checker: Option<&'a StackLimitChecker>,
     nth_index_cache: Option<&'a mut NthIndexCache>,
-
-    // TODO(emilio): Make a mutable reference, we're going to need that for
-    // QS/QSA.
-    processor: &'a P,
+    processor: &'a mut P,
 }
 
 /// A vector of invalidations, optimized for small invalidation sets.
@@ -240,7 +237,7 @@ where
         shared_context: &'a SharedStyleContext<'b>,
         stack_limit_checker: Option<&'a StackLimitChecker>,
         nth_index_cache: Option<&'a mut NthIndexCache>,
-        processor: &'a P,
+        processor: &'a mut P,
     ) -> Self {
         Self {
             element,
@@ -359,36 +356,36 @@ where
         invalidations: &InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool {
-        let mut child_data = child.mutate_data();
-
-        let mut child_invalidator = TreeStyleInvalidator::new(
-            child,
-            child_data.as_mut().map(|d| &mut **d),
-            self.shared_context,
-            self.stack_limit_checker,
-            self.nth_index_cache.as_mut().map(|c| &mut **c),
-            self.processor,
-        );
-
         let mut invalidations_for_descendants = InvalidationVector::new();
+
         let mut invalidated_child = false;
+        let invalidated_descendants = {
+            let mut child_data = child.mutate_data();
 
-        invalidated_child |=
-            child_invalidator.process_sibling_invalidations(
-                &mut invalidations_for_descendants,
-                sibling_invalidations,
+            let mut child_invalidator = TreeStyleInvalidator::new(
+                child,
+                child_data.as_mut().map(|d| &mut **d),
+                self.shared_context,
+                self.stack_limit_checker,
+                self.nth_index_cache.as_mut().map(|c| &mut **c),
+                self.processor,
             );
 
-        invalidated_child |=
-            child_invalidator.process_descendant_invalidations(
-                invalidations,
-                &mut invalidations_for_descendants,
-                sibling_invalidations,
-            );
+            invalidated_child |=
+                child_invalidator.process_sibling_invalidations(
+                    &mut invalidations_for_descendants,
+                    sibling_invalidations,
+                );
 
-        let invalidated_descendants = child_invalidator.invalidate_descendants(
-            &invalidations_for_descendants
-        );
+            invalidated_child |=
+                child_invalidator.process_descendant_invalidations(
+                    invalidations,
+                    &mut invalidations_for_descendants,
+                    sibling_invalidations,
+                );
+
+            child_invalidator.invalidate_descendants(&invalidations_for_descendants)
+        };
 
         // The child may not be a flattened tree child of the current element,
         // but may be arbitrarily deep.

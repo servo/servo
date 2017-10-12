@@ -259,14 +259,14 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        let processor = StateAndAttrInvalidationProcessor;
+        let mut processor = StateAndAttrInvalidationProcessor;
         let invalidator = TreeStyleInvalidator::new(
             element,
             Some(self),
             shared_context,
             stack_limit_checker,
             nth_index_cache,
-            &processor,
+            &mut processor,
         );
 
         let result = invalidator.invalidate();

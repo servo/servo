@@ -63,7 +63,7 @@ where
     fn invalidates_on_eager_pseudo_element(&self) -> bool { true }
 
     fn collect_invalidations(
-        &self,
+        &mut self,
         element: E,
         mut data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
@@ -182,7 +182,7 @@ where
     }
 
     fn should_process_descendants(
-        &self,
+        &mut self,
         _element: E,
         data: Option<&mut ElementData>,
     ) -> bool {
@@ -196,7 +196,7 @@ where
     }
 
     fn recursion_limit_exceeded(
-        &self,
+        &mut self,
         _element: E,
         data: Option<&mut ElementData>,
     ) {
@@ -206,7 +206,7 @@ where
     }
 
     fn invalidated_descendants(
-        &self,
+        &mut self,
         element: E,
         data: Option<&mut ElementData>,
         child: E,
@@ -236,7 +236,7 @@ where
     }
 
     fn invalidated_self(
-        &self,
+        &mut self,
         _element: E,
         data: Option<&mut ElementData>,
     ) {
