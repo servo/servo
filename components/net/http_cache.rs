@@ -101,7 +101,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     // Note: this cache should be treated as shared for now.
     // TODO: check for absence of private response directive https://tools.ietf.org/html/rfc7234#section-5.2.2.6
     // TODO: check for absence of the Authorization header field.
-    // TODO: check that the response eihter:
+    // TODO: check that the response either:
     // *  contains an Expires header field (see Section 5.3), or
     // *  contains a max-age response directive (see Section 5.2.2.8), or
     // *  contains a s-maxage response directive (see Section 5.2.2.9) and the cache is shared, or
