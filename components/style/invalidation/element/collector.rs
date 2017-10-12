@@ -184,11 +184,8 @@ where
             Some(ref data) => data,
         };
 
-        // FIXME(emilio): should check only RESTYLE_DESCENDANTS.
-        //
-        // Also, could probably return false if data.styles.is_display_none()
-        // returns true.
-        !data.hint.contains_subtree()
+        !data.styles.is_display_none() &&
+            !data.hint.contains(RESTYLE_DESCENDANTS)
     }
 
     fn recursion_limit_exceeded(
