@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryEntry.getDirectory() manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-filesystemdirectoryentry-getdirectory">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  assert_idl_attribute(entry, 'getDirectory', 'FileSystemDirectoryEntry has getDirectory');
+  assert_equals(typeof entry.getDirectory, 'function', 'getDirectory() is a method');
+
+  t.done();
+}, 'FileSystemDirectoryEntry - getDirectory()');
+
+INVALID_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getDirectory(
+      path,
+      {},
+      t.unreached_func('getDirectory should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'TypeMismatchError',
+                      'getDirectory() should fail if given invalid path');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getDirectory() - invalid path: ' + JSON.stringify(path));
+});
+
+EMPTY_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getDirectory(
+      path,
+      {},
+      t.step_func(dir => {
+        assert_true(dir.isDirectory,
+                    'empty path should yield FileSystemDirectoryEntry');
+        assert_equals(dir.name, entry.name,
+                      'empty path should yield same directory');
+        assert_equals(dir.fullPath, entry.fullPath,
+                      'empty path should yield same directory');
+        t.done();
+      }),
+      t.unreached_func('getDirectory should not fail')
+    );
+  }, 'FileSystemDirectoryEntry.getDirectory() - empty path: '
+   + JSON.stringify(path) || 'undefined');
+});
+
+DIR_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getDirectory(
+      path,
+      {create: true},
+      t.unreached_func('getDirectory should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'SecurityError',
+                      'getDirectory() should fail with security error if ' +
+                      'create option is set');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getDirectory() - {create:true}: ' + path);
+});
+
+NOT_FOUND_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getDirectory(
+      path,
+      {},
+      t.unreached_func('getDirectory should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'NotFoundError',
+                      'getDirectory() should fail with not found');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getDirectory() - not found: ' + path);
+});
+
+FILE_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getDirectory(
+      path,
+      {},
+      t.unreached_func('getDirectory should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'TypeMismatchError',
+                      'getDirectory() should fail if type is file');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getDirectory() - directory: ' + path);
+});
+
+DIR_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getDirectory(
+      path,
+      {},
+      t.step_func(e => {
+        assert_false(e.isFile);
+        assert_true(e.isDirectory);
+        assert_equals(e.name, 'subdir');
+        t.done();
+      }),
+      t.unreached_func('getDirectory should not fail')
+    );
+  }, 'FileSystemDirectoryEntry.getDirectory() - directory: ' + path);
+});
+
+[
+  {path: '.', name: 'upload'},
+  {path: '/', name: ''}
+].forEach(test_case => {
+  entry_test((t, entry) => {
+    entry.getDirectory(
+      test_case.path,
+      {},
+      t.step_func(e => {
+        assert_false(e.isFile);
+        assert_true(e.isDirectory);
+        assert_equals(e.name, test_case.name);
+        t.done();
+      }),
+      t.unreached_func('getDirectory should not fail')
+    );
+  }, 'FileSystemDirectoryEntry.getDirectory() - directory: ' + test_case.path);
+});
+</script>

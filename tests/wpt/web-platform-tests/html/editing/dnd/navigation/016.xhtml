@@ -4,28 +4,28 @@
 <title>Reload during canvas cross page drag and drop</title>
 <script type="application/ecmascript">
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.setData('text/uri-list', document.querySelector('canvas').toDataURL('image/png'));
-	window.location = '016-1.xhtml';}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/uri-list', document.querySelector('canvas').toDataURL('image/png'));
+  window.location = '016-1.xhtml';}
 </script>
 </head>
 <body>
 <p>
-	<canvas width="100" height="100" draggable="true" ondragstart="start(event)">Canvas</canvas>
+  <canvas width="100" height="100" draggable="true" ondragstart="start(event)">Canvas</canvas>
 </p>
 <p>Drag canvas pattern. You should be redirected to the new page and be able to drop it there.</p>
 <script type="application/ecmascript">
 var canvas = document.querySelector('canvas'),
 c = canvas.getContext('2d');
 for(var x = 0; x != 50; x++)
-	{c.fillStyle = (x%2 == 0)?'navy':'white';
-	c.beginPath();
-	c.moveTo(x,x);
-	c.lineTo(100-x,x);
-	c.lineTo(100-x,100-x);
-	c.lineTo(x,100-x);
-	c.closePath();
-	c.fill();}
+  {c.fillStyle = (x%2 == 0)?'navy':'white';
+  c.beginPath();
+  c.moveTo(x,x);
+  c.lineTo(100-x,x);
+  c.lineTo(100-x,100-x);
+  c.lineTo(x,100-x);
+  c.closePath();
+  c.fill();}
 </script>
 </body>
 </html>

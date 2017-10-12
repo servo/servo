@@ -12,6 +12,14 @@
     ctx.font = '20PX   SERIF';
     @assert ctx.font === '20px serif'; @moz-todo
 
+- name: 2d.text.font.parse.tiny
+  testing:
+    - 2d.text.font.parse
+    - 2d.text.font.get
+  code: |
+    ctx.font = '1px sans-serif';
+    @assert ctx.font === '1px sans-serif';
+
 - name: 2d.text.font.parse.complex
   testing:
     - 2d.text.font.parse

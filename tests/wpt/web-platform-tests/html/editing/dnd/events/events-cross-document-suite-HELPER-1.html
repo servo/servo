@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <title>drag &amp; drop - event sequence for cross-document drag</title>
 <style type="text/css">
-	/* use margins instead of padding to make sure the body begins at the top of the page */
-	html, body {
-		margin: 0;
-	}
-	body {
-		padding: 116px 8px 8px;
-	}
+  /* use margins instead of padding to make sure the body begins at the top of the page */
+  html, body {
+    margin: 0;
+  }
+  body {
+    padding: 116px 8px 8px;
+  }
   #testhere div {
     height: 100px;
     width: 100px;
@@ -17,7 +17,7 @@
   #orange {
     background-color: orange;
     left: 8px;
-	}
+  }
   #fuchsia {
     background-color: fuchsia;
     left: 158px;
@@ -27,172 +27,172 @@
 <script>
 parent.setup(function () {},{explicit_done:true,explicit_timeout:true});
 window.onload = function () {
-	var orange = document.querySelector('#orange')
-	var fuchsia = document.querySelector('#fuchsia')
-	var body = document.body;
+  var orange = document.querySelector('#orange')
+  var fuchsia = document.querySelector('#fuchsia')
+  var body = document.body;
 
-	orange.ondragstart = function (e) {
-		parent.events.push('doc1.orange.ondragstart');
-		e.dataTransfer.effectAllowed = 'all';
-		e.dataTransfer.setData('Text', 'foo');
-	};
-	orange.ondrag = function () { parent.events.push('doc1.orange.ondrag'); };
-	orange.ondragenter = function () { parent.events.push('doc1.orange.ondragenter'); };
-	orange.ondragover = function () { parent.events.push('doc1.orange.ondragover'); };
-	orange.ondrop = function () { parent.events.push('doc1.orange.ondrop'); return false; };
-	orange.ondragend = function () { parent.events.push('doc1.orange.ondragend'); setTimeout(finish,100); };
-	orange.onmousedown = function () { parent.events.push('doc1.orange.onmousedown'); };
-	orange.onmouseup = function () { parent.events.push('doc1.orange.onmouseup'); };
+  orange.ondragstart = function (e) {
+    parent.events.push('doc1.orange.ondragstart');
+    e.dataTransfer.effectAllowed = 'all';
+    e.dataTransfer.setData('Text', 'foo');
+  };
+  orange.ondrag = function () { parent.events.push('doc1.orange.ondrag'); };
+  orange.ondragenter = function () { parent.events.push('doc1.orange.ondragenter'); };
+  orange.ondragover = function () { parent.events.push('doc1.orange.ondragover'); };
+  orange.ondrop = function () { parent.events.push('doc1.orange.ondrop'); return false; };
+  orange.ondragend = function () { parent.events.push('doc1.orange.ondragend'); setTimeout(finish,100); };
+  orange.onmousedown = function () { parent.events.push('doc1.orange.onmousedown'); };
+  orange.onmouseup = function () { parent.events.push('doc1.orange.onmouseup'); };
 
-	/* Events for the fuchsia box */
-	fuchsia.ondragstart = function () { parent.events.push('doc1.pink.ondragstart'); };
-	fuchsia.ondrag = function () { parent.events.push('doc1.pink.ondrag'); };
-	fuchsia.ondragenter = function () { parent.events.push('doc1.pink.ondragenter'); };
-	fuchsia.ondragover = function () { parent.events.push('doc1.pink.ondragover'); };
-	fuchsia.ondrop = function () { parent.events.push('doc1.pink.ondrop'); return false; };
-	fuchsia.ondragend = function () { parent.events.push('doc1.pink.ondragend'); };
-	fuchsia.onmousedown = function () { parent.events.push('doc1.pink.onmousedown'); };
-	fuchsia.onmouseup = function () { parent.events.push('doc1.pink.onmouseup'); };
+  /* Events for the fuchsia box */
+  fuchsia.ondragstart = function () { parent.events.push('doc1.pink.ondragstart'); };
+  fuchsia.ondrag = function () { parent.events.push('doc1.pink.ondrag'); };
+  fuchsia.ondragenter = function () { parent.events.push('doc1.pink.ondragenter'); };
+  fuchsia.ondragover = function () { parent.events.push('doc1.pink.ondragover'); };
+  fuchsia.ondrop = function () { parent.events.push('doc1.pink.ondrop'); return false; };
+  fuchsia.ondragend = function () { parent.events.push('doc1.pink.ondragend'); };
+  fuchsia.onmousedown = function () { parent.events.push('doc1.pink.onmousedown'); };
+  fuchsia.onmouseup = function () { parent.events.push('doc1.pink.onmouseup'); };
 
-	/* Events for the page body */
-	body.ondragstart = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragstart': 'doc1.bubble.ondragstart' ); };
-	body.ondrag = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondrag': 'doc1.bubble.ondrag' ); };
-	body.ondragenter = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragenter': 'doc1.bubble.ondragenter' ); };
-	body.ondragover = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragover': 'doc1.bubble.ondragover' ); };
-	body.ondrop = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondrop': 'doc1.bubble.ondrop' ); };
-	body.ondragend = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragend': 'doc1.bubble.ondragend' ); };
-	body.onmousedown = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.onmousedown': 'doc1.bubble.onmousedown' ); };
-	body.onmouseup = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.onmouseup': 'doc1.bubble.onmouseup' ); };
+  /* Events for the page body */
+  body.ondragstart = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragstart': 'doc1.bubble.ondragstart' ); };
+  body.ondrag = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondrag': 'doc1.bubble.ondrag' ); };
+  body.ondragenter = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragenter': 'doc1.bubble.ondragenter' ); };
+  body.ondragover = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragover': 'doc1.bubble.ondragover' ); };
+  body.ondrop = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondrop': 'doc1.bubble.ondrop' ); };
+  body.ondragend = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.ondragend': 'doc1.bubble.ondragend' ); };
+  body.onmousedown = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.onmousedown': 'doc1.bubble.onmousedown' ); };
+  body.onmouseup = function (e) { parent.events.push( ( e.target == body ) ? 'doc1.body.onmouseup': 'doc1.bubble.onmouseup' ); };
 
-	function finish(e) {
-		var i, evindex;
-		var events = parent.events.join('-');
-		/*
-			Normalise; reduce repeating event sequences to only 2 occurrences.
-			This makes the final event sequence predictable, no matter how many times the drag->dragover sequences repeat.
-			Two occurrances are kept in each case to allow testing to make sure the sequence really is repeating.
-		*/
-		//spec compliant - div dragenter is not cancelled, so body dragenter fires and body becomes current target
-		//repeats while drag is over orange or fuchsia or the body
-		events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc1\.body\.ondragover){3,}/g,'$1$1');
-		events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc2\.body\.ondragover){3,}/g,'$1$1');
-		//repeats while dragging over yellow
-		events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc2\.yellow\.ondragover-doc2\.bubble\.ondragover){3,}/g,'$1$1');
-		//repeats while dragging over blue
-		events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc2\.blue\.ondragover-doc2\.bubble\.ondragover){3,}/g,'$1$1');
-		//non-spec-compliant repeats while dragging over orange
-		events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc1\.orange\.ondragover-doc1\.bubble\.ondragover){3,}/g,'$1$1');
-		//non-spec-compliant repeats while dragging over fuchsia
-		events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc1\.pink\.ondragover-doc1\.bubble\.ondragover){3,}/g,'$1$1');
-		events = events.split(/-/g);
+  function finish(e) {
+    var i, evindex;
+    var events = parent.events.join('-');
+    /*
+      Normalise; reduce repeating event sequences to only 2 occurrences.
+      This makes the final event sequence predictable, no matter how many times the drag->dragover sequences repeat.
+      Two occurrances are kept in each case to allow testing to make sure the sequence really is repeating.
+    */
+    //spec compliant - div dragenter is not cancelled, so body dragenter fires and body becomes current target
+    //repeats while drag is over orange or fuchsia or the body
+    events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc1\.body\.ondragover){3,}/g,'$1$1');
+    events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc2\.body\.ondragover){3,}/g,'$1$1');
+    //repeats while dragging over yellow
+    events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc2\.yellow\.ondragover-doc2\.bubble\.ondragover){3,}/g,'$1$1');
+    //repeats while dragging over blue
+    events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc2\.blue\.ondragover-doc2\.bubble\.ondragover){3,}/g,'$1$1');
+    //non-spec-compliant repeats while dragging over orange
+    events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc1\.orange\.ondragover-doc1\.bubble\.ondragover){3,}/g,'$1$1');
+    //non-spec-compliant repeats while dragging over fuchsia
+    events = events.replace(/(-doc1\.orange\.ondrag-doc1\.bubble\.ondrag-doc1\.pink\.ondragover-doc1\.bubble\.ondragover){3,}/g,'$1$1');
+    events = events.split(/-/g);
 
-		parent.test(function () {
-			parent.assert_array_equals(events,
+    parent.test(function () {
+      parent.assert_array_equals(events,
 
-				['doc1.orange.onmousedown', //mouse down
-				'doc1.bubble.onmousedown',
+        ['doc1.orange.onmousedown', //mouse down
+        'doc1.bubble.onmousedown',
 
-				'doc1.orange.ondragstart', //dragging begins
-				'doc1.bubble.ondragstart',
+        'doc1.orange.ondragstart', //dragging begins
+        'doc1.bubble.ondragstart',
 
-				'doc1.orange.ondrag',      //mouse is over orange
-				'doc1.bubble.ondrag',
-				'doc1.orange.ondragenter', //not cancelled
-				'doc1.bubble.ondragenter',
-				'doc1.body.ondragenter',   //so body becomes current target, and the event fires there as well
-				'doc1.body.ondragover',
+        'doc1.orange.ondrag',      //mouse is over orange
+        'doc1.bubble.ondrag',
+        'doc1.orange.ondragenter', //not cancelled
+        'doc1.bubble.ondragenter',
+        'doc1.body.ondragenter',   //so body becomes current target, and the event fires there as well
+        'doc1.body.ondragover',
 
-				'doc1.orange.ondrag',      //start repeating (some over orange, some over body)
-				'doc1.bubble.ondrag',
-				'doc1.body.ondragover',
-				'doc1.orange.ondrag',      //...twice to make sure it actually repeats
-				'doc1.bubble.ondrag',
-				'doc1.body.ondragover',    //end repeating
+        'doc1.orange.ondrag',      //start repeating (some over orange, some over body)
+        'doc1.bubble.ondrag',
+        'doc1.body.ondragover',
+        'doc1.orange.ondrag',      //...twice to make sure it actually repeats
+        'doc1.bubble.ondrag',
+        'doc1.body.ondragover',    //end repeating
 
-				'doc1.orange.ondrag',      //mouse moves over pink
-				'doc1.bubble.ondrag',
-				'doc1.pink.ondragenter',   //not cancelled
-				'doc1.bubble.ondragenter',
-				'doc1.body.ondragover',    //so body becomes current target, but since it was already the target, dragenter does not need to fire again
+        'doc1.orange.ondrag',      //mouse moves over pink
+        'doc1.bubble.ondrag',
+        'doc1.pink.ondragenter',   //not cancelled
+        'doc1.bubble.ondragenter',
+        'doc1.body.ondragover',    //so body becomes current target, but since it was already the target, dragenter does not need to fire again
 
-				'doc1.orange.ondrag',      //start repeating (some over pink, some over body)
-				'doc1.bubble.ondrag',
-				'doc1.body.ondragover',
-				'doc1.orange.ondrag',      //...twice to make sure it actually repeats
-				'doc1.bubble.ondrag',
-				'doc1.body.ondragover',    //end repeating
+        'doc1.orange.ondrag',      //start repeating (some over pink, some over body)
+        'doc1.bubble.ondrag',
+        'doc1.body.ondragover',
+        'doc1.orange.ondrag',      //...twice to make sure it actually repeats
+        'doc1.bubble.ondrag',
+        'doc1.body.ondragover',    //end repeating
 
-				'doc1.orange.ondrag',      //mouse moves over second frame
-				'doc1.bubble.ondrag',
-				'doc2.body.ondragenter',   //not cancelled
-				'doc2.body.ondragenter',   //so it fires again and sets body as current target
-				'doc2.body.ondragover',
+        'doc1.orange.ondrag',      //mouse moves over second frame
+        'doc1.bubble.ondrag',
+        'doc2.body.ondragenter',   //not cancelled
+        'doc2.body.ondragenter',   //so it fires again and sets body as current target
+        'doc2.body.ondragover',
 
-				'doc1.orange.ondrag',      //start repeating (over second body)
-				'doc1.bubble.ondrag',
-				'doc2.body.ondragover',
-				'doc1.orange.ondrag',      //...twice to make sure it actually repeats
-				'doc1.bubble.ondrag',
-				'doc2.body.ondragover',    //end repeating
+        'doc1.orange.ondrag',      //start repeating (over second body)
+        'doc1.bubble.ondrag',
+        'doc2.body.ondragover',
+        'doc1.orange.ondrag',      //...twice to make sure it actually repeats
+        'doc1.bubble.ondrag',
+        'doc2.body.ondragover',    //end repeating
 
-				'doc1.orange.ondrag',      //mouse moves over yellow
-				'doc1.bubble.ondrag',
-				'doc2.yellow.ondragenter',
-				'doc2.bubble.ondragenter',
-				'doc2.yellow.ondragover',
-				'doc2.bubble.ondragover',
+        'doc1.orange.ondrag',      //mouse moves over yellow
+        'doc1.bubble.ondrag',
+        'doc2.yellow.ondragenter',
+        'doc2.bubble.ondragenter',
+        'doc2.yellow.ondragover',
+        'doc2.bubble.ondragover',
 
-				'doc1.orange.ondrag',      //start repeating (over yellow)
-				'doc1.bubble.ondrag',
-				'doc2.yellow.ondragover',
-				'doc2.bubble.ondragover',
-				'doc1.orange.ondrag',      //...twice to make sure it actually repeats
-				'doc1.bubble.ondrag',
-				'doc2.yellow.ondragover',
-				'doc2.bubble.ondragover',  //end repeating
+        'doc1.orange.ondrag',      //start repeating (over yellow)
+        'doc1.bubble.ondrag',
+        'doc2.yellow.ondragover',
+        'doc2.bubble.ondragover',
+        'doc1.orange.ondrag',      //...twice to make sure it actually repeats
+        'doc1.bubble.ondrag',
+        'doc2.yellow.ondragover',
+        'doc2.bubble.ondragover',  //end repeating
 
-				'doc1.orange.ondrag',      //mouse moves over body
-				'doc1.bubble.ondrag',
-				'doc2.body.ondragenter',   //not cancelled
-				'doc2.body.ondragenter',   //so it fires again and sets body as current target
-				'doc2.body.ondragover',
+        'doc1.orange.ondrag',      //mouse moves over body
+        'doc1.bubble.ondrag',
+        'doc2.body.ondragenter',   //not cancelled
+        'doc2.body.ondragenter',   //so it fires again and sets body as current target
+        'doc2.body.ondragover',
 
-				'doc1.orange.ondrag',      //start repeating (over body)
-				'doc1.bubble.ondrag',
-				'doc2.body.ondragover',
-				'doc1.orange.ondrag',      //...twice to make sure it actually repeats
-				'doc1.bubble.ondrag',
-				'doc2.body.ondragover',    //end repeating
+        'doc1.orange.ondrag',      //start repeating (over body)
+        'doc1.bubble.ondrag',
+        'doc2.body.ondragover',
+        'doc1.orange.ondrag',      //...twice to make sure it actually repeats
+        'doc1.bubble.ondrag',
+        'doc2.body.ondragover',    //end repeating
 
-				'doc1.orange.ondrag',      //mouse moves over blue
-				'doc1.bubble.ondrag',
-				'doc2.blue.ondragenter',
-				'doc2.bubble.ondragenter',
-				'doc2.blue.ondragover',
-				'doc2.bubble.ondragover',
+        'doc1.orange.ondrag',      //mouse moves over blue
+        'doc1.bubble.ondrag',
+        'doc2.blue.ondragenter',
+        'doc2.bubble.ondragenter',
+        'doc2.blue.ondragover',
+        'doc2.bubble.ondragover',
 
-				'doc1.orange.ondrag',      //start repeating (over blue)
-				'doc1.bubble.ondrag',
-				'doc2.blue.ondragover',
-				'doc2.bubble.ondragover',
-				'doc1.orange.ondrag',      //...twice to make sure it actually repeats
-				'doc1.bubble.ondrag',
-				'doc2.blue.ondragover',
-				'doc2.bubble.ondragover',  //end repeating
+        'doc1.orange.ondrag',      //start repeating (over blue)
+        'doc1.bubble.ondrag',
+        'doc2.blue.ondragover',
+        'doc2.bubble.ondragover',
+        'doc1.orange.ondrag',      //...twice to make sure it actually repeats
+        'doc1.bubble.ondrag',
+        'doc2.blue.ondragover',
+        'doc2.bubble.ondragover',  //end repeating
 
-				'doc2.blue.ondrop',        //release
-				'doc2.bubble.ondrop',
-				'doc1.orange.ondragend',
-				'doc1.bubble.ondragend']
+        'doc2.blue.ondrop',        //release
+        'doc2.bubble.ondrop',
+        'doc1.orange.ondragend',
+        'doc1.bubble.ondragend']
 
-			);
-		}, 'Overall sequence');
-		var div = parent.document.createElement("div");
-		div.setAttribute("id", "log");
-		parent.document.documentElement.appendChild(div);
-		parent.done();
-		document.body.appendChild(parent.document.querySelector("div"));
-	}
+      );
+    }, 'Overall sequence');
+    var div = parent.document.createElement("div");
+    div.setAttribute("id", "log");
+    parent.document.documentElement.appendChild(div);
+    parent.done();
+    document.body.appendChild(parent.document.querySelector("div"));
+  }
 };
 </script>
 

@@ -414,6 +414,58 @@
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
               var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+              var mediaSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
+
+              assert_equals(mediaElement.readyState, mediaElement.HAVE_NOTHING);
+              assert_equals(mediaSource.duration, Number.NaN);
+
+              // readyState is changing as per the Initialization Segment Received algorithm.
+              var loadedmetadataCalled = false;
+              mediaElement.addEventListener("loadedmetadata", function metadata(e) {
+                 loadedmetadataCalled = true;
+                 e.target.removeEventListener(e.type, metadata);
+              });
+              sourceBuffer.addEventListener("updateend", function updateend(e) {
+                 assert_true(loadedmetadataCalled);
+                 assert_equals(mediaElement.readyState, mediaElement.HAVE_METADATA);
+                 e.target.removeEventListener(e.type, updateend);
+              });
+              test.expectEvent(sourceBuffer, "updateend", "remainingInitSegment append ended.");
+              test.expectEvent(mediaElement, "loadedmetadata", "loadedmetadata event received.");
+              sourceBuffer.appendBuffer(initSegment);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaElement.readyState, mediaElement.HAVE_METADATA);
+                  assert_equals(mediaSource.duration, segmentInfo.duration);
+                  // readyState is changing as per the Coded Frame Processing algorithm.
+                  var loadeddataCalled = false;
+                  mediaElement.addEventListener("loadeddata", function loadeddata(e) {
+                      loadeddataCalled = true;
+                      e.target.removeEventListener(e.type, loadeddata);
+                  });
+                  sourceBuffer.addEventListener("updateend", function updateend(e) {
+                      assert_true(loadeddataCalled);
+                      assert_greater_than_equal(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA);
+                      e.target.removeEventListener(e.type, updateend);
+                  });
+                  test.expectEvent(sourceBuffer, "updateend", "mediaSegment append ended.");
+                  test.expectEvent(mediaElement, "loadeddata", "loadeddata fired.");
+                  sourceBuffer.appendBuffer(mediaSegment);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_greater_than_equal(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA);
+                  assert_equals(sourceBuffer.updating, false);
+                  assert_equals(mediaSource.readyState, "open");
+                  test.done();
+              });
+          }, "Test appendBuffer events order.");
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
               var partialInitSegment = initSegment.subarray(0, initSegment.length / 2);
               var mediaSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
 

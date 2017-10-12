@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Async Clipboard basic tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(function() {
+  assert_not_equals(navigator.clipboard, undefined);
+  assert_true(navigator.clipboard instanceof Clipboard);
+  assert_equals(navigator.clipboard, navigator.clipboard);
+}, "navigator.clipboard exists");
+
+/* clipboard.write() */
+
+promise_test(function() {
+  var dt = new DataTransfer();
+  dt.items.add("Howdy", "text/plain");
+  return navigator.clipboard.write(dt);
+}, "navigator.clipboard.write(DataTransfer) succeeds");
+
+promise_test(function(t) {
+  return promise_rejects(t, new TypeError(),
+                         navigator.clipboard.write());
+}, "navigator.clipboard.write() fails (expect DataTransfer)");
+
+promise_test(function(t) {
+  return promise_rejects(t, new TypeError(),
+                         navigator.clipboard.write(null));
+}, "navigator.clipboard.write(null) fails (expect DataTransfer)");
+
+promise_test(function(t) {
+  return promise_rejects(t, new TypeError(),
+                         navigator.clipboard.write("Bad string"));
+}, "navigator.clipboard.write(DOMString) fails (expect DataTransfer)");
+
+
+/* clipboard.writeText() */
+
+promise_test(function() {
+  return navigator.clipboard.writeText("New clipboard text");
+}, "navigator.clipboard.writeText(DOMString) succeeds");
+
+promise_test(function(t) {
+  return promise_rejects(t, new TypeError(),
+                         navigator.clipboard.writeText());
+}, "navigator.clipboard.writeText() fails (expect DOMString)");
+
+
+/* clipboard.read() */
+
+promise_test(function() {
+  return navigator.clipboard.read()
+    .then(function(result) {
+      assert_true(result instanceof DataTransfer);
+    });
+}, "navigator.clipboard.read() succeeds");
+
+
+/* clipboard.readText() */
+
+promise_test(function() {
+  return navigator.clipboard.readText()
+    .then(function(result) {
+      assert_equals(typeof result, "string");
+    });
+}, "navigator.clipboard.readText() succeeds");
+
+</script>

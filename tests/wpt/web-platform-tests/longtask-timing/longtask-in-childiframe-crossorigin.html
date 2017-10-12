@@ -10,39 +10,44 @@
 <div id="log"></div>
 <script>
   async_test(function (t) {
-    var observer = new PerformanceObserver(
+    const observer = new PerformanceObserver(
         t.step_func(function (entryList) {
-            var entries = entryList.getEntries();
+            const entries = entryList.getEntries();
             assert_equals(entries.length, 1,
-                "Exactly one entry is expected.");
-            var longtask = entries[0];
-            assert_equals(longtask.entryType, "longtask");
-            assert_equals(longtask.name, "cross-origin-descendant");
+                'Exactly one entry is expected.');
+            const longtask = entries[0];
+            assert_equals(longtask.entryType, 'longtask');
+            if (longtask.name == 'self' ||
+                longtask.name == 'multiple-contexts' ||
+                longtask.name == 'unknown')
+              return;
+            assert_equals(longtask.name, 'cross-origin-descendant');
             assert_greater_than(longtask.duration, 50);
-            assert_equals(longtask.startTime, Math.floor(longtask.startTime),
-                "startTime expected to have 1 millisecond granularity");
 
             // Assert the TaskAttributionTiming entry in attribution.
             assert_equals(longtask.attribution.length, 1,
-                "Exactly one attribution entry is expected");
-            var attribution = longtask.attribution[0];
-            assert_equals(attribution.entryType, "taskattribution");
-            assert_equals(attribution.name, "frame");
+                'Exactly one attribution entry is expected');
+            const attribution = longtask.attribution[0];
+            assert_equals(attribution.entryType, 'taskattribution');
+            assert_equals(attribution.name, 'script');
             assert_equals(attribution.duration, 0);
             assert_equals(attribution.startTime, 0);
-            assert_equals(attribution.frameId, "child-iframe-id");
-            assert_equals(attribution.frameName, "child-iframe-name");
-            assert_equals(attribution.frameSrc, "http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html");
+            assert_equals(attribution.containerId, 'child-iframe-id');
+            assert_equals(attribution.containerName, 'child-iframe-name');
+            assert_equals(attribution.containerSrc,
+                'http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html');
             observer.disconnect();
             t.done();
         })
     );
-    observer.observe({entryTypes: ["longtask"]});
-
-}, "Performance longtask entries in child iframe are observable in parent");
+    observer.observe({entryTypes: ['longtask']});
+    const iframe = document.createElement('iframe');
+    iframe.id = 'child-iframe-id';
+    iframe.name = 'child-iframe-name';
+    document.body.appendChild(iframe);
+    // TODO(panicker): simulate cross-origin instead
+    iframe.src = 'http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html';
+}, 'Performance longtask entries in child iframe are observable in parent.');
 </script>
-
-<!--TODO(panicker): simulate cross-origin instead -->
-<iframe src="http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html" id="child-iframe-id" name="child-iframe-name"></iframe>
 
 </body>

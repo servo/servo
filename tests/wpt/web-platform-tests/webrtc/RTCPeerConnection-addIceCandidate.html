@@ -5,6 +5,32 @@
 <script>
   'use strict';
 
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.htm
+
+  /*
+    4.3.2.  Interface Definition
+      interface RTCPeerConnection : EventTarget {
+        ...
+        Promise<void> addIceCandidate((RTCIceCandidateInit or RTCIceCandidate) candidate);
+      };
+
+      interface RTCIceCandidate {
+        readonly attribute DOMString               candidate;
+        readonly attribute DOMString?              sdpMid;
+        readonly attribute unsigned short?         sdpMLineIndex;
+        readonly attribute DOMString?              ufrag;
+        ...
+      };
+
+      dictionary RTCIceCandidateInit {
+        DOMString       candidate = "";
+        DOMString?      sdpMid = null;
+        unsigned short? sdpMLineIndex = null;
+        DOMString       ufrag;
+      };
+   */
+
   // SDP copied from JSEP Example 7.1
   // It contains two media streams with different ufrags
   // to test if candidate is added to the correct stream
@@ -110,6 +136,24 @@ a=rtcp-rsize
       `Expect candidate line to be found after media line ${beforeMediaLine}`);
   }
 
+  // Reject because WebIDL for addIceCandidate does not allow null argument
+  // null can be accidentally passed from onicecandidate event handler
+  // when null is used to indicate end of candidate
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects(t, new TypeError(),
+        pc.addIceCandidate(null)));
+  }, 'Add null candidate should reject with TypeError');
+
+  /*
+    4.3.2.  addIceCandidate
+      4.  Return the result of enqueuing the following steps:
+        1.  If remoteDescription is null return a promise rejected with a
+            newly created InvalidStateError.
+   */
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -120,6 +164,9 @@ a=rtcp-rsize
       }));
   }, 'Add ICE candidate before setting remote description should reject with InvalidStateError');
 
+  /*
+    Success cases
+   */
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -144,6 +191,28 @@ a=rtcp-rsize
     const pc = new RTCPeerConnection();
 
     return pc.setRemoteDescription(sessionDesc)
+      .then(() => pc.addIceCandidate({ sdpMid }));
+  }, 'Add candidate with only valid sdpMid should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.setRemoteDescription(sessionDesc)
+      .then(() => pc.addIceCandidate({ sdpMLineIndex }));
+  }, 'Add candidate with only valid sdpMLineIndex should succeed');
+
+  /*
+    4.3.2.  addIceCandidate
+      4.6.2.  If candidate is applied successfully, the user agent MUST queue
+              a task that runs the following steps:
+        2.  Let remoteDescription be connection's pendingRemoteDescription
+            if not null, otherwise connection's currentRemoteDescription.
+        3.  Add candidate to remoteDescription.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr1,
       sdpMid, sdpMLineIndex, ufrag
@@ -152,7 +221,7 @@ a=rtcp-rsize
       assert_candidate_line_between(pc.remoteDescription.sdp,
         mediaLine1, candidateLine1, mediaLine2);
     });
-  }, 'Added candidate should be found in first media stream');
+  }, 'addIceCandidate with first sdpMid and sdpMLineIndex add candidate to first media stream');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
@@ -168,7 +237,22 @@ a=rtcp-rsize
       assert_candidate_line_after(pc.remoteDescription.sdp,
         mediaLine2, candidateLine2);
     });
-  }, 'Added candidate should be found in second media stream');
+  }, 'addIceCandidate with second sdpMid and sdpMLineIndex should add candidate to second media stream');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid, sdpMLineIndex,
+      ufrag: null
+    }))
+    .then(() => {
+      assert_candidate_line_between(pc.remoteDescription.sdp,
+        mediaLine1, candidateLine1, mediaLine2);
+    });
+  }, 'Add candidate for first media stream with null ufrag should add candidate to first media stream');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
@@ -191,8 +275,19 @@ a=rtcp-rsize
       assert_candidate_line_after(pc.remoteDescription.sdp,
         mediaLine2, candidateLine2);
     });
-  }, 'Multiple candidates should be added to their corresponding media stream');
+  }, 'Adding multiple candidates should add candidates to their corresponding media stream');
 
+  /*
+    4.3.2.  addIceCandidate
+      4.6.  If candidate.candidate is an empty string, process candidate as an
+            end-of-candidates indication for the corresponding media description
+            and ICE candidate generation.
+        2.  If candidate is applied successfully, the user agent MUST queue
+            a task that runs the following steps:
+          2.  Let remoteDescription be connection's pendingRemoteDescription
+              if not null, otherwise connection's currentRemoteDescription.
+          3.  Add candidate to remoteDescription.
+   */
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -215,18 +310,11 @@ a=rtcp-rsize
     });
   }, 'Add with empty candidate string (end of candidate) should succeed');
 
-  // Reject because WebIDL for addIceCandidate does not allow null argument
-  // null can be accidentally passed from onicecandidate event handler
-  // when null is used to indicate end of candidate
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() =>
-      promise_rejects(t, new TypeError(),
-        pc.addIceCandidate(null)));
-  }, 'Add null candidate should reject withTypeError');
-
+  /*
+    4.3.2.  addIceCandidate
+      3.  If both sdpMid and sdpMLineIndex are null, return a promise rejected
+          with a newly created TypeError.
+   */
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -245,12 +333,11 @@ a=rtcp-rsize
 
     return pc.setRemoteDescription(sessionDesc)
     .then(() =>
-      promise_rejects(t, 'OperationError',
+      promise_rejects(t, new TypeError(),
         pc.addIceCandidate({
-          candidate: invalidCandidateStr,
-          sdpMid, sdpMLineIndex, ufrag
+          candidate: candidateStr1
         })));
-  }, 'Add candidate with invalid candidate string should reject with OperationError');
+  }, 'Add candidate with only valid candidate string should reject with TypeError');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
@@ -264,17 +351,6 @@ a=rtcp-rsize
           sdpMLineIndex: null
         })));
   }, 'Add candidate with invalid candidate string and both sdpMid and sdpMLineIndex null should reject with TypeError');
-
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() =>
-      promise_rejects(t, new TypeError(),
-        pc.addIceCandidate({
-          candidate: candidateStr1
-        })));
-  }, 'Add candidate with only valid candidate string should reject with TypeError');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
@@ -299,20 +375,13 @@ a=rtcp-rsize
         })));
   }, 'Add candidate with manually filled default values should reject with TypeError');
 
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    return pc.setRemoteDescription(sessionDesc)
-      .then(() => pc.addIceCandidate({ sdpMid }));
-  }, 'Add candidate with only valid sdpMid should succeed');
-
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    return pc.setRemoteDescription(sessionDesc)
-      .then(() => pc.addIceCandidate({ sdpMLineIndex }));
-  }, 'Add candidate with only valid sdpMLineIndex should succeed');
-
+  /*
+    4.3.2.  addIceCandidate
+      4.3.  If candidate.sdpMid is not null, run the following steps:
+        1.  If candidate.sdpMid is not equal to the mid of any media
+            description in remoteDescription , reject p with a newly
+            created OperationError and abort these steps.
+   */
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -325,6 +394,14 @@ a=rtcp-rsize
         })));
   }, 'Add candidate with invalid sdpMid should reject with OperationError');
 
+  /*
+    4.3.2.  addIceCandidate
+      4.4.  Else, if candidate.sdpMLineIndex is not null, run the following
+          steps:
+        1.  If candidate.sdpMLineIndex is equal to or larger than the
+            number of media descriptions in remoteDescription , reject p
+            with a newly created OperationError and abort these steps.
+   */
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -356,34 +433,6 @@ a=rtcp-rsize
     const pc = new RTCPeerConnection();
 
     return pc.setRemoteDescription(sessionDesc)
-    .then(() =>
-      promise_rejects(t, 'OperationError',
-        pc.addIceCandidate({
-          candidate: candidateStr1,
-          sdpMid, sdpMLineIndex,
-          ufrag: 'invalid'
-        })));
-  }, 'Add candidate with invalid ufrag should reject with OperationError');
-
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() => pc.addIceCandidate({
-      candidate: candidateStr1,
-      sdpMid, sdpMLineIndex,
-      ufrag: null
-    }))
-    .then(() => {
-      assert_candidate_line_between(pc.remoteDescription.sdp,
-        mediaLine1, candidateLine1, mediaLine2);
-    });
-  }, 'Add candidate for media stream 1 with null ufrag should succeed');
-
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-
-    return pc.setRemoteDescription(sessionDesc)
     .then(() => pc.addIceCandidate({
       candidate: candidateStr2,
       sdpMid: sdpMid2,
@@ -395,6 +444,45 @@ a=rtcp-rsize
         mediaLine2, candidateLine2);
     });
   }, 'Add candidate for media stream 2 with null ufrag should succeed');
+
+  /*
+    4.3.2.  addIceCandidate
+      4.5.  If candidate.ufrag is neither undefined nor null, and is not equal
+            to any ufrag present in the corresponding media description of an
+            applied remote description, reject p with a newly created
+            OperationError and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects(t, 'OperationError',
+        pc.addIceCandidate({
+          candidate: candidateStr1,
+          sdpMid, sdpMLineIndex,
+          ufrag: 'invalid'
+        })));
+  }, 'Add candidate with invalid ufrag should reject with OperationError');
+
+  /*
+    4.3.2.  addIceCandidate
+      4.6.1.  If candidate could not be successfully added the user agent MUST
+             queue a task that runs the following steps:
+        2.  Reject p with a DOMException object whose name attribute has
+            the value OperationError and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects(t, 'OperationError',
+        pc.addIceCandidate({
+          candidate: invalidCandidateStr,
+          sdpMid, sdpMLineIndex, ufrag
+        })));
+  }, 'Add candidate with invalid candidate string should reject with OperationError');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
@@ -410,115 +498,48 @@ a=rtcp-rsize
         })));
   }, 'Add candidate with sdpMid belonging to different ufrag should reject with OperationError');
 
-  // The check for sdpMid and sdpMLineIndex being null is done outside
-  // of enqueuing task, so it rejects even when pc is closed.
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
+  /*
+    TODO
+    4.3.2.  addIceCandidate
+      4.6.  In parallel, add the ICE candidate candidate as described in [JSEP]
+            (section 4.1.17.). Use candidate.ufrag to identify the ICE generation;
 
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() => {
-      const promise = pc.addIceCandidate({
-        candidate: candidateStr1,
-        sdpMid: null,
-        sdpMLineIndex: null
-      });
+            If the ufrag is null, process the candidate for the most recent ICE
+            generation.
 
-      pc.close();
-      return promise_rejects(t, new TypeError(), promise);
-    });
-  }, 'Add candidate with both sdpMid and sdpMLineIndex null should still reject with TypeError after pc is closed');
+    - Call with candidate string containing partial malformed syntax, i.e. malformed IP.
+      Some browsers may ignore the syntax error and add it to the SDP regardless.
 
-  function assert_never_resolves(t, promise) {
-    promise.then(
-      t.step_func(result => {
-        assert_unreached(`Pending promise should never be resolved. Instead it is fulfilled with: ${result}`);
-      }),
-      t.step_func(err => {
-        assert_unreached(`Pending promise should never be resolved. Instead it is rejected with: ${err}`);
-      }));
+    Non-Testable
+    4.3.2.  addIceCandidate
+      4.6.  (The steps are non-testable because the abort step in enqueue operation
+            steps in before they can reach here):
+        1.  If candidate could not be successfully added the user agent MUST
+            queue a task that runs the following steps:
+          1.  If connection's [[isClosed]] slot is true, then abort
+              these steps.
 
-    t.step_timeout(t.step_func_done(), 100);
-  }
+        2.  If candidate is applied successfully, the user agent MUST queue
+            a task that runs the following steps:
+          1.  If connection's [[isClosed]] slot is true, then abort these steps.
 
-  async_test(t => {
-    const pc = new RTCPeerConnection();
+    Issues
+      w3c/webrtc-pc#1213
+        addIceCandidate end of candidates woes
 
-    pc.setRemoteDescription(sessionDesc)
-    .then(() => {
-      assert_never_resolves(t,
-        pc.addIceCandidate({
-          candidate: candidateStr1,
-          sdpMid, sdpMLineIndex, ufrag
-        }));
+      w3c/webrtc-pc#1216
+        Clarify addIceCandidate behavior when adding candidate after end of candidate
 
-      pc.close();
+     w3c/webrtc-pc#1227
+        addIceCandidate may add ice candidate to the wrong remote description
 
-      // When pc is closed, the remote description is not modified
-      // even if succeed
-      t.step_timeout(t.step_func(() => {
-        assert_false(pc.remoteDescription.sdp.includes(candidateLine1),
-          'Candidate should not be added to SDP because pc is closed');
-      }), 80);
-    });
-  }, 'Add valid candidate should never resolve when pc is closed');
+      w3c/webrtc-pc#1345
+        Make promise rejection/enqueing consistent
 
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-
-    assert_never_resolves(t, pc.addIceCandidate({
-      candidate: candidateStr1,
-      sdpMid, sdpMLineIndex, ufrag
-    }));
-
-    pc.close();
-  }, 'Add candidate when remote description is null should never resolve when pc is closed');
-
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-
-    pc.setRemoteDescription(sessionDesc)
-    .then(() => {
-      assert_never_resolves(t, pc.addIceCandidate({
-        candidate: invalidCandidateStr,
-        sdpMid, sdpMLineIndex, ufrag
-      }));
-      pc.close();
-    });
-  }, 'Add candidate with invalid candidate string should never resolve when pc is closed');
-
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-
-    pc.setRemoteDescription(sessionDesc)
-    .then(() => {
-      assert_never_resolves(t, pc.addIceCandidate({
-        candidate: candidateStr1,
-        sdpMid: 'invalid',
-        sdpMLineIndex, ufrag
-      }));
-      pc.close();
-    });
-  }, 'Add candidate with invalid sdpMid should never resolve when pc is closed');
-
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-
-    pc.setRemoteDescription(sessionDesc)
-    .then(() => {
-      assert_never_resolves(t, pc.addIceCandidate({
-        candidate: candidateStr1,
-        sdpMLineIndex: 2,
-        ufrag
-      }));
-      pc.close();
-    });
-  }, 'Add candidate with invalid sdpMLineIndex should never resolve when pc is closed');
-
-  // TODO: More tests need to be added:
-  // - Set pc with both current and pending remote descriptions with different ufrags,
-  //   Check that addIceCandidate with specific ufrag adds candidate to the correct
-  //   remote description.
-  // - Call with candidate string containing partial malformed syntax, i.e. malformed IP.
-  //   Some browsers may ignore the syntax error and add it to the SDP regardless.
-
+    Coverage Report
+      Total:        23
+      Tested:       19
+      Not Tested:    2
+      Non-Testable:  2
+   */
 </script>

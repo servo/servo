@@ -62,7 +62,7 @@ class MoveTargetOutOfBoundsException(WebDriverException):
 
 
 class NoSuchAlertException(WebDriverException):
-    http_status = 400
+    http_status = 404
     status_code = "no such alert"
 
 
@@ -72,12 +72,12 @@ class NoSuchElementException(WebDriverException):
 
 
 class NoSuchFrameException(WebDriverException):
-    http_status = 400
+    http_status = 404
     status_code = "no such frame"
 
 
 class NoSuchWindowException(WebDriverException):
-    http_status = 400
+    http_status = 404
     status_code = "no such window"
 
 

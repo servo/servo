@@ -31,9 +31,9 @@ var args = [];
 for (var i = 0; i < modes.length; i++) {
   for (var j = 0; j < sizes.length; j++) {
     var sizeAttrValue = modes[i] + sizes[j];
-    args.push(["size=" + sizeAttrValue, sizeAttrValue]);
+    test(function() {
+      testSize(sizeAttrValue)
+    }, "size=" + sizeAttrValue);
   }
 }
-
-generate_tests(testSize, args);
 </script>

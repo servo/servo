@@ -16,7 +16,6 @@
   //   countAudioLine()
   //   countVideoLine()
   //   test_state_change_event()
-  //   test_never_resolve()
   //   assert_session_desc_equals()
 
   /*
@@ -49,7 +48,7 @@
     return pc.createOffer({ offerToReceiveAudio: true })
     .then(offer =>
       pc.setLocalDescription(offer)
-      .then(offer => {
+      .then(() => {
         assert_equals(pc.signalingState, 'have-local-offer');
         assert_session_desc_equals(pc.localDescription, offer);
         assert_session_desc_equals(pc.pendingLocalDescription, offer);
@@ -64,15 +63,6 @@
     return promise_rejects(t, 'InvalidStateError',
       pc.createOffer());
   }, 'createOffer() after connection is closed should reject with InvalidStateError');
-
-  test_never_resolve(t => {
-    const pc = new RTCPeerConnection();
-    const promise = pc.createOffer();
-
-    pc.close();
-    return promise;
-
-  }, 'createOffer() when connection is closed halfway should never resolve');
 
   /*
    *  Final steps to create an offer

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests that Access-Control-Request-Headers are sorted.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+async_test((test) => {
+  const xhr = new XMLHttpRequest();
+  const url = get_host_info().HTTP_REMOTE_ORIGIN + '/XMLHttpRequest/resources/access-control-preflight-request-header-sorted.py';
+  xhr.open('GET', url);
+  xhr.setRequestHeader("X-Custom-Test", "foobar");
+  xhr.setRequestHeader("X-Custom-ua", "foobar");
+  xhr.setRequestHeader("X-Custom-V", "foobar");
+  xhr.setRequestHeader("X-Custom-s", "foobar");
+  xhr.setRequestHeader("X-Custom-U", "foobar");
+  xhr.onerror = test.unreached_func('xhr failure');
+  xhr.onload = test.step_func_done(() => {
+    assert_equals(xhr.responseText, 'PASS');
+  });
+  xhr.send();
+});
+</script>
+</body>
+</html>

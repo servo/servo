@@ -3,6 +3,7 @@
 <link rel="help" href="https://drafts.fxtf.org/geometry/#structured-serialization">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
 <script>
 function clone(obj) {
   return new Promise((resolve, reject) => {
@@ -156,4 +157,9 @@ function defineThrowingGetters(object, attrs) {
       throw new Error(`Test bug: ${constr} has no test for non-initial values`);
   }
 });
+
+promise_test((t) => {
+  const object = document.getElementById('log').getClientRects();
+  return promise_rejects(t, "DataCloneError", clone(object));
+}, 'DOMRectList clone');0
 </script>

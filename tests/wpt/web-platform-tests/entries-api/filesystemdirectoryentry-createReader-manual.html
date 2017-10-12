@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryEntry createReader() manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-directoryentry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+
+  assert_idl_attribute(entry, 'createReader', 'FileSystemDirectoryEntry has createReader');
+  assert_equals(typeof entry.createReader, 'function', 'createReader() is a method');
+
+  t.done();
+}, 'FileSystemDirectoryEntry - createReader()');
+
+entry_test((t, entry) => {
+  assert_not_equals(entry.createReader(), entry.createReader(),
+                    'createReader() returns a new object each time');
+  t.done();
+}, 'FileSystemDirectoryEntry - createReader() distinct objects');
+</script>

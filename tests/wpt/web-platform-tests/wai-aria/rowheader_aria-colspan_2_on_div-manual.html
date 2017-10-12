@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>rowheader aria-colspan 2 on div</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -59,9 +60,15 @@
                ],
                [
                   "property",
-                  "colspan",
-                  "is",
-                  "2"
+                  "objectAttributes",
+                  "contains",
+                  "colspan:2"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "IAccessibleTableCell"
                ]
             ],
             "MSAA" : [
@@ -70,12 +77,6 @@
                   "role",
                   "is",
                   "ROLE_SYSTEM_ROWHEADER"
-               ],
-               [
-                  "property",
-                  "colspan",
-                  "is",
-                  "2"
                ]
             ],
             "UIA" : [
@@ -116,4 +117,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

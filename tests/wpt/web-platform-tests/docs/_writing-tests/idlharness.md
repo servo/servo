@@ -26,7 +26,11 @@ var s = "";
   //https://www.w3.org/Bugs/Public/show_bug.cgi?id=14914
   if (!idl.classList.contains("extract"))
   {
-    s += idl.textContent + "\n\n";
+    if (s !== "")
+    {
+      s += "\n\n";
+    }
+    s += idl.textContent.replace(/ +$/mg, "");
   }
 });
 document.body.innerHTML = '<pre></pre>';

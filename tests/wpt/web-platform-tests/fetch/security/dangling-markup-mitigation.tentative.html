@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="./resources/helper.js"></script>
 <body>
 <script>
   function readableURL(url) {
@@ -118,16 +117,6 @@
         /images/green-1x1.png?img=${escapedNewline}
       ">
     `,
-
-    // Data URLs don't trigger blocking:
-    `<img id="dangling" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">`,
-    `<img id="dangling" src="data:image/png;base64,${rawNewline}iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">`,
-    `<img id="dangling" src="data:image/png;base64,i${rawNewline}VBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">`,
-    `<img id="dangling" src="data:image/svg+xml;utf8,
-      <svg width='1' height='1' xmlns='http://www.w3.org/2000/svg'>
-        <rect width='100%' height='100%' fill='rebeccapurple'/>
-        <rect x='10%' y='10%' width='80%' height='80%' fill='lightgreen'/>
-      </svg>">`
   ];
 
   should_load.forEach(markup => {

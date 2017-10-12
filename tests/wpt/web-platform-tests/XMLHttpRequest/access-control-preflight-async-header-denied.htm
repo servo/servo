@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Async request denied at preflight because of non-CORS-safelisted header</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="/common/utils.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    const uuid = token();
+    const url = get_host_info().HTTP_REMOTE_ORIGIN +
+          "/XMLHttpRequest/resources/access-control-preflight-denied.py?token=" + uuid;
+
+    async_test((test) => {
+      let xhr = new XMLHttpRequest;
+      xhr.open("GET", url + "&command=reset", false);
+      xhr.send();
+
+      xhr = new XMLHttpRequest;
+      xhr.open("GET", url + "&command=header", true);
+      xhr.setRequestHeader("x-test", "foo");
+
+      xhr.onload = test.unreached_func(
+          "Cross-domain access with custom header allowed without throwing exception");
+
+      xhr.onerror = test.step_func_done(() => {
+        xhr = new XMLHttpRequest;
+        xhr.open("GET", url + "&command=complete", false);
+        xhr.send();
+        assert_equals(xhr.responseText, "Request successfully blocked.");
+      });
+
+      xhr.send();
+    }, "Async request denied at preflight");
+    </script>
+  </body>
+</html>

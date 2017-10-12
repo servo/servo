@@ -21,8 +21,11 @@ var idlArray = new IdlArray();
 function doTest(idl) {
   idlArray.add_idls(idl);
   idlArray.add_objects({
+    EventTarget: ['new EventTarget()'],
     Event: ['document.createEvent("Event")', 'new Event("foo")'],
     CustomEvent: ['new CustomEvent("foo")'],
+    AbortController: ['new AbortController()'],
+    AbortSignal: ['new AbortController().signal'],
     Document: ['new Document()'],
     XMLDocument: ['xmlDoc'],
     DOMImplementation: ['document.implementation'],

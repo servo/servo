@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Legacy platform objects</title>
+<link rel="help" href="https://heycam.github.io/webidl/#es-legacy-platform-objects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function assert_prop_desc_equals(object, property_key, expected) {
+  let actual = Object.getOwnPropertyDescriptor(object, property_key);
+  if (expected === undefined) {
+    assert_equals(
+        actual, undefined,
+        "(assert_prop_desc_equals: no property descriptor expected)");
+    return;
+  }
+  for (p in actual) {
+    assert_true(
+        expected.hasOwnProperty(p),
+        "(assert_prop_desc_equals: property '" + p + "' is not expected)");
+    assert_equals(
+        actual[p], expected[p],
+        "(assert_prop_desc_equals: property '" + p + "')");
+  }
+  for (p in expected) {
+    assert_true(
+        actual.hasOwnProperty(p),
+        "(assert_prop_desc_equals: expected property '" + p + "' missing)");
+  }
+}
+
+// https://heycam.github.io/webidl/#legacy-platform-object-getownproperty
+// https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
+
+test(function() {
+  // DOMTokenList has an indexed property getter, no indexed property setter
+  // and no named property handlers.
+  let div = document.createElement("div");
+  div.classList.add("baz", "quux");
+  const domTokenList = div.classList;
+  assert_prop_desc_equals(
+      domTokenList, "1",
+      {value: "quux", writable: false, enumerable: true, configurable: true},
+      "[[GetOwnProperty]] for indexed properties returns the right descriptor");
+  assert_prop_desc_equals(
+      domTokenList, "42", undefined,
+      "[[GetOwnProperty]] with invalid index returns undefined");
+  assert_array_equals(Object.keys(domTokenList), ["0", "1"]);
+  assert_array_equals(Object.values(domTokenList), ["baz", "quux"]);
+
+  // getElementsByTagName() returns an HTMLCollection.
+  // HTMLCollection has indexed and named property getters, no setters. Its IDL
+  // interface declaration has [LegacyUnenumerableNamedProperties] so its named
+  // properties are not enumerable.
+  let span1 = document.createElement("span");
+  span1.id = "foo";
+  let span2 = document.createElement("span");
+  span2.id = "bar";
+  document.head.appendChild(span1);
+  document.head.appendChild(span2);
+  const elementList = document.getElementsByTagName("span");
+  assert_prop_desc_equals(
+      elementList, "foo",
+      {value: span1, writable: false, enumerable: false, configurable: true},
+      "[[GetOwnProperty]] for named properties returns the right descriptor");
+  assert_prop_desc_equals(
+      elementList, "1",
+      {value: span2, writable: false, enumerable: true, configurable: true},
+      "[[GetOwnProperty]] for indexed properties returns the right descriptor");
+  assert_prop_desc_equals(
+      elementList, "unknown", undefined,
+      "[[GetOwnProperty]] with invalid property name returns undefined");
+  assert_array_equals(Object.keys(elementList), ["0", "1"]);
+  assert_array_equals(Object.values(elementList), [span1, span2]);
+}, "[[GetOwnProperty]] with getters and no setters");
+
+test(function() {
+  // DOMStringMap supports named property getters and setters, but not indexed
+  // properties.
+  let span = document.createElement("span");
+  span.dataset.foo = "bar";
+  assert_prop_desc_equals(
+      span.dataset, "foo",
+      {value: "bar", writable: true, enumerable: true, configurable: true},
+      "[[GetOwnProperty]] for named properties returns the right descriptor");
+  assert_prop_desc_equals(
+      span.dataset, "unknown", undefined,
+      "[[GetOwnProperty]] with invalid property name returns undefined");
+  assert_array_equals(Object.keys(span.dataset), ["foo"]);
+  assert_array_equals(Object.values(span.dataset), ["bar"]);
+}, "[[GetOwnProperty]] with named property getters and setters");
+
+test(function() {
+  // HTMLSelectElement has indexed property getters and setters, but no support
+  // for named properties.
+  let selectElement = document.createElement("select");
+  assert_prop_desc_equals(
+      selectElement, "0", undefined,
+      "[[GetOwnProperty]] with invalid property index returns undefined");
+  let optionElement = document.createElement("option");
+  selectElement.appendChild(optionElement);
+  assert_prop_desc_equals(
+      selectElement, "0",
+      {value: optionElement, writable: true, enumerable: true, configurable: true},
+      "[[GetOwnProperty]] for indexed properties returns the right descriptor");
+  assert_array_equals(Object.keys(selectElement), ["0"]);
+  assert_array_equals(Object.values(selectElement), [optionElement]);
+}, "[[GetOwnProperty]] with indexed property getters and setters");
+
+// https://heycam.github.io/webidl/#legacy-platform-object-defineownproperty
+// 3.9.3. [[DefineOwnProperty]]
+
+test(function() {
+  let span = document.createElement("span");
+  span.className = "foo";
+  // DOMTokenList supports an indexed property getter but not a setter.
+  let domTokenList = span.classList;
+  // Confirm the test settings.
+  assert_equals(domTokenList.length, 1);
+  assert_prop_desc_equals(domTokenList, "0",
+                          {value: "foo", writable: false, enumerable: true,
+                           configurable: true});
+  assert_prop_desc_equals(domTokenList, "1", undefined);
+  // Actual test
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(domTokenList, "0", {value: true, writable: true}));
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(domTokenList, "1", {value: true, writable: true}));
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(domTokenList, "0", {get: () => {}}));
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(domTokenList, "0", {set: () => {}}));
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(domTokenList, "1", {get: () => {}}));
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(domTokenList, "1", {set: () => {}}));
+  assert_equals(domTokenList[0], "foo");
+  assert_equals(domTokenList[1], undefined);
+  domTokenList[0] = "bar";
+  domTokenList[1] = "bar";
+  assert_equals(domTokenList[0], "foo");
+  assert_equals(domTokenList[1], undefined);
+  assert_throws(new TypeError(), () => {
+    "use strict";
+    domTokenList[0] = "bar";
+  });
+  assert_throws(new TypeError(), () => {
+    "use strict";
+    domTokenList[1] = "bar";
+  });
+  // Nothing must change after all.
+  assert_equals(domTokenList.length, 1);
+  assert_prop_desc_equals(domTokenList, "0",
+                          {value: "foo", writable: false, enumerable: true,
+                           configurable: true});
+  assert_prop_desc_equals(domTokenList, "1", undefined);
+}, "Test [[DefineOwnProperty]] with no indexed property setter support.");
+
+test(function() {
+  // HTMLSelectElement supports an indexed property setter.
+  let select = document.createElement("select");
+  let option0 = document.createElement("option");
+  let option1 = document.createElement("option");
+  // Confirm the test settings.
+  assert_equals(select.length, 0);
+  assert_prop_desc_equals(select, "0", undefined);
+  // Try to define an accessor property with non supported property index.
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(select, "0", {get: () => {}}));
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(select, "0", {set: () => {}}));
+  assert_prop_desc_equals(select, "0", undefined);
+  // writable, enumerable, configurable will be ignored.
+  Object.defineProperty(select, "0", {value: option0, writable: false,
+                                      enumerable: false, configurable: false});
+  assert_prop_desc_equals(select, "0",
+                          {value: option0, writable: true, enumerable: true,
+                           configurable: true});
+  select[1] = option1;
+  assert_prop_desc_equals(select, "1",
+                          {value: option1, writable: true, enumerable: true,
+                           configurable: true});
+  // Try to define an accessor property with a supported property index.
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(select, "0", {get: () => {}}));
+  assert_throws(new TypeError(), () =>
+      Object.defineProperty(select, "0", {set: () => {}}));
+  assert_prop_desc_equals(select, "0",
+                          {value: option0, writable: true, enumerable: true,
+                           configurable: true});
+}, "Test [[DefineOwnProperty]] with indexed property setter support.");
+</script>

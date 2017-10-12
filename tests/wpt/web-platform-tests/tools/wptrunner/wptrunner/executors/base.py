@@ -1,13 +1,19 @@
 import hashlib
-import json
+import httplib
 import os
+import threading
 import traceback
+import socket
 import urlparse
 from abc import ABCMeta, abstractmethod
 
 from ..testrunner import Stop
 
 here = os.path.split(__file__)[0]
+
+# Extra timeout to use after internal test timeout at which the harness
+# should force a timeout
+extra_timeout = 5 # seconds
 
 
 def executor_kwargs(test_type, server_config, cache_manager, **kwargs):
@@ -21,6 +27,11 @@ def executor_kwargs(test_type, server_config, cache_manager, **kwargs):
 
     if test_type == "reftest":
         executor_kwargs["screenshot_cache"] = cache_manager.dict()
+
+    if test_type == "wdspec":
+        executor_kwargs["binary"] = kwargs.get("binary")
+        executor_kwargs["webdriver_binary"] = kwargs.get("webdriver_binary")
+        executor_kwargs["webdriver_args"] = kwargs.get("webdriver_args")
 
     return executor_kwargs
 
@@ -93,7 +104,7 @@ class TestExecutor(object):
     convert_result = None
 
     def __init__(self, browser, server_config, timeout_multiplier=1,
-                 debug_info=None):
+                 debug_info=None, **kwargs):
         """Abstract Base class for object that actually executes the tests in a
         specific browser. Typically there will be a different TestExecutor
         subclass for each test type and method of executing tests.
@@ -196,7 +207,7 @@ class RefTestExecutor(TestExecutor):
     convert_result = reftest_result_converter
 
     def __init__(self, browser, server_config, timeout_multiplier=1, screenshot_cache=None,
-                 debug_info=None):
+                 debug_info=None, **kwargs):
         TestExecutor.__init__(self, browser, server_config,
                               timeout_multiplier=timeout_multiplier,
                               debug_info=debug_info)
@@ -214,6 +225,12 @@ class RefTestImplementation(object):
         # retrieve the screenshot from the cache directly in the future
         self.screenshot_cache = self.executor.screenshot_cache
         self.message = None
+
+    def setup(self):
+        pass
+
+    def teardown(self):
+        pass
 
     @property
     def logger(self):
@@ -304,6 +321,51 @@ class RefTestImplementation(object):
 
 class WdspecExecutor(TestExecutor):
     convert_result = pytest_result_converter
+    protocol_cls = None
+
+    def __init__(self, browser, server_config, webdriver_binary,
+                 webdriver_args, timeout_multiplier=1, capabilities=None,
+                 debug_info=None, **kwargs):
+        self.do_delayed_imports()
+        TestExecutor.__init__(self, browser, server_config,
+                              timeout_multiplier=timeout_multiplier,
+                              debug_info=debug_info)
+        self.webdriver_binary = webdriver_binary
+        self.webdriver_args = webdriver_args
+        self.timeout_multiplier = timeout_multiplier
+        self.capabilities = capabilities
+        self.protocol = self.protocol_cls(self, browser)
+
+    def is_alive(self):
+        return self.protocol.is_alive
+
+    def on_environment_change(self, new_environment):
+        pass
+
+    def do_test(self, test):
+        timeout = test.timeout * self.timeout_multiplier + extra_timeout
+
+        success, data = WdspecRun(self.do_wdspec,
+                                  self.protocol.session_config,
+                                  test.abs_path,
+                                  timeout).run()
+
+        if success:
+            return self.convert_result(test, data)
+
+        return (test.result_cls(*data), [])
+
+    def do_wdspec(self, session_config, path, timeout):
+        harness_result = ("OK", None)
+        subtest_results = pytestrunner.run(path,
+                                           self.server_config,
+                                           session_config,
+                                           timeout=timeout)
+        return (harness_result, subtest_results)
+
+    def do_delayed_imports(self):
+        global pytestrunner
+        from . import pytestrunner
 
 
 class Protocol(object):
@@ -323,3 +385,95 @@ class Protocol(object):
 
     def wait(self):
         pass
+
+
+class WdspecRun(object):
+    def __init__(self, func, session, path, timeout):
+        self.func = func
+        self.result = (None, None)
+        self.session = session
+        self.path = path
+        self.timeout = timeout
+        self.result_flag = threading.Event()
+
+    def run(self):
+        """Runs function in a thread and interrupts it if it exceeds the
+        given timeout.  Returns (True, (Result, [SubtestResult ...])) in
+        case of success, or (False, (status, extra information)) in the
+        event of failure.
+        """
+
+        executor = threading.Thread(target=self._run)
+        executor.start()
+
+        flag = self.result_flag.wait(self.timeout)
+        if self.result[1] is None:
+            self.result = False, ("EXTERNAL-TIMEOUT", None)
+
+        return self.result
+
+    def _run(self):
+        try:
+            self.result = True, self.func(self.session, self.path, self.timeout)
+        except (socket.timeout, IOError):
+            self.result = False, ("CRASH", None)
+        except Exception as e:
+            message = getattr(e, "message")
+            if message:
+                message += "\n"
+            message += traceback.format_exc(e)
+            self.result = False, ("ERROR", message)
+        finally:
+            self.result_flag.set()
+
+
+class WebDriverProtocol(Protocol):
+    server_cls = None
+
+    def __init__(self, executor, browser):
+        Protocol.__init__(self, executor, browser)
+        self.webdriver_binary = executor.webdriver_binary
+        self.webdriver_args = executor.webdriver_args
+        self.capabilities = self.executor.capabilities
+        self.session_config = None
+        self.server = None
+
+    def setup(self, runner):
+        """Connect to browser via the HTTP server."""
+        try:
+            self.server = self.server_cls(
+                self.logger,
+                binary=self.webdriver_binary,
+                args=self.webdriver_args)
+            self.server.start(block=False)
+            self.logger.info(
+                "WebDriver HTTP server listening at %s" % self.server.url)
+            self.session_config = {"host": self.server.host,
+                                   "port": self.server.port,
+                                   "capabilities": self.capabilities}
+        except Exception:
+            self.logger.error(traceback.format_exc())
+            self.executor.runner.send_message("init_failed")
+        else:
+            self.executor.runner.send_message("init_succeeded")
+
+    def teardown(self):
+        if self.server is not None and self.server.is_alive:
+            self.server.stop()
+
+    @property
+    def is_alive(self):
+        """Test that the connection is still alive.
+
+        Because the remote communication happens over HTTP we need to
+        make an explicit request to the remote.  It is allowed for
+        WebDriver spec tests to not have a WebDriver session, since this
+        may be what is tested.
+
+        An HTTP request to an invalid path that results in a 404 is
+        proof enough to us that the server is alive and kicking.
+        """
+        conn = httplib.HTTPConnection(self.server.host, self.server.port)
+        conn.request("HEAD", self.server.base_path + "invalid")
+        res = conn.getresponse()
+        return res.status == 404

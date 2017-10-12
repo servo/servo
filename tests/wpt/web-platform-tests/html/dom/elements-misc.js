@@ -1,4 +1,3 @@
-// Up-to-date as of 2013-04-09.
 var miscElements = {
   // "The root element" section
   html: {
@@ -23,6 +22,11 @@ var miscElements = {
     htmlFor: {type: "string", domAttrName: "for"},
   },
   noscript: {},
+
+  template: {},
+  slot: {
+    name: "string",
+  },
 
   // "Edits" section
   ins: {

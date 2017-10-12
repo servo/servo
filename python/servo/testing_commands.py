@@ -496,14 +496,12 @@ class MachCommands(CommandBase):
              description='Update the web platform tests',
              category='testing',
              parser=updatecommandline.create_parser())
-    @CommandArgument('--patch', action='store_true', default=False,
-                     help='Create an mq patch or git commit containing the changes')
-    def update_wpt(self, patch, **kwargs):
+    def update_wpt(self, **kwargs):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
-        kwargs["no_patch"] = not patch
+        patch = kwargs.get("patch", False)
 
-        if kwargs["no_patch"] and kwargs["sync"]:
+        if not patch and kwargs["sync"]:
             print("Are you sure you don't want a patch?")
             return 1
 

@@ -10,6 +10,7 @@ import testloader
 import wptcommandline
 import wptlogging
 import wpttest
+from font import FontInstaller
 from testrunner import ManagerGroup
 from browsers.base import NullBrowser
 
@@ -73,8 +74,10 @@ def list_test_groups(test_paths, product, **kwargs):
 
     ssl_env = env.ssl_env(logger, **kwargs)
 
+    run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)
+
     run_info, test_loader = get_loader(test_paths, product, ssl_env,
-                                       **kwargs)
+                                       run_info_extras=run_info_extras, **kwargs)
 
     for item in sorted(test_loader.groups(kwargs["test_types"])):
         print item
@@ -85,15 +88,33 @@ def list_disabled(test_paths, product, **kwargs):
 
     rv = []
 
+    run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)
+
     ssl_env = env.ssl_env(logger, **kwargs)
 
     run_info, test_loader = get_loader(test_paths, product, ssl_env,
-                                       **kwargs)
+                                       run_info_extras=run_info_extras, **kwargs)
 
     for test_type, tests in test_loader.disabled_tests.iteritems():
         for test in tests:
             rv.append({"test": test.id, "reason": test.disabled()})
     print json.dumps(rv, indent=2)
+
+
+def list_tests(test_paths, product, **kwargs):
+    env.do_delayed_imports(logger, test_paths)
+
+    rv = []
+
+    ssl_env = env.ssl_env(logger, **kwargs)
+
+    run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)
+
+    run_info, test_loader = get_loader(test_paths, product, ssl_env,
+                                       run_info_extras=run_info_extras, **kwargs)
+
+    for test in test_loader.test_ids:
+        print test
 
 
 def get_pause_after_test(test_loader, **kwargs):
@@ -121,6 +142,12 @@ def run_tests(config, test_paths, product, **kwargs):
 
         check_args(**kwargs)
 
+        if kwargs["install_fonts"]:
+            env_extras.append(FontInstaller(
+                font_dir=kwargs["font_dir"],
+                ahem=os.path.join(kwargs["tests_root"], "fonts/Ahem.ttf")
+            ))
+
         if "test_loader" in kwargs:
             run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=None,
                                             extras=run_info_extras(**kwargs))
@@ -132,13 +159,13 @@ def run_tests(config, test_paths, product, **kwargs):
                                                run_info_extras=run_info_extras(**kwargs),
                                                **kwargs)
 
+        test_source_kwargs = {"processes": kwargs["processes"]}
         if kwargs["run_by_dir"] is False:
             test_source_cls = testloader.SingleTestSource
-            test_source_kwargs = {}
         else:
             # A value of None indicates infinite depth
             test_source_cls = testloader.PathGroupedSource
-            test_source_kwargs = {"depth": kwargs["run_by_dir"]}
+            test_source_kwargs["depth"] = kwargs["run_by_dir"]
 
         logger.info("Using %i client processes" % kwargs["processes"])
 
@@ -231,7 +258,6 @@ def run_tests(config, test_paths, product, **kwargs):
                 if repeat_until_unexpected and unexpected_total > 0:
                     break
                 logger.suite_end()
-
     return unexpected_total == 0
 
 def start(**kwargs):
@@ -239,6 +265,8 @@ def start(**kwargs):
         list_test_groups(**kwargs)
     elif kwargs["list_disabled"]:
         list_disabled(**kwargs)
+    elif kwargs["list_tests"]:
+        list_tests(**kwargs)
     else:
         return not run_tests(**kwargs)
 

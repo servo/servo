@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="parse-input-arguments-018-ref.html">
+<style>
+.container {
+    width: 100px;
+    height: 100px;
+}
+
+#canvas-geometry {
+    border:1px solid black;
+    background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<p>The test result should show only one black rect border. It should not paint
+any content in the rect because registerPaint will be called twice and the
+inputArguments will return two different strings, that will throw an exception
+and paint won't be executed.</p>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+function generateRandString(length) {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (var i = 0; i < length; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
+}
+
+try {
+    registerPaint('geometry', class {
+        static get inputArguments() {
+            // This test is testing the case where an exception should be thrown
+            // when two paint definitions with different properties are registered
+            // to the same paint worklet. In order to do that, we randomly generate
+            // the input properties here. We make the string length 100 to make sure
+            // that it is veryyyyyyyyyyyy unlikely that two strings will be the same
+            // when running this test.
+            var current_str = generateRandString(100);
+            return [current_str];
+        }
+        paint(ctx, geom) {
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, geom.width, geom.height);
+        }
+    });
+} catch(ex) {
+}
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

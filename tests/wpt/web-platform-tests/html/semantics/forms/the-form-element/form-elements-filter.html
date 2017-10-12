@@ -159,6 +159,11 @@
 <meter id="after-unassociated-meter1"></meter>
 <progress id="after-unassociated-progress1"></progress>
 
+<form id="form2">
+  <span id="shadow-1"></span>
+</form>
+<span id="shadow-2"></span>
+
 <script>
 "use strict";
 test(() => {
@@ -169,4 +174,19 @@ test(() => {
 
   assert_array_equals(ids, allCorrectIDs);
 });
+
+test(() => {
+  const shadowRoot1 = document.querySelector("#shadow-1").attachShadow({mode: "open"});
+  const input1 = document.createElement("input");
+  shadowRoot1.appendChild(input1);
+
+  const shadowRoot2 = document.querySelector("#shadow-2").attachShadow({mode: "open"});
+  const input2 = document.createElement("input");
+  input2.setAttribute("form", "form2");
+  shadowRoot2.appendChild(input2);
+
+  assert_equals(document.querySelector("#form2").elements.length, 0);
+  assert_equals(input1.form, null);
+  assert_equals(input2.form, null);
+}, "form.elements only includes elements from the same shadow tree");
 </script>

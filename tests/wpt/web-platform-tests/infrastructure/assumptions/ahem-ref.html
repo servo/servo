@@ -1,0 +1,322 @@
+
+<!doctype html>
+<title>Ahem checker</title>
+<style>
+@font-face {
+  font-family: Ahem;
+  src: url("../../fonts/Ahem.ttf");
+}
+* {
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+
+table {
+  font: 15px/1 Ahem;
+  border-collapse: separate;
+  border-spacing: 1px;
+  table-layout: fixed;
+}
+
+td {
+  width: 34px;
+}
+</style>
+<table>
+    <tr>
+        <td>&#x0020;x <!-- U+0020: SPACE -->
+        <td>&#x0021;x <!-- U+0021: EXCLAMATION MARK -->
+        <td>&#x0022;x <!-- U+0022: QUOTATION MARK -->
+        <td>&#x0023;x <!-- U+0023: NUMBER SIGN -->
+        <td>&#x0024;x <!-- U+0024: DOLLAR SIGN -->
+        <td>&#x0025;x <!-- U+0025: PERCENT SIGN -->
+        <td>&#x0026;x <!-- U+0026: AMPERSAND -->
+        <td>&#x0028;x <!-- U+0028: LEFT PARENTHESIS -->
+        <td>&#x0029;x <!-- U+0029: RIGHT PARENTHESIS -->
+        <td>&#x002A;x <!-- U+002A: ASTERISK -->
+        <td>&#x002B;x <!-- U+002B: PLUS SIGN -->
+        <td>&#x002C;x <!-- U+002C: COMMA -->
+        <td>&#x002D;x <!-- U+002D: HYPHEN-MINUS -->
+        <td>&#x002E;x <!-- U+002E: FULL STOP -->
+        <td>&#x002F;x <!-- U+002F: SOLIDUS -->
+        <td>&#x0030;x <!-- U+0030: DIGIT ZERO -->
+        <td>&#x0031;x <!-- U+0031: DIGIT ONE -->
+    <tr>
+        <td>&#x0032;x <!-- U+0032: DIGIT TWO -->
+        <td>&#x0033;x <!-- U+0033: DIGIT THREE -->
+        <td>&#x0034;x <!-- U+0034: DIGIT FOUR -->
+        <td>&#x0035;x <!-- U+0035: DIGIT FIVE -->
+        <td>&#x0036;x <!-- U+0036: DIGIT SIX -->
+        <td>&#x0037;x <!-- U+0037: DIGIT SEVEN -->
+        <td>&#x0038;x <!-- U+0038: DIGIT EIGHT -->
+        <td>&#x0039;x <!-- U+0039: DIGIT NINE -->
+        <td>&#x003A;x <!-- U+003A: COLON -->
+        <td>&#x003B;x <!-- U+003B: SEMICOLON -->
+        <td>&#x003C;x <!-- U+003C: LESS-THAN SIGN -->
+        <td>&#x003D;x <!-- U+003D: EQUALS SIGN -->
+        <td>&#x003E;x <!-- U+003E: GREATER-THAN SIGN -->
+        <td>&#x003F;x <!-- U+003F: QUESTION MARK -->
+        <td>&#x0040;x <!-- U+0040: COMMERCIAL AT -->
+        <td>&#x0041;x <!-- U+0041: LATIN CAPITAL LETTER A -->
+        <td>&#x0042;x <!-- U+0042: LATIN CAPITAL LETTER B -->
+    <tr>
+        <td>&#x0043;x <!-- U+0043: LATIN CAPITAL LETTER C -->
+        <td>&#x0044;x <!-- U+0044: LATIN CAPITAL LETTER D -->
+        <td>&#x0045;x <!-- U+0045: LATIN CAPITAL LETTER E -->
+        <td>&#x0046;x <!-- U+0046: LATIN CAPITAL LETTER F -->
+        <td>&#x0047;x <!-- U+0047: LATIN CAPITAL LETTER G -->
+        <td>&#x0048;x <!-- U+0048: LATIN CAPITAL LETTER H -->
+        <td>&#x0049;x <!-- U+0049: LATIN CAPITAL LETTER I -->
+        <td>&#x004A;x <!-- U+004A: LATIN CAPITAL LETTER J -->
+        <td>&#x004B;x <!-- U+004B: LATIN CAPITAL LETTER K -->
+        <td>&#x004C;x <!-- U+004C: LATIN CAPITAL LETTER L -->
+        <td>&#x004D;x <!-- U+004D: LATIN CAPITAL LETTER M -->
+        <td>&#x004E;x <!-- U+004E: LATIN CAPITAL LETTER N -->
+        <td>&#x004F;x <!-- U+004F: LATIN CAPITAL LETTER O -->
+        <td>&#x0050;x <!-- U+0050: LATIN CAPITAL LETTER P -->
+        <td>&#x0051;x <!-- U+0051: LATIN CAPITAL LETTER Q -->
+        <td>&#x0052;x <!-- U+0052: LATIN CAPITAL LETTER R -->
+        <td>&#x0053;x <!-- U+0053: LATIN CAPITAL LETTER S -->
+    <tr>
+        <td>&#x0054;x <!-- U+0054: LATIN CAPITAL LETTER T -->
+        <td>&#x0055;x <!-- U+0055: LATIN CAPITAL LETTER U -->
+        <td>&#x0056;x <!-- U+0056: LATIN CAPITAL LETTER V -->
+        <td>&#x0057;x <!-- U+0057: LATIN CAPITAL LETTER W -->
+        <td>&#x0058;x <!-- U+0058: LATIN CAPITAL LETTER X -->
+        <td>&#x0059;x <!-- U+0059: LATIN CAPITAL LETTER Y -->
+        <td>&#x005A;x <!-- U+005A: LATIN CAPITAL LETTER Z -->
+        <td>&#x005B;x <!-- U+005B: LEFT SQUARE BRACKET -->
+        <td>&#x005C;x <!-- U+005C: REVERSE SOLIDUS -->
+        <td>&#x005D;x <!-- U+005D: RIGHT SQUARE BRACKET -->
+        <td>&#x005E;x <!-- U+005E: CIRCUMFLEX ACCENT -->
+        <td>&#x005F;x <!-- U+005F: LOW LINE -->
+        <td>&#x0060;x <!-- U+0060: GRAVE ACCENT -->
+        <td>&#x0061;x <!-- U+0061: LATIN SMALL LETTER A -->
+        <td>&#x0062;x <!-- U+0062: LATIN SMALL LETTER B -->
+        <td>&#x0063;x <!-- U+0063: LATIN SMALL LETTER C -->
+        <td>&#x0064;x <!-- U+0064: LATIN SMALL LETTER D -->
+    <tr>
+        <td>&#x0065;x <!-- U+0065: LATIN SMALL LETTER E -->
+        <td>&#x0066;x <!-- U+0066: LATIN SMALL LETTER F -->
+        <td>&#x0067;x <!-- U+0067: LATIN SMALL LETTER G -->
+        <td>&#x0068;x <!-- U+0068: LATIN SMALL LETTER H -->
+        <td>&#x0069;x <!-- U+0069: LATIN SMALL LETTER I -->
+        <td>&#x006A;x <!-- U+006A: LATIN SMALL LETTER J -->
+        <td>&#x006B;x <!-- U+006B: LATIN SMALL LETTER K -->
+        <td>&#x006C;x <!-- U+006C: LATIN SMALL LETTER L -->
+        <td>&#x006D;x <!-- U+006D: LATIN SMALL LETTER M -->
+        <td>&#x006E;x <!-- U+006E: LATIN SMALL LETTER N -->
+        <td>&#x006F;x <!-- U+006F: LATIN SMALL LETTER O -->
+        <td>&#x0070;x <!-- U+0070: LATIN SMALL LETTER P -->
+        <td>&#x0071;x <!-- U+0071: LATIN SMALL LETTER Q -->
+        <td>&#x0072;x <!-- U+0072: LATIN SMALL LETTER R -->
+        <td>&#x0073;x <!-- U+0073: LATIN SMALL LETTER S -->
+        <td>&#x0074;x <!-- U+0074: LATIN SMALL LETTER T -->
+        <td>&#x0075;x <!-- U+0075: LATIN SMALL LETTER U -->
+    <tr>
+        <td>&#x0076;x <!-- U+0076: LATIN SMALL LETTER V -->
+        <td>&#x0077;x <!-- U+0077: LATIN SMALL LETTER W -->
+        <td>&#x0078;x <!-- U+0078: LATIN SMALL LETTER X -->
+        <td>&#x0079;x <!-- U+0079: LATIN SMALL LETTER Y -->
+        <td>&#x007A;x <!-- U+007A: LATIN SMALL LETTER Z -->
+        <td>&#x007B;x <!-- U+007B: LEFT CURLY BRACKET -->
+        <td>&#x007C;x <!-- U+007C: VERTICAL LINE -->
+        <td>&#x007D;x <!-- U+007D: RIGHT CURLY BRACKET -->
+        <td>&#x007E;x <!-- U+007E: TILDE -->
+        <td>&#x00A0;x <!-- U+00A0: NO-BREAK SPACE -->
+        <td>&#x00A1;x <!-- U+00A1: INVERTED EXCLAMATION MARK -->
+        <td>&#x00A2;x <!-- U+00A2: CENT SIGN -->
+        <td>&#x00A3;x <!-- U+00A3: POUND SIGN -->
+        <td>&#x00A4;x <!-- U+00A4: CURRENCY SIGN -->
+        <td>&#x00A5;x <!-- U+00A5: YEN SIGN -->
+        <td>&#x00A6;x <!-- U+00A6: BROKEN BAR -->
+        <td>&#x00A7;x <!-- U+00A7: SECTION SIGN -->
+    <tr>
+        <td>&#x00A8;x <!-- U+00A8: DIAERESIS -->
+        <td>&#x00A9;x <!-- U+00A9: COPYRIGHT SIGN -->
+        <td>&#x00AA;x <!-- U+00AA: FEMININE ORDINAL INDICATOR -->
+        <td>&#x00AB;x <!-- U+00AB: LEFT-POINTING DOUBLE ANGLE QUOTATION MARK -->
+        <td>&#x00AC;x <!-- U+00AC: NOT SIGN -->
+        <td>&#x00AD;x <!-- U+00AD: SOFT HYPHEN -->
+        <td>&#x00AE;x <!-- U+00AE: REGISTERED SIGN -->
+        <td>&#x00AF;x <!-- U+00AF: MACRON -->
+        <td>&#x00B0;x <!-- U+00B0: DEGREE SIGN -->
+        <td>&#x00B1;x <!-- U+00B1: PLUS-MINUS SIGN -->
+        <td>&#x00B2;x <!-- U+00B2: SUPERSCRIPT TWO -->
+        <td>&#x00B3;x <!-- U+00B3: SUPERSCRIPT THREE -->
+        <td>&#x00B4;x <!-- U+00B4: ACUTE ACCENT -->
+        <td>&#x00B5;x <!-- U+00B5: MICRO SIGN -->
+        <td>&#x00B6;x <!-- U+00B6: PILCROW SIGN -->
+        <td>&#x00B7;x <!-- U+00B7: MIDDLE DOT -->
+        <td>&#x00B8;x <!-- U+00B8: CEDILLA -->
+    <tr>
+        <td>&#x00B9;x <!-- U+00B9: SUPERSCRIPT ONE -->
+        <td>&#x00BA;x <!-- U+00BA: MASCULINE ORDINAL INDICATOR -->
+        <td>&#x00BB;x <!-- U+00BB: RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK -->
+        <td>&#x00BC;x <!-- U+00BC: VULGAR FRACTION ONE QUARTER -->
+        <td>&#x00BD;x <!-- U+00BD: VULGAR FRACTION ONE HALF -->
+        <td>&#x00BE;x <!-- U+00BE: VULGAR FRACTION THREE QUARTERS -->
+        <td>&#x00BF;x <!-- U+00BF: INVERTED QUESTION MARK -->
+        <td>&#x00C0;x <!-- U+00C0: LATIN CAPITAL LETTER A WITH GRAVE -->
+        <td>&#x00C1;x <!-- U+00C1: LATIN CAPITAL LETTER A WITH ACUTE -->
+        <td>&#x00C2;x <!-- U+00C2: LATIN CAPITAL LETTER A WITH CIRCUMFLEX -->
+        <td>&#x00C3;x <!-- U+00C3: LATIN CAPITAL LETTER A WITH TILDE -->
+        <td>&#x00C4;x <!-- U+00C4: LATIN CAPITAL LETTER A WITH DIAERESIS -->
+        <td>&#x00C5;x <!-- U+00C5: LATIN CAPITAL LETTER A WITH RING ABOVE -->
+        <td>&#x00C6;x <!-- U+00C6: LATIN CAPITAL LETTER AE -->
+        <td>&#x00C7;x <!-- U+00C7: LATIN CAPITAL LETTER C WITH CEDILLA -->
+        <td>&#x00C8;x <!-- U+00C8: LATIN CAPITAL LETTER E WITH GRAVE -->
+        <td>&#x00C9;x <!-- U+00C9: LATIN CAPITAL LETTER E WITH ACUTE -->
+    <tr>
+        <td>&#x00CA;x <!-- U+00CA: LATIN CAPITAL LETTER E WITH CIRCUMFLEX -->
+        <td>&#x00CB;x <!-- U+00CB: LATIN CAPITAL LETTER E WITH DIAERESIS -->
+        <td>&#x00CC;x <!-- U+00CC: LATIN CAPITAL LETTER I WITH GRAVE -->
+        <td>&#x00CD;x <!-- U+00CD: LATIN CAPITAL LETTER I WITH ACUTE -->
+        <td>&#x00CE;x <!-- U+00CE: LATIN CAPITAL LETTER I WITH CIRCUMFLEX -->
+        <td>&#x00CF;x <!-- U+00CF: LATIN CAPITAL LETTER I WITH DIAERESIS -->
+        <td>&#x00D0;x <!-- U+00D0: LATIN CAPITAL LETTER ETH -->
+        <td>&#x00D1;x <!-- U+00D1: LATIN CAPITAL LETTER N WITH TILDE -->
+        <td>&#x00D2;x <!-- U+00D2: LATIN CAPITAL LETTER O WITH GRAVE -->
+        <td>&#x00D3;x <!-- U+00D3: LATIN CAPITAL LETTER O WITH ACUTE -->
+        <td>&#x00D4;x <!-- U+00D4: LATIN CAPITAL LETTER O WITH CIRCUMFLEX -->
+        <td>&#x00D5;x <!-- U+00D5: LATIN CAPITAL LETTER O WITH TILDE -->
+        <td>&#x00D6;x <!-- U+00D6: LATIN CAPITAL LETTER O WITH DIAERESIS -->
+        <td>&#x00D7;x <!-- U+00D7: MULTIPLICATION SIGN -->
+        <td>&#x00D8;x <!-- U+00D8: LATIN CAPITAL LETTER O WITH STROKE -->
+        <td>&#x00D9;x <!-- U+00D9: LATIN CAPITAL LETTER U WITH GRAVE -->
+        <td>&#x00DA;x <!-- U+00DA: LATIN CAPITAL LETTER U WITH ACUTE -->
+    <tr>
+        <td>&#x00DB;x <!-- U+00DB: LATIN CAPITAL LETTER U WITH CIRCUMFLEX -->
+        <td>&#x00DC;x <!-- U+00DC: LATIN CAPITAL LETTER U WITH DIAERESIS -->
+        <td>&#x00DD;x <!-- U+00DD: LATIN CAPITAL LETTER Y WITH ACUTE -->
+        <td>&#x00DE;x <!-- U+00DE: LATIN CAPITAL LETTER THORN -->
+        <td>&#x00DF;x <!-- U+00DF: LATIN SMALL LETTER SHARP S -->
+        <td>&#x00E0;x <!-- U+00E0: LATIN SMALL LETTER A WITH GRAVE -->
+        <td>&#x00E1;x <!-- U+00E1: LATIN SMALL LETTER A WITH ACUTE -->
+        <td>&#x00E2;x <!-- U+00E2: LATIN SMALL LETTER A WITH CIRCUMFLEX -->
+        <td>&#x00E3;x <!-- U+00E3: LATIN SMALL LETTER A WITH TILDE -->
+        <td>&#x00E4;x <!-- U+00E4: LATIN SMALL LETTER A WITH DIAERESIS -->
+        <td>&#x00E5;x <!-- U+00E5: LATIN SMALL LETTER A WITH RING ABOVE -->
+        <td>&#x00E6;x <!-- U+00E6: LATIN SMALL LETTER AE -->
+        <td>&#x00E7;x <!-- U+00E7: LATIN SMALL LETTER C WITH CEDILLA -->
+        <td>&#x00E8;x <!-- U+00E8: LATIN SMALL LETTER E WITH GRAVE -->
+        <td>&#x00E9;x <!-- U+00E9: LATIN SMALL LETTER E WITH ACUTE -->
+        <td>&#x00EA;x <!-- U+00EA: LATIN SMALL LETTER E WITH CIRCUMFLEX -->
+        <td>&#x00EB;x <!-- U+00EB: LATIN SMALL LETTER E WITH DIAERESIS -->
+    <tr>
+        <td>&#x00EC;x <!-- U+00EC: LATIN SMALL LETTER I WITH GRAVE -->
+        <td>&#x00ED;x <!-- U+00ED: LATIN SMALL LETTER I WITH ACUTE -->
+        <td>&#x00EE;x <!-- U+00EE: LATIN SMALL LETTER I WITH CIRCUMFLEX -->
+        <td>&#x00EF;x <!-- U+00EF: LATIN SMALL LETTER I WITH DIAERESIS -->
+        <td>&#x00F0;x <!-- U+00F0: LATIN SMALL LETTER ETH -->
+        <td>&#x00F1;x <!-- U+00F1: LATIN SMALL LETTER N WITH TILDE -->
+        <td>&#x00F2;x <!-- U+00F2: LATIN SMALL LETTER O WITH GRAVE -->
+        <td>&#x00F3;x <!-- U+00F3: LATIN SMALL LETTER O WITH ACUTE -->
+        <td>&#x00F4;x <!-- U+00F4: LATIN SMALL LETTER O WITH CIRCUMFLEX -->
+        <td>&#x00F5;x <!-- U+00F5: LATIN SMALL LETTER O WITH TILDE -->
+        <td>&#x00F6;x <!-- U+00F6: LATIN SMALL LETTER O WITH DIAERESIS -->
+        <td>&#x00F7;x <!-- U+00F7: DIVISION SIGN -->
+        <td>&#x00F8;x <!-- U+00F8: LATIN SMALL LETTER O WITH STROKE -->
+        <td>&#x00F9;x <!-- U+00F9: LATIN SMALL LETTER U WITH GRAVE -->
+        <td>&#x00FA;x <!-- U+00FA: LATIN SMALL LETTER U WITH ACUTE -->
+        <td>&#x00FB;x <!-- U+00FB: LATIN SMALL LETTER U WITH CIRCUMFLEX -->
+        <td>&#x00FC;x <!-- U+00FC: LATIN SMALL LETTER U WITH DIAERESIS -->
+    <tr>
+        <td>&#x00FD;x <!-- U+00FD: LATIN SMALL LETTER Y WITH ACUTE -->
+        <td>&#x00FE;x <!-- U+00FE: LATIN SMALL LETTER THORN -->
+        <td>&#x00FF;x <!-- U+00FF: LATIN SMALL LETTER Y WITH DIAERESIS -->
+        <td>&#x0131;x <!-- U+0131: LATIN SMALL LETTER DOTLESS I -->
+        <td>&#x0152;x <!-- U+0152: LATIN CAPITAL LIGATURE OE -->
+        <td>&#x0153;x <!-- U+0153: LATIN SMALL LIGATURE OE -->
+        <td>&#x0178;x <!-- U+0178: LATIN CAPITAL LETTER Y WITH DIAERESIS -->
+        <td>&#x0192;x <!-- U+0192: LATIN SMALL LETTER F WITH HOOK -->
+        <td>&#x02C6;x <!-- U+02C6: MODIFIER LETTER CIRCUMFLEX ACCENT -->
+        <td>&#x02C7;x <!-- U+02C7: CARON -->
+        <td>&#x02C9;x <!-- U+02C9: MODIFIER LETTER MACRON -->
+        <td>&#x02D8;x <!-- U+02D8: BREVE -->
+        <td>&#x02D9;x <!-- U+02D9: DOT ABOVE -->
+        <td>&#x02DA;x <!-- U+02DA: RING ABOVE -->
+        <td>&#x02DB;x <!-- U+02DB: OGONEK -->
+        <td>&#x02DC;x <!-- U+02DC: SMALL TILDE -->
+        <td>&#x02DD;x <!-- U+02DD: DOUBLE ACUTE ACCENT -->
+    <tr>
+        <td>&#x0394;x <!-- U+0394: GREEK CAPITAL LETTER DELTA -->
+        <td>&#x03A5;x <!-- U+03A5: GREEK CAPITAL LETTER UPSILON -->
+        <td>&#x03A7;x <!-- U+03A7: GREEK CAPITAL LETTER CHI -->
+        <td>&#x03A9;x <!-- U+03A9: GREEK CAPITAL LETTER OMEGA -->
+        <td>&#x03BC;x <!-- U+03BC: GREEK SMALL LETTER MU -->
+        <td>&#x03C0;x <!-- U+03C0: GREEK SMALL LETTER PI -->
+        <td>&#x2002;x <!-- U+2002: EN SPACE -->
+        <td>&#x2003;x <!-- U+2003: EM SPACE -->
+        <td>&#x2004;x <!-- U+2004: THREE-PER-EM SPACE -->
+        <td>&#x2005;x <!-- U+2005: FOUR-PER-EM SPACE -->
+        <td>&#x2006;x <!-- U+2006: SIX-PER-EM SPACE -->
+        <td>&#x2009;x <!-- U+2009: THIN SPACE -->
+        <td>&#x200A;x <!-- U+200A: HAIR SPACE -->
+        <td>&#x200B;x <!-- U+200B: ZERO WIDTH SPACE -->
+        <td>&#x200C;x <!-- U+200C: ZERO WIDTH NON-JOINER -->
+        <td>&#x200D;x <!-- U+200D: ZERO WIDTH JOINER -->
+        <td>&#x2010;x <!-- U+2010: HYPHEN -->
+    <tr>
+        <td>&#x2013;x <!-- U+2013: EN DASH -->
+        <td>&#x2014;x <!-- U+2014: EM DASH -->
+        <td>&#x2018;x <!-- U+2018: LEFT SINGLE QUOTATION MARK -->
+        <td>&#x2019;x <!-- U+2019: RIGHT SINGLE QUOTATION MARK -->
+        <td>&#x201A;x <!-- U+201A: SINGLE LOW-9 QUOTATION MARK -->
+        <td>&#x201C;x <!-- U+201C: LEFT DOUBLE QUOTATION MARK -->
+        <td>&#x201D;x <!-- U+201D: RIGHT DOUBLE QUOTATION MARK -->
+        <td>&#x201E;x <!-- U+201E: DOUBLE LOW-9 QUOTATION MARK -->
+        <td>&#x2020;x <!-- U+2020: DAGGER -->
+        <td>&#x2021;x <!-- U+2021: DOUBLE DAGGER -->
+        <td>&#x2022;x <!-- U+2022: BULLET -->
+        <td>&#x2026;x <!-- U+2026: HORIZONTAL ELLIPSIS -->
+        <td>&#x2030;x <!-- U+2030: PER MILLE SIGN -->
+        <td>&#x2039;x <!-- U+2039: SINGLE LEFT-POINTING ANGLE QUOTATION MARK -->
+        <td>&#x203A;x <!-- U+203A: SINGLE RIGHT-POINTING ANGLE QUOTATION MARK -->
+        <td>&#x2044;x <!-- U+2044: FRACTION SLASH -->
+        <td>&#x2122;x <!-- U+2122: TRADE MARK SIGN -->
+    <tr>
+        <td>&#x2126;x <!-- U+2126: OHM SIGN -->
+        <td>&#x2202;x <!-- U+2202: PARTIAL DIFFERENTIAL -->
+        <td>&#x2206;x <!-- U+2206: INCREMENT -->
+        <td>&#x220F;x <!-- U+220F: N-ARY PRODUCT -->
+        <td>&#x2211;x <!-- U+2211: N-ARY SUMMATION -->
+        <td>&#x2212;x <!-- U+2212: MINUS SIGN -->
+        <td>&#x2219;x <!-- U+2219: BULLET OPERATOR -->
+        <td>&#x221A;x <!-- U+221A: SQUARE ROOT -->
+        <td>&#x221E;x <!-- U+221E: INFINITY -->
+        <td>&#x222B;x <!-- U+222B: INTEGRAL -->
+        <td>&#x2248;x <!-- U+2248: ALMOST EQUAL TO -->
+        <td>&#x2260;x <!-- U+2260: NOT EQUAL TO -->
+        <td>&#x2264;x <!-- U+2264: LESS-THAN OR EQUAL TO -->
+        <td>&#x2265;x <!-- U+2265: GREATER-THAN OR EQUAL TO -->
+        <td>&#x22F2;x <!-- U+22F2: ELEMENT OF WITH LONG HORIZONTAL STROKE -->
+        <td>&#x25CA;x <!-- U+25CA: LOZENGE -->
+        <td>&#x3000;x <!-- U+3000: IDEOGRAPHIC SPACE -->
+    <tr>
+        <td>&#x3007;x <!-- U+3007: IDEOGRAPHIC NUMBER ZERO -->
+        <td>&#x4E00;x <!-- U+4E00: CJK UNIFIED IDEOGRAPH-4E00 -->
+        <td>&#x4E03;x <!-- U+4E03: CJK UNIFIED IDEOGRAPH-4E03 -->
+        <td>&#x4E09;x <!-- U+4E09: CJK UNIFIED IDEOGRAPH-4E09 -->
+        <td>&#x4E5D;x <!-- U+4E5D: CJK UNIFIED IDEOGRAPH-4E5D -->
+        <td>&#x4E8C;x <!-- U+4E8C: CJK UNIFIED IDEOGRAPH-4E8C -->
+        <td>&#x4E94;x <!-- U+4E94: CJK UNIFIED IDEOGRAPH-4E94 -->
+        <td>&#x516B;x <!-- U+516B: CJK UNIFIED IDEOGRAPH-516B -->
+        <td>&#x516D;x <!-- U+516D: CJK UNIFIED IDEOGRAPH-516D -->
+        <td>&#x5341;x <!-- U+5341: CJK UNIFIED IDEOGRAPH-5341 -->
+        <td>&#x56D7;x <!-- U+56D7: CJK UNIFIED IDEOGRAPH-56D7 -->
+        <td>&#x56DB;x <!-- U+56DB: CJK UNIFIED IDEOGRAPH-56DB -->
+        <td>&#x571F;x <!-- U+571F: CJK UNIFIED IDEOGRAPH-571F -->
+        <td>&#x6728;x <!-- U+6728: CJK UNIFIED IDEOGRAPH-6728 -->
+        <td>&#x6A2A;x <!-- U+6A2A: CJK UNIFIED IDEOGRAPH-6A2A -->
+        <td>&#x6C34;x <!-- U+6C34: CJK UNIFIED IDEOGRAPH-6C34 -->
+        <td>&#x706B;x <!-- U+706B: CJK UNIFIED IDEOGRAPH-706B -->
+    <tr>
+        <td>&#x7EB5;x <!-- U+7EB5: CJK UNIFIED IDEOGRAPH-7EB5 -->
+        <td>&#x91D1;x <!-- U+91D1: CJK UNIFIED IDEOGRAPH-91D1 -->
+        <td>&#xF000;x <!-- U+F000 -->
+        <td>&#xF001;x <!-- U+F001 -->
+        <td>&#xF002;x <!-- U+F002 -->
+        <td>&#xFEFF;x <!-- U+FEFF: ZERO WIDTH NO-BREAK SPACE -->
+</table>

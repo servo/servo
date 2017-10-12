@@ -4,13 +4,13 @@
 <title>SVG image drag and drop roundtrip</title>
 <style type="text/css">
 img
-	{margin:0 2px;}
+  {margin:0 2px;}
 </style>
 <script type="application/ecmascript">
 function addImage(event)
-	{var c = document.createElement('img');
-	c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
-	document.querySelector('p').appendChild(c);}
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+  document.querySelector('p').appendChild(c);}
 </script>
 </head>
 <body>

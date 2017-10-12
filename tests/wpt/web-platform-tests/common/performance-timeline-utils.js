@@ -31,10 +31,12 @@ function test_equals(value, equals, msg, properties)
 function test_entries(actualEntries, expectedEntries) {
   test_equals(actualEntries.length, expectedEntries.length)
   expectedEntries.forEach(function (expectedEntry) {
-    test_true(!!actualEntries.find(function (actualEntry) {
+    var foundEntry = actualEntries.find(function (actualEntry) {
       return typeof Object.keys(expectedEntry).find(function (key) {
             return actualEntry[key] !== expectedEntry[key]
           }) === 'undefined'
-    }))
+    })
+    test_true(!!foundEntry)
+    assert_object_equals(foundEntry.toJSON(), expectedEntry)
   })
 }

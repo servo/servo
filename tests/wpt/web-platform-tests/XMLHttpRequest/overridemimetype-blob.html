@@ -59,7 +59,7 @@ async_test(t => {
   })
   client.open("GET", "resources/status.py")
   client.responseType = "blob"
-  client.overrideMimeType("HI/x;test")
+  client.overrideMimeType("HI/x;test=test")
   client.send()
 }, "Valid MIME types need to be normalized")
 </script>

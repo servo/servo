@@ -3,13 +3,22 @@
 self.getterRejects = (t, obj, getterName, target) => {
   const getter = Object.getOwnPropertyDescriptor(obj, getterName).get;
 
-  return promise_rejects(t, new TypeError(), getter.call(target));
+  return promise_rejects(t, new TypeError(), getter.call(target), getterName + ' should reject with a TypeError');
+};
+
+self.getterRejectsForAll = (t, obj, getterName, targets) => {
+  return Promise.all(targets.map(target => getterRejects(t, obj, getterName, target)));
 };
 
 self.methodRejects = (t, obj, methodName, target, args) => {
   const method = obj[methodName];
 
-  return promise_rejects(t, new TypeError(), method.apply(target, args));
+  return promise_rejects(t, new TypeError(), method.apply(target, args),
+                         methodName + ' should reject with a TypeError');
+};
+
+self.methodRejectsForAll =  (t, obj, methodName, targets, args) => {
+  return Promise.all(targets.map(target => methodRejects(t, obj, methodName, target, args)));
 };
 
 self.getterThrows = (obj, getterName, target) => {
@@ -18,11 +27,20 @@ self.getterThrows = (obj, getterName, target) => {
   assert_throws(new TypeError(), () => getter.call(target), getterName + ' should throw a TypeError');
 };
 
+self.getterThrowsForAll = (obj, getterName, targets) => {
+  targets.forEach(target => getterThrows(obj, getterName, target));
+}
+
 self.methodThrows = (obj, methodName, target, args) => {
   const method = obj[methodName];
+  assert_equals(typeof method, 'function', methodName + ' should exist');
 
   assert_throws(new TypeError(), () => method.apply(target, args), methodName + ' should throw a TypeError');
 };
+
+self.methodThrowsForAll = (obj, methodName, targets, args) => {
+  targets.forEach(target => methodThrows(obj, methodName, target, args));
+}
 
 self.garbageCollect = () => {
   if (self.gc) {

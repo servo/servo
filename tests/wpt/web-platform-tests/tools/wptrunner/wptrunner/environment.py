@@ -6,7 +6,7 @@ import socket
 import sys
 import time
 
-from mozlog import get_default_logger, handlers
+from mozlog import get_default_logger, handlers, proxy
 
 from wptlogging import LogLevelRewriter
 
@@ -117,7 +117,7 @@ class TestEnvironment(object):
             for port, server in servers:
                 server.kill()
         for cm in self.env_extras:
-            cm.__exit__()
+            cm.__exit__(exc_type, exc_val, exc_tb)
         self.cache_manager.__exit__(exc_type, exc_val, exc_tb)
         self.ssl_env.__exit__(exc_type, exc_val, exc_tb)
         self.stash.__exit__()
@@ -167,6 +167,8 @@ class TestEnvironment(object):
         # Downgrade errors to warnings for the server
         log_filter = LogLevelRewriter(log_filter, ["error"], "warning")
         server_logger.component_filter = log_filter
+
+        server_logger = proxy.QueuedProxyLogger(server_logger)
 
         try:
             #Set as the default logger for wptserve

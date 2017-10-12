@@ -13,8 +13,13 @@ testRanges.unshift("[]");
 var range = rangeFromEndpoints([paras[0].firstChild, 0, paras[0].firstChild, 1]);
 
 function testRange(rangeDesc, method) {
+    var endpoints = eval(testRanges[i]);
+    if (endpoints.length && (!isSelectableNode(endpoints[0]) ||
+                             !isSelectableNode(endpoints[2]))) {
+      return;
+    }
     test(function() {
-        setSelectionForwards(eval(rangeDesc));
+        setSelectionForwards(endpoints);
         selection[method]();
         assert_equals(selection.rangeCount, 0,
             "After " + method + "(), rangeCount must be 0");
@@ -28,7 +33,7 @@ function testRange(rangeDesc, method) {
 
     // Copy-pasted from above
     test(function() {
-        setSelectionBackwards(eval(rangeDesc));
+        setSelectionBackwards(endpoints);
         selection[method]();
         assert_equals(selection.rangeCount, 0,
             "After " + method + "(), rangeCount must be 0");

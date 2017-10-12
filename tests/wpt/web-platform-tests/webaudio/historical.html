@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Historical Web Audio API features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+[
+  "webkitAudioContext",
+  "webkitAudioPannerNode",
+  "webkitOfflineAudioContext",
+].forEach(name => {
+  test(function() {
+    assert_false(name in window);
+  }, name + " interface should not exist");
+});
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that POST requests with text content and no content-type set explicitly don't generate a preflight request.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async_test(function(test) {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("POST", get_host_info().HTTP_REMOTE_ORIGIN + "/XMLHttpRequest/resources/access-control-basic-options-not-supported.py");
+
+      xhr.onerror = test.unreached_func("Network error.");
+
+      xhr.onload = test.step_func_done(function() {
+        assert_equals(xhr.status, 200);
+      });
+
+      xhr.send("Test");
+    }, "POST request with text content and no Content-Type header");
+    </script>
+  </body>
+</html>

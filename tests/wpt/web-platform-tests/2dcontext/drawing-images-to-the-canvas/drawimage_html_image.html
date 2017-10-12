@@ -1,0 +1,268 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="dest" height="100" width="100"></canvas>
+
+<script>
+var sourceWidth = sourceHeight = 100;
+var destCanvasWidth = destCanvasHeight = 100;
+var redPixel = [255, 0, 0, 255];
+var lightPixel = [253, 140, 245, 255];
+var grayPixel = [41, 122, 115, 255];
+var transparentBlackPixel = [0, 0, 0, 0];
+
+var destCanvas = document.getElementById('dest');
+var sourceImg = document.createElement('img');
+sourceImg.src = '../2x2.png';
+sourceImg.width = sourceWidth;
+sourceImg.height = sourceHeight;
+var destCtx = destCanvas.getContext('2d');
+destCtx.imageSmoothingEnabled = false;
+
+function checkPixel(location, expected) {
+    var actual = destCtx.getImageData(location[0], location[1], 1, 1).data;
+    assert_array_equals(actual, expected);
+}
+
+function PreparePixelTests(lightPixelCheck, grayPixelCheck, redCheck, testDescription) {
+    var pixelTests = [];
+    for (var i = 0; i < lightPixelCheck.length; i++) {
+        var message = testDescription + 'Pixel ' + lightPixelCheck[i][0] + ',' + lightPixelCheck[i][1] + ' should be light purple.';
+        pixelTests.push([message, lightPixelCheck[i], lightPixel]);
+    }
+    for (var i = 0; i < grayPixelCheck.length; i++) {
+        var message = testDescription + 'Pixel ' + grayPixelCheck[i][0] + ',' + grayPixelCheck[i][1] + ' should be gray.';
+        pixelTests.push([message, grayPixelCheck[i], grayPixel]);
+    }
+    for (var i = 0; i < redCheck.length; i++) {
+        var message = testDescription + 'Pixel ' + redCheck[i][0] + ',' + redCheck[i][1] + ' should be red.';
+        pixelTests.push([message, redCheck[i], redPixel]);
+    }
+    pixelTests.push([testDescription + 'Pixel outside canvas should be transparent black.\n', [100, 100], transparentBlackPixel]);
+    return pixelTests;
+}
+
+function drawCustomImageOnCanvas(sourceImage, sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription) {
+    destCtx.fillStyle = 'red';
+    destCtx.fillRect(0, 0,  destCanvasWidth, destCanvasHeight);
+    if (typeof sourceRect.x !== 'undefined')
+        destCtx.drawImage(sourceImage, sourceRect.x, sourceRect.y, sourceRect.w, sourceRect.h,
+                          destRect.x, destRect.y, destRect.w, destRect.h);
+    else if (typeof destRect.w !== 'undefined')
+        destCtx.drawImage(sourceImage, destRect.x, destRect.y, destRect.w, destRect.h);
+    else
+        destCtx.drawImage(sourceImage, destRect.x, destRect.y);
+    var pixelTests = PreparePixelTests(lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+    generate_tests(checkPixel, pixelTests);
+}
+
+function drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription) {
+    drawCustomImageOnCanvas(sourceImg, sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+var testDescription;
+var sourceRect = {}, destRect = {};
+var lightPixelCheck, grayPixelCheck, redCheck;
+
+// 2 arguments, the dest origin is 0,0
+// The source image will copied to the 0,0 position of the destination canvas
+function runDrawImageTest_dX0_dY0() {
+    testDescription = 'Test scenario 1: dx = 0, dy = 0 --- ';
+    destRect = {x: 0, y: 0};
+    lightPixelCheck = [[0,0], [0,99], [99,0], [99,99]];
+    grayPixelCheck = [];
+    redCheck = [];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// 2 arguments, the dest origin is not 0,0
+// The source canvas will copied to the 25,25 position of the destination canvas
+function runDrawImageTest_dX25_dY25() {
+    testDescription = 'Test scenario 2: dx = 25, dy = 25 --- ';
+    destRect = {x: 25, y: 25};
+    lightPixelCheck = [[25,25], [25,99], [99,25], [99,99]];
+    grayPixelCheck = [];
+    redCheck = [[0,0], [24,24], [0,25], [25,0], [0,99], [99,0]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// 4 arguments, the source origin is not 0,0, the dest size is provided
+// The source canvas will copied to the 50, 50 position of the destination canvas and
+// on an area of 50x50 pixels
+function runDrawImageTest_dX50_dY50_dW50_dH50() {
+    testDescription = 'Test scenario 3: dx = 50, dy = 50, dw = 50, dh = 50 --- ';
+    destRect = {x: 50, y: 50, w: 50, h: 50};
+    lightPixelCheck = [[50,50], [99,99]];
+    grayPixelCheck = [[50,99], [99,50]];
+    redCheck = [[0,0], [49,49], [0,50], [50,0], [0,99], [99,0]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// 4 arguments, the dest origin is not 0,0 and the dest size is provided but
+// does not match the size of the source. The image will be distorted
+// The source canvas will copied to the 50,50 position of the destination canvas
+// and it will be shrunk to a and area of 16x16
+function runDrawImageTest_dX50_dY50_dW16_dH16() {
+    testDescription = 'Test scenario 4: dx = 50, dy = 50, dw = 16, dh = 16 --- ';
+    destRect = {x: 50, y: 50, w: 16, h: 16};
+    lightPixelCheck = [[50,50], [65,65]];
+    grayPixelCheck = [[50,65], [65,50]];
+    redCheck = [[0,0], [49,49], [49,66], [66,49], [66,66], [99,99]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// The source canvas will copied to the 50,50 position of the destination canvas
+// over an area of 64x32 pixels
+// The copied image will be distorted along the x axis
+function runDrawImageTest_dX50_dY50_dW64_dH32() {
+    testDescription = 'Test scenario 5: dx = 50, dy = 50, dw = 64, dh = 32 --- ';
+    destRect = {x: 50, y: 50, w: 64, h: 32};
+    lightPixelCheck = [[50,50], [99,81]];
+    grayPixelCheck = [[50,81], [99,50]];
+    redCheck = [[0,0], [49,49], [49,82], [99,49], [99,82], [99,99]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// 8 arguments, both destination and source origins are 0, 0
+// An area of 32x32 pixels of the source image will be copied to
+// an area of 32x32 pixels of the destination canvas
+function runDrawImageTest_sX0_sY0_sW32_sH32_dX0_dY0_dW32_dH32() {
+    testDescription = 'Test scenario 6: sx = 0, sy = 0, sw = 32, sh = 32, dx = 0, dy = 0, dw = 32, dh = 32 --- ';
+    sourceRect = {x: 0, y: 0, w: 32, h: 32};
+    destRect = {x: 0, y: 0, w: 32, h: 32};
+    lightPixelCheck = [[0,0], [0,31], [31,0], [31,31]];
+    grayPixelCheck = [];
+    redCheck = [[0,32], [32,0], [32,32], [99,99]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// 8 arguments the destination origin is not 0,0
+// An area of 32x32 pixels of the source image will be copied to
+// an area of 32x32 pixels of the destination canvas in the position 32,32
+function runDrawImageTest_sX0_sY0_sW32_sH32_dX32_dY32_dW32_dH32() {
+    testDescription = 'Test scenario 7: sx = 0, sy = 0, sw = 32, sh = 32, dx = 32, dy = 32, dw = 32, dh = 32 --- ';
+    sourceRect = {x: 0, y: 0, w: 32, h: 32};
+    destRect = {x: 32, y: 32, w: 32, h: 32};
+    lightPixelCheck = [[32,32], [32,63], [63,32], [63,63]];
+    grayPixelCheck = [];
+    redCheck = [[0,0], [31,31], [31,64], [64,31], [64,64], [99,99]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// The source rectangle overflows the source image
+// The source area is clipped to fit the source image
+// and the destination are is clipped in the same proportion
+function runDrawImageTest_sX32_sY32_sW32_sH32_dX0_dY0_dW32_dH32() {
+    testDescription = 'Test scenario 8: sx = 32, sy = 32, sw = 32, sh = 32, dx = 0, dy = 0, dw = 32, dh = 32 --- ';
+    sourceRect = {x: 32, y: 32, w: 32, h: 32};
+    destRect = {x: 0, y: 0, w: 32, h: 32};
+    lightPixelCheck = [[0,0], [0,31], [31,0], [31,31]];
+    grayPixelCheck = [];
+    redCheck = [[0,32], [32,0], [32,32], [99,99]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// The destination rectangle has negative width and height. When the source
+// rectangle is outside the source image, the source rectangle must be clipped
+// to the source image and the destination rectangle must be clipped in the same
+// proportion.
+function runDrawImageTest_sX0_sY0_sW32_sH32_dX32_dY32_dWm32_dHm32() {
+    testDescription = 'Test scenario 9: sx = 32, sy = 32, sw = 32, sh = 32, dx = 32, dy = 32, dw = -32, dh = -32 --- ';
+    sourceRect = {x: 32, y: 32, w: 32, h: 32};
+    destRect = {x: 0, y: 0, w: 32, h: 32};
+    lightPixelCheck = [[0,0], [0,31], [31,0], [31,31]];
+    grayPixelCheck = [];
+    redCheck = [[0,32], [32,0], [32,32], [99,99]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// The destination rectangle is larger than the destination canvas.
+// When the destination rectangle is outside the destination image (the scratch bitmap),
+// the pixels that land outside the scratch bitmap are discarded,
+// as if the destination was an infinite canvas
+// whose rendering was clipped to the dimensions of the scratch bitmap.
+function runDrawImageTest_sX0_sY0_sW512_sH512_dX0_dY0_dW256_dH256() {
+    testDescription = 'Test scenario 10: sx = 0, sy = 0, sw = 512, sh = 512, dx = 0, dy = 0, dw = 256, dh = 256 --- ';
+    sourceRect = {x: 0, y: 0, w: 512, h: 512};
+    destRect = {x: 0, y: 0, w: 256, h: 256};
+    lightPixelCheck = [[0,0], [0,99], [99,0], [99,99]];
+    grayPixelCheck = [];
+    redCheck = [];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// The source rectangle is larger than the source canvas
+// The source area is clipped to fit the source image
+// and the destination area is clipped in the same proportion
+function runDrawImageTest_sX0_sY0_sW2048_sH2048_dX0_dY0_dW800_dH800() {
+    testDescription = 'Test scenario 11: sx = 0, sy = 0, sw = 2048, sh = 2048, dx = 0, dy = 0, dw = 800, dh = 800 --- ';
+    sourceRect = {x: 0, y: 0, w: 2048, h: 2048};
+    destRect = {x: 0, y: 0, w: 800, h: 800};
+    lightPixelCheck = [[0,0], [0,99], [99,0], [99,99]];
+    grayPixelCheck = [];
+    redCheck = [];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// Negative coordinates of the source rectangle
+// The source area is clipped to fit the source image
+// and the destination area is clipped in the same proportion
+function runDrawImageTest_sXm20_sYm20_sW50_sH50_dX20_dY20_dW125_dH125() {
+    testDescription = 'Test scenario 12: sx = -20, sy = -20, sw = 50, sh = 50, dx = 20, dy = 20, dw = 125, dh = 125 --- ';
+    sourceRect = {x: -20, y: -20, w: 50, h: 50};
+    destRect = {x: 20, y: 20, w: 125, h: 125};
+    lightPixelCheck = [[70,70], [70,99], [99,70], [99,99]];
+    grayPixelCheck = [];
+    redCheck = [[0,0], [0,99], [99,0], [69,69], [69, 99], [99,69]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// The source Image doesn't have a src url defined.
+// No exception is thrown and nothing is drawn.
+function runDrawImageTestImageWithuotSource() {
+    testDescription = 'Test scenario 13: draw an image element that does not have a source --- ';
+    var sourceImage = document.createElement('img');
+    sourceRect = {x: 0, y: 0, w: 50, h: 50};
+    destRect = {x: 0, y: 0, w: 100, h: 100};
+    lightPixelCheck = [];
+    grayPixelCheck = [];
+    redCheck = [[0,0], [0,99], [99,0], [99,69]];
+    drawCustomImageOnCanvas(sourceImage, sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+// Clipping the source and down scaling to the destination
+function runDrawImageTest_sX64_sY64_sW384_sH384_dX0_dY0_dW32_dH64() {
+    testDescription = 'Test scenario 14: sx = 64, sy = 64, sw = 384, sh = 384, dx = 0, dy = 0, dw = 32, dh = 64 --- ';
+    sourceRect = {x: 64, y: 64, w: 384, h: 384};
+    destRect = {x: 0, y: 0, w: 32, h: 64};
+    lightPixelCheck = [[0,0], [15,31], [17,33], [31,63]];
+    grayPixelCheck = [[16,0], [31,31], [0, 33], [15,63]];
+    redCheck = [[0,64], [32,0], [32,64], [99,99]];
+    drawImageOnCanvas(sourceRect, destRect, lightPixelCheck, grayPixelCheck, redCheck, testDescription);
+}
+
+
+function runDrawImageTests() {
+    runDrawImageTest_dX0_dY0();
+    runDrawImageTest_dX25_dY25();
+    runDrawImageTest_dX50_dY50_dW50_dH50();
+    runDrawImageTest_dX50_dY50_dW16_dH16();
+    runDrawImageTest_dX50_dY50_dW64_dH32();
+    runDrawImageTest_sX0_sY0_sW32_sH32_dX0_dY0_dW32_dH32();
+    runDrawImageTest_sX0_sY0_sW32_sH32_dX32_dY32_dW32_dH32();
+    runDrawImageTest_sX32_sY32_sW32_sH32_dX0_dY0_dW32_dH32();
+    runDrawImageTest_sX0_sY0_sW32_sH32_dX32_dY32_dWm32_dHm32();
+    runDrawImageTest_sX0_sY0_sW512_sH512_dX0_dY0_dW256_dH256();
+    runDrawImageTest_sX0_sY0_sW2048_sH2048_dX0_dY0_dW800_dH800();
+    runDrawImageTest_sXm20_sYm20_sW50_sH50_dX20_dY20_dW125_dH125();
+    runDrawImageTestImageWithuotSource();
+    runDrawImageTest_sX64_sY64_sW384_sH384_dX0_dY0_dW32_dH64();
+}
+
+async_test(t => {
+        window.onload = function() {
+            t.step(runDrawImageTests);
+            t.done();
+        }
+}, 'Draw 100x100 image to 100x100 canvas at 0,0.');
+
+</script>

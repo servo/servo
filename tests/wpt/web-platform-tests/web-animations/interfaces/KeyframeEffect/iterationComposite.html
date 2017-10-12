@@ -447,15 +447,15 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 0)', // rotate(90deg)
     'Animated transform(rotate) style at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 0, 0)', // rotate(360deg)
     'Animated transform(rotate) style at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 0)', // rotate(450deg)
     'Animated transform(rotate) style at 50s of the third iteration');
 }, 'iterationComposite of transform(rotate) animation');
@@ -471,16 +471,16 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0.5, 0, 0, 0.5, 0, 0)', // scale(0.5)
     'Animated transform(scale) style at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 0, 0, 0, 0, 0)', // scale(0); scale(1) is an identity element,
                                 // not accumulated.
     'Animated transform(scale) style at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0.5, 0, 0, 0.5, 0, 0)', // scale(0.5); scale(1) an identity
                                     // element, not accumulated.
     'Animated transform(scale) style at 50s of the third iteration');
@@ -497,15 +497,15 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1.5, 0, 0, 1.5, 0, 0)', // scale(1.5)
     'Animated transform(scale) style at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(3, 0, 0, 3, 0, 0)', // scale(1 + (2 -1) + (2 -1))
     'Animated transform(scale) style at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(3.5, 0, 0, 3.5, 0, 0)', // (scale(3) + scale(4)) * 0.5
     'Animated transform(scale) style at 50s of the third iteration');
 }, 'iterationComposite of transform: [ scale(1), scale(2) ] animation');
@@ -521,15 +521,15 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 0, 0)', // scale(1)
     'Animated transform(scale) style at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(2, 0, 0, 2, 0, 0)', // (scale(0) + scale(2-1)*2)
     'Animated transform(scale) style at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(3, 0, 0, 3, 0, 0)', // (scale(2) + scale(4)) * 0.5
     'Animated transform(scale) style at 50s of the third iteration');
 }, 'iterationComposite of transform: scale(2) animation');
@@ -546,15 +546,15 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 5)', // rotate(90deg) translateX(5px)
     'Animated transform list at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 20, 0)', // rotate(360deg) translateX(20px)
     'Animated transform list at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 25)', // rotate(450deg) translateX(25px)
     'Animated transform list at 50s of the third iteration');
 }, 'iterationComposite of transform list animation');
@@ -571,16 +571,16 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(2.5, 0, 0, 2.5, 15, 0)',
     'Animated transform of matrix function at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // scale(2) + (scale(3-1)*2) + translateX(30px)*2
     'matrix(6, 0, 0, 6, 60, 0)',
     'Animated transform of matrix function at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // from: matrix(6, 0, 0, 6, 60, 0)
     // to:   matrix(7, 0, 0, 7, 90, 0)
     //         = scale(3) + (scale(3-1)*2) + translateX(30px)*3
@@ -600,20 +600,20 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(2, 0, 0, 2,  0, 0) = translateX(0px) scale(2)
     //                 and matrix(3, 0, 0, 3, 30, 0) = scale(3) translateX(10px)
     'matrix(2.5, 0, 0, 2.5, 15, 0)',
     'Animated transform list at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // 'from' and 'to' value are mismatched, so accumulate
     // matrix(2, 0, 0, 2, 0, 0) onto matrix(3, 0, 0, 3, 30, 0) * 2
     //  = scale(2) + (scale(3-1)*2) + translateX(30px)*2
     'matrix(6, 0, 0, 6, 60, 0)',
     'Animated transform list at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(6, 0, 0, 6, 60, 0)
     //                 and matrix(7, 0, 0, 7, 210, 0) = scale(7) translate(30px)
     'matrix(6.5, 0, 0, 6.5, 135, 0)',
@@ -634,20 +634,20 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(1, 0, 0, 1,  0, 0) = translateX(0px)
     //                 and matrix(2, 0, 0, 2, 20, 0) = scale(2) translateX(10px)
     'matrix(1.5, 0, 0, 1.5, 10, 0)',
     'Animated transform list at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // 'from' and 'to' value are mismatched, so accumulate
     // matrix(1, 0, 0, 1, 0, 0) onto matrix(2, 0, 0, 2, 20, 0) * 2
     //  = scale(1) + (scale(2-1)*2) + translateX(20px)*2
     'matrix(3, 0, 0, 3, 40, 0)',
     'Animated transform list at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(3, 0, 0, 3, 40, 0)
     //                 and matrix(4, 0, 0, 4, 120, 0) =
     //                       scale(2 + (2-1)*2) translate(10px * 3)
@@ -668,16 +668,19 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
-    'matrix(1, 0, 0, 1, 5, 0)', // (0px + 10px) / 2
+  assert_matrix_equals(getComputedStyle(div).transform,
+    // translateX(none) -> translateX(10px) @ 50%
+    'matrix(1, 0, 0, 1, 5, 0)',
     'Animated transform list at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
-    'matrix(1, 0, 0, 1, 0, 0)', // 'none' overrides any transforms.
+  assert_matrix_equals(getComputedStyle(div).transform,
+    // translateX(10px * 2 + none) -> translateX(10px * 2 + 10px) @ 0%
+    'matrix(1, 0, 0, 1, 20, 0)',
     'Animated transform list at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
-    'matrix(1, 0, 0, 1, 15, 0)', // (0px + 10px*2)/2
+  assert_matrix_equals(getComputedStyle(div).transform,
+    // translateX(10px * 2 + none) -> translateX(10px * 2 + 10px) @ 50%
+    'matrix(1, 0, 0, 1, 25, 0)',
     'Animated transform list at 50s of the third iteration');
 }, 'iterationComposite of transform from none to translate');
 
@@ -699,16 +702,16 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 40, 1)',
     'Animated transform of matrix3d function at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // translateZ(30px) + (translateZ(50px)*2)
     'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 130, 1)',
     'Animated transform of matrix3d function at 0s of the third iteration');
   anim.currentTime += anim.effect.timing.duration / 2;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     // from: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 130, 1)
     // to:   matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 150, 1)
     'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 140, 1)',
@@ -727,7 +730,7 @@ test(function(t) {
   anim.pause();
 
   anim.currentTime = 0;
-  assert_equals(getComputedStyle(div).transform,
+  assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 0, 0)', // Actually not rotated at all.
     'Animated transform of rotate3d function at 50s of the first iteration');
   anim.currentTime = anim.effect.timing.duration * 2;

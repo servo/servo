@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='support/base.css' />
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<main>
+    <h1>Visibility collapse</h1>
+    <a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">Spec</a>
+    <p>
+    Setting a rowspan to visibility:collapse doesn't change height or width in this case.
+    </p>
+ <table id="one">
+  <tr>
+    <th>Month</th>
+    <th>Savings</th>
+    <th>Savings for holiday!</th>
+  </tr>
+  <tr>
+    <td>January</td>
+    <td>$100</td>
+    <td rowspan="2">$50</td>
+  </tr>
+  <tr>
+    <td>February</td>
+    <td>$80</td>
+  </tr>
+</table>
+    Collapsing a spanning row does not change table height in this case.
+ <table id="two">
+  <tr>
+    <th>Month</th>
+    <th>Savings</th>
+    <th>Savings for holiday!</th>
+  </tr>
+  <tr>
+    <td>January</td>
+    <td>$100</td>
+    <td rowspan="2" style="visibility:collapse;">$50</td>
+  </tr>
+  <tr>
+    <td>February</td>
+    <td>$80</td>
+  </tr>
+</table>
+</main>
+
+<script>
+    tests = [
+        [
+            document.getElementById('two').offsetWidth,
+            document.getElementById('one').offsetWidth,
+            "spanning row visibility:collapse doesn't change table width"
+        ],
+        [
+            document.getElementById('two').offsetHeight,
+            document.getElementById('one').offsetHeight,
+            "spanning row visibility:collapse doesn't change height in this case"
+        ]];
+    for (i = 0; i< tests.length; i++) {
+        test(function()
+            {
+                assert_equals.apply(this, tests[i]);
+            },
+            tests[i][2]);
+    };
+</script>
+</html>

@@ -14,7 +14,7 @@
       var link = document.createElement('link');
       link.rel="preload";
       link.as="font";
-      link.href="/content-security-policy/support/Ahem.ttf";
+      link.href="/fonts/Ahem.ttf?font-self-allowed";
       link.onload = t.step_func_done();
       link.onerror = t.unreached_func("Should have loaded the font.");
       document.getElementsByTagName('head')[0].appendChild(link);

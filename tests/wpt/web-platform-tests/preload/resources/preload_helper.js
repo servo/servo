@@ -12,5 +12,11 @@ function getAbsoluteURL(url)
 
 function verifyNumberOfDownloads(url, number)
 {
-    assert_equals(performance.getEntriesByName(getAbsoluteURL(url)).length, number, url);
+    var numDownloads = 0;
+    performance.getEntriesByName(getAbsoluteURL(url)).forEach(entry => {
+        if (entry.transferSize > 0) {
+            numDownloads++;
+        }
+    });
+    assert_equals(numDownloads, number, url);
 }

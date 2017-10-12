@@ -16,10 +16,10 @@
     </head>
     <body>
     <h1>Viewport: Size unscaled</h1>
-    <h4>Test Description: This test checks that window.view returns correct sizes without any pinch-zoom page scale applied.</h4>
+    <h4>Test Description: This test checks that window.visualViewport returns correct sizes without any pinch-zoom page scale applied.</h4>
     <div id="complete-notice">
-        <p>window.view width and height is (<span id="view-size-log"></span>).</p>
-        <p>window.view width and height when scrollbars are present is (<span id="view-size-scrollbar-log"></span>).</p>
+        <p>window.visualViewport width and height is (<span id="view-size-log"></span>).</p>
+        <p>window.visualViewport width and height when scrollbars are present is (<span id="view-size-scrollbar-log"></span>).</p>
     </div>
     <div id="log"></div>
     </body>
@@ -27,25 +27,25 @@
         var scrollbarThickness = calculateScrollbarThickness();
 
         test(function() {
-              assert_equals(window.view.width, document.documentElement.clientWidth);
-            }, "view.width should match documentElement.clientWidth when unzoomed.");
+              assert_equals(window.visualViewport.width, document.documentElement.clientWidth);
+            }, "visualViewport.width should match documentElement.clientWidth when unzoomed.");
         test(function() {
-              assert_equals(window.view.height, document.documentElement.clientHeight);
-            }, "view.height should match documentElement.clientHeight when unzoomed.");
+              assert_equals(window.visualViewport.height, document.documentElement.clientHeight);
+            }, "visualViewport.height should match documentElement.clientHeight when unzoomed.");
 
-        document.getElementById("view-size-log").innerText = window.view.width + ", " + window.view.height;
+        document.getElementById("view-size-log").innerText = window.visualViewport.width + ", " + window.visualViewport.height;
 
         // Add overflow so scrollbars appear.
         document.body.style.width = "2000px";
         document.body.style.height = "2000px";
 
         test(function() {
-              assert_equals(window.view.width, document.documentElement.clientWidth);
-            }, "view.width should exclude scrollbar.");
+              assert_equals(window.visualViewport.width, document.documentElement.clientWidth);
+            }, "visualViewport.width should exclude scrollbar.");
         test(function() {
-              assert_equals(window.view.height, document.documentElement.clientHeight);
-            }, "view.height should exclude scrollbar.");
+              assert_equals(window.visualViewport.height, document.documentElement.clientHeight);
+            }, "visualViewport.height should exclude scrollbar.");
 
-        document.getElementById("view-size-scrollbar-log").innerText = window.view.width + ", " + window.view.height;
+        document.getElementById("view-size-scrollbar-log").innerText = window.visualViewport.width + ", " + window.visualViewport.height;
     </script>
 </html>

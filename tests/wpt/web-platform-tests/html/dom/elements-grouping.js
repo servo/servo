@@ -1,4 +1,3 @@
-// Up-to-date as of 2013-04-08.
 var groupingElements = {
   p: {
     // Obsolete
@@ -22,8 +21,6 @@ var groupingElements = {
   ol: {
     // Conforming
     reversed: "boolean",
-    // TODO: This should have a default value of the list's length if the
-    // reversed attribute is set.
     start: {type: "long", defaultVal: 1},
     type: "string",
 

@@ -4,23 +4,23 @@
 <title>Resetting drag image on dragenter</title>
 <style type="text/css">
 span, strong
-	{color:green;
-	background-color:yellow;}
+  {color:green;
+  background-color:yellow;}
 strong
-	{color:red;}
+  {color:red;}
 div
-	{width:100px;
-	height:100px;
-	background-color:silver;
-	margin-top:20px;}
+  {width:100px;
+  height:100px;
+  background-color:silver;
+  margin-top:20px;}
 </style>
 <script type="application/ecmascript">
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.setDragImage(document.querySelector('span'), 1, 1);}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setDragImage(document.querySelector('span'), 1, 1);}
 function resetImage(event)
-	{event.preventDefault();
-	event.dataTransfer.setDragImage(document.querySelector('strong'), 1, 1);}
+  {event.preventDefault();
+  event.dataTransfer.setDragImage(document.querySelector('strong'), 1, 1);}
 </script>
 </head>
 <body>

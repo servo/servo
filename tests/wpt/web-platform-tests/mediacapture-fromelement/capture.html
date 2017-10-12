@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js"
+        data-prefixed-prototypes=
+        '[{"ancestors":["HTMLMediaElement"],"name":"captureStream"}]'>
+</script>
+</head>
+<body>
+<script>
+
+// Run captureStream() on different videos, and assert data is flowing.
+
+var makeAsyncTest = function(filename) {
+  async_test(function(test) {
+    var video = document.createElement('video');
+    video.src = "/media/" + filename;
+    video.onerror = this.unreached_func("<video> error");
+    video.play();
+
+    var stream = video.captureStream();
+
+    // onactive event is marked for deprecation (https://crbug.com/649328)
+    stream.onactive = this.step_func_done(function() {
+      var recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = test.step_func_done(function(event) {
+            assert_true(event.data.size > 0, 'Recorded data size should be > 0');
+      });
+      recorder.start(0);
+    });
+ }), "<video>.captureStream() and assert data flows.";
+};
+
+generate_tests(makeAsyncTest, [
+  [ "video-only", "test-v-128k-320x240-24fps-8kfr.webm" ],
+  [ "audio-only", "test-a-128k-44100Hz-1ch.webm" ],
+  [ "video+audio", "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm" ]
+]);
+
+</script>
+</body>
+</html>

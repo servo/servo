@@ -1,8 +1,8 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Selection spanning hidden elements</title>
-		<script type="text/javascript">
+  <head>
+    <title>Selection spanning hidden elements</title>
+    <script type="text/javascript">
 window.onload = function () {
   var range = document.createRange(), p = document.getElementsByTagName('p')[0];
   range.selectNodeContents(p);
@@ -10,13 +10,13 @@ window.onload = function () {
   range.setEnd(p.lastChild.firstChild,5);
   window.getSelection().addRange(range);
 };
-		</script>
-	</head>
-	<body>
+    </script>
+  </head>
+  <body>
 
-		<p><span style="display:none">FAILPASS_</span>drag<span style="display:none">_THIS_</span>text<span style="display:none">_PASSFAIL</span></p>
-		<p><textarea rows="3" cols="50"></textarea></p>
-		<p>Drag the selected text into the input box. The drag placeholder should match the visible text that is being dragged. When dropped, either &quot;dragtext&quot; or &quot;PASS_drag_THIS_text_PASS&quot; should appear in the input.</p>
+    <p><span style="display:none">FAILPASS_</span>drag<span style="display:none">_THIS_</span>text<span style="display:none">_PASSFAIL</span></p>
+    <p><textarea rows="3" cols="50"></textarea></p>
+    <p>Drag the selected text into the input box. The drag placeholder should match the visible text that is being dragged. When dropped, either &quot;dragtext&quot; or &quot;PASS_drag_THIS_text_PASS&quot; should appear in the input.</p>
 
-	</body>
+  </body>
 </html>

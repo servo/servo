@@ -78,9 +78,9 @@
 
         addManualTestStep(
             function() {
-                var actualScale = window.view.scale;
-                var actualOffsetLeft = window.view.offsetLeft;
-                var actualOffsetTop = window.view.offsetTop;
+                var actualScale = window.visualViewport.scale;
+                var actualOffsetLeft = window.visualViewport.offsetLeft;
+                var actualOffsetTop = window.visualViewport.offsetTop;
 
                 // This needs to happen before assertions in case they fail. A
                 // failed assertion stops running this function.
@@ -88,7 +88,7 @@
 
                 // Ensure we zoomed in to about what we expect.
                 assert_approx_equals(actualScale, scale, 0.2,
-                    "window.view.scale reflects pinch-zoom level");
+                    "window.visualViewport.scale reflects pinch-zoom level");
                 assert_approx_equals(actualOffsetLeft, xTarget, 5,
                     "offsetLeft value is correct.");
                 assert_approx_equals(actualOffsetTop, yTarget, 5,
@@ -109,8 +109,8 @@
               continueBtn.style.left = "150%";
               continueBtn.style.top = "150%";
 
-              assert_approx_equals(window.view.scale, 2, 0.2,
-                  "window.view.scale reflects pinch-zoom level");
+              assert_approx_equals(window.visualViewport.scale, 2, 0.2,
+                  "window.visualViewport.scale reflects pinch-zoom level");
             },
             'Tester pinch zoomed in correctly',
             '5. Scroll fully to the bottom right. Click the continue button ' +
@@ -121,8 +121,8 @@
               var fullscreenBox = document.getElementById('fullscreenBox');
               var expectedLeft = fullscreenBox.clientWidth / 2;
               var expectedTop = fullscreenBox.clientHeight / 2;
-              var viewOffsetLeft = window.view.offsetLeft;
-              var viewOffsetTop = window.view.offsetTop;
+              var viewOffsetLeft = window.visualViewport.offsetLeft;
+              var viewOffsetTop = window.visualViewport.offsetTop;
 
               // This needs to happen before assertions in case they fail. A
               // failed assertion stops running this function.

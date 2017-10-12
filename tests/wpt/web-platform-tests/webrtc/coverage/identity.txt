@@ -1,0 +1,220 @@
+Coverage is based on the following editor draft:
+https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+9.3 Requesting Identity Assertions
+
+  [Trivial]
+  The identity assertion request process is triggered by a call to createOffer,
+  createAnswer, or getIdentityAssertion. When these calls are invoked and an
+  identity provider has been set, the following steps are executed:
+
+    [RTCPeerConnection-getIdentityAssertion]
+    1.  The RTCPeerConnection instantiates an IdP as described in Identity Provider
+        Selection and Registering an IdP Proxy. If the IdP cannot be loaded, instantiated,
+        or the IdP proxy is not registered, this process fails.
+
+    [RTCPeerConnection-getIdentityAssertion]
+    2.  The RTCPeerConnection invokes the generateAssertion method on the
+        RTCIdentityProvider methods registered by the IdP.
+
+        [RTCPeerConnection-getIdentityAssertion]
+        The RTCPeerConnection generates the contents parameter to this method as
+        described in [RTCWEB-SECURITY-ARCH]. The value of contents includes the
+        fingerprint of the certificate that was selected or generated during the
+        construction of the RTCPeerConnection. The origin parameter contains the
+        origin of the script that calls the RTCPeerConnection method that triggers
+        this behavior. The usernameHint value is the same value that is provided
+        to setIdentityProvider, if any such value was provided.
+
+    [RTCPeerConnection-getIdentityAssertion]
+    3.  The IdP proxy returns a Promise to the RTCPeerConnection. The IdP proxy is
+        expected to generate the identity assertion asynchronously.
+
+        [RTCPeerConnection-getIdentityAssertion]
+        If the user has been authenticated by the IdP, and the IdP is able to generate
+        an identity assertion, the IdP resolves the promise with an identity assertion
+        in the form of an RTCIdentityAssertionResult .
+
+        [RTCPeerConnection-getIdentityAssertion]
+        This step depends entirely on the IdP. The methods by which an IdP authenticates
+        users or generates assertions is not specified, though they could involve
+        interacting with the IdP server or other servers.
+
+    [RTCPeerConnection-getIdentityAssertion]
+    4.  If the IdP proxy produces an error or returns a promise that does not resolve
+        to a valid RTCIdentityValidationResult (see 9.5 IdP Error Handling), then
+        identity validation fails.
+
+    [Untestable]
+    5.  The RTCPeerConnection MAY store the identity assertion for use with future
+        offers or answers. If a fresh identity assertion is needed for any reason,
+        applications can create a new RTCPeerConnection.
+
+    [RTCPeerConnection-getIdentityAssertion]
+    6.  If the identity request was triggered by a createOffer() or createAnswer(),
+        then the assertion is converted to a JSON string, base64-encoded and inserted
+        into an a=identity attribute in the session description.
+
+    [RTCPeerConnection-getIdentityAssertion]
+    If assertion generation fails, then the promise for the corresponding function call
+    is rejected with a newly created OperationError.
+
+9.3.1 User Login Procedure
+  [RTCPeerConnection-getIdentityAssertion]
+  An IdP MAY reject an attempt to generate an identity assertion if it is unable to
+  verify that a user is authenticated. This might be due to the IdP not having the
+  necessary authentication information available to it (such as cookies).
+
+  [RTCPeerConnection-getIdentityAssertion]
+  Rejecting the promise returned by generateAssertion will cause the error to propagate
+  to the application. Login errors are indicated by rejecting the promise with an RTCError
+  with errorDetail set to "idp-need-login".
+
+  [RTCPeerConnection-getIdentityAssertion]
+  The URL to login at will be passed to the application in the idpLoginUrl attribute of
+  the RTCPeerConnection.
+
+  [Out of Scope]
+  An application can load the login URL in an IFRAME or popup window; the resulting page
+  then SHOULD provide the user with an opportunity to enter any information necessary to
+  complete the authorization process.
+
+  [Out of Scope]
+  Once the authorization process is complete, the page loaded in the IFRAME or popup sends
+  a message using postMessage [webmessaging] to the page that loaded it (through the
+  window.opener attribute for popups, or through window.parent for pages loaded in an IFRAME).
+  The message MUST consist of the DOMString "LOGINDONE". This message informs the application
+  that another attempt at generating an identity assertion is likely to be successful.
+
+9.4.  Verifying Identity Assertions
+  The identity assertion request process involves the following asynchronous steps:
+
+    [TODO]
+    1.  The RTCPeerConnection awaits any prior identity validation. Only one identity
+        validation can run at a time for an RTCPeerConnection. This can happen because
+        the resolution of setRemoteDescription is not blocked by identity validation
+        unless there is a target peer identity.
+
+    [RTCPeerConnection-peerIdentity]
+    2.  The RTCPeerConnection loads the identity assertion from the session description
+        and decodes the base64 value, then parses the resulting JSON. The idp parameter
+        of the resulting dictionary contains a domain and an optional protocol value
+        that identifies the IdP, as described in [RTCWEB-SECURITY-ARCH].
+
+    [RTCPeerConnection-peerIdentity]
+    3.  The RTCPeerConnection instantiates the identified IdP as described in 9.1.1
+        Identity Provider Selection and 9.2 Registering an IdP Proxy. If the IdP
+        cannot be loaded, instantiated or the IdP proxy is not registered, this
+        process fails.
+
+    [RTCPeerConnection-peerIdentity]
+    4.  The RTCPeerConnection invokes the validateAssertion method registered by the IdP.
+
+        [RTCPeerConnection-peerIdentity]
+        The assertion parameter is taken from the decoded identity assertion. The origin
+        parameter contains the origin of the script that calls the RTCPeerConnection
+        method that triggers this behavior.
+
+    [RTCPeerConnection-peerIdentity]
+    5.  The IdP proxy returns a promise and performs the validation process asynchronously.
+
+        [Out of Scope]
+        The IdP proxy verifies the identity assertion using whatever means necessary.
+        Depending on the authentication protocol this could involve interacting with the
+        IdP server.
+
+    [RTCPeerConnection-peerIdentity]
+    6.  If the IdP proxy produces an error or returns a promise that does not resolve
+        to a valid RTCIdentityValidationResult (see 9.5 IdP Error Handling), then
+        identity validation fails.
+
+    [RTCPeerConnection-peerIdentity]
+    7.  Once the assertion is successfully verified, the IdP proxy resolves the promise
+        with an RTCIdentityValidationResult containing the validated identity and the
+        original contents that are the payload of the assertion.
+
+    [RTCPeerConnection-peerIdentity]
+    8.  The RTCPeerConnection decodes the contents and validates that it contains a
+        fingerprint value for every a=fingerprint attribute in the session description.
+        This ensures that the certificate used by the remote peer for communications
+        is covered by the identity assertion.
+
+    [RTCPeerConnection-peerIdentity]
+    9.  The RTCPeerConnection validates that the domain portion of the identity matches
+        the domain of the IdP as described in [RTCWEB-SECURITY-ARCH]. If this check fails
+        then the identity validation fails.
+
+    [RTCPeerConnection-peerIdentity]
+    10. The RTCPeerConnection resolves the peerIdentity attribute with a new instance
+        of RTCIdentityAssertion that includes the IdP domain and peer identity.
+
+    [Out of Scope]
+    11. The user agent MAY display identity information to a user in its UI. Any user
+        identity information that is displayed in this fashion MUST use a mechanism that
+        cannot be spoofed by content.
+
+  [RTCPeerConnection-peerIdentity]
+  If identity validation fails, the peerIdentity promise is rejected with a newly
+  created OperationError.
+
+  [RTCPeerConnection-peerIdentity]
+  If identity validation fails and there is a target peer identity for the
+  RTCPeerConnection, the promise returned by setRemoteDescription MUST be rejected
+  with the same DOMException.
+
+9.5.  IdP Error Handling
+  [RTCPeerConnection-getIdentityAssertion]
+  - A RTCPeerConnection might be configured with an identity provider, but loading of
+    the IdP URI fails. Any procedure that attempts to invoke such an identity provider
+    and cannot load the URI fails with an RTCError with errorDetail set to
+    "idp-load-failure" and the httpRequestStatusCode attribute of the error set to the
+    HTTP status code of the response.
+
+  [Untestable]
+  - If the IdP loads fails due to the TLS certificate used for the HTTPS connection not
+    being trusted, it fails with an RTCError with errorDetail set to "idp-tls-failure".
+    This typically happens when the IdP uses certificate pinning and an intermediary
+    such as an enterprise firewall has intercepted the TLS connection.
+
+  [RTCPeerConnection-getIdentityAssertion]
+  - If the script loaded from the identity provider is not valid JavaScript or does not
+    implement the correct interfaces, it causes an IdP failure with an RTCError with
+    errorDetail set to "idp-bad-script-failure".
+
+  [TODO]
+  - An apparently valid identity provider might fail in several ways.
+
+    If the IdP token has expired, then the IdP MUST fail with an RTCError with
+    errorDetail set to "idp-token-expired".
+
+    If the IdP token is not valid, then the IdP MUST fail with an RTCError with
+    errorDetail set to "idp-token-invalid".
+
+  [Untestable]
+  - The user agent SHOULD limit the time that it allows for an IdP to 15 seconds.
+    This includes both the loading of the IdP proxy and the identity assertion
+    generation or validation. Failure to do so potentially causes the corresponding
+    operation to take an indefinite amount of time. This timer can be cancelled when
+    the IdP proxy produces a response. Expiration of this timer cases an IdP failure
+    with an RTCError with errorDetail set to "idp-timeout".
+
+  [RTCPeerConnection-getIdentityAssertion]
+  - If the identity provider requires the user to login, the operation will fail
+    RTCError with errorDetail set to "idp-need-login" and the idpLoginUrl attribute
+    of the error set to the URL that can be used to login.
+
+  [RTCPeerConnection-peerIdentity]
+  - Even when the IdP proxy produces a positive result, the procedure that uses this
+    information might still fail. Additional validation of a RTCIdentityValidationResult
+    value is still necessary. The procedure for validation of identity assertions
+    describes additional steps that are required to successfully validate the output
+    of the IdP proxy.
+
+
+Coverage Report
+
+  Tested        29
+  Not Tested     2
+  Untestable     4
+
+  Total         35

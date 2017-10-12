@@ -28,6 +28,7 @@ test(function() {
 
 test(function() {
   var doc = new Document();
+  assert_equals(doc.location, null);
   assert_equals(doc.URL, "about:blank");
   assert_equals(doc.documentURI, "about:blank");
   assert_equals(doc.compatMode, "CSS1Compat");

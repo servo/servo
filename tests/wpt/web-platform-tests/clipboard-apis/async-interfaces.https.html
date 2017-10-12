@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Clipboard IDL test</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<script>
+'use strict';
+
+function doTest(idls) {
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls('interface Navigator {};');
+  idl_array.add_untested_idls('interface EventTarget {};');
+  for (let idl of idls) {
+    idl_array.add_idls(idl);
+  }
+  idl_array.add_objects({
+    Navigator: ['navigator'],
+    Clipboard: ['navigator.clipboard'],
+  });
+  idl_array.test();
+};
+
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+  return Promise.all(["/interfaces/clipboard.idl"].map(fetchText))
+    .then(doTest);
+}, "Test driver");
+</script>

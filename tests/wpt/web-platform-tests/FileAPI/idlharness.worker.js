@@ -10,11 +10,10 @@ request.onload = function() {
 
     idl_array.add_untested_idls("[Global] interface Window { };");
 
-    idl_array.add_untested_idls("interface ArrayBuffer {};");
-    idl_array.add_untested_idls("interface ArrayBufferView {};");
+    idl_array.add_untested_idls("[Exposed=(Window,Worker)] interface ArrayBuffer {};");
     idl_array.add_untested_idls("interface URL {};");
-    idl_array.add_untested_idls("interface EventTarget {};");
-    idl_array.add_untested_idls("interface Event {};");
+    idl_array.add_untested_idls("[Exposed=(Window,Worker)] interface EventTarget {};");
+    idl_array.add_untested_idls("[Exposed=(Window,Worker)] interface Event {};");
     idl_array.add_untested_idls("[TreatNonCallableAsNull] callback EventHandlerNonNull = any (Event event);");
     idl_array.add_untested_idls("typedef EventHandlerNonNull? EventHandler;");
 

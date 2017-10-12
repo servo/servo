@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>searchbox multiline true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -65,8 +66,14 @@
             "IAccessible2" : [
                [
                   "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_TEXT"
+               ],
+               [
+                  "property",
                   "states",
-                  "doesNotContain",
+                  "contains",
                   "IA2_MULTI_LINE"
                ],
                [
@@ -79,7 +86,7 @@
                   "property",
                   "objectAttributes",
                   "contains",
-                  "xml-roles:search"
+                  "text-input-type:search"
                ]
             ],
             "MSAA" : [
@@ -130,4 +137,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

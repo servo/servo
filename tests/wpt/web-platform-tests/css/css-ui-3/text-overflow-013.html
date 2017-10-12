@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis and baseline alignement</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#ellipsing-details">
+<link rel="match" href="reference/text-overflow-013-ref.html">
+<meta name="flags" content="ahem">
+<meta name="assert" content="The ellipsis is be baseline aligned with the block, even if the thing it replaces isn't.">
+<style>
+.test {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+  font: 100px/1 ahem;
+  color: green;
+
+  /* 2em width and starting with a space
+     because the handling of the ellipsis of the first character on the line is special,
+     and therefore we need to have the thing we want to test in non first position.
+   */
+  width: 2em;
+}
+.red {
+  position: absolute;
+  z-index: -1;
+  width: 100px;
+  height: 100px;
+  background: red;
+  margin-left: 100px; /* moving right to skip the first 100x100 space that starts each line */
+}
+span {
+  vertical-align: sub;
+  color: red;
+}
+</style>
+
+<p>Test passes if there are 3 filled green squares and <strong>no red</strong>.</p>
+<div class="red"></div>
+<div class=test> <span>xxxx<br><div class="red"></div> xxxx<br><div class="red"></div> xxxx</span> </div>
+<!--
+There are 3 lines in the test div to make sure that the middle one only contains text from the span, not directly from the block,
+guaranteeing that the ellipsis is taking its baseline from the block even when the block has no direct content on the line.
+
+The "red" divs for line 2 and 3 are descendants of the span so that they are placed based on their static position at the begining of each line.
+The alternative, which would be to place them (vertically) with explicit offsets would require knowing
+the precise height of the preceeding line boxes, which isn't reliable across UAs.
+-->

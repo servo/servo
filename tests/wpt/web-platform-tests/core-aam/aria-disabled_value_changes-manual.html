@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-disabled value changes</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "attribute" : "aria-disabled",
+         "element" : "test",
+         "title" : "step 1",
+         "type" : "attribute",
+         "value" : "true"
+      },
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "object:state-changed:enabled"
+               ],
+               [
+                  "event",
+                  "detail1",
+                  "is",
+                  "0"
+               ],
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "object:state-changed:sensitive"
+               ],
+               [
+                  "event",
+                  "detail1",
+                  "is",
+                  "0"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "event",
+                  "type",
+                  "is",
+                  "EVENT_OBJECT_STATECHANGE"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-disabled value changes"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-disabled value changes.</p>
+     <div role='checkbox' id='test'>content</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

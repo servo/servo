@@ -1,0 +1,13 @@
+[SecureContext]
+interface Clipboard : EventTarget {
+  Promise<DataTransfer> read();
+  Promise<DOMString> readText();
+
+  Promise<void> write(DataTransfer data);
+  Promise<void> writeText(DOMString data);
+};
+
+[SecureContext]
+partial interface Navigator {
+  [SameObject] readonly attribute Clipboard clipboard;
+};

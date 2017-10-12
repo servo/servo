@@ -1,174 +1,89 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
+<!doctype html>
+<meta charset=utf-8>
+<!-- WARNING: These tests are preliminary and probably partly incorrect.  -->
 <title>CSSOM automated IDL tests</title>
 <link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
 <link rel="help" href="https://drafts.csswg.org/cssom-1/#idl-index">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/resources/WebIDLParser.js"></script>
-<script src="/resources/idlharness.js"></script>
-<style id="styleElement">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<!--
+Provide some objects to test.
+Use a non-empty style attribute to get a non-empty CSSStyleDeclaration.
+-->
+<style id="styleElement" style="z-index: 0;">
+@import url("data:text/css,");
+@namespace x "y";
+@page { @top-left {} }
+@media all {}
 #test { color: green; }
 </style>
-<div id="log"></div>
-<script type=text/plain id=untested_idl>
-interface EventTarget {};
-interface Node : EventTarget {};
-interface Document : Node {};
-interface ProcessingInstruction : Node {};
-interface Element : Node {};
-interface HTMLElement : Element {};
-interface SVGElement : Element {};
-[PrimaryGlobal] interface Window {};
-</script>
-<script type=text/plain id=idl>
-[LegacyArrayClass]
-interface MediaList {
-  [TreatNullAs=EmptyString] stringifier attribute DOMString mediaText;
-  readonly attribute unsigned long length;
-  getter DOMString? item(unsigned long index);
-  void appendMedium(DOMString medium);
-  void deleteMedium(DOMString medium);
-};
 
-interface StyleSheet {
-  readonly attribute DOMString type;
-  readonly attribute DOMString? href;
-  readonly attribute (Element or ProcessingInstruction)? ownerNode;
-  readonly attribute StyleSheet? parentStyleSheet;
-  readonly attribute DOMString? title;
-  [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
-  attribute boolean disabled;
-};
+<svg id="svgElement" style="height: 0;"></svg>
 
-interface CSSStyleSheet : StyleSheet {
-  readonly attribute CSSRule? ownerRule;
-  [SameObject] readonly attribute CSSRuleList cssRules;
-  unsigned long insertRule(DOMString rule, unsigned long index);
-  void deleteRule(unsigned long index);
-};
+<iframe id="xmlssPiIframe" src="support/xmlss-pi.xhtml" style="display: none;"></iframe>
 
-[LegacyArrayClass]
-interface StyleSheetList {
-  getter StyleSheet? item(unsigned long index);
-  readonly attribute unsigned long length;
-};
+<h1>CSSOM IDL tests</h1>
+<div id=log></div>
 
-partial interface Document {
-  [SameObject] readonly attribute StyleSheetList styleSheets;
-};
-
-[NoInterfaceObject]
-interface LinkStyle {
-  readonly attribute StyleSheet? sheet;
-};
-
-ProcessingInstruction implements LinkStyle;
-[LegacyArrayClass]
-interface CSSRuleList {
-  getter CSSRule? item(unsigned long index);
-  readonly attribute unsigned long length;
-};
-
-interface CSSRule {
-  const unsigned short STYLE_RULE = 1;
-  const unsigned short CHARSET_RULE = 2; // historical
-  const unsigned short IMPORT_RULE = 3;
-  const unsigned short MEDIA_RULE = 4;
-  const unsigned short FONT_FACE_RULE = 5;
-  const unsigned short PAGE_RULE = 6;
-  const unsigned short MARGIN_RULE = 9;
-  const unsigned short NAMESPACE_RULE = 10;
-  readonly attribute unsigned short type;
-  attribute DOMString cssText;
-  readonly attribute CSSRule? parentRule;
-  readonly attribute CSSStyleSheet? parentStyleSheet;
-};
-
-interface CSSStyleRule : CSSRule {
-  attribute DOMString selectorText;
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
-};
-
-interface CSSImportRule : CSSRule {
-  readonly attribute DOMString href;
-  [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
-  [SameObject] readonly attribute CSSStyleSheet styleSheet;
-};
-
-interface CSSGroupingRule : CSSRule {
-  [SameObject] readonly attribute CSSRuleList cssRules;
-  unsigned long insertRule(DOMString rule, unsigned long index);
-  void deleteRule(unsigned long index);
-};
-
-interface CSSMediaRule : CSSGroupingRule {
-  [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
-};
-
-interface CSSPageRule : CSSGroupingRule {
-           attribute DOMString selectorText;
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
-};
-
-interface CSSMarginRule : CSSRule {
-  readonly attribute DOMString name;
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
-};
-
-interface CSSNamespaceRule : CSSRule {
-  readonly attribute DOMString namespaceURI;
-  readonly attribute DOMString prefix;
-};
-
-interface CSSStyleDeclaration {
-  [CEReactions] attribute DOMString cssText;
-  readonly attribute unsigned long length;
-  getter DOMString item(unsigned long index);
-  DOMString getPropertyValue(DOMString property);
-  DOMString getPropertyPriority(DOMString property);
-  [CEReactions] void setProperty(DOMString property, [TreatNullAs=EmptyString] DOMString value, [TreatNullAs=EmptyString] optional DOMString priority = "");
-  [CEReactions] void setPropertyValue(DOMString property, [TreatNullAs=EmptyString] DOMString value);
-  [CEReactions] void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
-  [CEReactions] DOMString removeProperty(DOMString property);
-  readonly attribute CSSRule? parentRule;
-  [CEReactions, TreatNullAs=EmptyString] attribute DOMString cssFloat;
-};
-
-[NoInterfaceObject]
-interface ElementCSSInlineStyle {
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
-};
-
-HTMLElement implements ElementCSSInlineStyle;
-
-SVGElement implements ElementCSSInlineStyle;
-
-partial interface Window {
-  [NewObject] CSSStyleDeclaration getComputedStyle(Element elt, optional DOMString? pseudoElt);
-};
-
-interface CSS {
-  static DOMString escape(DOMString ident);
-};
-</script>
 <script>
-var idl_array, style_element;
-setup(function() {
-  idl_array = new IdlArray();
-  var idls = document.getElementById("idl").textContent;
-  var untested_idls = document.getElementById("untested_idl").textContent;
-  idl_array.add_untested_idls(untested_idls);
-  idl_array.add_idls(idls);
+"use strict";
+var style_element, svg_element, xmlss_pi;
 
+function doTest([html, dom, cssom]) {
   style_element = document.getElementById('styleElement');
-  idl_array.add_objects({
+  svg_element = document.getElementById('svgElement');
+  xmlss_pi = document.getElementById('xmlssPiIframe').contentDocument.firstChild;
+
+  var idlArray = new IdlArray();
+  var svg = "interface SVGElement : Element {};";
+  idlArray.add_untested_idls(html + dom + svg);
+  idlArray.add_idls(cssom);
+
+  idlArray.add_objects({
     "Document": ["document", "new Document()"],
     "StyleSheetList": ["document.styleSheets"],
     "CSSStyleSheet": ["style_element.sheet"],
+    "MediaList": ["style_element.sheet.media"],
     "CSSRuleList": ["style_element.sheet.cssRules"],
-    "CSSStyleRule": ["style_element.sheet.cssRules[0]"],
+    "CSSImportRule": ["style_element.sheet.cssRules[0]"],
+    "CSSNamespaceRule": ["style_element.sheet.cssRules[1]"],
+    "CSSPageRule": ["style_element.sheet.cssRules[2]"],
+    "CSSMarginRule": ["style_element.sheet.cssRules[2].cssRules[0]"],
+    "CSSMediaRule": ["style_element.sheet.cssRules[3]"],
+    "CSSStyleRule": ["style_element.sheet.cssRules[4]"],
+    "CSSStyleDeclaration": ["style_element.sheet.cssRules[4].style", // CSSStyleRule
+                            "style_element.sheet.cssRules[2].style", // CSSPageRule
+                            "style_element.sheet.cssRules[2].cssRules[0].style", // CSSMarginRule
+                            "style_element.style", // ElementCSSInlineStyle for HTMLElement
+                            "svg_element.style", // ElementCSSInlineStyle for SVGElement
+                            "getComputedStyle(svg_element)"],
+    "ProcessingInstruction": ["xmlss_pi"],
+    "Window": ["window"],
+    "HTMLElement": ["style_element", "document.createElement('unknownelement')"],
+    "SVGElement": ["svg_element"],
   });
-});
-idl_array.test();
+  idlArray.test();
+};
+
+function fetchData(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+function waitForLoad() {
+  return new Promise(function(resolve) {
+    addEventListener("load", resolve);
+  });
+}
+
+promise_test(function() {
+  // Have to wait for onload
+  return Promise.all([fetchData("/interfaces/html.idl"),
+                      fetchData("/interfaces/dom.idl"),
+                      fetchData("/interfaces/cssom.idl"),
+                      waitForLoad()])
+                .then(doTest);
+}, "Test driver");
+
 </script>

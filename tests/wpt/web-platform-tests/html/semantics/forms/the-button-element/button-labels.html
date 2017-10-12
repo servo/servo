@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Forms</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <p>
+    <h3>button_labels</h3>
+  </p>
+
+  <hr>
+
+  <div id="log"></div>
+
+  <form method="post"
+      enctype="application/x-www-form-urlencoded"
+      action=""
+      id="input_form">
+    <p><label>Full name:<label>(name)<button id='button_id1'>button1</button><small>Format: First Last</small></label></label></p>
+    <p><label>Age: <button id='button_id2'>button2</button></label></p>
+  </form>
+  <script>
+
+    var button1 = document.getElementById("button_id1");
+    var button2 = document.getElementById("button_id2");
+
+    if (typeof(button1.labels) == "object") {
+      if (button1.labels.length == 2 && button2.labels.length == 1) {
+        test(function() {
+          assert_true(true, "labels attribute is correct.");
+        });
+      } else {
+        test(function() {
+          assert_unreached("labels attribute is not correct.");
+        });
+      }
+    } else {
+      test(function() {
+        assert_unreached("labels attribute is not exist.");
+      });
+    }
+
+  </script>
+
+ </body>
+</html>

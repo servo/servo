@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to canvas</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="canvas" width="200" height="200" ></canvas>
+
+<script>
+async_test(function (t) {
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+    context.beginPath();
+    context.moveTo(0,0);
+    context.lineTo(300,150);
+    context.stroke();
+    function testPaintEntries() {
+        const bufferedEntries = performance.getEntriesByType('paint');
+        if (bufferedEntries.length < 2) {
+            t.step_timeout(function() {
+                testPaintEntries();
+            }, 20);
+            return;
+        }
+        t.step(function() {
+            assert_equals(bufferedEntries.length, 2, "There should be two paint timing instances.");
+            assert_equals(bufferedEntries[0].entryType, "paint");
+            assert_equals(bufferedEntries[0].name, "first-paint");
+            assert_equals(bufferedEntries[1].entryType, "paint");
+            assert_equals(bufferedEntries[1].name, "first-contentful-paint");
+            t.done();
+        });
+    };
+    t.step(function() {
+        testPaintEntries();
+    });
+}, "First contentful paint fires due to canvas render.");
+</script>
+</body>
+</html>

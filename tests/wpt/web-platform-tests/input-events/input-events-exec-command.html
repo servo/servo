@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>execCommand() should only trigger 'input'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p id="txt" contenteditable></p>
+<script>
+test(function() {
+    let lastBeforeInputType = '';
+    let lastInputType = '';
+    const txt = document.getElementById('txt');
+    txt.addEventListener('beforeinput', function(event) {
+        assert_true(event instanceof InputEvent);
+        assert_false(event.isComposing);
+        lastBeforeInputType = event.inputType;
+    });
+    txt.addEventListener('input', function(event) {
+        assert_true(event instanceof InputEvent);
+        assert_false(event.isComposing);
+        lastInputType = event.inputType;
+    });
+
+    const NO_INPUT_EVENT_FIRED = 'NO_INPUT_EVENT_FIRED';
+    function testExecCommandInputType(command, args, inputType) {
+        lastBeforeInputType = NO_INPUT_EVENT_FIRED;
+        lastInputType = NO_INPUT_EVENT_FIRED;
+        document.execCommand(command, false, args);
+        assert_equals(lastBeforeInputType, NO_INPUT_EVENT_FIRED, `execCommand(${command}, false, ${args}) shouldn't fire beforeinput`);
+        assert_equals(lastInputType, inputType, `execCommand(${command}, false, ${args}) should produce inputType: ${inputType}`);
+    }
+
+    txt.focus();
+    // InsertText
+    testExecCommandInputType('insertText', 'a', 'insertText');
+    testExecCommandInputType('insertText', 'bc', 'insertText');
+    assert_equals(txt.innerHTML, 'abc');
+    testExecCommandInputType('insertOrderedList', null, 'insertOrderedList');
+    assert_equals(txt.innerHTML, '<ol><li>abc<br></li></ol>');
+    testExecCommandInputType('insertUnorderedList', null, 'insertUnorderedList');
+    assert_equals(txt.innerHTML, '<ul><li>abc<br></li></ul>');
+    testExecCommandInputType('insertLineBreak', null, 'insertLineBreak');
+    testExecCommandInputType('insertParagraph', null, 'insertParagraph');
+
+    // Styling
+    txt.innerHTML = 'abc';
+    var selection = window.getSelection();
+    selection.collapse(txt, 0);
+    selection.extend(txt, 1);
+    testExecCommandInputType('bold', null, 'formatBold');
+    assert_equals(txt.innerHTML, '<b>abc</b>');
+    testExecCommandInputType('italic', null, 'formatItalic');
+    assert_equals(txt.innerHTML, '<b><i>abc</i></b>');
+    testExecCommandInputType('underline', null, 'formatUnderline');
+    assert_equals(txt.innerHTML, '<b><i><u>abc</u></i></b>');
+    testExecCommandInputType('strikeThrough', null, 'formatStrikeThrough');
+    assert_equals(txt.innerHTML, '<b><i><u><strike>abc</strike></u></i></b>');
+    testExecCommandInputType('superscript', null, 'formatSuperscript');
+    assert_equals(txt.innerHTML, '<b><i><u><strike><sup>abc</sup></strike></u></i></b>');
+    testExecCommandInputType('subscript', null, 'formatSubscript');
+    assert_equals(txt.innerHTML, '<b><i><u><strike><sub>abc</sub></strike></u></i></b>');
+
+    // Formating
+    txt.innerHTML = 'abc';
+    testExecCommandInputType('justifyCenter', null, 'formatJustifyCenter');
+    assert_equals(txt.innerHTML, '<div style="text-align: center;">abc</div>');
+    testExecCommandInputType('justifyFull', null, 'formatJustifyFull');
+    assert_equals(txt.innerHTML, '<div style="text-align: justify;">abc</div>');
+    testExecCommandInputType('justifyRight', null, 'formatJustifyRight');
+    assert_equals(txt.innerHTML, '<div style="text-align: right;">abc</div>');
+    testExecCommandInputType('justifyLeft', null, 'formatJustifyLeft');
+    assert_equals(txt.innerHTML, '<div style="text-align: left;">abc</div>');
+    selection.collapse(txt, 0);
+    selection.extend(txt, 1);
+    testExecCommandInputType('removeFormat', null, 'formatRemove');
+    assert_equals(txt.innerHTML, '<div style="">abc</div>');
+    testExecCommandInputType('indent', null, 'formatIndent');
+    testExecCommandInputType('outdent', null, 'formatOutdent');
+    assert_equals(txt.innerHTML, '<div style="">abc</div>');
+
+    // Copy shouldn't fire 'input'.
+    testExecCommandInputType('copy', null, NO_INPUT_EVENT_FIRED);
+    // Cut/Paste should fire 'input'.
+    testExecCommandInputType('cut', null, 'deleteByCut');
+    testExecCommandInputType('paste', null, 'insertFromPaste');
+});
+</script>

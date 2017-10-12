@@ -1,0 +1,22 @@
+<!doctype html>
+<title>-webkit-linear-gradient(bottom)</title>
+<link rel="author" title="Xidorn Quan" href="me@upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://compat.spec.whatwg.org/#css-gradients-webkit-linear-gradient">
+<meta name="assert" content="'bottom' in -webkit-linear-gradient is equivalent to 'to top' in modern syntax">
+<link rel="match" href="green-ref.html">
+<style>
+  #outer {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+  }
+  #inner {
+    width: 100px;
+    height: 200px;
+    background-image: -webkit-linear-gradient(bottom, red 50%, green 50%);
+  }
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>

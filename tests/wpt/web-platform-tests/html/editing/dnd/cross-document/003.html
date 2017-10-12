@@ -14,12 +14,12 @@ window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragstart = function(e) {
     e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text', 'dummy text');
-		evs[e.type] = {};
-		evs[e.type].dataTransfer = e.dataTransfer;
-		evs[e.type].items = e.dataTransfer.items;
-		evs[e.type].types = e.dataTransfer.types;
-		evs[e.type].files = e.dataTransfer.files;
+    e.dataTransfer.setData('text', 'dummy text');
+    evs[e.type] = {};
+    evs[e.type].dataTransfer = e.dataTransfer;
+    evs[e.type].items = e.dataTransfer.items;
+    evs[e.type].types = e.dataTransfer.types;
+    evs[e.type].files = e.dataTransfer.files;
   };
 };
 </script>

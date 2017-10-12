@@ -1,0 +1,110 @@
+import ctypes
+import logging
+import os
+import platform
+
+from shutil import copy2, rmtree
+from subprocess import call
+
+HERE = os.path.split(__file__)[0]
+SYSTEM = platform.system().lower()
+
+
+class FontInstaller(object):
+    def __init__(self, font_dir=None, **fonts):
+        self.font_dir = font_dir
+        self.installed_fonts = False
+        self.created_dir = False
+        self.fonts = fonts
+
+    def __enter__(self, options=None):
+        for _, font_path in self.fonts.items():
+            font_name = font_path.split('/')[-1]
+            install = getattr(self, 'install_%s_font' % SYSTEM, None)
+            if not install:
+                logging.warning('Font installation not supported on %s',
+                                SYSTEM)
+                return False
+            if install(font_name, font_path):
+                self.installed_fonts = True
+                logging.info('Installed font: %s', font_name)
+            else:
+                logging.warning('Unable to install font: %s', font_name)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self.installed_fonts:
+            return False
+
+        for _, font_path in self.fonts.items():
+            font_name = font_path.split('/')[-1]
+            remove = getattr(self, 'remove_%s_font' % SYSTEM, None)
+            if not remove:
+                logging.warning('Font removal not supported on %s', SYSTEM)
+                return False
+            if remove(font_name, font_path):
+                logging.info('Removed font: %s', font_name)
+            else:
+                logging.warning('Unable to remove font: %s', font_name)
+
+    def install_linux_font(self, font_name, font_path):
+        if not self.font_dir:
+            self.font_dir = os.path.join(os.path.expanduser('~'), '.fonts')
+        if not os.path.exists(self.font_dir):
+            os.makedirs(self.font_dir)
+            self.created_dir = True
+        if not os.path.exists(os.path.join(self.font_dir, font_name)):
+            copy2(font_path, self.font_dir)
+        try:
+            fc_cache_returncode = call('fc-cache')
+            return not fc_cache_returncode
+        except OSError:  # If fontconfig doesn't exist, return False
+            logging.error('fontconfig not available on this Linux system.')
+            return False
+
+    def install_darwin_font(self, font_name, font_path):
+        if not self.font_dir:
+            self.font_dir = os.path.join(os.path.expanduser('~'),
+                                         'Library/Fonts')
+        if not os.path.exists(self.font_dir):
+            os.makedirs(self.font_dir)
+            self.created_dir = True
+        if not os.path.exists(os.path.join(self.font_dir, font_name)):
+            copy2(font_path, self.font_dir)
+        return True
+
+    def install_windows_font(self, _, font_path):
+        hwnd_broadcast = 0xFFFF
+        wm_fontchange = 0x001D
+
+        gdi32 = ctypes.WinDLL('gdi32')
+        if gdi32.AddFontResourceW(font_path):
+            return bool(ctypes.windll.user32.SendMessageW(hwnd_broadcast,
+                                                          wm_fontchange))
+
+    def remove_linux_font(self, font_name, _):
+        if self.created_dir:
+            rmtree(self.font_dir)
+        else:
+            os.remove('%s/%s' % (self.font_dir, font_name))
+        try:
+            fc_cache_returncode = call('fc-cache')
+            return not fc_cache_returncode
+        except OSError:  # If fontconfig doesn't exist, return False
+            logging.error('fontconfig not available on this Linux system.')
+            return False
+
+    def remove_darwin_font(self, font_name, _):
+        if self.created_dir:
+            rmtree(self.font_dir)
+        else:
+            os.remove(os.path.join(self.font_dir, font_name))
+        return True
+
+    def remove_windows_font(self, _, font_path):
+        hwnd_broadcast = 0xFFFF
+        wm_fontchange = 0x001D
+
+        gdi32 = ctypes.WinDLL('gdi32')
+        if gdi32.RemoveFontResourceW(font_path):
+            return bool(ctypes.windll.user32.SendMessageW(hwnd_broadcast,
+                                                          wm_fontchange))

@@ -1,0 +1,187 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.getStats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCStats-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+  // https://w3c.github.io/webrtc-stats/archives/20170614/webrtc-stats.html
+
+  // The following helper function is called from RTCPeerConnection-helper.js
+  //   getTrackFromUserMedia
+
+  // The following helper function is called from RTCStats-helper.js
+  //   validateStatsReport
+  //   assert_stats_report_has_stats
+
+  /*
+    8.2.  RTCPeerConnection Interface Extensions
+      partial interface RTCPeerConnection {
+        Promise<RTCStatsReport> getStats(optional MediaStreamTrack? selector = null);
+      };
+
+    8.3.  RTCStatsReport Object
+      interface RTCStatsReport {
+        readonly maplike<DOMString, object>;
+      };
+
+    8.4.  RTCStats Dictionary
+      dictionary RTCStats {
+        DOMHighResTimeStamp timestamp;
+        RTCStatsType        type;
+        DOMString           id;
+      };
+
+      id
+        Two RTCStats objects, extracted from two different RTCStatsReport objects, MUST
+        have the same id if they were produced by inspecting the same underlying object.
+
+    8.2.  getStats
+      1.  Let selectorArg be the method's first argument.
+      2.  Let connection be the RTCPeerConnection object on which the method was invoked.
+      3.  If selectorArg is neither null nor a valid MediaStreamTrack, return a promise
+          rejected with a newly created TypeError.
+      5.  Let p be a new promise.
+      6.  Run the following steps in parallel:
+        1.  Gather the stats indicated by selector according to the stats selection algorithm.
+        2.  Resolve p with the resulting RTCStatsReport object, containing the gathered stats.
+   */
+
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    return pc.getStats();
+  }, 'getStats() with no argument should succeed');
+
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    return pc.getStats(null);
+  }, 'getStats(null) should succeed');
+
+  /*
+    8.2.  getStats
+      4.  Let selector be a RTCRtpSender or RTCRtpReceiver on connection which track
+          member matches selectorArg. If no such sender or receiver exists, return a promise
+          rejected with a newly created InvalidAccessError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      return promise_rejects(t, 'InvalidAccessError', pc.getStats(track));
+    });
+  }, 'getStats() with track not added to connection should reject with InvalidAccessError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      pc.addTrack(track, mediaStream);
+      return pc.getStats(track);
+    });
+  }, 'getStats() with track added via addTrack should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const track = generateMediaStreamTrack();
+    pc.addTransceiver(track);
+
+    return pc.getStats(track);
+  }, 'getStats() with track added via addTransceiver should succeed');
+
+  /*
+    8.2.  getStats
+      4.  Let selector be a RTCRtpSender or RTCRtpReceiver on connection which track
+          member matches selectorArg. If more than one sender or receiver fit this criteria,
+          return a promise rejected with a newly created InvalidAccessError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      // addTransceiver allows adding same track multiple times
+      const transceiver1 = pc.addTransceiver(track);
+      const transceiver2 = pc.addTransceiver(track);
+
+      assert_not_equals(transceiver1, transceiver2);
+      assert_not_equals(transceiver1.sender, transceiver2.sender);
+      assert_equals(transceiver1.sender.track, transceiver2.sender.track);
+
+      return promise_rejects(t, 'InvalidAccessError', pc.getStats(track));
+    });
+  }, `getStats() with track associated with more than one sender should reject with InvalidAccessError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver1 = pc.addTransceiver('audio');
+
+    // Create another transceiver that resends what
+    // is being received, kind of like echo
+    const transceiver2 = pc.addTransceiver(transceiver1.receiver.track);
+    assert_equals(transceiver1.receiver.track, transceiver2.sender.track);
+
+    return promise_rejects(t, 'InvalidAccessError', pc.getStats(transceiver1.receiver.track));
+  }, 'getStats() with track associated with both sender and receiver should reject with InvalidAccessError');
+
+  /*
+    8.5.  The stats selection algorithm
+      2.  If selector is null, gather stats for the whole connection, add them to result,
+          return result, and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return pc.getStats()
+    .then(statsReport => {
+      validateStatsReport(statsReport);
+      assert_stats_report_has_stats(statsReport, ['peer-connection']);
+    });
+  }, 'getStats() with no argument should return stats report containing peer-connection stats');
+
+  /*
+    8.5.  The stats selection algorithm
+      3.  If selector is an RTCRtpSender, gather stats for and add the following objects
+          to result:
+        - All RTCOutboundRTPStreamStats objects corresponding to selector.
+        - All stats objects referenced directly or indirectly by the RTCOutboundRTPStreamStats
+          objects added.
+   */
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      pc.addTrack(track, mediaStream);
+
+      return pc.getStats(track)
+      .then(statsReport => {
+        validateStatsReport(statsReport);
+        assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
+      });
+    });
+  }, `getStats() on track associated with RtpSender should return stats report containing outbound-rtp stats`);
+
+
+  /*
+    8.5.  The stats selection algorithm
+      4.  If selector is an RTCRtpReceiver, gather stats for and add the following objects
+          to result:
+        - All RTCInboundRTPStreamStats objects corresponding to selector.
+        - All stats objects referenced directly or indirectly by the RTCInboundRTPStreamStats
+          added.
+   */
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+
+    return pc.getStats(transceiver.receiver.track)
+    .then(statsReport => {
+      validateStatsReport(statsReport);
+      assert_stats_report_has_stats(statsReport, ['inbound-rtp']);
+    });
+  }, `getStats() on track associated with RtpReceiver should return stats report containing inbound-rtp stats`);
+
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  async_test(function (t) {
+    requestIdleCallback(function() {
+      requestIdleCallback(t.step_func_done(function () {}))
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "www.emample.com", false);
+      xhr.onload = t.step_func(function () {});
+      xhr.send(null);
+    });
+  }, "re-schedule idle callbacks after sync xhr");
+</script>

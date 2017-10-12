@@ -31,7 +31,7 @@
 
 <script id="code" type="text/worklet">
 registerPaint('box', class {
-    static get alpha() { return true; }
+    static get contextOptions() { return {alpha: true}; }
     static get inputArguments() { return ['<color>', '<length>']; }
     paint(ctx, geom, properties, args) {
         ctx.strokeStyle = args[0].toString();

@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+<title>Test setSinkId behavior </title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="https://www.w3.org/TR/audio-output/#dom-htmlmediaelement-setsinkid">
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that <code>setSinkId</code> follows the algorithm (but does not consider actual rendering of the audio which needs to be manual).</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+const is_output = d => d.kind === "audiooutput";
+const audio = new Audio();
+
+promise_test(t => audio.setSinkId(""), "setSinkId on default audio output should always work");
+
+promise_test(t => promise_rejects(t, "NotFoundError", audio.setSinkId("inexistent_device_id")), "setSinkId fails with NotFoundError on made up deviceid");
+
+promise_test(t =>
+             navigator.mediaDevices.enumerateDevices().then(list => {
+                 assert_not_equals(list.find(is_output), undefined, "media device list includes at least one audio output device");
+                 // since we haven't gained any specific permission,
+                 // for all listed audio output devices, calling setSinkId with device id can
+                 // either create a security exception or work and thus reflect the deviceId
+                 let acceptedDevice = 0;
+                 list.filter(is_output).forEach((d,i) => promise_test(td => audio.setSinkId(d.deviceId).then(r => {
+                     assert_equals(r, undefined, "setSinkId resolves with undefined");
+                     assert_equals(audio.sinkId, d.deviceId, "when it resolves, setSinkId updates sinkId to the requested deviceId");
+                     assert_equals(acceptedDevice, 0, "only one output device can be set without permission");
+                     acceptedDevice++;
+                     promise_test(t => audio.setSinkId(d.deviceId), "resetting sinkid on same current value should always work");
+                     promise_test(t => audio.setSinkId(""), "resetting sinkid on default audio output should always work");
+                 }, e => {
+                     assert_equals(e.name, "SecurityError", "On known devices, the only possible failure of setSinkId is a securityerror"); // assuming AbortError can't happen in the test environment by default
+                 }), "Correctly reacts to setting known deviceid as sinkid "  + i));
+             }), "List media devices");
+
+</script>
+</body>
+</html>

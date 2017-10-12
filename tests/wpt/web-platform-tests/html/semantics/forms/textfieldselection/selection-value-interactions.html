@@ -92,4 +92,27 @@ for (var data of elemData) {
   }, `value dirty flag behavior after setRangeText on ${data.desc}`);
 }
 
+for (var tag of ['input', 'textarea']) {
+  test(function() {
+    var el = document.createElement(tag);
+    document.body.appendChild(el);
+    this.add_cleanup(() => el.remove());
+    el.value = "";
+    assert_equals(el.selectionStart, el.value.length,
+                 "element.selectionStart should be value.length");
+    assert_equals(el.selectionEnd, el.value.length,
+                  "element.selectionEnd should be value.length");
+    el.value = "foo";
+    assert_equals(el.selectionStart, el.value.length,
+                 "element.selectionStart should be value.length");
+    assert_equals(el.selectionEnd, el.value.length,
+                  "element.selectionEnd should be value.length");
+    el.value = "foobar";
+    assert_equals(el.selectionStart, el.value.length,
+                 "element.selectionStart should be value.length");
+    assert_equals(el.selectionEnd, el.value.length,
+                  "element.selectionEnd should be value.length");
+  }, `selection is always collapsed to the end after setting values on ${tag}`);
+}
+
 </script>

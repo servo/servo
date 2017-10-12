@@ -13,17 +13,17 @@
 <script>
   async_test(function(t) {
     window.onload = t.step_func(function() {
-      assert_equals(window.view.width, document.documentElement.clientWidth,
-          "window.view.width should match the window width.");
-      assert_equals(view.height, document.documentElement.clientHeight,
-          "window.view.height should match the window height.");
+      assert_equals(window.visualViewport.width, document.documentElement.clientWidth,
+          "window.visualViewport.width should match the window width.");
+      assert_equals(visualViewport.height, document.documentElement.clientHeight,
+          "window.visualViewport.height should match the window height.");
 
       // Add overflow so scrollbars appear.
       document.body.style.width = "2000px";
       document.body.style.height = "2000px";
 
-      var viewportWidth = window.view.width;
-      var viewportHeight = window.view.height;
+      var viewportWidth = window.visualViewport.width;
+      var viewportHeight = window.visualViewport.height;
 
       assert_equals(viewportWidth, document.documentElement.clientWidth,
           "Reading viewport width should cause a layout and exclude the new scrollbar.");

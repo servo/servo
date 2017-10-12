@@ -204,7 +204,7 @@ def write_new_expected(metadata_path, expected_map):
             dir = os.path.split(path)[0]
             if not os.path.exists(dir):
                 os.makedirs(dir)
-            with open(path, "w") as f:
+            with open(path, "wb") as f:
                 f.write(manifest_str)
 
 

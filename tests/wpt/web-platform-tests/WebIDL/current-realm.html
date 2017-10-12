@@ -110,8 +110,13 @@
      test(function() {
        var c = self[0].document.createElement("canvas"),
            obj = c.getContext(val)
-       assert_global(obj)
 
+       // WebGL might not be enabled in this environment
+       if (!obj && val === "webgl") {
+         return;
+       }
+
+       assert_global(obj)
        obj = HTMLCanvasElement.prototype.getContext.call(c, val)
        assert_global(obj)
      }, "getContext " + val)

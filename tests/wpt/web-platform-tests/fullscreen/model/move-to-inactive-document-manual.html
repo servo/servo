@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Move the fullscreen element to an inactive document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div></div>
+<script>
+async_test(t => {
+  const div = document.querySelector("div");
+  document.onfullscreenchange = t.step_func(event => {
+    const inactiveDocument = document.implementation.createDocument(null, "");
+    inactiveDocument.appendChild(div);
+
+    div.onfullscreenchange = t.unreached_func("fullscreenchange fired on element");
+    inactiveDocument.onfullscreenchange = t.unreached_func("fullscreenchange fired on other document");
+    document.onfullscreenchange = t.step_func_done();
+  });
+  trusted_request(t, div);
+});
+</script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Request.type attribute should not exist</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+  var request = new Request("https://domfarolino.com");
+  test(() => {
+      assert_equals(request.type, undefined, "request.type should be undefined");
+  }, "'type' getter should not exist on Request objects");
+</script>

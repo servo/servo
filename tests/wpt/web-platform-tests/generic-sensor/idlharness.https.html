@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Generic Sensor IDL tests</title>
+<link rel="author" title="Tobie Langel" href="http://www.codespeaks.com">
+<link rel="help" href="http://www.w3.org/TR/generic-sensor/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<div id="log"></div>
+
+<script id="idl" type="text/plain">
+interface Event {
+};
+
+interface Error {
+};
+
+dictionary EventInit {
+};
+
+[SecureContext, Exposed=Window]
+interface Sensor : EventTarget {
+  readonly attribute boolean activated;
+  readonly attribute DOMHighResTimeStamp? timestamp;
+  void start();
+  void stop();
+  attribute EventHandler onreading;
+  attribute EventHandler onactivate;
+  attribute EventHandler onerror;
+};
+
+dictionary SensorOptions {
+  double? frequency;
+};
+</script>
+
+<script id="generic-idl" type="text/plain">
+[Constructor(DOMString type, SensorErrorEventInit errorEventInitDict),
+ SecureContext, Exposed=Window]
+interface SensorErrorEvent : Event {
+  readonly attribute Error error;
+};
+
+dictionary SensorErrorEventInit : EventInit {
+  required Error error;
+};
+</script>
+
+<script>
+(() => {
+  "use strict";
+  let idl_array = new IdlArray();
+  idl_array.add_untested_idls(document.getElementById('idl').textContent);
+  idl_array.add_idls(document.getElementById('generic-idl').textContent);
+
+  idl_array.add_objects({
+    SensorErrorEvent: ['new SensorErrorEvent("SECURITY_ERR", { errorCode: 18 });']
+  });
+
+  idl_array.test();
+})();
+</script>

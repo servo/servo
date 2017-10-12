@@ -5,47 +5,6 @@ test
 | "test"
 
 #data
-<c>test
-#errors
-#document-fragment
-| <span>
-|   "test"
-
-#data
-<i>test
-#errors
-#document-fragment
-| <i>
-|   "test"
-
-#data
-<b>test
-#errors
-#document-fragment
-| <b>
-|   "test"
-
-#data
-<u>test
-#errors
-#document-fragment
-| <u>
-|   "test"
-
-#data
-<ruby>test
-#errors
-#document-fragment
-| <ruby>
-|   "test"
-
-#data
-<rt>test
-#errors
-#document-fragment
-| "test"
-
-#data
 <ruby>test<rt>test
 #errors
 #document-fragment
@@ -127,45 +86,3 @@ test
 |     <b>
 |       "test"
 | "test"
-
-#data
-<v>test
-#errors
-#document-fragment
-| <span>
-|   title=""
-|   "test"
-
-#data
-<v a>test
-#errors
-#document-fragment
-| <span>
-|   title="a"
-|   "test"
-
-#data
-<v a b>test
-#errors
-#document-fragment
-| <span>
-|   title="a b"
-|   "test"
-
-#data
-<v.a>test
-#errors
-#document-fragment
-| <span>
-|   class="a"
-|   title=""
-|   "test"
-
-#data
-<v.a.b>test
-#errors
-#document-fragment
-| <span>
-|   class="a b"
-|   title=""
-|   "test"

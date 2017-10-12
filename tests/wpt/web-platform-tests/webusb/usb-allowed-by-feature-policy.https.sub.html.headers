@@ -1,1 +1,1 @@
-Feature-Policy: {"usb": ["*"]}
+Feature-Policy: usb *

@@ -21,6 +21,8 @@ python_meta_re = re.compile(b"#\s*META:\s*(\w*)=(.*)$")
 
 reference_file_re = re.compile(r'(^|[\-_])(not)?ref[0-9]*([\-_]|$)')
 
+space_chars = u"".join(html5lib.constants.spaceCharacters)
+
 def replace_end(s, old, new):
     """
     Given a string `s` that ends with `old`, replace that occurrence of `old`
@@ -227,7 +229,7 @@ class SourceFile(object):
         rel_dir_tree = self.rel_path.split(os.path.sep)
         return (rel_dir_tree[0] == "webdriver" and
                 len(rel_dir_tree) > 1 and
-                self.filename != "__init__.py" and
+                self.filename not in ("__init__.py", "conftest.py") and
                 fnmatch(self.filename, wd_pattern))
 
     @property
@@ -399,7 +401,7 @@ class SourceFile(object):
         rel_map = {"match": "==", "mismatch": "!="}
         for item in self.reftest_nodes:
             if "href" in item.attrib:
-                ref_url = urljoin(self.url, item.attrib["href"])
+                ref_url = urljoin(self.url, item.attrib["href"].strip(space_chars))
                 ref_type = rel_map[item.attrib["rel"]]
                 rv.append((ref_url, ref_type))
         return rv
@@ -451,7 +453,7 @@ class SourceFile(object):
         rv = set()
         for item in self.spec_link_nodes:
             if "href" in item.attrib:
-                rv.add(item.attrib["href"])
+                rv.add(item.attrib["href"].strip(space_chars))
         return rv
 
     @cached_property

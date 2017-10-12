@@ -13,12 +13,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WPT_ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 HARNESS = os.path.join(HERE, 'harness.html')
 
+def pytest_addoption(parser):
+    parser.addoption("--binary", action="store", default=None, help="path to browser binary")
+
 def pytest_collect_file(path, parent):
     if path.ext.lower() == '.html':
         return HTMLItem(str(path), parent)
 
 def pytest_configure(config):
-    config.driver = webdriver.Firefox()
+    config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
     config.server = WPTServer(WPT_ROOT)
     config.server.start()
     config.add_cleanup(lambda: config.server.stop())

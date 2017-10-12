@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+window.onmessage = messageEvent => {
+  if (messageEvent.data === 'Ready') {
+    navigator.usb.addEventListener('connect', connectEvent => {
+      connectEvent.device.open().then(() => {
+        parent.postMessage('Success', '*');
+      }).catch(error => {
+        parent.postMessage('FAIL: open rejected ' + error, '*');
+      });
+    });
+    parent.postMessage('Ready', '*');
+  }
+};
+</script>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Character Decoding: UTF-32 (not supported)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+// Since UTF-32 is not supported, such content will be interpreted
+// as the default HTML encoding (windows-1252) unless it has a
+// leading little endian BOM (FF FE 00 00), in which case it will
+// be interpreted as UTF-16LE.
+
+const samples = [
+  {file: 'resources/utf-32-big-endian-bom.html', expected: 'windows-1252'},
+  {file: 'resources/utf-32-big-endian-bom.xml', expected: 'windows-1252'},
+  {file: 'resources/utf-32-big-endian-nobom.html', expected: 'windows-1252'},
+  {file: 'resources/utf-32-big-endian-nobom.xml', expected: 'windows-1252'},
+
+  {file: 'resources/utf-32-little-endian-bom.html', expected: 'UTF-16LE'},
+  {file: 'resources/utf-32-little-endian-bom.xml', expected: 'UTF-16LE'},
+  {file: 'resources/utf-32-little-endian-nobom.html', expected: 'windows-1252'},
+  {file: 'resources/utf-32-little-endian-nobom.xml', expected: 'windows-1252'}
+];
+
+samples.forEach(sample => async_test(t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = sample.file;
+  iframe.onload = t.step_func(() => {
+    assert_equals(iframe.contentDocument.characterSet, sample.expected);
+    t.done();
+  });
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+}, `Expect ${sample.file} to parse as ${sample.expected}`));
+
+</script>
+</body>

@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Historical Speech API features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+[
+  "webkitSpeechGrammar",
+  "webkitSpeechGrammarList",
+  "webkitSpeechRecognition",
+  "webkitSpeechRecognitionError",
+  "webkitSpeechRecognitionEvent",
+].forEach(name => {
+  test(function() {
+    assert_false(name in window);
+  }, name + " interface should not exist");
+});
+</script>

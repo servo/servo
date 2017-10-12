@@ -1,0 +1,9 @@
+{
+    "run": {"path": "run.py", "script": "run", "parser": "create_parser", "help": "Run tests in a browser",
+            "virtualenv": true, "install": ["requests"], "requirements": ["../wptrunner/requirements.txt"]},
+    "files-changed": {"path": "testfiles.py", "script": "run_changed_files", "parser": "get_parser",
+                      "help": "Get a list of files that have changed", "virtualenv": false},
+    "tests-affected": {"path": "testfiles.py", "script": "run_tests_affected", "parser": "get_parser_affected",
+                       "help": "Get a list of tests affected by changes", "virtualenv": false},
+    "install": {"path": "install.py", "script": "run", "parser": "get_parser", "help": "Install browser components"}
+}

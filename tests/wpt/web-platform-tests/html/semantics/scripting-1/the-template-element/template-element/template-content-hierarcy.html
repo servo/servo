@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+</head>
+<meta name="author" title="Takayoshi Kochi" href="mailto:kochi@chromium.org">
+<meta name="assert" title="host-including inclusive ancestor should be checked for template content">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-tree-host-including-inclusive-ancestor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="parent">
+  <template id="tmpl"><span>Happy Templating!</span></template>
+</div>
+</body>
+<script>
+test(() => {
+  var parent = document.getElementById('parent');
+  var tmpl = document.getElementById('tmpl');
+
+  assert_equals(tmpl.innerHTML, '<span>Happy Templating!</span>');
+  var span = tmpl.content.querySelector('span');
+
+  // Hierarchy checks at various combinations.
+  assert_throws('HierarchyRequestError', () => {
+    tmpl.content.appendChild(parent);
+  }, 'Template content should throw if any of ancestor is being appended.');
+  assert_throws('HierarchyRequestError', () => {
+    tmpl.content.appendChild(tmpl);
+  }, 'Template content should throw if its host is being appended.');
+  assert_throws('HierarchyRequestError', () => {
+    span.appendChild(parent);
+  }, 'Template content child should throw if any of ancestor is being appended.');
+  assert_throws('HierarchyRequestError', () => {
+    span.appendChild(tmpl);
+  }, 'Template content child should throw template\'s host is being appended.');
+}, "Template content should throw when its ancestor is being appended.");
+
+test(() => {
+  var parent = document.getElementById('parent');
+  var tmpl = document.getElementById('tmpl');
+
+  assert_equals(tmpl.innerHTML, '<span>Happy Templating!</span>');
+  var span = tmpl.content.querySelector('span');
+
+  var tmpl_doc = tmpl.content.ownerDocument;
+  assert_equals(tmpl.ownerDocument, document);
+  assert_not_equals(tmpl_doc, document);
+
+  var new_doc = document.implementation.createHTMLDocument();
+  assert_not_equals(new_doc, document);
+  assert_not_equals(new_doc, tmpl_doc);
+
+  // Try moving tmpl.content to new_doc and check the results.
+  var new_node = new_doc.adoptNode(tmpl.content);
+  assert_equals(new_node.ownerDocument, new_doc);
+  assert_equals(tmpl.ownerDocument, document);
+  assert_equals(tmpl.content.ownerDocument, new_doc);
+  assert_not_equals(tmpl.content.ownerDocument, tmpl_doc);
+  assert_not_equals(tmpl.content.ownerDocument, document);
+
+  // Hierarchy checks at various combinations.
+  assert_throws('HierarchyRequestError', () => {
+    tmpl.content.appendChild(parent);
+  }, 'Template content should throw if any of ancestor is being appended.');
+  assert_throws('HierarchyRequestError', () => {
+    tmpl.content.appendChild(tmpl);
+  }, 'Template content should throw if its host is being appended.');
+  assert_throws('HierarchyRequestError', () => {
+    span.appendChild(parent);
+  }, 'Template content child should throw if any of ancestor is being appended.');
+  assert_throws('HierarchyRequestError', () => {
+    span.appendChild(tmpl);
+  }, 'Template content child should throw template\'s host is being appended.');
+
+  // Sanity check: template.content before and after move.
+  var tmpl_content_reference = tmpl.content;
+  assert_equals(tmpl.content.firstChild, span,
+                '<span> should be kept until it is removed, even after ' +
+                'adopted to another document.');
+  new_doc.body.appendChild(new_node);
+  assert_equals(tmpl.content.firstChild, null,
+                '<span> should be removed from template content.');
+  assert_equals(tmpl_content_reference, tmpl.content,
+                'template.content should be identical before and after ' +
+                'moving its children.');
+}, 'Template content should throw exception when its ancestor in ' +
+   'a different document but connected via host is being append.');
+</script>
+</html>

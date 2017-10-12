@@ -1,16 +1,8 @@
 <script src="/common/get-host-info.sub.js"></script>
-<script src="test-helpers.sub.js?pipe=sub"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/test-helpers.sub.js?pipe=sub"></script>
 <script>
-var port;
 var host_info = get_host_info();
-
-function assert_equals(a, b) {
-  port.postMessage({results: 'equals', got: a, expected: b});
-}
-
-function assert_array_equals(a, b, msg) {
-  port.postMessage({results: 'array_equals', got: a, expected: b, msg: msg});
-}
 
 function get_boundary(headers) {
   var reg = new RegExp('multipart\/form-data; boundary=(.*)');
@@ -231,24 +223,4 @@ function data_url_test() {
         assert_equals(data, 'Foobar');
       });
 }
-
-window.addEventListener('message', function(evt) {
-    port = evt.ports[0];
-    get_header_test()
-      .then(post_header_test)
-      .then(cross_origin_get_header_test)
-      .then(cross_origin_post_header_test)
-      .then(string_test)
-      .then(blob_test)
-      .then(custom_method_test)
-      .then(options_method_test)
-      .then(form_data_test)
-      .then(mode_credentials_test)
-      .then(data_url_test)
-      .then(function() { port.postMessage({results: 'finish'}); })
-      .catch(function(reason) {
-          var error = String(reason.message || reason);
-          port.postMessage({results: 'failure', error: error});
-        });
-  });
 </script>

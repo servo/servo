@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="resources/testharness-helpers.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+
+/*
+ * @param bolean cors
+ *   Determine wether the imported script should be a cross origin script.
+ * @param string main
+ *   Decide the content of the main script, where 'default' is for constant
+ *   content while 'time' is for time-variant content.
+ * @param string imported
+ *   Decide the content of the imported script, where 'default' is for constant
+ *   content while 'time' is for time-variant content.
+ */
+const settings = [{cors: false, main: 'default', imported: 'default'},
+                  {cors: false, main: 'default', imported: 'time'   },
+                  {cors: false, main: 'time',    imported: 'default'},
+                  {cors: false, main: 'time',    imported: 'time'   },
+                  {cors: true,  main: 'default', imported: 'default'},
+                  {cors: true,  main: 'default', imported: 'time'   },
+                  {cors: true,  main: 'time',    imported: 'default'},
+                  {cors: true,  main: 'time',    imported: 'time'   }];
+
+settings.reduce((p, s) => {
+  return p.then(promise_test(function(t) {
+    var path = !s.cors ? ''
+                       : 'https://www1.web-platform.test:8443/' +
+                         'service-workers/service-worker/resources/';
+    var script = 'resources/bytecheck-worker.py' +
+                 '?main=' + s.main +
+                 '&imported=' + s.imported +
+                 '&path=' + path;
+    var scope = 'resources/blank.html';
+
+    var swr, sw;
+    return Promise.resolve()
+      // Register a service worker.
+      .then(_ => service_worker_unregister_and_register(t, script, scope))
+      .then(r => swr = r)
+      .then(_ => wait_for_update(t, swr))
+      .then(w => sw = w)
+      .then(_ => wait_for_state(t, sw, 'activated'))
+      .then(_ => assert_array_equals([swr.active,
+                                      swr.waiting,
+                                      swr.installing],
+                                     [sw, null, null]))
+
+      // Update the service worker registration.
+      .then(_ => swr.update())
+      .then(_ => {
+         // If there should be a new service worker.
+         if (s.main === 'time' || s.imported === 'time') {
+           return wait_for_update(t, swr);
+         }
+         // Otherwise, make sure there is no newly created service worker.
+         assert_array_equals([swr.active,
+                              swr.waiting,
+                              swr.installing],
+                             [sw, null, null]);
+      })
+
+      // Unregister the service worker.
+      .then(_ => service_worker_unregister_and_done(t, scope));
+  }, `Test(cors: ${s.cors}, main: ${s.main}, imported: ${s.imported})`));
+}, Promise.resolve());
+
+</script>

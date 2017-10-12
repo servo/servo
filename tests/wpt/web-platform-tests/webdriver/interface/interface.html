@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(function() {
+  if ("webdriver" in navigator) {
+    var descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(navigator), "webdriver");
+    assert_true(descriptor !== undefined);
+    assert_true(descriptor.configurable);
+    assert_true(descriptor.enumerable);
+    assert_true(descriptor.set === undefined);
+    assert_true(navigator.webdriver);
+  } else {
+    assert_true(navigator.webdriver === undefined);
+  }
+}, "Test that the navigator.webdriver descriptor has expected properties or doesn't exist at all");
+</script>
+</body>
+</html>

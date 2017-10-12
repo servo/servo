@@ -1,0 +1,267 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Set Session Description - Transceiver Tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateAnswer
+
+  /*
+    4.3.2.  Interface Definition
+
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setLocalDescription(
+            RTCSessionDescriptionInit description);
+
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+
+    5.4.  RTCRtpTransceiver Interface
+
+      interface RTCRtpTransceiver {
+        readonly attribute DOMString?                  mid;
+        [SameObject]
+        readonly attribute RTCRtpSender                sender;
+        [SameObject]
+        readonly attribute RTCRtpReceiver              receiver;
+        readonly attribute RTCRtpTransceiverDirection  direction;
+        readonly attribute RTCRtpTransceiverDirection? currentDirection;
+        ...
+      };
+   */
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      7.  If description is set as a local description, then run the following steps for
+          each media description in description that is not yet associated with an
+          RTCRtpTransceiver object:
+        1.  Let transceiver be the RTCRtpTransceiver used to create the media
+            description.
+        2.  Set transceiver's mid value to the mid of the corresponding media
+            description.
+   */
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    assert_equals(transceiver.mid, null);
+
+    return pc.createOffer()
+    .then(offer => {
+      assert_equals(transceiver.mid, null,
+        'Expect transceiver.mid to still be null after createOffer');
+
+      return pc.setLocalDescription(offer)
+      .then(() => {
+        assert_equals(typeof transceiver.mid, 'string',
+          'Expect transceiver.mid to set to valid string value');
+
+        assert_equals(offer.sdp.includes(`\r\na=mid:${transceiver.mid}`), true,
+          'Expect transceiver mid to be found in offer SDP');
+      });
+    });
+  }, 'setLocalDescription(offer) with m= section should assign mid to corresponding transceiver');
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      8.  If description is set as a remote description, then run the following steps
+          for each media description in description:
+        2.  If no suitable transceiver is found (transceiver is unset), run the following
+            steps:
+          1.  Create an RTCRtpSender, sender, from the media description.
+          2.  Create an RTCRtpReceiver, receiver, from the media description.
+          3.  Create an RTCRtpTransceiver with sender, receiver and direction, and let
+              transceiver be the result.
+        3.  Set transceiver's mid value to the mid of the corresponding media description.
+   */
+  promise_test(() => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+
+    const transceiver1 = pc1.addTransceiver('audio');
+    assert_array_equals(pc1.getTransceivers(), [transceiver1]);
+    assert_array_equals(pc2.getTransceivers(), []);
+
+    return pc1.createOffer()
+    .then(offer => {
+      return Promise.all([
+        pc1.setLocalDescription(offer),
+        pc2.setRemoteDescrption(offer)
+      ])
+      .then(() => {
+        const transceivers = pc2.getTransceivers();
+        assert_equals(transceivers.length, 1,
+          'Expect new transceiver added to pc2 after setRemoteDescription');
+
+        const [ transceiver2 ] = transceivers;
+
+        assert_equals(typeof transceiver2.mid, 'string',
+          'Expect transceiver2.mid to be set');
+
+        assert_equals(transceiver1.mid, transceiver2.mid,
+          'Expect transceivers of both side to have the same mid');
+
+        assert_equals(offer.sdp.includes(`\r\na=mid:${transceiver2.mid}`), true,
+          'Expect transceiver mid to be found in offer SDP');
+      });
+    });
+  }, 'setRemoteDescription(offer) with m= section and no existing transceiver should create corresponding transceiver');
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      9.  If description is of type "rollback", then run the following steps:
+        1.  If the mid value of an RTCRtpTransceiver was set to a non-null value by
+            the RTCSessionDescription that is being rolled back, set the mid value
+            of that transceiver to null, as described by [JSEP] (section 4.1.8.2.).
+   */
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    assert_equals(transceiver.mid, null);
+
+    return pc.createOffer()
+    .then(offer => {
+      assert_equals(transceiver.mid, null);
+      return pc.setLocalDescription(offer);
+    })
+    .then(() => {
+      assert_not_equals(transceiver.mid, null);
+      return pc.setLocalDescription({ type: 'rollback' });
+    })
+    .then(() => {
+      assert_equals(transceiver.mid, null,
+      'Expect transceiver.mid to become null again after rollback');
+    });
+  }, 'setLocalDescription(rollback) should unset transceiver.mid');
+
+  promise_test(() => {
+    const pc = new RTCPeerConnection();
+    const transceiver1 = pc.addTransceiver('audio');
+    assert_equals(transceiver1.mid, null);
+
+    return pc.createOffer()
+    .then(offer =>
+       pc.setLocalDescription(offer)
+       .then(() => generateAnswer(offer)))
+    .then(answer => pc.setRemoteDescription(answer))
+    .then(() => {
+      // pc is back to stable state
+      // create another transceiver
+      const transceiver2 = pc.addTransceiver('video');
+
+      assert_not_equals(transceiver1.mid, null);
+      assert_equals(transceiver2.mid, null);
+
+      return pc.createOffer()
+      .then(offer => pc.setLocalDescription(offer))
+      .then(() => {
+        assert_not_equals(transceiver1.mid, null);
+        assert_not_equals(transceiver2.mid, null,
+          'Expect transceiver2.mid to become set');
+
+        return pc.setLocalDescription({ type: 'rollback' });
+      })
+      .then(() => {
+        assert_not_equals(transceiver1.mid, null,
+          'Expect transceiver1.mid to stay set');
+
+        assert_equals(transceiver2.mid, null,
+          'Expect transceiver2.mid to be rolled back to null');
+      });
+    })
+  }, 'setLocalDescription(rollback) should only unset transceiver mids associated with current round');
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      9.  If description is of type "rollback", then run the following steps:
+        2.  If an RTCRtpTransceiver was created by applying the RTCSessionDescription
+            that is being rolled back, and a track has not been attached to it via
+            addTrack, remove that transceiver from connection's set of transceivers,
+            as described by [JSEP] (section 4.1.8.2.).
+   */
+  promise_test(() => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+
+    pc1.addTransceiver('audio');
+
+    return pc1.createOffer()
+    .then(offer => pc2.setRemoteDescription(offer))
+    .then(() => {
+      const transceivers = pc2.getTransceivers();
+      assert_equals(transceivers.length, 1);
+      const [ transceiver ] = transceivers;
+
+      assert_equals(typeof transceiver.mid, 'string',
+        'Expect transceiver.mid to be set');
+
+      return pc2.setRemoteDescription({ type: 'rollback' })
+      .then(() => {
+        assert_equals(transceiver.mid, null,
+          'Expect transceiver.mid to be unset');
+
+        assert_array_equals(pc2.getTransceivers(), [],
+          `Expect transceiver to be removed from pc2's transceiver list`);
+      });
+    });
+  }, 'setRemoteDescription(rollback) should remove newly created transceiver from transceiver list');
+
+  /*
+    TODO
+      - Steps for transceiver direction is added to tip of tree draft, but not yet
+        published as editor's draft
+
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      8.  If description is set as a remote description, then run the following steps
+          for each media description in description:
+        1.  As described by [JSEP] (section 5.9.), attempt to find an existing
+            RTCRtpTransceiver object, transceiver, to represent the media description.
+        3.  If the media description has no MID, and transceiver's mid is unset, generate
+            a random value as described in [JSEP] (section 5.9.).
+        4.  If the direction of the media description is sendrecv or sendonly, and
+            transceiver.receiver.track has not yet been fired in a track event, process
+            the remote track for the media description, given transceiver.
+        5.  If the media description is rejected, and transceiver is not already stopped,
+            stop the RTCRtpTransceiver transceiver.
+
+    [JSEP]
+    5.9.  Applying a Remote Description
+      - If the m= section is not associated with any RtpTransceiver
+        (possibly because it was dissociated in the previous step),
+        either find an RtpTransceiver or create one according to the
+        following steps:
+
+        - If the m= section is sendrecv or recvonly, and there are
+          RtpTransceivers of the same type that were added to the
+          PeerConnection by addTrack and are not associated with any
+          m= section and are not stopped, find the first (according to
+          the canonical order described in Section 5.2.1) such
+          RtpTransceiver.
+
+        - If no RtpTransceiver was found in the previous step, create
+          one with a recvonly direction.
+   */
+</script>

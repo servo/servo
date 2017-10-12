@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>InputEvent have correct data/order when typing on textarea and contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>To manually run this test, please follow the steps below:<br/>
+1. Focus the first box and press key 'a' and then Shift-'b'.<br/>
+2. Focus the second box and press key 'c' and then Shift-'d'.<br/>
+<br/>
+If a "PASS" result appears the test passes, otherwise it fails</p>
+<textarea id='plain'></textarea>
+<div id='rich' style='border-style: solid;' contenteditable><br></div>
+<script>
+async_test(t => {
+    const expectedResult = [
+        // Pressing 'a'.
+        'plain-keydown-a',
+        'plain-keypress-a',
+        'plain-beforeinput-a',
+        'plain-input-a',
+        'plain-keyup-a',
+        // Pressing Shift-'b'.
+        'plain-keydown-B',
+        'plain-keypress-B',
+        'plain-beforeinput-B',
+        'plain-input-B',
+        'plain-keyup-B',
+        // Pressing 'c'.
+        'rich-keydown-c',
+        'rich-keypress-c',
+        'rich-beforeinput-c',
+        'rich-input-c',
+        'rich-keyup-c',
+        // Pressing Shift-'d'.
+        'rich-keydown-D',
+        'rich-keypress-D',
+        'rich-beforeinput-D',
+        'rich-input-D',
+        'rich-keyup-D',
+    ];
+    let eventCounter = 0;
+
+    for (const targetId of ['plain', 'rich']) {
+        for (const eventType of ['beforeinput', 'input', 'keydown', 'keypress', 'keyup']) {
+            document.getElementById(targetId).addEventListener(eventType, t.step_func(event => {
+                if (event.key === 'Shift')
+                    return;
+                assert_equals(`${targetId}-${event.type}-${event.data || event.key}`, expectedResult[eventCounter]);
+                if (event instanceof InputEvent) {
+                    assert_equals(event.dataTransfer, null,
+                        'Plain text editing should have null |dataTransfer| field')
+                }
+                ++eventCounter;
+                if (eventCounter === expectedResult.length)
+                    t.done();
+            }));
+        }
+    }
+});
+</script>

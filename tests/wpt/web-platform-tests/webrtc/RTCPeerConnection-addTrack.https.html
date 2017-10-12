@@ -1,0 +1,285 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.addTrack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  // generateMediaStreamTrack
+
+  /*
+    5.1.  RTCPeerConnection Interface Extensions
+      partial interface RTCPeerConnection {
+        ...
+        sequence<RTCRtpSender>      getSenders();
+        sequence<RTCRtpReceiver>    getReceivers();
+        sequence<RTCRtpTransceiver> getTransceivers();
+        RTCRtpSender                addTrack(MediaStreamTrack track,
+                                             MediaStream... streams);
+        RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+                                                   optional RTCRtpTransceiverInit init);
+      };
+
+      Note
+        While addTrack checks if the MediaStreamTrack given as an argument is
+        already being sent to avoid sending the same MediaStreamTrack twice,
+        the other ways do not, allowing the same MediaStreamTrack to be sent
+        several times simultaneously.
+   */
+
+  /*
+    5.1.  addTrack
+      4.  If connection's [[isClosed]] slot is true, throw an InvalidStateError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(mediaStream => {
+      const tracks = mediaStream.getTracks();
+      assert_greater_than(tracks.length, 0,
+        'Expect getUserMedia to return at least one audio track');
+
+      const track = tracks[0];
+
+      pc.close();
+      assert_throws('InvalidStateError', () => pc.addTrack(track, mediaStream))
+    });
+  }, 'addTrack when pc is closed should throw InvalidStateError');
+
+  /*
+    5.1.  addTrack
+      8.  If sender is null, run the following steps:
+          1.  Create an RTCRtpSender with track and streams and let sender be
+              the result.
+          2.  Create an RTCRtpReceiver with track.kind as kind and let receiver
+              be the result.
+          3.  Create an RTCRtpTransceiver with sender and receiver and let
+              transceiver be the result.
+          4.  Add transceiver to connection's set of transceivers.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(mediaStream => {
+      const tracks = mediaStream.getTracks();
+      assert_greater_than(tracks.length, 0,
+        'Expect getUserMedia to return at least one audio track');
+
+      const track = tracks[0];
+      const sender = pc.addTrack(track);
+
+      assert_true(sender instanceof RTCRtpSender,
+        'Expect sender to be instance of RTCRtpSender');
+
+      assert_equals(sender.track, track,
+        `Expect sender's track to be the added track`);
+
+      const transceivers = pc.getTransceivers();
+      assert_equals(transceivers.length, 1,
+        'Expect only one transceiver with sender added');
+
+      const [transceiver] = transceivers;
+      assert_equals(transceiver.sender, sender);
+
+      assert_array_equals([sender], pc.getSenders(),
+        'Expect only one sender with given track added');
+
+      const { receiver } = transceiver;
+      assert_equals(receiver.track.kind, 'audio');
+      assert_array_equals([transceiver.receiver], pc.getReceivers(),
+        'Expect only one receiver associated with transceiver added');
+    });
+  }, 'addTrack with single track argument and no mediaStream should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(mediaStream => {
+      const tracks = mediaStream.getTracks();
+      assert_greater_than(tracks.length, 0,
+        'Expect getUserMedia to return at least one audio track');
+
+      const track = tracks[0];
+      const sender = pc.addTrack(track, mediaStream);
+
+      assert_true(sender instanceof RTCRtpSender,
+        'Expect sender to be instance of RTCRtpSender');
+
+      assert_equals(sender.track, track,
+        `Expect sender's track to be the added track`);
+    });
+  }, 'addTrack with single track argument and single mediaStream should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(mediaStream => {
+      const tracks = mediaStream.getTracks();
+      assert_greater_than(tracks.length, 0,
+        'Expect getUserMedia to return at least one audio track');
+
+      const track = tracks[0];
+      const mediaStream2 = new MediaStream([track]);
+      const sender = pc.addTrack(track, mediaStream, mediaStream2);
+
+      assert_true(sender instanceof RTCRtpSender,
+        'Expect sender to be instance of RTCRtpSender');
+
+      assert_equals(sender.track, track,
+        `Expect sender's track to be the added track`);
+    });
+  }, 'addTrack with single track argument and multiple mediaStreams should succeed');
+
+  /*
+    5.1.  addTrack
+      5.  Let senders be the result of executing the CollectSenders algorithm.
+          If an RTCRtpSender for track already exists in senders, throw an
+          InvalidAccessError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(mediaStream => {
+      const tracks = mediaStream.getTracks();
+      assert_greater_than(tracks.length, 0,
+        'Expect getUserMedia to return at least one audio track');
+
+      const track = tracks[0];
+
+      pc.addTrack(track, mediaStream);
+      assert_throws('InvalidAccessError', () => pc.addTrack(track, mediaStream));
+    });
+  }, 'Adding the same track multiple times should throw InvalidAccessError');
+
+  /*
+    5.1.  addTrack
+      6.  The steps below describe how to determine if an existing sender can
+          be reused.
+
+          If any RTCRtpSender object in senders matches all the following
+          criteria, let sender be that object, or null otherwise:
+            - The sender's track is null.
+            - The transceiver kind of the RTCRtpTransceiver, associated with
+              the sender, matches track's kind.
+            - The sender has never been used to send. More precisely, the
+              RTCRtpTransceiver associated with the sender has never had a
+              currentDirection of sendrecv or sendonly.
+      7.  If sender is not null, run the following steps to use that sender:
+          1.  Set sender.track to track.
+          3.  Enable sending direction on the RTCRtpTransceiver associated
+              with sender.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+
+    const transceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
+    assert_equals(transceiver.sender.track, null);
+    assert_equals(transceiver.direction, 'recvonly');
+
+    const track = generateMediaStreamTrack('audio');
+    const sender = pc.addTrack(track);
+
+    assert_equals(sender, transceiver.sender);
+    assert_equals(sender.track, track);
+    assert_equals(transceiver.direction, 'sendrecv');
+    assert_array_equals([sender], pc.getSenders());
+
+  }, 'addTrack with existing sender with null track, same kind, and recvonly direction should reuse sender');
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+
+    const transceiver = pc.addTransceiver('audio');
+    assert_equals(transceiver.sender.track, null);
+    assert_equals(transceiver.direction, 'sendrecv');
+
+    const track = generateMediaStreamTrack('audio');
+    const sender = pc.addTrack(track);
+
+    assert_equals(sender.track, track);
+    assert_not_equals(sender, transceiver.sender);
+
+    const senders = pc.getSenders();
+    assert_equals(senders.length, 2,
+      'Expect 2 senders added to connection');
+
+    assert_true(senders.includes(sender),
+      'Expect senders list to include sender');
+
+    assert_true(senders.includes(transceiver.sender),
+      `Expect senders list to include first transceiver's sender`);
+
+  }, 'addTrack with existing sender with null track, same kind, and sendrecv direction should create new sender');
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+
+    const transceiver = pc.addTransceiver('video', { direction: 'recvonly' });
+    assert_equals(transceiver.sender.track, null);
+    assert_equals(transceiver.direction, 'recvonly');
+
+    const track = generateMediaStreamTrack('audio');
+    const sender = pc.addTrack(track);
+
+    assert_equals(sender.track, track);
+    assert_not_equals(sender, transceiver.sender);
+
+    const senders = pc.getSenders();
+    assert_equals(senders.length, 2,
+      'Expect 2 senders added to connection');
+
+    assert_true(senders.includes(sender),
+      'Expect senders list to include sender');
+
+    assert_true(senders.includes(transceiver.sender),
+      `Expect senders list to include first transceiver's sender`);
+
+  }, 'addTrack with existing sender with null track, different kind, and recvonly direction should create new sender');
+
+  /*
+    TODO
+      5.1.  addTrack
+        3.  Let streams be a list of MediaStream objects constructed from the
+            method's remaining arguments, or an empty list if the method was
+            called with a single argument.
+        6.  The steps below describe how to determine if an existing sender can
+            be reused. Doing so will cause future calls to createOffer and
+            createAnswer to mark the corresponding media description as sendrecv
+            or sendonly and add the MSID of the track added, as defined in [JSEP]
+            (section 5.2.2. and section 5.3.2.).
+        9.  A track could have contents that are inaccessible to the application.
+            This can be due to being marked with a peerIdentity option or anything
+            that would make a track CORS cross-origin. These tracks can be supplied
+            to the addTrack method, and have an RTCRtpSender created for them, but
+            content must not be transmitted, unless they are also marked with
+            peerIdentity and they meet the requirements for sending (see isolated
+            streams and RTCPeerConnection).
+
+            All other tracks that are not accessible to the application must not be
+            sent to the peer, with silence (audio), black frames (video) or
+            equivalently absent content being sent in place of track content.
+
+            Note that this property can change over time.
+
+    Non-Testable
+      5.1.  addTrack
+        7.  If sender is not null, run the following steps to use that sender:
+          2.  Set sender's [[associated MediaStreams]] to streams.
+
+    Tested in RTCPeerConnection-onnegotiationneeded.html:
+      5.1. addTrack
+        10. Update the negotiation-needed flag for connection.
+
+   */
+</script>

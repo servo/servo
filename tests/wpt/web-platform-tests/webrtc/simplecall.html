@@ -24,12 +24,6 @@ property to true in Firefox.
   <!-- These files are in place when executing on W3C. -->
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-  <script src="/common/vendor-prefix.js"
-          data-prefixed-objects=
-              '[{"ancestors":["navigator"], "name":"getUserMedia"}]'
-          data-prefixed-prototypes=
-               '[{"ancestors":["HTMLMediaElement"],"name":"srcObject"}]'>
-  </script>
   <script type="text/javascript">
   var test = async_test('Can set up a basic WebRTC call.', {timeout: 5000});
 
@@ -108,15 +102,13 @@ property to true in Firefox.
 
   // Returns a suitable error callback.
   function failed(function_name) {
-    return test.step_func(function() {
-      assert_unreached('WebRTC called error callback for ' + function_name);
-    });
+    return test.unreached_func('WebRTC called error callback for ' + function_name);
   }
 
   // This function starts the test.
   test.step(function() {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(getUserMediaOkCallback, failed('getUserMedia'));
+      .then(test.step_func(getUserMediaOkCallback), failed('getUserMedia'));
   });
 </script>
 

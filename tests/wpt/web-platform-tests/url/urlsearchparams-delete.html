@@ -36,6 +36,21 @@ test(function() {
     params.delete('first');
     assert_false(params.has('first'), 'Search params object has no "first" name');
 }, 'Deleting appended multiple');
+
+test(function() {
+    var url = new URL('http://example.com/?param1&param2');
+    url.searchParams.delete('param1');
+    url.searchParams.delete('param2');
+    assert_equals(url.href, 'http://example.com/', 'url.href does not have ?');
+    assert_equals(url.search, '', 'url.search does not have ?');
+}, 'Deleting all params removes ? from URL');
+
+test(function() {
+    var url = new URL('http://example.com/?');
+    url.searchParams.delete('param1');
+    assert_equals(url.href, 'http://example.com/', 'url.href does not have ?');
+    assert_equals(url.search, '', 'url.search does not have ?');
+}, 'Removing non-existent param removes ? from URL');
 </script>
 </head>
 </html>

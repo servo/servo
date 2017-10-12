@@ -1,7 +1,7 @@
 <!doctype html>
 <script>
 window.onmessage = (e) => {
-  const paymentArgs = [[{supportedMethods: ['foo']}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
+  const paymentArgs = [[{supportedMethods: 'foo'}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
 
   if (e.data === 'What is the result of new PaymentRequest(...)?') {
     const result = {urlQuery: location.search.substring(1)}; // Used to distinguish subtests

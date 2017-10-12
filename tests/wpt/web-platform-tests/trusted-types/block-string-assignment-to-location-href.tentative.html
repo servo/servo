@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./support/helper.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types">
+</head>
+<body>
+<script>
+  // String assignments throw.
+  promise_test(t => {
+    return promise_rejects(t, new TypeError(), createFrameAndHref("about:blank"));
+  }, "`location.href = string` throws");
+
+  // TrustedURL assignments work.
+  promise_test(t => {
+    var url = TrustedURL.create(URLS.safe);
+    return createFrameAndHref(url);
+  }, "Basic processing: safe URL, safe construction.");
+
+  promise_test(t => {
+    var url = TrustedURL.unsafelyCreate(URLS.safe);
+    return createFrameAndHref(url);
+  }, "Basic processing: safe URL, unsafe construction.");
+
+  promise_test(t => {
+    var url = TrustedURL.create(URLS.javascript);
+    return createFrameAndHref(url).then(i => {
+      assert_equals(i.contentDocument.body.innerText, "");
+    });
+  }, "Basic processing: javascript URL, safe construction.");
+
+  promise_test(t => {
+    var url = TrustedURL.unsafelyCreate(URLS.javascript);
+    return createFrameAndHref(url).then(i => {
+      assert_equals(i.contentDocument.body.innerText, "scripted");
+    });
+  }, "Basic processing: javascript URL, unsafe construction.");
+</script>

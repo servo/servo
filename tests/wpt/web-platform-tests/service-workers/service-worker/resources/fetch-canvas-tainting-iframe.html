@@ -159,7 +159,7 @@ window.addEventListener('message', function(evt) {
             remote_image_url +
             '&mode=same-origin&url=' + encodeURIComponent(image_url),
             '',
-            TAINTED),
+            NOT_TAINTED),
         create_test_promise(
             remote_image_url +
             '&mode=same-origin&url=' + encodeURIComponent(image_url),
@@ -256,10 +256,7 @@ window.addEventListener('message', function(evt) {
             encodeURIComponent(remote_image_url +
                                '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
             '',
-            TAINTED), // The cross-origin no-cors request is immediately tainted.
-                      // Since this happens before the service worker interception,
-                      // it does not matter what kind of response it returns.
-                      // The result will always be tainted.
+            NOT_TAINTED),
         create_test_promise(
             remote_image_url +
             '&mode=cors&url=' +

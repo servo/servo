@@ -1,0 +1,98 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='./support/base.css' />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#table-layout-algorithm">
+<main>
+
+    <h1>HTML5 Table Formatting algorithm (row/column grid computation)</h1>
+    <p>Verifies how browser define and act on empty tables</p>
+
+    <hr/>
+    <p>This should be a 50px by 50px blue square:</p>
+    <p>The table grid is 0x0, so the table is empty and follows step 3B of the table layout algorithm</p>
+    <x-table style="min-width: 50px; height: 50px; background: blue;"></x-table>
+
+    <hr/>
+    <p>This should be a 50px by 50px blue square:</p>
+    <p>The table grid is 2x0, so the table is empty and follows step 3B of the table layout algorithm</p>
+    <x-table style="min-width: 50px; height: 50px; background: blue;">
+        <x-col style="width: 100px"></x-col>
+        <x-col style="width: 100px"></x-col>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 50px by 50px blue square:</p>
+    <p>The table grid is 0x1, so the table is empty and follows step 3B of the table layout algorithm</p>
+    <x-table style="min-width: 50px; height: 50px; background: blue;">
+        <x-tr style="height: 100px; background: orange;"></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 200px by 100px blue rectangle:</p>
+    <p>The table grid is 2x1, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <x-table style="min-width: 50px; height: 50px; background: blue;">
+        <x-col style="width: 100px"></x-col>
+        <x-col style="width: 100px"></x-col>
+        <x-tr style="height: 100px; background: orange;"></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 200px by 100px half-blue half-orange rectangle:</p>
+    <p>The table grid is 2x1, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <x-table style="min-width: 50px; height: 50px; background: blue;">
+        <x-col style="width: 100px"></x-col>
+        <x-col style="width: 100px"></x-col>
+        <x-tr style="height: 100px; background: orange;"><x-td></x-td></x-tr>
+    </x-table>
+
+    <hr/>
+    <p>This should be a 200px by 100px orange rectangle:</p>
+    <p>The table grid is 2x1, so the table is not empty and follows step 3A of the table layout algorithm (which adds anonymous cell boxes)</p>
+    <x-table style="min-width: 50px; height: 50px; background: blue;">
+        <x-col style="width: 100px"></x-col>
+        <x-col style="width: 100px"></x-col>
+        <x-tr style="height: 100px; background: orange;"><x-td></x-td><x-td></x-td></x-tr>
+    </x-table>
+
+</main>
+
+<script>
+
+    generate_tests(assert_equals, [
+        [
+            "Empty tables can still get a lsyout",
+            document.querySelector("x-table:nth-of-type(1)").offsetWidth,
+            50
+        ],
+        [
+            "Empty tables do not take table-columns into account",
+            document.querySelector("x-table:nth-of-type(2)").offsetWidth,
+            50
+        ],
+        [
+            "Empty tables do not take table-rows into account",
+            document.querySelector("x-table:nth-of-type(3)").offsetHeight,
+            50
+        ],
+    ])
+
+    generate_tests(assert_equals, [
+        [
+            "Table-columns are taken into account after missing cells are generated (empty line)",
+            document.querySelector("x-table:nth-of-type(4)").offsetWidth,
+            200
+        ],
+        [
+            "Table-columns are taken into account after missing cells are generated (partially empty line)",
+            document.querySelector("x-table:nth-of-type(5)").offsetWidth,
+            200
+        ],
+        [
+            "Table-columns are taken into account after missing cells are generated (non-empty line)",
+            document.querySelector("x-table:nth-of-type(6)").offsetWidth,
+            200
+        ],
+    ])
+
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IFrame Fullscreen API success reporter</title>
+<body>
+<script>
+reportFullscreenSuccessful = (success) => {
+  return () => {
+    parent.postMessage({"report": {
+      "api": "fullscreen",
+      "result": success,
+      "frame": window.name
+    }}, "*");
+  };
+};
+
+window.addEventListener('message', e => {
+  if (e.data.action == "report") {
+    document.onfullscreenchange = reportFullscreenSuccessful(true);
+    document.onfullscreenerror = reportFullscreenSuccessful(false);
+    document.body.requestFullscreen();
+  }
+});
+</script>

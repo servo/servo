@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>Reference for nested inline position:sticky elements should render correctly</title>
+
+<style>
+.group {
+  display: inline-block;
+  position: relative;
+  width: 150px;
+  height: 250px;
+}
+
+.scroller {
+  position: relative;
+  width: 100px;
+  height: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font: 25px/1 Ahem;
+}
+
+.contents {
+  height: 500px;
+}
+
+.outerIndicator {
+  color: green;
+  position: absolute;
+  left: 0;
+}
+
+.innerIndicator {
+  color: blue;
+  position: absolute;
+  left: 25px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 50;
+  document.getElementById('scroller2').scrollTop = 125;
+  document.getElementById('scroller3').scrollTop = 225;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="contents">
+      <div class="outerIndicator" style="top: 150px;">X</div>
+      <div class="innerIndicator" style="top: 150px;">XX</div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="contents">
+      <div class="outerIndicator" style="top: 175px;">X</div>
+      <div class="innerIndicator" style="top: 185px;">XX</div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="contents">
+      <div class="outerIndicator" style="top: 275px;">X</div>
+      <div class="innerIndicator" style="top: 275px;">XX</div>
+    </div>
+  </div>
+</div>
+
+<div>You should see three green and three blue rectangles above. No red should be visible.</div>

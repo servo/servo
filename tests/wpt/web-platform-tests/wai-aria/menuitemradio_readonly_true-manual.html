@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>menuitemradio readonly true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -65,23 +66,23 @@
             "IAccessible2" : [
                [
                   "property",
-                  "states",
-                  "doesNotContain",
-                  "IA2_STATE_SYSTEM_EDITABLE"
-               ],
-               [
-                  "property",
                   "role",
                   "is",
                   "IA2_ROLE_RADIO_MENU_ITEM"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "IA2_STATE_EDITABLE"
                ]
             ],
             "MSAA" : [
                [
                   "property",
                   "role",
-                  "is",
-                  "ROLE_SYSTEM_RADIOBUTTON or ROLE_SYSTEM_MENUITEM"
+                  "isAny",
+                  "[ROLE_SYSTEM_RADIOBUTTON, ROLE_SYSTEM_MENUITEM]"
                ],
                [
                   "property",
@@ -138,4 +139,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

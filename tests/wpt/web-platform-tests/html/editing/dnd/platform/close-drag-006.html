@@ -6,20 +6,20 @@ p.gone + ul { display: block; }
 </style>
 <script type="text/javascript">
 window.onload = function() {
-	if( location.href.match(/#popup$/) ) { document.getElementsByTagName('p')[0].className = 'gone'; }
+  if( location.href.match(/#popup$/) ) { document.getElementsByTagName('p')[0].className = 'gone'; }
   document.getElementsByTagName('ul')[0].ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
-		setTimeout(function () { window.close(); },2000);
+    setTimeout(function () { window.close(); },2000);
   };
 };
 </script>
 <p><a href="javascript:alert('Click the link normally');" onclick="window.open('close-drag-006.html#popup','_blank');return false;">Open this page in a popup</a>.</p>
 <ul draggable='true'>
-	<li>Ensure the browser window is not maximised.</li>
-	<li>Quickly drag this text upwards out of the browser window, and do not release the drag.</li>
-	<li>This tab should close after a couple of seconds.</li>
-	<li>Dragging downwards over the browser window's title bar, then release the drag.</li>
-	<li>Fail if the drag placeholder gets stuck. Fail if the browser crashes.</li>
+  <li>Ensure the browser window is not maximised.</li>
+  <li>Quickly drag this text upwards out of the browser window, and do not release the drag.</li>
+  <li>This tab should close after a couple of seconds.</li>
+  <li>Dragging downwards over the browser window's title bar, then release the drag.</li>
+  <li>Fail if the drag placeholder gets stuck. Fail if the browser crashes.</li>
 </ul>
 <noscript><p>Enable JavaScript and reload</p></noscript>

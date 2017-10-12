@@ -4,11 +4,11 @@ title: Lint Tool
 order: 9
 ---
 We have a lint tool for catching common mistakes in test files. You can run
-it manually by starting the `lint` executable from the root of your local
+it manually by running the `wpt lint` command from the root of your local
 web-platform-tests working directory like this:
 
 ```
-./lint
+./wpt lint
 ```
 
 The lint tool is also run automatically for every submitted pull request,
@@ -37,6 +37,9 @@ below to fix all errors reported.
   `<script src='/resources/testharnessreport.js'>` prior to
   `<script src='/resources/testharness.js'>`; **fix**: flip the order.
 
+* **GENERATE_TESTS**: Test file line has a generate_tests call; **fix**: remove
+  the call and call `test()` a number of times instead.
+
 * **INDENT TABS**: Test-file line starts with one or more tab characters;
   **fix**: use spaces to replace any tab characters at beginning of lines.
 
@@ -47,6 +50,9 @@ below to fix all errors reported.
 * **LATE-TIMEOUT**: Test file with `<meta name="timeout"...>` element after
   `<script src='/resources/testharnessreport.js'>` element ; **fix**: move
   the `<meta name="timeout"...>` element to precede the `script` element.
+
+* **LAYOUTTESTS APIS**: Test file uses `eventSender`, `testRunner`, or
+  `window.internals` which are LayoutTests-specific APIs used in WebKit/Blink.
 
 * **MALFORMED-VARIANT**: Test file with a `<meta name='variant'...>`
   element whose `content` attribute has a malformed value; **fix**: ensure

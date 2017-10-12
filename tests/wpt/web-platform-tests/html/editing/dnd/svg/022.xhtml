@@ -4,12 +4,12 @@
 <title>Dragging selection from SVG editable text element to XHTML element</title>
 <style type="text/css">
 div[ondragenter]
-	{width:300px;
-	height:100px;
-	margin-top:20px;
-	padding:10px;
-	color:white;
-	background-color:navy;}
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;
+  color:white;
+  background-color:navy;}
 </style>
 </head>
 <body>
@@ -18,9 +18,9 @@ div[ondragenter]
 </svg>
 <p>Select the text above and drag selection to the blue box. Copy of selection should end up in the blue box once you drop it there.</p>
 <div
-	ondragenter="event.preventDefault()"
-	ondragover="return false"
-	ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+  ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
 />
 </body>
 </html>

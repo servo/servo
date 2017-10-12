@@ -10,17 +10,28 @@
   <body>
     <script>
       async_test(function (t) {
-        window.addEventListener("message", t.step_func_done(function (e) {
-          assert_equals(e.origin, "null", "Messages sent from a 'data:' URL should have an opaque origin (which serializes to 'null').");
-          assert_throws("SecurityError", function () {
-            var couldAccessCrossOriginProperty = e.source.location.href;
-          }, "The 'data:' frame should be cross-origin.")
-        }));
-
         var i = document.createElement('iframe');
         i.src = "data:text/html,<script>" +
                 "  window.parent.postMessage('Hello!', '*');" +
                 "</scr" + "ipt>";
+
+        window.addEventListener("message", t.step_func_done(function (e) {
+          assert_equals(e.origin, "null", "Messages sent from a 'data:' URL should have an opaque origin (which serializes to 'null').");
+          assert_throws("SecurityError", function () {
+            var couldAccessCrossOriginProperty = e.source.location.href;
+          }, "The 'data:' frame should be cross-origin: 'window.location.href'");
+
+          // Try to access contentDocument of the 'data: ' frame. Some browsers
+          // (i.e. Firefox, Safari) will return |null| and some (i.e. Chrome)
+          // will throw an exception.
+          var dataFrameContentDocument = null;
+          try {
+            dataFrameContentDocument = i.contentDocument;
+          } catch (ex) {
+          }
+          assert_equals(dataFrameContentDocument, null, "The 'data:' iframe should be unable to access its contentDocument.");
+        }));
+
         document.body.appendChild(i);
       }, "The origin of a 'data:' document in a frame is opaque.");
     </script>

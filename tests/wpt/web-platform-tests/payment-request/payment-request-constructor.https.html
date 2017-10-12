@@ -7,30 +7,51 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 "use strict";
-const basicCard = Object.freeze({ supportedMethods: ["basic-card"] });
-const defaultMethods = Object.freeze([basicCard]);
+const testMethod = Object.freeze({
+  supportedMethods: "https://wpt.fyi/payment-request",
+});
+const defaultMethods = Object.freeze([testMethod]);
+const defaultAmount = Object.freeze({
+  currency: "USD",
+  value: "1.0",
+});
+const defaultTotal = Object.freeze({
+  label: "Default Total",
+  amount: defaultAmount,
+});
 const defaultDetails = Object.freeze({
-  total: {
-    label: "",
-    amount: {
-      currency: "USD",
-      value: "1.00",
-    },
-  },
+  total: defaultTotal,
 });
 
+// Avoid false positives, this should always pass
+function smokeTest() {
+  new PaymentRequest(defaultMethods, defaultDetails);
+}
 test(() => {
+  smokeTest();
   const request = new PaymentRequest(defaultMethods, defaultDetails);
-  assert_true(!!request.id, "must be some truthy value");
-}, "If details.id is missing, assign a identifier");
+  assert_true(Boolean(request.id), "must be some truthy value");
+}, "If details.id is missing, assign an identifier");
 
 test(() => {
+  smokeTest();
   const request1 = new PaymentRequest(defaultMethods, defaultDetails);
   const request2 = new PaymentRequest(defaultMethods, defaultDetails);
   assert_not_equals(request1.id, request2.id, "UA generated ID must be unique");
+  const seen = new Set();
+  // Let's try creating lots of requests, and make sure they are all unique
+  for (let i = 0; i < 1024; i++) {
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    assert_false(
+      seen.has(request.id),
+      `UA generated ID must be unique, but got duplicate! (${request.id})`
+    );
+    seen.add(request.id);
+  }
 }, "If details.id is missing, assign a unique identifier");
 
 test(() => {
+  smokeTest();
   const newDetails = Object.assign({}, defaultDetails, { id: "test123" });
   const request1 = new PaymentRequest(defaultMethods, newDetails);
   const request2 = new PaymentRequest(defaultMethods, newDetails);
@@ -40,6 +61,7 @@ test(() => {
 }, "If the same id is provided, then use it");
 
 test(() => {
+  smokeTest();
   const newDetails = Object.assign({}, defaultDetails, {
     id: "".padStart(1024, "a"),
   });
@@ -52,194 +74,73 @@ test(() => {
 }, "Use ids even if they are strange");
 
 test(() => {
-  assert_equals(
-    new PaymentRequest(
-      [
-        {
-          supportedMethods: ["basic-card"],
-        },
-      ],
-      {
-        id: "foo",
-        total: {
-          label: "",
-          amount: {
-            currency: "USD",
-            value: "1.00",
-          },
-        },
-      }
-    ).id,
-    "foo"
+  smokeTest();
+  const request = new PaymentRequest(
+    defaultMethods,
+    Object.assign({}, defaultDetails, { id: "foo" })
   );
+  assert_equals(request.id, "foo");
 }, "Use provided request ID");
 
 test(() => {
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest([], {
-        total: {
-          label: "",
-          amount: {
-            currency: "USD",
-            value: "1.00",
-          },
-        },
-      });
-    }
-  );
+  smokeTest();
+  assert_throws(new TypeError(), () => new PaymentRequest([], defaultDetails));
 }, "If the length of the methodData sequence is zero, then throw a TypeError");
 
 test(() => {
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: [],
-          },
-        ],
+  smokeTest();
+  const JSONSerializables = [[], { object: {} }];
+  for (const data of JSONSerializables) {
+    try {
+      const methods = [
         {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-        }
+          supportedMethods: "https://wpt.fyi/payment-request",
+          data,
+        },
+      ];
+      new PaymentRequest(methods, defaultDetails);
+    } catch (err) {
+      assert_unreached(
+        `Unexpected error parsing stringifiable JSON: ${JSON.stringify(
+          data
+        )}: ${err.message}`
       );
     }
-  );
-}, "If the length of the paymentMethod.supportedMethods sequence is zero, " + "then throw a TypeError");
-
-test(() => {
-  let itThrows = false;
-  try {
-    new PaymentRequest(
-      [
-        {
-          supportedMethods: ["basic-card"],
-          data: ["some-data"],
-        },
-      ],
-      {
-        total: {
-          label: "",
-          amount: {
-            currency: "USD",
-            value: "1.00",
-          },
-        },
-      }
-    );
-  } catch (err) {
-    itThrows = true;
   }
-  assert_false(itThrows, "shouldn't throw when using a list");
-}, "Method data must be JSON-serializable object (a list in this case)");
+}, "Modifier method data must be JSON-serializable object");
 
 test(() => {
-  new PaymentRequest(
-    [
-      {
-        supportedMethods: ["basic-card"],
-        data: {
-          some: "data",
-        },
-      },
-    ],
-    {
-      total: {
-        label: "",
-        amount: {
-          currency: "USD",
-          value: "1.00",
-        },
-      },
-    }
-  );
-}, "Method data must be JSON-serializable object (an object in this case)");
-
-test(() => {
+  smokeTest();
   const recursiveDictionary = {};
   recursiveDictionary.foo = recursiveDictionary;
+  assert_throws(new TypeError(), () => {
+    const methods = [
+      {
+        supportedMethods: "https://wpt.fyi/payment-request",
+        data: recursiveDictionary,
+      },
+    ];
+    new PaymentRequest(methods, defaultDetails);
+  });
+  assert_throws(new TypeError(), () => {
+    const methods = [
+      {
+        supportedMethods: "https://wpt.fyi/payment-request",
+        data: "a string",
+      },
+    ];
+    new PaymentRequest(methods, defaultDetails);
+  });
   assert_throws(
-    {
-      name: "TypeError",
-    },
+    new TypeError(),
     () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-            data: recursiveDictionary,
-          },
-        ],
+      const methods = [
         {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-        }
-      );
-    }
-  );
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-            data: "a string",
-          },
-        ],
-        {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-        }
-      );
-    }
-  );
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-            data: null,
-          },
-        ],
-        {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-        }
-      );
+          supportedMethods: "https://wpt.fyi/payment-request",
+          data: null,
+        },
+      ];
+      new PaymentRequest(methods, defaultDetails);
     },
     "Even though null is JSON-serializable, it's not type 'Object' per ES spec"
   );
@@ -277,128 +178,93 @@ const invalidTotalAmounts = invalidAmounts.concat([
   "-1.00",
   "-1000.000",
 ]);
-for (const amount of invalidTotalAmounts) {
-  test(() => {
-    assert_throws(
-      {
-        name: "TypeError",
+test(() => {
+  smokeTest();
+  for (const invalidAmount of invalidTotalAmounts) {
+    const invalidDetails = {
+      total: {
+        label: "",
+        amount: {
+          currency: "USD",
+          value: invalidAmount,
+        },
       },
+    };
+    assert_throws(
+      new TypeError(),
       () => {
-        new PaymentRequest(
-          [
-            {
-              supportedMethods: ["basic-card"],
-            },
-          ],
-          {
-            total: {
-              label: "",
-              amount: {
-                currency: "USD",
-                value: amount,
-              },
-            },
-          }
-        );
-      }
+        new PaymentRequest(defaultMethods, invalidDetails);
+      },
+      `Expect TypeError when details.total.amount.value is ${invalidAmount}`
     );
-  }, `If details.total.amount.value is not a valid decimal monetary value (in this case "${amount}"), then throw a TypeError`);
-}
+  }
+}, `If details.total.amount.value is not a valid decimal monetary value, then throw a TypeError`);
 
-for (const prop in ["displayItems", "shippingOptions", "modifiers"]) {
-  test(() => {
+test(() => {
+  smokeTest();
+  for (const prop in ["displayItems", "shippingOptions", "modifiers"]) {
     try {
       const details = Object.assign({}, defaultDetails, { [prop]: [] });
       new PaymentRequest(defaultMethods, details);
-    } catch (err) {
-      assert_true(false, `${prop} can be zero length`);
-    }
-  }, `PaymentDetailsBase.${prop} can be 0 length`);
-}
+      assert_unreached(`PaymentDetailsBase.${prop} can be zero length`);
+    } catch (err) {}
+  }
+}, `PaymentDetailsBase members can be 0 length`);
 
 test(() => {
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-          },
-        ],
-        {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "-1.00",
-            },
-          },
-        }
-      );
-    }
-  );
+  smokeTest();
+  assert_throws(new TypeError(), () => {
+    new PaymentRequest(defaultMethods, {
+      total: {
+        label: "",
+        amount: {
+          currency: "USD",
+          value: "-1.00",
+        },
+      },
+    });
+  });
 }, "If the first character of details.total.amount.value is U+002D HYPHEN-MINUS, then throw a TypeError");
 
-for (const amount of invalidAmounts) {
-  test(() => {
+test(() => {
+  smokeTest();
+  for (const invalidAmount of invalidAmounts) {
+    const invalidDetails = {
+      total: defaultAmount,
+      displayItems: [
+        {
+          label: "",
+          amount: {
+            currency: "USD",
+            value: invalidAmount,
+          },
+        },
+      ],
+    };
     assert_throws(
-      {
-        name: "TypeError",
-      },
+      new TypeError(),
       () => {
-        new PaymentRequest(
-          [
-            {
-              supportedMethods: ["basic-card"],
-            },
-          ],
-          {
-            total: {
-              label: "",
-              amount: {
-                currency: "USD",
-                value: "1.00",
-              },
-            },
-            displayItems: [
-              {
-                label: "",
-                amount: {
-                  currency: "USD",
-                  value: amount,
-                },
-              },
-            ],
-          }
-        );
-      }
+        new PaymentRequest(defaultMethods, invalidDetails);
+      },
+      `Expected TypeError when item.amount.value is "${invalidAmount}"`
     );
-  }, "For each item in details.displayItems: if item.amount.value is not " + 'a valid decimal monetary value (in this case "' + amount + '"), then throw a TypeError');
-}
+  }
+}, `For each item in details.displayItems: if item.amount.value is not a valid decimal monetary value, then throw a TypeError`);
 
 test(() => {
-  let itThrows = false;
+  smokeTest();
   try {
     new PaymentRequest(
       [
         {
-          supportedMethods: ["basic-card"],
+          supportedMethods: "https://wpt.fyi/payment-request",
           data: {
             supportedTypes: ["debit"],
           },
         },
       ],
       {
-        total: {
-          label: "",
-          amount: {
-            currency: "USD",
-            value: "1.00",
-          },
-        },
+        total: defaultTotal,
         displayItems: [
           {
             label: "",
@@ -418,59 +284,50 @@ test(() => {
       }
     );
   } catch (err) {
-    itThrows = true;
+    assert_unreached(
+      `shouldn't throw when given a negative value: ${err.message}`
+    );
   }
-  assert_false(itThrows, "shouldn't throw when given a negative value");
 }, "Negative values are allowed for displayItems.amount.value, irrespective of total amount");
 
 test(() => {
-  let itThrows = false;
+  smokeTest();
   const largeMoney = "1".repeat(510);
-
   try {
-    new PaymentRequest(
-      [
-        {
-          supportedMethods: ["basic-card"],
+    new PaymentRequest(defaultMethods, {
+      total: {
+        label: "",
+        amount: {
+          currency: "USD",
+          value: `${largeMoney}.${largeMoney}`,
         },
-      ],
-      {
-        total: {
+      },
+      displayItems: [
+        {
           label: "",
           amount: {
             currency: "USD",
-            value: `${largeMoney}.${largeMoney}`,
+            value: `-${largeMoney}`,
           },
         },
-        displayItems: [
-          {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: `-${largeMoney}`,
-            },
+        {
+          label: "",
+          amount: {
+            currency: "AUD",
+            value: `-${largeMoney}.${largeMoney}`,
           },
-          {
-            label: "",
-            amount: {
-              currency: "AUD",
-              value: `-${largeMoney}.${largeMoney}`,
-            },
-          },
-        ],
-      }
-    );
+        },
+      ],
+    });
   } catch (err) {
-    itThrows = true;
+    assert_unreached(
+      `shouldn't throw when given absurd monetary values: ${err.message}`
+    );
   }
-  assert_false(itThrows, "shouldn't throw when given absurd monetary values");
 }, "it handles high precision currency values without throwing");
 
 // Process shipping options:
-const defaultAmount = Object.freeze({
-  currency: "USD",
-  value: "0.0",
-});
+
 const defaultShippingOption = Object.freeze({
   id: "default",
   label: "",
@@ -481,51 +338,88 @@ const defaultShippingOptions = Object.freeze([
   Object.assign({}, defaultShippingOption),
 ]);
 
-for (const amount of invalidAmounts) {
-  test(() => {
+test(() => {
+  smokeTest();
+  for (const amount of invalidAmounts) {
+    const invalidAmount = Object.assign({}, defaultAmount, {
+      value: amount,
+    });
+    const invalidShippingOption = Object.assign({}, defaultShippingOption, {
+      amount: invalidAmount,
+    });
+    const details = Object.assign({}, defaultDetails, {
+      shippingOptions: [invalidShippingOption],
+    });
     assert_throws(
-      {
-        name: "TypeError",
-      },
+      new TypeError(),
       () => {
-        const invalidAmount = Object.assign({}, defaultAmount, {
-          value: amount,
-        });
-        const invalidShippingOption = Object.assign({}, defaultShippingOption, {
-          amount: invalidAmount,
-        });
-        const details = Object.assign({}, defaultDetails, {
-          shippingOptions: [invalidShippingOption],
-        });
-        new PaymentRequest(defaultMethods, details);
-      }
+        new PaymentRequest(defaultMethods, details, { requestShipping: true });
+      },
+      `Expected TypeError for option.amount.value: "${amount}"`
     );
-  }, "For each option in details.shippingOptions: if option.amount.value is not " + 'a valid decimal monetary value (in this case "' + amount + '"), then throw a TypeError');
-}
+  }
+}, `For each option in details.shippingOptions: if option.amount.value is not a valid decimal monetary value, then throw a TypeError`);
 
 test(() => {
+  smokeTest();
   const shippingOptions = [defaultShippingOption];
   const details = Object.assign({}, defaultDetails, { shippingOptions });
   const request = new PaymentRequest(defaultMethods, details);
   assert_equals(
     request.shippingOption,
     null,
-    "request.shippingOption must be null"
+    "shippingOption must be null, as requestShipping is missing"
+  );
+  // defaultDetails lacks shipping options
+  const request2 = new PaymentRequest(defaultMethods, defaultDetails, {
+    requestShipping: true,
+  });
+  assert_equals(
+    request2.shippingOption,
+    null,
+    `request2.shippingOption must be null`
   );
 }, "If there is no selected shipping option, then PaymentRequest.shippingOption remains null");
 
 test(() => {
+  smokeTest();
   const selectedOption = Object.assign({}, defaultShippingOption, {
     selected: true,
-    id: "PASS",
+    id: "the-id",
   });
   const shippingOptions = [selectedOption];
   const details = Object.assign({}, defaultDetails, { shippingOptions });
-  const request = new PaymentRequest(defaultMethods, details);
-  assert_equals(request.shippingOption, "PASS", "selected option must be PASS");
-}, "If there is a selected shipping option, then it becomes synchronously selected");
+  const requestNoShippingRequested1 = new PaymentRequest(
+    defaultMethods,
+    details
+  );
+  assert_equals(
+    requestNoShippingRequested1.shippingOption,
+    null,
+    "Must be null when no shipping is requested (defaults to false)"
+  );
+  const requestNoShippingRequested2 = new PaymentRequest(
+    defaultMethods,
+    details,
+    { requestShipping: false }
+  );
+  assert_equals(
+    requestNoShippingRequested2.shippingOption,
+    null,
+    "Must be null when requestShipping is false"
+  );
+  const requestWithShipping = new PaymentRequest(defaultMethods, details, {
+    requestShipping: "truthy value",
+  });
+  assert_equals(
+    requestWithShipping.shippingOption,
+    "the-id",
+    "Selected option must be 'the-id'"
+  );
+}, "If there is a selected shipping option, and requestShipping is set, then that option becomes synchronously selected");
 
 test(() => {
+  smokeTest();
   const failOption1 = Object.assign({}, defaultShippingOption, {
     selected: true,
     id: "FAIL1",
@@ -536,15 +430,30 @@ test(() => {
   });
   const passOption = Object.assign({}, defaultShippingOption, {
     selected: true,
-    id: "PASS",
+    id: "the-id",
   });
   const shippingOptions = [failOption1, failOption2, passOption];
   const details = Object.assign({}, defaultDetails, { shippingOptions });
-  const request = new PaymentRequest(defaultMethods, details);
-  assert_equals(request.shippingOption, "PASS", "selected option must PASS");
-}, "If there is a multiple selected shipping options, only the last is selected");
+  const requestNoShipping = new PaymentRequest(defaultMethods, details, {
+    requestShipping: false,
+  });
+  assert_equals(
+    requestNoShipping.shippingOption,
+    null,
+    "shippingOption must be null, as requestShipping is false"
+  );
+  const requestWithShipping = new PaymentRequest(defaultMethods, details, {
+    requestShipping: true,
+  });
+  assert_equals(
+    requestWithShipping.shippingOption,
+    "the-id",
+    "selected option must 'the-id"
+  );
+}, "If requestShipping is set, and if there is a multiple selected shipping options, only the last is selected.");
 
 test(() => {
+  smokeTest();
   const selectedOption = Object.assign({}, defaultShippingOption, {
     selected: true,
   });
@@ -553,290 +462,181 @@ test(() => {
   });
   const shippingOptions = [selectedOption, unselectedOption];
   const details = Object.assign({}, defaultDetails, { shippingOptions });
-  const request = new PaymentRequest(defaultMethods, details);
-  assert_equals(request.shippingOption, null, "selected option must be null");
-}, "If there are any duplicate shipping option ids, then there are no shipping options");
+  const requestNoShipping = new PaymentRequest(defaultMethods, details);
+  assert_equals(
+    requestNoShipping.shippingOption,
+    null,
+    "shippingOption must be null, because requestShipping is false"
+  );
+  assert_throws(
+    new TypeError(),
+    () => {
+      new PaymentRequest(defaultMethods, details, { requestShipping: true });
+    },
+    "Expected to throw a TypeError because duplicate IDs"
+  );
+}, "If there are any duplicate shipping option ids, and shipping is requested, then throw a TypeError");
+
+test(() => {
+  smokeTest();
+  const dupShipping1 = Object.assign({}, defaultShippingOption, {
+    selected: true,
+    id: "DUPLICATE",
+    label: "Fail 1",
+  });
+  const dupShipping2 = Object.assign({}, defaultShippingOption, {
+    selected: false,
+    id: "DUPLICATE",
+    label: "Fail 2",
+  });
+  const shippingOptions = [dupShipping1, defaultShippingOption, dupShipping2];
+  const details = Object.assign({}, defaultDetails, { shippingOptions });
+  const requestNoShipping = new PaymentRequest(defaultMethods, details);
+  assert_equals(
+    requestNoShipping.shippingOption,
+    null,
+    "shippingOption must be null, because requestShipping is false"
+  );
+  assert_throws(
+    new TypeError(),
+    () => {
+      new PaymentRequest(defaultMethods, details, { requestShipping: true });
+    },
+    "Expected to throw a TypeError because duplicate IDs"
+  );
+}, "Throw when there are duplicate shippingOption ids, even if other values are different");
 
 // Process payment details modifiers:
-for (const amount of invalidTotalAmounts) {
-  test(() => {
-    assert_throws(
-      {
-        name: "TypeError",
+test(() => {
+  smokeTest();
+  for (const invalidTotal of invalidTotalAmounts) {
+    const invalidModifier = {
+      supportedMethods: "https://wpt.fyi/payment-request",
+      total: {
+        label: "",
+        amount: {
+          currency: "USD",
+          value: invalidTotal,
+        },
       },
-      () => {
-        const invalidModifier = {
-          supportedMethods: ["basic-card"],
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: amount,
-            },
-          },
-        };
-        new PaymentRequest(
-          [
-            {
-              supportedMethods: ["basic-card"],
-            },
-          ],
-          {
-            modifiers: [invalidModifier],
-            total: {
-              label: "",
-              amount: {
-                currency: "USD",
-                value: "1.0",
-              },
-            },
-          }
-        );
-      }
-    );
-  }, `If modifier.total.amount.value is not a valid decimal monetary value (in this case "${amount}"), then throw a TypeError`);
-}
-
-for (const amount of invalidAmounts) {
-  test(() => {
+    };
     assert_throws(
-      {
-        name: "TypeError",
-      },
+      new TypeError(),
       () => {
-        const invalidModifier = {
-          supportedMethods: ["basic-card"],
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.0",
-            },
-          },
-          additionalDisplayItems: [
-            {
-              label: "",
-              amount: {
-                currency: "USD",
-                value: amount,
-              },
-            },
-          ],
-        };
-        new PaymentRequest(
-          [
-            {
-              supportedMethods: ["basic-card"],
-            },
-          ],
-          {
-            modifiers: [invalidModifier],
-            total: {
-              label: "",
-              amount: {
-                currency: "USD",
-                value: "1.0",
-              },
-            },
-          }
-        );
-      }
+        new PaymentRequest(defaultMethods, {
+          modifiers: [invalidModifier],
+          total: defaultTotal,
+        });
+      },
+      `Expected TypeError for modifier.total.amount.value: "${invalidTotal}"`
     );
-  }, `If amount.value of additionalDisplayItems is is not a valid decimal monetary value (in this case "${amount}"), then throw a TypeError`);
-}
+  }
+}, `Throw TypeError if modifier.total.amount.value is not a valid decimal monetary value`);
 
 test(() => {
-  let itThrows = false;
-  try {
-    new PaymentRequest(
-      [
+  smokeTest();
+  for (const invalidAmount of invalidAmounts) {
+    const invalidModifier = {
+      supportedMethods: "https://wpt.fyi/payment-request",
+      total: defaultTotal,
+      additionalDisplayItems: [
         {
-          supportedMethods: ["basic-card"],
-        },
-      ],
-      {
-        total: {
           label: "",
           amount: {
             currency: "USD",
-            value: "1.00",
+            value: invalidAmount,
           },
-        },
-        modifiers: [
-          {
-            supportedMethods: ["basic-card"],
-            data: ["some-data"],
-          },
-        ],
-      }
-    );
-  } catch (err) {
-    itThrows = true;
-  }
-  assert_false(itThrows, "shouldn't throw when given a list");
-}, "Modifier data must be JSON-serializable object (a list in this case)");
-
-test(() => {
-  let itThrows = false;
-  try {
-    new PaymentRequest(
-      [
-        {
-          supportedMethods: ["basic-card"],
         },
       ],
-      {
-        total: {
-          label: "",
-          amount: {
-            currency: "USD",
-            value: "1.00",
-          },
-        },
-        modifiers: [
-          {
-            supportedMethods: ["basic-card"],
-            data: {
-              some: "data",
-            },
-          },
-        ],
-      }
+    };
+    assert_throws(
+      new TypeError(),
+      () => {
+        new PaymentRequest(defaultMethods, {
+          modifiers: [invalidModifier],
+          total: defaultTotal,
+        });
+      },
+      `Expected TypeError when given bogus modifier.additionalDisplayItems.amount of "${invalidModifier}"`
     );
-  } catch (err) {
-    itThrows = true;
   }
-  assert_false(itThrows, "shouldn't throw when given an object value");
-}, "Modifier data must be JSON-serializable object (a object in this case)");
+}, `If amount.value of additionalDisplayItems is not a valid decimal monetary value, then throw a TypeError`);
 
 test(() => {
+  smokeTest();
+  const modifiedDetails = Object.assign({}, defaultDetails, {
+    modifiers: [
+      {
+        supportedMethods: "https://wpt.fyi/payment-request",
+        data: ["some-data"],
+      },
+    ],
+  });
+  try {
+    new PaymentRequest(defaultMethods, modifiedDetails);
+  } catch (err) {
+    assert_unreached(
+      `Unexpected exception thrown when given a list: ${err.message}`
+    );
+  }
+}, "Modifier data must be JSON-serializable object (an Array in this case)");
+
+test(() => {
+  smokeTest();
+  const modifiedDetails = Object.assign({}, defaultDetails, {
+    modifiers: [
+      {
+        supportedMethods: "https://wpt.fyi/payment-request",
+        data: {
+          some: "data",
+        },
+      },
+    ],
+  });
+  try {
+    new PaymentRequest(defaultMethods, modifiedDetails);
+  } catch (err) {
+    assert_unreached(
+      `shouldn't throw when given an object value: ${err.message}`
+    );
+  }
+}, "Modifier data must be JSON-serializable object (an Object in this case)");
+
+test(() => {
+  smokeTest();
   const recursiveDictionary = {};
   recursiveDictionary.foo = recursiveDictionary;
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-          },
-        ],
-        {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-          modifiers: [
-            {
-              supportedMethods: ["basic-card"],
-              data: recursiveDictionary,
-            },
-          ],
-        }
-      );
-    }
-  );
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-          },
-        ],
-        {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-          modifiers: [
-            {
-              supportedMethods: ["basic-card"],
-              data: "a string",
-            },
-          ],
-        }
-      );
-    }
-  );
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-          },
-        ],
-        {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-          modifiers: [
-            {
-              supportedMethods: ["basic-card"],
-              data: null,
-            },
-          ],
-        }
-      );
-    }
-  );
-}, "Rethrow any exceptions of JSON-serializing modifier.data into a string");
+  const modifiedDetails = Object.assign({}, defaultDetails, {
+    modifiers: [
+      {
+        supportedMethods: "https://wpt.fyi/payment-request",
+        data: recursiveDictionary,
+      },
+    ],
+  });
+  assert_throws(new TypeError(), () => {
+    new PaymentRequest(defaultMethods, modifiedDetails);
+  });
+}, "Rethrow any exceptions of JSON-serializing modifier.data");
 
 //Setting ShippingType attribute during construction
 test(() => {
-  assert_throws(
-    {
-      name: "TypeError",
-    },
-    () => {
-      new PaymentRequest(
-        [
-          {
-            supportedMethods: ["basic-card"],
-          },
-        ],
-        {
-          total: {
-            label: "",
-            amount: {
-              currency: "USD",
-              value: "1.00",
-            },
-          },
-        },
-        {
-          shippingType: "invalid",
-        }
-      );
-    }
-  );
+  smokeTest();
+  assert_throws(new TypeError(), () => {
+    new PaymentRequest(defaultMethods, defaultDetails, {
+      shippingType: "invalid",
+    });
+  });
 }, "Shipping type should be valid");
 
 test(() => {
+  smokeTest();
   const request = new PaymentRequest(defaultMethods, defaultDetails, {});
   assert_equals(request.shippingAddress, null, "must be null");
 }, "PaymentRequest.shippingAddress must initially be null");
 
 test(() => {
+  smokeTest();
   const request1 = new PaymentRequest(defaultMethods, defaultDetails, {});
   assert_equals(request1.shippingType, null, "must be null");
   const request2 = new PaymentRequest(defaultMethods, defaultDetails, {
@@ -846,6 +646,7 @@ test(() => {
 }, "If options.requestShipping is not set, then request.shippingType attribute is null.");
 
 test(() => {
+  smokeTest();
   // option.shippingType defaults to 'shipping'
   const request1 = new PaymentRequest(defaultMethods, defaultDetails, {
     requestShipping: true,

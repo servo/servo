@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<script>
+  test(t => {
+    var url = TrustedURL.create(URLS.safe);
+
+    assert_equals(url.toString(), URLS.safe);
+  }, "Basic processing: safe URL, safe construction.");
+
+  test(t => {
+    var url = TrustedURL.unsafelyCreate(URLS.safe);
+
+    assert_equals(url.toString(), URLS.safe);
+  }, "Basic processing: safe URL, unsafe construction.");
+
+  test(t => {
+    var url = TrustedURL.create(URLS.javascript);
+
+    assert_equals(url.toString(), URLS.sanitized);
+  }, "Basic processing: javascript URL, safe construction.");
+
+  test(t => {
+    var url = TrustedURL.unsafelyCreate(URLS.javascript);
+
+    assert_equals(url.toString(), URLS.javascript);
+  }, "Basic processing: javascript URL, unsafe construction.");
+
+  test(t => {
+    var url = TrustedURL.create(URLS.external);
+
+    assert_equals(url.toString(), URLS.sanitized);
+  }, "Basic processing: external protocol URL, safe construction.");
+
+  test(t => {
+    var url = TrustedURL.unsafelyCreate(URLS.external);
+
+    assert_equals(url.toString(), URLS.external);
+  }, "Basic processing: external protocol URL, unsafe construction.");
+</script>

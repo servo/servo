@@ -140,7 +140,8 @@ def timeout_func(timeout):
 
 class ServoWebDriverTestharnessExecutor(TestharnessExecutor):
     def __init__(self, browser, server_config, timeout_multiplier=1,
-                 close_after_done=True, capabilities=None, debug_info=None):
+                 close_after_done=True, capabilities=None, debug_info=None,
+                 **kwargs):
         TestharnessExecutor.__init__(self, browser, server_config, timeout_multiplier=1,
                                      debug_info=None)
         self.protocol = ServoWebDriverProtocol(self, browser, capabilities=capabilities)
@@ -197,7 +198,8 @@ class TimeoutError(Exception):
 
 class ServoWebDriverRefTestExecutor(RefTestExecutor):
     def __init__(self, browser, server_config, timeout_multiplier=1,
-                 screenshot_cache=None, capabilities=None, debug_info=None):
+                 screenshot_cache=None, capabilities=None, debug_info=None,
+                 **kwargs):
         """Selenium WebDriver-based executor for reftests"""
         RefTestExecutor.__init__(self,
                                  browser,
@@ -209,7 +211,7 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
                                                capabilities=capabilities)
         self.implementation = RefTestImplementation(self)
         self.timeout = None
-        with open(os.path.join(here, "reftest-wait_servodriver.js")) as f:
+        with open(os.path.join(here, "reftest-wait_webdriver.js")) as f:
             self.wait_script = f.read()
 
     def is_alive(self):

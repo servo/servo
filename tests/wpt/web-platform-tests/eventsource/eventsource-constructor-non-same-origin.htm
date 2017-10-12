@@ -7,7 +7,6 @@
     <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
-    <div id="log"></div>
     <script>
       function fetchFail(url) {
         var test = async_test(document.title + " (" + url + ")", { timeout: 20000 })
@@ -22,8 +21,6 @@
           }
         })
       }
-      fetchFail("http://example.not/")
-      fetchFail("https://example.not/test")
       fetchFail("ftp://example.not/")
       fetchFail("about:blank")
       fetchFail("mailto:whatwg@awesome.example")

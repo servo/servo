@@ -68,11 +68,47 @@
     }
     test(basicAssertArrayEquals, "basic assert_array_equals test");
 
+    function assertArrayEqualsUndefined()
+    {
+        assert_array_equals(undefined, [1], "undefined equals [1]?");
+    }
+    test(assertArrayEqualsUndefined, "assert_array_equals with first param undefined");
+
+    function assertArrayEqualsTrue()
+    {
+        assert_array_equals(true, [1], "true equals [1]?");
+    }
+    test(assertArrayEqualsTrue, "assert_array_equals with first param true");
+
+    function assertArrayEqualsFalse()
+    {
+        assert_array_equals(false, [1], "false equals [1]?");
+    }
+    test(assertArrayEqualsFalse, "assert_array_equals with first param false");
+
+    function assertArrayEqualsNull()
+    {
+        assert_array_equals(null, [1], "null equals [1]?");
+    }
+    test(assertArrayEqualsNull, "assert_array_equals with first param null");
+
+    function assertArrayEqualsNumeric()
+    {
+        assert_array_equals(1, [1], "1 equals [1]?");
+    }
+    test(assertArrayEqualsNumeric, "assert_array_equals with first param 1");
+
     function basicAssertObjectEquals()
     {
         assert_object_equals([1, 2, [1, 2]], { 0: 1, 1: 2, 2: { 0: 1, 1: 2} }, "array is equal to object")
     }
     test(basicAssertObjectEquals, "basic assert_object_equals test");
+
+    function basicAssertArrayApproxEquals()
+    {
+        assert_array_approx_equals([10, 11], [11, 10], 1, "[10, 11] is approximately (+/- 1) [11, 10]")
+    }
+    test(basicAssertArrayApproxEquals, "basic assert_array_approx_equals test");
 
     function basicAssertApproxEquals()
     {
@@ -240,6 +276,41 @@
       "properties": {}
     }, 
     {
+      "status_string": "FAIL", 
+      "name": "assert_array_equals with first param 1", 
+      "stack": "(implementation-defined)", 
+      "message": "assert_array_equals: 1 equals [1]? value is 1, expected array", 
+      "properties": {}
+    }, 
+    {
+      "status_string": "FAIL", 
+      "name": "assert_array_equals with first param false", 
+      "stack": "(implementation-defined)", 
+      "message": "assert_array_equals: false equals [1]? value is false, expected array", 
+      "properties": {}
+    }, 
+    {
+      "status_string": "FAIL", 
+      "name": "assert_array_equals with first param null", 
+      "stack": "(implementation-defined)", 
+      "message": "assert_array_equals: null equals [1]? value is null, expected array", 
+      "properties": {}
+    }, 
+    {
+      "status_string": "FAIL", 
+      "name": "assert_array_equals with first param true", 
+      "stack": "(implementation-defined)", 
+      "message": "assert_array_equals: true equals [1]? value is true, expected array", 
+      "properties": {}
+    }, 
+    {
+      "status_string": "FAIL", 
+      "name": "assert_array_equals with first param undefined", 
+      "stack": "(implementation-defined)", 
+      "message": "assert_array_equals: undefined equals [1]? value is undefined, expected array", 
+      "properties": {}
+    }, 
+    {
       "status_string": "PASS", 
       "name": "assert_equals tests", 
       "stack": null, 
@@ -298,12 +369,19 @@
       }
     }, 
     {
-      "status_string": "PASS", 
-      "name": "basic assert_approx_equals test", 
-      "stack": null, 
-      "message": null, 
+      "status_string": "PASS",
+      "name": "basic assert_approx_equals test",
+      "stack": null,
+      "message": null,
       "properties": {}
-    }, 
+    },
+    {
+      "status_string": "PASS",
+      "name": "basic assert_array_approx_equals test",
+      "stack": null,
+      "message": null,
+      "properties": {}
+    },
     {
       "status_string": "PASS", 
       "name": "basic assert_array_equals test", 

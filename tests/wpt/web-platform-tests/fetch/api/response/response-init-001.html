@@ -58,6 +58,19 @@
               "Expect response.ok is " + isOkStatus(response.status));
           }
         }, "Check " + attributeName + " init values and associated getter");
+
+        test(function() {
+          const response1 = new Response("");
+          assert_equals(response1.headers, response1.headers);
+
+          const response2 = new Response("", {"headers": {"X-Foo": "bar"}});
+          assert_equals(response2.headers, response2.headers);
+          const headers = response2.headers;
+          response2.headers.set("X-Foo", "quux");
+          assert_equals(headers, response2.headers);
+          headers.set("X-Other-Header", "baz");
+          assert_equals(headers, response2.headers);
+        }, "Test that Response.headers has the [SameObject] extended attribute");
     </script>
   </body>
 </html>

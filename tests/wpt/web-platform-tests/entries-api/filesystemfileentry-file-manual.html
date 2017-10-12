@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemFileEntry file() manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-entry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+
+file_entry_test('file.txt', (t, entry) => {
+  assert_idl_attribute(entry, 'file', 'FileSystemFileEntry has a file() method');
+  assert_equals(typeof entry.file, 'function', 'FileSystemFileEntry has a file() method');
+
+  assert_throws(TypeError(), () => entry.file(), 'file() has a required argument');
+  entry.file(t.step_func(file => {
+
+    assert_class_string(file, 'File', 'file() should yield a File');
+    assert_equals(entry.name, file.name, 'entry and file names should match');
+    t.done();
+
+  }), t.unreached_func('file() should not fail'));
+}, 'FileSystemFileEntry - file()');
+
+// TODO: Manual test where file is replaced with directory before file() called
+</script>

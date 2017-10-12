@@ -10,13 +10,13 @@
 
 <script>
 window.onload = function() {
-	if( location.protocol != 'file:' ) {
-		document.getElementsByTagName('p')[0].innerHTML = 'Save this page to your local filesystem, and load it from there.';
-		return;
-	}
-	var orange = document.getElementsByTagName('div')[0];
-	orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
-   	e.preventDefault();
+  if( location.protocol != 'file:' ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'Save this page to your local filesystem, and load it from there.';
+    return;
+  }
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
   };
 };
 </script>

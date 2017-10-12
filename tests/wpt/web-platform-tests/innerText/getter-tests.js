@@ -197,6 +197,13 @@ testText("<div style='visibility:hidden'><p><span style='visibility:visible'>abc
 testText("<div>abc<div style='margin:2em'>def", "abc\ndef", "No blank lines around <div> with margin");
 testText("<div>123<span style='display:inline-block'>abc</span>def", "123abcdef", "No newlines at display:inline-block boundary");
 testText("<div>123<span style='display:inline-block'> abc </span>def", "123abcdef", "Leading/trailing space removal at display:inline-block boundary");
+testText("<div>123<p style='margin:0px'>abc</p>def", "123\n\nabc\n\ndef", "Blank lines around <p> even without margin");
+testText("<div>123<h1>abc</h1>def", "123\nabc\ndef", "No blank lines around <h1>");
+testText("<div>123<h2>abc</h2>def", "123\nabc\ndef", "No blank lines around <h2>");
+testText("<div>123<h3>abc</h3>def", "123\nabc\ndef", "No blank lines around <h3>");
+testText("<div>123<h4>abc</h4>def", "123\nabc\ndef", "No blank lines around <h4>");
+testText("<div>123<h5>abc</h5>def", "123\nabc\ndef", "No blank lines around <h5>");
+testText("<div>123<h6>abc</h6>def", "123\nabc\ndef", "No blank lines around <h6>");
 
 /**** Spans ****/
 

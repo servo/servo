@@ -4,21 +4,21 @@
 <title>Dragging text selection from scrollable container to block element</title>
 <style type="text/css">
 div
-	{width:300px;
-	height:100px;}
+  {width:300px;
+  height:100px;}
 div:first-child
-	{overflow-y:scroll;}
+  {overflow-y:scroll;}
 div[ondragenter]
-	{margin-top:20px;
-	padding:10px;
-	color:white;
-	background-color:navy;}
+  {margin-top:20px;
+  padding:10px;
+  color:white;
+  background-color:navy;}
 textarea
-	{width:300px;
-	height:100px;}
+  {width:300px;
+  height:100px;}
 p+p
-	{margin-top:200px;
-	padding-bottom:50px;}
+  {margin-top:200px;
+  padding-bottom:50px;}
 </style>
 </head>
 <body  onload="window.getSelection().selectAllChildren(document.querySelector('p + p'))">
@@ -31,9 +31,9 @@ Copy of selection should end up in the blue box once you drop it there.
 <p>Try to drag this text.</p>
 </div>
 <div
-	ondragenter="event.preventDefault()"
-	ondragover="return false"
-	ondrop="document.querySelector('div + div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+  ondrop="document.querySelector('div + div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
 />
 </body>
 </html>

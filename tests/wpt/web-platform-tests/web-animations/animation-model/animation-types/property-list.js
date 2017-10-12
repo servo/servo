@@ -190,7 +190,7 @@ var gCSSProperties = {
   'border-image-outset': {
     // https://drafts.csswg.org/css-backgrounds-3/#border-image-outset
     types: [
-      { type: 'discrete', options: [ [ '1 1 1 1', '5 5 5 5' ] ] }
+      { type: 'discrete', options: [ [ '1 2 3 4', '5 6 7 8' ] ] }
     ]
   },
   'border-image-repeat': {
@@ -202,7 +202,7 @@ var gCSSProperties = {
   'border-image-slice': {
     // https://drafts.csswg.org/css-backgrounds-3/#border-image-slice
     types: [
-      { type: 'discrete', options: [ [ '1 1 1 1', '5 5 5 5' ] ] }
+      { type: 'discrete', options: [ [ '1 2 3 4', '5 6 7 8' ] ] }
     ]
   },
   'border-image-source': {
@@ -216,7 +216,7 @@ var gCSSProperties = {
   'border-image-width': {
     // https://drafts.csswg.org/css-backgrounds-3/#border-image-width
     types: [
-      { type: 'discrete', options: [ [ '1 1 1 1', '5 5 5 5' ] ] }
+      { type: 'discrete', options: [ [ '1 2 3 4', '5 6 7 8' ] ] }
     ]
   },
   'border-left-color': {
@@ -471,8 +471,7 @@ var gCSSProperties = {
   },
   'fill-opacity': {
     // https://svgwg.org/svg2-draft/painting.html#FillOpacityProperty
-    types: [
-    ]
+    types: [ 'opacity' ]
   },
   'fill-rule': {
     // https://svgwg.org/svg2-draft/painting.html#FillRuleProperty
@@ -517,8 +516,7 @@ var gCSSProperties = {
   },
   'flood-opacity': {
     // https://drafts.fxtf.org/filters/#propdef-flood-opacity
-    types: [
-    ]
+    types: [ 'opacity' ]
   },
   'font-size': {
     // https://drafts.csswg.org/css-fonts-3/#propdef-font-size
@@ -532,8 +530,7 @@ var gCSSProperties = {
   },
   'font-stretch': {
     // https://drafts.csswg.org/css-fonts-3/#propdef-font-stretch
-    types: [
-    ]
+    types: [ 'fontStretch' ]
   },
   'font-style': {
     // https://drafts.csswg.org/css-fonts/#propdef-font-style
@@ -619,6 +616,16 @@ var gCSSProperties = {
     // https://drafts.csswg.org/css-fonts-3/#propdef-font-variant-position
     types: [
       { type: 'discrete', options: [ [ 'sub', 'super' ] ] }
+    ]
+  },
+  'font-variation-settings': {
+    // https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-variation-settings
+    types: [
+      'fontVariationSettings',
+      { type: 'discrete',
+        options: [ ['"wght" 1.1, "wdth" 1', '"wdth" 5'],
+                   ['"wdth" 5', 'normal']
+                 ] },
     ]
   },
   'font-weight': {
@@ -1225,8 +1232,7 @@ var gCSSProperties = {
   },
   'stop-opacity': {
     // https://svgwg.org/svg2-draft/pservers.html#StopOpacityProperty
-    types: [
-    ]
+    types: [ 'opacity' ]
   },
   'stroke': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeProperty
@@ -1235,7 +1241,10 @@ var gCSSProperties = {
   },
   'stroke-dasharray': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeDasharrayProperty
-    types: [ 'dasharray' ]
+    types: [
+      'dasharray',
+      { type: 'discrete', options: [ [ 'none', '10, 20' ] ] }
+    ]
   },
   'stroke-dashoffset': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeDashoffsetProperty
@@ -1464,16 +1473,43 @@ var gCSSProperties = {
 };
 
 function testAnimationSamples(animation, idlName, testSamples) {
-  var type = animation.effect.target.type;
-  var target = type
-               ? animation.effect.target.parentElement
-               : animation.effect.target;
-  testSamples.forEach(function(testSample) {
+  const type = animation.effect.target.type;
+  const target = animation.effect.target.constructor.name === 'CSSPseudoElement'
+                 ? animation.effect.target.parentElement
+                 : animation.effect.target;
+  testSamples.forEach(testSample => {
     animation.currentTime = testSample.time;
     assert_equals(getComputedStyle(target, type)[idlName],
                   testSample.expected,
-                  'The value should be ' + testSample.expected +
-                  ' at ' + testSample.time + 'ms');
+                  `The value should be ${testSample.expected}` +
+                  ` at ${testSample.time}ms`);
+  });
+}
+
+function toOrderedArray(string) {
+  return string.split(/\s*,\s/).sort();
+}
+
+// This test is for some list-based CSS properties such as font-variant-settings
+// don't specify an order for serializing computed values.
+// This test is for such the property.
+function testAnimationSamplesWithAnyOrder(animation, idlName, testSamples) {
+  const type = animation.effect.target.type;
+  const target = animation.effect.target.constructor.name === 'CSSPseudoElement'
+                 ? animation.effect.target.parentElement
+                 : animation.effect.target;
+  testSamples.forEach(testSample => {
+    animation.currentTime = testSample.time;
+
+    // Convert to array and sort the expected and actual value lists first
+    // before comparing them.
+    const computedValues =
+      toOrderedArray(getComputedStyle(target, type)[idlName]);
+    const expectedValues = toOrderedArray(testSample.expected);
+
+    assert_array_equals(computedValues, expectedValues,
+                        `The computed values should be ${expectedValues}` +
+                        ` at ${testSample.time}ms`);
   });
 }
 

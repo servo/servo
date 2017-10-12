@@ -6,12 +6,6 @@
 <div id="log"></div>
 <script>
 test(function () {
-  var e = document.createEvent('PopStateEvent');
-  var eProto = Object.getPrototypeOf(e);
-  assert_equals(eProto, PopStateEvent.prototype);
-}, 'document.createEvent');
-
-test(function () {
   assert_false('initPopStateEvent' in PopStateEvent.prototype,
                'There should be no PopStateEvent#initPopStateEvent');
 }, 'initPopStateEvent');

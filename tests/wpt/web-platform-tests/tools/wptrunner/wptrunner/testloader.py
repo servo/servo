@@ -341,6 +341,7 @@ class TestFilter(object):
             self.manifest = manifestinclude.get_manifest(manifest_path)
         else:
             self.manifest = manifestinclude.IncludeManifest.create()
+            self.manifest.set_defaults()
 
         if include:
             self.manifest.set("skip", "true")
@@ -413,7 +414,7 @@ class ManifestLoader(object):
             except manifest.ManifestVersionMismatch:
                 manifest_file = manifest.Manifest(url_base)
 
-            manifest_update.update(tests_path, manifest_file, True)
+        manifest_update.update(tests_path, manifest_file, True)
 
         manifest.write(manifest_file, manifest_path)
 
@@ -564,74 +565,77 @@ class TestLoader(object):
 class TestSource(object):
     __metaclass__ = ABCMeta
 
-    @abstractmethod
-    def queue_tests(self, test_queue):
-        pass
+    def __init__(self, test_queue):
+        self.test_queue = test_queue
+        self.current_group = None
+        self.current_metadata = None
 
     @abstractmethod
-    def requeue_test(self, test):
+    #@classmethod (doesn't compose with @abstractmethod)
+    def make_queue(cls, tests, **kwargs):
         pass
 
-    def __enter__(self):
-        return self
+    def group(self):
+        if not self.current_group or len(self.current_group) == 0:
+            try:
+                self.current_group, self.current_metadata = self.test_queue.get(block=False)
+            except Empty:
+                return None, None
+        return self.current_group, self.current_metadata
 
-    def __exit__(self, *args, **kwargs):
-        pass
+
+class GroupedSource(TestSource):
+    @classmethod
+    def new_group(cls, state, test, **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def make_queue(cls, tests, **kwargs):
+        test_queue = Queue()
+        groups = []
+
+        state = {}
+
+        for test in tests:
+            if cls.new_group(state, test, **kwargs):
+                groups.append((deque(), {}))
+
+            group, metadata = groups[-1]
+            group.append(test)
+            test.update_metadata(metadata)
+
+        for item in groups:
+            test_queue.put(item)
+        return test_queue
 
 
 class SingleTestSource(TestSource):
-    def __init__(self, test_queue):
-        self.test_queue = test_queue
-
     @classmethod
-    def queue_tests(cls, test_queue, test_type, tests):
-        for test in tests[test_type]:
-            test_queue.put(test)
+    def make_queue(cls, tests, **kwargs):
+        test_queue = Queue()
+        processes = kwargs["processes"]
+        queues = [deque([]) for _ in xrange(processes)]
+        metadatas = [{} for _ in xrange(processes)]
+        for test in tests:
+            idx = hash(test.id) % processes
+            group = queues[idx]
+            metadata = metadatas[idx]
+            group.append(test)
+            test.update_metadata(metadata)
 
-    def get_queue(self):
-        if self.test_queue.empty():
-            return None
-        return self.test_queue
+        for item in zip(queues, metadatas):
+            test_queue.put(item)
 
-    def requeue_test(self, test):
-        self.test_queue.put(test)
+        return test_queue
 
-class PathGroupedSource(TestSource):
-    def __init__(self, test_queue):
-        self.test_queue = test_queue
-        self.current_queue = None
 
+class PathGroupedSource(GroupedSource):
     @classmethod
-    def queue_tests(cls, test_queue, test_type, tests, depth=None):
+    def new_group(cls, state, test, **kwargs):
+        depth = kwargs.get("depth")
         if depth is True:
             depth = None
-
-        prev_path = None
-        group = None
-
-        for test in tests[test_type]:
-            path = urlparse.urlsplit(test.url).path.split("/")[1:-1][:depth]
-            if path != prev_path:
-                group = []
-                test_queue.put(group)
-                prev_path = path
-
-            group.append(test)
-
-    def get_queue(self):
-        if not self.current_queue or self.current_queue.empty():
-            try:
-                data = self.test_queue.get(block=True, timeout=1)
-                self.current_queue = Queue()
-                for item in data:
-                    self.current_queue.put(item)
-            except Empty:
-                return None
-        return self.current_queue
-
-    def requeue_test(self, test):
-        self.current_queue.put(test)
-
-    def __exit__(self, *args, **kwargs):
-        if self.current_queue:
-            self.current_queue.close()
+        path = urlparse.urlsplit(test.url).path.split("/")[1:-1][:depth]
+        rv = path != state.get("prev_path")
+        state["prev_path"] = path
+        return rv

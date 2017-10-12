@@ -145,6 +145,51 @@ def test_setTimeout():
                                1)]
 
 
+def test_eventSender():
+    error_map = check_with_files(b"<script>eventSender.mouseDown()</script>")
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "python":
+            assert errors == [("PARSE-FAILED", "Unable to parse file", filename, 1)]
+        else:
+            assert errors == [('LAYOUTTESTS APIS',
+                               'eventSender/testRunner/window.internals used; these are LayoutTests-specific APIs (WebKit/Blink)',
+                               filename,
+                               1)]
+
+
+def test_testRunner():
+    error_map = check_with_files(b"<script>if (window.testRunner) { testRunner.waitUntilDone(); }</script>")
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "python":
+            assert errors == [("PARSE-FAILED", "Unable to parse file", filename, 1)]
+        else:
+            assert errors == [('LAYOUTTESTS APIS',
+                               'eventSender/testRunner/window.internals used; these are LayoutTests-specific APIs (WebKit/Blink)',
+                               filename,
+                               1)]
+
+
+def test_windowDotInternals():
+    error_map = check_with_files(b"<script>if (window.internals) { internals.doAThing(); }</script>")
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "python":
+            assert errors == [("PARSE-FAILED", "Unable to parse file", filename, 1)]
+        else:
+            assert errors == [('LAYOUTTESTS APIS',
+                               'eventSender/testRunner/window.internals used; these are LayoutTests-specific APIs (WebKit/Blink)',
+                               filename,
+                               1)]
+
+
 def test_meta_timeout():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">

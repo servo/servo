@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="geometry-border-image-003-ref.html">
+<style>
+html, body { margin: 0; padding: 0; }
+.container {
+  width: 60px;
+  height: 100px;
+}
+
+#canvas-geometry {
+  border: solid 0;
+  border-image: paint(geometry);
+  border-image-slice: 0 fill;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+    paint(ctx, geom) {
+        if (geom.width == 80 && geom.height == 120)
+            ctx.strokeStyle = 'green';
+        else
+            ctx.strokeStyle = 'red';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    document.getElementById('canvas-geometry').style.borderImageOutset = '10px';
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

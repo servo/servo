@@ -10,13 +10,13 @@
     if (typeof mimeType === 'undefined' || mimeType === null) mimeType = 'text/plain';
     var test = async_test("XHR method " + method + " with MIME type " + mimeType + (testNamePostfix||''));
     test.step(function() {
-      var client = new XMLHttpRequest();
+      var client = new XMLHttpRequest(),
+          body = method === "HEAD" ? "" : "Hello, World!";
       client.onreadystatechange = test.step_func(function () {
         if (client.readyState !== 4) {
           return;
         }
-
-        assert_equals(client.responseText, "Hello, World!");
+        assert_equals(client.responseText, body);
         assert_equals(client.status, 200);
         assert_equals(client.getResponseHeader('Content-Type'), mimeType);
         var allHeaders = client.getAllResponseHeaders();

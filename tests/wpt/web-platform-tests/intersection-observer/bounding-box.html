@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#root {
+  overflow: visible;
+  height: 200px;
+  width: 160px;
+  border: 7px solid black;
+}
+#target {
+  margin: 10px;
+  width: 100px;
+  height: 100px;
+  padding: 10px;
+  background-color: green;
+}
+</style>
+
+<div id="root">
+  <div id="target" style="transform: translateY(300px)"></div>
+</div>
+
+<script>
+var entries = [];
+var target;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  assert_true(!!target, "target exists");
+  var root = document.getElementById("root");
+  assert_true(!!root, "root exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {root: root});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.");
+}, "Test that the target's border bounding box is used to calculate intersection.");
+
+function step0() {
+  var targetBounds = clientBounds(target);
+  target.style.transform = "translateY(195px)";
+  runTestCycle(step1, "target.style.transform = 'translateY(195px)'");
+  checkLastEntry(entries, 0, targetBounds.concat(0, 0, 0, 0, 8, 182, 8, 222, false));
+}
+
+function step1() {
+  var targetBounds = clientBounds(target);
+  target.style.transform = "";
+  checkLastEntry(entries, 1, targetBounds.concat(25, 145, 220, 222, 8, 182, 8, 222, true));
+}
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: ::marker inherits values from originating element</title>
+<link rel="author" title="Daniel Bates" href="mailto:dbates@webkit.org">
+<link rel="match" href="marker-inherit-values-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<meta name="assert" content="Tests ::marker inherits values from originating element">
+<style>
+ol {
+    color: red;
+}
+
+li { /* Originating element */
+    color: green;
+    font-family: sans-serif;
+    font-size: x-large;
+    font-style: italic;
+    font-variant: small-caps;
+    font-weight: bold;
+    list-style-type: lower-alpha;
+}
+
+li::marker {
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    font-style: inherit;
+    font-variant: inherit;
+    font-weight: inherit;
+}
+</style>
+</head>
+<body>
+<ol>
+    <li></li>
+</ol>
+</body>
+</html>

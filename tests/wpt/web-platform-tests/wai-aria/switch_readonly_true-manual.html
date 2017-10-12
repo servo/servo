@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>switch readonly true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -65,35 +66,15 @@
                ],
                [
                   "property",
-                  "attribute",
-                  "is",
+                  "objectAttributes",
+                  "contains",
                   "xml-roles:switch"
                ],
                [
                   "property",
                   "states",
                   "doesNotContain",
-                  "IA2_STATE_SYSTEM_EDITABLE"
-               ]
-            ],
-            "MSAA" : [
-               [
-                  "property",
-                  "role",
-                  "is",
-                  "IA2_ROLE_TOGGLE_BUTTON"
-               ],
-               [
-                  "property",
-                  "attribute",
-                  "is",
-                  "xml-roles:switch"
-               ],
-               [
-                  "property",
-                  "states",
-                  "doesNotContain",
-                  "IA2_STATE_SYSTEM_EDITABLE"
+                  "IA2_STATE_EDITABLE"
                ]
             ],
             "UIA" : [
@@ -137,4 +118,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

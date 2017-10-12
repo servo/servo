@@ -5,10 +5,6 @@
 <script src="resources/encodings.js"></script>
 <script>
 
-test(function() {
-    assert_throws(new RangeError(), function() { new TextDecoder('replacement'); });
-}, 'The "replacement" label should not be a known encoding.');
-
 encodings_table.forEach(function(section) {
     section.encodings.filter(function(encoding) {
         return encoding.name === 'replacement';

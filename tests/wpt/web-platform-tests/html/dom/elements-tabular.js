@@ -70,7 +70,7 @@ var tabularElements = {
     // HTMLTableCellElement (Conforming)
     colSpan: {type: "clamped unsigned long", defaultVal: 1, min: 1, max: 1000},
     rowSpan: {type: "clamped unsigned long", defaultVal: 1, min: 0, max: 65534},
-    headers: "settable tokenlist",
+    headers: "string",
     scope: {type: "enum", keywords: ["row", "col", "rowgroup", "colgroup"]},
     abbr: "string",
 
@@ -89,7 +89,7 @@ var tabularElements = {
     // HTMLTableCellElement (Conforming)
     colSpan: {type: "clamped unsigned long", defaultVal: 1, min: 1, max: 1000},
     rowSpan: {type: "clamped unsigned long", defaultVal: 1, min: 0, max: 65534},
-    headers: "settable tokenlist",
+    headers: "string",
     scope: {type: "enum", keywords: ["row", "col", "rowgroup", "colgroup"]},
     abbr: "string",
 

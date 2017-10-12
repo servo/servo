@@ -35,27 +35,27 @@ window.onload = function() {
   var passed = true, orange = document.getElementsByTagName('div')[1], blue = document.getElementsByTagName('div')[0], fuchsia = document.getElementsByTagName('div')[2];
 
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', 'child targeted');
   };
   blue.ondragstart = function(e) {
-  	if( e.target == this ) {
-			e.dataTransfer.effectAllowed = 'copy';
-	    e.dataTransfer.setData('text/plain', 'parent targeted');
-	  } else {
-	    e.dataTransfer.setData('extra/data', 'parent bubble');
-	  }
+    if( e.target == this ) {
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('text/plain', 'parent targeted');
+    } else {
+      e.dataTransfer.setData('extra/data', 'parent bubble');
+    }
   };
   fuchsia.ondragenter = fuchsia.ondragover = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
-	fuchsia.ondrop = function(e) {
-   	e.preventDefault();
-		//it's possible this could get called twice if the browser drags both items, so it uses the "passed" variable to make sure
-		//that if blue gets dropped first, it remains false when orange then gets dropped
-	  passed = passed && ( e.dataTransfer.getData('text/plain') == 'child targeted' ) && ( e.dataTransfer.getData('extra/data') == 'parent bubble' );
-   	document.getElementsByTagName('p')[0].innerHTML = passed ? 'PASS' : 'FAIL';
+  fuchsia.ondrop = function(e) {
+    e.preventDefault();
+    //it's possible this could get called twice if the browser drags both items, so it uses the "passed" variable to make sure
+    //that if blue gets dropped first, it remains false when orange then gets dropped
+    passed = passed && ( e.dataTransfer.getData('text/plain') == 'child targeted' ) && ( e.dataTransfer.getData('extra/data') == 'parent bubble' );
+    document.getElementsByTagName('p')[0].innerHTML = passed ? 'PASS' : 'FAIL';
   };
 
 };

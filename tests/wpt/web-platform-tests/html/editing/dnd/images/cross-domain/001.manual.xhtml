@@ -5,12 +5,12 @@
 <script src="../../resources/crossorigin.sub.js"></script>
 <style type="text/css">
 div {
-	width:105px;
-	min-height:105px;
-	text-align:center;
-	margin-top:20px;
-	padding:10px;
-	border:solid thin navy;
+  width:105px;
+  min-height:105px;
+  text-align:center;
+  margin-top:20px;
+  padding:10px;
+  border:solid thin navy;
 }
 </style>
 </head>
@@ -23,26 +23,26 @@ div {
 document.getElementsByTagName("img")[0].src = crossOriginUrl("www", "../../resources/100x100-navy.png");
 
 window.onload = function() {
-	var image = document.getElementsByTagName('img')[0], div = document.getElementsByTagName('div')[0], failed = [];
+  var image = document.getElementsByTagName('img')[0], div = document.getElementsByTagName('div')[0], failed = [];
   div.ondragover = div.ondragenter = function(e) {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = 'copy';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   };
-	div.ondrop = image.ondragstart = function(e) {
-		if( e.type == 'dragstart' ) {
-			e.dataTransfer.setData('Text', 'dummy text');
-	    e.dataTransfer.dropEffect = 'copy';
-	  }
-		for( var i = 0; i < e.dataTransfer.types.length; i++ ) {
-			if( e.dataTransfer.types[i].match(/image\//) ) {
-				failed[failed.length] = e.dataTransfer.types[i];
-			}
-		}
-		if( e.type == 'drop' ) {
-	   	e.preventDefault();
-			document.getElementsByTagName('p')[1].innerHTML = failed.length ? ( 'FAIL (found ' + failed.join() + ')' ) : 'PASS';
-		}
-	};
+  div.ondrop = image.ondragstart = function(e) {
+    if( e.type == 'dragstart' ) {
+      e.dataTransfer.setData('Text', 'dummy text');
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    for( var i = 0; i < e.dataTransfer.types.length; i++ ) {
+      if( e.dataTransfer.types[i].match(/image\//) ) {
+        failed[failed.length] = e.dataTransfer.types[i];
+      }
+    }
+    if( e.type == 'drop' ) {
+       e.preventDefault();
+      document.getElementsByTagName('p')[1].innerHTML = failed.length ? ( 'FAIL (found ' + failed.join() + ')' ) : 'PASS';
+    }
+  };
 };
 ]]></script>
 </body>

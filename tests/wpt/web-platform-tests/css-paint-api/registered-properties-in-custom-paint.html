@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="parse-input-arguments-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  --length: 10px;
+  --number: 10;
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+    static get inputProperties() {
+        return [
+            '--length',
+            '--length-initial',
+            '--number',
+        ];
+    }
+    paint(ctx, geom, styleMap) {
+        const properties = styleMap.getProperties().sort();
+        var serializedStrings = [];
+        for (let i = 0; i < properties.length; i++) {
+            const value = styleMap.get(properties[i]);
+            let serialized;
+            if (value)
+                serialized = properties[i].toString() + ': [' + value.constructor.name + '=' + value.toString() + ']';
+            else
+                serialized = properties[i].toString() + ': [null]';
+            serializedStrings.push(serialized);
+        }
+        ctx.strokeStyle = 'green';
+        if (serializedStrings[0] != "--length: [CSSUnitValue=10px]")
+            ctx.strokeStyle = 'red';
+        if (serializedStrings[1] != "--length-initial: [CSSUnitValue=20px]")
+            ctx.strokeStyle = 'blue';
+        if (serializedStrings[2] != "--number: [CSSStyleValue=10]")
+            ctx.strokeStyle = 'yellow';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-initial', syntax: '<length>', initialValue: '20px'});
+    CSS.registerProperty({name: '--number', syntax: '<number>', initialValue: '0'});
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

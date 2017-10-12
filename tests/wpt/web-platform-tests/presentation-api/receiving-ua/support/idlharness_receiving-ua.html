@@ -31,7 +31,8 @@ partial interface Navigator {
     readonly attribute Presentation presentation;
 };
 
-[SecureContext]
+[SecureContext,
+ Exposed=Window]
 interface Presentation {
 };
 
@@ -39,8 +40,9 @@ partial interface Presentation {
     readonly attribute PresentationReceiver? receiver;
 };
 
-[SecureContext,
- Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict)]
+[Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict),
+ SecureContext,
+ Exposed=Window]
 interface PresentationConnectionAvailableEvent : Event {
     [SameObject]
     readonly attribute PresentationConnection connection;
@@ -62,7 +64,8 @@ enum BinaryType {
     "arraybuffer"
 };
 
-[SecureContext]
+[SecureContext,
+ Exposed=Window]
 interface PresentationConnection : EventTarget {
     readonly attribute USVString                   id;
     readonly attribute USVString                   url;
@@ -88,8 +91,9 @@ enum PresentationConnectionCloseReason {
     "wentaway"
 };
 
-[SecureContext,
- Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict)]
+[Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict),
+ SecureContext,
+ Exposed=Window]
 interface PresentationConnectionCloseEvent : Event {
     readonly attribute PresentationConnectionCloseReason reason;
     readonly attribute DOMString                         message;
@@ -100,12 +104,14 @@ dictionary PresentationConnectionCloseEventInit : EventInit {
              DOMString                         message = "";
 };
 
-[SecureContext]
+[SecureContext,
+ Exposed=Window]
 interface PresentationReceiver {
     readonly attribute Promise<PresentationConnectionList> connectionList;
 };
 
-[SecureContext]
+[SecureContext,
+ Exposed=Window]
 interface PresentationConnectionList : EventTarget {
     readonly attribute FrozenArray<PresentationConnection> connections;
              attribute EventHandler                        onconnectionavailable;

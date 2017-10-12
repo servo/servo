@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>menuitemcheckbox readonly false</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -65,15 +66,15 @@
             "IAccessible2" : [
                [
                   "property",
-                  "states",
-                  "contains",
-                  "IA2_STATE_SYSTEM_EDITABLE"
-               ],
-               [
-                  "property",
                   "role",
                   "is",
                   "IA2_ROLE_CHECK_MENU_ITEM"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_EDITABLE"
                ]
             ],
             "MSAA" : [
@@ -81,7 +82,7 @@
                   "property",
                   "role",
                   "isAny",
-                  "ROLE_SYSTEM_CHECKBUTTON or ROLE_SYSTEM_MENUITEM"
+                  "[ROLE_SYSTEM_CHECKBUTTON, ROLE_SYSTEM_MENUITEM]"
                ]
             ],
             "UIA" : [
@@ -126,4 +127,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

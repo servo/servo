@@ -1,0 +1,119 @@
+<!doctype html>
+<title>RTCConfiguration iceTransportPolicy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCConfiguration-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper function is called from RTCConfiguration-helper.js:
+  //   config_test
+
+  /*
+    [Constructor(optional RTCConfiguration configuration)]
+    interface RTCPeerConnection : EventTarget {
+      RTCConfiguration                   getConfiguration();
+      void                               setConfiguration(RTCConfiguration configuration);
+      ...
+    };
+
+    dictionary RTCConfiguration {
+      sequence<RTCIceServer>   iceServers;
+      RTCIceTransportPolicy    iceTransportPolicy = "all";
+    };
+
+    enum RTCIceTransportPolicy {
+      "relay",
+      "all"
+    };
+   */
+
+  test(() => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+  }, `new RTCPeerConnection() should have default iceTransportPolicy all`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransportPolicy: undefined });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+  }, `new RTCPeerConnection({ iceTransportPolicy: undefined }) should have default iceTransportPolicy all`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransportPolicy: 'all' });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+  }, `new RTCPeerConnection({ iceTransportPolicy: 'all' }) should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransportPolicy: 'relay' });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'relay');
+  }, `new RTCPeerConnection({ iceTransportPolicy: 'relay' }) should succeed`);
+
+  /*
+    4.3.2. Set a configuration
+      8.  Set the ICE Agent's ICE transports setting to the value of
+          configuration.iceTransportPolicy. As defined in [JSEP] (section 4.1.16.),
+          if the new ICE transports setting changes the existing setting, no action
+          will be taken until the next gathering phase. If a script wants this to
+          happen immediately, it should do an ICE restart.
+   */
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransportPolicy: 'all' });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+
+    pc.setConfiguration({ iceTransportPolicy: 'relay' });
+    assert_equals(pc.getConfiguration(), iceTransportPolicy, 'relay');
+  }, `setConfiguration({ iceTransportPolicy: 'relay' }) with initial iceTransportPolicy all should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransportPolicy: 'relay' });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'relay');
+
+    pc.setConfiguration({ iceTransportPolicy: 'all' });
+    assert_equals(pc.getConfiguration(), iceTransportPolicy, 'all');
+  }, `setConfiguration({ iceTransportPolicy: 'all' }) with initial iceTransportPolicy relay should succeed`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransportPolicy: 'relay' });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'relay');
+
+    // default value for iceTransportPolicy is all
+    pc.setConfiguration({});
+    assert_equals(pc.getConfiguration(), iceTransportPolicy, 'all');
+  }, `setConfiguration({}) with initial iceTransportPolicy relay should set new value to all`);
+
+  config_test(makePc => {
+    assert_throws(new TypeError(), () =>
+      makePc({ iceTransportPolicy: 'invalid' }));
+  }, `with invalid iceTransportPolicy should throw TypeError`);
+
+  // "none" is in Blink and Gecko's IDL, but not in the spec.
+  config_test(makePc => {
+    assert_throws(new TypeError(), () =>
+      makePc({ iceTransportPolicy: 'none' }));
+  }, `with none iceTransportPolicy should throw TypeError`);
+
+  config_test(makePc => {
+    assert_throws(new TypeError(), () =>
+      makePc({ iceTransportPolicy: null }));
+  }, `with null iceTransportPolicy should throw TypeError`);
+
+  // iceTransportPolicy is called iceTransports in Blink.
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransports: 'relay' });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+  }, `new RTCPeerConnection({ iceTransports: 'relay' }) should have no effect`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransports: 'invalid' });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+  }, `new RTCPeerConnection({ iceTransports: 'invalid' }) should have no effect`);
+
+  test(() => {
+    const pc = new RTCPeerConnection({ iceTransports: null });
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+  }, `new RTCPeerConnection({ iceTransports: null }) should have no effect`);
+
+</script>

@@ -4,7 +4,8 @@
 <link rel="author" title="Google Inc." href="https://www.google.com/">
 <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#item-margins">
 <link rel="match" href="reference/negative-margins-001-ref.html">
-<meta name="assert" content="Negative margins get floored at zero for intrinsic size computations">
+<meta name="assert" content="Tests that for intrinsic size computations,
+an item will not take up less than zero space even with negative margins.">
 <style>
     .container {
         width: 60px;

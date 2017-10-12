@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>AbsoluteOrientationSensor Test: onerror</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://w3c.github.io/orientation-sensor/">
+<link rel="help" href="https://w3c.github.io/sensors/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<div id="log"></div>
+<h2>Precondition</h2>
+<ol>
+  <li>
+    Disable the motion sensors which the underlying physical sensors include Accelerometer, Magnetometer, and (when present) Gyroscope or run test on a device without the motion sensors.
+  </li>
+</ol>
+<script>
+
+runGenericSensorOnerror(AbsoluteOrientationSensor);
+runGenericSensorOnerror(RelativeOrientationSensor);
+
+</script>

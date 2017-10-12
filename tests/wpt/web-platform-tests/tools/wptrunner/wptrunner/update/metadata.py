@@ -40,7 +40,7 @@ class CreateMetadataPatch(Step):
     """Create a patch/commit for the metadata checkout"""
 
     def create(self, state):
-        if state.no_patch:
+        if not state.patch:
             return
 
         local_tree = state.local_tree

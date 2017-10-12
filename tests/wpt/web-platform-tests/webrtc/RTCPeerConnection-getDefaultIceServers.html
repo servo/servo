@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.getDefaultIceServers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  /*
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        static sequence<RTCIceServer>      getDefaultIceServers();
+        ...
+      };
+
+      dictionary RTCIceServer {
+        required (DOMString or sequence<DOMString>) urls;
+                 DOMString                          username;
+                 (DOMString or RTCOAuthCredential)  credential;
+                 RTCIceCredentialType               credentialType = "password";
+      };
+
+      dictionary RTCOAuthCredential {
+        required DOMString macKey;
+        required DOMString accessToken;
+      };
+
+      enum RTCIceCredentialType {
+        "password",
+        "oauth"
+      };
+   */
+
+  test(() => {
+    const iceServers = RTCPeerConnection.getDefaultIceServers();
+
+    assert_true(Array.isArray(iceServers),
+      'Expect iceServers to be an array');
+
+    // dictionary IDL cannot be tested automatically using idlharness
+    for(const server of iceServers) {
+      const { urls, username, credential, credentialType } = server;
+
+      if(Array.isArray(urls)) {
+        for(const url of urls) {
+          assert_equals(typeof url, 'string',
+            'Expect elements in urls array to be string');
+        }
+      } else {
+        assert_equals(typeof urls, 'string',
+          'Expect urls to be either string or array');
+      }
+
+      if(username !== undefined) {
+        assert_equals(typeof username, 'string',
+          'Expect username to be either undefined or string');
+      }
+
+      assert_true(credentialType === 'password' || credentialType === 'oauth',
+        'Expect credentialType to be either password or oauth')
+
+      if(credential) {
+        if(typeof(credential) === 'object') {
+          const { macKey, accessToken } = credential;
+          assert_equals(typeof macKey, 'string',
+            'Expect macKey to be string');
+
+          assert_equals(typeof accessToken, 'string',
+            'Expect accessToken to be string');
+
+        } else {
+          assert_equals(typeof credential, 'string',
+            'Expect credential to be either undefined, string, or RTCOauthCredential dictionary');
+        }
+      }
+    }
+
+    // Expect default ice servers to be accepted as valid configuration
+    const pc = new RTCPeerConnection({ iceServers });
+
+    // Only make sure there are same number of ice servers configured
+    // and not do any deep equality checking
+    assert_equals(pc.getConfiguration().iceServers.length, iceServers.length);
+
+  }, 'RTCPeerConnection.getDefaultIceServers() should return array of RTCIceServer');
+
+  /*
+    Coverage Report
+      Since there is no steps involved and we are only checking basic call,
+      This is counted as 1 trivial test coverage.
+
+      Tested    1
+      Total     1
+   */
+</script>

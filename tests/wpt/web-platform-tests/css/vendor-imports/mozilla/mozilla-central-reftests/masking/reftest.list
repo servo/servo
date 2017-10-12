@@ -27,6 +27,7 @@
 == mask-image-3c.html mask-image-3-ref.html
 == mask-image-3d.html mask-image-3-ref.html
 == mask-image-3e.html mask-image-3-ref.html
+# Due to SVG luminance, see bug 1372577, parent process doesn't use d2d for luminance.
 == mask-image-3f.html mask-image-3-ref.html
 == mask-image-3g.html mask-image-3-ref.html
 == mask-image-3h.html mask-image-3-ref.html

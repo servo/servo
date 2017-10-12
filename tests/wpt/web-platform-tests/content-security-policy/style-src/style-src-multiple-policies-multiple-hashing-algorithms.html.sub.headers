@@ -1,0 +1,7 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Cache-Control: post-check=0, pre-check=0, false
+Pragma: no-cache
+Set-Cookie: style-src-multiple-policies-multiple-hashing-algorithms={{$id:uuid()}}; Path=/content-security-policy/style-src/
+Content-Security-Policy: style-src 'sha256-rB6kiow2O3eFUeTNyyLeK3wV0+l7vNB90J1aqllKvjg='; script-src 'unsafe-inline' 'self'; report-uri ../support/report.py?op=put&reportID={{$id}}
+Content-Security-Policy: style-src 'sha384-DAShdG5sejEaOdWfT+TQMRP5mHssKiUNjFggNnElIvIoj048XQlacVRs+za2AM1a'; script-src 'unsafe-inline' 'self'; report-uri ../support/report.py?op=put&reportID={{$id}}

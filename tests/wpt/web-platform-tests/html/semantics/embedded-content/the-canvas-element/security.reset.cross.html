@@ -8,7 +8,7 @@
 <body class="show_output">
 
 <h1>security.reset.cross</h1>
-<p class="desc">Resetting the canvas state does not reset the origin-clean flag</p>
+<p class="desc">Resetting the canvas state resets the origin-clean flag</p>
 
 
 <p class="output">Actual output:</p>
@@ -16,14 +16,16 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Resetting the canvas state does not reset the origin-clean flag");
+var t = async_test("Resetting the canvas state resets the origin-clean flag");
 _addTest(function(canvas, ctx) {
 
 canvas.width = 50;
 ctx.drawImage(document.getElementById('yellow.png'), 0, 0);
 assert_throws("SECURITY_ERR", function() { canvas.toDataURL(); });
 canvas.width = 100;
-assert_throws("SECURITY_ERR", function() { canvas.toDataURL(); });
+canvas.toDataURL();
+ctx.getImageData(0, 0, 1, 1);
+_assert(true, "true"); // okay if there was no exception
 
 
 });

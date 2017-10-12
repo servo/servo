@@ -45,6 +45,10 @@ test(function() {
   assert_true(Array.isArray(ev.ports), "Array.isArray() should return true")
   assert_true(Object.isFrozen(ev.ports), "Object.isFrozen() should return true")
   assert_true(ev.ports === ev.ports, "ev.ports should return the same object")
+
+  const oldPorts = ev.ports;
+  ev.initMessageEvent("test", false, false, null, "", "", null, ev.ports);
+  assert_not_equals(oldPorts, ev.ports, "initMessageEvent() changes ev.ports");
 }, "ports attribute should be a FrozenArray")
 
 test(function() {

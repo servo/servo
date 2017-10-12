@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selector: pseudo-class :checked input type change</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#pseudo-classes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  span { color: red }
+  :checked + span { color: green }
+</style>
+<input id="checked" type="text" checked>
+<span id="sibling">This text should be green.</span>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(sibling).color, "rgb(255, 0, 0)",
+      "Not matching :checked for type=text");
+
+    checked.type = "radio";
+
+    assert_equals(getComputedStyle(sibling).color, "rgb(0, 128, 0)",
+      "Matching :checked for type=radio");
+  }, "Evaluation of :checked changes on input type change.");
+</script>

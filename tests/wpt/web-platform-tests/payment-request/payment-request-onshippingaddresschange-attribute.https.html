@@ -7,7 +7,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 "use strict";
-const basicCard = Object.freeze({ supportedMethods: ["basic-card"] });
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
 const defaultMethods = Object.freeze([basicCard]);
 const defaultDetails = Object.freeze({
   total: {
@@ -18,6 +18,11 @@ const defaultDetails = Object.freeze({
     },
   },
 });
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  assert_idl_attribute(request, "onshippingaddresschange");
+}, "Must have a onshippingaddresschange IDL attribute");
 
 test(() => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);

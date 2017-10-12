@@ -1,0 +1,7 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Cache-Control: post-check=0, pre-check=0, false
+Pragma: no-cache
+Set-Cookie: script-src-report-only-policy-works-with-hash-policy={{$id:uuid()}}; Path=/content-security-policy/script-src/
+Content-Security-Policy: script-src 'sha256-EpVP4fTImWaRzBRBw/wrdfLhGTe/1U+CaBP1LNeKUIE=' 'nonce-abc'
+Content-Security-Policy-Report-Only: script-src 'nonce-abc'; report-uri ../support/report.py?op=put&reportID={{$id}}

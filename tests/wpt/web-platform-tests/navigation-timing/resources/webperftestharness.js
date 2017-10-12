@@ -72,6 +72,11 @@ function test_timing_order(attribute_name, greater_than_attribute, properties)
     // ensure it's in the right order
     msg = "window.performance.timing." + attribute_name + " >= window.performance.timing." + greater_than_attribute;
     wp_test(function() { assert_true(performanceNamespace.timing[attribute_name] >= performanceNamespace.timing[greater_than_attribute], msg); }, msg, properties);
+
+    // ensure we have at least 5 microseconds difference or it's 0
+    msg = "window.performance.timing." + attribute_name + " difference with window.performance.timing." + greater_than_attribute + " is 0 or at least 5 microseconds";
+    var diff = performanceNamespace.timing[attribute_name] - performanceNamespace.timing[greater_than_attribute];
+    wp_test(function() { assert_true((diff === 0) || ((diff * 1000) >= 5), msg); }, msg, properties);
 }
 
 function test_timing_greater_than(attribute_name, greater_than, properties)

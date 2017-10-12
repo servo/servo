@@ -1,61 +1,61 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Drag repeating</title>
-		<style type="text/css">
+  <head>
+    <title>Drag repeating</title>
+    <style type="text/css">
 div:first-child {
-	height: 100px;
-	width: 100px;
-	background: orange;
-	display: inline-block;
+  height: 100px;
+  width: 100px;
+  background: orange;
+  display: inline-block;
 }
 div:first-child + div {
-	height: 100px;
-	width: 100px;
-	background: blue;
-	display: inline-block;
+  height: 100px;
+  width: 100px;
+  background: blue;
+  display: inline-block;
 }
-		</style>
-		<script type="text/javascript">
+    </style>
+    <script type="text/javascript">
 window.onload = function () {
-	var numsecs = 5, maxpolltime = 0.550, minpolltime = 0.150;
-	var orange = document.getElementsByTagName('div')[0], p = document.getElementsByTagName('p')[0];
-	var numfired = 0, readytocount = false;
-	document.getElementsByTagName('div')[0].ondragstart = function (e) {
-		e.dataTransfer.effectAllowed = 'all';
-		e.dataTransfer.setData('text','dummy text');
-		p.innerHTML = 'Keep the mouse perfectly still...';
-		//give the tester a second to get ready
-		setTimeout(function () {
-			readytocount = true;
-			numfired = 0;
-			p.innerHTML = 'Keep the mouse perfectly still for '+numsecs+' seconds';
-			var countsecs = numsecs;
-			var intr = setInterval(function () {
-				countsecs--;
-				if( countsecs ) {
-					p.innerHTML = 'Keep the mouse perfectly still for '+countsecs+' seconds';
-				} else {
-					clearInterval(intr);
-					var passed = numfired >= Math.floor( numsecs / maxpolltime ) && numfired <= Math.floor( numsecs / minpolltime );
-					document.getElementsByTagName('p')[0].innerHTML = ( passed ? 'PASS' : 'FAIL' ) +
-					  '<br><br>(Fired ' + numfired + ' times in ' + numsecs + ' seconds, must be between ' +
-					  Math.floor( numsecs / maxpolltime ) + ' and ' + Math.floor( numsecs / minpolltime ) + ')<br>You can release the drag now';
-				}
-			},1000);
-		},1000);
-	};
-	orange.ondrag = function (e) {
-		if( readytocount ) { numfired++; }
-	};
+  var numsecs = 5, maxpolltime = 0.550, minpolltime = 0.150;
+  var orange = document.getElementsByTagName('div')[0], p = document.getElementsByTagName('p')[0];
+  var numfired = 0, readytocount = false;
+  document.getElementsByTagName('div')[0].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'all';
+    e.dataTransfer.setData('text','dummy text');
+    p.innerHTML = 'Keep the mouse perfectly still...';
+    //give the tester a second to get ready
+    setTimeout(function () {
+      readytocount = true;
+      numfired = 0;
+      p.innerHTML = 'Keep the mouse perfectly still for '+numsecs+' seconds';
+      var countsecs = numsecs;
+      var intr = setInterval(function () {
+        countsecs--;
+        if( countsecs ) {
+          p.innerHTML = 'Keep the mouse perfectly still for '+countsecs+' seconds';
+        } else {
+          clearInterval(intr);
+          var passed = numfired >= Math.floor( numsecs / maxpolltime ) && numfired <= Math.floor( numsecs / minpolltime );
+          document.getElementsByTagName('p')[0].innerHTML = ( passed ? 'PASS' : 'FAIL' ) +
+            '<br><br>(Fired ' + numfired + ' times in ' + numsecs + ' seconds, must be between ' +
+            Math.floor( numsecs / maxpolltime ) + ' and ' + Math.floor( numsecs / minpolltime ) + ')<br>You can release the drag now';
+        }
+      },1000);
+    },1000);
+  };
+  orange.ondrag = function (e) {
+    if( readytocount ) { numfired++; }
+  };
 };
-		</script>
-	</head>
-	<body>
+    </script>
+  </head>
+  <body>
 
-		<div draggable="true"></div>
-		<p>Drag the orange square sideways until the drag placeholder appears, then keep the mouse perfectly still until the result appears.</p>
-		<noscript><p>Enable JavaScript and reload</p></noscript>
+    <div draggable="true"></div>
+    <p>Drag the orange square sideways until the drag placeholder appears, then keep the mouse perfectly still until the result appears.</p>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
 
-	</body>
+  </body>
 </html>

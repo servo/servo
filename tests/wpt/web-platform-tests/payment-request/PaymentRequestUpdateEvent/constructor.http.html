@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequestUpdateEvent Constructor (insecure)</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#paymentrequestupdateevent-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_false("PaymentRequestUpdateEvent" in Window);
+}, "PaymentRequestUpdateEvent constructor must not be exposed in insecure context");
+</script>

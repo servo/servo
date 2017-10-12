@@ -350,9 +350,9 @@ function convertToPx(origValue) {
              } else if (unit == 'em') {
                  number = (16 * number);
              } else if (unit == 'ex') {
-                 number = (7.1796875 * number);
+                 number = (12.8 * number);
              } else if (unit == 'ch') {
-                 number = (8 * number);
+                 number = (16 * number);
              } else if (unit == 'rem') {
                  number = (16 * number);
              } else if (unit == 'vw') {
@@ -436,6 +436,38 @@ function generateInsetRoundCases(units, testType) {
         }
     }
     return results;
+}
+
+function each(object, func) {
+    for (var prop in object) {
+        if (object.hasOwnProperty(prop)) {
+            func(prop, object[prop]);
+        }
+    }
+}
+
+function setupFonts(func) {
+    return function () {
+        var fontProperties = {
+            'font-family': 'Ahem',
+            'font-size': '16px',
+            'line-height': '1'
+        };
+        var savedValues = { };
+        each(fontProperties, function (key, value) {
+            savedValues[key] = document.body.style.getPropertyValue(key);
+            document.body.style.setProperty(key, value);
+        });
+        func.apply(this, arguments);
+        each(fontProperties, function (key, value) {
+            if (value) {
+                document.body.style.setProperty(key, value);
+            }
+            else {
+                document.body.style.removeProperty(key);
+            }
+        });
+    };
 }
 
 var validUnits = [
@@ -847,11 +879,11 @@ var calcTestValues = [
 
 return {
     testInlineStyle: testInlineStyle,
-    testComputedStyle: testComputedStyle,
+    testComputedStyle: setupFonts(testComputedStyle),
     testShapeMarginInlineStyle: testShapeMarginInlineStyle,
-    testShapeMarginComputedStyle: testShapeMarginComputedStyle,
+    testShapeMarginComputedStyle: setupFonts(testShapeMarginComputedStyle),
     testShapeThresholdInlineStyle: testShapeThresholdInlineStyle,
-    testShapeThresholdComputedStyle: testShapeThresholdComputedStyle,
+    testShapeThresholdComputedStyle: setupFonts(testShapeThresholdComputedStyle),
     buildTestCases: buildTestCases,
     buildRadiiTests: buildRadiiTests,
     buildPositionTests: buildPositionTests,
@@ -861,6 +893,7 @@ return {
     buildCalcTests: buildCalcTests,
     validUnits: validUnits,
     calcTestValues: calcTestValues,
-    roundResultStr: roundResultStr
+    roundResultStr: roundResultStr,
+    setupFonts: setupFonts
 }
 })();

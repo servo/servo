@@ -8,9 +8,7 @@
 var tests = ["invalid-invalidLabel"];
 setup(function() {
   encodings_table.forEach(function(section) {
-    section.encodings.filter(function(encoding) {
-      return encoding.name !== 'replacement';
-    }).forEach(function(encoding) {
+    section.encodings.forEach(function(encoding) {
       encoding.labels.forEach(function(label) {
         ["\u0000", "\u000b", "\u00a0", "\u2028", "\u2029"].forEach(function(ws) {
           tests.push(ws + label);

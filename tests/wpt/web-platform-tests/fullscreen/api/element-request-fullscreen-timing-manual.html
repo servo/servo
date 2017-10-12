@@ -6,13 +6,16 @@
 <div id="log"></div>
 <script>
 async_test(t => {
-  trusted_request(t, document.querySelector('div'));
+  const div = document.querySelector('div');
+  trusted_request(t, div);
 
   // If fullscreenchange is an animation frame event, then animation frame
   // callbacks should be run after it is fired, before the timer callback.
   // The resize event should fire before the fullscreenchange event.
   const events = [];
   const callback = t.step_func(event => {
+    // fullscreenElement should have changed before either event is fired.
+    assert_equals(document.fullscreenElement, div, `fullscreenElement in {event.type} event`);
     events.push(event.type);
     if (event.type == 'fullscreenchange') {
       step_timeout(t.unreached_func('timer callback'));

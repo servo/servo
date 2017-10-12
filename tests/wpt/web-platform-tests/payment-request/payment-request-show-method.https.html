@@ -7,7 +7,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 'use strict';
-const basicCard = Object.freeze({ supportedMethods: ["basic-card"] });
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
 const defaultMethods = Object.freeze([basicCard]);
 const defaultDetails = Object.freeze({
   total: {
@@ -18,6 +18,16 @@ const defaultDetails = Object.freeze({
     },
   },
 });
+
+test(() => {
+  try {
+    new PaymentRequest(defaultMethods, defaultDetails);
+  } catch (err) {
+    done();
+    throw err;
+  }
+}, "Must be possible to construct a payment request");
+
 
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
@@ -37,4 +47,11 @@ promise_test(async t => {
   await promise_rejects(t, "AbortError", acceptPromise1);
 }, `If the user agent's "payment request is showing" boolean is true, then return a promise rejected with an "AbortError" DOMException.`);
 
+promise_test(async t => {
+  const request = new PaymentRequest(
+    [{ supportedMethods: "this-is-not-supported" }],
+    defaultDetails);
+  const acceptPromise = request.show();
+  await promise_rejects(t, "NotSupportedError", acceptPromise);
+}, `If payment method consultation produces no supported method of payment, then return a promise rejected with a "NotSupportedError" DOMException.`);
 </script>

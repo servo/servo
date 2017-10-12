@@ -1,0 +1,200 @@
+<!doctype html>
+<link rel="stylesheet" href="../support/base.css" />
+<aside style="position:absolute"><!-- THIS IS WHERE WE RUN THE EXPERIMENTS --></aside>
+<main><textarea style="display: none; width: 100%"></textarea><script>
+
+    var textarea = document.querySelector('textarea');
+    var testingBorderAttributes = true;
+    var seed = 0;
+
+    // This is not meant to be a good random number generator; I literally don't care
+    function XorshiftMath(seed) {
+        var x = 1;
+        var y = 2;
+        var z = 3;
+        var w = seed|0;
+        this.random = function random() {
+            var t = x;
+            t ^= t << 11;
+            t ^= t >> 8;
+            x = y; y = z; z = w;
+            w ^= w >> 19;
+            w ^= t;
+            return (w%1024)/1024;
+        }
+    }
+
+    var rndGen = new XorshiftMath(seed);
+    function rnd(x) {
+        return x > rndGen.random();
+    }
+    function pickInList(list) {
+        var i = list.length; while(i>1 && rnd(1/i)) { i--; }
+        return list[i-1];
+    }
+
+    function generateMarkup(root) {
+        if(rnd(0.99)) {
+
+            //
+            // the table has a <table> element
+            //
+            var table = document.createElement('table');
+
+            //
+            if(testingBorderAttributes) {
+                if(rnd(0.3)) { table.setAttribute('border',pickInList(['0','10','yes'])); }
+                if(rnd(0.3)) { table.setAttribute('frame',pickInList(['box','vsides','none'])); }
+                if(rnd(0.3)) { table.setAttribute('rules',pickInList(['all','rows','groups'])); }
+                table.setAttribute("cellspacing","0");
+            }
+
+
+            generateRowGroups(table);
+            root.appendChild(table);
+
+        } else {
+
+            //
+            // the table has no <table> element
+            //
+
+            generateRowGroup(root);
+
+        }
+    }
+
+    function generateRowGroups(root) {
+        if(rnd(0.5)) {
+
+            generateRowGroup(root);
+            while(rnd(0.25)) {
+                generateRowGroup(root);
+            }
+
+        } else {
+
+            generateRows(root);
+
+        }
+    }
+
+    function generateRowGroup(root) {
+
+        var tbody; if(rnd(0.7)) {
+            tbody = document.createElement('tbody');
+        } else if (rnd(0.5)) {
+            tbody = document.createElement('thead');
+        } else {
+            tbody = document.createElement('tfoot');
+        }
+
+        generateRows(tbody);
+        root.appendChild(tbody);
+
+    }
+
+    function generateRows(root) {
+
+        while(rnd(0.9)) {
+            if(rnd(0.9)) {
+                generateRow(root);
+            } else {
+                generateCells(root);
+            }
+        }
+
+    }
+
+    function generateRow(root) {
+
+        var tr = document.createElement('tr');
+        generateCells(tr);
+        root.appendChild(tr);
+
+    }
+
+    function generateCells(root) {
+
+        while(rnd(0.9)) {
+            if(rnd(0.9)) {
+                generateCell(root);
+            } else {
+                generateCellContent(root);
+            }
+        }
+
+    }
+
+    function generateCell(root) {
+
+        var td = document.createElement( rnd(0.9) ? 'td' : 'th' );
+        generateCellContent(td);
+        root.appendChild(td);
+
+    }
+
+    function generateCellContent() {
+        // for now, do nothing
+    }
+
+    for(var i = 10; i--;) {
+        //document.write("<textarea style='width: 100%; display: none'>");
+        var div = document.createElement('div');
+        generateMarkup(div);
+        appendReportFor(div);
+        //document.write(div.innerHTML);
+        //document.write("</textarea>");
+    }
+
+    if(navigator.userAgent.indexOf("Edge") == -1) {
+        var downloadLink = document.createElement('a');
+        downloadLink.setAttribute("download","report.txt");
+        downloadLink.href = "data:," + escape(textarea.value);
+        downloadLink.textContent = "download";
+        document.body.appendChild(downloadLink);
+    }
+
+    function appendReportFor(markup) {
+        var report = markup.innerHTML + '\r\n\r\n';
+
+        //
+        // append markup to the dom
+        //
+        var root = document.querySelector('aside');
+        root.innerHTML = '';
+        root.appendChild(markup);
+
+        //
+        // output box stats
+        //
+        var boxes = markup.getElementsByTagName("*");
+        for(var i = 0; i<boxes.length; i++) {
+
+            var box = boxes[i];
+            report += '' + i + ': ' + box.tagName + '\r\n';
+            report += 'offsetWidth: ' + box.offsetWidth + '\r\n';
+            report += 'offsetHeight: ' + box.offsetHeight + '\r\n';
+            report += 'offsetLeft: ' + box.offsetLeft + '\r\n';
+            report += 'offsetTop: ' + box.offsetTop + '\r\n';
+            report += 'borderTopWidth: ' + getComputedStyle(box).borderTopWidth + '\r\n';
+            report += 'borderTopStyle: ' + getComputedStyle(box).borderTopStyle + '\r\n';
+            report += 'borderTopColor: ' + getComputedStyle(box).borderTopColor + '\r\n';
+            report += 'borderLeftWidth: ' + getComputedStyle(box).borderLeftWidth + '\r\n';
+            report += 'borderLeftStyle: ' + getComputedStyle(box).borderLeftStyle + '\r\n';
+            report += 'borderLeftColor: ' + getComputedStyle(box).borderLeftColor + '\r\n';
+            report += '\r\n';
+
+        }
+
+        report += '\r\n';
+        report += '=====================================================================\r\n';
+        report += '\r\n';
+
+        textarea.value += report;
+
+        root.innerHTML = '';
+
+    }
+
+</script></main>

@@ -6,6 +6,25 @@
 <script type="text/javascript">
 test(function () {
   for (var i = 0; i < navigator.plugins.length; i++) {
+    const name = navigator.plugins[i].name;
+    const descriptor = Object.getOwnPropertyDescriptor(navigator.plugins, name);
+    assert_false(descriptor.enumerable);
+    assert_false(name in Object.keys(navigator.plugins));
+    assert_in_array(name, Object.getOwnPropertyNames(navigator.plugins));
+    assert_true(name in navigator.plugins);
+  }
+  for (var i = 0; i < navigator.mimeTypes.length; i++) {
+    const type = navigator.mimeTypes[i].type;
+    const descriptor = Object.getOwnPropertyDescriptor(navigator.mimeTypes, type);
+    assert_false(descriptor.enumerable);
+    assert_false(type in Object.keys(navigator.mimeTypes));
+    assert_in_array(type, Object.getOwnPropertyNames(navigator.mimeTypes));
+    assert_true(type in navigator.mimeTypes);
+  }
+}, "Tests that named properties are not enumerable in navigator.plugins and navigator.mimeTypes");
+
+test(function () {
+  for (var i = 0; i < navigator.plugins.length; i++) {
     var plugin = navigator.plugins[i];
     var name = plugin.name;
     assert_equals(plugin, navigator.plugins[i]);

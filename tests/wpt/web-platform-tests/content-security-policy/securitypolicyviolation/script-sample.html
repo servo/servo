@@ -52,16 +52,43 @@
 
     async_test(t => {
       document.addEventListener('securitypolicyviolation', t.step_func(e => {
-        if (e.blockedURI != "eval")
-          return;
-
-        assert_equals(e.sample, "");
-        t.done();
+        if (e.blockedURI == "eval" &&
+            e.sample == "assert_unreached('eval')") {
+          t.done();
+        }
       }));
       try {
         eval("assert_unreached('eval')");
         assert_unreached('eval');
       } catch (e) {
       }
-    }, "eval() should not have a sample.");
+    }, "eval() should have a sample.");
+
+    async_test(t => {
+      document.addEventListener('securitypolicyviolation', t.step_func(e => {
+        if (e.blockedURI == "eval" &&
+            e.sample == "assert_unreached('interval')") {
+          t.done();
+        }
+      }));
+      try {
+        setInterval("assert_unreached('interval')", 1000);
+        assert_unreached('interval');
+      } catch (e) {
+      }
+    }, "setInterval() should have a sample.");
+
+    async_test(t => {
+      document.addEventListener('securitypolicyviolation', t.step_func(e => {
+        if (e.blockedURI == "eval" &&
+            e.sample == "assert_unreached('timeout')") {
+          t.done();
+        }
+      }));
+      try {
+        setTimeout("assert_unreached('timeout')", 1000);
+        assert_unreached('timeout');
+      } catch (e) {
+      }
+    }, "setTimeout() should have a sample.");
 </script>

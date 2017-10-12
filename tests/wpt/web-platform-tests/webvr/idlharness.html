@@ -87,11 +87,11 @@ interface VRDisplay : EventTarget {
 
   /**
    * Begin presenting to the VRDisplay. Must be called in response to a user gesture.
-   * Repeat calls while already presenting will update the VRLayers being displayed.
+   * Repeat calls while already presenting will update the layers being displayed.
    * If the number of values in the leftBounds/rightBounds arrays is not 0 or 4 for any of the passed layers the promise is rejected
    * If the source of any of the layers is not present (null), the promise is rejected.
    */
-  Promise<void> requestPresent(sequence<VRLayer> layers);
+  Promise<void> requestPresent(sequence<VRLayerInit> layers);
 
   /**
    * Stops presenting to the VRDisplay.
@@ -101,10 +101,10 @@ interface VRDisplay : EventTarget {
   /**
    * Get the layers currently being presented.
    */
-  sequence<VRLayer> getLayers();
+  sequence<VRLayerInit> getLayers();
 
   /**
-   * The VRLayer provided to the VRDisplay will be captured and presented
+   * The layer provided to the VRDisplay will be captured and presented
    * in the HMD. Calling this function has the same effect on the source
    * canvas as any other operation that uses its source image, and canvases
    * created without preserveDrawingBuffer set to true will be cleared.
@@ -115,7 +115,7 @@ interface VRDisplay : EventTarget {
 typedef (HTMLCanvasElement or
          OffscreenCanvas) VRSource;
 
-dictionary VRLayer {
+dictionary VRLayerInit {
   VRSource? source = null;
 
   sequence<float> leftBounds = [];

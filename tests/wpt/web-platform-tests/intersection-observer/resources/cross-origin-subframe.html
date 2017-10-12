@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<div style="height: 200px; width: 100px;"></div>
+<div id="target" style="background-color: green; width:100px; height:100px"></div>
+<div style="height: 200px; width: 100px;"></div>
+
+<script>
+var port;
+var entries = [];
+var target = document.getElementById('target');
+var scroller = document.scrollingElement;
+var nextStep;
+
+function clientRectToJson(rect) {
+  if (!rect)
+    return "null";
+  return {
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    left: rect.left
+  };
+}
+
+function entryToJson(entry) {
+  return {
+    boundingClientRect: clientRectToJson(entry.boundingClientRect),
+    intersectionRect: clientRectToJson(entry.intersectionRect),
+    rootBounds: clientRectToJson(entry.rootBounds),
+    target: entry.target.id
+  };
+}
+
+function coordinatesToClientRectJson(top, right, bottom, left) {
+  return {
+    top: top,
+    right: right,
+    bottom: bottom,
+    left: left
+  };
+}
+
+// Note that we never use RAF in this code, because this frame might get render-throttled.
+// Instead of RAF-ing, we just post an empty message to the parent window, which will
+// RAF when it is received, and then send us a message to cause the next step to run.
+
+// Use a rootMargin here, and verify it does NOT get applied for the cross-origin case.
+var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+}, { rootMargin: "7px" });
+observer.observe(target);
+
+function step0() {
+  entries = entries.concat(observer.takeRecords());
+  nextStep = step1;
+  var expected = [{
+    boundingClientRect: coordinatesToClientRectJson(8, 208, 108, 308),
+    intersectionRect: coordinatesToClientRectJson(0, 0, 0, 0),
+    rootBounds: "null",
+    target: target.id
+  }];
+  port.postMessage({
+    actual: entries.map(entryToJson),
+    expected: expected,
+    description: "First rAF"
+  }, "*");
+  entries = [];
+  port.postMessage({scrollTo: 200}, "*");
+}
+
+function step1() {
+  entries = entries.concat(observer.takeRecords());
+  port.postMessage({
+    actual: entries.map(entryToJson),
+    expected: [],
+    description: "topDocument.scrollingElement.scrollTop = 200"
+  }, "*");
+  entries = [];
+  scroller.scrollTop = 250;
+  nextStep = step2;
+  port.postMessage({}, "*");
+}
+
+function step2() {
+  entries = entries.concat(observer.takeRecords());
+  var expected = [{
+    boundingClientRect: coordinatesToClientRectJson(-42, 108, 58, 8),
+    intersectionRect: coordinatesToClientRectJson(0, 108, 58, 8),
+    rootBounds: "null",
+    target: target.id
+  }];
+  port.postMessage({
+    actual: entries.map(entryToJson),
+    expected: expected,
+    description: "iframeDocument.scrollingElement.scrollTop = 250"
+  }, "*");
+  entries = [];
+  nextStep = step3;
+  port.postMessage({scrollTo: 100}, "*");
+}
+
+function step3() {
+  entries = entries.concat(observer.takeRecords());
+  var expected = [{
+    boundingClientRect: coordinatesToClientRectJson(-42, 108, 58, 8),
+    intersectionRect: coordinatesToClientRectJson(0, 0, 0, 0),
+    rootBounds: "null",
+    target: target.id
+  }];
+  port.postMessage({
+    actual: entries.map(entryToJson),
+    expected: expected,
+    description: "topDocument.scrollingElement.scrollTop = 100"
+  }, "*");
+  port.postMessage({DONE: 1}, "*");
+}
+
+function handleMessage(event)
+{
+  port = event.source;
+  nextStep();
+}
+
+nextStep = step0;
+window.addEventListener("message", handleMessage);
+</script>

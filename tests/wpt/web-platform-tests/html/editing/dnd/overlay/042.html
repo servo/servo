@@ -31,22 +31,22 @@ window.onload = function() {
   var passed = true, orange = document.getElementsByTagName('div')[1], blue = document.getElementsByTagName('div')[0], fuchsia = document.getElementsByTagName('div')[2];
 
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', 'PASS');
   };
   blue.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', 'FAIL');
   };
   fuchsia.ondragenter = fuchsia.ondragover = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
-	fuchsia.ondrop = function(e) {
-		//it's possible this could get called twice if the browser drags both items, so it uses the "passed" variable to make sure
-		//that if blue gets dropped first, it remains false when orange then gets dropped
-	  passed = passed && ( e.dataTransfer.getData('text/plain') == 'PASS' );
-   	document.getElementsByTagName('p')[0].innerHTML = passed ? 'PASS' : 'FAIL';
+  fuchsia.ondrop = function(e) {
+    //it's possible this could get called twice if the browser drags both items, so it uses the "passed" variable to make sure
+    //that if blue gets dropped first, it remains false when orange then gets dropped
+    passed = passed && ( e.dataTransfer.getData('text/plain') == 'PASS' );
+    document.getElementsByTagName('p')[0].innerHTML = passed ? 'PASS' : 'FAIL';
   };
 
 };

@@ -237,6 +237,9 @@ def load(tests_root, manifest):
 
 
 def write(manifest, manifest_path):
+    dir_name = os.path.dirname(manifest_path)
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
     with open(manifest_path, "wb") as f:
         json.dump(manifest.to_json(), f, sort_keys=True, indent=1, separators=(',', ': '))
         f.write("\n")

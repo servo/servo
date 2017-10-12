@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>HTML Test: paste DataTransfer protected status</title>
+    <link rel='author' title='Michael Layzell' href='mailto:michael@thelayzells.com'>
+    <link rel='help' href='https://html.spec.whatwg.org/multipage/#the-datatransfer-interface'>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <h3>Instructions</h3>
+    <p>
+      Select the text in the text box and press Ctrl-C followed by Ctrl-V.
+    </p>
+
+    <input type="text" id="input" value="text">
+
+    <div id="log"> </div>
+
+    <script>
+      var MIME = "text/plain";
+
+      var input;
+      setup(function() {
+        input = document.querySelector("#input");
+      }, {explicit_done: true, explicit_timeout: true});
+
+      var STATUS_PROTECTED = "protected";
+      var STATUS_READONLY = "readonly";
+      var STATUS_READWRITE = "readwrite";
+      var STATUS_DISCONNECTED = "disconnected";
+      function status(dt) {
+        // Check if we can write to it.
+        try {
+          dt.setData("text/html", "_test");
+
+          if (dt.getData("text/html") == "_test") {
+            dt.clearData("text/html");
+            assert_true(!dt.getData("text/html"), "ClearData should work...");
+            return STATUS_READWRITE;
+          }
+        } catch(e) {}
+
+        // If we can read the data then we're readonly
+        if (dt.getData(MIME)) {
+          return STATUS_READONLY;
+        }
+
+        // If we can see that items exist (and read types) then we're protected
+        if (dt.items.length > 0) {
+          return STATUS_PROTECTED;
+        }
+
+        // Otherwise we've been disconnected.
+        return STATUS_DISCONNECTED;
+      };
+
+      let copy_dt = null;
+      let paste_dt = null;
+      on_event(input, "copy", function(e) {
+        copy_dt = e.clipboardData;
+        paste_dt = null;
+        copy_dt.setData(MIME, "b");
+
+        test(function() {
+          assert_equals(status(copy_dt), STATUS_READWRITE,
+                        "copy_dt must be readwrite during copy");
+        }, "copy event status");
+
+        e.preventDefault();
+      });
+      on_event(input, "paste", function(e) {
+        paste_dt = e.clipboardData;
+
+        test(function() {
+          assert_equals(status(copy_dt), STATUS_DISCONNECTED,
+                        "copy_dt mustbe disconnected during paste");
+          assert_equals(status(paste_dt), STATUS_READONLY,
+                        "paste_dt mustbe readonly during paste");
+        }, "paste event status");
+        test(function() {
+          assert_not_equals(copy_dt != paste_dt,
+                            "copy_dt must be a different DataTransfer object than paste_dt");
+        }, "paste event identity");
+        test(function() {
+          assert_equals(paste_dt.getData(MIME), "b",
+                        "the data should have been persisted");
+        }, "paste event data");
+
+        e.preventDefault();
+
+        setTimeout(function() {
+          test(function() {
+            assert_equals(status(copy_dt), STATUS_DISCONNECTED,
+                          "copy_dt mustbe disconnected after paste");
+            assert_equals(status(paste_dt), STATUS_DISCONNECTED,
+                          "paste_dt mustbe disconnected after paste");
+          }, "after paste event status");
+          done();
+        }, 0);
+      });
+    </script>
+  </body>
+</html>

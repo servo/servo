@@ -7,7 +7,7 @@
   <link rel="help" href="http://www.w3.org/TR/css3-multicol/#the-number-and-width-of-columns" title="3. The number and width of columns" />
   <link rel="match" href="multicol-count-computed-003-ref.xht" />
   <meta name="flags" content="ahem" />
-  <meta name="assert" content="This test checks that if one of 2 adjacent column boxes (2nd and 3rd colum box in this test) does not have any content, then the column rule separating those should not be drawn. In this test, the 3rd colum box should have no inline content. This test also checks that inline content in the normal flow that extends into a column gap should be clipped in the middle of the column gap. So, in this test, inline content in 1st column box should be partially clipped and overlapped partially by 1st column-rule." />
+  <meta name="assert" content="This test checks that if one of 2 adjacent column boxes (2nd and 3rd colum box in this test) does not have any content, then the column rule separating those should not be drawn. In this test, the 3rd colum box should have no inline content. This test also checks that inline content in the normal flow that extends into a column gap should not be clipped in the middle of the column gap. So, in this test, inline content in 1st column box should not be partially clipped and should overlap partially with the 1st column-rule." />
   <style type="text/css"><![CDATA[
   div
   {
@@ -57,13 +57,11 @@
   /*
   Since
   "
-  Content in the normal flow that extends into
-  column gaps (e.g., long words or images) is
-  clipped in the middle of the column gap.
+  content that extends outside column boxes visibly overflows and is not clipped to the column box
   "
   http://www.w3.org/TR/css3-multicol/#overflow-inside-multicol-elements
   this causes the right-half (0.5em) of the 'K' glyph to
-  be overlapped by the right-half (0.75em) of the 1st blue column-rule.
+  overlap with the right-half (0.75em) of the 1st blue column-rule.
   Same thing should happen to the 'N' glyph of 'ORAN'.
 
   Because no inline content should be rendered into the

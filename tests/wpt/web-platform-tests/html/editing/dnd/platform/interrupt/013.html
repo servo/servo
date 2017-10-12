@@ -7,7 +7,7 @@
     background-color: orange;
   }
   body > div + div {
-  	margin-top: 10px;
+    margin-top: 10px;
     height: 200px;
     width: 200px;
     background-color: blue;
@@ -19,23 +19,23 @@ window.onload = function() {
   var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1];
   orange.ondragstart = function(e) {
     e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text', 'dummy text');
+    e.dataTransfer.setData('text', 'dummy text');
   };
   blue.ondragover = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-		if( !window.doneonce ) {
-			alert('2. It should also ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
-		}
-		window.doneonce = true;
+    if( !window.doneonce ) {
+      alert('2. It should also ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
+    }
+    window.doneonce = true;
   };
   blue.ondragenter = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-		alert('1. It should ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
+    alert('1. It should ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
   };
-	blue.ondrop = function(e) {
-   	e.preventDefault();
+  blue.ondrop = function(e) {
+    e.preventDefault();
   };
 };
 </script>

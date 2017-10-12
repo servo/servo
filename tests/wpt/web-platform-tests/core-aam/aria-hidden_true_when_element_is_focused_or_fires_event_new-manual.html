@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-hidden=true when element is focused or fires event NEW</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "event" : "focus",
+         "title" : "step 1",
+         "type" : "event"
+      },
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "accessible",
+                  "is",
+                  "true"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "hidden:true"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "accessible",
+                  "is",
+                  "true"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "hidden:true"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "accessible",
+                  "is",
+                  "true"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "accessible",
+                  "is",
+                  "true"
+               ],
+               [
+                  "property",
+                  "AriaProperties.hidden",
+                  "is",
+                  "true"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-hidden=true when element is focused or fires event NEW"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-hidden=true when element is focused or fires event NEW.</p>
+    <div id='test' aria-hidden='true' tabindex='0'>content</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

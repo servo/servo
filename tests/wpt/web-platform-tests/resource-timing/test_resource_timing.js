@@ -162,7 +162,11 @@ function resource_load(expected)
         assert_equals(entries_by_name_type.length, 1, "should have a single entry for each resource (with type)");
         assert_not_equals(entries_by_name, entries_by_name_type, "values should be copies");
         for (p in entries_by_name[0]) {
-            assert_equals(entries_by_name[0][p], entries_by_name_type[0][p], "Property " + p + " should match");
+            var assertMethod = assert_equals
+            if (Array.isArray(entries_by_name[0][p]) && Array.isArray(entries_by_name_type[0][p])) {
+              assertMethod = assert_array_equals
+            }
+            assertMethod(entries_by_name[0][p], entries_by_name_type[0][p], "Property " + p + " should match");
         }
         this.done();
     });

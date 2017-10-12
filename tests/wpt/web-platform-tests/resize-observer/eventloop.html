@@ -1,0 +1,259 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<style>
+  div {
+    border: 1px dotted gray
+  }
+</style>
+<p>ResizeObserver notification event loop tests</p>
+<div id="target1" style="width:100px;height:100px;">t1
+</div>
+<div id="container">
+  <div id="a1" style="width:100px;height:100px">
+    <div id="a2" style="width:100px;height:100px">
+    </div>
+  </div>
+  <div id="b1" style="width:100px;height:100px">
+    <div id="b2" style="width:100px;height:100px">
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+
+let t1 = document.querySelector('#target1');
+
+// allow uncaught exception because ResizeObserver posts exceptions
+// to window error handler when limit is exceeded.
+// This codepath is tested in this file.
+
+setup({allow_uncaught_exception: true});
+
+function template() {
+  let helper = new ResizeTestHelper(
+    "test0: title",
+  [
+    {
+      setup: observer => {
+      },
+      notify: (entries, observer) => {
+        return true;  // Delay next step
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+var onErrorCalled = false;
+
+window.onerror = err => {
+  onErrorCalled = true;
+}
+
+function test0() {
+
+  let divs = [t1];
+  let rAF = 0;
+  let helper = new ResizeTestHelper(
+    "test0: multiple notifications inside same event loop",
+  [
+    {
+      setup: observer => {
+        onErrorCalled = false;
+        let t2 = document.createElement('div');
+        let t3 = document.createElement('div');
+        t2.appendChild(t3);
+        t1.appendChild(t2);
+        divs.push(t2);
+        divs.push(t3);
+        observer.observe(t1);
+        observer.observe(t2);
+        observer.observe(t3);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 3, "3 notifications");
+      }
+    },
+    {
+      setup: observer => {
+        helper.startCountingRaf();
+        divs.forEach( el => { el.style.width = "101px";});
+      },
+      notify: (entries, observer) => {
+        // t1 is not delivered
+        assert_equals(entries.length, 2, "2 notifications");
+        assert_equals(helper.rafCount, 0, "still in same loop");
+      }
+    },
+    {
+      setup: observer => {
+        divs.forEach( el => { el.style.width = "102px";});
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1, "1 notifications");
+        assert_equals(helper.rafCount, 0, "same loop");
+      }
+    },
+    { // t1 and t2 get notified
+      setup: observer => {
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 2, "2 notifications");
+        assert_equals(helper.rafCount, 1, "new loop");
+        assert_equals(onErrorCalled, true, "error was fired");
+        observer.disconnect();
+        while (t1.childNodes.length > 0)
+          t1.removeChild(t1.childNodes[0]);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test1() {
+
+  var resizers = [t1];
+  // Testing depths of shadow roots
+  // DOM: t1 <- t2 <- t3 <-shadow- t4 <- t5
+  let helper = new ResizeTestHelper(
+    "test1: depths of shadow roots",
+  [
+    {
+      setup: observer => {
+        onErrorCalled = false;
+        let t2 = document.createElement('div');
+        t1.appendChild(t2);
+        resizers.push(t2);
+        let t3 = document.createElement('div');
+        resizers.push(t3);
+        t2.appendChild(t3);
+        let shadow = t3.createShadowRoot();
+        let t4 = document.createElement('div');
+        resizers.push(t4);
+        shadow.appendChild(t4);
+        let t5 = document.createElement('div');
+        resizers.push(t5);
+        t4.appendChild(t5);
+        resizers.forEach( el => observer.observe(el) );
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 5, "all entries resized");
+      }
+    },
+    {
+      setup: observer => {
+        resizers.forEach( el => el.style.width = "111px" );
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 4, "depth limited");
+      }
+    },
+    {
+      setup: observer => {
+        resizers.forEach( el => el.style.width = "112px" );
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 3, "depth limited");
+      }
+    },
+    {
+      setup: observer => {
+        resizers.forEach( el => el.style.width = "113px" );
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 2, "depth limited");
+      }
+    },
+    {
+      setup: observer => {
+        resizers.forEach( el => el.style.width = "114px" );
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1, "depth limited");
+      }
+    },
+    {
+      setup: observer => {
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 4, "limit notifications");
+        assert_equals(onErrorCalled, true, "breached limit");
+        observer.disconnect();
+        t1.removeChild(t1.firstChild);
+      }
+    },
+  ]);
+  return helper.start();
+}
+
+function test2() {
+  let container = document.querySelector('#container');
+  let a1 = document.querySelector('#a1');
+  let a2 = document.querySelector('#a2');
+  let b1 = document.querySelector('#b1');
+  let b2 = document.querySelector('#b2');
+  let targets = [a1, a2, b1, b2];
+
+  let helper = new ResizeTestHelper(
+    "test2: move target in dom while inside event loop",
+  [
+    {
+      setup: observer => {
+        for (let t of targets)
+          observer.observe(t);
+      },
+      notify: (entries, observer) => {
+        return true;  // delay next observation
+      }
+    },
+    { // resize them all
+      setup: observer => {
+        for (let t of targets)
+          t.style.width = "110px";
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, targets.length, "all targets observed");
+      }
+    },
+    { // resize all, move dom upwards
+      setup: observer => {
+        for (let t of targets)
+          t.style.width = "130px";
+        container.appendChild(b2);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1, "b2 moved upwards");
+        assert_equals(entries[0].target, a2);
+      }
+    },
+    { // resize all, move dom downwards
+      setup: observer => {
+        for (let t of targets)
+          t.style.width = "130px";
+        a2.appendChild(b2);
+      },
+      notify: (entries, observer) => {
+        assert_equals(entries.length, 1, "b2 moved downwards");
+        assert_equals(entries[0].target, b2);
+        a1.appendChild(a2);
+      }
+    },
+  ]);
+  return helper.start();
+}
+
+let guard;
+test(_ => {
+  assert_own_property(window, "ResizeObserver");
+  guard = async_test('guard');
+}, "ResizeObserver implemented")
+
+test0()
+  .then(() => { return test1(); })
+  .then(() => { return test2(); })
+  .then(() => { guard.done(); });
+
+</script>
+

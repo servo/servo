@@ -4,17 +4,17 @@
 <title>Cross page drag and drop: helper file</title>
 <style type="text/css">
 p
-	{border:solid medium navy;
-	height:200px;
-	padding:1em;
-	margin:0;}
+  {border:solid medium navy;
+  height:200px;
+  padding:1em;
+  margin:0;}
 div
-	{margin:100px;
-	padding:50px;}
+  {margin:100px;
+  padding:50px;}
 </style>
 <script type="application/ecmascript">
 function checkLink(event)
-	{document.querySelector('p').firstChild.nodeValue = (event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'PASS':'FAIL'}
+  {document.querySelector('p').firstChild.nodeValue = (event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'PASS':'FAIL'}
 </script>
 </head>
 <body>

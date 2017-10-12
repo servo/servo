@@ -5,22 +5,22 @@
 <script src="../../resources/crossorigin.sub.js"></script>
 <style type="text/css">
 div {
-	width:105px;
-	min-height:105px;
-	text-align:center;
-	margin-top:20px;
-	padding:10px;
-	border:solid thin navy;
+  width:105px;
+  min-height:105px;
+  text-align:center;
+  margin-top:20px;
+  padding:10px;
+  border:solid thin navy;
 }
 p:first-child {
-	padding-left:12px;
+  padding-left:12px;
 }
 #image { visibility: hidden; }
 </style>
 </head>
 <body>
 <p>
-	<canvas width="100" height="100" draggable="true">Canvas</canvas>
+  <canvas width="100" height="100" draggable="true">Canvas</canvas>
 </p>
 <p>Drag the navy square above to the box below.</p>
 <div></div>
@@ -30,29 +30,29 @@ p:first-child {
 document.getElementsByTagName("img")[0].src = crossOriginUrl("www", "../../resources/100x100-navy.png");
 
 window.onload = function() {
-	var canvas = document.getElementsByTagName('canvas')[0], div = document.getElementsByTagName('div')[0], failed = [];
-	var context = canvas.getContext('2d');
-	var image = document.getElementById('image');
-	context.drawImage(image, 0, 0);
+  var canvas = document.getElementsByTagName('canvas')[0], div = document.getElementsByTagName('div')[0], failed = [];
+  var context = canvas.getContext('2d');
+  var image = document.getElementById('image');
+  context.drawImage(image, 0, 0);
   div.ondragover = div.ondragenter = function(e) {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = 'copy';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   };
-	div.ondrop = canvas.ondragstart = function(e) {
-		if( e.type == 'dragstart' ) {
-			e.dataTransfer.setData('Text', 'dummy text');
-	    e.dataTransfer.dropEffect = 'copy';
-	  }
-		for( var i = 0; i < e.dataTransfer.types.length; i++ ) {
-			if( e.dataTransfer.types[i].match(/image\//) ) {
-				failed[failed.length] = e.dataTransfer.types[i];
-			}
-		}
-		if( e.type == 'drop' ) {
-	   	e.preventDefault();
-			document.getElementsByTagName('p')[1].innerHTML = failed.length ? ( 'FAIL (found ' + failed.join() + ')' ) : 'PASS';
-		}
-	};
+  div.ondrop = canvas.ondragstart = function(e) {
+    if( e.type == 'dragstart' ) {
+      e.dataTransfer.setData('Text', 'dummy text');
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    for( var i = 0; i < e.dataTransfer.types.length; i++ ) {
+      if( e.dataTransfer.types[i].match(/image\//) ) {
+        failed[failed.length] = e.dataTransfer.types[i];
+      }
+    }
+    if( e.type == 'drop' ) {
+      e.preventDefault();
+      document.getElementsByTagName('p')[1].innerHTML = failed.length ? ( 'FAIL (found ' + failed.join() + ')' ) : 'PASS';
+    }
+  };
 };
 ]]></script>
 </body>

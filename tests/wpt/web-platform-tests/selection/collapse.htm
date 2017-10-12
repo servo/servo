@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection: Collapse the selection using collapse()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+window.onload = function() {
+  test(function() {
+    var selection = window.getSelection();
+    var p1 = document.getElementById("p1");
+
+    var range = document.createRange();
+    range.selectNode(p1);
+    selection.addRange(range);
+    selection.collapse(p1, 0);
+
+    assert_equals(selection.anchorNode, p1);
+    assert_equals(selection.anchorOffset, 0);
+    assert_equals(selection.focusNode, p1);
+    assert_equals(selection.focusOffset, 0);
+    assert_equals(selection.isCollapsed, true);
+    assert_equals(selection.rangeCount, 1);
+    assert_equals(selection.toString(), "");
+  });
+};
+</script>
+<div id=log></div>
+<p id="p1">Add a range to the selection</p>
+</body>
+</html>

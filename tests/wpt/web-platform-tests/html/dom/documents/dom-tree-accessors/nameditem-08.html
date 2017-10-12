@@ -1,14 +1,11 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Named items: duplicate id attributes for applet, object and img</title>
+<title>Named items: duplicate id attributes for object and img</title>
 <link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <div id="test">
-<div id=test1></div>
-<applet id=test1></applet>
-
 <div id=test2></div>
 <object id=test2></object>
 
@@ -16,14 +13,6 @@
 <img id=test3 name=non-empty>
 </div>
 <script>
-test(function() {
-  var applet = document.querySelector("applet");
-  assert_equals(applet.id, "test1");
-
-  assert_true("test1" in document);
-  assert_equals(document.test1, applet);
-}, "If there is a div and applet with same id, the applet should be returned");
-
 test(function() {
   var object = document.querySelector("object");
   assert_equals(object.id, "test2");

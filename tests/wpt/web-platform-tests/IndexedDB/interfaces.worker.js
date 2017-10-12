@@ -25,6 +25,9 @@ async_test(function(t) {
     // https://dom.spec.whatwg.org/#interface-eventtarget
     idlArray.add_untested_idls("[Exposed=(Window,Worker)] interface EventTarget { };");
 
+    // https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#domstringlist
+    idlArray.add_untested_idls("[Exposed=(Window,Worker)] interface DOMStringList { };");
+
     // From Indexed DB:
     idlArray.add_idls(idls);
 

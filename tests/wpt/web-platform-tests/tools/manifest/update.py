@@ -10,6 +10,8 @@ from .log import get_logger
 
 here = os.path.dirname(__file__)
 
+wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
+
 
 def update(tests_root, manifest, working_copy=False):
     tree = None
@@ -57,7 +59,7 @@ def create_parser():
     parser.add_argument(
         "-p", "--path", type=abs_path, help="Path to manifest file.")
     parser.add_argument(
-        "--tests-root", type=abs_path, help="Path to root of tests.")
+        "--tests-root", type=abs_path, default=wpt_root, help="Path to root of tests.")
     parser.add_argument(
         "-r", "--rebuild", action="store_true", default=False,
         help="Force a full rebuild of the manifest.")
@@ -81,24 +83,14 @@ def find_top_repo():
     return rv
 
 
-def main(default_tests_root=None):
+def run(**kwargs):
+    if kwargs["path"] is None:
+        kwargs["path"] = os.path.join(kwargs["tests_root"], "MANIFEST.json")
+
+    update_from_cli(**kwargs)
+
+
+def main():
     opts = create_parser().parse_args()
 
-    if opts.tests_root is None:
-        tests_root = None
-        if default_tests_root is not None:
-            tests_root = default_tests_root
-        else:
-            tests_root = find_top_repo()
-
-        if tests_root is None:
-            print >> sys.stderr, """No git repo found; could not determine test root.
-Run again with --test-root"""
-            sys.exit(1)
-
-        opts.tests_root = tests_root
-
-    if opts.path is None:
-        opts.path = os.path.join(opts.tests_root, "MANIFEST.json")
-
-    update_from_cli(**vars(opts))
+    run(**vars(opts))

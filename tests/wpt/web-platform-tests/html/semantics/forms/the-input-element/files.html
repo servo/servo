@@ -31,9 +31,14 @@ var types = [
 
 types.forEach(function(type) {
   test(function() {
-    var input = document.createElement("input");
+    const input = document.createElement("input"),
+          input2 = document.createElement("input");
     input.type = type;
+    input2.type = "file";
     assert_equals(input.files, null, "files should be null");
+
+    input.files = input2.files;
+    assert_equals(input.files, null, "files should remain null as it cannot be set when it does not apply");
   }, "files for input type=" + type);
 });
 
@@ -45,4 +50,22 @@ test(function() {
   var files = input.files;
   assert_equals(input.files, files, "files should return the same object");
 }, "files for input type=file");
+
+test(() => {
+  const i1 = document.createElement("input"),
+        i2 = document.createElement("input");
+  i1.type = "file";
+  i2.type = "file";
+
+  const files = i2.files;
+  i1.files = i2.files;
+  assert_equals(i1.files, files, "FileList should not be copied");
+  assert_equals(i2.files, files, "FileList can be shared across input elements");
+
+  i1.files = null;
+  assert_equals(i1.files, files, "files cannot be set to null");
+
+  assert_throws(new TypeError(), () => i1.files = [], "files cannot be set to an array");
+  assert_throws(new TypeError(), () => i1.files = [new File([], "x")], "files cannot be set to an array (even when it contains File objects)");
+}, "setting <input type=file>.files");
 </script>

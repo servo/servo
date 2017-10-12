@@ -154,7 +154,14 @@ function runTests(tests) {
             t.test_id = test.name;
             t.url_encoded_input = test.input;
             t.expected = expected;
-            track.src = 'data:text/vtt,'+encodeURIComponent('WEBVTT\n\n00:00.000 --> 00:01.000\n')+test.input;
+            var track_blob = new Blob(['WEBVTT\n\n00:00.000 --> 00:01.000\n',
+                                       decodeURIComponent(test.input)],
+                                      { type: 'text/vtt' });
+            var track_url = URL.createObjectURL(track_blob);;
+            track.src = track_url;
+            t.add_cleanup(function() {
+                URL.revokeObjectURL(track_url);
+            });
             track['default'] = true;
             track.kind = 'subtitles';
             track.onload = t.step_func(trackLoaded);

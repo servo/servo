@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>spinbutton readonly true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -79,7 +80,7 @@
                   "property",
                   "states",
                   "doesNotContain",
-                  "IA2_STATE_SYSTEM_EDITABLE"
+                  "IA2_STATE_EDITABLE"
                ]
             ],
             "MSAA" : [
@@ -88,18 +89,6 @@
                   "role",
                   "is",
                   "ROLE_SYSTEM_SPINBUTTON"
-               ],
-               [
-                  "property",
-                  "interfaces",
-                  "contains",
-                  "IAcesssibleValue"
-               ],
-               [
-                  "property",
-                  "states",
-                  "doesNotContain",
-                  "IA2_STATE_SYSTEM_EDITABLE"
                ]
             ],
             "UIA" : [
@@ -137,4 +126,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

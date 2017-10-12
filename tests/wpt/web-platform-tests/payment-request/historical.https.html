@@ -24,4 +24,16 @@
     assert_false(member in window[interf].prototype);
   }, member + ' in ' + interf);
 });
+
+// https://github.com/w3c/payment-request/pull/551
+test(() => {
+  const methods = [];
+  const expectedError = {name: 'toString should be called'};
+  const unexpectedError = {name: 'sequence<DOMString> conversion is not allowed'};
+  methods.toString = () => { throw expectedError; };
+  Object.defineProperty(methods, '0', { get: () => { throw unexpectedError; } });
+  assert_throws(expectedError, () => {
+    new PaymentRequest([{supportedMethods: methods}], {total: {label: 'bar', amount: {currency: 'BAZ', value: '0'}}});
+  });
+}, 'supportedMethods must not support sequence<DOMString>');
 </script>

@@ -8,10 +8,12 @@
 
     <link id="crossorigin" href="http://www1.{{host}}:{{ports[http][1]}}/stylesheet-same-origin.css" rel="stylesheet">
     <link id="sameorigin" href="stylesheet-same-origin.css" rel="stylesheet">
+    <link id="sameorigindata" href="data:text/css,.green-text{color:rgb(0, 255, 0)}" rel="stylesheet">
 
     <script>
         var crossorigin = document.getElementById("crossorigin").sheet;
         var sameorigin = document.getElementById("sameorigin").sheet;
+        var sameorigindata = document.getElementById("sameorigindata").sheet;
 
         test(function() {
             assert_throws("SecurityError",
@@ -32,13 +34,22 @@
                 "Cross origin stylesheet.deleteRule should throw SecurityError.");
         }, "Origin-clean check in cross-origin CSSOM Stylesheets");
 
+        function doOriginCleanCheck(sheet, name) {
+            assert_equals(sheet.cssRules.length, 1, name + " stylesheet.cssRules should be accessible.");
+            sheet.insertRule("#test { margin: 10px; }", 1);
+            assert_equals(sheet.cssRules.length, 2, name + " stylesheet.insertRule should be accessible.");
+            sheet.deleteRule(0);
+            assert_equals(sheet.cssRules.length, 1, name + " stylesheet.deleteRule should be accessible.");
+        }
+
         test(function() {
-            assert_equals(sameorigin.cssRules.length, 1, "Same origin stylesheet.cssRules should be accessible.");
-            sameorigin.insertRule("#test { margin: 10px; }", 1);
-            assert_equals(sameorigin.cssRules.length, 2, "Same origin stylesheet.insertRule should be accessible.");
-            sameorigin.deleteRule(0);
-            assert_equals(sameorigin.cssRules.length, 1, "Same origin stylesheet.deleteRule should be accessible.");
+            doOriginCleanCheck(sameorigin, "Same-origin");
         }, "Origin-clean check in same-origin CSSOM Stylesheets");
+
+        test(function() {
+            doOriginCleanCheck(sameorigindata, "data:css");
+        }, "Origin-clean check in data:css CSSOM Stylesheets");
+
     </script>
 </head>
 <body>

@@ -4,20 +4,20 @@
 <title>Selection drag and drop and text/plain aliases</title>
 <style type="text/css">
 div
-	{min-height:40px;
-	width:40px;
-	padding:40px;
-	text-align:center;
-	color:white;
-	background-color:navy;}
+  {min-height:40px;
+  width:40px;
+  padding:40px;
+  text-align:center;
+  color:white;
+  background-color:navy;}
 </style>
 <script type="application/ecmascript">
 function checkText(event)
-	{var a = event.dataTransfer.getData('text/plain'),
-	b = event.dataTransfer.getData('text'),
-	c = event.dataTransfer.getData('TEXT'),
-	d = event.dataTransfer.getData('TexT');
-	document.querySelector('div').appendChild(document.createTextNode((a == b &amp;&amp; b == c &amp;&amp; c == d &amp;&amp; d == 'Drag me')?'PASS':'FAIL'))}
+  {var a = event.dataTransfer.getData('text/plain'),
+  b = event.dataTransfer.getData('text'),
+  c = event.dataTransfer.getData('TEXT'),
+  d = event.dataTransfer.getData('TexT');
+  document.querySelector('div').appendChild(document.createTextNode((a == b &amp;&amp; b == c &amp;&amp; c == d &amp;&amp; d == 'Drag me')?'PASS':'FAIL'))}
 </script>
 </head>
 <body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">

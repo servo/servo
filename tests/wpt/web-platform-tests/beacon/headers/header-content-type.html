@@ -27,27 +27,46 @@ function pollResult(test, id) {
 }
 
 function testContentTypeHeader(what, contentType, title) {
-  var testBase = get_host_info().HTTP_REMOTE_ORIGIN + RESOURCES_DIR;
+  var testBase = RESOURCES_DIR;
   var id = self.token();
   var testUrl = testBase + "content-type.py?cmd=put&id=" + id;
 
   promise_test(function(test) {
     assert_true(navigator.sendBeacon(testUrl, what), "SendBeacon Succeeded");
     return pollResult(test, id) .then(result => {
-      assert_true(result.startsWith(contentType), "Correct referrer header result");
+      if (contentType == "multipart/form-data") {
+        assert_true(result.startsWith(contentType), "Correct Content-Type header result");
+      } else {
+        assert_equals(result, contentType, "Correct Content-Type header result");
+      }
     });
   }, "Test content-type header for a body " + title);
 }
 
-function stringToArrayBuffer(input) {
+function stringToArrayBufferView(input) {
   var buffer = new ArrayBuffer(input.length * 2);
-  var array = new Uint16Array(buffer);
+  var view = new Uint16Array(buffer);
 
   // dumbly copy over the bytes
   for (var i = 0, len = input.length; i < len; i++) {
-    array[i] = input.charCodeAt(i);
+    view[i] = input.charCodeAt(i);
   }
-  return array;
+  return view;
+}
+
+function stringToArrayBuffer(input) {
+  var buffer = new ArrayBuffer(input.length * 2);
+  var view = new Uint16Array(buffer);
+
+  // dumbly copy over the bytes
+  for (var i = 0, len = input.length; i < len; i++) {
+    view[i] = input.charCodeAt(i);
+  }
+  return buffer;
+}
+
+function stringToBlob(input) {
+  return new Blob([input], {type: "text/plain"});
 }
 
 function stringToFormData(input) {
@@ -56,9 +75,17 @@ function stringToFormData(input) {
   return formdata;
 }
 
+function stringToURLSearchParams(input)
+{
+  return new URLSearchParams(input);
+}
+
 testContentTypeHeader("hi!", "text/plain;charset=UTF-8", "string");
+testContentTypeHeader(stringToArrayBufferView("123"), "", "ArrayBufferView");
 testContentTypeHeader(stringToArrayBuffer("123"), "", "ArrayBuffer");
+testContentTypeHeader(stringToBlob("123"), "text/plain", "Blob");
 testContentTypeHeader(stringToFormData("qwerty"), "multipart/form-data", "FormData");
+testContentTypeHeader(stringToURLSearchParams("key1=value1&key2=value2"), "application/x-www-form-urlencoded;charset=UTF-8", "URLSearchParams");
     </script>
   </body>
 </html>

@@ -26,7 +26,6 @@ window.wrappedJSObject.win = window.open("%(abs_url)s", "%(window_id)s");
 var timer = null;
 if (%(timeout)s) {
     timer = setTimeout(function() {
-        log("Timeout fired");
         window.wrappedJSObject.win.timeout();
     }, %(timeout)s);
 }

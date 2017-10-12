@@ -13,11 +13,11 @@
         background-image: url(resources/square.png?background);
     }
 </style>
-<link rel="stylesheet" href="resources/dummy.css">
-<script src="resources/dummy.js"></script>
+<link rel="stylesheet" href="resources/dummy.css?link-header-preload-delay-onload">
+<script src="resources/dummy.js?link-header-preload-delay-onload"></script>
 <div id="background"></div>
 <script>
-    document.write('<img src="resources/square.png">');
+    document.write('<img src="resources/square.png?link-header-preload-delay-onload">');
     window.addEventListener("load", t.step_func(function() {
         verifyPreloadAndRTSupport();
         var entries = performance.getEntriesByType("resource");
@@ -31,10 +31,10 @@
             }
         }
         assert_true(found_background_first);
-        verifyNumberOfDownloads("resources/square.png", 1);
+        verifyNumberOfDownloads("resources/square.png?link-header-preload-delay-onload", 1);
         verifyNumberOfDownloads("resources/square.png?background", 1);
-        verifyNumberOfDownloads("resources/dummy.js", 1);
-        verifyNumberOfDownloads("resources/dummy.css", 1);
+        verifyNumberOfDownloads("resources/dummy.js?link-header-preload-delay-onload", 1);
+        verifyNumberOfDownloads("resources/dummy.css?link-header-preload-delay-onload", 1);
         t.done();
     }));
 </script>

@@ -1906,7 +1906,7 @@ promise_test(() => {
     start(c) {
       controller = c;
     },
-    type: "bytes"
+    type: 'bytes'
   });
 
   const readPromise = rs.getReader().read();

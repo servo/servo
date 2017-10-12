@@ -1,0 +1,147 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setLocalDescription</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateOffer
+  //   assert_session_desc_not_equals
+  //   assert_session_desc_equals
+  //   test_state_change_event
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? remoteDescription;
+        readonly attribute RTCSessionDescription? currentRemoteDescription;
+        readonly attribute RTCSessionDescription? pendingRemoteDescription;
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+   */
+
+  /*
+    4.3.2.  setLocalDescription
+      2.  Let lastOffer be the result returned by the last call to createOffer.
+      5.  If description.sdp is null and description.type is offer, set description.sdp
+          to lastOffer.
+
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.2.2.  If description is set as a local description, then run one of the following
+              steps:
+        - If description is of type "offer", set connection.pendingLocalDescription
+          to description and signaling state to have-local-offer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    test_state_change_event(t, pc, ['have-local-offer']);
+
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(() => {
+        assert_equals(pc.signalingState, 'have-local-offer');
+        assert_session_desc_equals(pc.localDescription, offer);
+        assert_session_desc_equals(pc.pendingLocalDescription, offer);
+        assert_equals(pc.currentLocalDescription, null);
+      }));
+  }, 'setLocalDescription with valid offer should succeed');
+
+  /*
+    4.3.2.  setLocalDescription
+      2.  Let lastOffer be the result returned by the last call to createOffer.
+      5.  If description.sdp is null and description.type is offer, set description.sdp
+          to lastOffer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer =>
+      pc.setLocalDescription({ type: 'offer' })
+      .then(() => {
+        assert_equals(pc.signalingState, 'have-local-offer');
+        assert_session_desc_equals(pc.localDescription, offer);
+        assert_session_desc_equals(pc.pendingLocalDescription, offer);
+        assert_equals(pc.currentLocalDescription, null);
+      }));
+  }, 'setLocalDescription with type offer and null sdp should use lastOffer generated from createOffer');
+
+  /*
+    4.3.2.  setLocalDescription
+      2.  Let lastOffer be the result returned by the last call to createOffer.
+      6.  If description.type is offer and description.sdp does not match lastOffer,
+          reject the promise with a newly created InvalidModificationError and abort
+          these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer({ pc, data: true })
+    .then(offer =>
+      promise_rejects(t, 'InvalidModificationError',
+        pc.setLocalDescription(offer)));
+  }, 'setLocalDescription() with offer not created by own createOffer() should reject with InvalidModificationError');
+
+  promise_test(t => {
+    // Create first offer with audio line, then second offer with
+    // both audio and video line. Since the second offer is the
+    // last offer, setLocalDescription would reject when setting
+    // with the first offer
+    const pc = new RTCPeerConnection();
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer1 =>
+      pc.createOffer({ offerToReceiveVideo: true })
+      .then(offer2 => {
+        assert_session_desc_not_equals(offer1, offer2);
+        return promise_rejects(t, 'InvalidModificationError',
+          pc.setLocalDescription(offer1));
+      }));
+  }, 'Set created offer other than last offer should reject with InvalidModificationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    // Only one state change event should be fired
+    test_state_change_event(t, pc, ['have-local-offer']);
+
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer1 =>
+      pc.setLocalDescription(offer1)
+      .then(() =>
+        pc.createOffer({ offerToReceiveVideo: true })
+        .then(offer2 =>
+          pc.setLocalDescription(offer2)
+          .then(offer2 => {
+            assert_session_desc_not_equals(offer1, offer2);
+            assert_equals(pc.signalingState, 'have-local-offer');
+            assert_session_desc_equals(pc.localDescription, offer2);
+            assert_session_desc_equals(pc.pendingLocalDescription, offer2);
+            assert_equals(pc.currentLocalDescription, null);
+          }))));
+  }, 'Creating and setting offer multiple times should succeed');
+
+</script>

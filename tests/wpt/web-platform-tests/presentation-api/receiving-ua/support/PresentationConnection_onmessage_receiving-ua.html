@@ -63,8 +63,8 @@ navigator.presentation.receiver.connectionList.then(list => {
 
     assert_equals(connection.binaryType, 'arraybuffer', 'the default value of binaryType is "arraybuffer"');
     const eventWatcher = new EventWatcher(t, connection, 'message');
-    return eventWatcher.wait_for('message').then(evt => {
-      checkEvent(evt);
+    return eventWatcher.wait_for('message').then(event => {
+      checkEvent(event);
       assert_equals(event.data, message1, 'receive a string correctly');
       return watchEvent(connection, eventWatcher, 'message');
     }).then(event => {

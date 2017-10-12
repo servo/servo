@@ -6,10 +6,10 @@
 <script>
 async_test(function() {
   var iframe = document.createElement('iframe');
-  iframe.addEventListener('load', this.step_func_done(function() {
-    assert_equals(iframe.contentDocument.contentType, "text/html");
-  }), false);
-  iframe.src = "data:text/html;charset=utf-8,<!DOCTYPE html>";
+  self.onmessage = this.step_func_done(e => {
+    assert_equals(e.data, "text/html");
+  });
+  iframe.src = "data:text/html;charset=utf-8,<!DOCTYPE html><script>parent.postMessage(document.contentType,'*')<\/script>";
   document.body.appendChild(iframe);
 });
 </script>

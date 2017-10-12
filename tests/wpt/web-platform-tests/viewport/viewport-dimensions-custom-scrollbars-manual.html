@@ -75,16 +75,16 @@
 
         addManualTestStep(
             function() {
-                originalWidth = window.view.width;
-                originalHeight = window.view.height;
+                originalWidth = window.visualViewport.width;
+                originalHeight = window.visualViewport.height;
                 originalInnerWidth = window.innerWidth;
 
                 assert_equals(
-                    window.view.width,
+                    window.visualViewport.width,
                     window.innerWidth - 20,
                     "Custom scrollbar width subtracted from viewport.");
                 assert_equals(
-                    window.view.height,
+                    window.visualViewport.height,
                     window.innerHeight - 25,
                     "Custom scrollbar height subtracted from viewport.");
             },
@@ -101,11 +101,11 @@
                     "Browser zoom to correct level");
 
                 assert_equals(
-                    window.view.width,
+                    window.visualViewport.width,
                     window.innerWidth - 20,
                     "Custom scrollbar width subtracted from viewport.");
                 assert_equals(
-                    window.view.height,
+                    window.visualViewport.height,
                     window.innerHeight - 25,
                     "Custom scrollbar height subtracted from viewport.");
             },
@@ -120,18 +120,18 @@
         addManualTestStep(
             function() {
                 assert_approx_equals(
-                    window.view.scale, 2, 0.2, "Pinch zoom to correct scale");
+                    window.visualViewport.scale, 2, 0.2, "Pinch zoom to correct scale");
 
                 // Scrollbars do not grow with pinch-zoom so they take up fewer
                 // CSS pixels as you zoom in.
                 assert_approx_equals(
-                    window.view.width,
-                    originalWidth / window.view.scale,
+                    window.visualViewport.width,
+                    originalWidth / window.visualViewport.scale,
                     1,
                     "Custom scrollbar width subtracted from viewport.");
                 assert_approx_equals(
-                    window.view.height,
-                    originalHeight / window.view.scale,
+                    window.visualViewport.height,
+                    originalHeight / window.visualViewport.scale,
                     1,
                     "Custom scrollbar width subtracted from viewport.");
             },

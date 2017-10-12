@@ -1,0 +1,233 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters codecs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpParameters-helper.js:
+  //   validateSenderRtpParameters
+
+  /*
+    5.2.  RTCRtpSender Interface
+      interface RTCRtpSender {
+        Promise<void>           setParameters(optional RTCRtpParameters parameters);
+        RTCRtpParameters        getParameters();
+      };
+
+      dictionary RTCRtpParameters {
+        DOMString                                 transactionId;
+        sequence<RTCRtpEncodingParameters>        encodings;
+        sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
+        RTCRtcpParameters                         rtcp;
+        sequence<RTCRtpCodecParameters>           codecs;
+        RTCDegradationPreference                  degradationPreference;
+      };
+
+      dictionary RTCRtpCodecParameters {
+        [readonly]
+        unsigned short payloadType;
+
+        [readonly]
+        DOMString      mimeType;
+
+        [readonly]
+        unsigned long  clockRate;
+
+        [readonly]
+        unsigned short channels;
+
+        [readonly]
+        DOMString      sdpFmtpLine;
+      };
+
+      getParameters
+          - The codecs sequence is populated based on the codecs that have been negotiated
+            for sending, and which the user agent is currently capable of sending.
+
+            If setParameters has removed or reordered codecs, getParameters MUST return
+            the shortened/reordered list. However, every time codecs are renegotiated by
+            a new offer/answer exchange, the list of codecs MUST be restored to the full
+            negotiated set, in the priority order indicated by the remote description,
+            in effect discarding the effects of setParameters.
+
+      codecs
+        - When using the setParameters method, the codecs sequence from the corresponding
+          call to getParameters can be reordered and entries can be removed, but entries
+          cannot be added, and the RTCRtpCodecParameters dictionary members cannot be modified.
+   */
+
+  // Get the first codec from param.codecs.
+  // Assert that param.codecs has at least one element
+  function getFirstCodec(param) {
+    const { codecs } = param;
+    assert_greater_than(codecs.length, 0);
+    return codecs[0];
+  }
+
+  /*
+    5.2.  setParameters
+      7.  If parameters.encodings.length is different from N, or if any parameter
+          in the parameters argument, marked as a Read-only parameter, has a value
+          that is different from the corresponding parameter value returned from
+          sender.getParameters(), abort these steps and return a promise rejected
+          with a newly created InvalidModificationError. Note that this also applies
+          to transactionId.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const codec = getFirstCodec(param);
+
+    if(codec.payloadType === undefined) {
+      codec.payloadType = 8;
+    } else {
+      codec.payloadType += 1;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, 'setParameters() with codec.payloadType modified should reject with InvalidModificationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const codec = getFirstCodec(param);
+
+    if(codec.mimeType === undefined) {
+      codec.mimeType = 'audio/piedpiper';
+    } else {
+      codec.mimeType = `${codec.mimeType}-modified`;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, 'setParameters() with codec.mimeType modified should reject with InvalidModificationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const codec = getFirstCodec(param);
+
+    if(codec.clockRate === undefined) {
+      codec.clockRate = 8000;
+    } else {
+      codec.clockRate += 1;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, 'setParameters() with codec.clockRate modified should reject with InvalidModificationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const codec = getFirstCodec(param);
+
+    if(codec.channels === undefined) {
+      codec.channels = 6;
+    } else {
+      codec.channels += 1;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, 'setParameters() with codec.channels modified should reject with InvalidModificationError');
+
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const codec = getFirstCodec(param);
+
+    if(codec.sdpFmtpLine === undefined) {
+      codec.sdpFmtpLine = 'a=fmtp:98 0-15';
+    } else {
+      codec.sdpFmtpLine = `${codec.sdpFmtpLine};foo=1`;
+    }
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, 'setParameters() with codec.sdpFmtpLine modified should reject with InvalidModificationError');
+
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const { codecs } = param;
+
+    codecs.push({
+      payloadType: 2,
+      mimeType: 'audio/piedpiper',
+      clockRate: 1000,
+      channels: 2
+    });
+
+    return promise_rejects(t, 'InvalidModificationError',
+      sender.setParameters(param));
+
+  }, 'setParameters() with new codecs inserted should reject with InvalidModificationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const { codecs } = param;
+
+    // skip and pass test if there is less than 2 codecs
+    if(codecs.length >= 2) {
+      const tmp = codecs[0];
+      codecs[0] = codecs[1];
+      codecs[1] = tmp;
+    }
+
+    return sender.setParameters(param);
+
+  }, 'setParameters with reordered codecs should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const { codecs } = param;
+
+    param.codecs = codecs.slice(1);
+
+    return sender.setParameters(param);
+
+  }, 'setParameters with dropped codec should succeed');
+
+</script>

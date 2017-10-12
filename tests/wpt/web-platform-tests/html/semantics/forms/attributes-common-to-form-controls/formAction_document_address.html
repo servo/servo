@@ -69,6 +69,25 @@
         var address = document.location.href;
         assert_equals(formAction, address);
       }, "Check if input.formAction is the document's address when formaction content attribute value is not assigned");
+
+      var newUrl = location.href.replace(/\/[^\/]*$/,'\/dummy.html');
+      history.pushState('','','dummy.html');
+
+      test(function() {
+        assert_equals(document.location.href, newUrl);
+
+        var formAction = document.querySelector('#missing button').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if button.formAction is the document's new address when formaction content attribute is missing and pushState has been used");
+
+      test(function() {
+        assert_equals(document.location.href, newUrl);
+
+        var formAction = document.querySelector('#missing input').formAction;
+        var address = document.location.href;
+        assert_equals(formAction, address);
+      }, "Check if input.formAction is the document's new address when formaction content attribute is missing and pushState has been used");
     </script>
   </body>
 </html>

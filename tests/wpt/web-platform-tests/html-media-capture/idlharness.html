@@ -25,11 +25,8 @@
 
     <pre id='idl' style='display:none'>
       partial interface HTMLInputElement {
-        attribute CaptureFacingMode capture;
-      };
-      enum CaptureFacingMode {
-        "user",
-        "environment"
+          [CEReactions]
+          attribute DOMString capture;
       };
     </pre>
 
@@ -39,12 +36,12 @@
 
     <script>
       (function() {
-        var idl_array = new IdlArray();
+        let idl_array = new IdlArray();
 
         idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
         idl_array.add_idls(document.getElementById('idl').textContent);
 
-        var testElement = document.getElementById('testElement');
+        let testElement = document.getElementById('testElement');
         idl_array.add_objects({HTMLInputElement: [testElement]});
         idl_array.test();
       })();

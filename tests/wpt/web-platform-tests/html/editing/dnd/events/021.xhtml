@@ -4,11 +4,11 @@
 <title>Link drag and drop: events after drag is cancelled</title>
 <script type="application/ecmascript">
 function dragMe(event)
-	{event.preventDefault();}
+  {event.preventDefault();}
 function dropIt(event)
-	{say('FAIL (no drop should occur after drag is cancelled)')}
+  {say('FAIL (no drop should occur after drag is cancelled)')}
 function say(it)
-	{document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
 </script>
 </head>
 <body dropzone="copy string:text/uri-list" ondrop="dropIt(event)">

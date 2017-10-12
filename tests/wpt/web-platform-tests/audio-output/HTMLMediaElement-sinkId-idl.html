@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>IDL check of sinkId on HTMLMediaElement</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="https://www.w3.org/TR/audio-output/#htmlmediaelement-extensions">
+</head>
+<body>
+
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test verifies the availability of <code>sinkId</code>/<code>setSinkId</code> on the HTMLMediaElement interface.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<!--  -->
+<script type="text/plain" id='untested_idl'>
+
+interface HTMLMediaElement {
+};
+
+interface HTMLAudioElement : HTMLMediaElement {
+};
+
+interface HTMLVideoElement : HTMLMediaElement {
+};
+</script>
+<script type="text/plain" id="idl">
+// The IDL is copied from the 15 December 2016 draft.
+partial interface HTMLMediaElement {
+    readonly attribute DOMString sinkId;
+    Promise<void> setSinkId(DOMString sinkId);
+};</script>
+<script>
+(function() {
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
+  idl_array.add_idls(document.getElementById('idl').textContent);
+  window.audio = document.createElement("audio");
+  window.video = document.createElement("video");
+  idl_array.add_objects({"HTMLAudioElement": ["audio"], "HTMLVideoElement": ["video"]});
+  idl_array.test();
+  done();
+})();
+</script>
+</body>
+</html>

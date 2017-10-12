@@ -9,24 +9,24 @@
 <link rel=preload href="{{host}}:{{ports[http][1]}}/preload/resources/dummy.js" as=style>
 <link rel=preload href="resources/dummy.css" as=style>
 <link rel=preload href="resources/square.png" as=image>
-<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
-<link rel=preload href="/media/white.mp4" as=video>
-<link rel=preload href="/media/sound_5.oga" as=audio>
-<link rel=preload href="/media/foo.vtt" as=track>
+<link rel=preload href="resources/CanvasTest.ttf" as=font crossorigin>
+<link rel=preload href="resources/white.mp4" as=video>
+<link rel=preload href="resources/sound_5.oga" as=audio>
+<link rel=preload href="resources/foo.vtt" as=track>
 <link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing>
 <link rel=preload href="resources/dummy.xml">
 <body>
-<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<script src="resources/dummy.js?pipe=trickle(d5)&preload-csp"></script>
 <script>
     window.onload = t.step_func(function() {
         verifyPreloadAndRTSupport();
         verifyNumberOfDownloads("{{host}}:{{ports[http][1]}}/preload/resources/dummy.js", 0);
         verifyNumberOfDownloads("resources/dummy.css", 0);
         verifyNumberOfDownloads("resources/square.png", 0);
-        verifyNumberOfDownloads("/fonts/CanvasTest.ttf", 0);
-        verifyNumberOfDownloads("/media/white.mp4", 0);
-        verifyNumberOfDownloads("/media/sound_5.oga", 0);
-        verifyNumberOfDownloads("/media/foo.vtt", 0);
+        verifyNumberOfDownloads("resources/CanvasTest.ttf", 0);
+        verifyNumberOfDownloads("resources/white.mp4", 0);
+        verifyNumberOfDownloads("resources/sound_5.oga", 0);
+        verifyNumberOfDownloads("resources/foo.vtt", 0);
         verifyNumberOfDownloads("resources/dummy.xml", 0);
         t.done();
     });

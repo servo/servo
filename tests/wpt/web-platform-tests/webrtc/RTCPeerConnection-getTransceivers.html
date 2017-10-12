@@ -7,7 +7,7 @@
   'use strict';
 
   // Test is based on the following editor draft:
-  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   /*
    *  5.1. RTCPeerConnection Interface Extensions
@@ -22,15 +22,15 @@
   test(t => {
     const pc = new RTCPeerConnection();
 
-    assert_own_property(pc, 'getSenders');
+    assert_idl_attribute(pc, 'getSenders');
     const senders = pc.getSenders();
     assert_array_equals([], senders, 'Expect senders to be empty array');
 
-    assert_own_property(pc, 'getReceivers');
+    assert_idl_attribute(pc, 'getReceivers');
     const receivers = pc.getReceivers();
     assert_array_equals([], receivers, 'Expect receivers to be empty array');
 
-    assert_own_property(pc, 'getTransceivers');
+    assert_idl_attribute(pc, 'getTransceivers');
     const transceivers = pc.getTransceivers();
     assert_array_equals([], transceivers, 'Expect transceivers to be empty array');
 

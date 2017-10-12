@@ -4,16 +4,16 @@
 <title>PNG image drag and drop: 'return false' should not cancel event</title>
 <style type="text/css">
 div
-	{height:100px;
-	width:100px;
-	padding:20px;
-	background-color:silver;}
+  {height:100px;
+  width:100px;
+  padding:20px;
+  background-color:silver;}
 </style>
 <script type="application/ecmascript">
 function addImage(event)
-	{var c = document.createElement('img');
-	c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
-	document.querySelector('div').appendChild(c);}
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+  document.querySelector('div').appendChild(c);}
 </script>
 </head>
 <body onload="document.querySelector('img').addEventListener('drag',function (){return false},false)">

@@ -21,13 +21,13 @@
           }
           client.send(toSend)
 
-          const responseType = client.responseText
+          const actual = client.responseText
           if (expectedType === undefined || expectedType === null) {
-            assert_equals(responseType, "");
+            assert_equals(actual, "");
           } else if (expectedType instanceof RegExp) {
-            assert_regexp_match(responseType, expectedType);
+            assert_regexp_match(actual, expectedType);
           } else {
-            assert_equals(responseType, "Content-Type: " + expectedType + "\n");
+            assert_equals(actual, "Content-Type: " + expectedType + "\n");
           }
         }, title)
       }
@@ -120,6 +120,12 @@
         {"Content-Type": "application/xml;charset=ASCII"},
         "application/xml;charset=ASCII",
         "Blob request with unset type keeps setRequestHeader() Content-Type and charset"
+      )
+      request(
+        function _Blob() { return new Blob(["<xml/>"], {type : "application/xml;charset=ASCII"}); },
+        {"Content-Type": ""},
+        "",
+        'Blob request with set type respects setRequestHeader("") to be specified'
       )
       request(
         function _Blob() { return new Blob(["<xml/>"], {type : "application/xml;charset=ASCII"}); },

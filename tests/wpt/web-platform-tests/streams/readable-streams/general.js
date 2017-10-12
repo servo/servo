@@ -56,6 +56,8 @@ test(() => {
     assert_true(propDesc.configurable, 'method should be configurable');
     assert_true(propDesc.writable, 'method should be writable');
     assert_equals(typeof rs[m], 'function', 'method should be a function');
+    const expectedName = m === 'constructor' ? 'ReadableStream' : m;
+    assert_equals(rs[m].name, expectedName, 'method should have the correct name');
   }
 
   const lockedPropDesc = Object.getOwnPropertyDescriptor(proto, 'locked');
@@ -115,6 +117,8 @@ test(() => {
         assert_false(propDesc.enumerable, m + ' should be non-enumerable');
         assert_true(propDesc.configurable, m + ' should be configurable');
         assert_true(propDesc.writable, m + ' should be writable');
+        const expectedName = m === 'constructor' ? 'ReadableStreamDefaultController' : m;
+        assert_equals(controller[m].name, expectedName, 'method should have the correct name');
       }
 
       const desiredSizePropDesc = Object.getOwnPropertyDescriptor(proto, 'desiredSize');

@@ -251,59 +251,21 @@ test(function() {
     ownKeys: function() {
       return [ "a", "c", "a", "c" ];
     },
-    getCalls: 0,
-    gotCOnce: false,
-    get: function(target, name, receiver) {
-      if (name == "c") {
-        this.gotCOnce = true;
-      }
-      if (typeof name == "string") {
-        return ++this.getCalls;
-      }
-      return Reflect.get(target, name, receiver);
-    },
-    getOwnPropertyDescriptor: function(target, name) {
-      var desc = Reflect.getOwnPropertyDescriptor(target, name);
-      if (name == "c" && this.gotCOnce) {
-        desc.enumerable = false;
-      }
-      return desc;
-    }
   };
   var lyingProxy = new Proxy(record, lyingHandler);
   var proxy = new Proxy(lyingProxy, loggingHandler);
-  var h = new Headers(proxy);
 
-  assert_equals(log.length, 9);
+  // Returning duplicate keys from ownKeys() throws a TypeError.
+  assert_throws(new TypeError(),
+                function() { var h = new Headers(proxy); });
+
+  assert_equals(log.length, 2);
   // The first thing is the [[Get]] of Symbol.iterator to figure out whether
   // we're a sequence, during overload resolution.
   assert_array_equals(log[0], ["get", lyingProxy, Symbol.iterator, proxy]);
   // Then we have the [[OwnPropertyKeys]] from
   // https://heycam.github.io/webidl/#es-to-record step 4.
   assert_array_equals(log[1], ["ownKeys", lyingProxy]);
-  // Then the [[GetOwnProperty]] from step 5.1.
-  assert_array_equals(log[2], ["getOwnPropertyDescriptor", lyingProxy, "a"]);
-  // Then the [[Get]] from step 5.2.
-  assert_array_equals(log[3], ["get", lyingProxy, "a", proxy]);
-  // Then the second [[GetOwnProperty]] from step 5.1.
-  assert_array_equals(log[4], ["getOwnPropertyDescriptor", lyingProxy, "c"]);
-  // Then the second [[Get]] from step 5.2.
-  assert_array_equals(log[5], ["get", lyingProxy, "c", proxy]);
-  // Then the third [[GetOwnProperty]] from step 5.1.
-  assert_array_equals(log[6], ["getOwnPropertyDescriptor", lyingProxy, "a"]);
-  // Then the third [[Get]] from step 5.2.
-  assert_array_equals(log[7], ["get", lyingProxy, "a", proxy]);
-  // Then the fourth [[GetOwnProperty]] from step 5.1.
-  assert_array_equals(log[8], ["getOwnPropertyDescriptor", lyingProxy, "c"]);
-  // No [[Get]] because not enumerable.
-
-  // Check the results.
-  assert_equals([...h].length, 2);
-  assert_array_equals([...h.keys()], ["a", "c"]);
-  assert_true(h.has("a"));
-  assert_equals(h.get("a"), "3");
-  assert_true(h.has("c"));
-  assert_equals(h.get("c"), "2");
 }, "Correct operation ordering with repeated keys");
 
 test(function() {
@@ -395,5 +357,4 @@ test(function() {
   assert_true(h.has("c"));
   assert_equals(h.get("c"), "d");
 }, "Operation with non-enumerable Symbol keys");
-
 </script>

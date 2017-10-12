@@ -64,16 +64,16 @@
 
         addManualTestStep(
             function() {
-                originalWidth = window.view.width;
-                originalHeight = window.view.height;
+                originalWidth = window.visualViewport.width;
+                originalHeight = window.visualViewport.height;
                 originalInnerWidth = window.innerWidth;
 
                 assert_equals(
-                    window.view.width,
+                    window.visualViewport.width,
                     window.innerWidth - scrollbarThickness,
                     "Scrollbar width subtracted from viewport.");
                 assert_equals(
-                    window.view.height,
+                    window.visualViewport.height,
                     window.innerHeight - scrollbarThickness,
                     "Scrollbar height subtracted from viewport.");
             },
@@ -91,11 +91,11 @@
                 // Scrollbars on the window don't grow with browser-zoom so
                 // they'll be fewer CSS pixels as the user zooms in.
                 assert_equals(
-                    window.view.width,
+                    window.visualViewport.width,
                     window.innerWidth - scrollbarThickness / 2,
                     "Scrollbar width subtracted from viewport.");
                 assert_equals(
-                    window.view.height,
+                    window.visualViewport.height,
                     window.innerHeight - scrollbarThickness / 2,
                     "Scrollbar height subtracted from viewport.");
             },
@@ -110,14 +110,14 @@
         addManualTestStep(
             function() {
                 assert_approx_equals(
-                    window.view.scale, 2, 0.2, "Pinch zoom to correct scale");
+                    window.visualViewport.scale, 2, 0.2, "Pinch zoom to correct scale");
 
-                assert_approx_equals(window.view.width,
-                              originalWidth / window.view.scale,
+                assert_approx_equals(window.visualViewport.width,
+                              originalWidth / window.visualViewport.scale,
                               1,
                               "Scrollbar width subtracted from viewport.");
-                assert_approx_equals(window.view.height,
-                              originalHeight / window.view.scale,
+                assert_approx_equals(window.visualViewport.height,
+                              originalHeight / window.visualViewport.scale,
                               1,
                               "Scrollbar width subtracted from viewport.");
             },

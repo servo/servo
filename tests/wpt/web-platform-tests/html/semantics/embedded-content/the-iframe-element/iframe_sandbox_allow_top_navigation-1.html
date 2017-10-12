@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Check that sandboxed iframe can perform navigation on the top frame
+           when allow-top-navigation is set</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <iframe sandbox="allow-top-navigation allow-scripts"></iframe>
+    <script>
+      if (opener) {
+        // We're the popup (i.e. a top frame).  Load into the iframe the page
+        // trying to modifying the top frame and transmit the result to our
+        // opener.
+        onmessage = function(e) {
+          opener.postMessage(e.data, "*")
+        }
+        document.querySelector("iframe").src = "support/iframe-that-performs-top-navigation-on-popup.html";
+      } else {
+        // We are the main test page.  Open ourselves as a popup, so that we can
+        // can experiment navigation of the top frame.
+        async_test(t => {
+          window.addEventListener("message", t.step_func_done(e => {
+            assert_equals(e.data, "can navigate");
+            e.source.close();
+          }));
+          window.open(location.href);
+        }, "Frames with `allow-top-navigation` should be able to navigate the top frame.");
+      }
+    </script>
+  </body>
+</html>

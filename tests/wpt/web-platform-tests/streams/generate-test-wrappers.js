@@ -1,18 +1,15 @@
 "use strict";
 // Usage: `node generate-test-wrappers.js js-filename1.js [js-filename2.js ...]` will generate:
-// - js-filename1.https.html
+// - js-filename1.html
 // - js-filename1.sharedworker.html
 // - js-filename1.dedicatedworker.html
-// - js-filename1.serviceworker.html
+// - js-filename1.serviceworker.https.html
 // (for each passed filename)
 //
 // It will turn any importScripts inside the .js file into <script>s in the browser context wrapper.
 //
-// This could become obsolete if all of the following happen:
-// - https://github.com/w3c/web-platform-tests/issues/4210 gets fixed, allowing .any.js to work with all four contexts
-// - We find some way to include scripts (<script>/importScripts) in .any.js files
-// - Chrome becomes able to run .any.js tests on its infrastructure
-//   (https://bugs.chromium.org/p/chromium/issues/detail?id=653514)
+// This could become obsolete if https://github.com/w3c/web-platform-tests/issues/4210 gets fixed,
+// allowing .any.js to work with all four contexts.
 
 const fs = require("fs");
 const path = require("path");

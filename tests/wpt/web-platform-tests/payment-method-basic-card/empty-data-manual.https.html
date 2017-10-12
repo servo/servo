@@ -1,0 +1,139 @@
+<!doctype html>
+<meta charset="utf8">
+<title>Payment Method Basic Card - test passing empty BasicCardRequest members</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+
+const amount = { value: "1.0", currency: "USD" };
+const details = {
+  total: {
+    label: "Total",
+    amount,
+  },
+};
+const method = {
+  supportedMethods: "basic-card",
+};
+
+const defaultBillingAddress = {
+  country: 'AF',
+  addressLine: '1 wpt street',
+  region: '',
+  city: 'Kabul',
+  dependentLocality: '',
+  postalCode: '1001',
+  sortingCode: '',
+  languageCode: 'fa',
+  organization: 'w3c',
+  recipient: 'web platform test',
+  phone: '+93555555555',
+};
+
+const visaCredit = {
+  cardNumber: "4111111111111111",
+  cardSecurityCode: "123",
+  cardholderName: "web platform test",
+  expiryMonth: "01",
+  expiryYear: "2026",
+};
+
+async function getCardResponse(data) {
+  const method = Object.assign({ data }, methodCard);
+  const response = await new PaymentRequest([method], defaultDetails).show();
+  await response.complete("success");
+  return response.details;
+}
+
+/**
+ * All tests expect the same return data, so we can just check the
+ * same result over and over again.
+ */
+function runPromiseTest(button, data, expectedCard = visaCredit, expectedAddress = defaultBillingAddress ) {
+  button.disabled = true;
+  promise_test(async () => {
+    const card = await getCardResponse(data);
+    for (const [member, expectedValue] of Object.entries(expectedCard)) {
+      const msg = `Expected card.${member} to equal ${expectedValue}.`;
+      assert_equals(card[member], expectedValue, msg);
+    }
+    const { billingAddress } = card;
+    for (const [member, expectedValue] of Object.entries(expectedAddress)) {
+      const msg = `billingAddress.${member} to equal ${expectedValue}.`;
+      assert_equals(billingAddress[member], expectedValue);
+    }
+  }, button.textContent.trim());
+}
+</script>
+<h2>
+  Payment Method Basic Card - test passing empty BasicCardRequest values
+</h2>
+<p>
+  This test checks that the Basic Card payment handler can accept any card.
+</p>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+  The test expects the following credit card.
+</p>
+<ol>
+  <li>Add credit card:
+    <dl>
+      <dt>Cardholder name:</dt>
+      <dd>web platform test</dd>
+      <dt>Card number:</dt>
+      <dd>4111111111111111</dd>
+      <dt>Security code (CVV):</dt>
+      <dd>123</dd>
+      <dt>Expiry month:</dt>
+      <dd>01</dd>
+      <dt>Expiry year:</dt>
+      <dd>2026</dd>
+    </dl>
+  </li>
+  <li>Add billing address:
+    <dl>
+      <dt>Recipient:</dt>
+      <dd>web platform test</dd>
+      <dt>Address:</dt>
+      <dd>1 web st</dd>
+      <dt>Post code:</dt>
+      <dd>1234</dd>
+      <dt>Country:</dt>
+      <dd>Afghanistan</dd>
+      <dt>City:</dt>
+      <dd>w3c</dd>
+      <dt>Phone</dt>
+      <dd>+12345678910</dd>
+    </dl>
+  </li>
+</ol>
+<hr>
+<ol>
+  <li>
+    <button onclick="runPromiseTest(this, {});">
+      When passed BasicCardRequest without members, allow the user to input of any credit card type.
+    </button>
+  </li>
+  <li>
+    <button onclick="runPromiseTest(this, { supportedNetworks: [], supportedTypes: [] });">
+      Returns any card type on any network, because zero length supportedNetworks and supportedTypes.
+    </button>
+  </li>
+  <li>
+    <button onclick="runPromiseTest(this, { supportedNetworks: [] });">
+      Returns any card type on any network, because supportedNetworks is missing and supportedTypes is empty.
+    </button>
+  </li>
+  <li>
+    <button onclick="runPromiseTest(this, { supportedTypes: [] });">
+      Returns any card type on any network missing supportedTypes, and empty supportedNetwork.
+    </button>
+  </li>
+</ol>
+
+<small>
+  If you find a buggy test, please <a href="https://github.com/w3c/web-platform-tests/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/w3c/web-platform-tests/blob/master/payment-request/OWNERS">owners</a>.
+</small>

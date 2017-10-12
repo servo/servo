@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+for (let eventTypeName of ['UIEvent', 'MouseEvent', 'KeyboardEvent', 'CompositionEvent']) {
+    test(function() {
+        let eventType = self[eventTypeName];
+        assert_equals(eventType.length, 1);
+
+        let event = new eventType('test');
+        let initFunction = "init" + eventTypeName;
+        assert_throws(new TypeError(), function() { eventType.prototype[initFunction].call(event) });
+    }, `Call init${eventTypeName} without parameters`);
+}
+</script>

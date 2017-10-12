@@ -1,0 +1,22 @@
+[Exposed=(Window,Worker,Worklet)]
+namespace console {
+  void assert(optional boolean condition = false, any... data);
+  void clear();
+  void count(optional DOMString label = "default");
+  void debug(any... data);
+  void error(any... data);
+  void info(any... data);
+  void log(any... data);
+  void table(any tabularData, optional sequence<DOMString> properties);
+  void trace(any... data);
+  void warn(any... data);
+  void dir(any item, optional object? options);
+  void dirxml(any... data);
+
+  void group(any... data);
+  void groupCollapsed(any... data);
+  void groupEnd();
+
+  void time(optional DOMString label = "default");
+  void timeEnd(optional DOMString label = "default");
+};

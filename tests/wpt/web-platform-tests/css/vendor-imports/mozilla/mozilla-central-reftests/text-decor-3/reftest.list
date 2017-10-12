@@ -1,5 +1,6 @@
 == ruby-text-decoration-01.html ruby-text-decoration-01-ref.html
 == text-decoration-propagation-01.html text-decoration-propagation-01-ref.html
+== text-decoration-propagation-dynamic-001.html text-decoration-propagation-dynamic-001-ref.html
 
 # text-emphasis-style
 == text-emphasis-style-property-001.html text-emphasis-style-property-001-ref.html

@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.getCapabilities</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCRtpCapabilities-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpCapabilities-helper.js:
+  //   validateRtpCapabilities
+
+  /*
+    5.3.  RTCRtpReceiver Interface
+      interface RTCRtpReceiver {
+        ...
+        static RTCRtpCapabilities getCapabilities(DOMString kind);
+      };
+   */
+  test(() => {
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+    validateRtpCapabilities(capabilities);
+  }, `RTCRtpSender.getCapabilities('audio') should return RTCRtpCapabilities dictionary`);
+
+  test(() => {
+    const capabilities = RTCRtpReceiver.getCapabilities('video');
+    validateRtpCapabilities(capabilities);
+  }, `RTCRtpSender.getCapabilities('video') should return RTCRtpCapabilities dictionary`);
+
+ </script>

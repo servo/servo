@@ -58,7 +58,9 @@ class DirectoryHandler(object):
         url_path = request.url_parts.path
 
         if not url_path.endswith("/"):
-            raise HTTPException(404)
+            response.status = 301
+            response.headers = [("Location", "%s/" % request.url)]
+            return
 
         path = filesystem_path(self.base_path, request, self.url_base)
 

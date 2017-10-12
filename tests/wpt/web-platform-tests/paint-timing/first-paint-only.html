@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FP only</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="main"></div>
+
+<script>
+async_test(function (t) {
+    const div = document.createElement("div");
+    div.style.width = "100px";
+    div.style.height = "100px";
+    div.style.backgroundColor = "red";
+    div.style.color = "blue";
+    document.getElementById("main").appendChild(div);
+
+    function testPaintEntries() {
+        const bufferedEntries = performance.getEntriesByType('paint');
+        if (bufferedEntries.length < 1) {
+          t.step_timeout(function() {
+            testPaintEntries();
+          }, 20);
+          return;
+        }
+        t.step(function() {
+            assert_equals(bufferedEntries.length, 1, "FP only.");
+            assert_equals(bufferedEntries[0].entryType, "paint");
+            assert_equals(bufferedEntries[0].name, "first-paint");
+            t.done();
+        });
+    }
+    t.step(function() {
+      testPaintEntries();
+    })
+}, "Performance first paint timing entry exists. No first contentful paint.");
+</script>
+</body>
+</html>

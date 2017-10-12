@@ -19,6 +19,9 @@
 <div id="4294967294"></div>
 <div id="4294967295"></div>
 <div id="4294967296"></div>
+<div id="undefined"></div>
+<div id="null"></div>
+<div name="divwithname"></div>
 <script>
 var anchors = document.querySelectorAll("a");
 var divs = document.querySelectorAll("div");
@@ -30,19 +33,19 @@ test(function() {
 }, "document.all is an HTMLAllCollection");
 
 test(function() {
-  assert_equals(document.all.length, 20);
+  assert_equals(document.all.length, 23);
 }, "length attribute");
 
 // indexed property getter
 
 test(function() {
   assert_equals(document.all[0], document.documentElement);
-  assert_equals(document.all[19], scripts[2]);
+  assert_equals(document.all[22], scripts[2]);
 }, "indexed property getter");
 
 test(function() {
   assert_equals(document.all[-1], undefined);
-  assert_equals(document.all[20], undefined);
+  assert_equals(document.all[23], undefined);
   assert_equals(document.all[42], undefined);
   assert_equals(document.all[43], undefined);
   assert_equals(document.all[4294967294], undefined);
@@ -65,8 +68,11 @@ test(function() {
 }, "named property getter with dot syntax");
 
 test(function() {
+  assert_equals(document.all[""], undefined);
   assert_equals(document.all["noname"], undefined);
   assert_equals(document.all.noname, undefined);
+  assert_equals(document.all["divwithname"], undefined);
+  assert_equals(document.all.divwithname, undefined);
 }, "named property getter with invalid name");
 
 test(function() {
@@ -78,8 +84,8 @@ test(function() {
 
 test(function() {
   assert_equals(document.all["0"], document.documentElement);
-  assert_equals(document.all["19"], document.scripts[2]);
-  assert_equals(document.all["20"], undefined);
+  assert_equals(document.all["22"], document.scripts[2]);
+  assert_equals(document.all["23"], undefined);
   assert_equals(document.all["42"], undefined);
   assert_equals(document.all["43"], undefined);
 }, "named property getter with \"array index property name\"");
@@ -93,6 +99,14 @@ test(function() {
   assert_equals(document.all["4294967296"], divs[2]);
 }, "named property getter with invalid \"array index property name\"");
 
+test(function() {
+  assert_equals(document.all[undefined], divs[3]);
+}, "named property getter with undefined");
+
+test(function() {
+  assert_equals(document.all[null], divs[4]);
+}, "named property getter with null");
+
 // namedItem method
 
 test(function() {
@@ -102,7 +116,9 @@ test(function() {
 }, "namedItem method");
 
 test(function() {
+  assert_equals(document.all.namedItem(""), null);
   assert_equals(document.all.namedItem("noname"), null);
+  assert_equals(document.all.namedItem("divwithname"), null);
 }, "namedItem method with invalid name");
 
 test(function() {
@@ -114,8 +130,8 @@ test(function() {
 
 test(function() {
   assert_equals(document.all.namedItem("0"), null);
-  assert_equals(document.all.namedItem("19"), null);
-  assert_equals(document.all.namedItem("20"), null);
+  assert_equals(document.all.namedItem("22"), null);
+  assert_equals(document.all.namedItem("23"), null);
   assert_equals(document.all.namedItem("42"), spans[0]);
   assert_equals(document.all.namedItem("43"), null);
 }, "namedItem method with \"array index property name\"");
@@ -128,6 +144,14 @@ test(function() {
   assert_equals(document.all.namedItem("4294967295"), divs[1]);
   assert_equals(document.all.namedItem("4294967296"), divs[2]);
 }, "namedItem method with invalid \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all.namedItem(undefined), divs[3]);
+}, "namedItem method with undefined");
+
+test(function() {
+  assert_equals(document.all.namedItem(null), divs[4]);
+}, "namedItem method with null");
 
 test(function() {
   assert_equals(document.all.namedItem.length, 1);
@@ -145,7 +169,9 @@ test(function() {
 }, "legacy caller");
 
 test(function() {
+  assert_equals(document.all(""), null);
   assert_equals(document.all("noname"), null);
+  assert_equals(document.all("divwithname"), null);
 }, "legacy caller with invalid name");
 
 test(function() {
@@ -157,16 +183,16 @@ test(function() {
 
 test(function() {
   assert_equals(document.all("0"), document.documentElement);
-  assert_equals(document.all("19"), document.scripts[2]);
-  assert_equals(document.all("20"), null);
+  assert_equals(document.all("22"), document.scripts[2]);
+  assert_equals(document.all("23"), null);
   assert_equals(document.all("42"), null);
   assert_equals(document.all("43"), null);
 }, "legacy caller with \"array index property name\"");
 
 test(function() {
   assert_equals(document.all(0), document.documentElement);
-  assert_equals(document.all(19), document.scripts[2]);
-  assert_equals(document.all(20), null);
+  assert_equals(document.all(22), document.scripts[2]);
+  assert_equals(document.all(23), null);
   assert_equals(document.all(42), null);
   assert_equals(document.all(43), null);
 }, "legacy caller with \"array index property name\" as number");
@@ -181,8 +207,37 @@ test(function() {
 }, "legacy caller with invalid \"array index property name\"");
 
 test(function() {
+  assert_equals(document.all(undefined), null);
+}, "legacy caller with undefined");
+
+test(function() {
+  assert_equals(document.all(null), divs[4]);
+}, "legacy caller with null");
+
+test(function() {
   assert_equals(document.all(), null);
 }, "legacy caller with no argument");
+
+test(function() {
+  assert_throws(new TypeError(), function() {
+    new document.all("picture");
+  }, "New should not work on document.all()");
+
+  // https://esdiscuss.org/topic/isconstructor#content-11
+  assert_throws(new TypeError(), function() {
+    new (new Proxy(document.all, {
+      construct: function() {
+        return {};
+      }
+    }));
+  }, "Proxies should treat document.all() as not-a-constructor");
+}, "legacy caller is not a constructor");
+
+test(function() {
+  [undefined, null, {}, document.body].forEach(function(thisValue) {
+    assert_equals(Function.prototype.call.call(document.all, thisValue, "043"), spans[1]);
+  });
+}, "legacy caller with arbitrary this value");
 
 // item method
 
@@ -193,7 +248,9 @@ test(function() {
 }, "item method");
 
 test(function() {
+  assert_equals(document.all.item(""), null);
   assert_equals(document.all.item("noname"), null);
+  assert_equals(document.all.item("divwithname"), null);
 }, "item method with invalid name");
 
 test(function() {
@@ -205,16 +262,16 @@ test(function() {
 
 test(function() {
   assert_equals(document.all.item("0"), document.documentElement);
-  assert_equals(document.all.item("19"), document.scripts[2]);
-  assert_equals(document.all.item("20"), null);
+  assert_equals(document.all.item("22"), document.scripts[2]);
+  assert_equals(document.all.item("23"), null);
   assert_equals(document.all.item("42"), null);
   assert_equals(document.all.item("43"), null);
 }, "item method with \"array index property name\"");
 
 test(function() {
   assert_equals(document.all.item(0), document.documentElement);
-  assert_equals(document.all.item(19), document.scripts[2]);
-  assert_equals(document.all.item(20), null);
+  assert_equals(document.all.item(22), document.scripts[2]);
+  assert_equals(document.all.item(23), null);
   assert_equals(document.all.item(42), null);
   assert_equals(document.all.item(43), null);
 }, "item method with \"array index property name\" as number");
@@ -227,6 +284,14 @@ test(function() {
   assert_equals(document.all.item("4294967295"), divs[1]);
   assert_equals(document.all.item("4294967296"), divs[2]);
 }, "item method with invalid \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all.item(undefined), null);
+}, "item method with undefined");
+
+test(function() {
+  assert_equals(document.all.item(null), divs[4]);
+}, "item method with null");
 
 test(function() {
   assert_equals(document.all.item.length, 0);

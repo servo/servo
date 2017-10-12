@@ -11,10 +11,6 @@ var worker = 'resources/fetch-rewrite-worker.js';
 var path = base_path() + 'resources/fetch-access-control.py';
 var host_info = get_host_info();
 
-if (window.testRunner) {
-  testRunner.setCanOpenWindows();
-}
-
 function getLoadedObject(win, contentFunc, closeFunc) {
   return new Promise(function(resolve) {
       function done(contentString) {
@@ -50,7 +46,12 @@ function getLoadedObject(win, contentFunc, closeFunc) {
 
       win.onload = function() {
           clearTimeout(timeout);
-          var content = contentFunc(win);
+          let content = '';
+          try {
+            content = contentFunc(win);
+          } catch(e) {
+            // use default empty string for cross-domain window (see above)
+          }
           done(content);
         };
     });

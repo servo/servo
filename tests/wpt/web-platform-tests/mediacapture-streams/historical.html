@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Historical Media Capture and Streams features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_false("webkitMediaStream" in window);
+}, "webkitMediaStream interface should not exist");
+
+test(function() {
+  assert_false("webkitGetUserMedia" in navigator);
+}, "navigator.webkitGetUserMedia should not exist");
+
+test(function() {
+  assert_false("mozGetUserMedia" in navigator);
+}, "navigator.mozGetUserMedia should not exist");
+</script>

@@ -12,12 +12,16 @@ the promise of working across browsers and devices without needing extra
 layers of abstraction to paper over the gaps left by specification
 editors and implementors.
 
+Setting Up the Repo
+===================
+
+Clone or otherwise get https://github.com/w3c/web-platform-tests.
+
 Running the Tests
 =================
 
 The tests are designed to be run from your local computer. The test
 environment requires [Python 2.7+](http://www.python.org/downloads) (but not Python 3.x).
-You will also need a copy of OpenSSL.
 
 On Windows, be sure to add the Python directory (`c:\python2x`, by default) to
 your `%Path%` [Environment Variable](http://www.computerhope.com/issues/ch000549.htm),
@@ -40,9 +44,13 @@ following entries are required:
 If you are behind a proxy, you also need to make sure the domains above are
 excluded from your proxy lookups.
 
-The test environment can then be started using
 
-    ./serve
+Running Tests Manually
+======================
+
+The test server can be started using
+
+    ./wpt serve
 
 This will start HTTP servers on two ports and a websockets server on
 one port. By default one web server starts on port 8000 and the other
@@ -61,37 +69,28 @@ to some port of your choice e.g.
 "http": [1234, "auto"]
 ```
 
-If you installed OpenSSL in such a way that running `openssl` at a
-command line doesn't work, you also need to adjust the path to the
-OpenSSL binary. This can be done by adding a section to `config.json`
-like:
-
-```
-"ssl": {"openssl": {"binary": "/path/to/openssl"}}
-```
-
 Running Tests Automatically
 ---------------------------
 
-Tests can be run automatically in a browser using the `wptrun` script
-in the root of the checkout. This requires the hosts file and OpenSSL
-setup documented above, but you must *not* have the test server
-already running when calling `wptrun`. The basic command line syntax
-is:
+Tests can be run automatically in a browser using the `run` command of
+the `wpt` script in the root of the checkout. This requires the hosts
+file setup documented above, but you must *not* have the
+test server already running when calling `wpt run`. The basic command
+line syntax is:
 
 ```
-./wptrun product [tests]
+./wpt run product [tests]
 ```
 
-**On Windows**: for technical reasons the above will not work and you
-must instead run `python tools/wptrun.py products [tests]`.
+**On Windows**: You will need to preceed the prior command with
+`python` or the path to the python binary.
 
 where `product` is currently `firefox` or `chrome` and `[tests]` is a
 list of paths to tests. This will attempt to automatically locate a
 browser instance and install required dependencies. The command is
 very configurable; for examaple to specify a particular binary use
-`wptrun --binary=path product`. The full range of options can be see
-with `wptrun --help` and `wptrun --wptrunner-help`.
+`wpt run --binary=path product`. The full range of options can be see
+with `wpt run --help` and `wpt run --wptrunner-help`.
 
 Not all dependencies can be automatically installed; in particular the
 `certutil` tool required to run https tests with Firefox must be
@@ -108,6 +107,20 @@ And on macOS with homebrew using:
 ```
 brew install nss
 ```
+
+Command Line Tools
+==================
+
+The `wpt` command provides a frontend to a variety of tools for
+working with and running web-platform-tests. Some of the most useful
+commands are:
+
+* `wpt serve` - For starting the wpt http server
+* `wpt run` - For running tests in a browser
+* `wpt lint` - For running the lint against all tests
+* `wpt manifest` - For updating or generating a `MANIFEST.json` test manifest
+* `wpt install` - For installing the latest release of a browser or
+  webdriver server on the local machine.
 
 <span id="submodules">Submodules</span>
 =======================================
@@ -161,8 +174,38 @@ then remove the `tools` and `resources` directories, as above.
 <span id="windows-notes">Windows Notes</span>
 =============================================
 
-Running wptserve with SSL enabled on Windows typically requires
-installing an OpenSSL distribution.
+On Windows `wpt` commands mut bre prefixed with `python` or the path
+to the python binary (if `python` is not in your `%PATH%`).
+
+Alternatively, you may also use
+[Bash on Ubuntu on Windows](https://msdn.microsoft.com/en-us/commandline/wsl/about)
+in the Windows 10 Anniversary Update build, then access your windows
+partition from there to launch `wpt` commands.
+
+Please make sure git and your text editor do not automatically convert
+line endings, as it will cause lint errors. For git, please set
+`git config core.autocrlf false` in your working tree.
+
+Certificates
+============
+
+By default pregenerated certificates for the web-platform.test domain
+are provided in the repository. If you wish to generate new
+certificates for any reason it's possible to use OpenSSL when starting
+the server, or starting a test run, by providing the
+`--ssl-type=openssl` argument to the `wpt serve` or `wpt run`
+commands.
+
+If you installed OpenSSL in such a way that running `openssl` at a
+command line doesn't work, you also need to adjust the path to the
+OpenSSL binary. This can be done by adding a section to `config.json`
+like:
+
+```
+"ssl": {"openssl": {"binary": "/path/to/openssl"}}
+```
+
+On Windows using OpenSSL typically requires installing an OpenSSL distribution.
 [Shining Light](https://slproweb.com/products/Win32OpenSSL.html)
 provide a convenient installer that is known to work, but requires a
 little extra setup, i.e.:
@@ -184,10 +227,6 @@ Then edit the JSON so that the key `ssl/openssl/base_conf_path` has a
 value that is the path to the OpenSSL config file (typically this
 will be `C:\\OpenSSL-Win32\\bin\\openssl.cfg`).
 
-Alternatively, you may also use
-[Bash on Ubuntu on Windows](https://msdn.microsoft.com/en-us/commandline/wsl/about)
-in the Windows 10 Anniversary Update build, then access your windows
-partition from there to launch wptserve.
 
 Publication
 ===========
@@ -262,7 +301,7 @@ can run it manually by starting the `lint` executable from the root of
 your local web-platform-tests working directory like this:
 
 ```
-./lint
+./wpt lint
 ```
 
 The lint tool is also run automatically for every submitted pull

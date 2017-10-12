@@ -22,7 +22,6 @@
       var attributes = ["method",
                         "url",
                         "headers",
-                        "type",
                         "destination",
                         "referrer",
                         "referrerPolicy",
@@ -54,11 +53,6 @@
             request.headers = new Headers ({"name":"value"});
             assert_false(request.headers.has("name"), "Headers attribute is read only");
             return;
-            break;
-
-          case "type":
-            defaultValue = "";
-            newValue = "style";
             break;
 
           case "destination":

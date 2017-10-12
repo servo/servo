@@ -104,6 +104,7 @@ test(function() {
 
   hiddenInput.type = "hidden";
   assert_equals(labels.length, 0, "Retained .labels NodeList should be empty after input type changed to hidden");
+  assert_equals(hiddenInput.labels, null, ".labels NodeList should be null after input type changed to hidden");
 
   hiddenInput.type = "checkbox";
   assert_true(labels === hiddenInput.labels, ".labels property must return the [SameObject] after input type is toggled back from 'hidden'");

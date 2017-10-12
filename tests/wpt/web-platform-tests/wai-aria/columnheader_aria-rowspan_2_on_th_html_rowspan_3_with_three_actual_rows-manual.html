@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>columnheader aria-rowspan 2 on th html rowspan 3 with three actual rows</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -53,9 +54,9 @@
                ],
                [
                   "property",
-                  "rowspan",
-                  "is",
-                  "3"
+                  "objectAttributes",
+                  "doesNotContain",
+                  "rowspan:2"
                ]
             ],
             "MSAA" : [
@@ -64,12 +65,6 @@
                   "role",
                   "is",
                   "ROLE_SYSTEM_COLUMNHEADER"
-               ],
-               [
-                  "property",
-                  "rowspan",
-                  "is",
-                  "3"
                ]
             ],
             "UIA" : [
@@ -117,4 +112,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

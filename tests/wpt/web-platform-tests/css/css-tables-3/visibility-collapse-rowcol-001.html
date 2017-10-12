@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">
+<style>
+table, td {
+    border: 1px solid;
+    height: 32px;
+    min-width: 32px;
+    white-space: nowrap;
+    padding: 0;
+}
+</style>
+<h1>Visibility collapse</h1>
+<a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">Spec</a>
+<p>
+Setting row and column to visibility:collapse changes both height and width. The
+collapsed result should have whitespace in the bottom right corner.
+</p>
+<table id="test">
+   <col style="background-color: pink">
+   <col style="background-color: purple;">
+   <col style="background-color: black; visibility: collapse;">
+   <col style="background-color: grey; ">
+    <tbody>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td colspan="2" rowspan="2"></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr style="visibility:collapse">
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td colspan="2"></td>
+        </tr>
+    </tbody>
+</table>
+<script>
+    tests = [
+        [
+            document.getElementById('test').offsetWidth,
+            112,
+            "spanning col visibility:collapse changes table width"
+        ],
+        [
+            document.getElementById('test').offsetHeight,
+            112,
+            "spanning row visibility:collapse changes height"
+        ]];
+    for (i = 0; i< tests.length; i++) {
+        test(function()
+            {
+                assert_equals.apply(this, tests[i]);
+            },
+            tests[i][2]);
+    };
+</script>
+</html>

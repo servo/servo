@@ -59,8 +59,8 @@ A (4) --------------------------- A-SR (3)
 
 function testComposedEvent(mode) {
     test(function () {
-        var nodes = createTestTree(mode);
-        var log = dispatchEventWithLog(nodes, nodes.A1a, new Event('my-event', {composed: true, bubbles: true}));
+        var nodes = createFixedTestTree(mode);
+        var log = dispatchEventWithEventLog(nodes, nodes.A1a, new Event('my-event', {composed: true, bubbles: true}));
 
         var expectedPath = ['A1a', 'A1-SR', 'A1', 'A-SR', 'A'];
         assert_array_equals(log.eventPath, expectedPath);
@@ -87,8 +87,8 @@ A ------------------------------- A-SR
 
 function testNonComposedEvent(mode) {
     test(function () {
-        var nodes = createTestTree(mode);
-        var log = dispatchEventWithLog(nodes, nodes.A1a, new Event('my-event', {composed: false, bubbles: true}));
+        var nodes = createFixedTestTree(mode);
+        var log = dispatchEventWithEventLog(nodes, nodes.A1a, new Event('my-event', {composed: false, bubbles: true}));
 
         var expectedPath = ['A1a', 'A1-SR'];
         assert_array_equals(log.eventPath, expectedPath);
@@ -113,8 +113,8 @@ A ------------------------------- A-SR
 
 function testNonComposedEventWithRelatedTarget(mode) {
     test(function () {
-        var nodes = createTestTree(mode);
-        var log = dispatchEventWithLog(nodes, nodes.A1a, new MouseEvent('foo', {composed: false, bubbles: true, relatedTarget: nodes['A2-S']}));
+        var nodes = createFixedTestTree(mode);
+        var log = dispatchEventWithEventLog(nodes, nodes.A1a, new MouseEvent('foo', {composed: false, bubbles: true, relatedTarget: nodes['A2-S']}));
 
         var expectedPath = ['A1a', 'A1-SR'];
         assert_array_equals(log.eventPath, expectedPath);
@@ -140,8 +140,8 @@ A ------------------------------------------------ A-SR
 
 function testScopedEventWithUnscopedRelatedTargetThroughSlot(mode) {
     test(function () {
-        var nodes = createTestTree(mode);
-        var log = dispatchEventWithLog(nodes, nodes.B1a, new MouseEvent('foo', {scoped: true, relatedTargetScoped: false, bubbles: true, relatedTarget: nodes['B1b2']}));
+        var nodes = createFixedTestTree(mode);
+        var log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {scoped: true, relatedTargetScoped: false, bubbles: true, relatedTarget: nodes['B1b2']}));
 
         var expectedPath = ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR'];
         var pathExposedToB1a = ['B1a', 'B1', 'B-SR'];
@@ -171,8 +171,8 @@ A ------------------------------- A-SR (3)
 
 function testComposedEventWithRelatedTarget(mode) {
     test(function () {
-        var nodes = createTestTree(mode);
-        log = dispatchEventWithLog(nodes, nodes.A1a, new MouseEvent('foo', {composed: true, bubbles: true, relatedTarget: nodes['A2-S']}));
+        var nodes = createFixedTestTree(mode);
+        log = dispatchEventWithEventLog(nodes, nodes.A1a, new MouseEvent('foo', {composed: true, bubbles: true, relatedTarget: nodes['A2-S']}));
 
         var expectedPath = ['A1a', 'A1-SR', 'A1', 'A-SR'];
         var pathExposedToA1 = ['A1', 'A-SR'];
@@ -201,8 +201,8 @@ A (8) [0-5,8] ---------------------------------------- A-SR (7)
 
 function testComposedEventThroughSlot(mode) {
     test(function () {
-        var nodes = createTestTree(mode);
-        log = dispatchEventWithLog(nodes, nodes.B1a, new MouseEvent('foo', {composed: true, bubbles: true, relatedTarget: nodes.A1a}));
+        var nodes = createFixedTestTree(mode);
+        log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {composed: true, bubbles: true, relatedTarget: nodes.A1a}));
 
         var expectedPath =          ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR', 'B', 'A2-S', 'A-SR', 'A'];
         var expectedRelatedTarget = ['A',   'A',     'A',     'A',   'A',   'A', 'A1',   'A1',   'A'];

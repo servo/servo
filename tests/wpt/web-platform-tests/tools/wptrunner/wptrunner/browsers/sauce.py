@@ -138,7 +138,7 @@ class SauceConnect():
     def __enter__(self, options):
         if not self.sauce_connect_binary:
             self.temp_dir = tempfile.mkdtemp()
-            get_tar("https://saucelabs.com/downloads/sc-latest-linux.tar.gz", self.temp_dir)
+            get_tar("https://saucelabs.com/downloads/sc-4.4.9-linux.tar.gz", self.temp_dir)
             self.sauce_connect_binary = glob.glob(os.path.join(self.temp_dir, "sc-*-linux/bin/sc"))[0]
 
         self.upload_prerun_exec('edge-prerun.bat')
@@ -161,9 +161,9 @@ class SauceConnect():
         if self.sc_process.returncode is not None and self.sc_process.returncode > 0:
             raise SauceException("Unable to start Sauce Connect Proxy. Process exited with code %s", self.sc_process.returncode)
 
-    def __exit__(self, *args):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.sc_process.terminate()
-        if os.path.exists(self.temp_dir):
+        if self.temp_dir and os.path.exists(self.temp_dir):
             try:
                 shutil.rmtree(self.temp_dir)
             except OSError:

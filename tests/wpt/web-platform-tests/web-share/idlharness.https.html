@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare IDL test</title>
+    <link rel="help" href="https://wicg.github.io/web-share/">
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src=/resources/WebIDLParser.js></script>
+    <script src=/resources/idlharness.js></script>
+  </head>
+  <body>
+    <script>
+        "use strict";
+        var idl_array = new IdlArray();
+
+        function doTest(idl) {
+          idl_array.add_untested_idls('interface Navigator {};');
+          idl_array.add_idls(idl);
+          idl_array.add_objects({
+            Navigator: ['navigator']
+          });
+          idl_array.test();
+        }
+
+        promise_test(async () => {
+          const response = await fetch('../interfaces/web-share.idl');
+          doTest(await response.text());
+        }, 'Test driver');
+    </script>
+  </body>
+</html>

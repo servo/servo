@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>aria-details pointing to div element</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
     <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
@@ -21,7 +22,7 @@
                   "relation",
                   "RELATION_DETAILS",
                   "is",
-                  "details"
+                  "[details]"
                ]
             ],
             "AXAPI" : [
@@ -34,10 +35,10 @@
             ],
             "IAccessible2" : [
                [
-                  "relation",
-                  "IA2_RELATION_DETAILS",
-                  "is",
-                  "details"
+                  "property",
+                  "relations",
+                  "contains",
+                  "IA2_RELATION_DETAILS"
                ]
             ],
             "UIA" : [
@@ -60,18 +61,17 @@
                   "relation",
                   "RELATION_DETAILS_FOR",
                   "is",
-                  "test"
+                  "[test]"
                ]
             ],
             "IAccessible2" : [
                [
-                  "relation",
-                  "IA2_RELATION_DETAILS_FOR",
-                  "is",
-                  "test"
+                  "property",
+                  "relations",
+                  "contains",
+                  "IA2_RELATION_DETAILS_FOR"
                ]
-            ],
-            "UIA" : []
+            ]
          },
          "title" : "step 2",
          "type" : "test"
@@ -96,4 +96,3 @@
   <div id="ATTAmessages"></div>
   </body>
 </html>
-

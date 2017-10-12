@@ -8,20 +8,20 @@
 <div id=log></div>
 <script>
 async_test(function(t) {
+  // Sub-protocol matching is case-sensitive.
   var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/handshake_protocol', 'FOOBAR');
   var gotOpen = false;
   var gotError = false;
   ws.onopen = t.step_func(function(e) {
     gotOpen = true;
-  })
+  });
   ws.onerror = t.step_func(function(e) {
     gotError = true;
-  })
+  });
   ws.onclose = t.step_func(function(e) {
-    assert_true(gotOpen, 'got open');
+    assert_false(gotOpen, 'got open');
     assert_true(gotError, 'got error');
-    ws.onclose = t.unreached_func();
-    t.step_timeout(() => t.done(), 50);
-  })
+    t.done();
+  });
 });
 </script>

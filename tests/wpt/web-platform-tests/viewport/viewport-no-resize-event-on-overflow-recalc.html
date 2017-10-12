@@ -26,9 +26,9 @@
     <script>
       function runTest() {
         var t = async_test(
-            "Resize event not fired at window.view when content is added");
+            "Resize event not fired at window.visualViewport when content is added");
         var viewResized = false;
-        window.view.addEventListener('resize', function() {
+        window.visualViewport.addEventListener('resize', function() {
             viewResized = true;
         });
 

@@ -21,7 +21,7 @@ class WPTServer(object):
     def start(self):
         self.devnull = open(os.devnull, 'w')
         self.proc = subprocess.Popen(
-            [os.path.join(self.wpt_root, 'serve'), '--config=' + _CONFIG_FILE],
+            [os.path.join(self.wpt_root, 'wpt'), 'serve', '--config=' + _CONFIG_FILE],
             stdout=self.devnull,
             stderr=self.devnull,
             cwd=self.wpt_root)

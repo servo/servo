@@ -14,7 +14,6 @@ INDENT TABS: app-uri/*
 INDENT TABS: conformance-checkers/*
 INDENT TABS: content-security-policy/*
 INDENT TABS: custom-elements/*
-INDENT TABS: html/editing/dnd/*
 INDENT TABS: old-tests/*
 INDENT TABS: pointerlock/*
 INDENT TABS: shadow-dom/*
@@ -28,6 +27,7 @@ INDENT TABS: XMLHttpRequest/*
 INDENT TABS: encoding/legacy*/*
 INDENT TABS: encrypted-media/polyfill/Makefile
 
+TRAILING WHITESPACE: 2dcontext/tools/current-work-canvas.xhtml
 TRAILING WHITESPACE: app-uri/*
 TRAILING WHITESPACE: battery-status/*
 TRAILING WHITESPACE: conformance-checkers/*
@@ -88,7 +88,16 @@ W3C-TEST.ORG:tools/*
 PRINT STATEMENT:tools/*
 W3C-TEST.ORG:*/tools/*
 PRINT STATEMENT:*/tools/*
-PRINT STATEMENT:wptrun.py
+
+## Deliberate copies of Ahem ##
+# The allowed copy
+AHEM COPY: fonts/Ahem.ttf
+
+# None of these are actually Ahem
+AHEM COPY: css/fonts/ahem-extra/AHEM_*.TTF
+
+# https://github.com/w3c/web-platform-tests/issues/7437
+AHEM COPY: css/vendor-imports/mozilla/mozilla-central-reftests/*/Ahem.ttf
 
 ### Test exclusions ##
 
@@ -152,16 +161,40 @@ SET TIMEOUT: cookies/resources/testharness-helpers.js
 SET TIMEOUT: common/reftest-wait.js
 SET TIMEOUT: conformance-checkers/*
 SET TIMEOUT: content-security-policy/*
-SET TIMEOUT: css-font-display/font-display.html
+SET TIMEOUT: css-fonts/font-display/font-display.html
 SET TIMEOUT: encrypted-media/Google/migrated_to_root_disabled/encrypted-media-utils.js
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
 SET TIMEOUT: eventsource/eventsource-close.htm
 SET TIMEOUT: eventsource/eventsource-request-cancellation.htm
-SET TIMEOUT: html/*
+SET TIMEOUT: html/browsers/browsing-the-web/history-traversal/*
+SET TIMEOUT: html/browsers/browsing-the-web/navigating-across-documents/*
+SET TIMEOUT: html/browsers/browsing-the-web/scroll-to-fragid/*
+SET TIMEOUT: html/browsers/browsing-the-web/unloading-documents/*
+SET TIMEOUT: html/browsers/history/the-history-interface/*
+SET TIMEOUT: html/browsers/history/the-location-interface/*
+SET TIMEOUT: html/browsers/offline/*
+SET TIMEOUT: html/browsers/the-window-object/*
+SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
+SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
+SET TIMEOUT: html/dom/documents/resource-metadata-management/document-lastModified-01.html
+SET TIMEOUT: html/dom/dynamic-markup-insertion/opening-the-input-stream/*
+SET TIMEOUT: html/editing/dnd/*
+SET TIMEOUT: html/infrastructure/urls/resolving-urls/query-encoding/resources/resolve-url.js
+SET TIMEOUT: html/semantics/embedded-content/media-elements/*
+SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
+SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
+SET TIMEOUT: html/semantics/forms/textfieldselection/textfieldselection-setRangeText.html
+SET TIMEOUT: html/semantics/forms/the-input-element/checkbox.html
+SET TIMEOUT: html/semantics/interactive-elements/the-details-element/toggleEvent.html
+SET TIMEOUT: html/semantics/scripting-1/the-script-element/*
+SET TIMEOUT: html/syntax/parsing/DOMContentLoaded-defer-support.js
+SET TIMEOUT: html/webappapis/animation-frames/same-dispatch-time.html
+SET TIMEOUT: html/webappapis/scripting/event-loops/*
+SET TIMEOUT: html/webappapis/scripting/events/event-handler-processing-algorithm-error/*
+SET TIMEOUT: html/webappapis/scripting/processing-model-2/*
 SET TIMEOUT: IndexedDB/*
-SET TIMEOUT: longtask-timing/longtask-in-parentiframe.html
 SET TIMEOUT: infrastructure/*
 SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html
@@ -171,14 +204,15 @@ SET TIMEOUT: offscreen-canvas/the-offscreen-canvas/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: old-tests/submission/Microsoft/sandbox/*
 SET TIMEOUT: old-tests/submission/Microsoft/structuredclone/structuredclone_0.html
-SET TIMEOUT: old-tests/submission/Opera/script_scheduling/*
 SET TIMEOUT: old-tests/webdriver/timeouts/res/implicit_waits_tests.html
 SET TIMEOUT: page-visibility/resources/pagevistestharness.js
 SET TIMEOUT: payment-request/allowpaymentrequest/setting-allowpaymentrequest-timing.https.sub.html
 SET TIMEOUT: payment-request/payment-request-response-id.html
 SET TIMEOUT: pointerevents/pointerevent_support.js
 SET TIMEOUT: preload/single-download-preload.html
+SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resource-timing.js
+SET TIMEOUT: resource-timing/single-entry-per-resource.html
 SET TIMEOUT: screen-orientation/lock-bad-argument.html
 SET TIMEOUT: screen-orientation/onchange-event.html
 SET TIMEOUT: screen-orientation/resources/sandboxed-iframe-locking.html
@@ -191,7 +225,8 @@ SET TIMEOUT: service-workers/service-worker/update-recovery.https.html
 SET TIMEOUT: service-workers/service-worker/resources/extendable-event-async-waituntil.js
 SET TIMEOUT: service-workers/service-worker/resources/fetch-event-async-respond-with-worker.js
 SET TIMEOUT: service-workers/service-worker/resources/fetch-event-test-worker.js
-SET TIMEOUT: service-workers/service-worker/resources/opaque-response-preloaded-iframe.html
+SET TIMEOUT: service-workers/service-worker/resources/opaque-response-being-preloaded-xhr.html
+SET TIMEOUT: service-workers/service-worker/resources/opaque-response-preloaded-xhr.html
 SET TIMEOUT: service-workers/service-worker/resources/performance-timeline-worker.js
 SET TIMEOUT: service-workers/service-worker/resources/register-foreign-fetch-errors-worker.js
 SET TIMEOUT: shadow-dom/Document-prototype-currentScript.html
@@ -219,6 +254,76 @@ SET TIMEOUT: XMLHttpRequest/open-url-multi-window-6.htm
 SET TIMEOUT: XMLHttpRequest/xmlhttprequest-timeout-reused.html
 SET TIMEOUT: XMLHttpRequest/resources/init.htm
 SET TIMEOUT: XMLHttpRequest/resources/xmlhttprequest-timeout.js
+
+# generate_tests usage (should be got rid of)
+GENERATE_TESTS: 2dcontext/drawing-images-to-the-canvas/*
+GENERATE_TESTS: css/css-shapes-1/shape-outside/values/*
+GENERATE_TESTS: css/css-tables-3/bounding-box-computation-1.html
+GENERATE_TESTS: css/css-tables-3/bounding-box-computation-2.html
+GENERATE_TESTS: css/css-tables-3/bounding-box-computation-3.html
+GENERATE_TESTS: css/css-tables-3/caption-side-1.html
+GENERATE_TESTS: css/css-tables-3/fixed-layout-1.html
+GENERATE_TESTS: css/css-tables-3/fixed-layout-2.html
+GENERATE_TESTS: css/css-tables-3/height-distribution/computing-row-measure-0.html
+GENERATE_TESTS: css/css-tables-3/height-distribution/computing-row-measure-1.html
+GENERATE_TESTS: css/css-tables-3/height-distribution/percentage-sizing-of-table-cell-children.html
+GENERATE_TESTS: css/css-tables-3/height-distribution/percentage-sizing-of-table-cell-children.html
+GENERATE_TESTS: css/css-tables-3/html-to-css-mapping-1.html
+GENERATE_TESTS: css/css-tables-3/html-to-css-mapping-2.html
+GENERATE_TESTS: css/css-tables-3/html5-table-formatting-1.html
+GENERATE_TESTS: css/css-tables-3/html5-table-formatting-1.html
+GENERATE_TESTS: css/css-tables-3/html5-table-formatting-2.html
+GENERATE_TESTS: css/css-tables-3/html5-table-formatting-3.html
+GENERATE_TESTS: css/css-tables-3/html5-table-formatting-fixed-layout-1.html
+GENERATE_TESTS: css/css-tables-3/table-model-fixup-2.html
+GENERATE_TESTS: css/css-tables-3/table-model-fixup-2.html
+GENERATE_TESTS: css/css-tables-3/table-model-fixup-2.html
+GENERATE_TESTS: css/css-tables-3/table-model-fixup.html
+GENERATE_TESTS: css/css-tables-3/visibility-collapse-col-001.html
+GENERATE_TESTS: css/css-tables-3/visibility-collapse-row-001.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/computing-column-measure-0.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/computing-column-measure-1.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/computing-table-width-0.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/computing-table-width-1.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-1.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-2.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-guess.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-percent-guess.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-specified-guess.1.html
+GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-specified-guess.html
+GENERATE_TESTS: css/work-in-progress/ttwf_sf/divya/index-002.html
+GENERATE_TESTS: cssom/index-002.html
+GENERATE_TESTS: dom/nodes/case.js
+GENERATE_TESTS: dom/ranges/Range-cloneRange.html
+GENERATE_TESTS: dom/ranges/Range-collapse.html
+GENERATE_TESTS: dom/ranges/Range-mutations.js
+GENERATE_TESTS: dom/ranges/Range-selectNode.html
+GENERATE_TESTS: dom/ranges/Range-set.html
+GENERATE_TESTS: dom/traversal/NodeIterator.html
+GENERATE_TESTS: dom/traversal/TreeWalker.html
+GENERATE_TESTS: domparsing/createContextualFragment.html
+GENERATE_TESTS: domxpath/001.html
+GENERATE_TESTS: domxpath/002.html
+GENERATE_TESTS: html/semantics/scripting-1/the-template-element/template-element/template-as-a-descendant.html
+GENERATE_TESTS: html/syntax/parsing/Document.getElementsByTagName-foreign-01.html
+GENERATE_TESTS: html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-body-context.html
+GENERATE_TESTS: html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-context.html
+GENERATE_TESTS: html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-row-context.html
+GENERATE_TESTS: html/syntax/parsing/template/creating-an-element-for-the-token/template-owner-document.html
+GENERATE_TESTS: html/syntax/serializing-html-fragments/serializing.html
+GENERATE_TESTS: html/webappapis/atob/base64.html
+GENERATE_TESTS: mediacapture-fromelement/capture.html
+GENERATE_TESTS: mediacapture-fromelement/creation.html
+GENERATE_TESTS: mediacapture-fromelement/ended.html
+GENERATE_TESTS: offscreen-canvas/filter/offscreencanvas.filter.html
+GENERATE_TESTS: pointerevents/pointerevent_constructor.html
+GENERATE_TESTS: pointerevents/extension/pointerevent_constructor.html
+GENERATE_TESTS: selection/collapse.js
+GENERATE_TESTS: shadow-dom/leaktests/html-collection.html
+GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-001.html
+GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/ownerdocument-002.html
+GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-002.html
+GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html
 
 # Intentional use of setTimeout
 SET TIMEOUT: html/webappapis/timers/*
@@ -324,27 +429,6 @@ SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/transform
 SUPPORT-WRONG-DIR: css/WOFF2/manifest.txt
 SUPPORT-WRONG-DIR: css/WOFF2/testcaseindex.xht
 NON-EXISTENT-REF: css/css-masking-1/clip-path-svg-content/clip-path-clip-rule-008.svg
-NON-EXISTENT-REF: css/css-masking-1/clip-path-svg-content/clip-path-precision-001.svg
-NON-EXISTENT-REF: css/css-shapes-1/spec-examples/shape-outside-012.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-001.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-002.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-003.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-004.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-005.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-006.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-007.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-008.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-009.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-010.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-011.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-ic-001.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-ic-002.html
-NON-EXISTENT-REF: css/css-text-3/line-breaking/line-breaking-ic-003.html
-NON-EXISTENT-REF: css/CSS2/tables/border-collapse-005.html
-NON-EXISTENT-REF: css/mediaqueries-3/relative-units-002.html
-NON-EXISTENT-REF: css/mediaqueries-3/relative-units-003.html
-NON-EXISTENT-REF: css/mediaqueries-3/relative-units-004.html
-SAME-FILE-REF: css/css-multicol-1/multicol-rule-shorthand-2.xht
 
 
 ## Whitespace rules that we can't enforce yet
@@ -467,7 +551,7 @@ SET TIMEOUT: css/css-transitions-2/transitioncancel-001.html
 SET TIMEOUT: css/css-values-3/reference/vh_not_refreshing_on_chrome-ref.html
 SET TIMEOUT: css/css-values-3/reference/vh_not_refreshing_on_chrome_iframe-ref.html
 SET TIMEOUT: css/css-values-3/vh_not_refreshing_on_chrome.html
-SET TIMEOUT: css/css-values-3/vh_not_refreshing_on_chrome_iframe.html
+SET TIMEOUT: css/css-values-3/support/vh_not_refreshing_on_chrome_iframe.html
 SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001.html
 SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001a.html
 SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001b.html
@@ -780,3 +864,8 @@ WEBIDL2.JS:.gitmodules
 
 # Manual test that uses console.logs for feedback
 CONSOLE:payment-request/payment-request-response-id.html
+
+# Tests that use WebKit/Blink testing APIs
+LAYOUTTESTS APIS: css/css-regions-1/interactivity/*
+LAYOUTTESTS APIS: css/work-in-progress/opera/css-device-adapt/template.blink.html
+LAYOUTTESTS APIS: webgl/conformance-1.0.3/*

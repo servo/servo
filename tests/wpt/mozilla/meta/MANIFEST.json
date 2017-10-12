@@ -21660,7 +21660,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "05d60cf6c75b15a18cbd0b0526ea9edea7d933f9",
+   "28c20b33fcbd818a46005dcbf53473f8b8346c89",
    "support"
   ],
   "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
@@ -28012,7 +28012,7 @@
    "testharness"
   ],
   "mozilla/htmlfontelement_size_attribute.html": [
-   "54fe6bbc1a7a35ceb14a3bf33f81ebed55beaf72",
+   "0747a4b45f19f7afbd3fa102b32d8db231dccadb",
    "testharness"
   ],
   "mozilla/htmlimageelement.html": [

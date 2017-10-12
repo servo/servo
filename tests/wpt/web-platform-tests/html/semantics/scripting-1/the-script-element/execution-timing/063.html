@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head>
+  <title> scheduler: cloneNode (deep) of the currently executing script </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+  <script>log('HEAD script');
+  if( !window.already_cloned ){
+    window.already_cloned=true;
+    var script=document.getElementsByTagName('script')[3];
+    document.getElementsByTagName('head')[0].appendChild( script.cloneNode(true) );
+  }
+  </script>
+</head>
+<body>
+
+  <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+  <script type="text/javascript">
+  log( 'inline script #2' );
+  var t = async_test()
+
+  function test() {
+    assert_array_equals(eventOrder, ['HEAD script', 'inline script #2']);
+    t.done();
+  }
+  onload = t.step_func(test);
+  </script>
+
+</body></html>

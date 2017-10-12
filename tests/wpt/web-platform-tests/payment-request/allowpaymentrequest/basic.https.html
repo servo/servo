@@ -5,7 +5,7 @@
 <iframe id="iframe" allowpaymentrequest></iframe>
 <script>
 async_test((t) => {
-  const paymentArgs = [[{supportedMethods: ['foo']}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
+  const paymentArgs = [[{supportedMethods: 'foo'}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
 
   onload = t.step_func_done(() => {
     new window[0].PaymentRequest(...paymentArgs);

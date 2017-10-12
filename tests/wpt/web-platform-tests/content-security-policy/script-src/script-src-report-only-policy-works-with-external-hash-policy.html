@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>A report-only policy that does not allow a script should not affect an enforcing policy using hashes.</title>
+  <!-- nonces are here just to let all of our scripts run -->
+  <script nonce="abc" src='/resources/testharness.js'></script>
+  <script nonce="abc" src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script nonce="abc">
+    var externalRan = false;
+  </script>
+  <script src='./externalScript.js'
+          integrity="sha256-wIc3KtqOuTFEu6t17sIBuOswgkV406VJvhSk79Gw6U0="></script>
+  <script nonce="abc">
+    test(function() {
+      assert_true(externalRan, 'External script ran.');
+    }, 'External script in a script tag with matching SRI hash should run.');
+  </script>
+
+  <script nonce="abc" async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27nonce-abc%27'></script>
+</body>
+</html>

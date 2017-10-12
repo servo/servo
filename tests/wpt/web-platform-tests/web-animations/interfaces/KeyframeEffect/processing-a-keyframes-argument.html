@@ -258,9 +258,10 @@ test(() => {
     {done: true},
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    {offset: null, computedOffset: 1, easing: 'linear', left: '100px,200px'}
+    {offset: null, computedOffset: 1, easing: 'linear'}
   ]);
-}, 'Custom iterator with value list in keyframe should give bizarre string representation of list.');
+}, 'Custom iterator with value list in keyframe should not contain invalid ' +
+   'property value pair of list.');
 
 test(function(t) {
   var keyframe = {};

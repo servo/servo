@@ -1,0 +1,207 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<p>ResizeObserver tests</p>
+<div id="target1" style="width:100px;height:100px;">t1</div>
+<div id="target2" style="width:100px;height:100px;">t2</div>
+<img id="target3" style="width:100px;height:100px;">
+<iframe src="./resources/iframe.html" width="300px" height="100px" style="display:block"></iframe>
+<script>
+'use strict';
+
+let t1 = document.querySelector('#target1');
+let t2 = document.querySelector('#target2');
+
+// allow uncaught exception because ResizeObserver posts exceptions
+// to window error handler when limit is exceeded.
+setup({allow_uncaught_exception: true});
+
+function test0() {
+  let helper = new ResizeTestHelper(
+    "test0: simple observation",
+  [
+    {
+      setup: observer => {
+        observer.observe(t1);
+        t1.style.width = "5px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, t1, "target is t1");
+        assert_equals(entries[0].contentRect.width, 5, "target width");
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test1() {
+  let helper = new ResizeTestHelper(
+    "test1: multiple observation on same element trigger only one",
+  [
+    {
+      setup: observer => {
+        observer.observe(t1);
+        observer.observe(t1);
+        t1.style.width = "10px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test2() {
+  test(() => {
+      assert_throws({name: "TypeError"}, _=> {
+        let ro = new ResizeObserver(() => {});
+        ro.observe({});
+      });
+    },
+    "test2: throw exception when observing non-element"
+  );
+  return Promise.resolve();
+}
+
+function test3() {
+  let helper = new ResizeTestHelper(
+    "test3: disconnect stops all notifications", [
+    {
+      setup: observer => {
+        observer.observe(t1);
+        observer.observe(t2);
+        observer.disconnect();
+        t1.style.width = "30px";
+      },
+      notify: entries => {
+         assert_unreached("no entries should be observed");
+      },
+      timeout: () => {
+        // expected
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test4() {
+  let helper = new ResizeTestHelper(
+    "test4: unobserve target stops notifications, unobserve non-observed does nothing", [
+    {
+      setup: observer => {
+        observer.observe(t1);
+        observer.observe(t2);
+        observer.unobserve(t1);
+        observer.unobserve(document.body);
+        t1.style.width = "40px";
+        t2.style.width = "40px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "only t2");
+        assert_equals(entries[0].target, t2, "t2 was observed");
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test5() {
+  let t3 = document.querySelector('#target3');
+  var helper = new ResizeTestHelper("test5: observe img",[
+    {
+      setup: observer => {
+        observer.observe(t3);
+      },
+      notify: entries => {
+      }
+    },
+    {
+      setup: observer => {
+        t3.style.width = "100.5px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1);
+        assert_equals(entries[0].contentRect.width, 100.5);
+      }
+    }
+  ]);
+  return helper.start();
+}
+
+function test6() {
+  let resolvePromise;
+  let promise = new Promise((resolve) => {
+    resolvePromise = resolve;
+  });
+  let test = async_test('test6: iframe notifications');
+  let testRequested = false;
+  let iframe = document.querySelector('iframe');
+  window.addEventListener('message', event => {
+    switch(event.data) {
+    case 'readyToTest':
+      if (!testRequested) {
+        iframe.contentWindow.postMessage('startTest', '*');
+        testRequested = true;
+      }
+    break;
+    case 'success':
+    case 'fail':
+      window.requestAnimationFrame(() => {
+        test.step( () => {
+          assert_equals(event.data, 'success');
+          test.done();
+          resolvePromise();
+        });
+      });
+    break;
+    }
+  }, false);
+  return promise;
+}
+
+function test7() {
+  let harnessTest = async_test("test7: callback.this");
+  let resolvePromise;
+  let ro = new ResizeObserver( function(entries, obs)  {
+    let callbackThis = this;
+    resolvePromise();
+    harnessTest.step(() => {
+      assert_equals(callbackThis, ro, "callback.this is ResizeObserver");
+      assert_equals(obs, ro, "2nd argument is ResizeObserver");
+      ro.disconnect();
+      // every reference to RO must be null before test completes
+      // to avoid triggering test leak-detection
+      ro = null;
+      callbackThis = null;
+      obs = null;
+      harnessTest.done();
+     });
+    }
+  );
+  ro.observe(t1);
+
+  return new Promise( (resolve, reject) => {
+    resolvePromise = resolve;
+  });
+}
+
+let guard;
+test(_ => {
+  assert_own_property(window, "ResizeObserver");
+  guard = async_test('guard');
+}, "ResizeObserver implemented")
+
+test0()
+  .then(() => { return test1(); })
+  .then(() => { return test2(); })
+  .then(() => { return test3(); })
+  .then(() => { return test4(); })
+  .then(() => { return test5(); })
+  .then(() => { return test6(); })
+  .then(() => { return test7(); })
+  .then(() => { guard.done(); });
+
+</script>

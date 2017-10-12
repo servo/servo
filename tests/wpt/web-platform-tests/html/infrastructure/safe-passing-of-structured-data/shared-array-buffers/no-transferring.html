@@ -17,7 +17,7 @@ test(() => {
 
 test(() => {
   const sab = new SharedArrayBuffer();
-  const worker = new Worker("resources/incrementer.js");
+  const worker = new Worker("resources/echo-worker.js");
   assert_throws("DataCloneError", () => worker.postMessage(sab, [sab]));
   assert_throws("DataCloneError", () => worker.postMessage("test", [sab]));
 }, "Trying to transfer a SharedArrayBuffer to a worker throws");
