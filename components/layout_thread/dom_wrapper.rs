@@ -31,12 +31,12 @@
 #![allow(unsafe_code)]
 
 use atomic_refcell::{AtomicRef, AtomicRefMut, AtomicRefCell};
-use core::nonzero::NonZero;
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
 use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use nonzero::NonZeroUsize;
 use range::Range;
 use script::layout_exports::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -79,7 +79,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocke
 use style::str::is_whitespace;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr: *mut StyleData = data.ptr.get();
+    let ptr = data.ptr.get() as *mut StyleData;
     let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
     let _ = Box::from_raw(non_opaque);
 }
@@ -235,7 +235,8 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
             let ptr: *mut StyleAndLayoutData =
                 Box::into_raw(Box::new(StyleAndLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
-                ptr: NonZero::new_unchecked(ptr as *mut StyleData),
+                ptr: NonZeroUsize::new_unchecked(ptr as usize),
+                phantom: PhantomData,
             };
             self.init_style_and_layout_data(opaque);
         };
@@ -471,7 +472,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
-                &(*d.ptr.get()).element_data
+                &(*(d.ptr.get() as *mut StyleData)).element_data
             })
         }
     }
@@ -583,7 +584,7 @@ impl<'le> ServoLayoutElement<'le> {
 
     fn get_style_data(&self) -> Option<&StyleData> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| &*d.ptr.get())
+            self.get_style_and_layout_data().map(|d| &*(d.ptr.get() as *mut StyleData))
         }
     }
 

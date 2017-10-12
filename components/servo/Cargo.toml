@@ -27,6 +27,7 @@ unstable = [
     "constellation/unstable",
     "gfx/unstable",
     "profile/unstable",
+    "script_layout_interface/unstable",
 ]
 
 [dependencies]
