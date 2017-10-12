@@ -55,6 +55,11 @@ impl<E> InvalidationProcessor<E> for StateAndAttrInvalidationProcessor
 where
     E: TElement,
 {
+    /// We need to invalidate style on an eager pseudo-element, in order to
+    /// process changes that could otherwise end up in ::before or ::after
+    /// content being generated.
+    fn invalidates_on_eager_pseudo_element(&self) -> bool { true }
+
     fn collect_invalidations(
         &self,
         element: E,
