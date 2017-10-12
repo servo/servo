@@ -959,7 +959,6 @@ pub mod root {
     pub const NS_AUTHOR_SPECIFIED_BACKGROUND: ::std::os::raw::c_uint = 1;
     pub const NS_AUTHOR_SPECIFIED_BORDER: ::std::os::raw::c_uint = 2;
     pub const NS_AUTHOR_SPECIFIED_PADDING: ::std::os::raw::c_uint = 4;
-    pub const NS_AUTHOR_SPECIFIED_TEXT_SHADOW: ::std::os::raw::c_uint = 8;
     pub const NS_STYLE_INHERIT_MASK: ::std::os::raw::c_uint = 16777215;
     pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: ::std::os::raw::c_uint =
         16777216;
