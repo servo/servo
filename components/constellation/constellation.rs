@@ -2902,12 +2902,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // In order to get repeatability, we sort the pipeline ids.
         let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
         pipeline_ids.sort();
-        if let Some((ref mut rng, _)) = self.random_pipeline_closure {
+        if let Some((ref mut rng, probability)) = self.random_pipeline_closure {
             if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
                     // Don't kill the mozbrowser pipeline
                     if PREFS.is_mozbrowser_enabled() && pipeline.parent_info.is_none() {
                         info!("Not closing mozbrowser pipeline {}.", pipeline_id);
+                    } else if
+                        self.pending_changes.iter().any(|change| change.new_pipeline_id == pipeline.id) &&
+                        probability <= rng.gen::<f32>()
+                    {
+                        // We tend not to close pending pipelines, as that almost always
+                        // results in pipelines being closed early in their lifecycle,
+                        // and not stressing the constellation as much.
+                        // https://github.com/servo/servo/issues/18852
+                        info!("Not closing pending pipeline {}.", pipeline_id);
                     } else {
                         // Note that we deliberately do not do any of the tidying up
                         // associated with closing a pipeline. The constellation should cope!
