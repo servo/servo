@@ -203,13 +203,17 @@ where
         }
     }
 
-    fn invalidated_child(
+    fn invalidated_descendants(
         &self,
         element: E,
-        _data: Option<&mut ElementData>,
+        data: Option<&mut ElementData>,
         child: E,
     ) {
         if child.get_data().is_none() {
+            return;
+        }
+
+        if data.as_ref().map_or(true, |d| d.styles.is_display_none()) {
             return;
         }
 
@@ -220,24 +224,12 @@ where
         // we need to propagate it as appropriate.
         let mut current = child.traversal_parent();
         while let Some(parent) = current.take() {
+            unsafe { parent.set_dirty_descendants() };
+            current = parent.traversal_parent();
+
             if parent == element {
                 break;
             }
-
-            unsafe { parent.set_dirty_descendants() };
-            current = parent.traversal_parent();
-        }
-    }
-
-    fn invalidated_descendants(
-        &self,
-        element: E,
-        data: Option<&mut ElementData>,
-    ) {
-        // FIXME(emilio): We probably want to walk the flattened tree here too,
-        // and remove invalidated_child instead, or something like that.
-        if data.as_ref().map_or(false, |d| !d.styles.is_display_none()) {
-            unsafe { element.set_dirty_descendants() };
         }
     }
 

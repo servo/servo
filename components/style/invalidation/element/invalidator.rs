@@ -54,14 +54,6 @@ where
         data: Option<&mut ElementData>,
     );
 
-    /// Executes an arbitrary action when a direct child is invalidated.
-    fn invalidated_child(
-        &self,
-        element: E,
-        data: Option<&mut ElementData>,
-        child: E,
-    );
-
     /// Executes an action when `Self` is invalidated.
     fn invalidated_self(
         &self,
@@ -74,6 +66,7 @@ where
         &self,
         element: E,
         data: Option<&mut ElementData>,
+        child: E,
     );
 }
 
@@ -388,22 +381,22 @@ where
                 sibling_invalidations,
             );
 
+        let invalidated_descendants = child_invalidator.invalidate_descendants(
+            &invalidations_for_descendants
+        );
+
         // The child may not be a flattened tree child of the current element,
         // but may be arbitrarily deep.
         //
         // Since we keep the traversal flags in terms of the flattened tree,
         // we need to propagate it as appropriate.
-        if invalidated_child {
-            self.processor.invalidated_child(
+        if invalidated_child || invalidated_descendants {
+            self.processor.invalidated_descendants(
                 self.element,
                 self.data.as_mut().map(|d| &mut **d),
                 child,
             );
         }
-
-        let invalidated_descendants = child_invalidator.invalidate_descendants(
-            &invalidations_for_descendants
-        );
 
         invalidated_child || invalidated_descendants
     }
@@ -516,13 +509,6 @@ where
         }
 
         any_descendant |= self.invalidate_nac(invalidations);
-
-        if any_descendant {
-            self.processor.invalidated_descendants(
-                self.element,
-                self.data.as_mut().map(|d| &mut **d)
-            );
-        }
 
         any_descendant
     }
