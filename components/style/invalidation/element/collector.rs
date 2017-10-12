@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A collector for invalidations due to state and attribute changes.
+//! An invalidation processor for style changes due to state and attribute
+//! changes.
 
 use Atom;
 use context::{QuirksMode, SharedStyleContext};
@@ -11,7 +12,7 @@ use dom::TElement;
 use element_state::{ElementState, IN_VISITED_OR_UNVISITED_STATE};
 use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::invalidation_map::*;
-use invalidation::element::invalidator::{InvalidationVector, Invalidation, InvalidationCollector};
+use invalidation::element::invalidator::{InvalidationVector, Invalidation, InvalidationProcessor};
 use invalidation::element::restyle_hints::*;
 use selector_map::SelectorMap;
 use selector_parser::Snapshot;
@@ -48,11 +49,13 @@ where
     invalidates_self: bool,
 }
 
-///  A collector for state and attribute invalidations.
-pub struct StateAndAttrInvalidationCollector;
+/// An invalidation processor for style changes due to state and attribute
+/// changes.
+pub struct StateAndAttrInvalidationProcessor;
 
-impl InvalidationCollector for StateAndAttrInvalidationCollector {
+impl InvalidationProcessor for StateAndAttrInvalidationProcessor {
     fn collect_invalidations<E>(
+        &self,
         element: E,
         mut data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
@@ -171,6 +174,96 @@ impl InvalidationCollector for StateAndAttrInvalidationCollector {
         }
 
         invalidated_self
+    }
+
+    fn should_process_descendants<E>(
+        &self,
+        _element: E,
+        data: Option<&mut ElementData>,
+    ) -> bool
+    where
+        E: TElement,
+    {
+        let data = match data {
+            None => return false,
+            Some(ref data) => data,
+        };
+
+        // FIXME(emilio): should check only RESTYLE_DESCENDANTS.
+        //
+        // Also, could probably return false if data.styles.is_display_none()
+        // returns true.
+        !data.hint.contains_subtree()
+    }
+
+    fn recursion_limit_exceeded<E>(
+        &self,
+        _element: E,
+        data: Option<&mut ElementData>,
+    )
+    where
+        E: TElement,
+    {
+        if let Some(data) = data {
+            data.hint.insert(RESTYLE_DESCENDANTS);
+        }
+    }
+
+    fn invalidated_child<E>(
+        &self,
+        element: E,
+        _data: Option<&mut ElementData>,
+        child: E,
+    )
+    where
+        E: TElement,
+    {
+        if child.get_data().is_none() {
+            return;
+        }
+
+        // The child may not be a flattened tree child of the current element,
+        // but may be arbitrarily deep.
+        //
+        // Since we keep the traversal flags in terms of the flattened tree,
+        // we need to propagate it as appropriate.
+        let mut current = child.traversal_parent();
+        while let Some(parent) = current.take() {
+            if parent == element {
+                break;
+            }
+
+            unsafe { parent.set_dirty_descendants() };
+            current = parent.traversal_parent();
+        }
+    }
+
+    fn invalidated_descendants<E>(
+        &self,
+        element: E,
+        data: Option<&mut ElementData>,
+    )
+    where
+        E: TElement,
+    {
+        // FIXME(emilio): We probably want to walk the flattened tree here too,
+        // and remove invalidated_child instead, or something like that.
+        if data.as_ref().map_or(false, |d| !d.styles.is_display_none()) {
+            unsafe { element.set_dirty_descendants() };
+        }
+    }
+
+    fn invalidated_self<E>(
+        &self,
+        _element: E,
+        data: Option<&mut ElementData>,
+    )
+    where
+        E: TElement,
+    {
+        if let Some(data) = data {
+            data.hint.insert(RESTYLE_SELF);
+        }
     }
 }
 
