@@ -25,6 +25,11 @@ pub trait InvalidationProcessor<E>
 where
     E: TElement,
 {
+    /// Whether an invalidation that contains only an eager pseudo-element
+    /// selector like ::before or ::after triggers invalidation of the element
+    /// that would originate it.
+    fn invalidates_on_eager_pseudo_element(&self) -> bool { false }
+
     /// Collect invalidations for a given element's descendants and siblings.
     ///
     /// Returns whether the element itself was invalidated.
@@ -670,7 +675,8 @@ where
                     //
                     // Note that we'll also restyle the pseudo-element because
                     // it would match this invalidation.
-                    if pseudo.is_eager() {
+                    if self.processor.invalidates_on_eager_pseudo_element() &&
+                        pseudo.is_eager() {
                         invalidated_self = true;
                     }
                 }
