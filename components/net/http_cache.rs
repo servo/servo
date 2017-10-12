@@ -267,6 +267,11 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
     pub fn construct_response(&self, request: &Request)
         -> Option<CachedResponse> {
+        match request.method {
+            // Only Get requests are cached, avoid a url based match for others.
+            Method::Get => {},
+            _ => return None,
+        }
         let entry_key = CacheKey::new(request.clone());
         if let Some(ref resources) = self.entries.get(&entry_key) {
             for cached_resource in resources.iter() {
@@ -370,7 +375,6 @@ impl HttpCache {
             // Checking all entries for potential invalidation, as the values in location/content_location
             // can refer to stored resources entirely unrelated to the current request url.
             let string_resource_url = key.url().into_string();
-            println!("comparing url for invalidation {:?} {:?}", key.url(), request.url());
             let matches = (key.url() == request.url()) |
                 (string_resource_url == location) |
                 (string_resource_url == content_location);
