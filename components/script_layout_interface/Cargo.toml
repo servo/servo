@@ -9,9 +9,6 @@ publish = false
 name = "script_layout_interface"
 path = "lib.rs"
 
-[features]
-unstable = ["nonzero/unstable"]
-
 [dependencies]
 app_units = "0.5"
 atomic_refcell = "0.1"

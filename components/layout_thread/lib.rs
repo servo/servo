@@ -6,7 +6,6 @@
 //! painted.
 
 #![feature(mpsc_select)]
-#![cfg_attr(feature = "unstable", feature(nonzero))]
 
 extern crate app_units;
 extern crate atomic_refcell;
