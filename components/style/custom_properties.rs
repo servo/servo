@@ -507,11 +507,15 @@ impl<'a> CustomPropertiesBuilder<'a> {
             return;
         }
 
+        if !self.value_may_affect_style(name, &specified_value) {
+            return;
+        }
+
         if self.custom_properties.is_none() {
             self.custom_properties = Some(match self.inherited {
                 Some(inherited) => (**inherited).clone(),
                 None => CustomPropertiesMap::new(),
-            })
+            });
         }
 
         let map = self.custom_properties.as_mut().unwrap();
@@ -525,10 +529,50 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 CSSWideKeyword::Initial => {
                     map.remove(name);
                 }
-                CSSWideKeyword::Unset | // Custom properties are inherited by default.
-                CSSWideKeyword::Inherit => {} // The inherited value is what we already have.
+                // handled in value_may_affect_style
+                CSSWideKeyword::Unset |
+                CSSWideKeyword::Inherit => unreachable!(),
             }
         }
+    }
+
+    fn value_may_affect_style(
+        &self,
+        name: &Name,
+        value: &DeclaredValue<Arc<SpecifiedValue>>
+    ) -> bool {
+        match *value {
+            DeclaredValue::CSSWideKeyword(CSSWideKeyword::Unset) |
+            DeclaredValue::CSSWideKeyword(CSSWideKeyword::Inherit) => {
+                // Custom properties are inherited by default. So
+                // explicit 'inherit' or 'unset' means we can just use
+                // any existing value in the inherited CustomPropertiesMap.
+                return false;
+            }
+            _ => {}
+        }
+
+        let existing_value =
+            self.custom_properties.as_ref().and_then(|m| m.get(name))
+                .or_else(|| self.inherited.and_then(|m| m.get(name)));
+
+        match (existing_value, value) {
+            (None, &DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial)) => {
+                // The initial value of a custom property is the same as it
+                // not existing in the map.
+                return false;
+            }
+            (Some(existing_value), &DeclaredValue::Value(specified_value)) => {
+                // Don't bother overwriting an existing inherited value with
+                // the same specified value.
+                if existing_value == specified_value {
+                    return false;
+                }
+            }
+            _ => {}
+        }
+
+        true
     }
 
     /// Returns the final map of applicable custom properties.
