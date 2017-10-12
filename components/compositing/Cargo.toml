@@ -9,9 +9,6 @@ publish = false
 name = "compositing"
 path = "lib.rs"
 
-[features]
-unstable = ["nonzero/unstable"]
-
 [dependencies]
 euclid = "0.15"
 gfx_traits = {path = "../gfx_traits"}

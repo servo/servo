@@ -7,7 +7,6 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
-#![cfg_attr(feature = "unstable", feature(nonzero))]
 
 extern crate app_units;
 extern crate atomic_refcell;

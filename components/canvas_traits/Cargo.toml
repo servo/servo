@@ -9,9 +9,6 @@ publish = false
 name = "canvas_traits"
 path = "lib.rs"
 
-[features]
-unstable = ["nonzero/unstable"]
-
 [dependencies]
 cssparser = "0.22.0"
 euclid = "0.15"

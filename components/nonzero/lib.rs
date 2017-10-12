@@ -6,8 +6,9 @@
 //! or some stable types with an equivalent API (but no memory layout optimization).
 
 #![cfg_attr(feature = "unstable", feature(nonzero))]
+#![cfg_attr(feature = "unstable", feature(const_fn))]
+#![cfg_attr(feature = "unstable", feature(const_nonzero_new))]
 
-#[cfg(not(feature = "unstable"))]
 #[macro_use]
 extern crate serde;
 
@@ -18,8 +19,23 @@ mod imp {
     extern crate core;
     use self::core::nonzero::NonZero;
 
-    pub type NonZeroU32 = NonZero<u32>;
-    pub type NonZeroUsize = NonZero<usize>;
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+    pub struct NonZeroU32(NonZero<u32>);
+
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+    pub struct NonZeroUsize(NonZero<usize>);
+
+    impl NonZeroU32 {
+        #[inline] pub const unsafe fn new_unchecked(x: u32) -> Self { NonZeroU32(NonZero::new_unchecked(x)) }
+        #[inline] pub fn new(x: u32) -> Option<Self> { NonZero::new(x).map(NonZeroU32) }
+        #[inline] pub fn get(self) -> u32 { self.0.get() }
+    }
+
+    impl NonZeroUsize {
+        #[inline] pub const unsafe fn new_unchecked(x: usize) -> Self { NonZeroUsize(NonZero::new_unchecked(x)) }
+        #[inline] pub fn new(x: usize) -> Option<Self> { NonZero::new(x).map(NonZeroUsize) }
+        #[inline] pub fn get(self) -> usize { self.0.get() }
+    }
 }
 
 #[cfg(not(feature = "unstable"))]

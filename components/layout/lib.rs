@@ -5,7 +5,6 @@
 #![deny(unsafe_code)]
 #![feature(box_patterns)]
 #![feature(conservative_impl_trait)]
-#![feature(nonzero)]
 #![feature(raw)]
 
 extern crate app_units;

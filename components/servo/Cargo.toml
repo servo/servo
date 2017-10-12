@@ -20,14 +20,9 @@ googlevr = ["webvr/googlevr"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
-    "layout_thread/unstable",
     "msg/unstable",
-    "canvas_traits/unstable",
-    "compositing/unstable",
-    "constellation/unstable",
     "gfx/unstable",
     "profile/unstable",
-    "script_layout_interface/unstable",
 ]
 
 [dependencies]

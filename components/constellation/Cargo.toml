@@ -9,9 +9,6 @@ publish = false
 name = "constellation"
 path = "lib.rs"
 
-[features]
-unstable = ["servo_remutex/unstable"]
-
 [dependencies]
 backtrace = "0.3"
 bluetooth_traits = { path = "../bluetooth_traits" }
