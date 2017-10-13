@@ -16,6 +16,7 @@ use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
+use std::cmp;
 use std::fmt;
 use std::hash::Hash;
 use style_traits::{ToCss, StyleParseErrorKind, ParseError};
@@ -165,6 +166,23 @@ where
         let result = self.values.remove(key);
         self.values.end_mutation();
         result
+    }
+
+    fn remove_set<S>(&mut self, set: &::hash::HashSet<K, S>)
+        where S: ::std::hash::BuildHasher,
+    {
+        if set.is_empty() {
+            return;
+        }
+        self.index.retain(|key| !set.contains(key));
+        self.values.begin_mutation();
+        // XXX It may be better to use retain when we back to use a
+        // normal hashmap rather than DiagnosticHashMap.
+        for key in set.iter() {
+            self.values.remove(key);
+        }
+        self.values.end_mutation();
+        debug_assert_eq!(self.values.len(), self.index.len());
     }
 }
 
@@ -588,179 +606,232 @@ impl<'a> CustomPropertiesBuilder<'a> {
         };
 
         if self.may_have_cycles {
-            remove_cycles(&mut map);
             substitute_all(&mut map);
         }
         Some(Arc::new(map))
     }
 }
 
-/// https://drafts.csswg.org/css-variables/#cycles
+/// Resolve all custom properties to either substituted or invalid.
 ///
-/// The initial value of a custom property is represented by this property not
-/// being in the map.
-fn remove_cycles(map: &mut CustomPropertiesMap) {
-    let mut to_remove = PrecomputedHashSet::default();
-    {
-        type VisitedNamesStack<'a> = SmallVec<[&'a Name; 10]>;
+/// It does cycle dependencies removal at the same time as substitution.
+fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
+    // The cycle dependencies removal in this function is a variant
+    // of Tarjan's algorithm. It is mostly based on the pseudo-code
+    // listed in
+    // https://en.wikipedia.org/w/index.php?
+    // title=Tarjan%27s_strongly_connected_components_algorithm&oldid=801728495
+    //
+    // FIXME This function currently does at least one addref to names
+    // for each variable regardless whether it has reference. Each
+    // variable with any reference would have an additional addref.
+    // There is another addref for each reference.
+    // Strictly speaking, these addrefs are not necessary, because we
+    // don't add/remove entry from custom properties map, and thus keys
+    // should be alive in the whole process until we start removing
+    // invalids. However, there is no safe way for us to prove this to
+    // the compiler. We may be able to fix this issue at some point if
+    // the standard library can provide some kind of hashmap wrapper
+    // with frozen keys.
 
-        let mut visited = PrecomputedHashSet::default();
-        let mut stack = VisitedNamesStack::new();
-        for (name, value) in map.iter() {
-            walk(map, name, value, &mut stack, &mut visited, &mut to_remove);
+    /// Struct recording necessary information for each variable.
+    struct VarInfo {
+        /// The name of the variable. It will be taken to save addref
+        /// when the corresponding variable is popped from the stack.
+        /// This also serves as a mark for whether the variable is
+        /// currently in the stack below.
+        name: Option<Name>,
+        /// If the variable is in a dependency cycle, lowlink represents
+        /// a smaller index which corresponds to a variable in the same
+        /// strong connected component, which is known to be accessible
+        /// from this variable. It is not necessarily the root, though.
+        lowlink: usize,
+    }
+    /// Context struct for traversing the variable graph, so that we can
+    /// avoid referencing all the fields multiple times.
+    struct Context<'a> {
+        /// Number of variables visited. This is used as the order index
+        /// when we visit a new unresolved variable.
+        count: usize,
+        /// The map from custom property name to its order index.
+        index_map: PrecomputedHashMap<Name, usize>,
+        /// Information of each variable indexed by the order index.
+        var_info: SmallVec<[VarInfo; 5]>,
+        /// The stack of order index of visited variables. It contains
+        /// all unfinished strong connected components.
+        stack: SmallVec<[usize; 5]>,
+        map: &'a mut CustomPropertiesMap,
+        /// The set of invalid custom properties.
+        invalid: &'a mut PrecomputedHashSet<Name>,
+    }
 
-            fn walk<'a>(
-                map: &'a CustomPropertiesMap,
-                name: &'a Name,
-                value: &'a Arc<VariableValue>,
-                stack: &mut VisitedNamesStack<'a>,
-                visited: &mut PrecomputedHashSet<&'a Name>,
-                to_remove: &mut PrecomputedHashSet<Name>,
-            ) {
-                if value.references.is_empty() {
-                    return;
+    /// This function combines the traversal for cycle removal and value
+    /// substitution. It returns either a signal None if this variable
+    /// has been fully resolved (to either having no reference or being
+    /// marked invalid), or the order index for the given name.
+    ///
+    /// When it returns, the variable corresponds to the name would be
+    /// in one of the following states:
+    /// * It is still in context.stack, which means it is part of an
+    ///   potentially incomplete dependency circle.
+    /// * It has been added into the invalid set. It can be either that
+    ///   the substitution failed, or it is inside a dependency circle.
+    ///   When this function put a variable into the invalid set because
+    ///   of dependency circle, it would put all variables in the same
+    ///   strong connected component to the set together.
+    /// * It doesn't have any reference, because either this variable
+    ///   doesn't have reference at all in specified value, or it has
+    ///   been completely resolved.
+    /// * There is no such variable at all.
+    fn traverse<'a>(name: Name, context: &mut Context<'a>) -> Option<usize> {
+        use hash::map::Entry;
+
+        // Some shortcut checks.
+        let (name, value) = if let Some(value) = context.map.get(&name) {
+            // This variable has been resolved. Return the signal value.
+            if value.references.is_empty()  || context.invalid.contains(&name) {
+                return None;
+            }
+            // Whether this variable has been visited in this traversal.
+            let key;
+            match context.index_map.entry(name) {
+                Entry::Occupied(entry) => { return Some(*entry.get()); }
+                Entry::Vacant(entry) => {
+                    key = entry.key().clone();
+                    entry.insert(context.count);
                 }
+            }
+            // Hold a strong reference to the value so that we don't
+            // need to keep reference to context.map.
+            (key, value.clone())
+        } else {
+            // The variable doesn't exist at all.
+            return None;
+        };
 
-                let already_visited_before = !visited.insert(name);
-                if already_visited_before {
-                    return
-                }
+        // Add new entry to the information table.
+        let index = context.count;
+        context.count += 1;
+        debug_assert!(index == context.var_info.len());
+        context.var_info.push(VarInfo {
+            name: Some(name),
+            lowlink: index,
+        });
+        context.stack.push(index);
 
-                stack.push(name);
-                for next in value.references.iter() {
-                    if let Some(position) = stack.iter().position(|x| *x == next) {
-                        // Found a cycle
-                        for &in_cycle in &stack[position..] {
-                            to_remove.insert(in_cycle.clone());
-                        }
-                    } else {
-                        if let Some(value) = map.get(next) {
-                            walk(map, next, value, stack, visited, to_remove);
-                        }
+        let mut self_ref = false;
+        let mut lowlink = index;
+        for next in value.references.iter() {
+            let next_index = match traverse(next.clone(), context) {
+                Some(index) => index,
+                // There is nothing to do if the next variable has been
+                // fully resolved at this point.
+                None => { continue; }
+            };
+            let next_info = &context.var_info[next_index];
+            if next_index > index {
+                // The next variable has a larger index than us, so it
+                // must be inserted in the recursive call above. We want
+                // to get its lowlink.
+                lowlink = cmp::min(lowlink, next_info.lowlink);
+            } else if next_index == index {
+                self_ref = true;
+            } else if next_info.name.is_some() {
+                // The next variable has a smaller order index and it is
+                // in the stack, so we are at the same component.
+                lowlink = cmp::min(lowlink, next_index);
+            }
+        }
+
+        context.var_info[index].lowlink = lowlink;
+        if lowlink != index {
+            // This variable is in a loop, but it is not the root of
+            // this strong connected component. We simply return for
+            // now, and the root would add it into the invalid set.
+            // This cannot be added into the invalid set here, because
+            // otherwise the shortcut check at the beginning of this
+            // function would return the wrong value.
+            return Some(index);
+        }
+
+        // This is the root of a strong-connected component.
+        let mut in_loop = self_ref;
+        let name;
+        loop {
+            let var_index = context.stack.pop()
+                .expect("The current variable should still be in stack");
+            let var_info = &mut context.var_info[var_index];
+            // We should never visit the variable again, so it's safe
+            // to take the name away, so that we don't do additional
+            // reference count.
+            let var_name = var_info.name.take()
+                .expect("Variable should not be poped from stack twice");
+            if var_index == index {
+                name = var_name;
+                break;
+            }
+            // Anything here is in a loop which can traverse to the
+            // variable we are handling, so we should add it into
+            // the invalid set. We should never visit the variable
+            // again so it's safe to just take the name away.
+            context.invalid.insert(var_name);
+            in_loop = true;
+        }
+        if in_loop {
+            // This variable is in loop. Resolve to invalid.
+            context.invalid.insert(name);
+            return None;
+        }
+
+        // Now we have shown that this variable is not in a loop, and
+        // all of its dependencies should have been resolved. We can
+        // start substitution now.
+        let mut computed_value = ComputedValue::empty();
+        let mut input = ParserInput::new(&value.css);
+        let mut input = Parser::new(&mut input);
+        let mut position = (input.position(), value.first_token_type);
+        let result = substitute_block(
+            &mut input,
+            &mut position,
+            &mut computed_value,
+            &mut |name, partial_computed_value| {
+                if let Some(value) = context.map.get(name) {
+                    if !context.invalid.contains(name) {
+                        partial_computed_value.push_variable(value);
+                        return Ok(value.last_token_type);
                     }
                 }
-                stack.pop();
+                Err(())
             }
-        }
-    }
-
-    for name in to_remove {
-        map.remove(&name);
-    }
-}
-
-/// Replace `var()` functions for all custom properties.
-fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
-    // FIXME(emilio): This stash is needed because we can't prove statically to
-    // rustc that we don't try to mutate the same variable from two recursive
-    // `substitute_one` calls.
-    //
-    // If this is really really hot, we may be able to cheat using `unsafe`, I
-    // guess...
-    let mut stash = PrecomputedHashMap::default();
-    let mut invalid = PrecomputedHashSet::default();
-
-    for (name, value) in custom_properties_map.iter() {
-        if !value.references.is_empty() && !stash.contains_key(name) {
-            let _ = substitute_one(
-                name,
-                value,
-                custom_properties_map,
-                None,
-                &mut stash,
-                &mut invalid,
-            );
-        }
-    }
-
-    for (name, value) in stash.drain() {
-        custom_properties_map.insert(name, value);
-    }
-
-    for name in invalid.drain() {
-        custom_properties_map.remove(&name);
-    }
-
-    debug_assert!(custom_properties_map.iter().all(|(_, v)| v.references.is_empty()));
-}
-
-/// Replace `var()` functions for one custom property, leaving the result in
-/// `stash`.
-///
-/// Also recursively record results for other custom properties referenced by
-/// `var()` functions.
-///
-/// Return `Err(())` for invalid at computed time.  or `Ok(last_token_type that
-/// was pushed to partial_computed_value)` otherwise.
-fn substitute_one(
-    name: &Name,
-    specified_value: &Arc<VariableValue>,
-    custom_properties: &CustomPropertiesMap,
-    partial_computed_value: Option<&mut VariableValue>,
-    stash: &mut PrecomputedHashMap<Name, Arc<VariableValue>>,
-    invalid: &mut PrecomputedHashSet<Name>,
-) -> Result<TokenSerializationType, ()> {
-    debug_assert!(!specified_value.references.is_empty());
-    debug_assert!(!stash.contains_key(name));
-
-    if invalid.contains(name) {
-        return Err(());
-    }
-
-    let mut computed_value = ComputedValue::empty();
-    let mut input = ParserInput::new(&specified_value.css);
-    let mut input = Parser::new(&mut input);
-    let mut position = (input.position(), specified_value.first_token_type);
-
-    let result = substitute_block(
-        &mut input,
-        &mut position,
-        &mut computed_value,
-        &mut |name, partial_computed_value| {
-            if let Some(already_computed) = stash.get(name) {
-                partial_computed_value.push_variable(already_computed);
-                return Ok(already_computed.last_token_type);
-            }
-
-            let other_specified_value = match custom_properties.get(name) {
-                Some(v) => v,
-                None => return Err(()),
-            };
-
-            if other_specified_value.references.is_empty() {
-                partial_computed_value.push_variable(other_specified_value);
-                return Ok(other_specified_value.last_token_type);
-            }
-
-            substitute_one(
-                name,
-                other_specified_value,
-                custom_properties,
-                Some(partial_computed_value),
-                stash,
-                invalid
-            )
-        }
-    );
-
-    match result {
-        Ok(last_token_type) => {
+        );
+        if let Ok(last_token_type) = result {
             computed_value.push_from(position, &input, last_token_type);
+            context.map.insert(name, Arc::new(computed_value));
+        } else {
+            context.invalid.insert(name);
         }
-        Err(..) => {
-            invalid.insert(name.clone());
-            return Err(())
-        }
+
+        // All resolved, so return the signal value.
+        None
     }
 
-    if let Some(partial_computed_value) = partial_computed_value {
-        partial_computed_value.push_variable(&computed_value)
+    // We have to clone the names so that we can mutably borrow the map
+    // in the context we create for traversal.
+    let names = custom_properties_map.index.clone();
+    let mut invalid = PrecomputedHashSet::default();
+    for name in names.into_iter() {
+        let mut context = Context {
+            count: 0,
+            index_map: PrecomputedHashMap::default(),
+            stack: SmallVec::new(),
+            var_info: SmallVec::new(),
+            map: custom_properties_map,
+            invalid: &mut invalid,
+        };
+        traverse(name, &mut context);
     }
 
-    let last_token_type = computed_value.last_token_type;
-    stash.insert(name.clone(), Arc::new(computed_value));
-
-    Ok(last_token_type)
+    custom_properties_map.remove_set(&invalid);
 }
 
 /// Replace `var()` functions in an arbitrary bit of input.
