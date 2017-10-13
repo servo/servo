@@ -18,7 +18,7 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use style::attr::AttrValue;
-use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
+use style::properties::{DeclarationSource, Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration_into, parse_style_attribute, SourcePropertyDeclaration};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
@@ -274,7 +274,11 @@ impl CSSStyleDeclaration {
 
             // Step 7
             // Step 8
-            *changed = pdb.extend_reset(declarations.drain(), importance);
+            *changed = pdb.extend(
+                declarations.drain(),
+                importance,
+                DeclarationSource::CssOm,
+            );
 
             Ok(())
         })

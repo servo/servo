@@ -8,8 +8,8 @@ use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, Parse
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
 use error_reporting::{NullReporter, ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
-use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, PropertyParserContext};
-use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
+use properties::{DeclarationSource, Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use properties::{PropertyDeclarationId, PropertyParserContext, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use servo_arc::Arc;
@@ -549,7 +549,11 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListPars
         while let Some(declaration) = iter.next() {
             match declaration {
                 Ok(()) => {
-                    block.extend(iter.parser.declarations.drain(), Importance::Normal);
+                    block.extend(
+                        iter.parser.declarations.drain(),
+                        Importance::Normal,
+                        DeclarationSource::Parsing,
+                    );
                 }
                 Err((error, slice)) => {
                     iter.parser.declarations.clear();

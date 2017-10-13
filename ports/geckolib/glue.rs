@@ -113,7 +113,7 @@ use style::gecko_properties::style_structs;
 use style::invalidation::element::restyle_hints;
 use style::media_queries::{Device, MediaList, parse_media_query_list};
 use style::parser::{ParserContext, self};
-use style::properties::{CascadeFlags, ComputedValues, Importance};
+use style::properties::{CascadeFlags, ComputedValues, DeclarationSource, Importance};
 use style::properties::{IS_FIELDSET_CONTENT, IS_LINK, IS_VISITED_LINK, LonghandIdSet};
 use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
@@ -2176,7 +2176,11 @@ pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const n
         Ok(()) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
-            block.extend(declarations.drain(), Importance::Normal);
+            block.extend(
+                declarations.drain(),
+                Importance::Normal,
+                DeclarationSource::CssOm,
+            );
             Arc::new(global_style_data.shared_lock.wrap(block)).into_strong()
         }
         Err(_) => RawServoDeclarationBlockStrong::null()
@@ -2456,7 +2460,11 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
         Ok(()) => {
             let importance = if is_important { Importance::Important } else { Importance::Normal };
             write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-                decls.extend_reset(source_declarations.drain(), importance)
+                decls.extend(
+                    source_declarations.drain(),
+                    importance,
+                    DeclarationSource::CssOm
+                )
             })
         },
         Err(_) => false,
@@ -2675,7 +2683,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
         XLang => Lang(Atom::from(value)),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2720,7 +2728,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
         BorderLeftStyle => BorderStyle::from_gecko_keyword(value),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2739,7 +2747,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDecla
         MozScriptLevel => MozScriptLevel::Relative(value),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2795,7 +2803,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
         },
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2834,7 +2842,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
         MozScriptMinSize => MozScriptMinSize(nocalc),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2854,7 +2862,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(declarations:
         MozScriptLevel => MozScriptLevel::Absolute(value as i32),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2883,7 +2891,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
         FontSize => LengthOrPercentage::from(pc).into(),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2908,7 +2916,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
         MarginLeft => auto,
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2929,7 +2937,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
         BorderLeftColor => cc,
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2956,7 +2964,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
         BackgroundColor => color,
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
+        decls.push(prop, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -2976,7 +2984,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
         if parser.is_exhausted() {
             let decl = PropertyDeclaration::FontFamily(family);
             write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-                decls.push(decl, Importance::Normal);
+                decls.push(decl, Importance::Normal, DeclarationSource::CssOm);
             })
         }
     }
@@ -3004,7 +3012,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
             vec![Either::Second(Image::Url(url))]
         ));
         write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-            decls.push(decl, Importance::Normal);
+            decls.push(decl, Importance::Normal, DeclarationSource::CssOm);
         })
     }
 }
@@ -3019,7 +3027,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarat
     decoration |= text_decoration_line::COLOR_OVERRIDE;
     let decl = PropertyDeclaration::TextDecorationLine(decoration);
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(decl, Importance::Normal);
+        decls.push(decl, Importance::Normal, DeclarationSource::CssOm);
     })
 }
 
@@ -3718,7 +3726,11 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                             id
                         }
                         PropertyDeclarationId::Custom(..) => {
-                            custom_properties.push(declaration.clone(), Importance::Normal);
+                            custom_properties.push(
+                                declaration.clone(),
+                                Importance::Normal,
+                                DeclarationSource::CssOm,
+                            );
                             continue;
                         }
                     };

@@ -20,8 +20,8 @@ use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
 use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
-use style::properties::longhands;
-use style::properties::longhands::animation_timing_function;
+use style::properties::DeclarationSource;
+use style::properties::longhands::{self, animation_timing_function};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, StylesheetContents, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
@@ -35,7 +35,7 @@ pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {
     let mut block = PropertyDeclarationBlock::new();
     for (d, i) in iterable {
-        block.push(d, i)
+        block.push(d, i, DeclarationSource::CssOm);
     }
     block
 }

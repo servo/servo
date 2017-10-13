@@ -5,6 +5,7 @@
 use cssparser::SourceLocation;
 use servo_arc::Arc;
 use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, Importance};
+use style::properties::DeclarationSource;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
 use style::stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
@@ -76,12 +77,14 @@ fn test_missing_property_in_initial_keyframe() {
             block.push(
                 PropertyDeclaration::Width(
                     LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
-                Importance::Normal
+                Importance::Normal,
+                DeclarationSource::Parsing,
             );
             block.push(
                 PropertyDeclaration::Height(
                     LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
-                Importance::Normal
+                Importance::Normal,
+                DeclarationSource::Parsing,
             );
             block
         }));
@@ -132,12 +135,14 @@ fn test_missing_property_in_final_keyframe() {
             block.push(
                 PropertyDeclaration::Width(
                     LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
-                Importance::Normal
+                Importance::Normal,
+                DeclarationSource::Parsing,
             );
             block.push(
                 PropertyDeclaration::Height(
                     LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
-                Importance::Normal
+                Importance::Normal,
+                DeclarationSource::Parsing,
             );
             block
         }));
@@ -195,12 +200,14 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
             block.push(
                 PropertyDeclaration::Width(
                     LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
-                Importance::Normal
+                Importance::Normal,
+                DeclarationSource::Parsing,
             );
             block.push(
                 PropertyDeclaration::Height(
                     LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
-                Importance::Normal
+                Importance::Normal,
+                DeclarationSource::Parsing,
             );
             block
         }));
