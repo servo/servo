@@ -500,6 +500,25 @@ impl PropertyDeclarationBlock {
                             return true;
                         }
                         DeclarationSource::Parsing => {
+                            // As a compatibility hack, specially on Android,
+                            // don't allow to override a prefixed webkit display
+                            // value with an unprefixed version from parsing
+                            // code.
+                            //
+                            // TODO(emilio): Unship.
+                            if let PropertyDeclaration::Display(old_display) = *slot {
+                                use properties::longhands::display::computed_value::T as display;
+
+                                let new_display = match declaration {
+                                    PropertyDeclaration::Display(new_display) => new_display,
+                                    _ => unreachable!("How could the declaration id be the same?"),
+                                };
+
+                                if display::should_ignore_parsed_value(old_display, new_display) {
+                                    return false;
+                                }
+                            }
+
                             // NOTE(emilio): We could avoid this and just override for
                             // properties not affected by logical props, but it's not
                             // clear it's worth it given the `definitely_new` check.
