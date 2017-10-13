@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // For SIMD
-#![cfg_attr(any(target_os = "linux", target_os = "android"), feature(allocator_api))]
-#![feature(cfg_target_feature)]
+#![cfg_attr(feature = "unstable", feature(cfg_target_feature))]
 
 #![deny(unsafe_code)]
 
@@ -53,6 +52,7 @@ extern crate servo_arc;
 extern crate servo_geometry;
 extern crate servo_url;
 #[macro_use] extern crate servo_atoms;
+#[cfg(feature = "unstable")]
 #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 extern crate simd;
 extern crate smallvec;

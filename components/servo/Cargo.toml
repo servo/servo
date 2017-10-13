@@ -12,13 +12,18 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-default = ["webdriver", "max_log_level"]
 max_log_level = ["log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 debugmozjs = ["script/debugmozjs"]
 googlevr = ["webvr/googlevr"]
 oculusvr = ["webvr/oculusvr"]
+unstable = [
+    "euclid/unstable",
+    "gfx/unstable",
+    "msg/unstable",
+    "profile/unstable",
+]
 
 [dependencies]
 bluetooth_traits = {path = "../bluetooth_traits"}

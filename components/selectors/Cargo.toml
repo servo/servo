@@ -20,7 +20,7 @@ doctest = false
 
 [features]
 gecko_like_types = []
-unstable = []
+bench = []
 
 [dependencies]
 bitflags = "0.7"

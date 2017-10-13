@@ -1,15 +1,15 @@
 [package]
-name = "servo_geometry"
+name = "nonzero"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
 
 [lib]
-name = "servo_geometry"
 path = "lib.rs"
 
+[features]
+unstable = ["serde/unstable"]
+
 [dependencies]
-app_units = "0.5"
-euclid = "0.15"
-heapsize = "0.4"
+serde = "1.0.14"

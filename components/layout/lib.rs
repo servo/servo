@@ -3,10 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![feature(box_patterns)]
-#![feature(conservative_impl_trait)]
-#![feature(nonzero)]
-#![feature(raw)]
 
 extern crate app_units;
 extern crate atomic_refcell;
@@ -94,3 +90,12 @@ pub use self::data::LayoutData;
 // We can't use servo_arc for everything in layout, because the Flow stuff uses
 // weak references.
 use servo_arc::Arc as ServoArc;
+
+/// Stable copy of std::raw::TraitObject
+/// test/unit/layout/lib.rs asserts that the memory layout matches.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct TraitObject {
+    pub data: *mut (),
+    pub vtable: *mut (),
+}

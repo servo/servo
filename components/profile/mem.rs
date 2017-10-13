@@ -353,14 +353,16 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
-    #[cfg(not(target_os = "windows"))]
-    use libc::{c_char, c_int, c_void, size_t};
+    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
+    use libc::{c_char, c_void, size_t};
+    #[cfg(target_os = "linux")]
+    use libc::c_int;
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::ffi::CString;
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::mem::size_of;
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     use std::ptr::null_mut;
     use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "macos")]
@@ -457,14 +459,14 @@ mod system_reporter {
         None
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     extern {
         #[cfg_attr(any(target_os = "macos", target_os = "android"), link_name = "je_mallctl")]
         fn mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
-                   newp: *mut c_void, newlen: size_t) -> c_int;
+                   newp: *mut c_void, newlen: size_t) -> ::libc::c_int;
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
         // Before we request the measurement of interest, we first send an "epoch"
         // request. Without that jemalloc gives cached statistics(!) which can be
@@ -500,7 +502,7 @@ mod system_reporter {
         Some(value as usize)
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", not(feature = "unstable")))]
     fn jemalloc_stat(_value_name: &str) -> Option<usize> {
         None
     }

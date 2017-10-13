@@ -326,6 +326,7 @@ dependencies = [
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nonzero 0.0.1",
  "offscreen_gl_context 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
@@ -472,6 +473,7 @@ dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "nonzero 0.0.1",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "servo_config 0.0.1",
@@ -1564,6 +1566,7 @@ dependencies = [
  "metrics 0.0.1",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "nonzero 0.0.1",
  "parking_lot 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
  "range 0.0.1",
@@ -1906,6 +1909,7 @@ dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nonzero 0.0.1",
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.52.1 (git+https://github.com/servo/webrender)",
 ]
@@ -2044,6 +2048,13 @@ dependencies = [
 name = "nom"
 version = "1.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "nonzero"
+version = "0.0.1"
+dependencies = [
+ "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "nsstring_vendor"
@@ -2664,6 +2675,7 @@ dependencies = [
  "metrics 0.0.1",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "nonzero 0.0.1",
  "profile_traits 0.0.1",
  "range 0.0.1",
  "script_traits 0.0.1",
@@ -2982,6 +2994,7 @@ version = "0.0.1"
 dependencies = [
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nonzero 0.0.1",
 ]
 
 [[package]]

@@ -32,7 +32,7 @@ use display_list_builder::{DisplayListBuildState, StackingContextCollectionState
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
-use flow_list::{FlowList, MutFlowListIterator};
+use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::StackingContextId;
@@ -44,7 +44,7 @@ use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, max_rect};
-use std::{fmt, mem, raw};
+use std::{fmt, mem};
 use std::iter::Zip;
 use std::slice::IterMut;
 use std::sync::Arc;
@@ -453,13 +453,13 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 #[allow(unsafe_code)]
 pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&&T, &raw::TraitObject>(&this);
+        let obj = mem::transmute::<&&T, &::TraitObject>(&this);
         mem::transmute::<*mut (), &BaseFlow>(obj.data)
     }
 }
 
 /// Iterates over the children of this immutable flow.
-pub fn child_iter<'a>(flow: &'a Flow) -> impl Iterator<Item = &'a Flow> {
+pub fn child_iter<'a>(flow: &'a Flow) -> FlowListIterator {
     base(flow).children.iter()
 }
 
@@ -467,7 +467,7 @@ pub fn child_iter<'a>(flow: &'a Flow) -> impl Iterator<Item = &'a Flow> {
 #[allow(unsafe_code)]
 pub fn mut_base<T: ?Sized + Flow>(this: &mut T) -> &mut BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&&mut T, &raw::TraitObject>(&this);
+        let obj = mem::transmute::<&&mut T, &::TraitObject>(&this);
         mem::transmute::<*mut (), &mut BaseFlow>(obj.data)
     }
 }
@@ -1422,7 +1422,7 @@ impl OpaqueFlow {
     #[allow(unsafe_code)]
     pub fn from_flow(flow: &Flow) -> OpaqueFlow {
         unsafe {
-            let object = mem::transmute::<&Flow, raw::TraitObject>(flow);
+            let object = mem::transmute::<&Flow, ::TraitObject>(flow);
             OpaqueFlow(object.data as usize)
         }
     }

@@ -29,13 +29,15 @@ servo_remutex_tests = {path = "../../tests/unit/servo_remutex"}
 style_tests = {path = "../../tests/unit/style"}
 
 [features]
-default = ["webdriver", "max_log_level"]
+default = ["unstable", "default-except-unstable"]
+default-except-unstable = ["webdriver", "max_log_level"]
 max_log_level = ["log/release_max_level_info"]
 webdriver = ["libservo/webdriver_server"]
 energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
 googlevr = ["libservo/googlevr"]
 oculusvr = ["libservo/oculusvr"]
+unstable = ["libservo/unstable"]
 
 [dependencies]
 backtrace = "0.3"

@@ -9,6 +9,9 @@ publish = false
 name = "profile"
 path = "lib.rs"
 
+[features]
+unstable = []
+
 [dependencies]
 profile_traits = {path = "../profile_traits"}
 influent = "0.4"

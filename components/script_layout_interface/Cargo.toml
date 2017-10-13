@@ -25,6 +25,7 @@ log = "0.3.5"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+nonzero = {path = "../nonzero"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 script_traits = {path = "../script_traits"}

@@ -9,9 +9,13 @@ publish = false
 name = "msg"
 path = "lib.rs"
 
+[features]
+unstable = ["nonzero/unstable"]
+
 [dependencies]
 bitflags = "0.7"
 heapsize = "0.4"
 heapsize_derive = "0.1"
-serde = { version = "1.0.14", features = [ "unstable" ] }
+nonzero = {path = "../nonzero"}
+serde = "1.0.14"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

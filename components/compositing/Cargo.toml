@@ -18,10 +18,11 @@ ipc-channel = "0.8"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+nonzero = {path = "../nonzero"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
-servo_geometry = {path = "../geometry", features = ["servo"]}
+servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits"}
 time = "0.1.17"
