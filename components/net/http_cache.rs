@@ -95,6 +95,16 @@ pub struct HttpCache {
 }
 
 
+/// Determine if a status code corresponds to a response for a redirected request.
+fn is_redirect(status: StatusCode) -> bool {
+    return match status {
+        StatusCode::SeeOther | StatusCode::MovedPermanently
+        | StatusCode::TemporaryRedirect | StatusCode::Found
+        | StatusCode::PermanentRedirect => true,
+        _ => false,
+    };
+}
+
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
 fn response_is_cacheable(metadata: &Metadata) -> bool {
@@ -303,6 +313,7 @@ impl HttpCache {
                         let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
                         let vary_values: Vec<&str> = vary_data_string.split(",").map(|val| val.trim()).collect();
                         for vary_val in vary_values {
+                            // For every header name found in the Vary header field in the stored response.
                             if vary_val == "*" {
                                 // A Vary header field-value of "*" always fails to match.
                                 can_be_constructed = false;
@@ -310,12 +321,15 @@ impl HttpCache {
                             }
                             match request.headers.get_raw(vary_val) {
                                 Some(header_data) => {
+                                    // If the header is present in the request.
                                     let request_header_data_string =
                                         String::from_utf8(header_data[0].to_vec()).unwrap();
                                     let request_vary_values: Vec<&str> =
                                         request_header_data_string.split(",").collect();
                                     for &(ref name, ref value) in cached_resource.request_headers.iter() {
                                         if name.to_lowercase() == vary_val.to_lowercase() {
+                                            // Check that the value of the nominated header field,
+                                            // in the original request, matches the value in the current request.
                                             let original_vary_values: Vec<&str> = value.split(",").collect();
                                             if !(request_vary_values == original_vary_values) {
                                                 can_be_constructed = false;
@@ -392,14 +406,13 @@ impl HttpCache {
 
     /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
     pub fn invalidate(&mut self, request: &Request, response: &Response) {
-        match response.status {
+        if let Some(status) = response.status {
             // Ignoring redirects.
             // Note: without this, the fetch::test_fetch_redirect_updates_method would hang.
             // An unknown interaction between the cache and redirects caused this problem.
-            Some(StatusCode::SeeOther) | Some(StatusCode::MovedPermanently)
-            | Some(StatusCode::TemporaryRedirect) | Some(StatusCode::Found)
-            | Some(StatusCode::PermanentRedirect) => return,
-            _ => {}
+            if is_redirect(status) {
+                return
+            }
         }
         if let Some(&header::Location(ref location)) = response.headers.get::<header::Location>() {
             self.invalidate_for_url(location.clone());
@@ -420,14 +433,14 @@ impl HttpCache {
             Method::Get => {},
             _ => return,
         }
-        match response.status {
+        if let Some(status) = response.status {
             // Not caching redirects.
-            Some(StatusCode::SeeOther) | Some(StatusCode::MovedPermanently)
-            | Some(StatusCode::TemporaryRedirect) | Some(StatusCode::Found)
-            | Some(StatusCode::PermanentRedirect) => return,
-            _ => {}
+            if is_redirect(status) {
+                return
+            }
         }
         if let Some((ref code, _)) = response.raw_status {
+            // Not caching Not Modified.
             if *code == 304 {
                 return
             }
