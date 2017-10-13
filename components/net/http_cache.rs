@@ -53,7 +53,7 @@ impl CacheKey {
 }
 
 /// A complete cached resource.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct CachedResource {
     metadata: CachedMetadata,
     request_headers: Vec<(String, String)>,
@@ -66,7 +66,7 @@ struct CachedResource {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct CachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -392,6 +392,15 @@ impl HttpCache {
 
     /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
     pub fn invalidate(&mut self, request: &Request, response: &Response) {
+        match response.status {
+            // Ignoring redirects.
+            // Note: without this, the fetch::test_fetch_redirect_updates_method would hang.
+            // An unknown interaction between the cache and redirects caused this problem.
+            Some(StatusCode::SeeOther) | Some(StatusCode::MovedPermanently)
+            | Some(StatusCode::TemporaryRedirect) | Some(StatusCode::Found)
+            | Some(StatusCode::PermanentRedirect) => return,
+            _ => {}
+        }
         if let Some(&header::Location(ref location)) = response.headers.get::<header::Location>() {
             self.invalidate_for_url(location.clone());
         }
@@ -414,7 +423,8 @@ impl HttpCache {
         match response.status {
             // Not caching redirects.
             Some(StatusCode::SeeOther) | Some(StatusCode::MovedPermanently)
-            | Some(StatusCode::TemporaryRedirect) | Some(StatusCode::Found) => return,
+            | Some(StatusCode::TemporaryRedirect) | Some(StatusCode::Found)
+            | Some(StatusCode::PermanentRedirect) => return,
             _ => {}
         }
         if let Some((ref code, _)) = response.raw_status {
