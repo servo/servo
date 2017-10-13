@@ -1556,18 +1556,15 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
     selectors: RawServoSelectorListBorrowed,
 ) -> bool {
     use std::borrow::Borrow;
+    use style::dom_apis;
 
     let element = GeckoElement(element);
-    let mut context = MatchingContext::new(
-        MatchingMode::Normal,
-        None,
-        None,
-        element.owner_document_quirks_mode(),
-    );
-    context.scope_element = Some(element.opaque());
-
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
-    selectors::matching::matches_selector_list(&selectors, &element, &mut context)
+    dom_apis::element_matches(
+        &element,
+        &selectors,
+        element.owner_document_quirks_mode(),
+    )
 }
 
 #[no_mangle]
