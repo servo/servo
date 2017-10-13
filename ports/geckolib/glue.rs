@@ -6,7 +6,7 @@ use cssparser::{Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use malloc_size_of::MallocSizeOfOps;
-use selectors::{self, Element, NthIndexCache};
+use selectors::Element;
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use std::cell::RefCell;
@@ -1526,28 +1526,13 @@ pub unsafe extern "C" fn Servo_SelectorList_Closest<'a>(
     selectors: RawServoSelectorListBorrowed,
 ) -> RawGeckoElementBorrowedOrNull<'a> {
     use std::borrow::Borrow;
-
-    let mut nth_index_cache = NthIndexCache::default();
+    use style::dom_apis;
 
     let element = GeckoElement(element);
-    let mut context = MatchingContext::new(
-        MatchingMode::Normal,
-        None,
-        Some(&mut nth_index_cache),
-        element.owner_document_quirks_mode(),
-    );
-    context.scope_element = Some(element.opaque());
-
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
-    let mut current = Some(element);
-    while let Some(element) = current.take() {
-        if selectors::matching::matches_selector_list(&selectors, &element, &mut context) {
-            return Some(element.0);
-        }
-        current = element.parent_element();
-    }
 
-    return None;
+    dom_apis::element_closest(element, &selectors, element.owner_document_quirks_mode())
+        .map(|e| e.0)
 }
 
 #[no_mangle]
@@ -1556,18 +1541,15 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
     selectors: RawServoSelectorListBorrowed,
 ) -> bool {
     use std::borrow::Borrow;
+    use style::dom_apis;
 
     let element = GeckoElement(element);
-    let mut context = MatchingContext::new(
-        MatchingMode::Normal,
-        None,
-        None,
-        element.owner_document_quirks_mode(),
-    );
-    context.scope_element = Some(element.opaque());
-
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
-    selectors::matching::matches_selector_list(&selectors, &element, &mut context)
+    dom_apis::element_matches(
+        &element,
+        &selectors,
+        element.owner_document_quirks_mode(),
+    )
 }
 
 #[no_mangle]

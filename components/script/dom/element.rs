@@ -107,6 +107,7 @@ use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
+use style::dom_apis;
 use style::element_state::*;
 use style::invalidation::element::restyle_hints::RESTYLE_SELF;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -2197,18 +2198,16 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
-            Err(_) => Err(Error::Syntax),
-            Ok(selectors) => {
-                let quirks_mode = document_from_node(self).quirks_mode();
-                let root = DomRoot::from_ref(self);
-                // FIXME(bholley): Consider an nth-index cache here.
-                let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
-                                                   quirks_mode);
-                ctx.scope_element = Some(root.opaque());
-                Ok(matches_selector_list(&selectors, &root, &mut ctx))
-            }
-        }
+        let selectors =
+            match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+                Err(_) => return Err(Error::Syntax),
+                Ok(selectors) => selectors,
+            };
+
+        let quirks_mode = document_from_node(self).quirks_mode();
+        let element = DomRoot::from_ref(self);
+
+        Ok(dom_apis::element_matches(&element, &selectors, quirks_mode))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector
@@ -2218,26 +2217,18 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
-            Err(_) => Err(Error::Syntax),
-            Ok(selectors) => {
-                let self_root = DomRoot::from_ref(self);
-                let root = self.upcast::<Node>();
-                for element in root.inclusive_ancestors() {
-                    if let Some(element) = DomRoot::downcast::<Element>(element) {
-                        let quirks_mode = document_from_node(self).quirks_mode();
-                        // FIXME(bholley): Consider an nth-index cache here.
-                        let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
-                                                           quirks_mode);
-                        ctx.scope_element = Some(self_root.opaque());
-                        if matches_selector_list(&selectors, &element, &mut ctx) {
-                            return Ok(Some(element));
-                        }
-                    }
-                }
-                Ok(None)
-            }
-        }
+        let selectors =
+            match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+                Err(_) => return Err(Error::Syntax),
+                Ok(selectors) => selectors,
+            };
+
+        let quirks_mode = document_from_node(self).quirks_mode();
+        Ok(dom_apis::element_closest(
+            DomRoot::from_ref(self),
+            &selectors,
+            quirks_mode,
+        ))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
