@@ -181,7 +181,6 @@ class ServoRefTestExecutor(ProcessTestExecutor):
     def __init__(self, browser, server_config, binary=None, timeout_multiplier=1,
                  screenshot_cache=None, debug_info=None, pause_after_test=False,
                  **kwargs):
-        do_delayed_imports()
         ProcessTestExecutor.__init__(self,
                                      browser,
                                      server_config,
