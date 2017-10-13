@@ -19,7 +19,11 @@ use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for TableColGroupFlow {}
+
 /// A table formatting context.
+#[repr(C)]
 pub struct TableColGroupFlow {
     /// Data common to all flows.
     pub base: BaseFlow,

@@ -65,11 +65,19 @@ use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use webrender_api::ClipAndScrollInfo;
 
+/// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
+/// is of type `BaseFlow` or some type that also implements this trait.
+///
+/// In other words, the memory representation of `BaseFlow` must be a prefix
+/// of the memory representation of types implementing `HasBaseFlow`.
+#[allow(unsafe_code)]
+pub unsafe trait HasBaseFlow {}
+
 /// Virtual methods that make up a float context.
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Debug + Sync + Send + 'static {
+pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -451,7 +459,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
 #[inline(always)]
 #[allow(unsafe_code)]
-pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
+pub fn base<T: ?Sized + HasBaseFlow>(this: &T) -> &BaseFlow {
     let ptr: *const T = this;
     let ptr = ptr as *const BaseFlow;
     unsafe { &*ptr }
@@ -464,7 +472,7 @@ pub fn child_iter<'a>(flow: &'a Flow) -> FlowListIterator {
 
 #[inline(always)]
 #[allow(unsafe_code)]
-pub fn mut_base<T: ?Sized + Flow>(this: &mut T) -> &mut BaseFlow {
+pub fn mut_base<T: ?Sized + HasBaseFlow>(this: &mut T) -> &mut BaseFlow {
     let ptr: *mut T = this;
     let ptr = ptr as *mut BaseFlow;
     unsafe { &mut *ptr }

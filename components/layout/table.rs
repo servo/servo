@@ -34,10 +34,14 @@ use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderP
 use table_row::TableRowFlow;
 use table_wrapper::TableLayout;
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for TableFlow {}
+
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
 /// not table fragment per CSS 2.1 § 10.5.
 #[derive(Serialize)]
+#[repr(C)]
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 

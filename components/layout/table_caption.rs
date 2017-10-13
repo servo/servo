@@ -19,7 +19,11 @@ use std::fmt;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for TableCaptionFlow {}
+
 /// A table formatting context.
+#[repr(C)]
 pub struct TableCaptionFlow {
     pub block_flow: BlockFlow,
 }
