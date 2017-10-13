@@ -5,35 +5,82 @@
 //! The struct that takes care of encapsulating all the logic on where and how
 //! element styles need to be invalidated.
 
-use Atom;
-use context::{QuirksMode, SharedStyleContext, StackLimitChecker};
+use context::{SharedStyleContext, StackLimitChecker};
 use data::ElementData;
 use dom::{TElement, TNode};
-use element_state::{ElementState, IN_VISITED_OR_UNVISITED_STATE};
-use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
-use invalidation::element::invalidation_map::*;
-use invalidation::element::restyle_hints::*;
-use selector_map::SelectorMap;
-use selector_parser::{SelectorImpl, Snapshot};
+use selector_parser::SelectorImpl;
 use selectors::NthIndexCache;
-use selectors::attr::CaseSensitivity;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
-use selectors::matching::{matches_selector, matches_compound_selector};
 use selectors::matching::CompoundSelectorMatchingResult;
+use selectors::matching::matches_compound_selector;
 use selectors::parser::{Combinator, Component, Selector};
 use smallvec::SmallVec;
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
-enum VisitedDependent {
-    Yes,
-    No,
+/// A trait to abstract the collection of invalidations for a given pass.
+///
+/// The `data` argument is a mutable reference to the element's style data, if
+/// any.
+pub trait InvalidationProcessor<E>
+where
+    E: TElement,
+{
+    /// Whether an invalidation that contains only an eager pseudo-element
+    /// selector like ::before or ::after triggers invalidation of the element
+    /// that would originate it.
+    fn invalidates_on_eager_pseudo_element(&self) -> bool { false }
+
+    /// Collect invalidations for a given element's descendants and siblings.
+    ///
+    /// Returns whether the element itself was invalidated.
+    fn collect_invalidations(
+        &mut self,
+        element: E,
+        data: Option<&mut ElementData>,
+        nth_index_cache: Option<&mut NthIndexCache>,
+        shared_context: &SharedStyleContext,
+        descendant_invalidations: &mut InvalidationVector,
+        sibling_invalidations: &mut InvalidationVector,
+    ) -> bool;
+
+    /// Returns whether the invalidation process should process the descendants
+    /// of the given element.
+    fn should_process_descendants(
+        &mut self,
+        element: E,
+        data: Option<&mut ElementData>,
+    ) -> bool;
+
+    /// Executes an arbitrary action when the recursion limit is exceded (if
+    /// any).
+    fn recursion_limit_exceeded(
+        &mut self,
+        element: E,
+        data: Option<&mut ElementData>,
+    );
+
+    /// Executes an action when `Self` is invalidated.
+    fn invalidated_self(
+        &mut self,
+        element: E,
+        data: Option<&mut ElementData>,
+    );
+
+    /// Executes an action when any descendant of `Self` is invalidated.
+    fn invalidated_descendants(
+        &mut self,
+        element: E,
+        data: Option<&mut ElementData>,
+        child: E,
+    );
 }
 
 /// The struct that takes care of encapsulating all the logic on where and how
 /// element styles need to be invalidated.
-pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
-    where E: TElement,
+pub struct TreeStyleInvalidator<'a, 'b: 'a, E, P: 'a>
+where
+    E: TElement,
+    P: InvalidationProcessor<E>
 {
     element: E,
     // TODO(emilio): It's tempting enough to just avoid running invalidation for
@@ -49,9 +96,11 @@ pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
     shared_context: &'a SharedStyleContext<'b>,
     stack_limit_checker: Option<&'a StackLimitChecker>,
     nth_index_cache: Option<&'a mut NthIndexCache>,
+    processor: &'a mut P,
 }
 
-type InvalidationVector = SmallVec<[Invalidation; 10]>;
+/// A vector of invalidations, optimized for small invalidation sets.
+pub type InvalidationVector = SmallVec<[Invalidation; 10]>;
 
 /// The kind of invalidation we're processing.
 ///
@@ -71,7 +120,7 @@ enum InvalidationKind {
 /// must be restyled if the compound selector matches.  Otherwise, if
 /// describes which descendants (or later siblings) must be restyled.
 #[derive(Clone)]
-struct Invalidation {
+pub struct Invalidation {
     selector: Selector<SelectorImpl>,
     offset: usize,
     /// Whether the invalidation was already matched by any previous sibling or
@@ -84,6 +133,15 @@ struct Invalidation {
 }
 
 impl Invalidation {
+    /// Create a new invalidation for a given selector and offset.
+    pub fn new(selector: Selector<SelectorImpl>, offset: usize) -> Self {
+        Self {
+            selector,
+            offset,
+            matched_by_any_previous: false,
+        }
+    }
+
     /// Whether this invalidation is effective for the next sibling or
     /// descendant after us.
     fn effective_for_next(&self) -> bool {
@@ -167,8 +225,10 @@ impl InvalidationResult {
     }
 }
 
-impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
-    where E: TElement,
+impl<'a, 'b: 'a, E, P: 'a> TreeStyleInvalidator<'a, 'b, E, P>
+where
+    E: TElement,
+    P: InvalidationProcessor<E>,
 {
     /// Trivially constructs a new `TreeStyleInvalidator`.
     pub fn new(
@@ -177,6 +237,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         shared_context: &'a SharedStyleContext<'b>,
         stack_limit_checker: Option<&'a StackLimitChecker>,
         nth_index_cache: Option<&'a mut NthIndexCache>,
+        processor: &'a mut P,
     ) -> Self {
         Self {
             element,
@@ -184,125 +245,30 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             shared_context,
             stack_limit_checker,
             nth_index_cache,
+            processor,
         }
     }
 
     /// Perform the invalidation pass.
     pub fn invalidate(mut self) -> InvalidationResult {
         debug!("StyleTreeInvalidator::invalidate({:?})", self.element);
-        debug_assert!(self.element.has_snapshot(), "Why bothering?");
-        debug_assert!(self.data.is_some(), "How exactly?");
-
-        let shared_context = self.shared_context;
-
-        let wrapper =
-            ElementWrapper::new(self.element, shared_context.snapshot_map);
-        let state_changes = wrapper.state_changes();
-        let snapshot = wrapper.snapshot().expect("has_snapshot lied");
-
-        if !snapshot.has_attrs() && state_changes.is_empty() {
-            return InvalidationResult::empty();
-        }
-
-        // If we are sensitive to visitedness and the visited state changed, we
-        // force a restyle here. Matching doesn't depend on the actual visited
-        // state at all, so we can't look at matching results to decide what to
-        // do for this case.
-        if state_changes.intersects(IN_VISITED_OR_UNVISITED_STATE) {
-            trace!(" > visitedness change, force subtree restyle");
-            // We can't just return here because there may also be attribute
-            // changes as well that imply additional hints.
-            let data = self.data.as_mut().unwrap();
-            data.hint.insert(RestyleHint::restyle_subtree());
-        }
-
-        let mut classes_removed = SmallVec::<[Atom; 8]>::new();
-        let mut classes_added = SmallVec::<[Atom; 8]>::new();
-        if snapshot.class_changed() {
-            // TODO(emilio): Do this more efficiently!
-            snapshot.each_class(|c| {
-                if !self.element.has_class(c, CaseSensitivity::CaseSensitive) {
-                    classes_removed.push(c.clone())
-                }
-            });
-
-            self.element.each_class(|c| {
-                if !snapshot.has_class(c, CaseSensitivity::CaseSensitive) {
-                    classes_added.push(c.clone())
-                }
-            })
-        }
-
-        let mut id_removed = None;
-        let mut id_added = None;
-        if snapshot.id_changed() {
-            let old_id = snapshot.id_attr();
-            let current_id = self.element.get_id();
-
-            if old_id != current_id {
-                id_removed = old_id;
-                id_added = current_id;
-            }
-        }
-
-        let lookup_element =
-            if self.element.implemented_pseudo_element().is_some() {
-                self.element.pseudo_element_originating_element().unwrap()
-            } else {
-                self.element
-            };
 
         let mut descendant_invalidations = InvalidationVector::new();
         let mut sibling_invalidations = InvalidationVector::new();
-        let invalidated_self = {
-            let mut collector = InvalidationCollector {
-                wrapper,
-                lookup_element,
-                nth_index_cache: self.nth_index_cache.as_mut().map(|c| &mut **c),
-                state_changes,
-                element: self.element,
-                snapshot: &snapshot,
-                quirks_mode: self.shared_context.quirks_mode(),
-                removed_id: id_removed.as_ref(),
-                added_id: id_added.as_ref(),
-                classes_removed: &classes_removed,
-                classes_added: &classes_added,
-                descendant_invalidations: &mut descendant_invalidations,
-                sibling_invalidations: &mut sibling_invalidations,
-                invalidates_self: false,
-            };
 
-            shared_context.stylist.each_invalidation_map(|invalidation_map| {
-                collector.collect_dependencies_in_invalidation_map(invalidation_map);
-            });
-
-            // TODO(emilio): Consider storing dependencies from the UA sheet in
-            // a different map. If we do that, we can skip the stuff on the
-            // shared stylist iff cut_off_inheritance is true, and we can look
-            // just at that map.
-            let _cut_off_inheritance =
-                self.element.each_xbl_stylist(|stylist| {
-                    // FIXME(emilio): Replace with assert / remove when we
-                    // figure out what to do with the quirks mode mismatches
-                    // (that is, when bug 1406875 is properly fixed).
-                    collector.quirks_mode = stylist.quirks_mode();
-                    stylist.each_invalidation_map(|invalidation_map| {
-                        collector.collect_dependencies_in_invalidation_map(invalidation_map);
-                    });
-                });
-
-            collector.invalidates_self
-        };
-
-        if invalidated_self {
-            if let Some(ref mut data) = self.data {
-                data.hint.insert(RESTYLE_SELF);
-            }
-        }
+        let invalidated_self = self.processor.collect_invalidations(
+            self.element,
+            self.data.as_mut().map(|d| &mut **d),
+            self.nth_index_cache.as_mut().map(|c| &mut **c),
+            self.shared_context,
+            &mut descendant_invalidations,
+            &mut sibling_invalidations,
+        );
 
         debug!("Collected invalidations (self: {}): ", invalidated_self);
         debug!(" > descendants: {:?}", descendant_invalidations);
         debug!(" > siblings: {:?}", sibling_invalidations);
+
         let invalidated_descendants = self.invalidate_descendants(&descendant_invalidations);
         let invalidated_siblings = self.invalidate_siblings(&mut sibling_invalidations);
 
@@ -327,14 +293,14 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         while let Some(sibling) = current {
             let mut sibling_data = sibling.mutate_data();
-            let sibling_data = sibling_data.as_mut().map(|d| &mut **d);
 
             let mut sibling_invalidator = TreeStyleInvalidator::new(
                 sibling,
-                sibling_data,
+                sibling_data.as_mut().map(|d| &mut **d),
                 self.shared_context,
                 self.stack_limit_checker,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
+                self.processor,
             );
 
             let mut invalidations_for_descendants = InvalidationVector::new();
@@ -390,53 +356,49 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         invalidations: &InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool {
-        let mut child_data = child.mutate_data();
-        let child_data = child_data.as_mut().map(|d| &mut **d);
-
-        let mut child_invalidator = TreeStyleInvalidator::new(
-            child,
-            child_data,
-            self.shared_context,
-            self.stack_limit_checker,
-            self.nth_index_cache.as_mut().map(|c| &mut **c),
-        );
-
         let mut invalidations_for_descendants = InvalidationVector::new();
+
         let mut invalidated_child = false;
+        let invalidated_descendants = {
+            let mut child_data = child.mutate_data();
 
-        invalidated_child |=
-            child_invalidator.process_sibling_invalidations(
-                &mut invalidations_for_descendants,
-                sibling_invalidations,
+            let mut child_invalidator = TreeStyleInvalidator::new(
+                child,
+                child_data.as_mut().map(|d| &mut **d),
+                self.shared_context,
+                self.stack_limit_checker,
+                self.nth_index_cache.as_mut().map(|c| &mut **c),
+                self.processor,
             );
 
-        invalidated_child |=
-            child_invalidator.process_descendant_invalidations(
-                invalidations,
-                &mut invalidations_for_descendants,
-                sibling_invalidations,
-            );
+            invalidated_child |=
+                child_invalidator.process_sibling_invalidations(
+                    &mut invalidations_for_descendants,
+                    sibling_invalidations,
+                );
+
+            invalidated_child |=
+                child_invalidator.process_descendant_invalidations(
+                    invalidations,
+                    &mut invalidations_for_descendants,
+                    sibling_invalidations,
+                );
+
+            child_invalidator.invalidate_descendants(&invalidations_for_descendants)
+        };
 
         // The child may not be a flattened tree child of the current element,
         // but may be arbitrarily deep.
         //
         // Since we keep the traversal flags in terms of the flattened tree,
         // we need to propagate it as appropriate.
-        if invalidated_child && child.get_data().is_some() {
-            let mut current = child.traversal_parent();
-            while let Some(parent) = current.take() {
-                if parent == self.element {
-                    break;
-                }
-
-                unsafe { parent.set_dirty_descendants() };
-                current = parent.traversal_parent();
-            }
+        if invalidated_child || invalidated_descendants {
+            self.processor.invalidated_descendants(
+                self.element,
+                self.data.as_mut().map(|d| &mut **d),
+                child,
+            );
         }
-
-        let invalidated_descendants = child_invalidator.invalidate_descendants(
-            &invalidations_for_descendants
-        );
 
         invalidated_child || invalidated_descendants
     }
@@ -505,20 +467,22 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                self.element);
         debug!(" > {:?}", invalidations);
 
-        match self.data {
-            None => return false,
-            Some(ref data) => {
-                // FIXME(emilio): Only needs to check RESTYLE_DESCENDANTS,
-                // really.
-                if data.hint.contains_subtree() {
-                    return false;
-                }
-            }
+        let should_process =
+            self.processor.should_process_descendants(
+                self.element,
+                self.data.as_mut().map(|d| &mut **d),
+            );
+
+        if !should_process {
+            return false;
         }
 
         if let Some(checker) = self.stack_limit_checker {
             if checker.limit_exceeded() {
-                self.data.as_mut().unwrap().hint.insert(RESTYLE_DESCENDANTS);
+                self.processor.recursion_limit_exceeded(
+                    self.element,
+                    self.data.as_mut().map(|d| &mut **d)
+                );
                 return true;
             }
         }
@@ -547,10 +511,6 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         }
 
         any_descendant |= self.invalidate_nac(invalidations);
-
-        if any_descendant && self.data.as_ref().map_or(false, |d| !d.styles.is_display_none()) {
-            unsafe { self.element.set_dirty_descendants() };
-        }
 
         any_descendant
     }
@@ -712,7 +672,8 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                     //
                     // Note that we'll also restyle the pseudo-element because
                     // it would match this invalidation.
-                    if pseudo.is_eager() {
+                    if self.processor.invalidates_on_eager_pseudo_element() &&
+                        pseudo.is_eager() {
                         invalidated_self = true;
                     }
                 }
@@ -811,274 +772,13 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         }
 
         if invalidated_self {
-            if let Some(ref mut data) = self.data {
-                data.hint.insert(RESTYLE_SELF);
-            }
+            self.processor.invalidated_self(
+                self.element,
+                self.data.as_mut().map(|d| &mut **d),
+            );
         }
 
         SingleInvalidationResult { invalidated_self, matched, }
     }
 }
 
-struct InvalidationCollector<'a, 'b: 'a, E>
-    where E: TElement,
-{
-    element: E,
-    wrapper: ElementWrapper<'b, E>,
-    nth_index_cache: Option<&'a mut NthIndexCache>,
-    snapshot: &'a Snapshot,
-    quirks_mode: QuirksMode,
-    lookup_element: E,
-    removed_id: Option<&'a Atom>,
-    added_id: Option<&'a Atom>,
-    classes_removed: &'a SmallVec<[Atom; 8]>,
-    classes_added: &'a SmallVec<[Atom; 8]>,
-    state_changes: ElementState,
-    descendant_invalidations: &'a mut InvalidationVector,
-    sibling_invalidations: &'a mut InvalidationVector,
-    invalidates_self: bool,
-}
-
-impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
-    where E: TElement,
-{
-    fn collect_dependencies_in_invalidation_map(
-        &mut self,
-        map: &InvalidationMap,
-    ) {
-        let quirks_mode = self.quirks_mode;
-        let removed_id = self.removed_id;
-        if let Some(ref id) = removed_id {
-            if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                for dep in deps {
-                    self.scan_dependency(dep, VisitedDependent::No);
-                }
-            }
-        }
-
-        let added_id = self.added_id;
-        if let Some(ref id) = added_id {
-            if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                for dep in deps {
-                    self.scan_dependency(dep, VisitedDependent::No);
-                }
-            }
-        }
-
-        for class in self.classes_added.iter().chain(self.classes_removed.iter()) {
-            if let Some(deps) = map.class_to_selector.get(class, quirks_mode) {
-                for dep in deps {
-                    self.scan_dependency(dep, VisitedDependent::No);
-                }
-            }
-        }
-
-        let should_examine_attribute_selector_map =
-            self.snapshot.other_attr_changed() ||
-            (self.snapshot.class_changed() && map.has_class_attribute_selectors) ||
-            (self.snapshot.id_changed() && map.has_id_attribute_selectors);
-
-        if should_examine_attribute_selector_map {
-            self.collect_dependencies_in_map(
-                &map.other_attribute_affecting_selectors
-            )
-        }
-
-        let state_changes = self.state_changes;
-        if !state_changes.is_empty() {
-            self.collect_state_dependencies(
-                &map.state_affecting_selectors,
-                state_changes,
-            )
-        }
-    }
-
-    fn collect_dependencies_in_map(
-        &mut self,
-        map: &SelectorMap<Dependency>,
-    ) {
-        map.lookup_with_additional(
-            self.lookup_element,
-            self.quirks_mode,
-            self.removed_id,
-            self.classes_removed,
-            &mut |dependency| {
-                self.scan_dependency(dependency, VisitedDependent::No);
-                true
-            },
-        );
-    }
-
-    fn collect_state_dependencies(
-        &mut self,
-        map: &SelectorMap<StateDependency>,
-        state_changes: ElementState,
-    ) {
-        map.lookup_with_additional(
-            self.lookup_element,
-            self.quirks_mode,
-            self.removed_id,
-            self.classes_removed,
-            &mut |dependency| {
-                if !dependency.state.intersects(state_changes) {
-                    return true;
-                }
-                let visited_dependent =
-                    if dependency.state.intersects(IN_VISITED_OR_UNVISITED_STATE) {
-                        VisitedDependent::Yes
-                    } else {
-                        VisitedDependent::No
-                    };
-                self.scan_dependency(&dependency.dep, visited_dependent);
-                true
-            },
-        );
-    }
-
-    /// Check whether a dependency should be taken into account, using a given
-    /// visited handling mode.
-    fn check_dependency(
-        &mut self,
-        visited_handling_mode: VisitedHandlingMode,
-        dependency: &Dependency,
-        relevant_link_found: &mut bool,
-    ) -> bool {
-        let (matches_now, relevant_link_found_now) = {
-            let mut context = MatchingContext::new_for_visited(
-                MatchingMode::Normal,
-                None,
-                self.nth_index_cache.as_mut().map(|c| &mut **c),
-                visited_handling_mode,
-                self.quirks_mode,
-            );
-
-            let matches_now = matches_selector(
-                &dependency.selector,
-                dependency.selector_offset,
-                None,
-                &self.element,
-                &mut context,
-                &mut |_, _| {},
-            );
-
-            (matches_now, context.relevant_link_found)
-        };
-
-        let (matched_then, relevant_link_found_then) = {
-            let mut context = MatchingContext::new_for_visited(
-                MatchingMode::Normal,
-                None,
-                self.nth_index_cache.as_mut().map(|c| &mut **c),
-                visited_handling_mode,
-                self.quirks_mode,
-            );
-
-            let matched_then = matches_selector(
-                &dependency.selector,
-                dependency.selector_offset,
-                None,
-                &self.wrapper,
-                &mut context,
-                &mut |_, _| {},
-            );
-
-            (matched_then, context.relevant_link_found)
-        };
-
-        *relevant_link_found = relevant_link_found_now;
-
-        // Check for mismatches in both the match result and also the status
-        // of whether a relevant link was found.
-        matched_then != matches_now ||
-            relevant_link_found_now != relevant_link_found_then
-    }
-
-    fn scan_dependency(
-        &mut self,
-        dependency: &Dependency,
-        is_visited_dependent: VisitedDependent,
-    ) {
-        debug!("TreeStyleInvalidator::scan_dependency({:?}, {:?}, {:?})",
-               self.element,
-               dependency,
-               is_visited_dependent);
-
-        if !self.dependency_may_be_relevant(dependency) {
-            return;
-        }
-
-        let mut relevant_link_found = false;
-
-        let should_account_for_dependency = self.check_dependency(
-            VisitedHandlingMode::AllLinksUnvisited,
-            dependency,
-            &mut relevant_link_found,
-        );
-
-        if should_account_for_dependency {
-            return self.note_dependency(dependency);
-        }
-
-        // If there is a relevant link, then we also matched in visited
-        // mode.
-        //
-        // Match again in this mode to ensure this also matches.
-        //
-        // Note that we never actually match directly against the element's true
-        // visited state at all, since that would expose us to timing attacks.
-        //
-        // The matching process only considers the relevant link state and
-        // visited handling mode when deciding if visited matches.  Instead, we
-        // are rematching here in case there is some :visited selector whose
-        // matching result changed for some other state or attribute change of
-        // this element (for example, for things like [foo]:visited).
-        //
-        // NOTE: This thing is actually untested because testing it is flaky,
-        // see the tests that were added and then backed out in bug 1328509.
-        if is_visited_dependent == VisitedDependent::Yes && relevant_link_found {
-            let should_account_for_dependency = self.check_dependency(
-                VisitedHandlingMode::RelevantLinkVisited,
-                dependency,
-                &mut false,
-            );
-
-            if should_account_for_dependency {
-                return self.note_dependency(dependency);
-            }
-        }
-    }
-
-    fn note_dependency(&mut self, dependency: &Dependency) {
-        if dependency.affects_self() {
-            self.invalidates_self = true;
-        }
-
-        if dependency.affects_descendants() {
-            debug_assert_ne!(dependency.selector_offset, 0);
-            debug_assert!(!dependency.affects_later_siblings());
-            self.descendant_invalidations.push(Invalidation {
-                selector: dependency.selector.clone(),
-                offset: dependency.selector_offset,
-                matched_by_any_previous: false,
-            });
-        } else if dependency.affects_later_siblings() {
-            debug_assert_ne!(dependency.selector_offset, 0);
-            self.sibling_invalidations.push(Invalidation {
-                selector: dependency.selector.clone(),
-                offset: dependency.selector_offset,
-                matched_by_any_previous: false,
-            });
-        }
-    }
-
-    /// Returns whether `dependency` may cause us to invalidate the style of
-    /// more elements than what we've already invalidated.
-    fn dependency_may_be_relevant(&self, dependency: &Dependency) -> bool {
-        if dependency.affects_descendants() || dependency.affects_later_siblings() {
-            return true;
-        }
-
-        debug_assert!(dependency.affects_self());
-        !self.invalidates_self
-    }
-}
