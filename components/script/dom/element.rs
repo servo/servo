@@ -2197,18 +2197,18 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
-            Err(_) => Err(Error::Syntax),
-            Ok(selectors) => {
-                let quirks_mode = document_from_node(self).quirks_mode();
-                let root = DomRoot::from_ref(self);
-                // FIXME(bholley): Consider an nth-index cache here.
-                let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
-                                                   quirks_mode);
-                ctx.scope_element = Some(root.opaque());
-                Ok(matches_selector_list(&selectors, &root, &mut ctx))
-            }
-        }
+        use style::dom_apis;
+
+        let selectors =
+            match SelectorParser::parse_author_origin_no_namespace(&selectors) {
+                Err(_) => return Err(Error::Syntax),
+                Ok(selectors) => selectors,
+            };
+
+        let quirks_mode = document_from_node(self).quirks_mode();
+        let element = DomRoot::from_ref(self);
+
+        Ok(dom_apis::element_matches(&element, &selectors, quirks_mode))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector
