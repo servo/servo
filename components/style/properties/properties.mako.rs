@@ -869,9 +869,12 @@ impl ShorthandId {
         }
     }
 
-    fn parse_into<'i, 't>(&self, declarations: &mut SourcePropertyDeclaration,
-                          context: &ParserContext, input: &mut Parser<'i, 't>)
-                          -> Result<(), ParseError<'i>> {
+    fn parse_into<'i, 't>(
+        &self,
+        declarations: &mut SourcePropertyDeclaration,
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(), ParseError<'i>> {
         match *self {
             % for shorthand in data.shorthands_except_all():
                 ShorthandId::${shorthand.camel_case} => {
@@ -1628,10 +1631,13 @@ impl PropertyDeclaration {
     /// This will not actually parse Importance values, and will always set things
     /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
     /// we only set them here so that we don't have to reallocate
-    pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
-                              id: PropertyId, name: CowRcStr<'i>,
-                              context: &ParserContext, input: &mut Parser<'i, 't>)
-                              -> Result<(), ParseError<'i>> {
+    pub fn parse_into<'i, 't>(
+        declarations: &mut SourcePropertyDeclaration,
+        id: PropertyId,
+        name: CowRcStr<'i>,
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(), ParseError<'i>> {
         assert!(declarations.is_empty());
         let start = input.state();
         match id {

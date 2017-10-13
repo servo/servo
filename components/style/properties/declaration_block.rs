@@ -1016,15 +1016,17 @@ pub fn parse_style_attribute<R>(input: &str,
 /// `PropertyDeclaration`s when expanding a shorthand, for example.
 ///
 /// This does not attempt to parse !important at all.
-pub fn parse_one_declaration_into<R>(declarations: &mut SourcePropertyDeclaration,
-                                     id: PropertyId,
-                                     input: &str,
-                                     url_data: &UrlExtraData,
-                                     error_reporter: &R,
-                                     parsing_mode: ParsingMode,
-                                     quirks_mode: QuirksMode)
-                                     -> Result<(), ()>
-    where R: ParseErrorReporter
+pub fn parse_one_declaration_into<R>(
+    declarations: &mut SourcePropertyDeclaration,
+    id: PropertyId,
+    input: &str,
+    url_data: &UrlExtraData,
+    error_reporter: &R,
+    parsing_mode: ParsingMode,
+    quirks_mode: QuirksMode
+) -> Result<(), ()>
+where
+    R: ParseErrorReporter
 {
     let context = ParserContext::new(Origin::Author,
                                      url_data,
@@ -1102,11 +1104,13 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
 
 /// Parse a list of property declarations and return a property declaration
 /// block.
-pub fn parse_property_declaration_list<R>(context: &ParserContext,
-                                          error_context: &ParserErrorContext<R>,
-                                          input: &mut Parser)
-                                          -> PropertyDeclarationBlock
-    where R: ParseErrorReporter
+pub fn parse_property_declaration_list<R>(
+    context: &ParserContext,
+    error_context: &ParserErrorContext<R>,
+    input: &mut Parser,
+) -> PropertyDeclarationBlock
+where
+    R: ParseErrorReporter
 {
     let mut declarations = SourcePropertyDeclaration::new();
     let mut block = PropertyDeclarationBlock::new();
