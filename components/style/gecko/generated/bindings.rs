@@ -2927,10 +2927,6 @@ extern "C" {
      -> ServoStyleContextStrong;
 }
 extern "C" {
-    pub fn Servo_ResolveStyleAllowStale(element: RawGeckoElementBorrowed)
-     -> ServoStyleContextStrong;
-}
-extern "C" {
     pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
                                     pseudo_type: CSSPseudoElementType,
                                     is_probe: bool,

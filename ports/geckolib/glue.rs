@@ -3159,18 +3159,6 @@ pub extern "C" fn Servo_ResolveStyle(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ResolveStyleAllowStale(
-    element: RawGeckoElementBorrowed,
-) -> ServoStyleContextStrong {
-    let element = GeckoElement(element);
-    debug!("Servo_ResolveStyleAllowStale: {:?}", element);
-    let data =
-        element.borrow_data().expect("Resolving style on unstyled element");
-    assert!(data.has_styles(), "Resolving style on unstyled element");
-    data.styles.primary().clone().into()
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_ResolveStyleLazily(
     element: RawGeckoElementBorrowed,
     pseudo_type: CSSPseudoElementType,
