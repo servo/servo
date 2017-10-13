@@ -81,7 +81,7 @@
 //! * Blocking is transitive (if T1 can block on T2 and T2 can block on T3 then T1 can block on T3)
 //! * Nothing can block on itself!
 //!
-//! There is a wrinkle around the use of IPC channels, since they do not support
+//! There is a complexity intoduced by IPC channels, since they do not support
 //! non-blocking send. This means that as well as `receiver.recv()` blocking, so
 //! can `sender.send(data)`, while the IPC buffer is full. For this reason it is
 //! very important that all IPC receivers where we depend on non-blocking send
