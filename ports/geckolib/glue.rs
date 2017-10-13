@@ -2135,15 +2135,17 @@ pub extern "C" fn Servo_StyleSet_CompatModeChanged(raw_data: RawServoStyleSetBor
     data.stylist.set_quirks_mode(quirks_mode.into());
 }
 
-fn parse_property_into<R>(declarations: &mut SourcePropertyDeclaration,
-                          property_id: PropertyId,
-                          value: *const nsACString,
-                          data: *mut URLExtraData,
-                          parsing_mode: structs::ParsingMode,
-                          quirks_mode: QuirksMode,
-                          reporter: &R)
-                          -> Result<(), ()>
-    where R: ParseErrorReporter
+fn parse_property_into<R>(
+    declarations: &mut SourcePropertyDeclaration,
+    property_id: PropertyId,
+    value: *const nsACString,
+    data: *mut URLExtraData,
+    parsing_mode: structs::ParsingMode,
+    quirks_mode: QuirksMode,
+    reporter: &R
+) -> Result<(), ()>
+where
+    R: ParseErrorReporter
 {
     use style_traits::ParsingMode;
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
@@ -2161,12 +2163,13 @@ fn parse_property_into<R>(declarations: &mut SourcePropertyDeclaration,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const nsACString,
-                                      data: *mut URLExtraData,
-                                      parsing_mode: structs::ParsingMode,
-                                      quirks_mode: nsCompatibility,
-                                      loader: *mut Loader)
-                                      -> RawServoDeclarationBlockStrong {
+pub extern "C" fn Servo_ParseProperty(
+    property: nsCSSPropertyID, value: *const nsACString,
+    data: *mut URLExtraData,
+    parsing_mode: structs::ParsingMode,
+    quirks_mode: nsCompatibility,
+    loader: *mut Loader,
+) -> RawServoDeclarationBlockStrong {
     let id = get_property_id_from_nscsspropertyid!(property,
                                                    RawServoDeclarationBlockStrong::null());
     let mut declarations = SourcePropertyDeclaration::new();
@@ -2184,10 +2187,11 @@ pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const n
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
-                                    data: *mut URLExtraData,
-                                    output: nsTimingFunctionBorrowedMut)
-                                    -> bool {
+pub extern "C" fn Servo_ParseEasing(
+    easing: *const nsAString,
+    data: *mut URLExtraData,
+    output: nsTimingFunctionBorrowedMut
+) -> bool {
     use style::properties::longhands::transition_timing_function;
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
@@ -2269,11 +2273,12 @@ pub extern "C" fn Servo_MatrixTransform_Operate(matrix_operator: MatrixTransform
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString,
-                                            raw_extra_data: *mut URLExtraData,
-                                            quirks_mode: nsCompatibility,
-                                            loader: *mut Loader)
-                                            -> RawServoDeclarationBlockStrong {
+pub extern "C" fn Servo_ParseStyleAttribute(
+    data: *const nsACString,
+    raw_extra_data: *mut URLExtraData,
+    quirks_mode: nsCompatibility,
+    loader: *mut Loader,
+) -> RawServoDeclarationBlockStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let value = unsafe { data.as_ref().unwrap().as_str_unchecked() };
     let reporter = ErrorReporter::new(ptr::null_mut(), loader, raw_extra_data);
@@ -2301,9 +2306,10 @@ pub extern "C" fn Servo_DeclarationBlock_Clone(declarations: RawServoDeclaration
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
-                                                b: RawServoDeclarationBlockBorrowed)
-                                                -> bool {
+pub extern "C" fn Servo_DeclarationBlock_Equals(
+    a: RawServoDeclarationBlockBorrowed,
+    b: RawServoDeclarationBlockBorrowed,
+) -> bool {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     *Locked::<PropertyDeclarationBlock>::as_arc(&a).read_with(&guard).declarations() ==
@@ -2323,8 +2329,8 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     declarations: RawServoDeclarationBlockBorrowed,
     property_id: nsCSSPropertyID, buffer: *mut nsAString,
     computed_values: ServoStyleContextBorrowedOrNull,
-    custom_properties: RawServoDeclarationBlockBorrowedOrNull)
-{
+    custom_properties: RawServoDeclarationBlockBorrowedOrNull,
+) {
     let property_id = get_property_id_from_nscsspropertyid!(property_id, ());
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -2346,7 +2352,8 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
 #[no_mangle]
 pub extern "C" fn Servo_SerializeFontValueForCanvas(
     declarations: RawServoDeclarationBlockBorrowed,
-    buffer: *mut nsAString) {
+    buffer: *mut nsAString,
+) {
     use style::properties::shorthands::font;
 
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
@@ -2375,8 +2382,11 @@ pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclaration
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDeclarationBlockBorrowed,
-                                                        index: u32, result: *mut nsAString) -> bool {
+pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(
+    declarations: RawServoDeclarationBlockBorrowed,
+    index: u32,
+    result: *mut nsAString,
+) -> bool {
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
         if let Some(decl) = decls.declarations().get(index as usize) {
             let result = unsafe { result.as_mut().unwrap() };
@@ -2444,11 +2454,16 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(
     })
 }
 
-fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
-                value: *const nsACString, is_important: bool, data: *mut URLExtraData,
-                parsing_mode: structs::ParsingMode,
-                quirks_mode: QuirksMode,
-                loader: *mut Loader) -> bool {
+fn set_property(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property_id: PropertyId,
+    value: *const nsACString,
+    is_important: bool,
+    data: *mut URLExtraData,
+    parsing_mode: structs::ParsingMode,
+    quirks_mode: QuirksMode,
+    loader: *mut Loader
+) -> bool {
     let mut source_declarations = SourcePropertyDeclaration::new();
     let reporter = ErrorReporter::new(ptr::null_mut(), loader, data);
     match parse_property_into(&mut source_declarations, property_id, value, data,
@@ -2545,9 +2560,10 @@ pub extern "C" fn Servo_MediaList_DeepClone(list: RawServoMediaListBorrowed) -> 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
-                                          raw_data: RawServoStyleSetBorrowed)
-                                          -> bool {
+pub extern "C" fn Servo_MediaList_Matches(
+    list: RawServoMediaListBorrowed,
+    raw_data: RawServoStyleSetBorrowed,
+) -> bool {
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     read_locked_arc(list, |list: &MediaList| {
         list.evaluate(per_doc_data.stylist.device(), per_doc_data.stylist.quirks_mode())
@@ -2555,8 +2571,10 @@ pub extern "C" fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_HasCSSWideKeyword(declarations: RawServoDeclarationBlockBorrowed,
-                                                           property: nsCSSPropertyID) -> bool {
+pub extern "C" fn Servo_DeclarationBlock_HasCSSWideKeyword(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+) -> bool {
     let property_id = get_property_id_from_nscsspropertyid!(property, false);
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
         decls.has_css_wide_keyword(&property_id)
@@ -2590,8 +2608,11 @@ pub extern "C" fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, index: u32,
-                                              result: *mut nsAString) -> bool {
+pub extern "C" fn Servo_MediaList_GetMediumAt(
+    list: RawServoMediaListBorrowed,
+    index: u32,
+    result: *mut nsAString,
+) -> bool {
     read_locked_arc(list, |list: &MediaList| {
         if let Some(media_query) = list.media_queries.get(index as usize) {
             media_query.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
@@ -2603,8 +2624,10 @@ pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, i
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
-                                               new_medium: *const nsACString) {
+pub extern "C" fn Servo_MediaList_AppendMedium(
+    list: RawServoMediaListBorrowed,
+    new_medium: *const nsACString,
+) {
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
@@ -2616,8 +2639,10 @@ pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
-                                               old_medium: *const nsACString) -> bool {
+pub extern "C" fn Servo_MediaList_DeleteMedium(
+    list: RawServoMediaListBorrowed,
+    old_medium: *const nsACString,
+) -> bool {
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
@@ -2661,12 +2686,11 @@ pub extern "C" fn Servo_DeclarationBlock_PropertyIsSet(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
-                                                             RawServoDeclarationBlockBorrowed,
-                                                             property:
-                                                             nsCSSPropertyID,
-                                                             value:
-                                                             *mut nsAtom) {
+pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: *mut nsAtom,
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_x_lang::computed_value::T as Lang;
 
@@ -2681,10 +2705,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
 
 #[no_mangle]
 #[allow(unreachable_code)]
-pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
-                                                         RawServoDeclarationBlockBorrowed,
-                                                         property: nsCSSPropertyID,
-                                                         value: i32) {
+pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: i32
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands;
     use style::values::specified::BorderStyle;
@@ -2725,9 +2750,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDeclarationBlockBorrowed,
-                                                     property: nsCSSPropertyID,
-                                                     value: i32) {
+pub extern "C" fn Servo_DeclarationBlock_SetIntValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: i32
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_moz_script_level::SpecifiedValue as MozScriptLevel;
     use style::properties::longhands::_x_span::computed_value::T as Span;
@@ -2744,10 +2771,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDecla
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
-                                                       RawServoDeclarationBlockBorrowed,
-                                                       property: nsCSSPropertyID,
-                                                       value: f32) {
+pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: f32
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::border_spacing::SpecifiedValue as BorderSpacing;
     use style::properties::longhands::height::SpecifiedValue as Height;
@@ -2801,11 +2829,12 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
 
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
-                                                        RawServoDeclarationBlockBorrowed,
-                                                        property: nsCSSPropertyID,
-                                                        value: f32,
-                                                        unit: structs::nsCSSUnit) {
+pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: f32,
+    unit: structs::nsCSSUnit,
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_moz_script_min_size::SpecifiedValue as MozScriptMinSize;
     use style::properties::longhands::width::SpecifiedValue as Width;
@@ -2839,10 +2868,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(declarations:
-                                                       RawServoDeclarationBlockBorrowed,
-                                                       property: nsCSSPropertyID,
-                                                       value: f32) {
+pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: f32,
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_moz_script_level::SpecifiedValue as MozScriptLevel;
 
@@ -2859,10 +2889,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
-                                                         RawServoDeclarationBlockBorrowed,
-                                                         property: nsCSSPropertyID,
-                                                         value: f32) {
+pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: f32,
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::height::SpecifiedValue as Height;
     use style::properties::longhands::width::SpecifiedValue as Width;
@@ -2888,9 +2919,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
-                                                      RawServoDeclarationBlockBorrowed,
-                                                      property: nsCSSPropertyID) {
+pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::height::SpecifiedValue as Height;
     use style::properties::longhands::width::SpecifiedValue as Width;
@@ -2913,9 +2945,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
-                                                         RawServoDeclarationBlockBorrowed,
-                                                         property: nsCSSPropertyID) {
+pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::values::specified::Color;
 
@@ -2934,10 +2967,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
-                                                       RawServoDeclarationBlockBorrowed,
-                                                       property: nsCSSPropertyID,
-                                                       value: structs::nscolor) {
+pub extern "C" fn Servo_DeclarationBlock_SetColorValue(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID,
+    value: structs::nscolor,
+) {
     use style::gecko::values::convert_nscolor_to_rgba;
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands;
@@ -2961,9 +2995,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
-                                                       RawServoDeclarationBlockBorrowed,
-                                                       value: *const nsAString) {
+pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(
+    declarations: RawServoDeclarationBlockBorrowed,
+    value: *const nsAString,
+) {
     use cssparser::{Parser, ParserInput};
     use style::properties::PropertyDeclaration;
     use style::properties::longhands::font_family::SpecifiedValue as FontFamily;
@@ -2983,10 +3018,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
-                                                            RawServoDeclarationBlockBorrowed,
-                                                            value: *const nsAString,
-                                                            raw_extra_data: *mut URLExtraData) {
+pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
+    declarations: RawServoDeclarationBlockBorrowed,
+    value: *const nsAString,
+    raw_extra_data: *mut URLExtraData,
+) {
     use style::properties::PropertyDeclaration;
     use style::properties::longhands::background_image::SpecifiedValue as BackgroundImage;
     use style::values::Either;
@@ -3010,8 +3046,9 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarations:
-                                                                RawServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(
+    declarations: RawServoDeclarationBlockBorrowed,
+) {
     use style::properties::PropertyDeclaration;
     use style::properties::longhands::text_decoration_line;
 
@@ -3066,16 +3103,19 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
-                                          restyle_hint: nsRestyleHint,
-                                          change_hint: nsChangeHint) {
+pub extern "C" fn Servo_NoteExplicitHints(
+    element: RawGeckoElementBorrowed,
+    restyle_hint: nsRestyleHint,
+    change_hint: nsChangeHint,
+) {
     GeckoElement(element).note_explicit_hints(restyle_hint, change_hint);
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
-                                       was_restyled: *mut bool) -> u32
-{
+pub extern "C" fn Servo_TakeChangeHint(
+    element: RawGeckoElementBorrowed,
+    was_restyled: *mut bool
+) -> u32 {
     let was_restyled =  unsafe { was_restyled.as_mut().unwrap() };
     let element = GeckoElement(element);
 
@@ -3102,10 +3142,10 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                                     _raw_data: RawServoStyleSetBorrowed)
-                                     -> ServoStyleContextStrong
-{
+pub extern "C" fn Servo_ResolveStyle(
+    element: RawGeckoElementBorrowed,
+    _raw_data: RawServoStyleSetBorrowed,
+) -> ServoStyleContextStrong {
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}", element);
     let data =
@@ -3119,9 +3159,9 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ResolveStyleAllowStale(element: RawGeckoElementBorrowed)
-                                               -> ServoStyleContextStrong
-{
+pub extern "C" fn Servo_ResolveStyleAllowStale(
+    element: RawGeckoElementBorrowed,
+) -> ServoStyleContextStrong {
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyleAllowStale: {:?}", element);
     let data =
@@ -3131,14 +3171,14 @@ pub extern "C" fn Servo_ResolveStyleAllowStale(element: RawGeckoElementBorrowed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
-                                           pseudo_type: CSSPseudoElementType,
-                                           rule_inclusion: StyleRuleInclusion,
-                                           snapshots: *const ServoElementSnapshotTable,
-                                           raw_data: RawServoStyleSetBorrowed,
-                                           ignore_existing_styles: bool)
-     -> ServoStyleContextStrong
-{
+pub extern "C" fn Servo_ResolveStyleLazily(
+    element: RawGeckoElementBorrowed,
+    pseudo_type: CSSPseudoElementType,
+    rule_inclusion: StyleRuleInclusion,
+    snapshots: *const ServoElementSnapshotTable,
+    raw_data: RawServoStyleSetBorrowed,
+    ignore_existing_styles: bool
+) -> ServoStyleContextStrong {
     debug_assert!(!snapshots.is_null());
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -3214,14 +3254,14 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ReparentStyle(style_to_reparent: ServoStyleContextBorrowed,
-                                      parent_style: ServoStyleContextBorrowed,
-                                      parent_style_ignoring_first_line: ServoStyleContextBorrowed,
-                                      layout_parent_style: ServoStyleContextBorrowed,
-                                      element: RawGeckoElementBorrowedOrNull,
-                                      raw_data: RawServoStyleSetBorrowed)
-     -> ServoStyleContextStrong
-{
+pub extern "C" fn Servo_ReparentStyle(
+    style_to_reparent: ServoStyleContextBorrowed,
+    parent_style: ServoStyleContextBorrowed,
+    parent_style_ignoring_first_line: ServoStyleContextBorrowed,
+    layout_parent_style: ServoStyleContextBorrowed,
+    element: RawGeckoElementBorrowedOrNull,
+    raw_data: RawServoStyleSetBorrowed,
+) -> ServoStyleContextStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
@@ -3353,12 +3393,13 @@ impl<'a> Iterator for PrioritizedPropertyIter<'a> {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
-                                                  element: RawGeckoElementBorrowed,
-                                                  style: ServoStyleContextBorrowed,
-                                                  raw_data: RawServoStyleSetBorrowed,
-                                                  computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
-{
+pub extern "C" fn Servo_GetComputedKeyframeValues(
+    keyframes: RawGeckoKeyframeListBorrowed,
+    element: RawGeckoElementBorrowed,
+    style: ServoStyleContextBorrowed,
+    raw_data: RawServoStyleSetBorrowed,
+    computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut
+) {
     use std::mem;
     use style::properties::LonghandIdSet;
 
@@ -3464,11 +3505,13 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBlockBorrowed,
-                                           element: RawGeckoElementBorrowed,
-                                           style: ServoStyleContextBorrowed,
-                                           raw_data: RawServoStyleSetBorrowed,
-                                           animation_values: RawGeckoServoAnimationValueListBorrowedMut) {
+pub extern "C" fn Servo_GetAnimationValues(
+    declarations: RawServoDeclarationBlockBorrowed,
+    element: RawGeckoElementBorrowed,
+    style: ServoStyleContextBorrowed,
+    raw_data: RawServoStyleSetBorrowed,
+    animation_values: RawGeckoServoAnimationValueListBorrowedMut,
+) {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let metrics = get_metrics_provider_for_product();
 
@@ -3507,11 +3550,12 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
-                                               declarations: RawServoDeclarationBlockBorrowed,
-                                               style: ServoStyleContextBorrowed,
-                                               raw_data: RawServoStyleSetBorrowed)
-                                               -> RawServoAnimationValueStrong {
+pub extern "C" fn Servo_AnimationValue_Compute(
+    element: RawGeckoElementBorrowed,
+    declarations: RawServoDeclarationBlockBorrowed,
+    style: ServoStyleContextBorrowed,
+    raw_data: RawServoStyleSetBorrowed,
+) -> RawServoAnimationValueStrong {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let metrics = get_metrics_provider_for_product();
 
@@ -3622,10 +3666,12 @@ fn fill_in_missing_keyframe_values(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetBorrowed,
-                                                     name: *mut nsAtom,
-                                                     inherited_timing_function: nsTimingFunctionBorrowed,
-                                                     keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
+pub extern "C" fn Servo_StyleSet_GetKeyframesForName(
+    raw_data: RawServoStyleSetBorrowed,
+    name: *mut nsAtom,
+    inherited_timing_function: nsTimingFunctionBorrowed,
+    keyframes: RawGeckoKeyframeListBorrowedMut,
+) -> bool {
     debug_assert!(keyframes.len() == 0,
                   "keyframes should be initially empty");
 
@@ -3795,8 +3841,10 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorrowed,
-                                                  rules: RawGeckoFontFaceRuleListBorrowedMut) {
+pub extern "C" fn Servo_StyleSet_GetFontFaceRules(
+    raw_data: RawServoStyleSetBorrowed,
+    rules: RawGeckoFontFaceRuleListBorrowedMut,
+) {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     debug_assert!(rules.len() == 0);
 
@@ -3824,8 +3872,10 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetBorrowed,
-                                                     name: *mut nsAtom) -> *mut nsCSSCounterStyleRule {
+pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(
+    raw_data: RawServoStyleSetBorrowed,
+    name: *mut nsAtom,
+) -> *mut nsCSSCounterStyleRule {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     unsafe {
@@ -3844,7 +3894,8 @@ pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetB
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_BuildFontFeatureValueSet(
-  raw_data: RawServoStyleSetBorrowed) -> *mut gfxFontFeatureValueSet {
+    raw_data: RawServoStyleSetBorrowed,
+) -> *mut gfxFontFeatureValueSet {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -3979,9 +4030,11 @@ pub extern "C" fn Servo_StyleSet_HasStateDependency(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetCustomPropertyValue(computed_values: ServoStyleContextBorrowed,
-                                               name: *const nsAString,
-                                               value: *mut nsAString) -> bool {
+pub extern "C" fn Servo_GetCustomPropertyValue(
+    computed_values: ServoStyleContextBorrowed,
+    name: *const nsAString,
+    value: *mut nsAString,
+) -> bool {
     let custom_properties = match computed_values.custom_properties() {
         Some(p) => p,
         None => return false,
@@ -4006,9 +4059,11 @@ pub extern "C" fn Servo_GetCustomPropertiesCount(computed_values: ServoStyleCont
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetCustomPropertyNameAt(computed_values: ServoStyleContextBorrowed,
-                                                index: u32,
-                                                name: *mut nsAString) -> bool {
+pub extern "C" fn Servo_GetCustomPropertyNameAt(
+    computed_values: ServoStyleContextBorrowed,
+    index: u32,
+    name: *mut nsAString,
+) -> bool {
     let custom_properties = match computed_values.custom_properties() {
         Some(p) => p,
         None => return false,
@@ -4033,27 +4088,31 @@ pub unsafe extern "C" fn Servo_ReleaseArcStringData(string: *const RawOffsetArc<
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_CloneArcStringData(string: *const RawOffsetArc<RustString>)
-                                                  -> RawOffsetArc<RustString> {
+pub unsafe extern "C" fn Servo_CloneArcStringData(
+    string: *const RawOffsetArc<RustString>,
+) -> RawOffsetArc<RustString> {
     let string = string as *const RawOffsetArc<String>;
     let cloned = (*string).clone();
     mem::transmute::<_, RawOffsetArc<RustString>>(cloned)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_GetArcStringData(string: *const RustString,
-                                                utf8_chars: *mut *const u8,
-                                                utf8_len: *mut u32)
-{
+pub unsafe extern "C" fn Servo_GetArcStringData(
+    string: *const RustString,
+    utf8_chars: *mut *const u8,
+    utf8_len: *mut u32,
+) {
     let string = &*(string as *const String);
     *utf8_len = string.len() as u32;
     *utf8_chars = string.as_ptr();
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
-                                             element: RawGeckoElementBorrowed,
-                                             snapshots: *const ServoElementSnapshotTable) {
+pub extern "C" fn Servo_ProcessInvalidations(
+    set: RawServoStyleSetBorrowed,
+    element: RawGeckoElementBorrowed,
+    snapshots: *const ServoElementSnapshotTable,
+) {
     debug_assert!(!snapshots.is_null());
 
     let element = GeckoElement(element);
