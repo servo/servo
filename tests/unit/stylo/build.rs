@@ -34,11 +34,7 @@ fn main() {
         for line in r.lines() {
             let s = line.unwrap();
             for cap in matcher.captures_iter(&s) {
-                // GetStyleVariables is a Servo_* function, but temporarily defined
-                // on the Gecko side.
-                if &cap[1] != "GetStyleVariables" {
-                    w.write_all(format!("    [ Servo_{0}, bindings::Servo_{0} ];\n", &cap[1]).as_bytes()).unwrap();
-                }
+                w.write_all(format!("    [ Servo_{0}, bindings::Servo_{0} ];\n", &cap[1]).as_bytes()).unwrap();
             }
         }
 
