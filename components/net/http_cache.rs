@@ -15,9 +15,9 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
-use net_traits::{Metadata, FetchMetadata, FilteredMetadata};
+use net_traits::{Metadata, FetchMetadata, FilteredMetadata, ReferrerPolicy};
 use net_traits::request::Request;
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{HttpsState, Response, ResponseBody};
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -62,6 +62,9 @@ struct CachedResource {
     metadata: CachedMetadata,
     request_headers: Vec<(String, String)>,
     body: Arc<Mutex<ResponseBody>>,
+    https_state: HttpsState,
+    referrer: Option<ServoUrl>,
+    referrer_policy: Option<ReferrerPolicy>,
     status: Option<StatusCode>,
     raw_status: Option<(u16, Vec<u8>)>,
     url_list: Vec<ServoUrl>,
@@ -271,6 +274,9 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource)
     response.status = cached_resource.status.clone();
     response.raw_status = cached_resource.raw_status.clone();
     response.url_list = cached_resource.url_list.clone();
+    response.https_state = cached_resource.https_state.clone();
+    response.referrer = cached_resource.referrer.clone();
+    response.referrer_policy = cached_resource.referrer_policy.clone();
     let expires = cached_resource.expires;
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
     let now = Duration::seconds(time::now().to_timespec().sec);
@@ -379,6 +385,9 @@ impl HttpCache {
                     constructed_response.headers = stored_headers.clone();
                     constructed_response.body = cached_resource.body.clone();
                     constructed_response.status = cached_resource.status.clone();
+                    constructed_response.https_state = cached_resource.https_state.clone();
+                    constructed_response.referrer = cached_resource.referrer.clone();
+                    constructed_response.referrer_policy = cached_resource.referrer_policy.clone();
                     constructed_response.raw_status = cached_resource.raw_status.clone();
                     constructed_response.url_list = cached_resource.url_list.clone();
                     // done_chan will have been set to Some by http_network_fetch,
@@ -469,7 +478,10 @@ impl HttpCache {
                         metadata: cacheable_metadata,
                         request_headers: request_headers,
                         body: response.body.clone(),
-                        status: response.status,
+                        https_state: response.https_state.clone(),
+                        referrer: response.referrer.clone(),
+                        referrer_policy: response.referrer_policy.clone(),
+                        status: response.status.clone(),
                         raw_status: response.raw_status.clone(),
                         url_list: response.url_list.clone(),
                         expires: expiry,
