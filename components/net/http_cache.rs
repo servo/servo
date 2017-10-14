@@ -138,11 +138,12 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 fn calculate_response_age(response: &Response) -> Duration {
     // TODO: follow the spec more closely (Date headers, request/response lag, ...)
     if let Some(secs) = response.headers.get_raw("Age") {
-        let seconds = String::from_utf8(secs[0].to_vec()).unwrap();
-        return Duration::seconds(seconds.parse::<i64>().unwrap());
-    } else {
-        return Duration::seconds(0i64);
+        let seconds_string = String::from_utf8_lossy(&secs[0]);
+        if let Ok(secs) = seconds_string.parse::<i64>() {
+            return Duration::seconds(secs);
+        }
     }
+    Duration::seconds(0i64)
 }
 
 /// Determine the expiry date of the given response headers,
