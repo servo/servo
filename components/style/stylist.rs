@@ -2309,12 +2309,12 @@ impl Rule {
     }
 
     /// Creates a new Rule.
-    pub fn new(selector: Selector<SelectorImpl>,
-               hashes: AncestorHashes,
-               style_rule: Arc<Locked<StyleRule>>,
-               source_order: u32)
-               -> Self
-    {
+    pub fn new(
+        selector: Selector<SelectorImpl>,
+        hashes: AncestorHashes,
+        style_rule: Arc<Locked<StyleRule>>,
+        source_order: u32,
+    ) -> Self {
         Rule {
             selector: selector,
             hashes: hashes,
