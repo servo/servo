@@ -64,7 +64,7 @@ struct CachedResource {
     status: Option<StatusCode>,
     raw_status: Option<(u16, Vec<u8>)>,
     url_list: Vec<ServoUrl>,
-    expires: Arc<Mutex<Duration>>,
+    expires: Duration,
     last_validated: Tm
 }
 
@@ -275,7 +275,7 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource)
     response.status = cached_resource.status.clone();
     response.raw_status = cached_resource.raw_status.clone();
     response.url_list = cached_resource.url_list.clone();
-    let expires = *cached_resource.expires.lock().unwrap();
+    let expires = cached_resource.expires;
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
     let now = Duration::seconds(time::now().to_timespec().sec);
     let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
@@ -388,8 +388,7 @@ impl HttpCache {
                     // done_chan will have been set to Some by http_network_fetch,
                     // set it back to None since the response returned here replaces the 304 one from the network.
                     *done_chan = None;
-                    let mut expires = cached_resource.expires.lock().unwrap();
-                    *expires = get_response_expiry(&constructed_response);
+                    cached_resource.expires = get_response_expiry(&constructed_response);
                     return Some(constructed_response);
                 }
             }
@@ -401,8 +400,7 @@ impl HttpCache {
         if let Ok(entry_key) = CacheKey::from_url_string(url) {
             if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
                 for cached_resource in cached_resources.iter_mut() {
-                    let mut expires = cached_resource.expires.lock().unwrap();
-                    *expires = Duration::seconds(0i64);
+                    cached_resource.expires = Duration::seconds(0i64);
                 }
             }
         }
@@ -478,7 +476,7 @@ impl HttpCache {
                         status: response.status,
                         raw_status: response.raw_status.clone(),
                         url_list: response.url_list.clone(),
-                        expires: Arc::new(Mutex::new(expiry)),
+                        expires: expiry,
                         last_validated: time::now()
                     };
                     let entry = self.entries.entry(entry_key).or_insert(vec![]);
