@@ -299,11 +299,10 @@ where
 /// Whether a compound selector matched, and whether it was the rightmost
 /// selector inside the complex selector.
 pub enum CompoundSelectorMatchingResult {
+    /// The selector was fully matched.
+    FullyMatched,
     /// The compound selector matched, and the next combinator offset is
     /// `next_combinator_offset`.
-    ///
-    /// If the next combinator offset is zero, it means that it's the rightmost
-    /// selector.
     Matched { next_combinator_offset: usize, },
     /// The selector didn't match.
     NotMatched,
@@ -325,8 +324,9 @@ pub fn matches_compound_selector<E>(
 where
     E: Element
 {
+    debug_assert_ne!(from_offset, 0);
     if cfg!(debug_assertions) {
-        selector.combinator_at(from_offset); // This asserts.
+        selector.combinator_at_parse_order(from_offset - 1); // This asserts.
     }
 
     let mut local_context = LocalMatchingContext {
@@ -334,10 +334,11 @@ where
         matches_hover_and_active_quirk: false,
     };
 
-    for component in selector.iter_raw_parse_order_from(from_offset - 1) {
+    for component in selector.iter_raw_parse_order_from(from_offset) {
         if matches!(*component, Component::Combinator(..)) {
+            debug_assert_ne!(from_offset, 0, "Selector started with a combinator?");
             return CompoundSelectorMatchingResult::Matched {
-                next_combinator_offset: from_offset - 1,
+                next_combinator_offset: from_offset,
             }
         }
 
@@ -350,12 +351,10 @@ where
             return CompoundSelectorMatchingResult::NotMatched;
         }
 
-        from_offset -= 1;
+        from_offset += 1;
     }
 
-    return CompoundSelectorMatchingResult::Matched {
-        next_combinator_offset: 0,
-    }
+    CompoundSelectorMatchingResult::FullyMatched
 }
 
 /// Matches a complex selector.
