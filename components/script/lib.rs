@@ -31,7 +31,6 @@ extern crate byteorder;
 extern crate canvas_traits;
 extern crate caseless;
 extern crate cookie as cookie_rs;
-extern crate core;
 #[macro_use] extern crate cssparser;
 #[macro_use] extern crate deny_public_fields;
 extern crate devtools_traits;

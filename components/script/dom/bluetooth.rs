@@ -7,7 +7,6 @@ use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use core::clone::Clone;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};

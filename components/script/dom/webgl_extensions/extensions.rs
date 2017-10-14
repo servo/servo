@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::WebGLError;
-use core::iter::FromIterator;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
@@ -20,6 +19,7 @@ use js::jsval::JSVal;
 use ref_filter_map::ref_filter_map;
 use std::cell::Ref;
 use std::collections::HashMap;
+use std::iter::FromIterator;
 use super::{ext, WebGLExtension};
 use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 
