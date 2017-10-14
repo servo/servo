@@ -6,7 +6,6 @@ use audio_video_metadata;
 use document_loader::{LoadBlocker, LoadType};
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
@@ -427,16 +426,9 @@ impl HTMLMediaElement {
         self.delay_load_event(true);
 
         // Step 4.
-        // If the resource selection mode in the synchronous section is
-        // "attribute", the URL of the resource to fetch is relative to the
-        // media element's node document when the src attribute was last
-        // changed, which is why we need to pass the base URL in the task
-        // right here.
-        let doc = document_from_node(self);
         let task = MediaElementMicrotask::ResourceSelectionTask {
             elem: DomRoot::from_ref(self),
             generation_id: self.generation_id.get(),
-            base_url: doc.base_url()
         };
 
         // FIXME(nox): This will later call the resource_selection_algorith_sync
@@ -447,14 +439,14 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
-    fn resource_selection_algorithm_sync(&self, base_url: ServoUrl) {
+    fn resource_selection_algorithm_sync(&self) {
         // Step 5.
         // FIXME(nox): Maybe populate the list of pending text tracks.
 
         // Step 6.
         enum Mode {
             Object,
-            Attribute(String),
+            Attribute(Option<ServoUrl>),
             Children(DomRoot<HTMLSourceElement>),
         }
         fn mode(media: &HTMLMediaElement) -> Option<Mode> {
@@ -462,7 +454,7 @@ impl HTMLMediaElement {
                 return Some(Mode::Object);
             }
             if let Some(attr) = media.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
-                return Some(Mode::Attribute(attr.Value().into()));
+                return Some(Mode::Attribute(attr.value().as_url().cloned()));
             }
             let source_child_element = media.upcast::<Node>()
                 .children()
@@ -508,20 +500,14 @@ impl HTMLMediaElement {
                 // of the cleanup in case of failure itself.
                 self.resource_fetch_algorithm(Resource::Object);
             },
-            Mode::Attribute(src) => {
-                // Step 9.attr.1.
-                if src.is_empty() {
-                    self.queue_dedicated_media_source_failure_steps();
-                    return;
-                }
-
-                // Step 9.attr.2.
-                let url_record = match base_url.join(&src) {
-                    Ok(url) => url,
-                    Err(_) => {
+            Mode::Attribute(url_record) => {
+                // Steps 9.attr.1-2.
+                let url_record = match url_record {
+                    Some(url) => url,
+                    None => {
                         self.queue_dedicated_media_source_failure_steps();
                         return;
-                    }
+                    },
                 };
 
                 // Step 9.attr.3.
@@ -953,7 +939,6 @@ pub enum MediaElementMicrotask {
     ResourceSelectionTask {
         elem: DomRoot<HTMLMediaElement>,
         generation_id: u32,
-        base_url: ServoUrl,
     },
     PauseIfNotInDocumentTask {
         elem: DomRoot<HTMLMediaElement>,
@@ -963,9 +948,9 @@ pub enum MediaElementMicrotask {
 impl MicrotaskRunnable for MediaElementMicrotask {
     fn handler(&self) {
         match self {
-            &MediaElementMicrotask::ResourceSelectionTask { ref elem, generation_id, ref base_url } => {
+            &MediaElementMicrotask::ResourceSelectionTask { ref elem, generation_id } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.resource_selection_algorithm_sync(base_url.clone());
+                    elem.resource_selection_algorithm_sync();
                 }
             },
             &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
