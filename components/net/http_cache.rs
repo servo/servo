@@ -409,14 +409,6 @@ impl HttpCache {
 
     /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
     pub fn invalidate(&mut self, request: &Request, response: &Response) {
-        if let Some(status) = response.status {
-            // Ignoring redirects.
-            // Note: without this, the fetch::test_fetch_redirect_updates_method would hang.
-            // An unknown interaction between the cache and redirects caused this problem.
-            if is_redirect_status(status) {
-                return
-            }
-        }
         if let Some(&header::Location(ref location)) = response.headers.get::<header::Location>() {
             self.invalidate_for_url(location.clone());
         }
@@ -434,7 +426,7 @@ impl HttpCache {
         if request.method != Method::Get {
              // For simplicity, only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
              return
-         }
+        }
         if let Some(status) = response.status {
             // Not caching redirects.
             if is_redirect_status(status) {
