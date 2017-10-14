@@ -67,6 +67,7 @@ extern crate mime_guess;
 extern crate mitochondria;
 extern crate msg;
 extern crate net_traits;
+extern crate nonzero;
 extern crate num_traits;
 extern crate offscreen_gl_context;
 extern crate open;

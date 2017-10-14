@@ -10,7 +10,6 @@ use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use core::cell::Ref;
 use core::iter::FromIterator;
-use core::nonzero::NonZero;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -19,6 +18,7 @@ use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasE
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
@@ -1377,7 +1377,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     unsafe fn GetExtension(&self, _cx: *mut JSContext, name: DOMString)
-                    -> Option<NonZero<*mut JSObject>> {
+                    -> Option<NonNullJSObjectPtr> {
         self.extension_manager.init_once(|| {
             self.get_gl_extensions()
         });

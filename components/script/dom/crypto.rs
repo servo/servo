@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::nonzero::NonZero;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CryptoBinding;
 use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use dom::bindings::error::{Error, Fallible};
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
@@ -44,7 +44,7 @@ impl CryptoMethods for Crypto {
     unsafe fn GetRandomValues(&self,
                        _cx: *mut JSContext,
                        input: *mut JSObject)
-                       -> Fallible<NonZero<*mut JSObject>> {
+                       -> Fallible<NonNullJSObjectPtr> {
         assert!(!input.is_null());
         typedarray!(in(_cx) let mut array_buffer_view: ArrayBufferView = input);
         let (array_type, mut data) = match array_buffer_view.as_mut() {
@@ -65,7 +65,7 @@ impl CryptoMethods for Crypto {
 
         self.rng.borrow_mut().fill_bytes(&mut data);
 
-        Ok(NonZero::new_unchecked(input))
+        Ok(NonNullJSObjectPtr::new_unchecked(input))
     }
 }
 

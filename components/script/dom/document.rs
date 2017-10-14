@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
-use core::nonzero::NonZero;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
@@ -24,6 +23,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::{FrameRequestCallback, Scro
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -99,7 +99,7 @@ use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
@@ -3536,7 +3536,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
+    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNullJSObjectPtr> {
         #[derive(HeapSizeOf, JSTraceable)]
         struct NamedElementFilter {
             name: Atom,
@@ -3604,7 +3604,7 @@ impl DocumentMethods for Document {
                 if elements.peek().is_none() {
                     // TODO: Step 2.
                     // Step 3.
-                    return Some(NonZero::new_unchecked(first.reflector().get_jsobject().get()));
+                    return Some(NonNullJSObjectPtr::new_unchecked(first.reflector().get_jsobject().get()));
                 }
             } else {
                 return None;
@@ -3615,7 +3615,7 @@ impl DocumentMethods for Document {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, Box::new(filter));
-        Some(NonZero::new_unchecked(collection.reflector().get_jsobject().get()))
+        Some(NonNullJSObjectPtr::new_unchecked(collection.reflector().get_jsobject().get()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names

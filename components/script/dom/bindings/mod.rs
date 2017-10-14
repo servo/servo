@@ -144,6 +144,7 @@ pub mod interface;
 pub mod iterable;
 pub mod mozmap;
 pub mod namespace;
+pub mod nonnull;
 pub mod num;
 pub mod proxyhandler;
 pub mod refcounted;
