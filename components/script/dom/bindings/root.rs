@@ -24,7 +24,6 @@
 //! originating `DomRoot<T>`.
 //!
 
-use core::nonzero::NonZero;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector};
@@ -35,6 +34,7 @@ use heapsize::HeapSizeOf;
 use js::jsapi::{JSObject, JSTracer, Heap};
 use js::rust::GCMethods;
 use mitochondria::OnceCell;
+use nonzero::NonZero;
 use script_layout_interface::TrustedNodeAddress;
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
