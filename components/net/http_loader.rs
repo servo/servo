@@ -674,8 +674,10 @@ pub fn http_redirect_fetch(request: &mut Request,
     request.redirect_count += 1;
 
     // Step 7
-    // FIXME: Correctly use request's origin
-    let same_origin = location_url.origin() == request.current_url().origin();
+    let same_origin = match request.origin {
+        Origin::Origin(ref origin) => *origin == location_url.origin(),
+        Origin::Client => false,
+    };
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
