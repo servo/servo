@@ -224,35 +224,39 @@ fn get_response_expiry(response: &Response) -> Duration {
 
 /// Request Cache-Control Directives https://tools.ietf.org/html/rfc7234#section-5.2.1
 fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
-    if let Some(directive_data) = request.headers.get_raw("cache-control") {
-        let directives_string = String::from_utf8(directive_data[0].to_vec()).unwrap();
-        let directives: Vec<&str> = directives_string.split(",").collect();
-        for directive in directives {
-            let directive_info: Vec<&str> = directive.split("=").collect();
-            match directive_info[0] {
-                "max-stale" => {
-                    let seconds = String::from_str(directive_info[1]).unwrap();
-                    return expires + Duration::seconds(seconds.parse::<i64>().unwrap());
-                },
-                "max-age" => {
-                    let seconds = String::from_str(directive_info[1]).unwrap();
-                    let max_age = Duration::seconds(seconds.parse::<i64>().unwrap());
+    let directive_data = match request.headers.get_raw("cache-control") {
+        Some(data) => data,
+        None => return expires,
+    };
+    let directives_string = String::from_utf8_lossy(&directive_data[0]);
+    for directive in directives_string.split(",") {
+        let mut directive_info = directive.split("=");
+        match (directive_info.nth(0), directive_info.nth(1)) {
+            (Some("max-stale"), Some(sec_str)) => {
+                if let Ok(secs) = sec_str.parse::<i64>() {
+                    return expires + Duration::seconds(secs);
+                }
+            },
+            (Some("max-age"), Some(sec_str)) => {
+                if let Ok(secs) = sec_str.parse::<i64>() {
+                    let max_age = Duration::seconds(secs);
                     if expires > max_age {
                         return Duration::min_value();
                     }
                     return expires - max_age;
-                },
-                "min-fresh" => {
-                    let seconds = String::from_str(directive_info[1]).unwrap();
-                    let min_fresh = Duration::seconds(seconds.parse::<i64>().unwrap());
+                }
+            },
+            (Some("min-fresh"), Some(sec_str)) => {
+                if let Ok(secs) = sec_str.parse::<i64>() {
+                    let min_fresh = Duration::seconds(secs);
                     if expires < min_fresh {
                         return Duration::min_value();
                     }
                     return expires - min_fresh;
-                },
-                "no-cache" | "no-store" => return Duration::min_value(),
-                _ => {}
-            }
+                }
+            },
+            (Some("no-cache"), _) | (Some("no-store"), _) => return Duration::min_value(),
+            _ => {}
         }
     }
     expires
