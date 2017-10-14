@@ -285,8 +285,8 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource)
     // TODO: take must-revalidate into account https://tools.ietf.org/html/rfc7234#section-5.2.2.1
     // TODO: since this cache is shared, taking proxy-revalidate into account
     // https://tools.ietf.org/html/rfc7234#section-5.2.2.7
-    let has_expired = (adjusted_expires < time_since_validated)
-        | (adjusted_expires == time_since_validated);
+    let has_expired = (adjusted_expires < time_since_validated) ||
+        (adjusted_expires == time_since_validated);
     CachedResponse { response: response, needs_validation: has_expired }
 }
 
