@@ -3660,17 +3660,18 @@ class CGMemberJITInfo(CGThing):
                     call: ${opName} as *const os::raw::c_void,
                     protoID: PrototypeList::ID::${name} as u16,
                     depth: ${depth},
-                    _bitfield_1:
-                        ((JSJitInfo_OpType::${opType} as u8 as u32) << 0) |
-                        ((JSJitInfo_AliasSet::${aliasSet} as u8 as u32) << 4) |
-                        ((JSValueType::${returnType} as u8 as u32) << 8) |
-                        ((${isInfallible} as u32) << 16) |
-                        ((${isMovable} as u32) << 17) |
-                        ((${isEliminatable} as u32) << 18) |
-                        ((${isAlwaysInSlot} as u32) << 19) |
-                        ((${isLazilyCachedInSlot} as u32) << 20) |
-                        ((${isTypedMethod} as u32) << 21) |
-                        ((${slotIndex} as u32) << 22)
+                    _bitfield_1: new_jsjitinfo_bitfield_1!(
+                        JSJitInfo_OpType::${opType} as u8,
+                        JSJitInfo_AliasSet::${aliasSet} as u8,
+                        JSValueType::${returnType} as u8,
+                        ${isInfallible},
+                        ${isMovable},
+                        ${isEliminatable},
+                        ${isAlwaysInSlot},
+                        ${isLazilyCachedInSlot},
+                        ${isTypedMethod},
+                        ${slotIndex},
+                    ),
                 }
                 """,
                 opName=opName,
