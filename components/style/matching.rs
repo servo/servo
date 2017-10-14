@@ -360,8 +360,8 @@ trait PrivateMatchMethods: TElement {
         debug!(" > style difference: {:?}", difference);
 
         // We need to cascade the children in order to ensure the correct
-        // propagation of computed value flags.
-        if old_values.flags != new_values.flags {
+        // propagation of inherited computed value flags.
+        if old_values.flags.inherited() != new_values.flags.inherited() {
             debug!(" > flags changed: {:?} != {:?}", old_values.flags, new_values.flags);
             return ChildCascadeRequirement::MustCascadeChildren;
         }
