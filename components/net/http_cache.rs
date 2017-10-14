@@ -300,8 +300,7 @@ impl HttpCache {
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
-    pub fn construct_response(&self, request: &Request)
-        -> Option<CachedResponse> {
+    pub fn construct_response(&self, request: &Request) -> Option<CachedResponse> {
         // TODO: generate warning headers as appropriate https://tools.ietf.org/html/rfc7234#section-5.5
         match request.method {
             // Only Get requests are cached, avoid a url based match for others.
