@@ -165,10 +165,12 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             #[cfg(feature = "gecko")]
             NonTSPseudoClass::MozAny(ref selectors) => {
                 use selectors::matching::matches_complex_selector;
-                // FIXME(emilio): nesting_level!
-                return selectors.iter().any(|s| {
+                context.nesting_level += 1;
+                let result = selectors.iter().any(|s| {
                     matches_complex_selector(s.iter(), self, context, _setter)
-                })
+                });
+                context.nesting_level -= 1;
+                return result
             }
 
             // :dir is implemented in terms of state flags, but which state flag
