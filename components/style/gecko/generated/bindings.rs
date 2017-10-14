@@ -1922,6 +1922,11 @@ extern "C" {
                                         len: usize);
 }
 extern "C" {
+    pub fn Gecko_AnnotateCrashReport(key_str: *const ::std::os::raw::c_char,
+                                     value_str:
+                                         *const ::std::os::raw::c_char);
+}
+extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
@@ -2117,6 +2122,11 @@ extern "C" {
     pub fn Servo_SelectorList_Matches(arg1: RawGeckoElementBorrowed,
                                       arg2: RawServoSelectorListBorrowed)
      -> bool;
+}
+extern "C" {
+    pub fn Servo_SelectorList_Closest(arg1: RawGeckoElementBorrowed,
+                                      arg2: RawServoSelectorListBorrowed)
+     -> *const RawGeckoElement;
 }
 extern "C" {
     pub fn Servo_StyleSet_AddSizeOfExcludingThis(malloc_size_of: MallocSizeOf,
