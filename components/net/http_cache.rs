@@ -307,62 +307,60 @@ impl HttpCache {
             return None;
         }
         let entry_key = CacheKey::new(request.clone());
-        if let Some(ref resources) = self.entries.get(&entry_key) {
-            for cached_resource in resources.iter() {
-                let mut can_be_constructed = true;
-                if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
-                    if let Some(vary_data) = stored_headers.get_raw("Vary") {
-                        // Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
-                        let vary_data_string = String::from_utf8(vary_data[0].to_vec()).unwrap();
-                        let vary_values: Vec<&str> = vary_data_string.split(",").map(|val| val.trim()).collect();
-                        for vary_val in vary_values {
-                            // For every header name found in the Vary header field in the stored response.
-                            if vary_val == "*" {
-                                // A Vary header field-value of "*" always fails to match.
-                                can_be_constructed = false;
-                                break;
-                            }
-                            match request.headers.get_raw(vary_val) {
-                                Some(header_data) => {
-                                    // If the header is present in the request.
-                                    let request_header_data_string =
-                                        String::from_utf8(header_data[0].to_vec()).unwrap();
-                                    let request_vary_values: Vec<&str> =
-                                        request_header_data_string.split(",").collect();
-                                    for &(ref name, ref value) in cached_resource.request_headers.iter() {
-                                        if name.to_lowercase() == vary_val.to_lowercase() {
-                                            // Check that the value of the nominated header field,
-                                            // in the original request, matches the value in the current request.
-                                            let original_vary_values: Vec<&str> = value.split(",").collect();
-                                            if !(request_vary_values == original_vary_values) {
-                                                can_be_constructed = false;
-                                                break;
-                                            }
-                                        }
+        let resources = match self.entries.get(&entry_key) {
+            Some(ref resources) => resources.clone(),
+            None => return None,
+        };
+        for cached_resource in resources.iter() {
+            let mut can_be_constructed = true;
+            let stored_headers = cached_resource.metadata.headers.lock().unwrap();
+            if let Some(vary_data) = stored_headers.get_raw("Vary") {
+                // Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
+                let vary_data_string = String::from_utf8_lossy(&vary_data[0]);
+                let vary_values = vary_data_string.split(",").map(|val| val.trim());
+                for vary_val in vary_values {
+                    // For every header name found in the Vary header field in the stored response.
+                    if vary_val == "*" {
+                        // A Vary header field-value of "*" always fails to match.
+                        can_be_constructed = false;
+                        break;
+                    }
+                    match request.headers.get_raw(vary_val) {
+                        Some(header_data) => {
+                            // If the header is present in the request.
+                            let request_header_data_string = String::from_utf8_lossy(&header_data[0]);
+                            for &(ref name, ref value) in cached_resource.request_headers.iter() {
+                                if name.to_lowercase() == vary_val.to_lowercase() {
+                                    // Check that the value of the nominated header field,
+                                    // in the original request, matches the value in the current request.
+                                    let original_vary_values = value.split(",");
+                                    let request_vary_values = request_header_data_string.split(",");
+                                    if original_vary_values.eq(request_vary_values) {
+                                        can_be_constructed = false;
+                                        break;
                                     }
-                                },
-                                None => {
-                                    // If a header field is absent from a request,
-                                    // it can only match another request if it is also absent there.
-                                    can_be_constructed =
-                                        !cached_resource.request_headers.iter().any(|&(ref name, _)| {
-                                            name.to_lowercase() == vary_val.to_lowercase()
-                                    });
-                                },
+                                }
                             }
-                            if !can_be_constructed {
-                                break;
-                            }
-                        }
+                        },
+                        None => {
+                            // If a header field is absent from a request,
+                            // it can only match another request if it is also absent there.
+                            can_be_constructed = cached_resource.request_headers.iter().all(|&(ref name, _)| {
+                                name.to_lowercase() == vary_val.to_lowercase()
+                            });
+                        },
+                    }
+                    if !can_be_constructed {
+                        break;
                     }
                 }
-                if can_be_constructed {
-                    // Returning the first response that can be constructed
-                    // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
-                    // or using the Date header to return the most recent one.
-                    let cached_response = create_cached_response(request, cached_resource);
-                    return Some(cached_response);
-                }
+            }
+            if can_be_constructed {
+                // Returning the first response that can be constructed
+                // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
+                // or using the Date header to return the most recent one.
+                let cached_response = create_cached_response(request, cached_resource);
+                return Some(cached_response);
             }
         }
         None
