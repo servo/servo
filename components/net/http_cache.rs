@@ -20,11 +20,13 @@ use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use servo_url::ServoUrl;
 use std::collections::HashMap;
+use std::str;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use time;
 use time::{Duration, Tm};
 use url::Url;
+
 
 
 /// The key used to differentiate requests in the cache.
@@ -40,7 +42,7 @@ impl CacheKey {
         }
     }
 
-    fn from_url_string(url: String) -> Result<CacheKey, ()> {
+    fn from_url_string(url: &str) -> Result<CacheKey, ()> {
         if let Ok(url) = Url::parse(&url) {
             let key = CacheKey {
                 url: ServoUrl::from_url(url)
@@ -397,7 +399,7 @@ impl HttpCache {
         None
     }
 
-    fn invalidate_for_url(&mut self, url: String) {
+    fn invalidate_for_url(&mut self, url: &str) {
         if let Ok(entry_key) = CacheKey::from_url_string(url) {
             if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
                 for cached_resource in cached_resources.iter_mut() {
@@ -410,14 +412,15 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
     pub fn invalidate(&mut self, request: &Request, response: &Response) {
         if let Some(&header::Location(ref location)) = response.headers.get::<header::Location>() {
-            self.invalidate_for_url(location.clone());
+            self.invalidate_for_url(location);
         }
         // TODO: update hyper to use typed getter.
         if let Some(url_data) = response.headers.get_raw("Content-Location") {
-            let content_location = String::from_utf8(url_data[0].to_vec()).unwrap();
-            self.invalidate_for_url(content_location);
+            if let Ok(content_location) = str::from_utf8(&url_data[0]) {
+                self.invalidate_for_url(content_location);
+            }
         }
-        self.invalidate_for_url(request.url().into_string());
+        self.invalidate_for_url(&request.url().as_str());
     }
 
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
