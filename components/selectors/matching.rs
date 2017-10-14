@@ -159,11 +159,13 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
     }
 }
 
-pub fn matches_selector_list<E>(selector_list: &SelectorList<E::Impl>,
-                                element: &E,
-                                context: &mut MatchingContext)
-                                -> bool
-    where E: Element
+pub fn matches_selector_list<E>(
+    selector_list: &SelectorList<E::Impl>,
+    element: &E,
+    context: &mut MatchingContext,
+) -> bool
+where
+    E: Element
 {
     selector_list.0.iter().any(|selector| {
         matches_selector(selector,
@@ -176,10 +178,9 @@ pub fn matches_selector_list<E>(selector_list: &SelectorList<E::Impl>,
 }
 
 #[inline(always)]
-fn may_match<E>(hashes: &AncestorHashes,
-                bf: &BloomFilter)
-                -> bool
-    where E: Element,
+fn may_match<E>(hashes: &AncestorHashes, bf: &BloomFilter) -> bool
+where
+    E: Element,
 {
     // Check the first three hashes. Note that we can check for zero before
     // masking off the high bits, since if any of the first three hashes is
@@ -370,15 +371,17 @@ enum SelectorMatchingResult {
 /// unncessary cache miss for cases when we can fast-reject with AncestorHashes
 /// (which the caller can store inline with the selector pointer).
 #[inline(always)]
-pub fn matches_selector<E, F>(selector: &Selector<E::Impl>,
-                              offset: usize,
-                              hashes: Option<&AncestorHashes>,
-                              element: &E,
-                              context: &mut MatchingContext,
-                              flags_setter: &mut F)
-                              -> bool
-    where E: Element,
-          F: FnMut(&E, ElementSelectorFlags),
+pub fn matches_selector<E, F>(
+    selector: &Selector<E::Impl>,
+    offset: usize,
+    hashes: Option<&AncestorHashes>,
+    element: &E,
+    context: &mut MatchingContext,
+    flags_setter: &mut F,
+) -> bool
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
 {
     // Use the bloom filter to fast-reject.
     if let Some(hashes) = hashes {
@@ -457,13 +460,15 @@ where
 }
 
 /// Matches a complex selector.
-pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
-                                      element: &E,
-                                      context: &mut LocalMatchingContext<E::Impl>,
-                                      flags_setter: &mut F)
-                                      -> bool
-    where E: Element,
-          F: FnMut(&E, ElementSelectorFlags),
+pub fn matches_complex_selector<E, F>(
+    mut iter: SelectorIter<E::Impl>,
+    element: &E,
+    context: &mut LocalMatchingContext<E::Impl>,
+    flags_setter: &mut F,
+) -> bool
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
 {
     if cfg!(debug_assertions) {
         if context.nesting_level == 0 &&
@@ -499,24 +504,30 @@ pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
         context.note_position(&iter);
     }
 
-    match matches_complex_selector_internal(iter,
-                                            element,
-                                            context,
-                                            &mut RelevantLinkStatus::Looking,
-                                            flags_setter) {
+    let result = matches_complex_selector_internal(
+        iter,
+        element,
+        context,
+        &mut RelevantLinkStatus::Looking,
+        flags_setter,
+    );
+
+    match result {
         SelectorMatchingResult::Matched => true,
         _ => false
     }
 }
 
-fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Impl>,
-                                           element: &E,
-                                           context: &mut LocalMatchingContext<E::Impl>,
-                                           relevant_link: &mut RelevantLinkStatus,
-                                           flags_setter: &mut F)
-                                           -> SelectorMatchingResult
-     where E: Element,
-           F: FnMut(&E, ElementSelectorFlags),
+fn matches_complex_selector_internal<E, F>(
+    mut selector_iter: SelectorIter<E::Impl>,
+    element: &E,
+    context: &mut LocalMatchingContext<E::Impl>,
+    relevant_link: &mut RelevantLinkStatus,
+    flags_setter: &mut F
+) -> SelectorMatchingResult
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
 {
     *relevant_link = relevant_link.examine_potential_link(element, &mut context.shared);
 
@@ -614,14 +625,15 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
 /// Determines whether the given element matches the given single selector.
 #[inline]
 fn matches_simple_selector<E, F>(
-        selector: &Component<E::Impl>,
-        element: &E,
-        context: &mut LocalMatchingContext<E::Impl>,
-        relevant_link: &RelevantLinkStatus,
-        flags_setter: &mut F)
-        -> bool
-    where E: Element,
-          F: FnMut(&E, ElementSelectorFlags),
+    selector: &Component<E::Impl>,
+    element: &E,
+    context: &mut LocalMatchingContext<E::Impl>,
+    relevant_link: &RelevantLinkStatus,
+    flags_setter: &mut F,
+) -> bool
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
 {
     match *selector {
         Component::Combinator(_) => unreachable!(),
@@ -773,16 +785,18 @@ fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T)
 }
 
 #[inline]
-fn matches_generic_nth_child<E, F>(element: &E,
-                                   context: &mut LocalMatchingContext<E::Impl>,
-                                   a: i32,
-                                   b: i32,
-                                   is_of_type: bool,
-                                   is_from_end: bool,
-                                   flags_setter: &mut F)
-                                   -> bool
-    where E: Element,
-          F: FnMut(&E, ElementSelectorFlags),
+fn matches_generic_nth_child<E, F>(
+    element: &E,
+    context: &mut LocalMatchingContext<E::Impl>,
+    a: i32,
+    b: i32,
+    is_of_type: bool,
+    is_from_end: bool,
+    flags_setter: &mut F,
+) -> bool
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
 {
     if element.ignores_nth_child_selectors() {
         return false;
@@ -880,8 +894,9 @@ where
 
 #[inline]
 fn matches_first_child<E, F>(element: &E, flags_setter: &mut F) -> bool
-    where E: Element,
-          F: FnMut(&E, ElementSelectorFlags),
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
 {
     flags_setter(element, HAS_EDGE_CHILD_SELECTOR);
     element.prev_sibling_element().is_none()
@@ -889,8 +904,9 @@ fn matches_first_child<E, F>(element: &E, flags_setter: &mut F) -> bool
 
 #[inline]
 fn matches_last_child<E, F>(element: &E, flags_setter: &mut F) -> bool
-    where E: Element,
-          F: FnMut(&E, ElementSelectorFlags),
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
 {
     flags_setter(element, HAS_EDGE_CHILD_SELECTOR);
     element.next_sibling_element().is_none()
