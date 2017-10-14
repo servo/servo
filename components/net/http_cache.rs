@@ -8,6 +8,7 @@
 //! and http://tools.ietf.org/html/rfc7232.
 
 use fetch::methods::DoneChannel;
+use http_loader::is_redirect_status;
 use hyper::header;
 use hyper::header::ContentType;
 use hyper::header::Headers;
@@ -97,16 +98,6 @@ pub struct HttpCache {
     entries: HashMap<CacheKey, Vec<CachedResource>>,
 }
 
-
-/// Determine if a status code corresponds to a response for a redirected request.
-fn is_redirect(status: StatusCode) -> bool {
-    return match status {
-        StatusCode::SeeOther | StatusCode::MovedPermanently
-        | StatusCode::TemporaryRedirect | StatusCode::Found
-        | StatusCode::PermanentRedirect => true,
-        _ => false,
-    };
-}
 
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
@@ -412,7 +403,7 @@ impl HttpCache {
             // Ignoring redirects.
             // Note: without this, the fetch::test_fetch_redirect_updates_method would hang.
             // An unknown interaction between the cache and redirects caused this problem.
-            if is_redirect(status) {
+            if is_redirect_status(status) {
                 return
             }
         }
@@ -437,7 +428,7 @@ impl HttpCache {
         }
         if let Some(status) = response.status {
             // Not caching redirects.
-            if is_redirect(status) {
+            if is_redirect_status(status) {
                 return
             }
         }
