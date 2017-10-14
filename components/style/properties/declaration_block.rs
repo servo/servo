@@ -509,13 +509,10 @@ impl PropertyDeclarationBlock {
                             if let PropertyDeclaration::Display(old_display) = *slot {
                                 use properties::longhands::display::computed_value::T as display;
 
-                                let new_display = match declaration {
-                                    PropertyDeclaration::Display(new_display) => new_display,
-                                    _ => unreachable!("How could the declaration id be the same?"),
-                                };
-
-                                if display::should_ignore_parsed_value(old_display, new_display) {
-                                    return false;
+                                if let PropertyDeclaration::Display(new_display) = declaration {
+                                    if display::should_ignore_parsed_value(old_display, new_display) {
+                                        return false;
+                                    }
                                 }
                             }
 
