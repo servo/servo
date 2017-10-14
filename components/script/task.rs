@@ -5,7 +5,6 @@
 //! Machinery for [tasks](https://html.spec.whatwg.org/multipage/#concept-task).
 
 use std::fmt;
-use std::intrinsics;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -33,7 +32,10 @@ macro_rules! task {
 pub trait TaskOnce: Send {
     #[allow(unsafe_code)]
     fn name(&self) -> &'static str {
-        unsafe { intrinsics::type_name::<Self>() }
+        #[cfg(feature = "unstable")]
+        unsafe { ::std::intrinsics::type_name::<Self>() }
+        #[cfg(not(feature = "unstable"))]
+        { "(task name unknown)" }
     }
 
     fn run_once(self);

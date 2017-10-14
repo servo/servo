@@ -39,8 +39,6 @@ use script_layout_interface::TrustedNodeAddress;
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
-#[cfg(debug_assertions)]
-use std::intrinsics::type_name;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
@@ -359,11 +357,11 @@ impl<T: DomObject> Deref for Dom<T> {
 
 unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        #[cfg(debug_assertions)]
-        let trace_str = format!("for {} on heap", type_name::<T>());
-        #[cfg(debug_assertions)]
+        #[cfg(all(feature = "unstable", debug_assertions))]
+        let trace_str = format!("for {} on heap", ::std::intrinsics::type_name::<T>());
+        #[cfg(all(feature = "unstable", debug_assertions))]
         let trace_info = &trace_str[..];
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(all(feature = "unstable", debug_assertions)))]
         let trace_info = "for DOM object on heap";
 
         trace_reflector(trc,

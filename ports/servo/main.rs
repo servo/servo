@@ -15,7 +15,7 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(core_intrinsics)]
+#![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 
 #[cfg(target_os = "android")]
 extern crate android_injected_glue;
@@ -26,7 +26,7 @@ extern crate glutin_app as app;
 extern crate log;
 // The Servo engine
 extern crate servo;
-#[cfg(not(target_os = "android"))]
+#[cfg(all(feature = "unstable", not(target_os = "android")))]
 #[macro_use]
 extern crate sig;
 
@@ -57,7 +57,7 @@ pub mod platform {
     pub fn deinit() {}
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(all(feature = "unstable", not(target_os = "android")))]
 fn install_crash_handler() {
     use backtrace::Backtrace;
     use sig::ffi::Sig;
@@ -83,7 +83,7 @@ fn install_crash_handler() {
     signal!(Sig::BUS, handler); // handle invalid memory access
 }
 
-#[cfg(target_os = "android")]
+#[cfg(any(not(feature = "unstable"), target_os = "android"))]
 fn install_crash_handler() {}
 
 fn main() {
