@@ -118,7 +118,6 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     // *  has a status code that is defined as cacheable by default (see Section 4.2.2), or
     // *  contains a public response directive (see Section 5.2.2.5).
     // TODO write a new http-cache/shared_cache.html wpt test suite for the above.
-
     let headers = metadata.headers.as_ref().unwrap();
     match headers.get::<header::CacheControl>() {
         Some(&header::CacheControl(ref directive)) => {
