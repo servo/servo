@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 debugmozjs = ['js/debugmozjs']
+unstable = []
 
 [build-dependencies]
 cmake = "0.1"

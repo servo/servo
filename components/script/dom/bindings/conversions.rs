@@ -67,7 +67,8 @@ pub trait IDLInterface {
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
-#[rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`."]
+#[cfg_attr(feature = "unstable",
+           rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`.")]
 pub trait DerivedFrom<T: Castable>: Castable {}
 
 // https://heycam.github.io/webidl/#es-object

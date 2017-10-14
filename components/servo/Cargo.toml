@@ -23,6 +23,7 @@ unstable = [
     "gfx/unstable",
     "msg/unstable",
     "profile/unstable",
+    "script/unstable",
 ]
 
 [dependencies]
