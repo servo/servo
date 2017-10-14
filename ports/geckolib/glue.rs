@@ -332,11 +332,11 @@ pub extern "C" fn Servo_MaybeGCRuleTree(raw_data: RawServoStyleSetBorrowed) {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValueBorrowed,
-                                                    to: RawServoAnimationValueBorrowed,
-                                                    progress: f64)
-     -> RawServoAnimationValueStrong
-{
+pub extern "C" fn Servo_AnimationValues_Interpolate(
+    from: RawServoAnimationValueBorrowed,
+    to: RawServoAnimationValueBorrowed,
+    progress: f64,
+) -> RawServoAnimationValueStrong {
     let from_value = AnimationValue::as_arc(&from);
     let to_value = AnimationValue::as_arc(&to);
     if let Ok(value) = from_value.animate(to_value, Procedure::Interpolate { progress }) {
@@ -356,10 +356,10 @@ pub extern "C" fn Servo_AnimationValues_IsInterpolable(from: RawServoAnimationVa
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValues_Add(a: RawServoAnimationValueBorrowed,
-                                            b: RawServoAnimationValueBorrowed)
-     -> RawServoAnimationValueStrong
-{
+pub extern "C" fn Servo_AnimationValues_Add(
+    a: RawServoAnimationValueBorrowed,
+    b: RawServoAnimationValueBorrowed,
+) -> RawServoAnimationValueStrong {
     let a_value = AnimationValue::as_arc(&a);
     let b_value = AnimationValue::as_arc(&b);
     if let Ok(value) = a_value.animate(b_value, Procedure::Add) {
@@ -370,11 +370,11 @@ pub extern "C" fn Servo_AnimationValues_Add(a: RawServoAnimationValueBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValues_Accumulate(a: RawServoAnimationValueBorrowed,
-                                                   b: RawServoAnimationValueBorrowed,
-                                                   count: u64)
-     -> RawServoAnimationValueStrong
-{
+pub extern "C" fn Servo_AnimationValues_Accumulate(
+    a: RawServoAnimationValueBorrowed,
+    b: RawServoAnimationValueBorrowed,
+    count: u64,
+) -> RawServoAnimationValueStrong {
     let a_value = AnimationValue::as_arc(&a);
     let b_value = AnimationValue::as_arc(&b);
     if let Ok(value) = a_value.animate(b_value, Procedure::Accumulate { count }) {
@@ -673,8 +673,9 @@ pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBor
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_Uncompute(value: RawServoAnimationValueBorrowed)
-                                                 -> RawServoDeclarationBlockStrong {
+pub extern "C" fn Servo_AnimationValue_Uncompute(
+    value: RawServoAnimationValueBorrowed,
+) -> RawServoDeclarationBlockStrong {
     let value = AnimationValue::as_arc(&value);
     let global_style_data = &*GLOBAL_STYLE_DATA;
     Arc::new(global_style_data.shared_lock.wrap(
