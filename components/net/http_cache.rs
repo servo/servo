@@ -44,6 +44,9 @@ impl CacheKey {
 
     fn from_url_string(url: &str) -> Result<CacheKey, ()> {
         if let Ok(url) = Url::parse(&url) {
+            if !url.has_host() {
+                return Err(());
+            }
             let key = CacheKey {
                 url: ServoUrl::from_url(url)
             };
