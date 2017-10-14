@@ -353,8 +353,6 @@ pub struct Document {
     interactive_time: DomRefCell<InteractiveMetrics>,
 }
 
-unsafe_no_jsmanaged_fields!(InteractiveMetrics);
-
 #[derive(HeapSizeOf, JSTraceable)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
@@ -632,10 +630,10 @@ impl Document {
 
     /// Associate an element present in this document with the provided id.
     pub fn register_named_element(&self, element: &Element, id: Atom) {
-        // debug!("Adding named element to document {:p}: {:p} id={}",
-               // self,
-               // element,
-               // id);
+        debug!("Adding named element to document {:p}: {:p} id={}",
+               self,
+               element,
+               id);
         assert!(element.upcast::<Node>().is_in_doc());
         assert!(!id.is_empty());
 

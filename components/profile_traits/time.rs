@@ -5,7 +5,6 @@
 extern crate time as std_time;
 
 use energy::read_energy_uj;
-use heapsize::HeapSizeOf;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
 use servo_config::opts;
@@ -26,12 +25,6 @@ impl ProfilerChan {
         if let Err(e) = self.0.send(msg) {
             warn!("Error communicating with the time profiler thread: {}", e);
         }
-    }
-}
-
-impl HeapSizeOf for ProfilerChan {
-    fn heap_size_of_children(&self) -> usize {
-        0
     }
 }
 

@@ -33,8 +33,10 @@ use app_units::Au;
 use canvas_traits::canvas::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use canvas_traits::webgl::{WebGLBufferId, WebGLFramebufferId, WebGLProgramId, WebGLRenderbufferId};
-use canvas_traits::webgl::{WebGLChan, WebGLContextShareMode, WebGLError, WebGLPipeline, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLReceiver, WebGLSender, WebGLShaderId, WebGLTextureId, WebGLVertexArrayId};
+use canvas_traits::webgl::{WebGLChan, WebGLContextShareMode, WebGLError, WebGLPipeline,
+                           WebGLMsgSender};
+use canvas_traits::webgl::{WebGLReceiver, WebGLSender, WebGLShaderId, WebGLTextureId,
+                           WebGLVertexArrayId};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use dom::abstractworker::SharedRt;
@@ -77,7 +79,8 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
-use script_traits::{DocumentActivity, ScriptToConstellationChan, TimerEventId, TimerSource, TouchpadPressurePhase};
+use script_traits::{DocumentActivity, ScriptToConstellationChan, TimerEventId, TimerSource,
+                    TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::DrawAPaintImageResult;
 use selectors::matching::ElementSelectorFlags;
@@ -135,9 +138,11 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
         }
 
         trace!("tracing value {}", description);
-        CallValueTracer(tracer,
-                        val.ptr.get() as *mut _,
-                        GCTraceKindToAscii(val.get().trace_kind()));
+        CallValueTracer(
+            tracer,
+            val.ptr.get() as *mut _,
+            GCTraceKindToAscii(val.get().trace_kind()),
+        );
     }
 }
 
@@ -152,9 +157,11 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
         trace!("tracing {}", description);
-        CallObjectTracer(tracer,
-                         obj.ptr.get() as *mut _,
-                         GCTraceKindToAscii(TraceKind::Object));
+        CallObjectTracer(
+            tracer,
+            obj.ptr.get() as *mut _,
+            GCTraceKindToAscii(TraceKind::Object),
+        );
     }
 }
 
@@ -281,9 +288,10 @@ unsafe impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
 }
 
 unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
-    where K: Hash + Eq + JSTraceable,
-          V: JSTraceable,
-          S: BuildHasher
+where
+    K: Hash + Eq + JSTraceable,
+    V: JSTraceable,
+    S: BuildHasher,
 {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
@@ -295,8 +303,9 @@ unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
 }
 
 unsafe impl<T, S> JSTraceable for HashSet<T, S>
-    where T: Hash + Eq + JSTraceable,
-          S: BuildHasher
+where
+    T: Hash + Eq + JSTraceable,
+    S: BuildHasher,
 {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
@@ -349,7 +358,12 @@ unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
-unsafe_no_jsmanaged_fields!(BrowsingContextId, FrameType, PipelineId, TopLevelBrowsingContextId);
+unsafe_no_jsmanaged_fields!(
+    BrowsingContextId,
+    FrameType,
+    PipelineId,
+    TopLevelBrowsingContextId
+);
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
@@ -412,6 +426,7 @@ unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
+unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
@@ -434,7 +449,10 @@ unsafe impl<'a, A, B> JSTraceable for fn(&A) -> B {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcSender<T> where T: for<'de> Deserialize<'de> + Serialize {
+unsafe impl<T> JSTraceable for IpcSender<T>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -456,7 +474,10 @@ unsafe impl JSTraceable for () {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcReceiver<T> where T: for<'de> Deserialize<'de> + Serialize {
+unsafe impl<T> JSTraceable for IpcReceiver<T>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -484,14 +505,20 @@ unsafe impl<T: Send> JSTraceable for Sender<T> {
     }
 }
 
-unsafe impl<T: Send> JSTraceable for WebGLReceiver<T> where T: for<'de> Deserialize<'de> + Serialize {
+unsafe impl<T: Send> JSTraceable for WebGLReceiver<T>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl<T: Send> JSTraceable for WebGLSender<T> where T: for<'de> Deserialize<'de> + Serialize {
+unsafe impl<T: Send> JSTraceable for WebGLSender<T>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -654,7 +681,10 @@ unsafe impl JSTraceable for StyleLocked<MediaList> {
 
 unsafe impl<S> JSTraceable for StylesheetSet<S>
 where
-    S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
+    S: JSTraceable
+        + ::style::stylesheets::StylesheetInDocument
+        + PartialEq
+        + 'static,
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         for (s, _origin) in self.iter() {
@@ -677,20 +707,16 @@ thread_local!(
 
 impl RootedTraceableSet {
     fn new() -> RootedTraceableSet {
-        RootedTraceableSet {
-            set: vec![],
-        }
+        RootedTraceableSet { set: vec![] }
     }
 
     unsafe fn remove(traceable: *const JSTraceable) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             let mut traceables = traceables.borrow_mut();
-            let idx =
-                match traceables.set.iter()
-                                .rposition(|x| *x == traceable) {
-                    Some(idx) => idx,
-                    None => unreachable!(),
-                };
+            let idx = match traceables.set.iter().rposition(|x| *x == traceable) {
+                Some(idx) => idx,
+                None => unreachable!(),
+            };
             traceables.set.remove(idx);
         });
     }
@@ -725,9 +751,7 @@ impl<'a, T: JSTraceable + 'static> RootedTraceable<'a, T> {
         unsafe {
             RootedTraceableSet::add(traceable);
         }
-        RootedTraceable {
-            ptr: traceable,
-        }
+        RootedTraceable { ptr: traceable }
     }
 }
 
@@ -763,9 +787,7 @@ impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
         unsafe {
             RootedTraceableSet::add(traceable);
         }
-        RootedTraceableBox {
-            ptr: traceable,
-        }
+        RootedTraceableBox { ptr: traceable }
     }
 }
 
@@ -778,17 +800,13 @@ impl<T: JSTraceable + Default> Default for RootedTraceableBox<T> {
 impl<T: JSTraceable> Deref for RootedTraceableBox<T> {
     type Target = T;
     fn deref(&self) -> &T {
-        unsafe {
-            &*self.ptr
-        }
+        unsafe { &*self.ptr }
     }
 }
 
 impl<T: JSTraceable> DerefMut for RootedTraceableBox<T> {
     fn deref_mut(&mut self) -> &mut T {
-        unsafe {
-            &mut *self.ptr
-        }
+        unsafe { &mut *self.ptr }
     }
 }
 
@@ -815,9 +833,7 @@ pub struct RootableVec<T: JSTraceable> {
 impl<T: JSTraceable> RootableVec<T> {
     /// Create a vector of items of type T that can be rooted later.
     pub fn new_unrooted() -> RootableVec<T> {
-        RootableVec {
-            v: vec![],
-        }
+        RootableVec { v: vec![] }
     }
 }
 
@@ -834,9 +850,7 @@ impl<'a, T: 'static + JSTraceable> RootedVec<'a, T> {
         unsafe {
             RootedTraceableSet::add(root);
         }
-        RootedVec {
-            root: root,
-        }
+        RootedVec { root: root }
     }
 }
 
@@ -844,15 +858,14 @@ impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, Dom<T>> {
     /// Create a vector of items of type Dom<T> that is rooted for
     /// the lifetime of this struct
     pub fn from_iter<I>(root: &'a mut RootableVec<Dom<T>>, iter: I) -> Self
-        where I: Iterator<Item = DomRoot<T>>
+    where
+        I: Iterator<Item = DomRoot<T>>,
     {
         unsafe {
             RootedTraceableSet::add(root);
         }
         root.v.extend(iter.map(|item| Dom::from_ref(&*item)));
-        RootedVec {
-            root: root,
-        }
+        RootedVec { root: root }
     }
 }
 

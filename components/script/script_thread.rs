@@ -825,7 +825,6 @@ impl ScriptThread {
         });
     }
 
-    //FIXME pipeline id
     pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {

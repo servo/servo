@@ -4,9 +4,6 @@
 
 extern crate gfx;
 extern crate gfx_traits;
-extern crate heapsize;
-#[macro_use]
-extern crate heapsize_derive;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
@@ -96,7 +93,7 @@ pub fn set_metric<U: ProgressiveWebMetric>(
 }
 
 // https://github.com/GoogleChrome/lighthouse/issues/27
-#[derive(HeapSizeOf)]
+#[ignore_heap_size_of = "can't measure channels"]
 pub struct InteractiveMetrics {
     navigation_start: Cell<Option<f64>>,
     dom_content_loaded: Cell<Option<f64>>,
