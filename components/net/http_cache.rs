@@ -39,11 +39,14 @@ impl CacheKey {
         }
     }
 
-    fn from_url_string(url: String) -> CacheKey {
-        let url = Url::parse(&url).unwrap();
-        CacheKey {
-            url: ServoUrl::from_url(url)
+    fn from_url_string(url: String) -> Result<CacheKey, ()> {
+        if let Ok(url) = Url::parse(&url) {
+            let key = CacheKey {
+                url: ServoUrl::from_url(url)
+            };
+            return Ok(key);
         }
+        return Err(());
     }
 
     /// Retrieve the URL associated with this key
@@ -395,11 +398,12 @@ impl HttpCache {
     }
 
     fn invalidate_for_url(&mut self, url: String) {
-        let entry_key = CacheKey::from_url_string(url);
-        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
-            for cached_resource in cached_resources.iter_mut() {
-                let mut expires = cached_resource.expires.lock().unwrap();
-                *expires = Duration::seconds(0i64);
+        if let Ok(entry_key) = CacheKey::from_url_string(url) {
+            if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
+                for cached_resource in cached_resources.iter_mut() {
+                    let mut expires = cached_resource.expires.lock().unwrap();
+                    *expires = Duration::seconds(0i64);
+                }
             }
         }
     }
