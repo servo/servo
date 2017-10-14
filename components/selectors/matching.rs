@@ -470,15 +470,6 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    if cfg!(debug_assertions) {
-        if context.nesting_level == 0 &&
-            context.shared.matching_mode == MatchingMode::ForStatelessPseudoElement {
-            assert!(iter.clone().any(|c| {
-                matches!(*c, Component::PseudoElement(..))
-            }));
-        }
-    }
-
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
     if context.nesting_level == 0 &&
