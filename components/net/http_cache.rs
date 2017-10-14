@@ -302,10 +302,9 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
     pub fn construct_response(&self, request: &Request) -> Option<CachedResponse> {
         // TODO: generate warning headers as appropriate https://tools.ietf.org/html/rfc7234#section-5.5
-        match request.method {
+       if request.method != Method::Get {
             // Only Get requests are cached, avoid a url based match for others.
-            Method::Get => {},
-            _ => return None,
+            return None;
         }
         let entry_key = CacheKey::new(request.clone());
         if let Some(ref resources) = self.entries.get(&entry_key) {
@@ -434,11 +433,10 @@ impl HttpCache {
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
     pub fn store(&mut self, request: &Request, response: &Response) {
         let entry_key = CacheKey::new(request.clone());
-        match request.method {
-            // Only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
-            Method::Get => {},
-            _ => return,
-        }
+        if request.method != Method::Get {
+             // For simplicity, only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
+             return
+         }
         if let Some(status) = response.status {
             // Not caching redirects.
             if is_redirect_status(status) {
