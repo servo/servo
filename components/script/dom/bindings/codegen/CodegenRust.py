@@ -5575,7 +5575,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         typedefs = []
 
     return CGImports(cgthings, descriptors, callbacks, dictionaries, enums, typedefs, [
-        'core::nonzero::NonZero',
         'js',
         'js::JSCLASS_GLOBAL_SLOT_COUNT',
         'js::JSCLASS_IS_DOMJSCLASS',

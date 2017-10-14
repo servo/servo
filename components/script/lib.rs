@@ -8,7 +8,6 @@
 #![feature(const_ptr_null_mut)]
 #![feature(core_intrinsics)]
 #![feature(mpsc_select)]
-#![feature(nonzero)]
 #![feature(on_unimplemented)]
 #![feature(plugin)]
 #![feature(proc_macro)]
