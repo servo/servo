@@ -36,7 +36,7 @@ use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
 use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use nonzero::NonZeroUsize;
+use nonzero::NonZero;
 use range::Range;
 use script::layout_exports::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -235,8 +235,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
             let ptr: *mut StyleAndLayoutData =
                 Box::into_raw(Box::new(StyleAndLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
-                ptr: NonZeroUsize::new_unchecked(ptr as usize),
-                phantom: PhantomData,
+                ptr: NonZero::new_unchecked(ptr as *mut StyleData),
             };
             self.init_style_and_layout_data(opaque);
         };

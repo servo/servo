@@ -5,7 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use nonzero::NonZeroU32;
+use nonzero::NonZero;
 use std::cell::Cell;
 use std::fmt;
 use webrender_api;
@@ -195,9 +195,9 @@ impl PipelineNamespace {
         });
     }
 
-    fn next_index(&mut self) -> NonZeroU32 {
+    fn next_index(&mut self) -> NonZero<u32> {
         self.index += 1;
-        NonZeroU32::new(self.index).expect("pipeline id index wrapped!")
+        NonZero::new(self.index).expect("pipeline id index wrapped!")
     }
 
     fn next_pipeline_id(&mut self) -> PipelineId {
@@ -221,7 +221,7 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = C
 pub struct PipelineNamespaceId(pub u32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct PipelineIndex(pub NonZeroU32);
+pub struct PipelineIndex(pub NonZero<u32>);
 known_heap_size!(0, PipelineIndex);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
@@ -264,7 +264,7 @@ impl fmt::Display for PipelineId {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct BrowsingContextIndex(pub NonZeroU32);
+pub struct BrowsingContextIndex(pub NonZero<u32>);
 known_heap_size!(0, BrowsingContextIndex);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
@@ -340,13 +340,13 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
 #[cfg(feature = "unstable")]
-pub const TEST_PIPELINE_INDEX: PipelineIndex = unsafe { PipelineIndex(NonZeroU32::new_unchecked(5678)) };
+pub const TEST_PIPELINE_INDEX: PipelineIndex = unsafe { PipelineIndex(NonZero::new_unchecked(5678)) };
 #[cfg(feature = "unstable")]
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
 #[allow(unsafe_code)]
 #[cfg(feature = "unstable")]
 pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
-    unsafe { BrowsingContextIndex(NonZeroU32::new_unchecked(8765)) };
+    unsafe { BrowsingContextIndex(NonZero::new_unchecked(8765)) };
 #[cfg(feature = "unstable")]
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
     BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };

@@ -45,10 +45,9 @@ use canvas_traits::canvas::CanvasMsg;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use net_traits::image_cache::PendingImageId;
-use nonzero::NonZeroUsize;
+use nonzero::NonZero;
 use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
-use std::marker::PhantomData;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
@@ -78,8 +77,7 @@ pub struct OpaqueStyleAndLayoutData {
     // NB: We really store a `StyleAndLayoutData` here, so be careful!
     #[ignore_heap_size_of = "TODO(#6910) Box value that should be counted but \
                              the type lives in layout"]
-    pub ptr: NonZeroUsize,
-    pub phantom: PhantomData<*mut StyleData>,
+    pub ptr: NonZero<*mut StyleData>,
 }
 
 #[allow(unsafe_code)]
