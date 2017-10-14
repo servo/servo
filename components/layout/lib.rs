@@ -90,12 +90,3 @@ pub use self::data::LayoutData;
 // We can't use servo_arc for everything in layout, because the Flow stuff uses
 // weak references.
 use servo_arc::Arc as ServoArc;
-
-/// Stable copy of std::raw::TraitObject
-/// test/unit/layout/lib.rs asserts that the memory layout matches.
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct TraitObject {
-    pub data: *mut (),
-    pub vtable: *mut (),
-}

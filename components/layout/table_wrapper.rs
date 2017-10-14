@@ -43,8 +43,12 @@ pub enum TableLayout {
     Auto
 }
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for TableWrapperFlow {}
+
 /// A table wrapper flow based on a block formatting context.
 #[derive(Serialize)]
+#[repr(C)]
 pub struct TableWrapperFlow {
     pub block_flow: BlockFlow,
 

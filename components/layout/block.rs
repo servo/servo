@@ -492,8 +492,12 @@ pub enum FormattingContextType {
     Other,
 }
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for BlockFlow {}
+
 // A block formatting context.
 #[derive(Serialize)]
+#[repr(C)]
 pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,

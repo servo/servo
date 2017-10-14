@@ -24,6 +24,10 @@ use style::properties::ComputedValues;
 use style::values::Either;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for MulticolFlow {}
+
+#[repr(C)]
 pub struct MulticolFlow {
     pub block_flow: BlockFlow,
 
@@ -32,6 +36,10 @@ pub struct MulticolFlow {
     pub column_pitch: Au,
 }
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for MulticolColumnFlow {}
+
+#[repr(C)]
 pub struct MulticolColumnFlow {
     pub block_flow: BlockFlow,
 }

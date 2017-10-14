@@ -328,8 +328,12 @@ impl FlexLine {
     }
 }
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for FlexFlow {}
+
 /// A block with the CSS `display` property equal to `flex`.
 #[derive(Debug, Serialize)]
+#[repr(C)]
 pub struct FlexFlow {
     /// Data common to all block flows.
     block_flow: BlockFlow,

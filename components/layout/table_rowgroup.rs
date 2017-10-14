@@ -24,7 +24,11 @@ use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 
+#[allow(unsafe_code)]
+unsafe impl ::flow::HasBaseFlow for TableRowGroupFlow {}
+
 /// A table formatting context.
+#[repr(C)]
 pub struct TableRowGroupFlow {
     /// Fields common to all block flows.
     pub block_flow: BlockFlow,
