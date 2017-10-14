@@ -1522,10 +1522,10 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_SelectorList_Closest<'a>(
-    element: RawGeckoElementBorrowed<'a>,
+pub unsafe extern "C" fn Servo_SelectorList_Closest(
+    element: RawGeckoElementBorrowed,
     selectors: RawServoSelectorListBorrowed,
-) -> RawGeckoElementBorrowedOrNull<'a> {
+) -> *const structs::RawGeckoElement {
     use std::borrow::Borrow;
     use style::dom_apis;
 
@@ -1533,7 +1533,7 @@ pub unsafe extern "C" fn Servo_SelectorList_Closest<'a>(
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
 
     dom_apis::element_closest(element, &selectors, element.owner_document_quirks_mode())
-        .map(|e| e.0)
+        .map_or(ptr::null(), |e| e.0)
 }
 
 #[no_mangle]
