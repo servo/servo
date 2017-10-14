@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![cfg(test)]
-#![feature(plugin, test)]
+#![feature(test)]
 
 extern crate app_units;
 extern crate cssparser;
