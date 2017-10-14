@@ -440,12 +440,11 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         }
     }
 
-    /// Returns the combinator at index `index` (one-indexed from the right),
+    /// Returns the combinator at index `index` (zero-indexed from the right),
     /// or panics if the component is not a combinator.
-    ///
-    /// FIXME(bholley): Use more intuitive indexing.
-    pub fn combinator_at(&self, index: usize) -> Combinator {
-        match self.0.slice[index - 1] {
+    #[inline]
+    pub fn combinator_at_match_order(&self, index: usize) -> Combinator {
+        match self.0.slice[index] {
             Component::Combinator(c) => c,
             ref other => {
                 panic!("Not a combinator: {:?}, {:?}, index: {}",
@@ -460,16 +459,24 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         self.0.slice.iter()
     }
 
+    /// Returns the combinator at index `index` (zero-indexed from the left),
+    /// or panics if the component is not a combinator.
+    #[inline]
+    pub fn combinator_at_parse_order(&self, index: usize) -> Combinator {
+        match self.0.slice[self.len() - index - 1] {
+            Component::Combinator(c) => c,
+            ref other => {
+                panic!("Not a combinator: {:?}, {:?}, index: {}",
+                       other, self, index)
+            }
+        }
+    }
+
     /// Returns an iterator over the sequence of simple selectors and
-    /// combinators, in parse order (from left to right), _starting_
-    /// 'offset_from_right' entries from the past-the-end sentinel on
-    /// the right. So "0" panics,. "1" iterates nothing, and "len"
-    /// iterates the entire sequence.
-    ///
-    /// FIXME(bholley): This API is rather unintuive, and should really
-    /// be changed to accept an offset from the left. Same for combinator_at.
-    pub fn iter_raw_parse_order_from(&self, offset_from_right: usize) -> Rev<slice::Iter<Component<Impl>>> {
-        self.0.slice[..offset_from_right].iter().rev()
+    /// combinators, in parse order (from left to right), starting from
+    /// `offset`.
+    pub fn iter_raw_parse_order_from(&self, offset: usize) -> Rev<slice::Iter<Component<Impl>>> {
+        self.0.slice[..self.len() - offset].iter().rev()
     }
 
     /// Creates a Selector from a vec of Components, specified in parse order. Used in tests.
