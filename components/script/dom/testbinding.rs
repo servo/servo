@@ -4,7 +4,6 @@
 
 // check-tidy: no specs after this line
 
-use core::nonzero::NonZero;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -22,6 +21,7 @@ use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSeq
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::mozmap::MozMap;
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -151,20 +151,20 @@ impl TestBindingMethods for TestBinding {
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
     #[allow(unsafe_code)]
-    unsafe fn ArrayAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn ArrayAttribute(&self, cx: *mut JSContext) -> NonNullJSObjectPtr {
         rooted!(in(cx) let array = JS_NewUint8ClampedArray(cx, 16));
         assert!(!array.is_null());
-        NonZero::new_unchecked(array.get())
+        NonNullJSObjectPtr::new_unchecked(array.get())
     }
     #[allow(unsafe_code)]
     unsafe fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
     #[allow(unsafe_code)]
     unsafe fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
     #[allow(unsafe_code)]
-    unsafe fn ObjectAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn ObjectAttribute(&self, cx: *mut JSContext) -> NonNullJSObjectPtr {
         rooted!(in(cx) let obj = JS_NewPlainObject(cx));
         assert!(!obj.is_null());
-        NonZero::new_unchecked(obj.get())
+        NonNullJSObjectPtr::new_unchecked(obj.get())
     }
     #[allow(unsafe_code)]
     unsafe fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
@@ -220,7 +220,7 @@ impl TestBindingMethods for TestBinding {
         self.url.set(url);
     }
     #[allow(unsafe_code)]
-    unsafe fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> Option<NonZero<*mut JSObject>> { None }
+    unsafe fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> Option<NonNullJSObjectPtr> { None }
     #[allow(unsafe_code)]
     unsafe fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
@@ -272,7 +272,7 @@ impl TestBindingMethods for TestBinding {
     #[allow(unsafe_code)]
     unsafe fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     #[allow(unsafe_code)]
-    unsafe fn ReceiveObject(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn ReceiveObject(&self, cx: *mut JSContext) -> NonNullJSObjectPtr {
         self.ObjectAttribute(cx)
     }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
@@ -316,7 +316,7 @@ impl TestBindingMethods for TestBinding {
         Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     #[allow(unsafe_code)]
-    unsafe fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonZero<*mut JSObject>> {
+    unsafe fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
         self.GetObjectAttributeNullable(cx)
     }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
