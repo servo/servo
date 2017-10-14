@@ -39,6 +39,17 @@ impl AnimationRules {
     }
 }
 
+/// Whether a given declaration comes from CSS parsing, or from CSSOM.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum DeclarationSource {
+    /// The declaration was obtained from CSS parsing of sheets and such.
+    Parsing,
+    /// The declaration was obtained from CSSOM.
+    CssOm,
+}
+
 /// A declaration [importance][importance].
 ///
 /// [importance]: https://drafts.csswg.org/css-cascade/#importance
@@ -378,30 +389,15 @@ impl PropertyDeclarationBlock {
         }
     }
 
-    /// Adds or overrides the declaration for a given property in this block,
-    /// **except** if an existing declaration for the same property is more
-    /// important.
+    /// Adds or overrides the declaration for a given property in this block.
     ///
-    /// Always ensures that the property declaration is at the end.
-    pub fn extend(&mut self, drain: SourcePropertyDeclarationDrain, importance: Importance) {
-        self.extend_common(drain, importance, false);
-    }
-
-    /// Adds or overrides the declaration for a given property in this block,
-    /// **even** if an existing declaration for the same property is more
-    /// important, and reuses the same position in the block.
-    ///
-    /// Returns whether anything changed.
-    pub fn extend_reset(&mut self, drain: SourcePropertyDeclarationDrain,
-                        importance: Importance) -> bool {
-        self.extend_common(drain, importance, true)
-    }
-
-    fn extend_common(
+    /// See the documentation of `push` to see what impact `source` has when the
+    /// property is already there.
+    pub fn extend(
         &mut self,
         mut drain: SourcePropertyDeclarationDrain,
         importance: Importance,
-        overwrite_more_important_and_reuse_slot: bool,
+        source: DeclarationSource,
     ) -> bool {
         let all_shorthand_len = match drain.all_shorthand {
             AllShorthand::NotSet => 0,
@@ -415,10 +411,10 @@ impl PropertyDeclarationBlock {
 
         let mut changed = false;
         for decl in &mut drain.declarations {
-            changed |= self.push_common(
+            changed |= self.push(
                 decl,
                 importance,
-                overwrite_more_important_and_reuse_slot,
+                source,
             );
         }
         match drain.all_shorthand {
@@ -426,20 +422,20 @@ impl PropertyDeclarationBlock {
             AllShorthand::CSSWideKeyword(keyword) => {
                 for &id in ShorthandId::All.longhands() {
                     let decl = PropertyDeclaration::CSSWideKeyword(id, keyword);
-                    changed |= self.push_common(
+                    changed |= self.push(
                         decl,
                         importance,
-                        overwrite_more_important_and_reuse_slot,
+                        source,
                     );
                 }
             }
             AllShorthand::WithVariables(unparsed) => {
                 for &id in ShorthandId::All.longhands() {
                     let decl = PropertyDeclaration::WithVariables(id, unparsed.clone());
-                    changed |= self.push_common(
+                    changed |= self.push(
                         decl,
                         importance,
-                        overwrite_more_important_and_reuse_slot,
+                        source,
                     );
                 }
             }
@@ -447,21 +443,24 @@ impl PropertyDeclarationBlock {
         changed
     }
 
-    /// Adds or overrides the declaration for a given property in this block,
-    /// **except** if an existing declaration for the same property is more
-    /// important.
+    /// Adds or overrides the declaration for a given property in this block.
     ///
-    /// Ensures that, if inserted, it's inserted at the end of the declaration
+    /// Depending on the value of `source`, this has a different behavior in the
+    /// presence of another declaration with the same ID in the declaration
     /// block.
-    pub fn push(&mut self, declaration: PropertyDeclaration, importance: Importance) {
-        self.push_common(declaration, importance, false);
-    }
-
-    fn push_common(
+    ///
+    ///   * For `DeclarationSource::Parsing`, this will not override a
+    ///     declaration with more importance, and will ensure that, if inserted,
+    ///     it's inserted at the end of the declaration block.
+    ///
+    ///   * For `DeclarationSource::CssOm`, this will override importance and
+    ///     will preserve the original position on the block.
+    ///
+    pub fn push(
         &mut self,
         declaration: PropertyDeclaration,
         importance: Importance,
-        overwrite_more_important_and_reuse_slot: bool
+        source: DeclarationSource,
     ) -> bool {
         let longhand_id = match declaration.id() {
             PropertyDeclarationId::Longhand(id) => Some(id),
@@ -481,7 +480,9 @@ impl PropertyDeclarationBlock {
                         (false, true) => {}
 
                         (true, false) => {
-                            if !overwrite_more_important_and_reuse_slot {
+                            // For declarations set from the OM, less-important
+                            // declarations are overridden.
+                            if !matches!(source, DeclarationSource::CssOm) {
                                 return false
                             }
                         }
@@ -490,17 +491,41 @@ impl PropertyDeclarationBlock {
                         }
                     }
 
-                    if overwrite_more_important_and_reuse_slot {
-                        *slot = declaration;
-                        self.declarations_importance.set(i as u32, importance.important());
-                        return true;
-                    }
+                    match source {
+                        // CSSOM preserves the declaration position, and
+                        // overrides importance.
+                        DeclarationSource::CssOm => {
+                            *slot = declaration;
+                            self.declarations_importance.set(i as u32, importance.important());
+                            return true;
+                        }
+                        DeclarationSource::Parsing => {
+                            // As a compatibility hack, specially on Android,
+                            // don't allow to override a prefixed webkit display
+                            // value with an unprefixed version from parsing
+                            // code.
+                            //
+                            // TODO(emilio): Unship.
+                            if let PropertyDeclaration::Display(old_display) = *slot {
+                                use properties::longhands::display::computed_value::T as display;
 
-                    // NOTE(emilio): We could avoid this and just override for
-                    // properties not affected by logical props, but it's not
-                    // clear it's worth it given the `definitely_new` check.
-                    index_to_remove = Some(i);
-                    break;
+                                let new_display = match declaration {
+                                    PropertyDeclaration::Display(new_display) => new_display,
+                                    _ => unreachable!("How could the declaration id be the same?"),
+                                };
+
+                                if display::should_ignore_parsed_value(old_display, new_display) {
+                                    return false;
+                                }
+                            }
+
+                            // NOTE(emilio): We could avoid this and just override for
+                            // properties not affected by logical props, but it's not
+                            // clear it's worth it given the `definitely_new` check.
+                            index_to_remove = Some(i);
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -1122,7 +1147,11 @@ where
     while let Some(declaration) = iter.next() {
         match declaration {
             Ok(importance) => {
-                block.extend(iter.parser.declarations.drain(), importance);
+                block.extend(
+                    iter.parser.declarations.drain(),
+                    importance,
+                    DeclarationSource::Parsing,
+                );
             }
             Err((error, slice)) => {
                 iter.parser.declarations.clear();
