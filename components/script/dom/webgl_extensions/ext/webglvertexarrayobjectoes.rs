@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::WebGLVertexArrayId;
-use core::cell::Ref;
-use core::iter::FromIterator;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
 use dom::bindings::reflector::reflect_dom_object;
@@ -13,8 +11,9 @@ use dom::globalscope::GlobalScope;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglobject::WebGLObject;
 use dom_struct::dom_struct;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
 #[dom_struct]
 pub struct WebGLVertexArrayObjectOES {

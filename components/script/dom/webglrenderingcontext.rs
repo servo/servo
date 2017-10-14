@@ -8,8 +8,6 @@ use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
-use core::cell::Ref;
-use core::iter::FromIterator;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -55,7 +53,8 @@ use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
+use std::iter::FromIterator;
 use webrender_api;
 
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;

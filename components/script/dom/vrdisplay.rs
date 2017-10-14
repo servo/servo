@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
-use core::ops::Deref;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
@@ -38,6 +37,7 @@ use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
 use std::cell::Cell;
 use std::mem;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::mpsc;
 use std::thread;
