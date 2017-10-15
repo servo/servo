@@ -11,7 +11,7 @@ use element_state::ElementState;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::RelevantLinkStatus;
 use std::cell::Cell;
 use std::fmt;
@@ -149,13 +149,15 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 {
     type Impl = SelectorImpl;
 
-    fn match_non_ts_pseudo_class<F>(&self,
-                                    pseudo_class: &NonTSPseudoClass,
-                                    context: &mut LocalMatchingContext<Self::Impl>,
-                                    relevant_link: &RelevantLinkStatus,
-                                    _setter: &mut F)
-                                    -> bool
-        where F: FnMut(&Self, ElementSelectorFlags),
+    fn match_non_ts_pseudo_class<F>(
+        &self,
+        pseudo_class: &NonTSPseudoClass,
+        context: &mut MatchingContext,
+        relevant_link: &RelevantLinkStatus,
+        _setter: &mut F,
+    ) -> bool
+    where
+         F: FnMut(&Self, ElementSelectorFlags),
     {
         // Some pseudo-classes need special handling to evaluate them against
         // the snapshot.
@@ -163,9 +165,12 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             #[cfg(feature = "gecko")]
             NonTSPseudoClass::MozAny(ref selectors) => {
                 use selectors::matching::matches_complex_selector;
-                return selectors.iter().any(|s| {
+                context.nesting_level += 1;
+                let result = selectors.iter().any(|s| {
                     matches_complex_selector(s.iter(), self, context, _setter)
-                })
+                });
+                context.nesting_level -= 1;
+                return result
             }
 
             // :dir is implemented in terms of state flags, but which state flag
@@ -195,10 +200,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             // state directly.  Instead, we use the `relevant_link` to determine if
             // they match.
             NonTSPseudoClass::Link => {
-                return relevant_link.is_unvisited(self, context.shared);
+                return relevant_link.is_unvisited(self, context);
             }
             NonTSPseudoClass::Visited => {
-                return relevant_link.is_visited(self, context.shared);
+                return relevant_link.is_visited(self, context);
             }
 
             #[cfg(feature = "gecko")]
@@ -230,27 +235,31 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
         let flag = pseudo_class.state_flag();
         if flag.is_empty() {
-            return self.element.match_non_ts_pseudo_class(pseudo_class,
-                                                          context,
-                                                          relevant_link,
-                                                          &mut |_, _| {})
+            return self.element.match_non_ts_pseudo_class(
+                pseudo_class,
+                context,
+                relevant_link,
+                &mut |_, _| {},
+            )
         }
         match self.snapshot().and_then(|s| s.state()) {
             Some(snapshot_state) => snapshot_state.intersects(flag),
             None => {
-                self.element.match_non_ts_pseudo_class(pseudo_class,
-                                                       context,
-                                                       relevant_link,
-                                                       &mut |_, _| {})
+                self.element.match_non_ts_pseudo_class(
+                    pseudo_class,
+                    context,
+                    relevant_link,
+                    &mut |_, _| {},
+                )
             }
         }
     }
 
-    fn match_pseudo_element(&self,
-                            pseudo_element: &PseudoElement,
-                            context: &mut MatchingContext)
-                            -> bool
-    {
+    fn match_pseudo_element(
+        &self,
+        pseudo_element: &PseudoElement,
+        context: &mut MatchingContext,
+    ) -> bool {
         self.element.match_pseudo_element(pseudo_element, context)
     }
 

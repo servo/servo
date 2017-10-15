@@ -78,7 +78,7 @@ use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
@@ -1844,7 +1844,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn match_non_ts_pseudo_class<F>(
         &self,
         pseudo_class: &NonTSPseudoClass,
-        context: &mut LocalMatchingContext<Self::Impl>,
+        context: &mut MatchingContext,
         relevant_link: &RelevantLinkStatus,
         flags_setter: &mut F,
     ) -> bool
@@ -1899,20 +1899,14 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozDirAttrRTL |
             NonTSPseudoClass::MozDirAttrLikeAuto |
             NonTSPseudoClass::MozAutofill |
+            NonTSPseudoClass::Active |
+            NonTSPseudoClass::Hover |
             NonTSPseudoClass::MozAutofillPreview => {
                 self.get_state().intersects(pseudo_class.state_flag())
             },
             NonTSPseudoClass::AnyLink => self.is_link(),
-            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context.shared),
-            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context.shared),
-            NonTSPseudoClass::Active |
-            NonTSPseudoClass::Hover => {
-                if context.active_hover_quirk_matches() && !self.is_link() {
-                    false
-                } else {
-                    self.get_state().contains(pseudo_class.state_flag())
-                }
-            },
+            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context),
+            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context),
             NonTSPseudoClass::MozFirstNode => {
                 flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
                 let mut elem = self.as_node();
