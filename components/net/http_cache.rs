@@ -237,7 +237,7 @@ fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Durati
     let directives_string = String::from_utf8_lossy(&directive_data[0]);
     for directive in directives_string.split(",") {
         let mut directive_info = directive.split("=");
-        match (directive_info.nth(0), directive_info.nth(1)) {
+        match (directive_info.nth(0), directive_info.nth(0)) {
             (Some("max-stale"), Some(sec_str)) => {
                 if let Ok(secs) = sec_str.parse::<i64>() {
                     return expires + Duration::seconds(secs);
