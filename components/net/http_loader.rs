@@ -916,9 +916,10 @@ fn http_network_or_cache_fetch(request: &mut Request,
                         // Substep 5
                         // TODO: find out why the typed header getter return None with cached responses.
                         if let Some(date_slice) = cached_response.response.headers.get_raw("Last-Modified") {
-                            let date_string = String::from_utf8(date_slice[0].to_vec()).unwrap();
-                            let http_date = HttpDate::from_str(&date_string).unwrap();
-                            http_request.headers.set(IfModifiedSince(http_date));
+                            let date_string = String::from_utf8_lossy(&date_slice[0]);
+                            if let Ok(http_date) = HttpDate::from_str(&date_string) {
+                                http_request.headers.set(IfModifiedSince(http_date));
+                            }
                         }
                         if let Some(entity_tag) =
                             cached_response.response.headers.get_raw("ETag") {
