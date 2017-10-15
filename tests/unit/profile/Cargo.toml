@@ -10,6 +10,6 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 profile = {path = "../../../components/profile"}
 profile_traits = {path = "../../../components/profile_traits"}

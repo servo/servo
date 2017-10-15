@@ -13,7 +13,7 @@ path = "lib.rs"
 devtools_traits = {path = "../devtools_traits"}
 hyper = "0.10"
 hyper_serde = "0.7"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 log = "0.3.5"
 msg = {path = "../msg"}
 serde = "1.0"

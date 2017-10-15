@@ -19,7 +19,7 @@ gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.4"
 heapsize_derive = "0.1"
 html5ever = "0.20.0"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 libc = "0.2"
 log = "0.3.5"
 metrics = {path = "../metrics"}

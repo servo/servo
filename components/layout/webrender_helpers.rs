@@ -465,8 +465,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         color: item.color,
                                     });
             }
-            DisplayItem::PopTextShadow(_) => {
-                builder.pop_shadow();
+            DisplayItem::PopAllTextShadows(_) => {
+                builder.pop_all_shadows();
             }
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds;
