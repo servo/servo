@@ -21,7 +21,6 @@ use net_traits::response::{HttpsState, Response, ResponseBody};
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::str;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use time;
 use time::{Duration, Tm};
@@ -65,7 +64,7 @@ impl CacheKey {
 #[derive(Clone, Debug)]
 struct CachedResource {
     metadata: CachedMetadata,
-    request_headers: Vec<(String, String)>,
+    request_headers: Arc<Mutex<Headers>>,
     body: Arc<Mutex<ResponseBody>>,
     https_state: HttpsState,
     referrer: Option<ServoUrl>,
@@ -317,8 +316,9 @@ impl HttpCache {
         };
         for cached_resource in resources.iter() {
             let mut can_be_constructed = true;
-            let stored_headers = cached_resource.metadata.headers.lock().unwrap();
-            if let Some(vary_data) = stored_headers.get_raw("Vary") {
+            let cached_headers = cached_resource.metadata.headers.lock().unwrap();
+            let original_request_headers = cached_resource.request_headers.lock().unwrap();
+            if let Some(vary_data) = cached_headers.get_raw("Vary") {
                 // Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
                 let vary_data_string = String::from_utf8_lossy(&vary_data[0]);
                 let vary_values = vary_data_string.split(",").map(|val| val.trim());
@@ -333,25 +333,21 @@ impl HttpCache {
                         Some(header_data) => {
                             // If the header is present in the request.
                             let request_header_data_string = String::from_utf8_lossy(&header_data[0]);
-                            for &(ref name, ref value) in cached_resource.request_headers.iter() {
-                                if name.to_lowercase() == vary_val.to_lowercase() {
-                                    // Check that the value of the nominated header field,
-                                    // in the original request, matches the value in the current request.
-                                    let original_vary_values = value.split(",");
-                                    let request_vary_values = request_header_data_string.split(",");
-                                    if !original_vary_values.eq(request_vary_values) {
-                                        can_be_constructed = false;
-                                        break;
-                                    }
+                            if let Some(original_header_data) = original_request_headers.get_raw(vary_val) {
+                                // Check that the value of the nominated header field,
+                                // in the original request, matches the value in the current request.
+                                let original_request_header_data_string =
+                                    String::from_utf8_lossy(&original_header_data[0]);
+                                if original_request_header_data_string != request_header_data_string {
+                                    can_be_constructed = false;
+                                    break;
                                 }
                             }
                         },
                         None => {
                             // If a header field is absent from a request,
                             // it can only match another request if it is also absent there.
-                            can_be_constructed = cached_resource.request_headers.iter().all(|&(ref name, _)| {
-                                name.to_lowercase() != vary_val.to_lowercase()
-                            });
+                            can_be_constructed = !original_request_headers.get_raw(vary_val).is_some();
                         },
                     }
                     if !can_be_constructed {
@@ -453,11 +449,6 @@ impl HttpCache {
         if !response_is_cacheable(&metadata) {
             return;
         }
-        let request_headers = request.headers
-            .iter()
-            .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
-                                                      header.value_string()))
-            .collect();
         let expiry = get_response_expiry(&response);
         let cacheable_metadata = CachedMetadata {
             final_url: metadata.final_url,
@@ -468,7 +459,7 @@ impl HttpCache {
         };
         let entry_resource = CachedResource {
             metadata: cacheable_metadata,
-            request_headers: request_headers,
+            request_headers: Arc::new(Mutex::new(request.headers.clone())),
             body: response.body.clone(),
             https_state: response.https_state.clone(),
             referrer: response.referrer.clone(),
