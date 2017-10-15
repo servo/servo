@@ -478,7 +478,6 @@ fn is_method(m: &ByteString) -> bool {
         Some("connect") => true,
         Some("options") => true,
         Some("trace") => true,
-        Some(_) => true,
         _ => false,
     }
 }
