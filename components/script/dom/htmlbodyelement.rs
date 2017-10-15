@@ -4,7 +4,6 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
@@ -74,15 +73,16 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     make_legacy_color_setter!(SetText, "text");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
-    fn Background(&self) -> DOMString {
-        self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("background"))
-            .map(|attr| attr.Value())
-            .unwrap_or_default()
-    }
+    make_getter!(Background, "background");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
-    make_url_setter!(SetBackground, "background");
+    fn SetBackground(&self, input: DOMString) {
+        let value = AttrValue::from_resolved_url(
+            &document_from_node(self).base_url(),
+            input.into(),
+        );
+        self.upcast::<Element>().set_attribute(&local_name!("background"), value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers
     window_event_handlers!(ForwardToWindow);
@@ -120,7 +120,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<HTMLBodyElement> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("background"))
-                .and_then(AttrValue::as_url)
+                .and_then(AttrValue::as_resolved_url)
                 .cloned()
         }
     }
@@ -160,7 +160,10 @@ impl VirtualMethods for HTMLBodyElement {
             local_name!("bgcolor") |
             local_name!("text") => AttrValue::from_legacy_color(value.into()),
             local_name!("background") => {
-                AttrValue::from_url(document_from_node(self).base_url(), value.into())
+                AttrValue::from_resolved_url(
+                    &document_from_node(self).base_url(),
+                    value.into(),
+                )
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }

@@ -571,7 +571,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
-    make_url_setter!(SetSrc, "src");
+    make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self) -> DomRoot<DOMTokenList> {
@@ -761,7 +761,6 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &local_name!("src") => AttrValue::from_url(document_from_node(self).base_url(), value.into()),
             &local_name!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
             &local_name!("width") => AttrValue::from_dimension(value.into()),
             &local_name!("height") => AttrValue::from_dimension(value.into()),

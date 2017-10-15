@@ -46,7 +46,6 @@ use std::collections::VecDeque;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use style::attr::AttrValue;
 use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 
@@ -840,7 +839,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-src
-    make_url_setter!(SetSrc, "src");
+    make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
     fn GetSrcObject(&self) -> Option<DomRoot<Blob>> {
@@ -913,13 +912,6 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 impl VirtualMethods for HTMLMediaElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
-    }
-
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("src") => AttrValue::from_url(document_from_node(self).base_url(), value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
-        }
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
