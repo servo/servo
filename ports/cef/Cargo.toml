@@ -16,6 +16,9 @@ opt-level = 3
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
+default = ["unstable", "default-except-unstable"]
+default-except-unstable = []
+unstable = ["libservo/unstable"]
 
 [dependencies]
 compositing = {path = "../../components/compositing"}
