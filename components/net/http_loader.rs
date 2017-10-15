@@ -938,18 +938,9 @@ fn http_network_or_cache_fetch(request: &mut Request,
     // Step 22
     if response.is_none() {
         // Substep 1
-        // Note: do we need to set http_request.cache_mode to CacheMode::OnlyIfCached here or elsewhere?
-        let mut only_if_cached = false;
-        if let Some(directive_data) = http_request.headers.get_raw("cache-control") {
-            let directives = String::from_utf8(directive_data[0].to_vec()).unwrap();
-            only_if_cached = directives.split(",").any(|val| val == "only-if-cached");
-        }
-        if only_if_cached {
-            let mut response_504 = Response::new(http_request.url());
-            response_504.status = Some(StatusCode::GatewayTimeout);
-            response_504.raw_status = Some((504, b"Gateway Timeout".to_vec()));
-            response_504.body = Arc::new(Mutex::new(ResponseBody::Empty));
-            response = Some(response_504);
+        if http_request.cache_mode == CacheMode::OnlyIfCached {
+            return Response::network_error(
+                NetworkError::Internal("Couldn't find response in cache".into()))
         }
     }
     // More Step 22
