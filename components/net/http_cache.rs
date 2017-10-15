@@ -15,7 +15,7 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
-use net_traits::{Metadata, FetchMetadata, FilteredMetadata, ReferrerPolicy};
+use net_traits::{Metadata, FetchMetadata, ReferrerPolicy};
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use servo_url::ServoUrl;
@@ -443,47 +443,44 @@ impl HttpCache {
                 return
             }
         }
-        match response.metadata() {
+        let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
-               filtered: FilteredMetadata::Basic(metadata),
-               unsafe_: _ }) |
-            Ok(FetchMetadata::Filtered {
-                filtered: FilteredMetadata::Cors(metadata),
-                unsafe_: _ }) |
-            Ok(FetchMetadata::Unfiltered(metadata)) => {
-                if response_is_cacheable(&metadata) {
-                    let request_headers = request.headers
-                        .iter()
-                        .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
-                                                                  header.value_string()))
-                        .collect();
-                    let expiry = get_response_expiry(&response);
-                    let cacheable_metadata = CachedMetadata {
-                        final_url: metadata.final_url,
-                        content_type: metadata.content_type,
-                        charset: metadata.charset,
-                        status: metadata.status,
-                        headers: Arc::new(Mutex::new(response.headers.clone()))
-                    };
-                    let entry_resource = CachedResource {
-                        metadata: cacheable_metadata,
-                        request_headers: request_headers,
-                        body: response.body.clone(),
-                        https_state: response.https_state.clone(),
-                        referrer: response.referrer.clone(),
-                        referrer_policy: response.referrer_policy.clone(),
-                        status: response.status.clone(),
-                        raw_status: response.raw_status.clone(),
-                        url_list: response.url_list.clone(),
-                        expires: expiry,
-                        last_validated: time::now()
-                    };
-                    let entry = self.entries.entry(entry_key).or_insert(vec![]);
-                    entry.push(entry_resource);
-                }
-            },
-            _ => {}
+               filtered: _,
+               unsafe_: metadata }) |
+            Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
+            _ => return,
+        };
+        if !response_is_cacheable(&metadata) {
+            return;
         }
+        let request_headers = request.headers
+            .iter()
+            .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
+                                                      header.value_string()))
+            .collect();
+        let expiry = get_response_expiry(&response);
+        let cacheable_metadata = CachedMetadata {
+            final_url: metadata.final_url,
+            content_type: metadata.content_type,
+            charset: metadata.charset,
+            status: metadata.status,
+            headers: Arc::new(Mutex::new(response.headers.clone()))
+        };
+        let entry_resource = CachedResource {
+            metadata: cacheable_metadata,
+            request_headers: request_headers,
+            body: response.body.clone(),
+            https_state: response.https_state.clone(),
+            referrer: response.referrer.clone(),
+            referrer_policy: response.referrer_policy.clone(),
+            status: response.status.clone(),
+            raw_status: response.raw_status.clone(),
+            url_list: response.url_list.clone(),
+            expires: expiry,
+            last_validated: time::now()
+        };
+        let entry = self.entries.entry(entry_key).or_insert(vec![]);
+        entry.push(entry_resource);
     }
 
 }
