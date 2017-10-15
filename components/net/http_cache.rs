@@ -359,7 +359,7 @@ impl HttpCache {
                 // Returning the first response that can be constructed
                 // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
                 // or using the Date header to return the most recent one.
-                let cached_response = create_cached_response(request, cached_resource, &*stored_headers);
+                let cached_response = create_cached_response(request, cached_resource, &*cached_headers);
                 return Some(cached_response);
             }
         }

@@ -904,7 +904,6 @@ fn http_network_or_cache_fetch(request: &mut Request,
         let complete_http_response_from_cache = http_cache.construct_response(&http_request);
         if http_request.cache_mode != CacheMode::NoStore &&
            http_request.cache_mode != CacheMode::Reload {
-            // TODO Substep 1 and 2. Select a response from HTTP cache.
             if let Some(cached_response) = complete_http_response_from_cache {
                 // Substep 3
                 revalidating_flag = cached_response.needs_validation;
