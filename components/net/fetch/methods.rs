@@ -376,6 +376,7 @@ pub fn main_fetch(request: &mut Request,
 
     // Step 24.
     target.process_response_eof(&response);
+
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used
     response
