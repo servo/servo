@@ -376,26 +376,25 @@ impl HttpCache {
         let entry_key = CacheKey::new(request.clone());
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
-                if let Ok(ref mut stored_headers) = cached_resource.metadata.headers.try_lock() {
-                    // Received a response with 304 status code whose url matches a stored resource.
-                    // 1. update the headers of the stored resource.
-                    // 2. return a response, constructed from the updated stored resource.
-                    stored_headers.extend(response.headers.iter());
-                    let mut constructed_response = Response::new(cached_resource.metadata.final_url.clone());
-                    constructed_response.headers = stored_headers.clone();
-                    constructed_response.body = cached_resource.body.clone();
-                    constructed_response.status = cached_resource.status.clone();
-                    constructed_response.https_state = cached_resource.https_state.clone();
-                    constructed_response.referrer = cached_resource.referrer.clone();
-                    constructed_response.referrer_policy = cached_resource.referrer_policy.clone();
-                    constructed_response.raw_status = cached_resource.raw_status.clone();
-                    constructed_response.url_list = cached_resource.url_list.clone();
-                    // done_chan will have been set to Some by http_network_fetch,
-                    // set it back to None since the response returned here replaces the 304 one from the network.
-                    *done_chan = None;
-                    cached_resource.expires = get_response_expiry(&constructed_response);
-                    return Some(constructed_response);
-                }
+                let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
+                // Received a response with 304 status code whose url matches a stored resource.
+                // 1. update the headers of the stored resource.
+                // 2. return a response, constructed from the updated stored resource.
+                stored_headers.extend(response.headers.iter());
+                let mut constructed_response = Response::new(cached_resource.metadata.final_url.clone());
+                constructed_response.headers = stored_headers.clone();
+                constructed_response.body = cached_resource.body.clone();
+                constructed_response.status = cached_resource.status.clone();
+                constructed_response.https_state = cached_resource.https_state.clone();
+                constructed_response.referrer = cached_resource.referrer.clone();
+                constructed_response.referrer_policy = cached_resource.referrer_policy.clone();
+                constructed_response.raw_status = cached_resource.raw_status.clone();
+                constructed_response.url_list = cached_resource.url_list.clone();
+                // done_chan will have been set to Some by http_network_fetch,
+                // set it back to None since the response returned here replaces the 304 one from the network.
+                *done_chan = None;
+                cached_resource.expires = get_response_expiry(&constructed_response);
+                return Some(constructed_response);
             }
         }
         None
