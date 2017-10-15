@@ -14,7 +14,7 @@ euclid = "0.15"
 gfx_traits = {path = "../gfx_traits"}
 gleam = "0.4"
 image = "0.16"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

@@ -28,7 +28,7 @@ use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, Cl
 use gfx::display_list::{ClipScrollNodeType, ClippingRegion, DisplayItem, DisplayItemMetadata};
 use gfx::display_list::{DisplayList, DisplayListSection, GradientDisplayItem, IframeDisplayItem};
 use gfx::display_list::{ImageBorder, ImageDisplayItem, LineDisplayItem, NormalBorder, OpaqueNode};
-use gfx::display_list::{PopTextShadowDisplayItem, PushTextShadowDisplayItem};
+use gfx::display_list::{PopAllTextShadowsDisplayItem, PushTextShadowDisplayItem};
 use gfx::display_list::{RadialGradientDisplayItem, SolidColorDisplayItem, StackingContext};
 use gfx::display_list::{StackingContextType, TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
@@ -2340,9 +2340,9 @@ impl FragmentDisplayListBuilding for Fragment {
             );
         }
 
-        // Pair all the PushTextShadows
-        for _ in text_shadows {
-            state.add_display_item(DisplayItem::PopTextShadow(Box::new(PopTextShadowDisplayItem {
+        // Pop all the PushTextShadows
+        if !text_shadows.is_empty() {
+            state.add_display_item(DisplayItem::PopAllTextShadows(Box::new(PopAllTextShadowsDisplayItem {
                 base: base.clone(),
             })));
         }

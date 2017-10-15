@@ -20,7 +20,7 @@ gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.4"
 html5ever = "0.20.0"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 libc = "0.2"
 log = "0.3.5"
 msg = {path = "../msg"}

@@ -12,5 +12,5 @@ doctest = false
 [dependencies]
 cssparser = "0.22.0"
 gfx = {path = "../../../components/gfx"}
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 style = {path = "../../../components/style"}

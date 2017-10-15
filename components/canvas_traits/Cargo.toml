@@ -14,7 +14,7 @@ cssparser = "0.22.0"
 euclid = "0.15"
 heapsize = "0.4"
 heapsize_derive = "0.1"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 lazy_static = "0.2"
 nonzero = {path = "../nonzero"}
 offscreen_gl_context = { version = "0.11", features = ["serde"] }

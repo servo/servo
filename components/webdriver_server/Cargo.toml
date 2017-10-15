@@ -15,7 +15,7 @@ cookie = "0.6"
 euclid = "0.15"
 hyper = "0.10"
 image = "0.16"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

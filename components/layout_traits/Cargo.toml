@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 gfx = {path = "../gfx"}
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
