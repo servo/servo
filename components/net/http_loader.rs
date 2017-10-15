@@ -48,7 +48,7 @@ use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::RwLock;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use time;
