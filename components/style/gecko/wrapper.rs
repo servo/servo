@@ -306,10 +306,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
         // Maybe this isn’t useful for Gecko?
     }
-
-    fn is_in_doc(&self) -> bool {
-        unsafe { bindings::Gecko_IsInDocument(self.0) }
-    }
 }
 
 /// A wrapper on top of two kind of iterators, depending on the parent being
