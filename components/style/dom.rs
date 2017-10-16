@@ -96,29 +96,17 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// The concrete `TElement` type.
     type ConcreteElement: TElement<ConcreteNode = Self>;
 
-    /// A concrete children iterator type in order to iterate over the `Node`s.
-    ///
-    /// TODO(emilio): We should eventually replace this with the `impl Trait`
-    /// syntax.
-    type ConcreteChildrenIterator: Iterator<Item = Self>;
-
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
-
-    /// Get this node's parent element if present.
-    fn parent_element(&self) -> Option<Self::ConcreteElement> {
-        self.parent_node().and_then(|n| n.as_element())
-    }
-
-    /// Returns an iterator over this node's children.
-    fn children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
 
     /// Get this node's parent element from the perspective of a restyle
     /// traversal.
     fn traversal_parent(&self) -> Option<Self::ConcreteElement>;
 
-    /// Get this node's children from the perspective of a restyle traversal.
-    fn traversal_children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+    /// Get this node's parent element if present.
+    fn parent_element(&self) -> Option<Self::ConcreteElement> {
+        self.parent_node().and_then(|n| n.as_element())
+    }
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -223,9 +211,11 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
         write!(f, "  ")?;
     }
     stringify(f, n)?;
-    for kid in n.traversal_children() {
-        writeln!(f, "")?;
-        fmt_subtree(f, stringify, kid, indent + 1)?;
+    if let Some(e) = n.as_element() {
+        for kid in e.traversal_children() {
+            writeln!(f, "")?;
+            fmt_subtree(f, stringify, kid, indent + 1)?;
+        }
     }
 
     Ok(())
@@ -246,6 +236,12 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                      ElementExt + PresentationalHintsSynthesizer {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
+
+    /// A concrete children iterator type in order to iterate over the `Node`s.
+    ///
+    /// TODO(emilio): We should eventually replace this with the `impl Trait`
+    /// syntax.
+    type ConcreteChildrenIterator: Iterator<Item = Self::ConcreteNode>;
 
     /// Type of the font metrics provider
     ///
@@ -280,6 +276,12 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     fn traversal_parent(&self) -> Option<Self> {
         self.as_node().traversal_parent()
     }
+
+    /// Get this node's children from the perspective of a restyle traversal.
+    fn traversal_children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+
+    /// Get this element's DOM children.
+    fn children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
 
     /// Returns the parent element we should inherit from.
     ///

@@ -159,7 +159,6 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
-    type ConcreteChildrenIterator = ServoChildrenIterator<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
         unsafe {
@@ -167,18 +166,8 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         }
     }
 
-    fn children(&self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
-        LayoutIterator(ServoChildrenIterator {
-            current: self.first_child(),
-        })
-    }
-
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'ln>> {
         self.parent_element()
-    }
-
-    fn traversal_children(&self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
-        self.children()
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -321,8 +310,12 @@ impl<'ld> ServoLayoutDocument<'ld> {
         ServoLayoutNode::from_layout_js(self.document.upcast())
     }
 
-    pub fn root_node(&self) -> Option<ServoLayoutNode<'ld>> {
-        self.as_node().children().find(ServoLayoutNode::is_element)
+    pub fn root_element(&self) -> Option<ServoLayoutElement<'ld>> {
+        let iter = ServoChildrenIterator {
+            current: self.as_node().first_child(),
+        };
+
+        iter.flat_map(|n| n.as_element()).next()
     }
 
     pub fn drain_pending_restyles(&self) -> Vec<(ServoLayoutElement<'ld>, PendingRestyle)> {
@@ -381,11 +374,22 @@ impl<'le> PresentationalHintsSynthesizer for ServoLayoutElement<'le> {
 
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
+    type ConcreteChildrenIterator = ServoChildrenIterator<'le>;
 
     type FontMetricsProvider = ServoMetricsProvider;
 
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
+    }
+
+    fn children(&self) -> LayoutIterator<ServoChildrenIterator<'le>> {
+        LayoutIterator(ServoChildrenIterator {
+            current: self.as_node().first_child(),
+        })
+    }
+
+    fn traversal_children(&self) -> LayoutIterator<ServoChildrenIterator<'le>> {
+        self.children()
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
@@ -630,7 +634,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn first_child_element(&self) -> Option<ServoLayoutElement<'le>> {
-        self.as_node().children().filter_map(|n| n.as_element()).next()
+        self.children().filter_map(|n| n.as_element()).next()
     }
 
     fn last_child_element(&self) -> Option<ServoLayoutElement<'le>> {
@@ -691,7 +695,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn is_empty(&self) -> bool {
-        self.as_node().children().all(|node| match node.script_type_id() {
+        self.children().all(|node| match node.script_type_id() {
             NodeTypeId::Element(..) => false,
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
                 node.node.downcast().unwrap().data_for_layout().is_empty()

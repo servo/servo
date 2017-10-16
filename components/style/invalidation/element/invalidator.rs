@@ -421,7 +421,7 @@ where
     // selector-matching operates on.
     fn invalidate_dom_descendants_of(
         &mut self,
-        parent: E::ConcreteNode,
+        parent: E,
         invalidations: &InvalidationVector,
     ) -> bool {
         let mut any_descendant = false;
@@ -489,8 +489,11 @@ where
         let mut any_descendant = false;
 
         if let Some(anon_content) = self.element.xbl_binding_anonymous_content() {
-            any_descendant |=
-                self.invalidate_dom_descendants_of(anon_content, invalidations);
+            // FIXME(emilio): Pretty sure this is an element 100% of the time.
+            if let Some(el) = anon_content.as_element() {
+                any_descendant |=
+                    self.invalidate_dom_descendants_of(el, invalidations);
+            }
         }
 
         // TODO(emilio): Having a list of invalidations just for pseudo-elements
@@ -500,9 +503,9 @@ where
                 self.invalidate_pseudo_element_or_nac(before, invalidations);
         }
 
-        let node = self.element.as_node();
+        let element = self.element;
         any_descendant |=
-            self.invalidate_dom_descendants_of(node, invalidations);
+            self.invalidate_dom_descendants_of(element, invalidations);
 
         if let Some(after) = self.element.after_pseudo_element() {
             any_descendant |=

@@ -178,12 +178,6 @@ impl<'ln> GeckoNode<'ln> {
         unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
     }
 
-    /// Simple iterator over all this node's children.  Unlike `.children()`, this iterator does
-    /// not filter out nodes that don't need layout.
-    fn dom_children(self) -> GeckoChildrenIterator<'ln> {
-        GeckoChildrenIterator::Current(self.first_child())
-    }
-
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
     /// Make sure to mirror any modifications in both places.
     fn flattened_tree_parent_is_parent(&self) -> bool {
@@ -222,11 +216,6 @@ impl<'ln> GeckoNode<'ln> {
     fn contains_non_whitespace_content(&self) -> bool {
         unsafe { Gecko_IsSignificantChild(self.0, true, false) }
     }
-
-    #[inline]
-    fn may_have_anonymous_children(&self) -> bool {
-        self.get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
-    }
 }
 
 impl<'ln> NodeInfo for GeckoNode<'ln> {
@@ -244,38 +233,13 @@ impl<'ln> NodeInfo for GeckoNode<'ln> {
 
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteElement = GeckoElement<'ln>;
-    type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
         unsafe { self.0.mParent.as_ref().map(GeckoNode) }
     }
 
-    fn children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
-        LayoutIterator(self.dom_children())
-    }
-
     fn traversal_parent(&self) -> Option<GeckoElement<'ln>> {
         self.flattened_tree_parent().and_then(|n| n.as_element())
-    }
-
-    fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
-        if let Some(element) = self.as_element() {
-            // This condition is similar to the check that
-            // StyleChildrenIterator::IsNeeded does, except that it might return
-            // true if we used to (but no longer) have anonymous content from
-            // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
-            if element.is_in_anonymous_subtree() ||
-               element.has_xbl_binding_with_content() ||
-               self.may_have_anonymous_children() {
-                unsafe {
-                    let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
-                    Gecko_ConstructStyleChildrenIterator(element.0, &mut iter);
-                    return LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter));
-                }
-            }
-        }
-
-        LayoutIterator(self.dom_children())
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -447,6 +411,17 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
+    /// Simple iterator over all this node's children.  Unlike `.children()`,
+    /// this iterator does not filter out nodes that don't need layout.
+    fn dom_children(self) -> GeckoChildrenIterator<'le> {
+        GeckoChildrenIterator::Current(self.as_node().first_child())
+    }
+
+    #[inline]
+    fn may_have_anonymous_children(&self) -> bool {
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
+    }
+
     /// Parse the style attribute of an element.
     pub fn parse_style_attribute<R>(
         value: &str,
@@ -883,6 +858,7 @@ impl structs::FontSizePrefs {
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type FontMetricsProvider = GeckoFontMetricsProvider;
+    type ConcreteChildrenIterator = GeckoChildrenIterator<'le>;
 
     fn inheritance_parent(&self) -> Option<Self> {
         if self.is_native_anonymous() {
@@ -892,6 +868,28 @@ impl<'le> TElement for GeckoElement<'le> {
                 .flattened_tree_parent()
                 .and_then(|n| n.as_element())
         }
+    }
+
+    fn children(&self) -> LayoutIterator<GeckoChildrenIterator<'le>> {
+        LayoutIterator(self.dom_children())
+    }
+
+    fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'le>> {
+        // This condition is similar to the check that
+        // StyleChildrenIterator::IsNeeded does, except that it might return
+        // true if we used to (but no longer) have anonymous content from
+        // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
+        if self.is_in_anonymous_subtree() ||
+           self.has_xbl_binding_with_content() ||
+           self.may_have_anonymous_children() {
+            unsafe {
+                let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
+                Gecko_ConstructStyleChildrenIterator(self.0, &mut iter);
+                return LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter));
+            }
+        }
+
+        LayoutIterator(self.dom_children())
     }
 
     fn before_pseudo_element(&self) -> Option<Self> {
@@ -1824,7 +1822,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn is_empty(&self) -> bool {
-        !self.as_node().dom_children().any(|child| unsafe {
+        !self.dom_children().any(|child| unsafe {
             Gecko_IsSignificantChild(child.0, true, true)
         })
     }
@@ -1931,7 +1929,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozOnlyWhitespace => {
                 flags_setter(self, HAS_EMPTY_SELECTOR);
-                if self.as_node().dom_children().any(|c| c.contains_non_whitespace_content()) {
+                if self.dom_children().any(|c| c.contains_non_whitespace_content()) {
                     return false
                 }
                 true
