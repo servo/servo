@@ -427,7 +427,7 @@ where
         let mut any_descendant = false;
 
         let mut sibling_invalidations = InvalidationVector::new();
-        for child in parent.children() {
+        for child in parent.dom_children() {
             // TODO(emilio): We handle <xbl:children> fine, because they appear
             // in selector-matching (note bug 1374247, though).
             //

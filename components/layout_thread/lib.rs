@@ -1067,7 +1067,7 @@ impl LayoutThread {
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
-        let element: ServoLayoutElement = match document.root_node() {
+        let element = match document.root_element() {
             None => {
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
@@ -1112,7 +1112,7 @@ impl LayoutThread {
                 }
                 return;
             },
-            Some(x) => x.as_element().unwrap(),
+            Some(x) => x,
         };
 
         debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",
