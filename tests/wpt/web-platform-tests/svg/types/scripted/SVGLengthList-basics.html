@@ -1,0 +1,182 @@
+<!DOCTYPE HTML>
+<title>SVGLengthList, basics</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+    <text x="500 1000 1500" y="50">   ABC  </text>
+</svg>
+<script>
+test(function() {
+  var text1 = document.querySelector("text");
+  var xBaseValList = text1.x.baseVal;
+  var xAnimValList = text1.x.animVal;
+
+  // Spec: The object referenced by animVal will always be distinct from the one referenced by baseVal, even when the attribute is not animated.
+  assert_not_equals(xBaseValList, xAnimValList);
+
+  assert_equals(xBaseValList.numberOfItems, 3);
+  assert_equals(xAnimValList.numberOfItems, 3);
+  assert_equals(xBaseValList.getItem(0).value, 500);
+  assert_equals(xBaseValList.getItem(1).value, 1000);
+  assert_equals(xBaseValList.getItem(2).value, 1500);
+
+  // Test uncommon arguments for initialize().
+  assert_throws(new TypeError(), function() { xBaseValList.initialize(30); });
+  assert_throws(new TypeError(), function() { xBaseValList.initialize('aString'); });
+  assert_throws(new TypeError(), function() { xBaseValList.initialize(text1); });
+  assert_throws(new TypeError(), function() { xBaseValList.initialize(null); });
+
+  // Test uncommon arguments for getItem().
+  assert_throws("IndexSizeError", function() { xBaseValList.getItem(30); });
+  assert_equals(xBaseValList.getItem('aString').value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.getItem(text1).value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.getItem(null).value, xBaseValList.getItem(0).value);
+
+  // Test uncommon arguments for insertItemBefore().
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore(30); });
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore('aString'); });
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore(text1); });
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore(null); });
+
+  assert_equals(xBaseValList.insertItemBefore(xBaseValList.getItem(1), 'aString').value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.numberOfItems, 4);
+  assert_equals(xBaseValList.getItem(0).value, 1000);
+  assert_equals(xBaseValList.getItem(1).value, 500);
+  assert_equals(xBaseValList.getItem(2).value, 1000);
+  assert_equals(xBaseValList.getItem(3).value, 1500);
+  assert_equals(text1.getAttribute('x'), "1000 500 1000 1500");
+
+  assert_equals(xBaseValList.insertItemBefore(xBaseValList.getItem(1), text1).value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.numberOfItems, 5);
+  assert_equals(xBaseValList.getItem(0).value, 500);
+  assert_equals(xBaseValList.getItem(1).value, 1000);
+  assert_equals(xBaseValList.getItem(2).value, 500);
+  assert_equals(xBaseValList.getItem(3).value, 1000);
+  assert_equals(xBaseValList.getItem(4).value, 1500);
+
+  assert_equals(text1.getAttribute('x'), "500 1000 500 1000 1500");
+
+  assert_equals(xBaseValList.insertItemBefore(xBaseValList.getItem(1), null).value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.numberOfItems, 6);
+  assert_equals(xBaseValList.getItem(0).value, 1000);
+  assert_equals(xBaseValList.getItem(1).value, 500);
+  assert_equals(xBaseValList.getItem(2).value, 1000);
+  assert_equals(xBaseValList.getItem(3).value, 500);
+  assert_equals(xBaseValList.getItem(4).value, 1000);
+  assert_equals(xBaseValList.getItem(5).value, 1500);
+  assert_equals(text1.getAttribute('x'), "1000 500 1000 500 1000 1500");
+
+  assert_equals(xBaseValList.insertItemBefore(xBaseValList.getItem(1), 0).value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.numberOfItems, 7);
+  assert_equals(xBaseValList.getItem(0).value, 500);
+  assert_equals(xBaseValList.getItem(1).value, 1000);
+  assert_equals(xBaseValList.getItem(2).value, 500);
+  assert_equals(xBaseValList.getItem(3).value, 1000);
+  assert_equals(xBaseValList.getItem(4).value, 500);
+  assert_equals(xBaseValList.getItem(5).value, 1000);
+  assert_equals(xBaseValList.getItem(6).value, 1500);
+  assert_equals(text1.getAttribute('x'), "500 1000 500 1000 500 1000 1500");
+
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore(30, 0); });
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore('aString', 0); });
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore(text1, 0); });
+  assert_throws(new TypeError(), function() { xBaseValList.insertItemBefore(null, 0); });
+
+  // Set x='1 2 3 4' for text1.
+  text1.setAttribute('x', '1 2 3 4');
+
+  // Test edge cases for insertItemBefore().
+  assert_equals(xBaseValList.insertItemBefore(xBaseValList.getItem(3), 3).value, xBaseValList.getItem(3).value);
+  assert_equals(text1.getAttribute('x'), "1 2 3 4 4");
+  assert_equals(xBaseValList.insertItemBefore(xBaseValList.getItem(1), 5).value, xBaseValList.getItem(5).value);
+  assert_equals(text1.getAttribute('x'), "1 2 3 4 4 2");
+  assert_equals(xBaseValList.insertItemBefore(xBaseValList.getItem(1), 0).value, xBaseValList.getItem(0).value);
+  assert_equals(text1.getAttribute('x'), "2 1 2 3 4 4 2");
+
+  // Set x='1 2 3 4' for text1.
+  text1.setAttribute('x', '1 2 3 4');
+  assert_equals(xBaseValList.numberOfItems, 4);
+  assert_equals(xBaseValList.getItem(0).value, 1);
+  assert_equals(xBaseValList.getItem(1).value, 2);
+  assert_equals(xBaseValList.getItem(2).value, 3);
+  assert_equals(xBaseValList.getItem(3).value, 4);
+  assert_equals(text1.getAttribute('x'), "1 2 3 4");
+
+  // Test uncommon arguments for replaceItem().
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem(30); });
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem('aString'); });
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem(text1); });
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem(null); });
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem(30, 0); });
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem('aString', 0); });
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem(text1, 0); });
+  assert_throws(new TypeError(), function() { xBaseValList.replaceItem(null, 0); });
+
+  // Test uncommon values for indexed setter.
+  assert_throws(new TypeError(), function() { xBaseValList[0] = 30; });
+  assert_throws(new TypeError(), function() { xBaseValList[0] = 'aString'; });
+  assert_throws(new TypeError(), function() { xBaseValList[0] = text1; });
+  assert_throws(new TypeError(), function() { xBaseValList[0] = null; });
+
+  assert_equals(xBaseValList.replaceItem(xBaseValList.getItem(0), 0).value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.numberOfItems, 4);
+  assert_equals(xBaseValList.getItem(0).value, 1);
+  assert_equals(xBaseValList.getItem(1).value, 2);
+  assert_equals(xBaseValList.getItem(2).value, 3);
+  assert_equals(xBaseValList.getItem(3).value, 4);
+  assert_equals(text1.getAttribute('x'), "1 2 3 4");
+
+  assert_equals(xBaseValList.replaceItem(xBaseValList.getItem(0), 'aString').value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.numberOfItems, 4);
+  assert_equals(xBaseValList.getItem(0).value, 1);
+  assert_equals(xBaseValList.getItem(1).value, 2);
+  assert_equals(xBaseValList.getItem(2).value, 3);
+  assert_equals(xBaseValList.getItem(3).value, 4);
+  assert_equals(text1.getAttribute('x'), "1 2 3 4");
+
+  assert_equals(xBaseValList.replaceItem(xBaseValList.getItem(0), text1).value, xBaseValList.getItem(0).value);
+  assert_equals(xBaseValList.numberOfItems, 4);
+  assert_equals(text1.getAttribute('x'), "1 2 3 4");
+
+  // Set x='1 2 3 4' for text1.
+  text1.setAttribute('x', '1 2 3 4');
+
+  // Test edge cases for replaceItem().
+  assert_equals(xBaseValList.replaceItem(xBaseValList.getItem(3), 3).value, xBaseValList.getItem(3).value);
+  assert_equals(xBaseValList.numberOfItems, 4);
+  assert_equals(text1.getAttribute('x'), "1 2 3 4");
+  assert_equals(xBaseValList.replaceItem(xBaseValList.getItem(1), 3).value, xBaseValList.getItem(3).value);
+  assert_equals(xBaseValList.numberOfItems, 4);
+  assert_equals(text1.getAttribute('x'), "1 2 3 2");
+  assert_throws("IndexSizeError", function() { xBaseValList.replaceItem(xBaseValList.getItem(3), 4); });
+
+  // Set x='1 2 3 4' for text1.
+  text1.setAttribute('x', '1 2 3 4');
+
+  // Test uncommon arguments for removeItem().
+  assert_throws("IndexSizeError", function() { xBaseValList.removeItem(30); });
+
+  assert_equals(xBaseValList.removeItem(0).value, 1);
+  assert_equals(xBaseValList.numberOfItems, 3);
+  assert_equals(xBaseValList.getItem(0).value, 2);
+  assert_equals(xBaseValList.getItem(1).value, 3);
+  assert_equals(xBaseValList.getItem(2).value, 4);
+  assert_equals(text1.getAttribute('x'), "2 3 4");
+
+  assert_equals(xBaseValList.removeItem(text1).value, 2);
+  assert_equals(xBaseValList.numberOfItems, 2);
+  assert_equals(xBaseValList.getItem(0).value, 3);
+  assert_equals(xBaseValList.getItem(1).value, 4);
+  assert_equals(text1.getAttribute('x'), "3 4");
+
+  // Test uncommon arguments for appendItem().
+  assert_throws(new TypeError(), function() { xBaseValList.appendItem(30); });
+  assert_throws(new TypeError(), function() { xBaseValList.appendItem('aString'); });
+  assert_throws(new TypeError(), function() { xBaseValList.appendItem(text1); });
+  assert_throws(new TypeError(), function() { xBaseValList.appendItem(null); });
+
+  // Testing animVal clear throws.
+  assert_throws("NoModificationAllowedError", function() { xAnimValList.clear(); });
+  xBaseValList.clear();
+});
+</script>

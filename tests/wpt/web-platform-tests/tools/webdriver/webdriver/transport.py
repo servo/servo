@@ -63,20 +63,21 @@ class HTTPWireProtocol(object):
         self._timeout = timeout
 
     def url(self, suffix):
-        return urlparse.urljoin(self.path_prefix, suffix)
+        return urlparse.urljoin(self.url_prefix, suffix)
 
-    def send(self, method, url, body=None, headers=None):
+    def send(self, method, uri, body=None, headers=None):
         """Send a command to the remote.
 
-        :param method: "POST" or "GET".
-        :param url: "command part" of the requests URL path
-        :param body: Body of the request.  Defaults to an empty dictionary
-            if ``method`` is "POST".
+        :param method: `GET`, `POST`, or `DELETE`.
+        :param uri: Relative endpoint of the requests URL path.
+        :param body: Body of the request.  Defaults to an empty
+            dictionary if ``method`` is `POST`.
         :param headers: Additional headers to include in the request.
-        :return: an instance of wdclient.Response describing the HTTP response
-            received from the remote end.
-        """
 
+        :return: Instance of ``wdclient.Response`` describing the
+            HTTP response received from the remote end.
+
+        """
         if body is None and method == "POST":
             body = {}
 
@@ -89,7 +90,7 @@ class HTTPWireProtocol(object):
         if headers is None:
             headers = {}
 
-        url = self.url_prefix + url
+        url = self.url(uri)
 
         kwargs = {}
         if self._timeout is not None:
@@ -100,8 +101,7 @@ class HTTPWireProtocol(object):
         conn.request(method, url, body, headers)
 
         try:
-            response = Response.from_http_response(conn.getresponse())
+            response = conn.getresponse()
+            return Response.from_http_response(response)
         finally:
             conn.close()
-
-        return response

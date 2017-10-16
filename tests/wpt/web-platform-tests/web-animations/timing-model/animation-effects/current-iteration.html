@@ -5,32 +5,37 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<script src="../../resources/effect-tests.js"></script>
 <body>
 <div id="log"></div>
 <script>
 'use strict';
 
 function runTests(tests, description) {
-  tests.forEach(function(currentTest) {
-    var testParams = '';
-    for (var attr in currentTest.input) {
-      testParams += ' ' + attr + ':' + currentTest.input[attr];
+  for (const currentTest of tests) {
+    let testParams = Object.entries(currentTest.input)
+                           .map(([attr, value]) => `${attr}:${value}`)
+                           .join(' ');
+    if (currentTest.playbackRate !== undefined) {
+      testParams += ` playbackRate:${currentTest.playbackRate}`;
     }
-    test(function(t) {
-      var div = createDiv(t);
-      var anim = div.animate({ opacity: [ 0, 1 ] }, currentTest.input);
-      assert_equals(anim.effect.getComputedTiming().currentIteration,
-                    currentTest.before);
-      anim.currentTime = currentTest.input.delay || 0;
-      assert_equals(anim.effect.getComputedTiming().currentIteration,
-                    currentTest.active);
-      if (typeof currentTest.after !== 'undefined') {
-        anim.finish();
-        assert_equals(anim.effect.getComputedTiming().currentIteration,
-                      currentTest.after);
+
+    test(t => {
+      const div = createDiv(t);
+      const anim = div.animate({}, currentTest.input);
+      if (currentTest.playbackRate !== undefined) {
+        anim.playbackRate = currentTest.playbackRate;
       }
-    }, description + ':' + testParams);
-  });
+
+      assert_computed_timing_for_each_phase(
+        anim,
+        'currentIteration',
+        { before: currentTest.before,
+          activeBoundary: currentTest.active,
+          after: currentTest.after },
+      );
+    }, `${description}: ${testParams}`);
+  }
 }
 
 async_test(function(t) {
@@ -58,7 +63,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 0,
-    active: 0,
     after: 0
   },
 
@@ -69,7 +73,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 0,
-    active: 0,
     after: 0
   },
 
@@ -80,7 +83,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 0,
-    active: 0,
     after: 0
   },
 
@@ -91,7 +93,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 2,
-    active: 2,
     after: 2
   },
 
@@ -102,7 +103,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 2,
-    active: 2,
     after: 2
   },
 
@@ -113,7 +113,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 2,
-    active: 2,
     after: 2
   },
 
@@ -124,7 +123,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 3,
-    active: 3,
     after: 3
   },
 
@@ -135,7 +133,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 3,
-    active: 3,
     after: 3
   },
 
@@ -146,7 +143,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 3,
-    active: 3,
     after: 3
   }
 ], 'Test zero iterations');
@@ -166,7 +162,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 0,
-    active: 2,
     after: 2
   },
 
@@ -198,7 +193,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 2,
-    active: 5,
     after: 5
   },
 
@@ -230,7 +224,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 3,
-    active: 5,
     after: 5
   },
 
@@ -271,7 +264,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 0,
-    active: 3,
     after: 3
   },
 
@@ -303,7 +295,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 2,
-    active: 5,
     after: 5
   },
 
@@ -335,7 +326,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 3,
-    active: 6,
     after: 6
   },
 
@@ -376,7 +366,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 0,
-    active: Infinity,
     after: Infinity
   },
 
@@ -407,7 +396,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 2,
-    active: Infinity,
     after: Infinity
   },
 
@@ -438,7 +426,6 @@ runTests([
                 delay: 1,
                 fill: 'both' },
     before: 3,
-    active: Infinity,
     after: Infinity
   },
 
@@ -530,7 +517,7 @@ runTests([
                 endDelay: -50 },
     before: 0,
     active: 0,
-    after: 0
+    after: 1
   },
 
   {
@@ -552,7 +539,7 @@ runTests([
                 endDelay: -100 },
     before: 0,
     active: 0,
-    after: 0
+    after: 1
   },
 
   {
@@ -579,6 +566,55 @@ runTests([
     after: 2
   },
 ], 'Test end delay');
+
+
+// --------------------------------------------------------------------
+//
+// Negative playback rate tests
+//
+// --------------------------------------------------------------------
+
+runTests([
+  {
+    input:    { duration: 1,
+                delay: 1,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { duration: 1,
+                delay: 1,
+                iterations: 2,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    active: 1,
+    after: 1
+  },
+
+  {
+    input:    { duration: 0,
+                delay: 1,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    after: 0
+  },
+
+  {
+    input:    { duration: 0,
+                iterations: 0,
+                delay: 1,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    after: 0
+  },
+], 'Test negative playback rate');
 
 </script>
 </body>

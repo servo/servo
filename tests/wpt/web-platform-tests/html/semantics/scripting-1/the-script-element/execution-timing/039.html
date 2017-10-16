@@ -6,7 +6,6 @@
         <script src="testlib/testlib.js"></script>
 </head>
 <body>
-
         <div id="log">FAILED (This TC requires JavaScript enabled)</div>
         <div></div>
         <script>log('inline script #1');
@@ -20,17 +19,21 @@
 
         <script type="text/javascript">
         log( 'inline script #2' );
-        var t = async_test()
-
-        function test() {
-                assert_any(assert_array_equals, eventOrder, [
-                        ['inline script #1', 'end script #1', 'inline script #2', 'frame/popup script 0', 'frame/popup script 1'],
-                        ['inline script #1', 'end script #1', 'inline script #2', 'frame/popup script 1', 'frame/popup script 0']]);
-                t.done();
-        }
-        onload = t.step_func(function() {
-                setTimeout(t.step_func(test), 200);
-        });
+        promise_test(() => {
+          const frames = document.querySelectorAll("iframe");
+          return Promise.all([
+            new Promise(resolve => window.addEventListener('load', resolve)),
+            new Promise(resolve => frames[0].addEventListener('load', resolve)),
+            new Promise(resolve => frames[1].addEventListener('load', resolve)),
+          ]).then(() => {
+            assert_equals(eventOrder.length, 5);
+            assert_array_equals(
+                eventOrder.slice(0, 3),
+                ['inline script #1', 'end script #1', 'inline script #2'],
+                "inline scripts should run first");
+            assert_in_array('frame/popup script 0', eventOrder.slice(3, 5), 'iframe should have loaded');
+            assert_in_array('frame/popup script 1', eventOrder.slice(3, 5), 'iframe should have loaded');
+          });
+        }, 'iframes should load asynchronously after inline script run');
         </script>
-
 </body></html>

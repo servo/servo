@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>SensorErrorEvent constructor</title>
+<link rel="help" href="https://w3c.github.io/sensors/#the-sensor-error-event-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_equals(SensorErrorEvent.length, 2);
+    assert_throws(new TypeError, () => new SensorErrorEvent('error'));
+  }, 'SensorErrorEvent constructor without init dict');
+
+  test(() => {
+    const error = new DOMException;
+    const event = new SensorErrorEvent('type', { error: error });
+    assert_equals(event.type, 'type', 'type');
+    assert_equals(event.error, error, 'error');
+  }, 'SensorErrorEvent constructor with init dict');
+</script>

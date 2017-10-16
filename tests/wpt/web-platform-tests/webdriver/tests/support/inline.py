@@ -30,6 +30,10 @@ def inline(doc, doctype="html", mime="text/html;charset=utf-8", protocol="http")
                      protocol=protocol)
 
 
+def iframe(doc):
+    return "<iframe src='%s'></iframe>" % inline(doc)
+
+
 def main(request, response):
     doc = request.GET.first("doc", None)
     content_type = request.GET.first("content-type", "text/html;charset=utf8")

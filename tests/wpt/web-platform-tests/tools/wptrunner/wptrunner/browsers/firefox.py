@@ -190,7 +190,8 @@ class FirefoxBrowser(Browser):
                                       "network.dns.localDomains": ",".join(hostnames),
                                       "network.proxy.type": 0,
                                       "places.history.enabled": False,
-                                      "dom.send_after_paint_to_content": True})
+                                      "dom.send_after_paint_to_content": True,
+                                      "network.preload": True})
         if self.e10s:
             self.profile.set_preferences({"browser.tabs.remote.autostart": True})
 

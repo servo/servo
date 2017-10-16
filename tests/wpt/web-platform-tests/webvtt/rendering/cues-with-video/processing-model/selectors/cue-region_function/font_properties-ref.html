@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, ::cue-region(), font properties</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    font-size: 9px;
+}
+.region1-cue {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+.region1-cue > span {
+    font: italic small-caps bold 9px/18px sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: white;
+}
+.region2-cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+.region2-cue > span {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: white;
+}
+</style>
+<div class="video"><span class="region1-cue"><span>This is a test subtitle</span></span><span class="region2-cue"><span>This is a test subtitle</span></span></div>

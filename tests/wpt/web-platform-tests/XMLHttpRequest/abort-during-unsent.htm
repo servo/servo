@@ -17,8 +17,13 @@
             assert_unreached()
           })
         }
+        assert_equals(client.readyState, 0)
+        assert_equals(client.status, 0)
+        assert_equals(client.statusText, "")
         client.abort()
         assert_equals(client.readyState, 0)
+        assert_equals(client.status, 0)
+        assert_equals(client.statusText, "")
       })
       test.done()
     </script>

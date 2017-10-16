@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, ::cue-region, font properties</title>
+<link rel="match" href="font_properties-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue-region {
+    font-style: italic;
+    font-variant: small-caps;
+    font-weight: bold;
+    font-size: 9px;
+    line-height: 18px;
+    font-family: sans-serif !important;
+}
+::cue {
+    font-family: Ahem, sans-serif;
+    color: white;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="support/test.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

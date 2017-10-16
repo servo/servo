@@ -90,18 +90,18 @@ test(function(t) {
   // Easing: http://cubic-bezier.com/#.68,0,1,.01
   // With this curve, we don't reach the 50% point until about 95% of
   // the time has expired.
-  var anim = div.animate({ fontStyle: [ 'italic', 'oblique' ] },
+  var anim = div.animate({ fontStyle: [ 'normal', 'italic' ] },
                          { duration: 1000, fill: 'forwards',
                            easing: 'cubic-bezier(0.68,0,1,0.01)' });
 
-  assert_equals(getComputedStyle(div).fontStyle, 'italic',
+  assert_equals(getComputedStyle(div).fontStyle, 'normal',
                 'Animation produces \'from\' value at start of interval');
   anim.currentTime = 940;
-  assert_equals(getComputedStyle(div).fontStyle, 'italic',
+  assert_equals(getComputedStyle(div).fontStyle, 'normal',
                 'Animation produces \'from\' value at 94% of the iteration'
                 + ' time');
   anim.currentTime = 960;
-  assert_equals(getComputedStyle(div).fontStyle, 'oblique',
+  assert_equals(getComputedStyle(div).fontStyle, 'italic',
                 'Animation produces \'to\' value at 96% of the iteration'
                 + ' time');
 }, 'Test the 50% switch point for discrete animation is based on the'
@@ -114,19 +114,19 @@ test(function(t) {
   // Easing: http://cubic-bezier.com/#.68,0,1,.01
   // With this curve, we don't reach the 50% point until about 95% of
   // the time has expired.
-  var anim = div.animate([ { fontStyle: 'italic',
+  var anim = div.animate([ { fontStyle: 'normal',
                              easing: 'cubic-bezier(0.68,0,1,0.01)' },
-                           { fontStyle: 'oblique' } ],
+                           { fontStyle: 'italic' } ],
                          { duration: 1000, fill: 'forwards' });
 
-  assert_equals(getComputedStyle(div).fontStyle, 'italic',
+  assert_equals(getComputedStyle(div).fontStyle, 'normal',
                 'Animation produces \'from\' value at start of interval');
   anim.currentTime = 940;
-  assert_equals(getComputedStyle(div).fontStyle, 'italic',
+  assert_equals(getComputedStyle(div).fontStyle, 'normal',
                 'Animation produces \'from\' value at 94% of the iteration'
                 + ' time');
   anim.currentTime = 960;
-  assert_equals(getComputedStyle(div).fontStyle, 'oblique',
+  assert_equals(getComputedStyle(div).fontStyle, 'italic',
                 'Animation produces \'to\' value at 96% of the iteration'
                 + ' time');
 }, 'Test the 50% switch point for discrete animation is based on the'

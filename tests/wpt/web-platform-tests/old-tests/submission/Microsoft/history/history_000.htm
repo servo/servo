@@ -10,23 +10,23 @@
     </head>
 <body>
     <div id="log"></div>
-    
+
     <!-- Use this iframe to test url changes so that the base url does not change. Their document does not matter. -->
-    <iframe id="testframe1" style="display:none" src="./404.html"></iframe>
-    <iframe id="testframe2" style="display:none" src="./404.html"></iframe>
-    
+    <iframe id="testframe1" style="display:none" src="/common/blank.html"></iframe>
+    <iframe id="testframe2" style="display:none" src="/common/blank.html"></iframe>
+
     <script type="text/javascript">
         var testCollection;
         var testIndex = 0;
         var testframe1 = document.getElementById("testframe1");
         var testframe2 = document.getElementById("testframe2");
-        
+
         setup(function()
         {
             testCollection = [
                 function() {
                      test(function() {
-                        assert_inherits(window, "onpopstate", "window inherits'onpopstate' event ");
+                        assert_own_property(window, "onpopstate", "window has 'onpopstate' own property");
                      }, "onpopstate in window");
                 },
                 function() {
@@ -51,7 +51,7 @@
                         assert_equals(window.history.state, null, "history.state initialized to null");
                      }, "history.state is initialized to null");
                 },
-                
+
                 function() {
                     test(function() {
                         var length = history.length;
@@ -59,7 +59,7 @@
                         assert_equals(history.length, length+1, "history.length should be incremented by one");
                     }, "history.pushState increments history.length");
                 },
-                
+
                 function() {
                     var t = async_test("history.pushState clears forward entries");
                     t.step(function() {
@@ -68,15 +68,15 @@
                         history.pushState(null,null);
                         history.pushState(null, null);
                         history.pushState(null, null);
-                        
+
                         //there should now be three extra
                         assert_equals(history.length, length+3, "Three additional travel entries add to history.length");
-                        
+
                         //travel back to the entry that the test started on
                         history.back();
                         history.back();
                         history.back();
-                        
+
                         //if the back navs are queued, queue verification task after them
                         queue(
                             t.step_func(function() {
@@ -88,7 +88,7 @@
                         );
                     });
                 },
-                
+
                 function() {
                     test(function() {
                         testframe1.contentWindow.history.pushState(null,null, "test-pushstate-url");
@@ -101,22 +101,22 @@
                         var pagename = getPageName(oldurl);
                         //form a new absolute url (with protocol, host, etc) with "absolute-page" as the name of the page
                         var newurl = oldurl.replace(pagename, "absolute-page");
-                        
+
                         testframe1.contentWindow.history.pushState(null,null, newurl);
                         assert_equals(testframe1.contentWindow.location.href, newurl, "iframe1 has the pushed url correctly");
                     }, "history.pushState's url parameter can be an absolute url");
                 },
-                
+
                 function() {
                     test(function() {
                         testframe1.contentWindow.history.pushState(null,null, "multiple-pushstate-url1");
                         testframe2.contentWindow.history.pushState(null,null, "multiple-pushstate-url2");
-                        
+
                         assert_equals(getPageName(testframe1.contentWindow.location.href), "multiple-pushstate-url1", "iframe1 has the pushed url");
                         assert_equals(getPageName(testframe2.contentWindow.location.href), "multiple-pushstate-url2", "iframe2 has the pushed url");
                     }, "history.pushState can modify location object in multiple frames");
                 },
-                
+
                 function() {
                     test(function() {
                         //trigger a security error by replacing the host of the current url with a fake one that is cross-domain
@@ -124,14 +124,14 @@
                         assert_throws("SECURITY_ERR", function() { history.pushState(null, null, testurl); }, "Security_Err 18 should be thrown");
                     }, "history.pushState throws DOMException with code SECURITY_ERR (18)");
                 },
-                
+
                 function() {
                     test(function() {
                         //trigger a data clone error by passing invalid SCA data into the function
                         assert_throws("DATA_CLONE_ERR", function() { history.pushState(document.body, null); }, "pushState should throw an exception DATA_CLONE_ERR with code 25");
                     }, "history.pushState throws DATA_CLONE_ERR(25) for bad state parameter");
                 },
-                
+
                 function() {
                     test(function() {
                         var length = history.length;
@@ -139,7 +139,7 @@
                         assert_equals(history.length, length, "history.length should not change");
                     }, "history.replaceState does not increment history.length");
                 },
-                
+
                 function() {
                     var t = async_test("history.replaceState does not clear forward entries");
                     t.step(function() {
@@ -148,14 +148,14 @@
                         history.pushState(null,null);
                         history.pushState(null, null);
                         history.pushState(null, null);
-                        
+
                         //there should now be three extra
                         assert_equals(history.length, length+3, "Three additional travel entries add to history.length");
-                        
+
                         //travel back two entries to land in the middle
                         history.back();
                         history.back();
-                        
+
                         //if the back navs are queued, queue verification task after them
                         queue(
                             t.step_func(function() {
@@ -167,7 +167,7 @@
                         );
                     });
                 },
-                
+
                 function() {
                     test(function() {
                         testframe1.contentWindow.history.replaceState(null,null, "test-replaceState-url");
@@ -180,22 +180,22 @@
                         var pagename = getPageName(oldurl);
                         //form a new absolute url (with protocol, host, etc) with "absolute-page" as the name of the page
                         var newurl = oldurl.replace(pagename, "absolute-page");
-                        
+
                         testframe1.contentWindow.history.replaceState(null,null, newurl);
                         assert_equals(testframe1.contentWindow.location.href, newurl, "iframe1 has the pushed url correctly");
                     }, "history.replaceState's url parameter can be an absolute url");
                 },
-                
+
                 function() {
                     test(function() {
                         testframe1.contentWindow.history.replaceState(null,null, "multiple-replaceState-url1");
                         testframe2.contentWindow.history.replaceState(null,null, "multiple-replaceState-url2");
-                        
+
                         assert_equals(getPageName(testframe1.contentWindow.location.href), "multiple-replaceState-url1", "iframe1 has the pushed url");
                         assert_equals(getPageName(testframe2.contentWindow.location.href), "multiple-replaceState-url2", "iframe2 has the pushed url");
                     }, "history.replaceState can modify location object in multiple frames");
                 },
-                
+
                 function() {
                     test(function() {
                         //trigger a security error by replacing the host of the current url with a fake one that is cross-domain
@@ -203,14 +203,14 @@
                         assert_throws("SECURITY_ERR", function() { history.replaceState(null, null, testurl); }, "Security_Err 18 should be thrown");
                     }, "history.replaceState throws DOMException with code SECURITY_ERR (18)");
                 },
-                
+
                 function() {
                     test(function() {
                         //trigger a data clone error by passing invalid SCA data into the function
                         assert_throws("DATA_CLONE_ERR", function() {history.replaceState(document.body, null);}, "replaceState should throw an exception DATA_CLONE_ERR with code 25");
                     }, "history.replaceState throws DATA_CLONE_ERR(25) for bad state parameter");
                 },
-                
+
                 function() {
                     var t = async_test("PopStateEvent fires on Back navigation");
                     t.step(function() {
@@ -224,7 +224,7 @@
                         history.back();
                     });
                 },
-                
+
                 function() {
                     var t = async_test("PopStateEvent fires on Forward navigation");
                     t.step( function() {
@@ -245,7 +245,7 @@
                     );
                     });
                 },
-                
+
                 function() {
                     var t = async_test("PopStateEvent receives state data on Back navigation");
                     t.step(function() {
@@ -260,7 +260,7 @@
                         history.back();
                     });
                 },
-                
+
                 function() {
                     test(function() {
                         history.pushState("pushstate-data", null);
@@ -268,7 +268,7 @@
                         assert_equals(history.state, "pushstate-data", "State data is set correctly");
                     }, "history.state is set by history.pushState");
                 },
-                
+
                 function() {
                     test(function() {
                         history.replaceState("replacestate-data", null);
@@ -276,7 +276,7 @@
                         assert_equals(history.state, "replacestate-data", "State data is set correctly");
                     }, "history.state is set by history.replaceState");
                 },
-                
+
                 function() {
                     var t = async_test("history.state changes on navigation");
                     t.step(function() {
@@ -284,7 +284,7 @@
                         history.pushState("state-back2", null);
                         //precondition
                         assert_equals(history.state, "state-back2", "Verify that history.state is set to a second value");
-                        
+
                         //set up the popstate event to verify that history.state was changed
                         onpopstate = t.step_func(function(e) {
                             assert_equals(e.state, "state-back1", "Verify that history.state reverted to the first value");
@@ -295,7 +295,7 @@
                 },
             ];
         }, {explicit_done:true, timeout:8000});
-        
+
         //used to get the name of a page within a path
         //  to check correctness of url parameter
         function getPageName(path) {
@@ -320,7 +320,7 @@
             //50 allows adequate time for .back and .forward navigations to queue first
             setTimeout(func, 50);
         }
-        
+
         add_result_callback(testFinished);
         //start the first test manually
         queue(testCollection[testIndex]);

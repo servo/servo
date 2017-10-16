@@ -248,4 +248,53 @@ promise_test(function(t) {
                         'ready should only be resolved once');
         });
   }, 'access ready after it has been resolved');
+
+promise_test(async function(t) {
+    var url = 'resources/empty-worker.js';
+    var matched_scope = 'resources/blank.html?ready-after-resurrect';
+
+    let reg1 = await service_worker_unregister_and_register(t, url, matched_scope);
+    add_completion_callback(function() {
+        reg1.unregister();
+      });
+    await wait_for_state(t, reg1.installing, 'activated');
+
+    // Hold the worker alive with a controlled worker
+    let frame = await with_iframe(matched_scope);
+    add_completion_callback(function() {
+        frame.remove();
+      });
+
+    // Doom the registration as uninstalling.
+    await reg1.unregister();
+
+    // Access the ready promise while the registration is doomed.
+    let readyPromise = frame.contentWindow.navigator.serviceWorker.ready;
+
+    // Resurrect the doomed registration;
+    let reg2 = await service_worker_unregister_and_register(t, url, matched_scope);
+    assert_equals(reg1, reg2, 'existing registration should be resurrected');
+
+    // We are trying to test if the ready promise ever resolves here.  Use
+    // an explicit timeout check here rather than forcing a full infrastructure
+    // level timeout.
+    let timeoutId;
+    let timeoutPromise = new Promise(resolve => {
+      timeoutId = setTimeout(_ => {
+        timeoutId = null;
+        resolve();
+      }, 500);
+    });
+
+    // This should resolve immediately since there is an alive registration
+    // with an active promise for the matching scope.
+    await Promise.race([readyPromise, timeoutPromise]);
+
+    assert_not_equals(timeoutId, null,
+                      'ready promise should resolve before timeout');
+    clearTimeout(timeoutId);
+
+    // We should get here and not time out.
+
+  }, 'access ready on uninstalling registration that is resurrected');
 </script>

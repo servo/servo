@@ -1,8 +1,0 @@
-<?xml encoding=utf-8>
-<?xml-stylesheet href="test.css" type="text/css"?>
-<name>
-tim
-</name>
-<title>
-scientist
-</title>

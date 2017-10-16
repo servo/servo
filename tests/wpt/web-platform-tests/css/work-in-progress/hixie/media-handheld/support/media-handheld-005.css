@@ -1,5 +1,0 @@
-@media tv { p { color: yellow; background: red; } #tv { font-weight: 900; color: yellow; background: navy; } #none { display: none; } }
-@media screen { p { color: white; background: green; } #screen { font-weight: 900; color: yellow; background: navy; } #none { display: none; } }
-@media handheld { p { color: yellow; background: red; } #handheld { font-weight: 900; color: yellow; background: navy; } #none { display: none; } }
-@media print { p { color: yellow; background: red; } #print { font-weight: 900; color: yellow; background: navy; } #none { display: none; } }
-@media projection { p { color: yellow; background: red; } #projection { font-weight: 900; color: yellow; background: navy; } #none { display: none; } }

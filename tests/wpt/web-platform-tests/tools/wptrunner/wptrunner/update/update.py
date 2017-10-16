@@ -90,6 +90,7 @@ class UpdateMetadata(Step):
         with state.push(["local_tree", "sync_tree", "paths", "serve_root"]):
             state.run_log = kwargs["run_log"]
             state.ignore_existing = kwargs["ignore_existing"]
+            state.stability = kwargs["stability"]
             state.patch = kwargs["patch"]
             state.suite_name = kwargs["suite_name"]
             state.product = kwargs["product"]

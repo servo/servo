@@ -7,57 +7,27 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
-<div id="log"></div>
-
-<script id="idl" type="text/plain">
-interface Event {
-};
-
-interface Error {
-};
-
-dictionary EventInit {
-};
-
-[SecureContext, Exposed=Window]
-interface Sensor : EventTarget {
-  readonly attribute boolean activated;
-  readonly attribute DOMHighResTimeStamp? timestamp;
-  void start();
-  void stop();
-  attribute EventHandler onreading;
-  attribute EventHandler onactivate;
-  attribute EventHandler onerror;
-};
-
-dictionary SensorOptions {
-  double? frequency;
-};
-</script>
-
-<script id="generic-idl" type="text/plain">
-[Constructor(DOMString type, SensorErrorEventInit errorEventInitDict),
- SecureContext, Exposed=Window]
-interface SensorErrorEvent : Event {
-  readonly attribute Error error;
-};
-
-dictionary SensorErrorEventInit : EventInit {
-  required Error error;
-};
-</script>
-
 <script>
-(() => {
-  "use strict";
-  let idl_array = new IdlArray();
-  idl_array.add_untested_idls(document.getElementById('idl').textContent);
-  idl_array.add_idls(document.getElementById('generic-idl').textContent);
+"use strict";
 
+function doTest([dom, generic_sensor]) {
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls(dom);
+  idl_array.add_untested_idls('interface DOMException {};');
+  idl_array.add_idls(generic_sensor);
   idl_array.add_objects({
-    SensorErrorEvent: ['new SensorErrorEvent("SECURITY_ERR", { errorCode: 18 });']
+    SensorErrorEvent: ['new SensorErrorEvent("error", { error: new DOMException });']
   });
-
   idl_array.test();
-})();
+}
+
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+  return Promise.all(["/interfaces/dom.idl",
+                      "/interfaces/generic-sensor.idl"].map(fetchText))
+                .then(doTest);
+}, "Test driver");
 </script>

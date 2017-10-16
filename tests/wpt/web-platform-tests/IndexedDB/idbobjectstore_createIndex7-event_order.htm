@@ -3,9 +3,9 @@
 <title>IDBObjectStore.createIndex() - Event ordering for ConstraintError on request</title>
 <link rel="author" href="mailto:odinho@opera.com" title="Odin Hørthe Omdal">
 <meta rel=help href=http://odinho.html5.org/IndexedDB/spec/Overview.html#dfn-steps-for-aborting-a-transaction>
-<meta rel=assert title="Unless error was set to null, create a DOMError object and set its name to error. Set transaction's error property to this newly created DOMError.">
+<meta rel=assert title="Unless error was set to null, create a DOMException object and set its name to error. Set transaction's error property to this newly created DOMException.">
 <meta rel=assert title="If the transaction's request list contain any requests whose done flag is still false, abort the steps for asynchronously executing a request for each such request and queue a task to perform the following steps:">
-<meta rel=assert title="set the request's error attribute to a DOMError with a type of AbortError.">
+<meta rel=assert title="set the request's error attribute to a DOMException with a type of AbortError.">
 <meta rel=assert title="Dispatch an event at request. The event must use the Event interface and have its type set to 'error'. The event bubbles and is cancelable. The propagation path for the event is transaction's connection, then transaction and finally the request. There is no default action for the event.">
 <meta rel=assert title="Queue up an operation to dispatch an event at transaction. The event must use the Event interface and have its type set to 'abort'. The event does bubble but is not cancelable. The propagation path for the event is transaction's connection and then transaction.">
 <script src="/resources/testharness.js"></script>

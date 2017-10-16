@@ -146,8 +146,6 @@ An example of an expectation file is::
   example_default_key: example_value
 
   [filename.html]
-    type: testharness
-
     [subtest1]
       expected: FAIL
 
@@ -158,7 +156,6 @@ An example of an expectation file is::
         FAIL
 
   [filename.html?query=something]
-    type: testharness
     disabled: bug12345
 
 The file consists of two elements, key-value pairs and
@@ -229,9 +226,6 @@ The web-platform-test harness knows about several keys:
 
 `disabled`
   Any value indicates that the test is disabled.
-
-`type`
-  The test type e.g. `testharness`, `reftest`, or `wdspec`.
 
 `reftype`
   The type of comparison for reftests; either `==` or `!=`.
