@@ -181,6 +181,9 @@ pub struct StackingContextCollectionState {
     /// The current stacking real context id, which doesn't include pseudo-stacking contexts.
     pub current_real_stacking_context_id: StackingContextId,
 
+    /// The next stacking context id that we will assign to a stacking context.
+    pub next_stacking_context_id: StackingContextId,
+
     /// The current clip and scroll info, used to keep track of state when
     /// recursively building and processing the display list.
     pub current_clip_and_scroll_info: ClipAndScrollInfo,
@@ -212,12 +215,18 @@ impl StackingContextCollectionState {
             clip_scroll_node_parents: FnvHashMap::default(),
             current_stacking_context_id: StackingContextId::root(),
             current_real_stacking_context_id: StackingContextId::root(),
+            next_stacking_context_id: StackingContextId::root().next(),
             current_clip_and_scroll_info: root_clip_info,
             containing_block_clip_and_scroll_info: root_clip_info,
             clip_stack: Vec::new(),
             containing_block_clip_stack: Vec::new(),
             parent_stacking_relative_content_box: Rect::zero(),
         }
+    }
+
+    fn generate_stacking_context_id(&mut self) -> StackingContextId {
+        let next_stacking_context_id = self.next_stacking_context_id.next();
+        mem::replace(&mut self.next_stacking_context_id, next_stacking_context_id)
     }
 
     fn add_stacking_context(&mut self,
@@ -610,10 +619,6 @@ pub trait FragmentDisplayListBuilding {
                                context_type: StackingContextType,
                                parent_clip_and_scroll_info: ClipAndScrollInfo)
                                -> StackingContext;
-
-
-    /// The id of stacking context this fragment would create.
-    fn stacking_context_id(&self) -> StackingContextId;
 
     fn unique_id(&self, id_type: IdType) -> u64;
 
@@ -2169,10 +2174,6 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
-    fn stacking_context_id(&self) -> StackingContextId {
-        StackingContextId::new(self.unique_id(IdType::StackingContext))
-    }
-
     fn create_stacking_context(&self,
                                id: StackingContextId,
                                base_flow: &BaseFlow,
@@ -2394,9 +2395,11 @@ impl FragmentDisplayListBuilding for Fragment {
 bitflags! {
     pub flags StackingContextCollectionFlags: u8 {
         /// This flow never establishes a containing block.
-        const NEVER_CREATES_CONTAINING_BLOCK = 0x01,
+        const NEVER_CREATES_CONTAINING_BLOCK = 0b001,
         /// This flow never creates a ClipScrollNode.
-        const NEVER_CREATES_CLIP_SCROLL_NODE = 0x02,
+        const NEVER_CREATES_CLIP_SCROLL_NODE = 0b010,
+        /// This flow never creates a stacking context.
+        const NEVER_CREATES_STACKING_CONTEXT = 0b100,
     }
 }
 
@@ -2435,6 +2438,11 @@ pub trait BlockFlowDisplayListBuilding {
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
                                     border_painting_mode: BorderPaintingMode);
+
+    fn block_stacking_context_type(
+        &self,
+        flags: StackingContextCollectionFlags,
+    ) -> BlockStackingContextType;
 }
 
 /// This structure manages ensuring that modification to StackingContextCollectionState is
@@ -2572,11 +2580,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                            flags: StackingContextCollectionFlags) {
         let mut preserved_state = SavedStackingContextCollectionState::new(state);
 
-        let block_stacking_context_type = self.block_stacking_context_type();
+        let block_stacking_context_type = self.block_stacking_context_type(flags);
         self.base.stacking_context_id = match block_stacking_context_type {
             BlockStackingContextType::NonstackingContext => state.current_stacking_context_id,
             BlockStackingContextType::PseudoStackingContext |
-            BlockStackingContextType::StackingContext => self.fragment.stacking_context_id(),
+            BlockStackingContextType::StackingContext => state.generate_stacking_context_id(),
         };
         state.current_stacking_context_id = self.base.stacking_context_id;
 
@@ -2963,6 +2971,33 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         state.processing_scrolling_overflow_element = false;
     }
 
+    #[inline]
+    fn block_stacking_context_type(
+        &self,
+        flags: StackingContextCollectionFlags,
+    ) -> BlockStackingContextType {
+        if flags.contains(NEVER_CREATES_STACKING_CONTEXT) {
+            return BlockStackingContextType::NonstackingContext;
+        }
+
+        if self.fragment.establishes_stacking_context() {
+            return BlockStackingContextType::StackingContext
+        }
+
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            return BlockStackingContextType::PseudoStackingContext
+        }
+
+        if self.fragment.style.get_box().position != position::T::static_ {
+            return BlockStackingContextType::PseudoStackingContext
+        }
+
+        if self.base.flags.is_float() {
+            return BlockStackingContextType::PseudoStackingContext
+        }
+
+        BlockStackingContextType::NonstackingContext
+    }
 }
 
 pub trait InlineFlowDisplayListBuilding {
@@ -2988,7 +3023,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
             if !fragment.collect_stacking_contexts_for_blocklike_fragment(state) {
                 if fragment.establishes_stacking_context() {
-                    fragment.stacking_context_id = fragment.stacking_context_id();
+                    fragment.stacking_context_id = state.generate_stacking_context_id();
 
                     let current_stacking_context_id = state.current_stacking_context_id;
                     let stacking_context =

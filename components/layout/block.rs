@@ -1670,20 +1670,6 @@ impl BlockFlow {
         self.base.flags = flags
     }
 
-    pub fn block_stacking_context_type(&self) -> BlockStackingContextType {
-        if self.fragment.establishes_stacking_context() {
-            return BlockStackingContextType::StackingContext
-        }
-
-        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
-                self.fragment.style.get_box().position != position::T::static_ ||
-                self.base.flags.is_float() {
-            BlockStackingContextType::PseudoStackingContext
-        } else {
-            BlockStackingContextType::NonstackingContext
-        }
-    }
-
     pub fn overflow_style_may_require_clip_scroll_node(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y) {
