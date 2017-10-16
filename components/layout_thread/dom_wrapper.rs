@@ -189,10 +189,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     unsafe fn set_can_be_fragmented(&self, value: bool) {
         self.node.set_flag(CAN_BE_FRAGMENTED, value)
     }
-
-    fn is_in_doc(&self) -> bool {
-        unsafe { (*self.node.unsafe_get()).is_in_doc() }
-    }
 }
 
 pub struct ServoChildrenIterator<'a> {
