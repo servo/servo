@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, is_macosx
 from servo.util import host_triple
 
 
@@ -401,8 +401,14 @@ class MachCommands(CommandBase):
         if with_debug_assertions:
             env["RUSTFLAGS"] = "-C debug_assertions"
 
+        if is_macosx():
+            # Unlike RUSTFLAGS, these are only passed in the final rustc invocation
+            # so that `./mach build` followed by `./mach build-cef` both build
+            # common dependencies with the same flags.
+            opts += ["--", "-C", "link-args=-Xlinker -undefined -Xlinker dynamic_lookup"]
+
         with cd(path.join("ports", "cef")):
-            ret = call(["cargo", "build"] + opts,
+            ret = call(["cargo", "rustc"] + opts,
                        env=env,
                        verbose=verbose)
         elapsed = time() - build_start
