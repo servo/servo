@@ -51,18 +51,24 @@ where
 
 /// An invalidation processor for style changes due to state and attribute
 /// changes.
-pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a> {
+pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E> {
     shared_context: &'a SharedStyleContext<'b>,
+    element: E,
+    data: &'a mut ElementData,
 }
 
-impl<'a, 'b: 'a> StateAndAttrInvalidationProcessor<'a, 'b> {
+impl<'a, 'b: 'a, E> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
-    pub fn new(shared_context: &'a SharedStyleContext<'b>) -> Self {
-        Self { shared_context }
+    pub fn new(
+        shared_context: &'a SharedStyleContext<'b>,
+        element: E,
+        data: &'a mut ElementData,
+    ) -> Self {
+        Self { shared_context, element, data }
     }
 }
 
-impl<'a, 'b: 'a, E> InvalidationProcessor<E> for StateAndAttrInvalidationProcessor<'a, 'b>
+impl<'a, 'b: 'a, E> InvalidationProcessor<E> for StateAndAttrInvalidationProcessor<'a, 'b, E>
 where
     E: TElement,
 {
@@ -74,14 +80,12 @@ where
     fn collect_invalidations(
         &mut self,
         element: E,
-        mut data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
         quirks_mode: QuirksMode,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool {
         debug_assert!(element.has_snapshot(), "Why bothering?");
-        debug_assert!(data.is_some(), "How exactly?");
         debug_assert_eq!(quirks_mode, self.shared_context.quirks_mode(), "How exactly?");
 
         let wrapper =
@@ -102,8 +106,7 @@ where
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints.
-            let data = data.as_mut().unwrap();
-            data.hint.insert(RestyleHint::restyle_subtree());
+            self.data.hint.insert(RestyleHint::restyle_subtree());
         }
 
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();
@@ -183,49 +186,40 @@ where
         };
 
         if invalidated_self {
-            if let Some(ref mut data) = data {
-                data.hint.insert(RESTYLE_SELF);
-            }
+            self.data.hint.insert(RESTYLE_SELF);
         }
 
         invalidated_self
     }
 
-    fn should_process_descendants(
-        &mut self,
-        _element: E,
-        data: Option<&mut ElementData>,
-    ) -> bool {
-        let data = match data {
+    fn should_process_descendants(&mut self, element: E) -> bool {
+        if element == self.element {
+            return !self.data.styles.is_display_none() &&
+                !self.data.hint.contains(RESTYLE_DESCENDANTS)
+        }
+
+        let data = match element.borrow_data() {
             None => return false,
-            Some(ref data) => data,
+            Some(data) => data,
         };
 
         !data.styles.is_display_none() &&
             !data.hint.contains(RESTYLE_DESCENDANTS)
     }
 
-    fn recursion_limit_exceeded(
-        &mut self,
-        _element: E,
-        data: Option<&mut ElementData>,
-    ) {
-        if let Some(data) = data {
+    fn recursion_limit_exceeded(&mut self, element: E) {
+        if element == self.element {
+            self.data.hint.insert(RESTYLE_DESCENDANTS);
+            return;
+        }
+
+        if let Some(mut data) = element.mutate_data() {
             data.hint.insert(RESTYLE_DESCENDANTS);
         }
     }
 
-    fn invalidated_descendants(
-        &mut self,
-        element: E,
-        data: Option<&mut ElementData>,
-        child: E,
-    ) {
+    fn invalidated_descendants(&mut self, element: E, child: E) {
         if child.get_data().is_none() {
-            return;
-        }
-
-        if data.as_ref().map_or(true, |d| d.styles.is_display_none()) {
             return;
         }
 
@@ -245,12 +239,9 @@ where
         }
     }
 
-    fn invalidated_self(
-        &mut self,
-        _element: E,
-        data: Option<&mut ElementData>,
-    ) {
-        if let Some(data) = data {
+    fn invalidated_self(&mut self, element: E) {
+        debug_assert_ne!(element, self.element);
+        if let Some(mut data) = element.mutate_data() {
             data.hint.insert(RESTYLE_SELF);
         }
     }
