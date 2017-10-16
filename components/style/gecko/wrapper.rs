@@ -75,7 +75,7 @@ use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
+use selector_parser::{AttrValue, PseudoClassStringArg};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -1105,6 +1105,11 @@ impl<'le> TElement for GeckoElement<'le> {
         self.flags() & (NODE_IS_NATIVE_ANONYMOUS as u32) != 0
     }
 
+    #[inline]
+    fn matches_user_and_author_rules(&self) -> bool {
+        !self.is_in_native_anonymous_subtree()
+    }
+
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
         if !self.is_native_anonymous() {
             return None;
@@ -2067,12 +2072,5 @@ impl<'a> NamespaceConstraintHelpers for NamespaceConstraint<&'a Namespace> {
             NamespaceConstraint::Any => ptr::null_mut(),
             NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
         }
-    }
-}
-
-impl<'le> ElementExt for GeckoElement<'le> {
-    #[inline]
-    fn matches_user_and_author_rules(&self) -> bool {
-        !self.is_in_native_anonymous_subtree()
     }
 }
