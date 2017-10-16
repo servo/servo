@@ -104,6 +104,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.is_pseudo_element() {
             self.style.flags.insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
+
+        #[cfg(feature = "servo")]
+        {
+            if self.style.inherited_flags().contains(ComputedValueFlags::CAN_BE_FRAGMENTED) ||
+                self.style.get_parent_column().is_multicol()
+            {
+                self.style.flags.insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
+            }
+        }
     }
 
     /// Adjust the style for text style.
