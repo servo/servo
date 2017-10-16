@@ -13,7 +13,7 @@ use display_list_builder::StackingContextCollectionState;
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, OpaqueFlow};
+use flow::{CAN_BE_FRAGMENTED, CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, OpaqueFlow};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::IS_ELLIPSIS;
@@ -897,6 +897,10 @@ impl InlineFlow {
             minimum_line_metrics: LineMetrics::new(Au(0), Au(0)),
             first_line_indentation: Au(0),
         };
+
+        if flow.fragments.fragments.iter().any(|s| s.style.can_be_fragmented()) {
+            flow.base.flags.insert(CAN_BE_FRAGMENTED);
+        }
 
         if flow.fragments.fragments.iter().any(Fragment::is_unscanned_generated_content) {
             flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT);
