@@ -16,14 +16,12 @@ use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
 use properties::PropertyFlags;
 use properties::longhands::display::computed_value as display;
-use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
-use selectors::Element;
+use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::parser::{SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::ascii::AsciiExt;
 use std::fmt;
-use std::fmt::Debug;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use style_traits::{ParseError, StyleParseErrorKind};
@@ -712,13 +710,6 @@ impl ServoElementSnapshot {
                 self.any_attr_ignore_ns(local_name, |value| value.eval_selector(operation))
             }
         }
-    }
-}
-
-impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
-    #[inline]
-    fn matches_user_and_author_rules(&self) -> bool {
-        true
     }
 }
 

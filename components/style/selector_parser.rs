@@ -7,7 +7,6 @@
 #![deny(missing_docs)]
 
 use cssparser::{Parser as CssParser, ParserInput};
-use selectors::Element;
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug};
 use style_traits::ParseError;
@@ -101,14 +100,6 @@ pub enum PseudoElementCascadeType {
     /// This pseudo-elements are resolved on the fly using *only* global rules
     /// (rules of the form `*|*`), and applying them to the parent style.
     Precomputed,
-}
-
-/// An extension to rust-selector's `Element` trait.
-pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
-    /// Whether this element should match user and author rules.
-    ///
-    /// We use this for Native Anonymous Content in Gecko.
-    fn matches_user_and_author_rules(&self) -> bool;
 }
 
 /// A per-functional-pseudo map, from a given pseudo to a `T`.

@@ -20,8 +20,8 @@ use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::LonghandId;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 use rule_tree::CascadeLevel;
-use selector_parser::{AttrValue, ElementExt};
-use selector_parser::{PseudoClassStringArg, PseudoElement};
+use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
+use selectors::Element as SelectorsElement;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
@@ -242,8 +242,17 @@ pub trait PresentationalHintsSynthesizer {
 }
 
 /// The element trait, the main abstraction the style crate acts over.
-pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
-                     ElementExt + PresentationalHintsSynthesizer {
+pub trait TElement
+    : Eq
+    + PartialEq
+    + Debug
+    + Hash
+    + Sized
+    + Copy
+    + Clone
+    + SelectorsElement<Impl = SelectorImpl>
+    + PresentationalHintsSynthesizer
+{
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
 
@@ -262,6 +271,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Otherwise we may set document-level state incorrectly, like the root
     /// font-size used for rem units.
     fn owner_doc_matches_for_testing(&self, _: &Device) -> bool { true }
+
+    /// Whether this element should match user and author rules.
+    ///
+    /// We use this for Native Anonymous Content in Gecko.
+    fn matches_user_and_author_rules(&self) -> bool { true }
 
     /// Returns the depth of this element in the DOM.
     fn depth(&self) -> usize {
