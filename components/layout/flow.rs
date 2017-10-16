@@ -991,6 +991,10 @@ impl BaseFlow {
         let mut flags = FlowFlags::empty();
         match style {
             Some(style) => {
+                if style.can_be_fragmented() {
+                    flags.insert(CAN_BE_FRAGMENTED);
+                }
+
                 match style.get_box().position {
                     position::T::absolute | position::T::fixed => {
                         flags.insert(IS_ABSOLUTELY_POSITIONED);

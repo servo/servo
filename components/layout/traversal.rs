@@ -281,7 +281,8 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     fn should_process(&self, flow: &mut Flow) -> bool {
         let base = flow::base(flow);
         base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) &&
-        // The fragmentation countainer is responsible for calling Flow::fragment recursively
+        // The fragmentation container is responsible for calling Flow::fragment
+        // recursively
         !base.flags.contains(CAN_BE_FRAGMENTED)
     }
 }

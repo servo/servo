@@ -296,17 +296,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         }
     }
 
-    fn can_be_fragmented(&self) -> bool {
-        // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
-        // Maybe this isn’t useful for Gecko?
-        false
-    }
-
-    unsafe fn set_can_be_fragmented(&self, _value: bool) {
-        // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
-        // Maybe this isn’t useful for Gecko?
-    }
-
     fn is_in_doc(&self) -> bool {
         unsafe { bindings::Gecko_IsInDocument(self.0) }
     }
