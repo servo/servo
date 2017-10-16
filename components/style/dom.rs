@@ -160,10 +160,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
 
     /// Set whether this node can be fragmented.
     unsafe fn set_can_be_fragmented(&self, value: bool);
-
-    /// Whether this node is in the document right now needed to clear the
-    /// restyle data appropriately on some forced restyles.
-    fn is_in_doc(&self) -> bool;
 }
 
 /// Wrapper to output the ElementData along with the node when formatting for
