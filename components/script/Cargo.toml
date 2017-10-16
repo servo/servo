@@ -49,7 +49,7 @@ html5ever = {version = "0.20", features = ["heap_size"]}
 hyper = "0.10"
 hyper_serde = "0.7"
 image = "0.16"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "0.2"

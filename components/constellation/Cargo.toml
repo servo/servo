@@ -22,7 +22,7 @@ euclid = "0.15"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 hyper = "0.10"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 itertools = "0.5"
 layout_traits = {path = "../layout_traits"}
 log = "0.3.5"

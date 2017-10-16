@@ -13,7 +13,7 @@ doctest = false
 euclid = "0.15"
 gfx = {path = "../../../components/gfx"}
 gfx_traits = {path = "../../../components/gfx_traits"}
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 metrics = {path = "../../../components/metrics"}
 msg = {path = "../../../components/msg"}
 net_traits = {path = "../../../components/net_traits"}

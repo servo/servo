@@ -10,7 +10,7 @@ name = "bluetooth_traits"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 regex = "0.2"
 serde = "1.0"
 servo_config = {path = "../config"}

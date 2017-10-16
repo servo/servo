@@ -39,7 +39,7 @@ env_logger = "0.4"
 euclid = "0.15"
 gfx = {path = "../gfx"}
 gleam = "0.4"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 layout_thread = {path = "../layout_thread"}
 log = "0.3"
 msg = {path = "../msg"}

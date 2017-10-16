@@ -606,7 +606,7 @@ pub enum DisplayItem {
     Line(Box<LineDisplayItem>),
     BoxShadow(Box<BoxShadowDisplayItem>),
     PushTextShadow(Box<PushTextShadowDisplayItem>),
-    PopTextShadow(Box<PopTextShadowDisplayItem>),
+    PopAllTextShadows(Box<PopAllTextShadowsDisplayItem>),
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
     PopStackingContext(Box<PopStackingContextItem>),
@@ -1190,7 +1190,7 @@ pub struct PushTextShadowDisplayItem {
 
 /// Defines a text shadow that affects all items until the next PopTextShadow.
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
-pub struct PopTextShadowDisplayItem {
+pub struct PopAllTextShadowsDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 }
@@ -1248,7 +1248,7 @@ impl DisplayItem {
             DisplayItem::Line(ref line) => &line.base,
             DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
             DisplayItem::PushTextShadow(ref push_text_shadow) => &push_text_shadow.base,
-            DisplayItem::PopTextShadow(ref pop_text_shadow) => &pop_text_shadow.base,
+            DisplayItem::PopAllTextShadows(ref pop_text_shadow) => &pop_text_shadow.base,
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
             DisplayItem::PopStackingContext(ref item) => &item.base,
@@ -1373,7 +1373,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
                 DisplayItem::PushTextShadow(_) => "PushTextShadow".to_owned(),
-                DisplayItem::PopTextShadow(_) => "PopTextShadow".to_owned(),
+                DisplayItem::PopAllTextShadows(_) => "PopTextShadow".to_owned(),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) |
                 DisplayItem::PopStackingContext(_) |

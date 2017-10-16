@@ -15,7 +15,7 @@ heapsize = "0.4"
 heapsize_derive = "0.1"
 hyper = "0.10"
 hyper_serde = "0.7"
-ipc-channel = "0.8"
+ipc-channel = "0.9"
 msg = {path = "../msg"}
 serde = "1.0"
 servo_url = {path = "../url"}
