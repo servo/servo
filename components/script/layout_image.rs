@@ -64,9 +64,9 @@ pub fn fetch_image_for_layout(url: ServoUrl,
         task_source: window.networking_task_source(),
         canceller: Some(window.task_canceller()),
     };
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+    ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
         listener.notify_fetch(message.to().unwrap());
-    });
+    }));
 
     let request = FetchRequestInit {
         url: url,

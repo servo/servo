@@ -610,7 +610,7 @@ macro_rules! impl_performance_entry_struct(
                        start_time: f64,
                        duration: f64) -> DomRoot<$struct> {
                 let entry = $struct::new_inherited(name, start_time, duration);
-                reflect_dom_object(box entry, global, $binding::Wrap)
+                reflect_dom_object(Box::new(entry), global, $binding::Wrap)
             }
         }
     );

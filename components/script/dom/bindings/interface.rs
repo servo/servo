@@ -226,7 +226,7 @@ pub unsafe fn create_global_object(
     // avoid getting trace hooks called on a partially initialized object.
     JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, PrivateValue(private));
     let proto_array: Box<ProtoOrIfaceArray> =
-        box [0 as *mut JSObject; PrototypeList::PROTO_OR_IFACE_LENGTH];
+        Box::new([0 as *mut JSObject; PrototypeList::PROTO_OR_IFACE_LENGTH]);
     JS_SetReservedSlot(rval.get(),
                        DOM_PROTOTYPE_SLOT,
                        PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));

@@ -34,7 +34,11 @@ impl ExtendableEvent {
                bubbles: bool,
                cancelable: bool)
                -> DomRoot<ExtendableEvent> {
-        let ev = reflect_dom_object(box ExtendableEvent::new_inherited(), worker, ExtendableEventBinding::Wrap);
+        let ev = reflect_dom_object(
+            Box::new(ExtendableEvent::new_inherited()),
+            worker,
+            ExtendableEventBinding::Wrap
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

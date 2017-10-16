@@ -33,14 +33,14 @@ impl ProgressEvent {
         }
     }
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ProgressEvent> {
-        reflect_dom_object(box ProgressEvent::new_inherited(false, 0, 0),
+        reflect_dom_object(Box::new(ProgressEvent::new_inherited(false, 0, 0)),
                            global,
                            ProgressEventBinding::Wrap)
     }
     pub fn new(global: &GlobalScope, type_: Atom,
                can_bubble: EventBubbles, cancelable: EventCancelable,
                length_computable: bool, loaded: u64, total: u64) -> DomRoot<ProgressEvent> {
-        let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
+        let ev = reflect_dom_object(Box::new(ProgressEvent::new_inherited(length_computable, loaded, total)),
                                     global,
                                     ProgressEventBinding::Wrap);
         {

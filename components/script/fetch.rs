@@ -105,9 +105,9 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
         canceller: Some(global.task_canceller())
     };
 
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+    ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
         listener.notify_fetch(message.to().unwrap());
-    });
+    }));
     core_resource_thread.send(NetTraitsFetch(request_init, action_sender)).unwrap();
 
     promise

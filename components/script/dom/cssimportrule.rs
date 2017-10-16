@@ -35,7 +35,7 @@ impl CSSImportRule {
     pub fn new(window: &Window,
                parent_stylesheet: &CSSStyleSheet,
                import_rule: Arc<Locked<ImportRule>>) -> DomRoot<Self> {
-        reflect_dom_object(box Self::new_inherited(parent_stylesheet, import_rule),
+        reflect_dom_object(Box::new(Self::new_inherited(parent_stylesheet, import_rule)),
                            window,
                            CSSImportRuleBinding::Wrap)
     }

@@ -24,7 +24,7 @@ impl PluginArray {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
-        reflect_dom_object(box PluginArray::new_inherited(),
+        reflect_dom_object(Box::new(PluginArray::new_inherited()),
                            global,
                            PluginArrayBinding::Wrap)
     }

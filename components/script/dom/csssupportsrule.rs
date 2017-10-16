@@ -41,7 +41,7 @@ impl CSSSupportsRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                supportsrule: Arc<Locked<SupportsRule>>) -> DomRoot<CSSSupportsRule> {
-        reflect_dom_object(box CSSSupportsRule::new_inherited(parent_stylesheet, supportsrule),
+        reflect_dom_object(Box::new(CSSSupportsRule::new_inherited(parent_stylesheet, supportsrule)),
                            window,
                            CSSSupportsRuleBinding::Wrap)
     }

@@ -62,7 +62,7 @@ impl HTMLButtonElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLButtonElement> {
-        Node::reflect_node(box HTMLButtonElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLButtonElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLButtonElementBinding::Wrap)
     }

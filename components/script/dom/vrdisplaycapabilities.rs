@@ -29,7 +29,7 @@ impl VRDisplayCapabilities {
     }
 
     pub fn new(capabilities: WebVRDisplayCapabilities, global: &GlobalScope) -> DomRoot<VRDisplayCapabilities> {
-        reflect_dom_object(box VRDisplayCapabilities::new_inherited(capabilities),
+        reflect_dom_object(Box::new(VRDisplayCapabilities::new_inherited(capabilities)),
                            global,
                            VRDisplayCapabilitiesBinding::Wrap)
     }

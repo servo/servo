@@ -38,7 +38,7 @@ impl TestWorklet {
 
     fn new(window: &Window) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
-        reflect_dom_object(box TestWorklet::new_inherited(&*worklet), window, Wrap)
+        reflect_dom_object(Box::new(TestWorklet::new_inherited(&*worklet)), window, Wrap)
     }
 
     pub fn Constructor(window: &Window) -> Fallible<DomRoot<TestWorklet>> {

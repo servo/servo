@@ -32,7 +32,7 @@ impl WebGLUniformLocation {
                id: i32,
                program_id: WebGLProgramId)
                -> DomRoot<WebGLUniformLocation> {
-        reflect_dom_object(box WebGLUniformLocation::new_inherited(id, program_id),
+        reflect_dom_object(Box::new(WebGLUniformLocation::new_inherited(id, program_id)),
                            window,
                            WebGLUniformLocationBinding::Wrap)
     }

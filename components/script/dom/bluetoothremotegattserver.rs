@@ -38,7 +38,7 @@ impl BluetoothRemoteGATTServer {
     }
 
     pub fn new(global: &GlobalScope, device: &BluetoothDevice) -> DomRoot<BluetoothRemoteGATTServer> {
-        reflect_dom_object(box BluetoothRemoteGATTServer::new_inherited(device),
+        reflect_dom_object(Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
                            global,
                            BluetoothRemoteGATTServerBinding::Wrap)
     }

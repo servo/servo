@@ -37,7 +37,7 @@ impl HTMLFontElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLFontElement> {
-        Node::reflect_node(box HTMLFontElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLFontElementBinding::Wrap)
     }

@@ -47,7 +47,7 @@ impl NodeIterator {
                            root_node: &Node,
                            what_to_show: u32,
                            filter: Filter) -> DomRoot<NodeIterator> {
-        reflect_dom_object(box NodeIterator::new_inherited(root_node, what_to_show, filter),
+        reflect_dom_object(Box::new(NodeIterator::new_inherited(root_node, what_to_show, filter)),
                            document.window(),
                            NodeIteratorBinding::Wrap)
     }

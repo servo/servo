@@ -82,7 +82,7 @@ impl HTMLCollection {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>) -> DomRoot<HTMLCollection> {
-        reflect_dom_object(box HTMLCollection::new_inherited(root, filter),
+        reflect_dom_object(Box::new(HTMLCollection::new_inherited(root, filter)),
                            window, HTMLCollectionBinding::Wrap)
     }
 
@@ -126,7 +126,7 @@ impl HTMLCollection {
                     true
                 }
             }
-            return HTMLCollection::create(window, root, box AllFilter);
+            return HTMLCollection::create(window, root, Box::new(AllFilter));
         }
 
         #[derive(HeapSizeOf, JSTraceable)]
@@ -148,7 +148,7 @@ impl HTMLCollection {
             ascii_lower_qualified_name: qualified_name.to_ascii_lowercase(),
             qualified_name: qualified_name,
         };
-        HTMLCollection::create(window, root, box filter)
+        HTMLCollection::create(window, root, Box::new(filter))
     }
 
     fn match_element(elem: &Element, qualified_name: &LocalName) -> bool {
@@ -182,7 +182,7 @@ impl HTMLCollection {
         let filter = TagNameNSFilter {
             qname: qname
         };
-        HTMLCollection::create(window, root, box filter)
+        HTMLCollection::create(window, root, Box::new(filter))
     }
 
     pub fn by_class_name(window: &Window, root: &Node, classes: DOMString)
@@ -208,7 +208,7 @@ impl HTMLCollection {
         let filter = ClassNameFilter {
             classes: classes
         };
-        HTMLCollection::create(window, root, box filter)
+        HTMLCollection::create(window, root, Box::new(filter))
     }
 
     pub fn children(window: &Window, root: &Node) -> DomRoot<HTMLCollection> {
@@ -219,7 +219,7 @@ impl HTMLCollection {
                 root.is_parent_of(elem.upcast())
             }
         }
-        HTMLCollection::create(window, root, box ElementChildFilter)
+        HTMLCollection::create(window, root, Box::new(ElementChildFilter))
     }
 
     pub fn elements_iter_after<'a>(&'a self, after: &'a Node) -> impl Iterator<Item=DomRoot<Element>> + 'a {

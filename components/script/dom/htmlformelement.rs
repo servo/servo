@@ -86,7 +86,7 @@ impl HTMLFormElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLFormElement> {
-        Node::reflect_node(box HTMLFormElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLFormElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLFormElementBinding::Wrap)
     }
@@ -217,7 +217,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             }
         }
         DomRoot::from_ref(self.elements.init_once(|| {
-            let filter = box ElementsFilter { form: DomRoot::from_ref(self) };
+            let filter = Box::new(ElementsFilter { form: DomRoot::from_ref(self) });
             let window = window_from_node(self);
             HTMLFormControlsCollection::new(&window, self.upcast(), filter)
         }))

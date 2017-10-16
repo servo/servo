@@ -25,7 +25,7 @@ impl TouchList {
     }
 
     pub fn new(window: &Window, touches: &[&Touch]) -> DomRoot<TouchList> {
-        reflect_dom_object(box TouchList::new_inherited(touches),
+        reflect_dom_object(Box::new(TouchList::new_inherited(touches)),
                            window, TouchListBinding::Wrap)
     }
 }

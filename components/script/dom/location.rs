@@ -30,7 +30,7 @@ impl Location {
     }
 
     pub fn new(window: &Window) -> DomRoot<Location> {
-        reflect_dom_object(box Location::new_inherited(window),
+        reflect_dom_object(Box::new(Location::new_inherited(window)),
                            window,
                            LocationBinding::Wrap)
     }

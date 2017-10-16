@@ -48,7 +48,7 @@ impl Navigator {
     }
 
     pub fn new(window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object(box Navigator::new_inherited(),
+        reflect_dom_object(Box::new(Navigator::new_inherited()),
                            window,
                            NavigatorBinding::Wrap)
     }

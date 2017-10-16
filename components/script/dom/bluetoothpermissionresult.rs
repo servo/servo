@@ -41,7 +41,7 @@ impl BluetoothPermissionResult {
     }
 
     pub fn new(global: &GlobalScope, status: &PermissionStatus) -> DomRoot<BluetoothPermissionResult> {
-        reflect_dom_object(box BluetoothPermissionResult::new_inherited(status),
+        reflect_dom_object(Box::new(BluetoothPermissionResult::new_inherited(status)),
                            global,
                            BluetoothPermissionResultBinding::Wrap)
     }

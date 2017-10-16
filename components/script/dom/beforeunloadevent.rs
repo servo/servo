@@ -33,7 +33,7 @@ impl BeforeUnloadEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
-        reflect_dom_object(box BeforeUnloadEvent::new_inherited(),
+        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()),
                            window,
                            BeforeUnloadEventBinding::Wrap)
     }

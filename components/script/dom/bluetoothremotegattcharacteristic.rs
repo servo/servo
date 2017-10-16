@@ -65,12 +65,13 @@ impl BluetoothRemoteGATTCharacteristic {
                properties: &BluetoothCharacteristicProperties,
                instanceID: String)
                -> DomRoot<BluetoothRemoteGATTCharacteristic> {
-        reflect_dom_object(box BluetoothRemoteGATTCharacteristic::new_inherited(service,
-                                                                                uuid,
-                                                                                properties,
-                                                                                instanceID),
-                           global,
-                           BluetoothRemoteGATTCharacteristicBinding::Wrap)
+        reflect_dom_object(
+            Box::new(BluetoothRemoteGATTCharacteristic::new_inherited(
+                service, uuid, properties, instanceID
+            )),
+            global,
+            BluetoothRemoteGATTCharacteristicBinding::Wrap
+        )
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {

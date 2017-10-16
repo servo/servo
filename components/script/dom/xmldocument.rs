@@ -64,18 +64,21 @@ impl XMLDocument {
                doc_loader: DocumentLoader)
                -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
-            box XMLDocument::new_inherited(window,
-                                           has_browsing_context,
-                                           url,
-                                           origin,
-                                           doctype,
-                                           content_type,
-                                           last_modified,
-                                           activity,
-                                           source,
-                                           doc_loader),
+            Box::new(XMLDocument::new_inherited(
+                window,
+                has_browsing_context,
+                url,
+                origin,
+                doctype,
+                content_type,
+                last_modified,
+                activity,
+                source,
+                doc_loader
+            )),
             window,
-            XMLDocumentBinding::Wrap);
+            XMLDocumentBinding::Wrap
+        );
         {
             let node = doc.upcast::<Node>();
             node.set_owner_doc(&doc.document);

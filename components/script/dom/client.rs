@@ -36,7 +36,7 @@ impl Client {
     }
 
     pub fn new(window: &Window) -> DomRoot<Client> {
-        reflect_dom_object(box Client::new_inherited(window.get_url()),
+        reflect_dom_object(Box::new(Client::new_inherited(window.get_url())),
                            window,
                            Wrap)
     }

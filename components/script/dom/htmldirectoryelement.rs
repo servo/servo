@@ -29,7 +29,7 @@ impl HTMLDirectoryElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLDirectoryElement> {
-        Node::reflect_node(box HTMLDirectoryElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLDirectoryElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLDirectoryElementBinding::Wrap)
     }

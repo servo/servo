@@ -40,7 +40,7 @@ impl HTMLDetailsElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLDetailsElement> {
-        Node::reflect_node(box HTMLDetailsElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLDetailsElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLDetailsElementBinding::Wrap)
     }

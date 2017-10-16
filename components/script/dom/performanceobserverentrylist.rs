@@ -31,7 +31,7 @@ impl PerformanceObserverEntryList {
     pub fn new(global: &GlobalScope, entries: PerformanceEntryList)
         -> DomRoot<PerformanceObserverEntryList> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object(box observer_entry_list, global, PerformanceObserverEntryListBinding::Wrap)
+        reflect_dom_object(Box::new(observer_entry_list), global, PerformanceObserverEntryListBinding::Wrap)
     }
 }
 

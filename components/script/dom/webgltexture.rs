@@ -78,7 +78,7 @@ impl WebGLTexture {
                renderer: WebGLMsgSender,
                id: WebGLTextureId)
                -> DomRoot<WebGLTexture> {
-        reflect_dom_object(box WebGLTexture::new_inherited(renderer, id),
+        reflect_dom_object(Box::new(WebGLTexture::new_inherited(renderer, id)),
                            window,
                            WebGLTextureBinding::Wrap)
     }

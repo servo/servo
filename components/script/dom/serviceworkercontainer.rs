@@ -40,7 +40,7 @@ impl ServiceWorkerContainer {
     pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(&global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&*client);
-        reflect_dom_object(box container, global, Wrap)
+        reflect_dom_object(Box::new(container), global, Wrap)
     }
 }
 

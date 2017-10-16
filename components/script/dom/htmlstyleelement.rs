@@ -64,7 +64,7 @@ impl HTMLStyleElement {
                prefix: Option<Prefix>,
                document: &Document,
                creator: ElementCreator) -> DomRoot<HTMLStyleElement> {
-        Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document, creator),
+        Node::reflect_node(Box::new(HTMLStyleElement::new_inherited(local_name, prefix, document, creator)),
                            document,
                            HTMLStyleElementBinding::Wrap)
     }

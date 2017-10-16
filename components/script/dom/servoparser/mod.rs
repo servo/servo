@@ -338,7 +338,7 @@ impl ServoParser {
            last_chunk_state: LastChunkState,
            kind: ParserKind)
            -> DomRoot<Self> {
-        reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind),
+        reflect_dom_object(Box::new(ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind)),
                            document.window(),
                            ServoParserBinding::Wrap)
     }

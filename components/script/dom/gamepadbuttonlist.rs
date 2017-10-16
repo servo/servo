@@ -31,7 +31,7 @@ impl GamepadButtonList {
         rooted_vec!(let list <- buttons.iter()
                                        .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
 
-        reflect_dom_object(box GamepadButtonList::new_inherited(list.r()),
+        reflect_dom_object(Box::new(GamepadButtonList::new_inherited(list.r())),
                            global,
                            GamepadButtonListBinding::Wrap)
     }

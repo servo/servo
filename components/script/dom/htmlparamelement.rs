@@ -29,7 +29,7 @@ impl HTMLParamElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLParamElement> {
-        Node::reflect_node(box HTMLParamElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLParamElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLParamElementBinding::Wrap)
     }

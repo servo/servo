@@ -204,7 +204,7 @@ impl XMLHttpRequest {
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequest> {
-        reflect_dom_object(box XMLHttpRequest::new_inherited(global),
+        reflect_dom_object(Box::new(XMLHttpRequest::new_inherited(global)),
                            global,
                            XMLHttpRequestBinding::Wrap)
     }
@@ -263,9 +263,9 @@ impl XMLHttpRequest {
             task_source: task_source,
             canceller: Some(global.task_canceller())
         };
-        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
-        });
+        }));
         global.core_resource_thread().send(Fetch(init, action_sender)).unwrap();
     }
 }

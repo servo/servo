@@ -53,7 +53,7 @@ impl WebGLRenderbuffer {
                renderer: WebGLMsgSender,
                id: WebGLRenderbufferId)
                -> DomRoot<WebGLRenderbuffer> {
-        reflect_dom_object(box WebGLRenderbuffer::new_inherited(renderer, id),
+        reflect_dom_object(Box::new(WebGLRenderbuffer::new_inherited(renderer, id)),
                            window,
                            WebGLRenderbufferBinding::Wrap)
     }

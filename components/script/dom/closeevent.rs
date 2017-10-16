@@ -34,7 +34,7 @@ impl CloseEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CloseEvent> {
-        reflect_dom_object(box CloseEvent::new_inherited(false, 0, DOMString::new()),
+        reflect_dom_object(Box::new(CloseEvent::new_inherited(false, 0, DOMString::new())),
                            global,
                            CloseEventBinding::Wrap)
     }
@@ -47,7 +47,7 @@ impl CloseEvent {
                code: u16,
                reason: DOMString)
                -> DomRoot<CloseEvent> {
-        let event = box CloseEvent::new_inherited(wasClean, code, reason);
+        let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();

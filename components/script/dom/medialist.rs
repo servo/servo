@@ -43,7 +43,7 @@ impl MediaList {
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                media_queries: Arc<Locked<StyleMediaList>>)
         -> DomRoot<MediaList> {
-        reflect_dom_object(box MediaList::new_inherited(parent_stylesheet, media_queries),
+        reflect_dom_object(Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
                            window,
                            MediaListBinding::Wrap)
     }

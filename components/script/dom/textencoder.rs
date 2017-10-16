@@ -28,7 +28,7 @@ impl TextEncoder {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TextEncoder> {
-        reflect_dom_object(box TextEncoder::new_inherited(),
+        reflect_dom_object(Box::new(TextEncoder::new_inherited()),
                            global,
                            TextEncoderBinding::Wrap)
     }

@@ -155,7 +155,9 @@ impl CanvasRenderingContext2D {
         let window = window_from_node(canvas);
         let image_cache = window.image_cache();
         let base_url = window.get_url();
-        let boxed = box CanvasRenderingContext2D::new_inherited(global, Some(canvas), image_cache, base_url, size);
+        let boxed = Box::new(CanvasRenderingContext2D::new_inherited(
+            global, Some(canvas), image_cache, base_url, size
+        ));
         reflect_dom_object(boxed, global, CanvasRenderingContext2DBinding::Wrap)
     }
 

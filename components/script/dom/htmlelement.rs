@@ -62,7 +62,7 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> DomRoot<HTMLElement> {
-        Node::reflect_node(box HTMLElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLElementBinding::Wrap)
     }

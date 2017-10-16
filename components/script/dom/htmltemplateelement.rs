@@ -39,7 +39,7 @@ impl HTMLTemplateElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLTemplateElement> {
-        Node::reflect_node(box HTMLTemplateElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLTemplateElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTemplateElementBinding::Wrap)
     }

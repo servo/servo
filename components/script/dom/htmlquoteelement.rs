@@ -29,7 +29,7 @@ impl HTMLQuoteElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLQuoteElement> {
-        Node::reflect_node(box HTMLQuoteElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLQuoteElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLQuoteElementBinding::Wrap)
     }

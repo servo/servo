@@ -33,7 +33,7 @@ impl History {
     }
 
     pub fn new(window: &Window) -> DomRoot<History> {
-        reflect_dom_object(box History::new_inherited(window),
+        reflect_dom_object(Box::new(History::new_inherited(window)),
                            window,
                            HistoryBinding::Wrap)
     }

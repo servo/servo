@@ -44,7 +44,7 @@ impl VRStageParameters {
                                                                array.handle_mut());
         }
 
-        let stage_parameters  = reflect_dom_object(box VRStageParameters::new_inherited(parameters),
+        let stage_parameters  = reflect_dom_object(Box::new(VRStageParameters::new_inherited(parameters)),
                                                    global,
                                                    VRStageParametersBinding::Wrap);
 

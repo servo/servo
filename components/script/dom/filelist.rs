@@ -29,7 +29,7 @@ impl FileList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, files: Vec<DomRoot<File>>) -> DomRoot<FileList> {
-        reflect_dom_object(box FileList::new_inherited(files.iter().map(|r| Dom::from_ref(&**r)).collect()),
+        reflect_dom_object(Box::new(FileList::new_inherited(files.iter().map(|r| Dom::from_ref(&**r)).collect())),
                            window,
                            FileListBinding::Wrap)
     }

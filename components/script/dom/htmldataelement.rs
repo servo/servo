@@ -30,7 +30,7 @@ impl HTMLDataElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLDataElement> {
-        Node::reflect_node(box HTMLDataElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLDataElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLDataElementBinding::Wrap)
     }

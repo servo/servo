@@ -34,7 +34,7 @@ impl HTMLDataListElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLDataListElement> {
-        Node::reflect_node(box HTMLDataListElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLDataListElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLDataListElementBinding::Wrap)
     }
@@ -50,7 +50,7 @@ impl HTMLDataListElementMethods for HTMLDataListElement {
                 elem.is::<HTMLOptionElement>()
             }
         }
-        let filter = box HTMLDataListOptionsFilter;
+        let filter = Box::new(HTMLDataListOptionsFilter);
         let window = window_from_node(self);
         HTMLCollection::create(&window, self.upcast(), filter)
     }

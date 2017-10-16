@@ -45,7 +45,7 @@ impl Headers {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
-        reflect_dom_object(box Headers::new_inherited(), global, HeadersWrap)
+        reflect_dom_object(Box::new(Headers::new_inherited()), global, HeadersWrap)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers

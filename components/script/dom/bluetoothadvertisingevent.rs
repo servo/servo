@@ -55,13 +55,17 @@ impl BluetoothAdvertisingEvent {
                txPower: Option<i8>,
                rssi: Option<i8>)
                -> DomRoot<BluetoothAdvertisingEvent> {
-        let ev = reflect_dom_object(box BluetoothAdvertisingEvent::new_inherited(device,
-                                                                                 name,
-                                                                                 appearance,
-                                                                                 txPower,
-                                                                                 rssi),
-                                    global,
-                                    BluetoothAdvertisingEventBinding::Wrap);
+        let ev = reflect_dom_object(
+            Box::new(BluetoothAdvertisingEvent::new_inherited(
+                device,
+                name,
+                appearance,
+                txPower,
+                rssi
+            )),
+            global,
+            BluetoothAdvertisingEventBinding::Wrap
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

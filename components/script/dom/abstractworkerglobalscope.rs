@@ -24,10 +24,10 @@ impl<T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptCh
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        box SendableWorkerScriptChan {
+        Box::new(SendableWorkerScriptChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
-        }
+        })
     }
 }
 
@@ -48,10 +48,10 @@ impl<T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        box WorkerThreadWorkerChan {
+        Box::new(WorkerThreadWorkerChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
-        }
+        })
     }
 }
 

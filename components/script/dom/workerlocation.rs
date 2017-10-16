@@ -28,7 +28,7 @@ impl WorkerLocation {
     }
 
     pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
-        reflect_dom_object(box WorkerLocation::new_inherited(url),
+        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)),
                            global,
                            WorkerLocationBinding::Wrap)
     }

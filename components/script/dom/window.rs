@@ -344,7 +344,7 @@ impl Window {
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
-        (box SendableMainThreadScriptChan(tx), box rx)
+        (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
     }
 
     pub fn image_cache(&self) -> Arc<ImageCache> {
@@ -1297,9 +1297,9 @@ impl Window {
                 let (responder, responder_listener) = ipc::channel().unwrap();
                 let pipeline = self.upcast::<GlobalScope>().pipeline_id();
                 let image_cache_chan = self.image_cache_chan.clone();
-                ROUTER.add_route(responder_listener.to_opaque(), box move |message| {
+                ROUTER.add_route(responder_listener.to_opaque(), Box::new(move |message| {
                     let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
-                });
+                }));
                 self.image_cache.add_listener(id, ImageResponder::new(responder, id));
                 nodes.push(Dom::from_ref(&*node));
             }
@@ -1804,7 +1804,7 @@ impl Window {
             pipelineid,
             script_chan: Arc::new(Mutex::new(control_chan)),
         };
-        let win = box Self {
+        let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 pipelineid,
                 devtools_chan,
@@ -1868,7 +1868,7 @@ impl Window {
             unminified_js_dir: Default::default(),
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
-        };
+        });
 
         unsafe {
             WindowBinding::Wrap(runtime.cx(), win)
@@ -1982,7 +1982,7 @@ impl Window {
         // TODO(#12718): Use the "posted message task source".
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
-            box self.task_canceller().wrap_task(task),
+            Box::new(self.task_canceller().wrap_task(task)),
         ));
     }
 }

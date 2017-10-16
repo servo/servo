@@ -54,7 +54,7 @@ pub struct ObserverOptions {
 
 impl MutationObserver {
     fn new(global: &Window, callback: Rc<MutationCallback>) -> DomRoot<MutationObserver> {
-        let boxed_observer = box MutationObserver::new_inherited(callback);
+        let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
         reflect_dom_object(boxed_observer, global, MutationObserverBinding::Wrap)
     }
 

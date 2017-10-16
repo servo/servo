@@ -52,7 +52,7 @@ impl HTMLTableRowElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
                -> DomRoot<HTMLTableRowElement> {
-        Node::reflect_node(box HTMLTableRowElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLTableRowElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTableRowElementBinding::Wrap)
     }
@@ -77,7 +77,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
     fn Cells(&self) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
             let window = window_from_node(self);
-            let filter = box CellsFilter;
+            let filter = Box::new(CellsFilter);
             HTMLCollection::create(&window, self.upcast(), filter)
         })
     }

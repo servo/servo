@@ -82,7 +82,7 @@ impl WebGLShader {
                id: WebGLShaderId,
                shader_type: u32)
                -> DomRoot<WebGLShader> {
-        reflect_dom_object(box WebGLShader::new_inherited(renderer, id, shader_type),
+        reflect_dom_object(Box::new(WebGLShader::new_inherited(renderer, id, shader_type)),
                            window,
                            WebGLShaderBinding::Wrap)
     }

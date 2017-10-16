@@ -43,7 +43,7 @@ impl HTMLHeadingElement {
                prefix: Option<Prefix>,
                document: &Document,
                level: HeadingLevel) -> DomRoot<HTMLHeadingElement> {
-        Node::reflect_node(box HTMLHeadingElement::new_inherited(local_name, prefix, document, level),
+        Node::reflect_node(Box::new(HTMLHeadingElement::new_inherited(local_name, prefix, document, level)),
                            document,
                            HTMLHeadingElementBinding::Wrap)
     }

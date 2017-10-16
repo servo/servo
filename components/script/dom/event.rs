@@ -65,7 +65,7 @@ impl Event {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
-        reflect_dom_object(box Event::new_inherited(),
+        reflect_dom_object(Box::new(Event::new_inherited()),
                            global,
                            EventBinding::Wrap)
     }

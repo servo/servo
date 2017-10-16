@@ -40,7 +40,7 @@ impl HTMLLabelElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLLabelElement> {
-        Node::reflect_node(box HTMLLabelElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLLabelElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLLabelElementBinding::Wrap)
     }

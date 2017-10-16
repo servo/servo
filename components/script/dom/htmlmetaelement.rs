@@ -52,7 +52,7 @@ impl HTMLMetaElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLMetaElement> {
-        Node::reflect_node(box HTMLMetaElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLMetaElementBinding::Wrap)
     }

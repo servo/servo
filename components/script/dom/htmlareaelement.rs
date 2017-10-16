@@ -232,7 +232,7 @@ impl HTMLAreaElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLAreaElement> {
-        Node::reflect_node(box HTMLAreaElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLAreaElementBinding::Wrap)
     }

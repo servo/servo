@@ -759,7 +759,7 @@ unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
 impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
     /// DomRoot a JSTraceable thing for the life of this RootedTraceable
     pub fn new(traceable: T) -> RootedTraceableBox<T> {
-        let traceable = Box::into_raw(box traceable);
+        let traceable = Box::into_raw(Box::new(traceable));
         unsafe {
             RootedTraceableSet::add(traceable);
         }

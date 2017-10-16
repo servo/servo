@@ -37,7 +37,7 @@ impl StyleSheet {
     pub fn new(window: &Window, type_: DOMString,
                href: Option<DOMString>,
                title: Option<DOMString>) -> DomRoot<StyleSheet> {
-        reflect_dom_object(box StyleSheet::new_inherited(type_, href, title),
+        reflect_dom_object(Box::new(StyleSheet::new_inherited(type_, href, title)),
                            window,
                            StyleSheetBinding::Wrap)
     }

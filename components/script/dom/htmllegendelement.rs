@@ -39,7 +39,7 @@ impl HTMLLegendElement {
                prefix: Option<Prefix>,
                document: &Document)
                -> DomRoot<HTMLLegendElement> {
-        Node::reflect_node(box HTMLLegendElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLLegendElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLLegendElementBinding::Wrap)
     }

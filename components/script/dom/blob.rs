@@ -80,7 +80,7 @@ impl Blob {
     pub fn new(
             global: &GlobalScope, blob_impl: BlobImpl, typeString: String)
             -> DomRoot<Blob> {
-        let boxed_blob = box Blob::new_inherited(blob_impl, typeString);
+        let boxed_blob = Box::new(Blob::new_inherited(blob_impl, typeString));
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 

@@ -68,7 +68,7 @@ impl CustomElementRegistry {
     }
 
     pub fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
-        reflect_dom_object(box CustomElementRegistry::new_inherited(window),
+        reflect_dom_object(Box::new(CustomElementRegistry::new_inherited(window)),
                            window,
                            CustomElementRegistryBinding::Wrap)
     }

@@ -99,7 +99,7 @@ impl WebGLExtensions {
 
     pub fn register<T:'static + WebGLExtension + JSTraceable + HeapSizeOf>(&self) {
         let name = T::name().to_uppercase();
-        self.extensions.borrow_mut().insert(name, box TypedWebGLExtensionWrapper::<T>::new());
+        self.extensions.borrow_mut().insert(name, Box::new(TypedWebGLExtensionWrapper::<T>::new()));
     }
 
     pub fn get_suported_extensions(&self) -> Vec<&'static str> {

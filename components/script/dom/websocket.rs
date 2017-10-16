@@ -125,7 +125,7 @@ impl WebSocket {
     }
 
     fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<WebSocket> {
-        reflect_dom_object(box WebSocket::new_inherited(url),
+        reflect_dom_object(Box::new(WebSocket::new_inherited(url)),
                            global, WebSocketBinding::Wrap)
     }
 
@@ -259,9 +259,9 @@ impl WebSocket {
         if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
-            let task = box BufferedAmountTask {
+            let task = Box::new(BufferedAmountTask {
                 address: address,
-            };
+            });
 
             self.global()
                 .script_chan()

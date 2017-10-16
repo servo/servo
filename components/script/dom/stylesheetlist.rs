@@ -28,7 +28,7 @@ impl StyleSheetList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, document: Dom<Document>) -> DomRoot<StyleSheetList> {
-        reflect_dom_object(box StyleSheetList::new_inherited(document),
+        reflect_dom_object(Box::new(StyleSheetList::new_inherited(document)),
                            window, StyleSheetListBinding::Wrap)
     }
 }

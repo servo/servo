@@ -37,7 +37,7 @@ impl TransitionEvent {
     pub fn new(window: &Window,
                type_: Atom,
                init: &TransitionEventInit) -> DomRoot<TransitionEvent> {
-        let ev = reflect_dom_object(box TransitionEvent::new_inherited(init),
+        let ev = reflect_dom_object(Box::new(TransitionEvent::new_inherited(init)),
                                     window,
                                     TransitionEventBinding::Wrap);
         {

@@ -66,9 +66,7 @@ impl BluetoothDevice {
                name: Option<DOMString>,
                context: &Bluetooth)
                -> DomRoot<BluetoothDevice> {
-        reflect_dom_object(box BluetoothDevice::new_inherited(id,
-                                                              name,
-                                                              context),
+        reflect_dom_object(Box::new(BluetoothDevice::new_inherited(id, name, context)),
                            global,
                            BluetoothDeviceBinding::Wrap)
     }

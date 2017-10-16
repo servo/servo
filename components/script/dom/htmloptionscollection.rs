@@ -37,7 +37,7 @@ impl HTMLOptionsCollection {
     pub fn new(window: &Window, select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>)
         -> DomRoot<HTMLOptionsCollection>
     {
-        reflect_dom_object(box HTMLOptionsCollection::new_inherited(select, filter),
+        reflect_dom_object(Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
                            window,
                            HTMLOptionsCollectionBinding::Wrap)
     }

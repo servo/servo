@@ -49,7 +49,7 @@ impl MediaQueryList {
     }
 
     pub fn new(document: &Document, media_query_list: MediaList) -> DomRoot<MediaQueryList> {
-        reflect_dom_object(box MediaQueryList::new_inherited(document, media_query_list),
+        reflect_dom_object(Box::new(MediaQueryList::new_inherited(document, media_query_list)),
                            document.window(),
                            MediaQueryListBinding::Wrap)
     }

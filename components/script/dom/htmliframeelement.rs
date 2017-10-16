@@ -335,7 +335,7 @@ impl HTMLIFrameElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLIFrameElement> {
-        Node::reflect_node(box HTMLIFrameElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLIFrameElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLIFrameElementBinding::Wrap)
     }

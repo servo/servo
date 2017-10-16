@@ -53,7 +53,7 @@ impl VRFrameData {
                       0.0, 0.0, 0.0, 1.0f32];
         let pose = VRPose::new(&global, &Default::default());
 
-        let root = reflect_dom_object(box VRFrameData::new_inherited(&pose),
+        let root = reflect_dom_object(Box::new(VRFrameData::new_inherited(&pose)),
                                       global,
                                       VRFrameDataBinding::Wrap);
         let cx = global.get_cx();

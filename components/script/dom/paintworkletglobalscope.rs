@@ -97,7 +97,7 @@ impl PaintWorkletGlobalScope {
                init: &WorkletGlobalScopeInit)
                -> DomRoot<PaintWorkletGlobalScope> {
         debug!("Creating paint worklet global scope for pipeline {}.", pipeline_id);
-        let global = box PaintWorkletGlobalScope {
+        let global = Box::new(PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, executor, init),
             image_cache: init.image_cache.clone(),
             paint_definitions: Default::default(),
@@ -114,7 +114,7 @@ impl PaintWorkletGlobalScope {
                 image_key: None,
                 missing_image_urls: Vec::new(),
             }),
-        };
+        });
         unsafe { PaintWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
     }
 

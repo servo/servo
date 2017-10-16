@@ -44,9 +44,11 @@ impl VRDisplayEvent {
                display: &VRDisplay,
                reason: Option<VRDisplayEventReason>)
                -> DomRoot<VRDisplayEvent> {
-        let ev = reflect_dom_object(box VRDisplayEvent::new_inherited(&display, reason),
-                           global,
-                           VRDisplayEventBinding::Wrap);
+        let ev = reflect_dom_object(
+            Box::new(VRDisplayEvent::new_inherited(&display, reason)),
+            global,
+            VRDisplayEventBinding::Wrap
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

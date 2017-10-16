@@ -68,8 +68,7 @@ impl Request {
 
     pub fn new(global: &GlobalScope,
                url: ServoUrl) -> DomRoot<Request> {
-        reflect_dom_object(box Request::new_inherited(global,
-                                                      url),
+        reflect_dom_object(Box::new(Request::new_inherited(global, url)),
                            global, RequestBinding::Wrap)
     }
 

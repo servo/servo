@@ -48,7 +48,7 @@ impl WebGLContextEvent {
         // available.
         let status_message = DOMString::new();
         reflect_dom_object(
-                        box WebGLContextEvent::new_inherited(status_message),
+                        Box::new(WebGLContextEvent::new_inherited(status_message)),
                         window,
                         WebGLContextEventBinding::Wrap)
     }
@@ -59,7 +59,7 @@ impl WebGLContextEvent {
                cancelable: EventCancelable,
                status_message: DOMString) -> DomRoot<WebGLContextEvent> {
         let event = reflect_dom_object(
-                        box WebGLContextEvent::new_inherited(status_message),
+                        Box::new(WebGLContextEvent::new_inherited(status_message)),
                         window,
                         WebGLContextEventBinding::Wrap);
 

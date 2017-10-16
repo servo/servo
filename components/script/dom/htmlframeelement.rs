@@ -26,7 +26,7 @@ impl HTMLFrameElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLFrameElement> {
-        Node::reflect_node(box HTMLFrameElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLFrameElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLFrameElementBinding::Wrap)
     }

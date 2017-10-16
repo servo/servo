@@ -31,7 +31,7 @@ impl ForceTouchEvent {
     pub fn new(window: &Window,
                type_: DOMString,
                force: f32) -> DomRoot<ForceTouchEvent> {
-        let event = box ForceTouchEvent::new_inherited(force);
+        let event = Box::new(ForceTouchEvent::new_inherited(force));
         let ev = reflect_dom_object(event, window, ForceTouchEventBinding::Wrap);
         ev.upcast::<UIEvent>().InitUIEvent(type_, true, true, Some(window), 0);
         ev

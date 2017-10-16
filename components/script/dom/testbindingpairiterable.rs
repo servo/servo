@@ -37,10 +37,10 @@ impl Iterable for TestBindingPairIterable {
 
 impl TestBindingPairIterable {
     fn new(global: &GlobalScope) -> DomRoot<TestBindingPairIterable> {
-        reflect_dom_object(box TestBindingPairIterable {
+        reflect_dom_object(Box::new(TestBindingPairIterable {
             reflector: Reflector::new(),
             map: DomRefCell::new(vec![]),
-        }, global, TestBindingPairIterableBinding::TestBindingPairIterableWrap)
+        }), global, TestBindingPairIterableBinding::TestBindingPairIterableWrap)
     }
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBindingPairIterable>> {

@@ -29,7 +29,7 @@ impl TaskSource for FileReadingTaskSource {
     {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::FileRead,
-            box canceller.wrap_task(task),
+            Box::new(canceller.wrap_task(task)),
         ))
     }
 }

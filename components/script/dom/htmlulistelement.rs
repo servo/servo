@@ -26,7 +26,7 @@ impl HTMLUListElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLUListElement> {
-        Node::reflect_node(box HTMLUListElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLUListElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLUListElementBinding::Wrap)
     }

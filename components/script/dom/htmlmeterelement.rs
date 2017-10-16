@@ -30,7 +30,7 @@ impl HTMLMeterElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLMeterElement> {
-        Node::reflect_node(box HTMLMeterElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLMeterElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLMeterElementBinding::Wrap)
     }

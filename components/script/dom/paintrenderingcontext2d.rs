@@ -53,7 +53,7 @@ impl PaintRenderingContext2D {
     }
 
     pub fn new(global: &PaintWorkletGlobalScope) -> DomRoot<PaintRenderingContext2D> {
-        reflect_dom_object(box PaintRenderingContext2D::new_inherited(global),
+        reflect_dom_object(Box::new(PaintRenderingContext2D::new_inherited(global)),
                            global,
                            PaintRenderingContext2DBinding::Wrap)
     }

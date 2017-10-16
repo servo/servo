@@ -26,7 +26,7 @@ impl HTMLTrackElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLTrackElement> {
-        Node::reflect_node(box HTMLTrackElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLTrackElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTrackElementBinding::Wrap)
     }

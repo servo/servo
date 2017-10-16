@@ -51,7 +51,7 @@ impl CSSStyleSheet {
                href: Option<DOMString>,
                title: Option<DOMString>,
                stylesheet: Arc<StyleStyleSheet>) -> DomRoot<CSSStyleSheet> {
-        reflect_dom_object(box CSSStyleSheet::new_inherited(owner, type_, href, title, stylesheet),
+        reflect_dom_object(Box::new(CSSStyleSheet::new_inherited(owner, type_, href, title, stylesheet)),
                            window,
                            CSSStyleSheetBinding::Wrap)
     }

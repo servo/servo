@@ -60,7 +60,7 @@ impl WebGLBuffer {
                renderer: WebGLMsgSender,
                id: WebGLBufferId)
               -> DomRoot<WebGLBuffer> {
-        reflect_dom_object(box WebGLBuffer::new_inherited(renderer, id),
+        reflect_dom_object(Box::new(WebGLBuffer::new_inherited(renderer, id)),
                            window, WebGLBufferBinding::Wrap)
     }
 }

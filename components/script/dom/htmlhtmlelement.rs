@@ -26,7 +26,7 @@ impl HTMLHtmlElement {
     pub fn new(localName: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLHtmlElement> {
-        Node::reflect_node(box HTMLHtmlElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(Box::new(HTMLHtmlElement::new_inherited(localName, prefix, document)),
                            document,
                            HTMLHtmlElementBinding::Wrap)
     }

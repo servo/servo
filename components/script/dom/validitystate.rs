@@ -61,7 +61,7 @@ impl ValidityState {
     }
 
     pub fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
-        reflect_dom_object(box ValidityState::new_inherited(element),
+        reflect_dom_object(Box::new(ValidityState::new_inherited(element)),
                            window,
                            ValidityStateBinding::Wrap)
     }

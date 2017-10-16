@@ -31,7 +31,7 @@ impl HTMLTitleElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLTitleElement> {
-        Node::reflect_node(box HTMLTitleElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLTitleElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTitleElementBinding::Wrap)
     }

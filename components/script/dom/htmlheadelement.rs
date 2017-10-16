@@ -34,7 +34,7 @@ impl HTMLHeadElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLHeadElement> {
-        Node::reflect_node(box HTMLHeadElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLHeadElementBinding::Wrap)
     }

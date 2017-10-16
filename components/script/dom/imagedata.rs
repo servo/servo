@@ -91,12 +91,12 @@ impl ImageData {
             return Err(Error::IndexSize);
         }
 
-        let imagedata = box ImageData {
+        let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
             data: Heap::default(),
-        };
+        });
 
         if let Some(jsobject) = opt_jsobject {
             (*imagedata).data.set(jsobject);

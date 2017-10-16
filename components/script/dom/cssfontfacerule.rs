@@ -33,7 +33,7 @@ impl CSSFontFaceRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                fontfacerule: Arc<Locked<FontFaceRule>>) -> DomRoot<CSSFontFaceRule> {
-        reflect_dom_object(box CSSFontFaceRule::new_inherited(parent_stylesheet, fontfacerule),
+        reflect_dom_object(Box::new(CSSFontFaceRule::new_inherited(parent_stylesheet, fontfacerule)),
                            window,
                            CSSFontFaceRuleBinding::Wrap)
     }

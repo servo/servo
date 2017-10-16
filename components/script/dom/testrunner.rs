@@ -27,7 +27,7 @@ impl TestRunner {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
-        reflect_dom_object(box TestRunner::new_inherited(),
+        reflect_dom_object(Box::new(TestRunner::new_inherited()),
                            global,
                            TestRunnerBinding::Wrap)
     }

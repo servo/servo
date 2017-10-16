@@ -24,7 +24,7 @@ impl MediaError {
     }
 
     pub fn new(window: &Window, code: u16) -> DomRoot<MediaError> {
-        reflect_dom_object(box MediaError::new_inherited(code),
+        reflect_dom_object(Box::new(MediaError::new_inherited(code)),
                            window,
                            MediaErrorBinding::Wrap)
     }

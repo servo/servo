@@ -60,7 +60,7 @@ impl WebGLProgram {
                renderer: WebGLMsgSender,
                id: WebGLProgramId)
                -> DomRoot<WebGLProgram> {
-        reflect_dom_object(box WebGLProgram::new_inherited(renderer, id),
+        reflect_dom_object(Box::new(WebGLProgram::new_inherited(renderer, id)),
                            window,
                            WebGLProgramBinding::Wrap)
     }

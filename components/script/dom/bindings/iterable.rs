@@ -62,12 +62,12 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
                type_: IteratorType,
                wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
                      -> DomRoot<Self>) -> DomRoot<Self> {
-        let iterator = box IterableIterator {
+        let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
             type_: type_,
             iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
-        };
+        });
         reflect_dom_object(iterator, &*iterable.global(), wrap)
     }
 
