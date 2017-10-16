@@ -64,3 +64,11 @@ bitflags! {
         const IS_STYLE_IF_VISITED = 1 << 9,
     }
 }
+
+impl ComputedValueFlags {
+    /// Returns the flags that are inherited.
+    #[inline]
+    pub fn inherited(self) -> Self {
+        self & !(INHERITS_DISPLAY | INHERITS_CONTENT | INHERITS_RESET_STYLE)
+    }
+}

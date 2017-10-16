@@ -2872,7 +2872,7 @@ impl<'a> StyleBuilder<'a> {
             /* rules = */ None,
             parent.custom_properties().cloned(),
             parent.writing_mode,
-            parent.flags,
+            parent.flags.inherited(),
             visited_style,
         )
     }
