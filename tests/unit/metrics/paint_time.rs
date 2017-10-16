@@ -61,7 +61,8 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
 #[test]
 fn test_first_paint_setter() {
     let empty_display_list = DisplayList {
-        list: Vec::new()
+        list: Vec::new(),
+        clip_scroll_nodes: Vec::new(),
     };
     let epoch = Epoch(0);
     let mut paint_time_metrics = test_common(&empty_display_list, epoch);
@@ -74,7 +75,7 @@ fn test_first_paint_setter() {
 #[test]
 fn test_first_contentful_paint_setter() {
     let image = DisplayItem::Image(Box::new(ImageDisplayItem {
-        base: BaseDisplayItem::empty(TEST_PIPELINE_ID),
+        base: BaseDisplayItem::empty(),
         webrender_image: WebRenderImageInfo {
             width: 1,
             height: 1,
@@ -87,7 +88,8 @@ fn test_first_contentful_paint_setter() {
         image_rendering: image_rendering::T::auto,
     }));
     let display_list = DisplayList {
-        list: vec![image]
+        list: vec![image],
+        clip_scroll_nodes: Vec::new(),
     };
     let epoch = Epoch(0);
     let mut paint_time_metrics = test_common(&display_list, epoch);

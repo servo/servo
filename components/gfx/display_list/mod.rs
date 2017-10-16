@@ -33,9 +33,8 @@ use style::values::computed::Filter;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_api::{self, ClipAndScrollInfo, ClipId, ColorF, GradientStop, LocalClip};
-use webrender_api::{MixBlendMode, ScrollPolicy, ScrollSensitivity, StickyFrameInfo};
-use webrender_api::TransformStyle;
+use webrender_api::{self, ClipId, ColorF, GradientStop, LocalClip, MixBlendMode, ScrollPolicy};
+use webrender_api::{ScrollSensitivity, StickyFrameInfo, TransformStyle};
 
 pub use style::dom::OpaqueNode;
 
@@ -43,9 +42,54 @@ pub use style::dom::OpaqueNode;
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
 pub static BLUR_INFLATION_FACTOR: i32 = 3;
 
+/// An index into the vector of ClipScrollNodes. During WebRender conversion these nodes
+/// are given ClipIds.
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct ClipScrollNodeIndex(pub usize);
+
+impl ClipScrollNodeIndex {
+    pub fn is_root_scroll_node(&self) -> bool {
+        match *self {
+            ClipScrollNodeIndex(0) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_define_item(&self) -> DisplayItem {
+        DisplayItem::DefineClipScrollNode(Box::new(DefineClipScrollNodeItem {
+            base: BaseDisplayItem::empty(),
+            node_index: *self,
+        }))
+    }
+}
+
+/// A set of indices into the clip scroll node vector for a given item.
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct ClippingAndScrolling {
+    pub scrolling: ClipScrollNodeIndex,
+    pub clipping: Option<ClipScrollNodeIndex>,
+}
+
+impl ClippingAndScrolling {
+    pub fn simple(scrolling: ClipScrollNodeIndex) -> ClippingAndScrolling {
+        ClippingAndScrolling {
+            scrolling,
+            clipping: None,
+        }
+    }
+
+    pub fn new(scrolling: ClipScrollNodeIndex, clipping: ClipScrollNodeIndex) -> ClippingAndScrolling {
+        ClippingAndScrolling {
+            scrolling,
+            clipping: Some(clipping),
+        }
+    }
+}
+
 #[derive(Deserialize, MallocSizeOf, Serialize)]
 pub struct DisplayList {
     pub list: Vec<DisplayItem>,
+    pub clip_scroll_nodes: Vec<ClipScrollNode>,
 }
 
 impl DisplayList {
@@ -84,12 +128,19 @@ impl DisplayList {
     }
 
     pub fn print_with_tree(&self, print_tree: &mut PrintTree) {
+        print_tree.new_level("ClipScrollNodes".to_owned());
+        for node in &self.clip_scroll_nodes {
+            print_tree.add_item(format!("{:?}", node));
+        }
+        print_tree.end_level();
+
         print_tree.new_level("Items".to_owned());
         for item in &self.list {
             print_tree.add_item(format!("{:?} StackingContext: {:?} {:?}",
-                                        item,
-                                        item.base().stacking_context_id,
-                                        item.clip_and_scroll_info()));
+                item,
+                item.base().stacking_context_id,
+                item.clipping_and_scrolling())
+            );
         }
         print_tree.end_level();
     }
@@ -150,7 +201,7 @@ pub struct StackingContext {
     pub scroll_policy: ScrollPolicy,
 
     /// The clip and scroll info for this StackingContext.
-    pub parent_clip_and_scroll_info: ClipAndScrollInfo,
+    pub parent_clipping_and_scrolling: ClippingAndScrolling,
 }
 
 impl StackingContext {
@@ -167,44 +218,46 @@ impl StackingContext {
                transform_style: TransformStyle,
                perspective: Option<Transform3D<f32>>,
                scroll_policy: ScrollPolicy,
-               parent_clip_and_scroll_info: ClipAndScrollInfo)
+               parent_clipping_and_scrolling: ClippingAndScrolling)
                -> StackingContext {
         StackingContext {
-            id: id,
-            context_type: context_type,
+            id,
+            context_type,
             bounds: *bounds,
             overflow: *overflow,
-            z_index: z_index,
-            filters: filters,
-            mix_blend_mode: mix_blend_mode,
-            transform: transform,
-            transform_style: transform_style,
-            perspective: perspective,
-            scroll_policy: scroll_policy,
-            parent_clip_and_scroll_info: parent_clip_and_scroll_info,
+            z_index,
+            filters,
+            mix_blend_mode,
+            transform,
+            transform_style,
+            perspective,
+            scroll_policy,
+            parent_clipping_and_scrolling,
         }
     }
 
     #[inline]
-    pub fn root(pipeline_id: PipelineId) -> StackingContext {
-        StackingContext::new(StackingContextId::root(),
-                             StackingContextType::Real,
-                             &Rect::zero(),
-                             &Rect::zero(),
-                             0,
-                             vec![],
-                             MixBlendMode::Normal,
-                             None,
-                             TransformStyle::Flat,
-                             None,
-                             ScrollPolicy::Scrollable,
-                             pipeline_id.root_clip_and_scroll_info())
+    pub fn root() -> StackingContext {
+        StackingContext::new(
+            StackingContextId::root(),
+            StackingContextType::Real,
+            &Rect::zero(),
+            &Rect::zero(),
+            0,
+            vec![],
+            MixBlendMode::Normal,
+            None,
+            TransformStyle::Flat,
+            None,
+            ScrollPolicy::Scrollable,
+            ClippingAndScrolling::simple(ClipScrollNodeIndex(0))
+        )
     }
 
-    pub fn to_display_list_items(self, pipeline_id: PipelineId) -> (DisplayItem, DisplayItem) {
-        let mut base_item = BaseDisplayItem::empty(pipeline_id);
+    pub fn to_display_list_items(self) -> (DisplayItem, DisplayItem) {
+        let mut base_item = BaseDisplayItem::empty();
         base_item.stacking_context_id = self.id;
-        base_item.clip_and_scroll_info = self.parent_clip_and_scroll_info;
+        base_item.clipping_and_scrolling = self.parent_clipping_and_scrolling;
 
         let pop_item = DisplayItem::PopStackingContext(Box::new(
             PopStackingContextItem {
@@ -280,10 +333,10 @@ pub enum ClipScrollNodeType {
 pub struct ClipScrollNode {
     /// The WebRender clip id of this scroll root based on the source of this clip
     /// and information about the fragment.
-    pub id: ClipId,
+    pub id: Option<ClipId>,
 
-    /// The unique ID of the parent of this ClipScrollNode.
-    pub parent_id: ClipId,
+    /// The index of the parent of this ClipScrollNode.
+    pub parent_index: ClipScrollNodeIndex,
 
     /// The position of this scroll root's frame in the parent stacking context.
     pub clip: ClippingRegion,
@@ -294,16 +347,6 @@ pub struct ClipScrollNode {
     /// The type of this ClipScrollNode.
     pub node_type: ClipScrollNodeType,
 }
-
-impl ClipScrollNode {
-    pub fn to_define_item(&self, pipeline_id: PipelineId) -> DisplayItem {
-        DisplayItem::DefineClipScrollNode(Box::new(DefineClipScrollNodeItem {
-            base: BaseDisplayItem::empty(pipeline_id),
-            node: self.clone(),
-        }))
-    }
-}
-
 
 /// One drawing command in the list.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
@@ -343,7 +386,7 @@ pub struct BaseDisplayItem {
     pub stacking_context_id: StackingContextId,
 
     /// The clip and scroll info for this item.
-    pub clip_and_scroll_info: ClipAndScrollInfo,
+    pub clipping_and_scrolling: ClippingAndScrolling,
 }
 
 impl BaseDisplayItem {
@@ -353,7 +396,7 @@ impl BaseDisplayItem {
                local_clip: LocalClip,
                section: DisplayListSection,
                stacking_context_id: StackingContextId,
-               clip_and_scroll_info: ClipAndScrollInfo)
+               clipping_and_scrolling: ClippingAndScrolling)
                -> BaseDisplayItem {
         BaseDisplayItem {
             bounds: *bounds,
@@ -361,12 +404,12 @@ impl BaseDisplayItem {
             local_clip: local_clip,
             section: section,
             stacking_context_id: stacking_context_id,
-            clip_and_scroll_info: clip_and_scroll_info,
+            clipping_and_scrolling: clipping_and_scrolling,
         }
     }
 
     #[inline(always)]
-    pub fn empty(pipeline_id: PipelineId) -> BaseDisplayItem {
+    pub fn empty() -> BaseDisplayItem {
         BaseDisplayItem {
             bounds: TypedRect::zero(),
             metadata: DisplayItemMetadata {
@@ -376,7 +419,7 @@ impl BaseDisplayItem {
             local_clip: LocalClip::from(max_rect().to_rectf()),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
-            clip_and_scroll_info: pipeline_id.root_clip_and_scroll_info(),
+            clipping_and_scrolling: ClippingAndScrolling::simple(ClipScrollNodeIndex(0)),
         }
     }
 }
@@ -929,7 +972,7 @@ pub struct DefineClipScrollNodeItem {
     pub base: BaseDisplayItem,
 
     /// The scroll root that this item starts.
-    pub node: ClipScrollNode,
+    pub node_index: ClipScrollNodeIndex,
 }
 
 /// How a box shadow should be clipped.
@@ -963,12 +1006,12 @@ impl DisplayItem {
         }
     }
 
-    pub fn scroll_node_id(&self) -> ClipId {
-        self.base().clip_and_scroll_info.scroll_node_id
+    pub fn scroll_node_index(&self) -> ClipScrollNodeIndex {
+        self.base().clipping_and_scrolling.scrolling
     }
 
-    pub fn clip_and_scroll_info(&self) -> ClipAndScrollInfo {
-        self.base().clip_and_scroll_info
+    pub fn clipping_and_scrolling(&self) -> ClippingAndScrolling {
+        self.base().clipping_and_scrolling
     }
 
     pub fn stacking_context_id(&self) -> StackingContextId {
@@ -1003,7 +1046,7 @@ impl fmt::Debug for DisplayItem {
         }
 
         if let DisplayItem::DefineClipScrollNode(ref item) = *self {
-            return write!(f, "DefineClipScrollNode({:?}", item.node);
+            return write!(f, "DefineClipScrollNode({:?}", item.node_index);
         }
 
         write!(f, "{} @ {:?} {:?}",
