@@ -161,10 +161,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
     fn type_id(&self) -> Option<LayoutNodeType>;
 
-    /// Returns the type ID of this node, without discarding pseudo-elements as
-    /// `type_id` does.
-    fn type_id_without_excluding_pseudo_elements(&self) -> LayoutNodeType;
-
     /// Returns the style for a text node. This is computed on the fly from the
     /// parent style to avoid traversing text nodes in the style system.
     ///
@@ -174,14 +170,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// of the parent data is fine, since the bottom-up traversal will not process
     /// the parent until all the children have been processed.
     fn parent_style(&self) -> Arc<ComputedValues>;
-
-    #[inline]
-    fn is_element_or_elements_pseudo(&self) -> bool {
-        match self.type_id_without_excluding_pseudo_elements() {
-            LayoutNodeType::Element(..) => true,
-            _ => false,
-        }
-    }
 
     fn get_before_pseudo(&self) -> Option<Self> {
         self.as_element().and_then(|el| el.get_before_pseudo()).map(|el| el.as_node())
