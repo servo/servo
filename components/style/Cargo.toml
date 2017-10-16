@@ -60,7 +60,6 @@ num-traits = "0.1.32"
 ordered-float = "0.4"
 owning_ref = "0.3.3"
 parking_lot = "0.4"
-pdqsort = "0.1.0"
 precomputed-hash = "0.1.1"
 rayon = "0.8.2"
 selectors = { path = "../selectors" }

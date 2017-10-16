@@ -73,7 +73,6 @@ extern crate num_traits;
 extern crate ordered_float;
 extern crate owning_ref;
 extern crate parking_lot;
-extern crate pdqsort;
 extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
