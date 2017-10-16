@@ -51,9 +51,18 @@ where
 
 /// An invalidation processor for style changes due to state and attribute
 /// changes.
-pub struct StateAndAttrInvalidationProcessor;
+pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a> {
+    shared_context: &'a SharedStyleContext<'b>,
+}
 
-impl<E> InvalidationProcessor<E> for StateAndAttrInvalidationProcessor
+impl<'a, 'b: 'a> StateAndAttrInvalidationProcessor<'a, 'b> {
+    /// Creates a new StateAndAttrInvalidationProcessor.
+    pub fn new(shared_context: &'a SharedStyleContext<'b>) -> Self {
+        Self { shared_context }
+    }
+}
+
+impl<'a, 'b: 'a, E> InvalidationProcessor<E> for StateAndAttrInvalidationProcessor<'a, 'b>
 where
     E: TElement,
 {
@@ -67,15 +76,16 @@ where
         element: E,
         mut data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
-        shared_context: &SharedStyleContext,
+        quirks_mode: QuirksMode,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool {
         debug_assert!(element.has_snapshot(), "Why bothering?");
         debug_assert!(data.is_some(), "How exactly?");
+        debug_assert_eq!(quirks_mode, self.shared_context.quirks_mode(), "How exactly?");
 
         let wrapper =
-            ElementWrapper::new(element, &*shared_context.snapshot_map);
+            ElementWrapper::new(element, &*self.shared_context.snapshot_map);
 
         let state_changes = wrapper.state_changes();
         let snapshot = wrapper.snapshot().expect("has_snapshot lied");
@@ -140,7 +150,7 @@ where
                 state_changes,
                 element,
                 snapshot: &snapshot,
-                quirks_mode: shared_context.quirks_mode(),
+                quirks_mode: self.shared_context.quirks_mode(),
                 removed_id: id_removed.as_ref(),
                 added_id: id_added.as_ref(),
                 classes_removed: &classes_removed,
@@ -150,7 +160,7 @@ where
                 invalidates_self: false,
             };
 
-            shared_context.stylist.each_invalidation_map(|invalidation_map| {
+            self.shared_context.stylist.each_invalidation_map(|invalidation_map| {
                 collector.collect_dependencies_in_invalidation_map(invalidation_map);
             });
 
