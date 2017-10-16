@@ -6,6 +6,7 @@ use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
+use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use core::cell::Ref;
@@ -25,6 +26,7 @@ use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::webgl_extensions::WebGLExtensions;
 use dom::webgl_validations::WebGLValidator;
@@ -3257,6 +3259,45 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         self.tex_image_2d(&texture, target, data_type, format,
                           level, width, height, border, 1, pixels);
+        Ok(())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexImageDOM(&self,
+                   target: u32,
+                   level: i32,
+                   internal_format: u32,
+                   width: i32,
+                   height: i32,
+                   format: u32,
+                   data_type: u32,
+                   source: &HTMLIFrameElement) -> Fallible<()> {
+        // Currently DOMToTexture only supports TEXTURE_2D, RGBA, UNSIGNED_BYTE and no levels.
+        if target != constants::TEXTURE_2D || level != 0 || internal_format != constants::RGBA ||
+            format != constants::RGBA || data_type != constants::UNSIGNED_BYTE {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        // Get bound texture
+        let texture = match self.bound_texture(constants::TEXTURE_2D) {
+            Some(texture) => texture,
+            None => {
+                return Ok(self.webgl_error(InvalidOperation));
+            }
+        };
+
+        let pipeline_id = source.pipeline_id().ok_or(Error::InvalidState)?;
+        let document_id  = self.global().downcast::<Window>().ok_or(Error::InvalidState)?.webrender_document();
+
+        texture.set_attached_to_dom();
+
+        let command = DOMToTextureCommand::Attach(self.webgl_sender.context_id(),
+                                                  texture.id(),
+                                                  document_id,
+                                                  pipeline_id.to_webrender(),
+                                                  Size2D::new(width, height));
+        self.webgl_sender.send_dom_to_texture(command).unwrap();
+
         Ok(())
     }
 

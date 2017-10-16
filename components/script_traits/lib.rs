@@ -69,7 +69,7 @@ use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::{ClipId, DevicePixel, ImageKey};
+use webrender_api::{ClipId, DevicePixel, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -554,7 +554,9 @@ pub struct InitialScriptState {
     /// A channel to the webgl thread used in this pipeline.
     pub webgl_chan: WebGLPipeline,
     /// A channel to the webvr thread, if available.
-    pub webvr_chan: Option<IpcSender<WebVRMsg>>
+    pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+    /// The Webrender document ID associated with this thread.
+    pub webrender_document: DocumentId,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`

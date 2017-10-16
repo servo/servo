@@ -124,6 +124,7 @@ use time::{get_time, precise_time_ns, Tm};
 use url::Position;
 use url::percent_encoding::percent_decode;
 use webdriver_handlers;
+use webrender_api::DocumentId;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
@@ -495,6 +496,9 @@ pub struct ScriptThread {
 
     /// https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack
     custom_element_reaction_stack: CustomElementReactionStack,
+
+    /// The Webrender Document ID associated with this thread.
+    webrender_document: DocumentId,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -871,6 +875,8 @@ impl ScriptThread {
             transitioning_nodes: Default::default(),
 
             custom_element_reaction_stack: CustomElementReactionStack::new(),
+
+            webrender_document: state.webrender_document,
         }
     }
 
@@ -2062,6 +2068,7 @@ impl ScriptThread {
             self.webgl_chan.channel(),
             self.webvr_chan.clone(),
             self.microtask_queue.clone(),
+            self.webrender_document,
         );
 
         // Initialize the browsing context for the window.
