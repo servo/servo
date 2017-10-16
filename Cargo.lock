@@ -1457,7 +1457,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.6"
-source = "git+https://github.com/servo/rust-mozjs#3de4ff3d52361a47a17e3b4fcb02c779b99d93d4"
+source = "git+https://github.com/servo/rust-mozjs#cdb9570900b74cf4e0ba129eeb8bf527cee3ddb5"
 dependencies = [
  "cmake 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2618,6 +2618,7 @@ dependencies = [
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "nonzero 0.0.1",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "open 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",

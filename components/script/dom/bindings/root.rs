@@ -24,7 +24,6 @@
 //! originating `DomRoot<T>`.
 //!
 
-use core::nonzero::NonZero;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector};
@@ -35,12 +34,11 @@ use heapsize::HeapSizeOf;
 use js::jsapi::{JSObject, JSTracer, Heap};
 use js::rust::GCMethods;
 use mitochondria::OnceCell;
+use nonzero::NonZero;
 use script_layout_interface::TrustedNodeAddress;
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
-#[cfg(debug_assertions)]
-use std::intrinsics::type_name;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
@@ -359,11 +357,11 @@ impl<T: DomObject> Deref for Dom<T> {
 
 unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        #[cfg(debug_assertions)]
-        let trace_str = format!("for {} on heap", type_name::<T>());
-        #[cfg(debug_assertions)]
+        #[cfg(all(feature = "unstable", debug_assertions))]
+        let trace_str = format!("for {} on heap", ::std::intrinsics::type_name::<T>());
+        #[cfg(all(feature = "unstable", debug_assertions))]
         let trace_info = &trace_str[..];
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(all(feature = "unstable", debug_assertions)))]
         let trace_info = "for DOM object on heap";
 
         trace_reflector(trc,

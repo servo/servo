@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 debugmozjs = ['js/debugmozjs']
+unstable = []
 
 [build-dependencies]
 cmake = "0.1"
@@ -61,6 +62,7 @@ mime = "0.2.1"
 mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+nonzero = {path = "../nonzero"}
 num-traits = "0.1.32"
 offscreen_gl_context = { version = "0.11", features = ["serde"] }
 open = "1.1.1"

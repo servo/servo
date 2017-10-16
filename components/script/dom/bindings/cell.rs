@@ -9,7 +9,7 @@ use style::thread_state;
 
 /// A mutable field in the DOM.
 ///
-/// This extends the API of `core::cell::RefCell` to allow unsafe access in
+/// This extends the API of `std::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
 #[derive(Clone, Debug, Default, HeapSizeOf, PartialEq)]
 pub struct DomRefCell<T> {
@@ -57,7 +57,7 @@ impl<T> DomRefCell<T> {
     }
 }
 
-// Functionality duplicated with `core::cell::RefCell`
+// Functionality duplicated with `std::cell::RefCell`
 // ===================================================
 impl<T> DomRefCell<T> {
     /// Create a new `DomRefCell` containing `value`.

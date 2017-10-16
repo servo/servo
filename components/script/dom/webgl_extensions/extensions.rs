@@ -3,23 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::WebGLError;
-use core::iter::FromIterator;
-use core::nonzero::NonZero;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::GLenum;
 use heapsize::HeapSizeOf;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::JSContext;
 use js::jsval::JSVal;
 use ref_filter_map::ref_filter_map;
 use std::cell::Ref;
 use std::collections::HashMap;
+use std::iter::FromIterator;
 use super::{ext, WebGLExtension};
 use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 
@@ -109,7 +109,7 @@ impl WebGLExtensions {
                                 .collect()
     }
 
-    pub fn get_or_init_extension(&self, name: &str, ctx: &WebGLRenderingContext) -> Option<NonZero<*mut JSObject>> {
+    pub fn get_or_init_extension(&self, name: &str, ctx: &WebGLRenderingContext) -> Option<NonNullJSObjectPtr> {
         let name = name.to_uppercase();
         self.extensions.borrow().get(&name).and_then(|extension| {
             if extension.is_supported(self) {

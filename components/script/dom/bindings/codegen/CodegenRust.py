@@ -1407,7 +1407,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        result = CGGeneric("NonZero<*mut JSObject>")
+        result = CGGeneric("NonNullJSObjectPtr")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2253,6 +2253,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
+        'dom::bindings::nonnull::NonNullJSObjectPtr',
         'dom::bindings::mozmap::MozMap',
         'dom::bindings::root::DomRoot',
         'dom::bindings::str::ByteString',
@@ -3659,19 +3660,18 @@ class CGMemberJITInfo(CGThing):
                     call: ${opName} as *const os::raw::c_void,
                     protoID: PrototypeList::ID::${name} as u16,
                     depth: ${depth},
-                    _bitfield_1:
-                        JSJitInfo::new_bitfield_1(
-                            JSJitInfo_OpType::${opType} as u8,
-                            JSJitInfo_AliasSet::${aliasSet} as u8,
-                            JSValueType::${returnType} as u8,
-                            ${isInfallible},
-                            ${isMovable},
-                            ${isEliminatable},
-                            ${isAlwaysInSlot},
-                            ${isLazilyCachedInSlot},
-                            ${isTypedMethod},
-                            ${slotIndex} as u16,
-                        )
+                    _bitfield_1: new_jsjitinfo_bitfield_1!(
+                        JSJitInfo_OpType::${opType} as u8,
+                        JSJitInfo_AliasSet::${aliasSet} as u8,
+                        JSValueType::${returnType} as u8,
+                        ${isInfallible},
+                        ${isMovable},
+                        ${isEliminatable},
+                        ${isAlwaysInSlot},
+                        ${isLazilyCachedInSlot},
+                        ${isTypedMethod},
+                        ${slotIndex},
+                    ),
                 }
                 """,
                 opName=opName,
@@ -5574,7 +5574,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         typedefs = []
 
     return CGImports(cgthings, descriptors, callbacks, dictionaries, enums, typedefs, [
-        'core::nonzero::NonZero',
         'js',
         'js::JSCLASS_GLOBAL_SLOT_COUNT',
         'js::JSCLASS_IS_DOMJSCLASS',
@@ -5785,6 +5784,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::proxyhandler::get_expando_object',
         'dom::bindings::proxyhandler::get_property_descriptor',
         'dom::bindings::mozmap::MozMap',
+        'dom::bindings::nonnull::NonNullJSObjectPtr',
         'dom::bindings::num::Finite',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',

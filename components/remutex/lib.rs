@@ -14,7 +14,7 @@ extern crate nonzero;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 
-use nonzero::NonZeroUsize;
+use nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::ops::Deref;
 use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
@@ -25,7 +25,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 // TODO: can we use the thread-id crate for this?
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ThreadId(NonZeroUsize);
+pub struct ThreadId(NonZero<usize>);
 
 lazy_static!{ static ref THREAD_COUNT: AtomicUsize = AtomicUsize::new(1); }
 
@@ -33,7 +33,7 @@ impl ThreadId {
     #[allow(unsafe_code)]
     fn new() -> ThreadId {
         let number = THREAD_COUNT.fetch_add(1, Ordering::SeqCst);
-        ThreadId(NonZeroUsize::new(number).unwrap())
+        ThreadId(NonZero::new(number).unwrap())
     }
     pub fn current() -> ThreadId {
         THREAD_ID.with(|tls| tls.clone())
@@ -57,13 +57,13 @@ impl AtomicOptThreadId {
     #[allow(unsafe_code)]
     pub fn load(&self, ordering: Ordering) -> Option<ThreadId> {
         let number = self.0.load(ordering);
-        NonZeroUsize::new(number).map(ThreadId)
+        NonZero::new(number).map(ThreadId)
     }
     #[allow(unsafe_code)]
     pub fn swap(&self, value: Option<ThreadId>, ordering: Ordering) -> Option<ThreadId> {
         let number = value.map(|id| id.0.get()).unwrap_or(0);
         let number = self.0.swap(number, ordering);
-        NonZeroUsize::new(number).map(ThreadId)
+        NonZero::new(number).map(ThreadId)
     }
 }
 

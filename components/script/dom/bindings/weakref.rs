@@ -11,7 +11,6 @@
 //! slot. When all associated `WeakRef` values are dropped, the
 //! `WeakBox` itself is dropped too.
 
-use core::nonzero::NonZero;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
@@ -19,6 +18,7 @@ use heapsize::HeapSizeOf;
 use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsval::PrivateValue;
 use libc::c_void;
+use nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::mem;
 use std::ops::{Deref, DerefMut, Drop};

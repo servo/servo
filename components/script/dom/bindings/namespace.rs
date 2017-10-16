@@ -8,7 +8,6 @@ use dom::bindings::guard::Guard;
 use dom::bindings::interface::{create_object, define_on_global_object};
 use js::jsapi::{HandleObject, JSClass, JSContext, JSFunctionSpec, MutableHandleObject};
 use libc;
-use std::ptr;
 
 /// The class of a namespace object.
 #[derive(Clone, Copy)]
@@ -22,8 +21,8 @@ impl NamespaceObjectClass {
         NamespaceObjectClass(JSClass {
             name: name as *const _ as *const libc::c_char,
             flags: 0,
-            cOps: ptr::null_mut(),
-            reserved: [ptr::null_mut(); 3],
+            cOps: 0 as *mut _,
+            reserved: [0 as *mut _; 3],
         })
     }
 }

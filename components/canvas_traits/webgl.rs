@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::Size2D;
-use nonzero::NonZeroU32;
+use nonzero::NonZero;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use std::fmt;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
@@ -253,13 +253,13 @@ pub enum WebGLCommand {
 macro_rules! define_resource_id_struct {
     ($name:ident) => {
         #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-        pub struct $name(NonZeroU32);
+        pub struct $name(NonZero<u32>);
 
         impl $name {
             #[allow(unsafe_code)]
             #[inline]
             pub unsafe fn new(id: u32) -> Self {
-                $name(NonZeroU32::new_unchecked(id))
+                $name(NonZero::new_unchecked(id))
             }
 
             #[inline]

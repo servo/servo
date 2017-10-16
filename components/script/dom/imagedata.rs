@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::error::{Fallible, Error};
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
@@ -159,8 +159,8 @@ impl ImageDataMethods for ImageData {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    unsafe fn Data(&self, _: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn Data(&self, _: *mut JSContext) -> NonNullJSObjectPtr {
         assert!(!self.data.get().is_null());
-        NonZero::new_unchecked(self.data.get())
+        NonNullJSObjectPtr::new_unchecked(self.data.get())
     }
 }

@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::nonzero::NonZero;
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use heapsize::HeapSizeOf;
-use js::jsapi::JSObject;
 use std::any::Any;
 use super::{WebGLExtension, WebGLExtensions};
 
@@ -18,7 +17,7 @@ pub trait WebGLExtensionWrapper: JSTraceable + HeapSizeOf {
     fn instance_or_init(&self,
                         ctx: &WebGLRenderingContext,
                         ext: &WebGLExtensions)
-                        -> NonZero<*mut JSObject>;
+                        -> NonNullJSObjectPtr;
     fn is_supported(&self, &WebGLExtensions) -> bool;
     fn is_enabled(&self) -> bool;
     fn enable(&self, ext: &WebGLExtensions);
@@ -48,7 +47,7 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
     fn instance_or_init(&self,
                         ctx: &WebGLRenderingContext,
                         ext: &WebGLExtensions)
-                        -> NonZero<*mut JSObject> {
+                        -> NonNullJSObjectPtr {
         let mut enabled = true;
         let extension = self.extension.or_init(|| {
             enabled = false;
@@ -58,7 +57,7 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
             self.enable(ext);
         }
         unsafe {
-            NonZero::new_unchecked(extension.reflector().get_jsobject().get())
+            NonNullJSObjectPtr::new_unchecked(extension.reflector().get_jsobject().get())
         }
     }
 

@@ -9,7 +9,7 @@
 #![cfg_attr(feature = "unstable", feature(const_fn))]
 #![cfg_attr(feature = "unstable", feature(const_nonzero_new))]
 
-#[macro_use]
+#[cfg_attr(not(feature = "unstable"), macro_use)]
 extern crate serde;
 
 pub use imp::*;
@@ -17,105 +17,125 @@ pub use imp::*;
 #[cfg(feature = "unstable")]
 mod imp {
     extern crate core;
-    use self::core::nonzero::NonZero;
+    use self::core::nonzero::NonZero as CoreNonZero;
+    use serde::{Serialize, Serializer, Deserialize, Deserializer};
 
-    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-    pub struct NonZeroU32(NonZero<u32>);
+    pub use self::core::nonzero::Zeroable;
 
-    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-    pub struct NonZeroUsize(NonZero<usize>);
+    #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+    pub struct NonZero<T: Zeroable>(CoreNonZero<T>);
 
-    impl NonZeroU32 {
-        #[inline] pub const unsafe fn new_unchecked(x: u32) -> Self { NonZeroU32(NonZero::new_unchecked(x)) }
-        #[inline] pub fn new(x: u32) -> Option<Self> { NonZero::new(x).map(NonZeroU32) }
-        #[inline] pub fn get(self) -> u32 { self.0.get() }
+    impl<T: Zeroable> NonZero<T> {
+        #[inline]
+        pub const unsafe fn new_unchecked(x: T) -> Self {
+            NonZero(CoreNonZero::new_unchecked(x))
+        }
+
+        #[inline]
+        pub fn new(x: T) -> Option<Self> {
+            CoreNonZero::new(x).map(NonZero)
+        }
+
+        #[inline]
+        pub fn get(self) -> T {
+            self.0.get()
+        }
     }
 
-    impl NonZeroUsize {
-        #[inline] pub const unsafe fn new_unchecked(x: usize) -> Self { NonZeroUsize(NonZero::new_unchecked(x)) }
-        #[inline] pub fn new(x: usize) -> Option<Self> { NonZero::new(x).map(NonZeroUsize) }
-        #[inline] pub fn get(self) -> usize { self.0.get() }
+    // Not using derive because of the additional Clone bound required by the inner impl
+
+    impl<T> Serialize for NonZero<T>
+    where
+        T: Serialize + Zeroable + Clone,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            self.0.serialize(serializer)
+        }
+    }
+
+    impl<'de, T> Deserialize<'de> for NonZero<T>
+    where
+        T: Deserialize<'de> + Zeroable,
+    {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            CoreNonZero::deserialize(deserializer).map(NonZero)
+        }
     }
 }
 
 #[cfg(not(feature = "unstable"))]
 mod imp {
-    use std::cmp;
-    use std::hash;
-
     #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-    pub struct NonZeroU32(u32);
+    pub struct NonZero<T: Zeroable>(T);
 
-    impl NonZeroU32 {
+    impl<T: Zeroable> NonZero<T> {
         #[inline]
-        pub fn new(x: u32) -> Option<Self> {
-            if x != 0 {
-                Some(NonZeroU32(x))
-            } else {
+        pub unsafe fn new_unchecked(x: T) -> Self {
+            NonZero(x)
+        }
+
+        #[inline]
+        pub fn new(x: T) -> Option<Self> {
+            if x.is_zero() {
                 None
+            } else {
+                Some(NonZero(x))
             }
         }
 
         #[inline]
-        pub unsafe fn new_unchecked(x: u32) -> Self {
-            NonZeroU32(x)
-        }
-
-        #[inline]
-        pub fn get(self) -> u32 {
+        pub fn get(self) -> T {
             self.0
         }
     }
 
-    #[derive(Clone, Copy, Debug, Eq)]
-    pub struct NonZeroUsize(&'static ());
+    /// Unsafe trait to indicate what types are usable with the NonZero struct
+    pub unsafe trait Zeroable {
+        /// Whether this value is zero
+        fn is_zero(&self) -> bool;
+    }
 
-    impl NonZeroUsize {
-        #[inline]
-        pub fn new(x: usize) -> Option<Self> {
-            if x != 0 {
-                Some(unsafe { Self::new_unchecked(x) })
-            } else {
-                None
-            }
-        }
-
-        #[inline]
-        pub unsafe fn new_unchecked(x: usize) -> Self {
-            NonZeroUsize(&*(x as *const ()))
-        }
-
-        #[inline]
-        pub fn get(self) -> usize {
-            self.0 as *const () as usize
+    macro_rules! impl_zeroable_for_pointer_types {
+        ( $( $Ptr: ty )+ ) => {
+            $(
+                /// For fat pointers to be considered "zero", only the "data" part needs to be null.
+                unsafe impl<T: ?Sized> Zeroable for $Ptr {
+                    #[inline]
+                    fn is_zero(&self) -> bool {
+                        // Cast because `is_null` is only available on thin pointers
+                        (*self as *mut u8).is_null()
+                    }
+                }
+            )+
         }
     }
 
-    impl PartialEq for NonZeroUsize {
-        #[inline]
-        fn eq(&self, other: &Self) -> bool {
-            self.get() == other.get()
+    macro_rules! impl_zeroable_for_integer_types {
+        ( $( $Int: ty )+ ) => {
+            $(
+                unsafe impl Zeroable for $Int {
+                    #[inline]
+                    fn is_zero(&self) -> bool {
+                        *self == 0
+                    }
+                }
+            )+
         }
     }
 
-    impl PartialOrd for NonZeroUsize {
-        #[inline]
-        fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-            self.get().partial_cmp(&other.get())
-        }
+    impl_zeroable_for_pointer_types! {
+        *const T
+        *mut T
     }
 
-    impl Ord for NonZeroUsize {
-        #[inline]
-        fn cmp(&self, other: &Self) -> cmp::Ordering {
-            self.get().cmp(&other.get())
-        }
-    }
-
-    impl hash::Hash for NonZeroUsize {
-        #[inline]
-        fn hash<H: hash::Hasher>(&self, hasher: &mut H) {
-            self.get().hash(hasher)
-        }
+    impl_zeroable_for_integer_types! {
+        usize u8 u16 u32 u64
+        isize i8 i16 i32 i64
     }
 }

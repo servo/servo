@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
-use core::cell::Cell;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::ResponseBinding;
@@ -24,7 +23,7 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
 use servo_url::ServoUrl;
-use std::cell::Ref;
+use std::cell::{Cell, Ref};
 use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;

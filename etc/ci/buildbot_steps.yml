@@ -84,6 +84,7 @@ linux-dev:
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev --no-default-features --features default-except-unstable
   - ./mach build-geckolib
   - ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
