@@ -3,4 +3,8 @@ platforms:
     charade:
       tests:
         removed: skip
-        unmaintained: skip
+        unmaintained: skip # https://github.com/w3c/web-platform-tests/issues/6269
+  cargo:
+    smallbitvec:
+      tests:
+        unlicensed: skip # https://github.com/librariesio/libraries.io/issues/1762
