@@ -86,7 +86,7 @@ impl HTMLLinkElement {
                prefix: Option<Prefix>,
                document: &Document,
                creator: ElementCreator) -> DomRoot<HTMLLinkElement> {
-        Node::reflect_node(box HTMLLinkElement::new_inherited(local_name, prefix, document, creator),
+        Node::reflect_node(Box::new(HTMLLinkElement::new_inherited(local_name, prefix, document, creator)),
                            document,
                            HTMLLinkElementBinding::Wrap)
     }

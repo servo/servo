@@ -193,11 +193,11 @@ impl CSSStyleDeclaration {
                pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess)
                -> DomRoot<CSSStyleDeclaration> {
-        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner,
-                                                                  pseudo,
-                                                                  modification_access),
-                           global,
-                           CSSStyleDeclarationBinding::Wrap)
+        reflect_dom_object(
+            Box::new(CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access)),
+            global,
+            CSSStyleDeclarationBinding::Wrap
+        )
     }
 
     fn get_computed_style(&self, property: PropertyId) -> DOMString {

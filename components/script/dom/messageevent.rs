@@ -39,12 +39,12 @@ impl MessageEvent {
                            data: HandleValue,
                            origin: DOMString,
                            lastEventId: DOMString) -> DomRoot<MessageEvent> {
-        let ev = box MessageEvent {
+        let ev = Box::new(MessageEvent {
             event: Event::new_inherited(),
             data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
-        };
+        });
         let ev = reflect_dom_object(ev, global, MessageEventBinding::Wrap);
         ev.data.set(data.get());
 

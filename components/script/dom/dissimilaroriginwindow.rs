@@ -52,7 +52,7 @@ impl DissimilarOriginWindow {
         let cx = global_to_clone_from.get_cx();
         // Any timer events fired on this window are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
-        let win = box Self {
+        let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 PipelineId::new(),
                 global_to_clone_from.devtools_chan().cloned(),
@@ -69,7 +69,7 @@ impl DissimilarOriginWindow {
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
-        };
+        });
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
     }
 

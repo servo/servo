@@ -31,7 +31,7 @@ impl Text {
     }
 
     pub fn new(text: DOMString, document: &Document) -> DomRoot<Text> {
-        Node::reflect_node(box Text::new_inherited(text, document),
+        Node::reflect_node(Box::new(Text::new_inherited(text, document)),
                            document, TextBinding::Wrap)
     }
 

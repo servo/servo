@@ -30,11 +30,11 @@ impl MediaQueryListEvent {
     pub fn new_initialized(global: &GlobalScope,
                            media: DOMString,
                            matches: bool) -> DomRoot<MediaQueryListEvent> {
-        let ev = box MediaQueryListEvent {
+        let ev = Box::new(MediaQueryListEvent {
             event: Event::new_inherited(),
             media: media,
             matches: Cell::new(matches)
-        };
+        });
         reflect_dom_object(ev, global, MediaQueryListEventBinding::Wrap)
     }
 

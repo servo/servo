@@ -32,7 +32,7 @@ impl CSSViewportRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                viewportrule: Arc<Locked<ViewportRule>>) -> DomRoot<CSSViewportRule> {
-        reflect_dom_object(box CSSViewportRule::new_inherited(parent_stylesheet, viewportrule),
+        reflect_dom_object(Box::new(CSSViewportRule::new_inherited(parent_stylesheet, viewportrule)),
                            window,
                            CSSViewportRuleBinding::Wrap)
     }

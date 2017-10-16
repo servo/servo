@@ -34,7 +34,7 @@ impl DocumentFragment {
     }
 
     pub fn new(document: &Document) -> DomRoot<DocumentFragment> {
-        Node::reflect_node(box DocumentFragment::new_inherited(document),
+        Node::reflect_node(Box::new(DocumentFragment::new_inherited(document)),
                            document,
                            DocumentFragmentBinding::Wrap)
     }

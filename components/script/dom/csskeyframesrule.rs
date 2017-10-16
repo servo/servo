@@ -42,7 +42,7 @@ impl CSSKeyframesRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                keyframesrule: Arc<Locked<KeyframesRule>>) -> DomRoot<CSSKeyframesRule> {
-        reflect_dom_object(box CSSKeyframesRule::new_inherited(parent_stylesheet, keyframesrule),
+        reflect_dom_object(Box::new(CSSKeyframesRule::new_inherited(parent_stylesheet, keyframesrule)),
                            window,
                            CSSKeyframesRuleBinding::Wrap)
     }

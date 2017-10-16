@@ -37,7 +37,7 @@ impl HTMLDialogElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLDialogElement> {
-        Node::reflect_node(box HTMLDialogElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLDialogElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLDialogElementBinding::Wrap)
     }

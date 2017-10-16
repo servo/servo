@@ -2727,7 +2727,7 @@ impl UniqueId {
         unsafe {
             let ptr = self.cell.get();
             if (*ptr).is_none() {
-                *ptr = Some(box Uuid::new_v4());
+                *ptr = Some(Box::new(Uuid::new_v4()));
             }
             &(&*ptr).as_ref().unwrap()
         }

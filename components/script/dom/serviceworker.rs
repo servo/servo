@@ -49,9 +49,13 @@ impl ServiceWorker {
                                  script_url: ServoUrl,
                                  scope_url: ServoUrl,
                                  skip_waiting: bool) -> DomRoot<ServiceWorker> {
-        reflect_dom_object(box ServiceWorker::new_inherited(script_url.as_str(),
-                                                            skip_waiting,
-                                                            scope_url), global, Wrap)
+        reflect_dom_object(
+            Box::new(ServiceWorker::new_inherited(
+                script_url.as_str(), skip_waiting, scope_url
+            )),
+            global,
+            Wrap
+        )
     }
 
     pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress) {

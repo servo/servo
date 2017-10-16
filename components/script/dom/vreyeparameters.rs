@@ -48,7 +48,7 @@ impl VREyeParameters {
             let _ = Float32Array::create(cx, CreateWith::Slice(&parameters.offset), array.handle_mut());
         }
 
-        let eye_parameters = reflect_dom_object(box VREyeParameters::new_inherited(parameters, &fov),
+        let eye_parameters = reflect_dom_object(Box::new(VREyeParameters::new_inherited(parameters, &fov)),
                                                 global,
                                                 VREyeParametersBinding::Wrap);
         eye_parameters.offset.set(array.get());

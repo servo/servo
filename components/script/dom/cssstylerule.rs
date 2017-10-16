@@ -43,7 +43,7 @@ impl CSSStyleRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                stylerule: Arc<Locked<StyleRule>>) -> DomRoot<CSSStyleRule> {
-        reflect_dom_object(box CSSStyleRule::new_inherited(parent_stylesheet, stylerule),
+        reflect_dom_object(Box::new(CSSStyleRule::new_inherited(parent_stylesheet, stylerule)),
                            window,
                            CSSStyleRuleBinding::Wrap)
     }

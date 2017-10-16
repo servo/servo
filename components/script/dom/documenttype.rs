@@ -42,7 +42,7 @@ impl DocumentType {
                system_id: Option<DOMString>,
                document: &Document)
                -> DomRoot<DocumentType> {
-        Node::reflect_node(box DocumentType::new_inherited(name, public_id, system_id, document),
+        Node::reflect_node(Box::new(DocumentType::new_inherited(name, public_id, system_id, document)),
                            document,
                            DocumentTypeBinding::Wrap)
     }

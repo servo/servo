@@ -122,7 +122,7 @@ impl VRDisplay {
     }
 
     pub fn new(global: &GlobalScope, display: WebVRDisplayData) -> DomRoot<VRDisplay> {
-        reflect_dom_object(box VRDisplay::new_inherited(&global, display),
+        reflect_dom_object(Box::new(VRDisplay::new_inherited(&global, display)),
                            global,
                            VRDisplayBinding::Wrap)
     }
@@ -512,9 +512,9 @@ impl VRDisplay {
                 // Run RAF callbacks on JavaScript thread
                 let this = address.clone();
                 let sender = raf_sender.clone();
-                let task = box task!(handle_vrdisplay_raf: move || {
+                let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
-                });
+                }));
                 js_sender.send(CommonScriptMsg::Task(WebVREvent, task)).unwrap();
 
                 // Run Sync Poses in parallell on Render thread

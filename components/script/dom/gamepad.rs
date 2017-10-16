@@ -75,18 +75,22 @@ impl Gamepad {
         let buttons = GamepadButtonList::new_from_vr(&global, &state.buttons);
         let pose = VRPose::new(&global, &state.pose);
 
-        let gamepad = reflect_dom_object(box Gamepad::new_inherited(state.gamepad_id,
-                                                                    data.name.clone(),
-                                                                    index,
-                                                                    state.connected,
-                                                                    state.timestamp,
-                                                                    "".into(),
-                                                                    &buttons,
-                                                                    Some(&pose),
-                                                                    data.hand.clone(),
-                                                                    data.display_id),
-                                         global,
-                                         GamepadBinding::Wrap);
+        let gamepad = reflect_dom_object(
+            Box::new(Gamepad::new_inherited(
+                state.gamepad_id,
+                data.name.clone(),
+                index,
+                state.connected,
+                state.timestamp,
+                "".into(),
+                &buttons,
+                Some(&pose),
+                data.hand.clone(),
+                data.display_id
+            )),
+            global,
+            GamepadBinding::Wrap
+        );
 
         let cx = global.get_cx();
         rooted!(in (cx) let mut array = ptr::null_mut());

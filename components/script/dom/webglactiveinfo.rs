@@ -31,7 +31,11 @@ impl WebGLActiveInfo {
     }
 
     pub fn new(window: &Window, size: i32, ty: u32, name: DOMString) -> DomRoot<WebGLActiveInfo> {
-        reflect_dom_object(box WebGLActiveInfo::new_inherited(size, ty, name), window, WebGLActiveInfoBinding::Wrap)
+        reflect_dom_object(
+            Box::new(WebGLActiveInfo::new_inherited(size, ty, name)),
+            window,
+            WebGLActiveInfoBinding::Wrap
+        )
     }
 }
 

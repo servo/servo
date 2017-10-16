@@ -44,7 +44,7 @@ impl ServiceWorkerRegistration {
                scope: ServoUrl) -> DomRoot<ServiceWorkerRegistration> {
         let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
-        reflect_dom_object(box ServiceWorkerRegistration::new_inherited(&*active_worker, scope), global, Wrap)
+        reflect_dom_object(Box::new(ServiceWorkerRegistration::new_inherited(&*active_worker, scope)), global, Wrap)
     }
 
     pub fn get_installed(&self) -> &ServiceWorker {

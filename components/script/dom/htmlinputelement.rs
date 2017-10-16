@@ -165,7 +165,7 @@ impl HTMLInputElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLInputElement> {
-        Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLInputElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLInputElementBinding::Wrap)
     }

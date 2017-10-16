@@ -94,7 +94,7 @@ impl Worklet {
 
     pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
-        reflect_dom_object(box Worklet::new_inherited(window, global_type), window, Wrap)
+        reflect_dom_object(Box::new(Worklet::new_inherited(window, global_type)), window, Wrap)
     }
 
     pub fn worklet_id(&self) -> WorkletId {
@@ -646,7 +646,7 @@ impl WorkletThread {
     where
         T: TaskBox + 'static,
     {
-        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, box task);
+        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, Box::new(task));
         let msg = MainThreadScriptMsg::Common(msg);
         self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
     }

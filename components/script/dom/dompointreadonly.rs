@@ -32,7 +32,7 @@ impl DOMPointReadOnly {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly> {
-        reflect_dom_object(box DOMPointReadOnly::new_inherited(x, y, z, w),
+        reflect_dom_object(Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
                            global,
                            Wrap)
     }

@@ -38,7 +38,7 @@ impl URLSearchParams {
     }
 
     pub fn new(global: &GlobalScope, url: Option<&URL>) -> DomRoot<URLSearchParams> {
-        reflect_dom_object(box URLSearchParams::new_inherited(url), global,
+        reflect_dom_object(Box::new(URLSearchParams::new_inherited(url)), global,
                            URLSearchParamsWrap)
     }
 

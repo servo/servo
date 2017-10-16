@@ -231,9 +231,9 @@ impl<'a> StylesheetLoader<'a> {
             task_source: document.window().networking_task_source(),
             canceller: Some(document.window().task_canceller())
         };
-        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
-        });
+        }));
 
 
         let owner = self.elem.upcast::<Element>().as_stylesheet_owner()

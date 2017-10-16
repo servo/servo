@@ -27,7 +27,7 @@ impl ProcessingInstruction {
     }
 
     pub fn new(target: DOMString, data: DOMString, document: &Document) -> DomRoot<ProcessingInstruction> {
-        Node::reflect_node(box ProcessingInstruction::new_inherited(target, data, document),
+        Node::reflect_node(Box::new(ProcessingInstruction::new_inherited(target, data, document)),
                            document, ProcessingInstructionBinding::Wrap)
     }
 }

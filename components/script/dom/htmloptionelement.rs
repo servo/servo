@@ -56,7 +56,7 @@ impl HTMLOptionElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLOptionElement> {
-        Node::reflect_node(box HTMLOptionElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLOptionElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLOptionElementBinding::Wrap)
     }

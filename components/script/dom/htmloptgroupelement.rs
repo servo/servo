@@ -37,7 +37,7 @@ impl HTMLOptGroupElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLOptGroupElement> {
-        Node::reflect_node(box HTMLOptGroupElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLOptGroupElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLOptGroupElementBinding::Wrap)
     }

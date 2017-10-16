@@ -64,7 +64,7 @@ impl Permissions {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
-        reflect_dom_object(box Permissions::new_inherited(),
+        reflect_dom_object(Box::new(Permissions::new_inherited()),
                            global,
                            PermissionsBinding::Wrap)
     }

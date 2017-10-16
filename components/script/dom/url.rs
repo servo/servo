@@ -43,7 +43,7 @@ impl URL {
     }
 
     pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object(box URL::new_inherited(url),
+        reflect_dom_object(Box::new(URL::new_inherited(url)),
                            global, URLBinding::Wrap)
     }
 

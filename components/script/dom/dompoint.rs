@@ -25,7 +25,7 @@ impl DOMPoint {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
-        reflect_dom_object(box DOMPoint::new_inherited(x, y, z, w), global, Wrap)
+        reflect_dom_object(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, Wrap)
     }
 
     pub fn Constructor(global: &GlobalScope,

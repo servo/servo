@@ -43,7 +43,7 @@ impl DOMQuad {
                p2: &DOMPoint,
                p3: &DOMPoint,
                p4: &DOMPoint) -> DomRoot<DOMQuad> {
-        reflect_dom_object(box DOMQuad::new_inherited(p1, p2, p3, p4),
+        reflect_dom_object(Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
                            global,
                            Wrap)
     }

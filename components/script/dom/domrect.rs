@@ -25,7 +25,7 @@ impl DOMRect {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
-        reflect_dom_object(box DOMRect::new_inherited(x, y, width, height),
+        reflect_dom_object(Box::new(DOMRect::new_inherited(x, y, width, height)),
                            global,
                            DOMRectBinding::Wrap)
     }

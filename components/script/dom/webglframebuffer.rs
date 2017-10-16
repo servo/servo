@@ -77,7 +77,7 @@ impl WebGLFramebuffer {
                renderer: WebGLMsgSender,
                id: WebGLFramebufferId)
                -> DomRoot<WebGLFramebuffer> {
-        reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id),
+        reflect_dom_object(Box::new(WebGLFramebuffer::new_inherited(renderer, id)),
                            window,
                            WebGLFramebufferBinding::Wrap)
     }

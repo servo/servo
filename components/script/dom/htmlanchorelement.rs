@@ -57,7 +57,7 @@ impl HTMLAnchorElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLAnchorElement> {
-        Node::reflect_node(box HTMLAnchorElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLAnchorElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLAnchorElementBinding::Wrap)
     }

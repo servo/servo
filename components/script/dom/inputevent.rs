@@ -28,11 +28,11 @@ impl InputEvent {
                detail: i32,
                data: Option<DOMString>,
                is_composing: bool) -> DomRoot<InputEvent> {
-        let ev = reflect_dom_object(box InputEvent {
+        let ev = reflect_dom_object(Box::new(InputEvent {
                                         uievent: UIEvent::new_inherited(),
                                         data: data,
                                         is_composing: is_composing,
-                                    },
+                                    }),
                                     window,
                                     InputEventBinding::Wrap);
         ev.uievent.InitUIEvent(type_, can_bubble, cancelable, view, detail);

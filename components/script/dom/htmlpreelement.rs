@@ -29,7 +29,7 @@ impl HTMLPreElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLPreElement> {
-        Node::reflect_node(box HTMLPreElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLPreElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLPreElementBinding::Wrap)
     }

@@ -42,9 +42,7 @@ impl VR {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<VR> {
-        let root = reflect_dom_object(box VR::new_inherited(),
-                           global,
-                           VRBinding::Wrap);
+        let root = reflect_dom_object(Box::new(VR::new_inherited()), global, VRBinding::Wrap);
         root.register();
         root
     }

@@ -36,6 +36,6 @@ impl PerformancePaintTiming {
                metric_type: PaintMetricType,
                start_time: f64) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
-        reflect_dom_object(box entry, global, PerformancePaintTimingBinding::Wrap)
+        reflect_dom_object(Box::new(entry), global, PerformancePaintTimingBinding::Wrap)
     }
 }

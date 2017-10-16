@@ -290,7 +290,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        box SendableMainThreadScriptChan((&self.0).clone())
+        Box::new(SendableMainThreadScriptChan((&self.0).clone()))
     }
 }
 
@@ -304,7 +304,7 @@ impl ScriptChan for MainThreadScriptChan {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        box MainThreadScriptChan((&self.0).clone())
+        Box::new(MainThreadScriptChan((&self.0).clone()))
     }
 }
 
@@ -804,7 +804,7 @@ impl ScriptThread {
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
 
-        let boxed_script_sender = box MainThreadScriptChan(chan.clone());
+        let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 
         let (image_cache_channel, image_cache_port) = channel();
 

@@ -611,9 +611,9 @@ impl HTMLMediaElement {
                     task_source: window.networking_task_source(),
                     canceller: Some(window.task_canceller())
                 };
-                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
                     listener.notify_fetch(message.to().unwrap());
-                });
+                }));
                 document.loader().fetch_async_background(request, action_sender);
             },
             Resource::Object => {

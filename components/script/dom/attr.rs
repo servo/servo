@@ -64,14 +64,18 @@ impl Attr {
                prefix: Option<Prefix>,
                owner: Option<&Element>)
                -> DomRoot<Attr> {
-        reflect_dom_object(box Attr::new_inherited(local_name,
-                                                   value,
-                                                   name,
-                                                   namespace,
-                                                   prefix,
-                                                   owner),
-                           window,
-                           AttrBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Attr::new_inherited(
+                local_name,
+                value,
+                name,
+                namespace,
+                prefix,
+                owner
+            )),
+            window,
+            AttrBinding::Wrap
+        )
     }
 
     #[inline]

@@ -32,7 +32,7 @@ impl FocusEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
-        reflect_dom_object(box FocusEvent::new_inherited(),
+        reflect_dom_object(Box::new(FocusEvent::new_inherited()),
                            window,
                            FocusEventBinding::Wrap)
     }

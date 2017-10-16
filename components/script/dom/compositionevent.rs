@@ -26,10 +26,10 @@ impl CompositionEvent {
                view: Option<&Window>,
                detail: i32,
                data: DOMString) -> DomRoot<CompositionEvent> {
-        let ev = reflect_dom_object(box CompositionEvent {
+        let ev = reflect_dom_object(Box::new(CompositionEvent {
                                         uievent: UIEvent::new_inherited(),
                                         data: data,
-                                    },
+                                    }),
                                     window,
                                     CompositionEventBinding::Wrap);
         ev.uievent.InitUIEvent(type_, can_bubble, cancelable, view, detail);

@@ -32,7 +32,7 @@ impl PageTransitionEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<PageTransitionEvent> {
-        reflect_dom_object(box PageTransitionEvent::new_inherited(),
+        reflect_dom_object(Box::new(PageTransitionEvent::new_inherited()),
                            window,
                            PageTransitionEventBinding::Wrap)
     }

@@ -32,12 +32,14 @@ impl MutationRecord {
                              attribute_name: &LocalName,
                              attribute_namespace: Option<&Namespace>,
                              old_value: Option<DOMString>) -> DomRoot<MutationRecord> {
-        let record = box MutationRecord::new_inherited("attributes",
-                                                       target,
-                                                       Some(DOMString::from(&**attribute_name)),
-                                                       attribute_namespace.map(|n| DOMString::from(&**n)),
-                                                       old_value,
-                                                       None, None, None, None);
+        let record = Box::new(MutationRecord::new_inherited(
+            "attributes",
+            target,
+            Some(DOMString::from(&**attribute_name)),
+            attribute_namespace.map(|n| DOMString::from(&**n)),
+            old_value,
+            None, None, None, None
+        ));
         reflect_dom_object(record, &*window_from_node(target), MutationRecordBinding::Wrap)
     }
 
@@ -50,15 +52,19 @@ impl MutationRecord {
         let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
         let removed_nodes = removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
 
-        reflect_dom_object(box MutationRecord::new_inherited("childList",
-                                                             target,
-                                                             None, None, None,
-                                                             added_nodes.as_ref().map(|list| &**list),
-                                                             removed_nodes.as_ref().map(|list| &**list),
-                                                             next_sibling,
-                                                             prev_sibling),
-                           &*window,
-                           MutationRecordBinding::Wrap)
+        reflect_dom_object(
+            Box::new(MutationRecord::new_inherited(
+                "childList",
+                target,
+                None, None, None,
+                added_nodes.as_ref().map(|list| &**list),
+                removed_nodes.as_ref().map(|list| &**list),
+                next_sibling,
+                prev_sibling
+            )),
+            &*window,
+            MutationRecordBinding::Wrap
+        )
     }
 
     fn new_inherited(record_type: &str,

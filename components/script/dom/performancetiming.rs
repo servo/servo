@@ -40,7 +40,7 @@ impl PerformanceTiming {
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
                                                       &window.Document());
-        reflect_dom_object(box timing,
+        reflect_dom_object(Box::new(timing),
                            window,
                            PerformanceTimingBinding::Wrap)
     }

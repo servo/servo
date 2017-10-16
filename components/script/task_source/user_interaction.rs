@@ -36,7 +36,7 @@ impl TaskSource for UserInteractionTaskSource {
     {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::InputEvent,
-            box canceller.wrap_task(task),
+            Box::new(canceller.wrap_task(task)),
         ));
         self.0.send(msg).map_err(|_| ())
     }

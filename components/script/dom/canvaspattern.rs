@@ -50,10 +50,13 @@ impl CanvasPattern {
                repeat: RepetitionStyle,
                origin_clean: bool)
                -> DomRoot<CanvasPattern> {
-        reflect_dom_object(box CanvasPattern::new_inherited(surface_data, surface_size,
-                                                            repeat, origin_clean),
-                           global,
-                           CanvasPatternBinding::Wrap)
+        reflect_dom_object(
+            Box::new(CanvasPattern::new_inherited(
+                surface_data, surface_size, repeat, origin_clean
+            )),
+            global,
+            CanvasPatternBinding::Wrap
+        )
     }
     pub fn origin_is_clean(&self) -> bool {
       self.origin_clean

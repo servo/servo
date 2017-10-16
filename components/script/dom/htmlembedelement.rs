@@ -26,7 +26,7 @@ impl HTMLEmbedElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLEmbedElement> {
-        Node::reflect_node(box HTMLEmbedElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLEmbedElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLEmbedElementBinding::Wrap)
     }

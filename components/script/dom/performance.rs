@@ -140,11 +140,11 @@ impl Performance {
     pub fn new(global: &GlobalScope,
                navigation_start: u64,
                navigation_start_precise: f64) -> DomRoot<Performance> {
-        reflect_dom_object(box Performance::new_inherited(global,
-                                                          navigation_start,
-                                                          navigation_start_precise),
-                           global,
-                           PerformanceBinding::Wrap)
+        reflect_dom_object(
+            Box::new(Performance::new_inherited(global, navigation_start, navigation_start_precise)),
+            global,
+            PerformanceBinding::Wrap
+        )
     }
 
     /// Add a PerformanceObserver to the list of observers with a set of

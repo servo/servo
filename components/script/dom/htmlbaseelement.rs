@@ -33,7 +33,7 @@ impl HTMLBaseElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLBaseElement> {
-        Node::reflect_node(box HTMLBaseElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLBaseElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLBaseElementBinding::Wrap)
     }

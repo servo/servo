@@ -30,7 +30,7 @@ impl PaintSize {
     }
 
     pub fn new(global: &PaintWorkletGlobalScope, size: TypedSize2D<f32, CSSPixel>) -> DomRoot<PaintSize> {
-        reflect_dom_object(box PaintSize::new_inherited(size), global, PaintSizeBinding::Wrap)
+        reflect_dom_object(Box::new(PaintSize::new_inherited(size)), global, PaintSizeBinding::Wrap)
     }
 }
 

@@ -29,7 +29,7 @@ impl DOMMatrixReadOnly {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object(box dommatrix, global, Wrap)
+        reflect_dom_object(Box::new(dommatrix), global, Wrap)
     }
 
     pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {

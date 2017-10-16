@@ -56,10 +56,10 @@ pub trait WeakReferenceable: DomObject + Sized {
                               .to_private() as *mut WeakBox<Self>;
             if ptr.is_null() {
                 trace!("Creating new WeakBox holder for {:p}.", self);
-                ptr = Box::into_raw(box WeakBox {
+                ptr = Box::into_raw(Box::new(WeakBox {
                     count: Cell::new(1),
                     value: Cell::new(Some(NonZero::new_unchecked(self))),
-                });
+                }));
                 JS_SetReservedSlot(object, DOM_WEAK_SLOT, PrivateValue(ptr as *const c_void));
             }
             let box_ = &*ptr;

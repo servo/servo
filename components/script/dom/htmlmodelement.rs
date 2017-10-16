@@ -29,7 +29,7 @@ impl HTMLModElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLModElement> {
-        Node::reflect_node(box HTMLModElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLModElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLModElementBinding::Wrap)
     }

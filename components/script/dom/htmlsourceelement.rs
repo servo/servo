@@ -33,7 +33,7 @@ impl HTMLSourceElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLSourceElement> {
-        Node::reflect_node(box HTMLSourceElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLSourceElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLSourceElementBinding::Wrap)
     }

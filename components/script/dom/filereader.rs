@@ -104,7 +104,7 @@ impl FileReader {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<FileReader> {
-        reflect_dom_object(box FileReader::new_inherited(),
+        reflect_dom_object(Box::new(FileReader::new_inherited()),
                            global, FileReaderBinding::Wrap)
     }
 

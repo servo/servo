@@ -36,7 +36,7 @@ impl DOMRectReadOnly {
                width: f64,
                height: f64)
                -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object(box DOMRectReadOnly::new_inherited(x, y, width, height),
+        reflect_dom_object(Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
                            global,
                            Wrap)
     }

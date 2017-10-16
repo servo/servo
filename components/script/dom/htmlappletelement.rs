@@ -34,7 +34,7 @@ impl HTMLAppletElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLAppletElement> {
-        Node::reflect_node(box HTMLAppletElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLAppletElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLAppletElementBinding::Wrap)
     }

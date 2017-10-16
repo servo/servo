@@ -39,7 +39,7 @@ impl WebGLVertexArrayObjectOES {
     }
 
     pub fn new(global: &GlobalScope, id: WebGLVertexArrayId) -> DomRoot<WebGLVertexArrayObjectOES> {
-        reflect_dom_object(box WebGLVertexArrayObjectOES::new_inherited(id),
+        reflect_dom_object(Box::new(WebGLVertexArrayObjectOES::new_inherited(id)),
                            global,
                            WebGLVertexArrayObjectOESBinding::Wrap)
     }

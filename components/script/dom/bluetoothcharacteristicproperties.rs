@@ -61,19 +61,23 @@ impl BluetoothCharacteristicProperties {
                reliableWrite: bool,
                writableAuxiliaries: bool)
                -> DomRoot<BluetoothCharacteristicProperties> {
-        reflect_dom_object(box BluetoothCharacteristicProperties::new_inherited(broadcast,
-                                                                                read,
-                                                                                writeWithoutResponse,
-                                                                                write,
-                                                                                notify,
-                                                                                indicate,
-                                                                                authenticatedSignedWrites,
-                                                                                reliableWrite,
-                                                                                writableAuxiliaries),
-                           global,
-                           BluetoothCharacteristicPropertiesBinding::Wrap)
-        }
+        reflect_dom_object(
+            Box::new(BluetoothCharacteristicProperties::new_inherited(
+                broadcast,
+                read,
+                writeWithoutResponse,
+                write,
+                notify,
+                indicate,
+                authenticatedSignedWrites,
+                reliableWrite,
+                writableAuxiliaries
+            )),
+            global,
+            BluetoothCharacteristicPropertiesBinding::Wrap
+        )
     }
+}
 
 impl BluetoothCharacteristicPropertiesMethods for BluetoothCharacteristicProperties {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-broadcast

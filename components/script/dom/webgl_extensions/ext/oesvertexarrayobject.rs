@@ -133,7 +133,7 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
 impl WebGLExtension for OESVertexArrayObject {
     type Extension = OESVertexArrayObject;
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESVertexArrayObject> {
-        reflect_dom_object(box OESVertexArrayObject::new_inherited(ctx),
+        reflect_dom_object(Box::new(OESVertexArrayObject::new_inherited(ctx)),
                            &*ctx.global(),
                            OESVertexArrayObjectBinding::Wrap)
     }

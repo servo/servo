@@ -37,7 +37,7 @@ impl NodeList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
-        reflect_dom_object(box NodeList::new_inherited(list_type),
+        reflect_dom_object(Box::new(NodeList::new_inherited(list_type)),
                            window,
                            NodeListBinding::Wrap)
     }

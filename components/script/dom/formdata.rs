@@ -48,7 +48,7 @@ impl FormData {
     }
 
     pub fn new(form: Option<&HTMLFormElement>, global: &GlobalScope) -> DomRoot<FormData> {
-        reflect_dom_object(box FormData::new_inherited(form),
+        reflect_dom_object(Box::new(FormData::new_inherited(form)),
                            global, FormDataWrap)
     }
 

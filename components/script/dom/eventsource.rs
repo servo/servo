@@ -413,7 +413,7 @@ impl EventSource {
     }
 
     fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
-        reflect_dom_object(box EventSource::new_inherited(url, with_credentials),
+        reflect_dom_object(Box::new(EventSource::new_inherited(url, with_credentials)),
                            global,
                            Wrap)
     }
@@ -486,9 +486,9 @@ impl EventSource {
             task_source: global.networking_task_source(),
             canceller: Some(global.task_canceller())
         };
-        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
-        });
+        }));
         global.core_resource_thread().send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
         // Step 13
         Ok(ev)

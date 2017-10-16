@@ -28,7 +28,7 @@ impl WorkerNavigator {
     }
 
     pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
-        reflect_dom_object(box WorkerNavigator::new_inherited(),
+        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()),
                            global,
                            WorkerNavigatorBinding::Wrap)
     }

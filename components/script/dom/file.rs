@@ -45,7 +45,7 @@ impl File {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope, blob_impl: BlobImpl,
                name: DOMString, modified: Option<i64>, typeString: &str) -> DomRoot<File> {
-        reflect_dom_object(box File::new_inherited(blob_impl, name, modified, typeString),
+        reflect_dom_object(Box::new(File::new_inherited(blob_impl, name, modified, typeString)),
                            global,
                            FileBinding::Wrap)
     }

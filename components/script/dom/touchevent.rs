@@ -48,7 +48,7 @@ impl TouchEvent {
                      touches: &TouchList,
                      changed_touches: &TouchList,
                      target_touches: &TouchList) -> DomRoot<TouchEvent> {
-        reflect_dom_object(box TouchEvent::new_inherited(touches, changed_touches, target_touches),
+        reflect_dom_object(Box::new(TouchEvent::new_inherited(touches, changed_touches, target_touches)),
                            window,
                            TouchEventBinding::Wrap)
     }

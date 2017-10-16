@@ -37,7 +37,7 @@ impl TextDecoder {
     }
 
     pub fn new(global: &GlobalScope, encoding: EncodingRef, fatal: bool) -> DomRoot<TextDecoder> {
-        reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
+        reflect_dom_object(Box::new(TextDecoder::new_inherited(encoding, fatal)),
                            global,
                            TextDecoderBinding::Wrap)
     }

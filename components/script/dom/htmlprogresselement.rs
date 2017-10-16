@@ -31,7 +31,7 @@ impl HTMLProgressElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLProgressElement> {
-        Node::reflect_node(box HTMLProgressElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLProgressElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLProgressElementBinding::Wrap)
     }

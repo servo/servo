@@ -45,7 +45,7 @@ impl CSSMediaRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                mediarule: Arc<Locked<MediaRule>>) -> DomRoot<CSSMediaRule> {
-        reflect_dom_object(box CSSMediaRule::new_inherited(parent_stylesheet, mediarule),
+        reflect_dom_object(Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
                            window,
                            CSSMediaRuleBinding::Wrap)
     }

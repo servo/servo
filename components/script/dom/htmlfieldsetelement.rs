@@ -43,7 +43,7 @@ impl HTMLFieldSetElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLFieldSetElement> {
-        Node::reflect_node(box HTMLFieldSetElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLFieldSetElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLFieldSetElementBinding::Wrap)
     }
@@ -60,7 +60,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
                     .map_or(false, HTMLElement::is_listed_element)
             }
         }
-        let filter = box ElementsFilter;
+        let filter = Box::new(ElementsFilter);
         let window = window_from_node(self);
         HTMLCollection::create(&window, self.upcast(), filter)
     }

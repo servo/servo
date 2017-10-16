@@ -36,7 +36,7 @@ impl Storage {
     }
 
     pub fn new(global: &Window, storage_type: StorageType) -> DomRoot<Storage> {
-        reflect_dom_object(box Storage::new_inherited(storage_type), global, StorageBinding::Wrap)
+        reflect_dom_object(Box::new(Storage::new_inherited(storage_type)), global, StorageBinding::Wrap)
     }
 
     fn get_url(&self) -> ServoUrl {

@@ -29,7 +29,7 @@ impl HTMLTableColElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLTableColElement> {
-        Node::reflect_node(box HTMLTableColElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLTableColElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTableColElementBinding::Wrap)
     }

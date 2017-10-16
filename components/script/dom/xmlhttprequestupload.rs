@@ -21,7 +21,7 @@ impl XMLHttpRequestUpload {
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
-        reflect_dom_object(box XMLHttpRequestUpload::new_inherited(),
+        reflect_dom_object(Box::new(XMLHttpRequestUpload::new_inherited()),
                            global,
                            XMLHttpRequestUploadBinding::Wrap)
     }

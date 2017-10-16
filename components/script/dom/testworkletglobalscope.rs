@@ -37,10 +37,10 @@ impl TestWorkletGlobalScope {
                -> DomRoot<TestWorkletGlobalScope>
     {
         debug!("Creating test worklet global scope for pipeline {}.", pipeline_id);
-        let global = box TestWorkletGlobalScope {
+        let global = Box::new(TestWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, executor, init),
             lookup_table: Default::default(),
-        };
+        });
         unsafe { TestWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
     }
 

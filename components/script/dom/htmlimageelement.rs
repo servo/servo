@@ -200,7 +200,7 @@ impl HTMLImageElement {
             let task_source = window.networking_task_source();
             let task_canceller = window.task_canceller();
             let generation = elem.generation.get();
-            ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
+            ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
                 debug!("Got image {:?}", message);
                 // Return the image via a message to the script thread, which marks
                 // the element as dirty and triggers a reflow.
@@ -217,7 +217,7 @@ impl HTMLImageElement {
                     }),
                     &task_canceller,
                 );
-            });
+            }));
 
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
         }
@@ -268,9 +268,9 @@ impl HTMLImageElement {
             task_source: window.networking_task_source(),
             canceller: Some(window.task_canceller()),
         };
-        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
-        });
+        }));
 
         let request = RequestInit {
             url: img_url.clone(),
@@ -640,7 +640,7 @@ impl HTMLImageElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLImageElement> {
-        Node::reflect_node(box HTMLImageElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLImageElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLImageElementBinding::Wrap)
     }

@@ -23,7 +23,7 @@ impl FileReaderSync {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<FileReaderSync> {
-        reflect_dom_object(box FileReaderSync::new_inherited(),
+        reflect_dom_object(Box::new(FileReaderSync::new_inherited()),
                            global, FileReaderSyncBinding::Wrap)
     }
 

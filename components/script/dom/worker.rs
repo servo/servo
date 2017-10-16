@@ -61,7 +61,7 @@ impl Worker {
     pub fn new(global: &GlobalScope,
                sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                closing: Arc<AtomicBool>) -> DomRoot<Worker> {
-        reflect_dom_object(box Worker::new_inherited(sender, closing),
+        reflect_dom_object(Box::new(Worker::new_inherited(sender, closing)),
                            global,
                            WorkerBinding::Wrap)
     }

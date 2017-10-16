@@ -33,12 +33,12 @@ impl ExtendableMessageEvent {
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> DomRoot<ExtendableMessageEvent> {
-        let ev = box ExtendableMessageEvent {
+        let ev = Box::new(ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
             data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
-        };
+        });
         let ev = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();

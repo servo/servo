@@ -29,7 +29,7 @@ impl HTMLTableCaptionElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document) -> DomRoot<HTMLTableCaptionElement> {
-        Node::reflect_node(box HTMLTableCaptionElement::new_inherited(local_name, prefix, document),
+        Node::reflect_node(Box::new(HTMLTableCaptionElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTableCaptionElementBinding::Wrap)
     }

@@ -41,7 +41,7 @@ impl PerformanceEntry {
                start_time: f64,
                duration: f64) -> DomRoot<PerformanceEntry> {
         let entry = PerformanceEntry::new_inherited(name, entry_type, start_time, duration);
-        reflect_dom_object(box entry, global, PerformanceEntryBinding::Wrap)
+        reflect_dom_object(Box::new(entry), global, PerformanceEntryBinding::Wrap)
     }
 
     pub fn entry_type(&self) -> &DOMString {

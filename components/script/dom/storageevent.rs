@@ -45,7 +45,7 @@ impl StorageEvent {
 
     pub fn new_uninitialized(window: &Window,
                              url: DOMString) -> DomRoot<StorageEvent> {
-        reflect_dom_object(box StorageEvent::new_inherited(None, None, None, url, None),
+        reflect_dom_object(Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
                            window,
                            StorageEventBinding::Wrap)
     }
@@ -59,10 +59,11 @@ impl StorageEvent {
                newValue: Option<DOMString>,
                url: DOMString,
                storageArea: Option<&Storage>) -> DomRoot<StorageEvent> {
-        let ev = reflect_dom_object(box StorageEvent::new_inherited(key, oldValue, newValue,
-                                                                    url, storageArea),
-                                    global,
-                                    StorageEventBinding::Wrap);
+        let ev = reflect_dom_object(
+            Box::new(StorageEvent::new_inherited(key, oldValue, newValue, url, storageArea)),
+            global,
+            StorageEventBinding::Wrap
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

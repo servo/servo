@@ -33,7 +33,7 @@ impl HashChangeEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<HashChangeEvent> {
-        reflect_dom_object(box HashChangeEvent::new_inherited(String::new(), String::new()),
+        reflect_dom_object(Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
                            window,
                            HashChangeEventBinding::Wrap)
     }
@@ -45,7 +45,7 @@ impl HashChangeEvent {
                old_url: String,
                new_url: String)
                -> DomRoot<HashChangeEvent> {
-        let ev = reflect_dom_object(box HashChangeEvent::new_inherited(old_url, new_url),
+        let ev = reflect_dom_object(Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
                                     window,
                                     HashChangeEventBinding::Wrap);
         {

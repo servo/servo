@@ -115,11 +115,13 @@ impl WindowProxy {
 
             // Create a new browsing context.
             let current = Some(window.global().pipeline_id());
-            let mut window_proxy = box WindowProxy::new_inherited(browsing_context_id,
-                                                                  top_level_browsing_context_id,
-                                                                  current,
-                                                                  frame_element,
-                                                                  parent);
+            let mut window_proxy = Box::new(WindowProxy::new_inherited(
+                browsing_context_id,
+                top_level_browsing_context_id,
+                current,
+                frame_element,
+                parent
+            ));
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
@@ -149,11 +151,13 @@ impl WindowProxy {
             let cx = global_to_clone_from.get_cx();
 
             // Create a new browsing context.
-            let mut window_proxy = box WindowProxy::new_inherited(browsing_context_id,
-                                                                  top_level_browsing_context_id,
-                                                                  None,
-                                                                  None,
-                                                                  parent);
+            let mut window_proxy = Box::new(WindowProxy::new_inherited(
+                browsing_context_id,
+                top_level_browsing_context_id,
+                None,
+                None,
+                parent
+            ));
 
             // Create a new dissimilar-origin window.
             let window = DissimilarOriginWindow::new(global_to_clone_from, &*window_proxy);

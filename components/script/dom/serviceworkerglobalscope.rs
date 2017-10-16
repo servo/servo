@@ -62,9 +62,9 @@ impl ScriptChan for ServiceWorkerChan {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        box ServiceWorkerChan {
+        Box::new(ServiceWorkerChan {
             sender: self.sender.clone(),
-        }
+        })
     }
 }
 
@@ -122,16 +122,18 @@ impl ServiceWorkerGlobalScope {
                scope_url: ServoUrl)
                -> DomRoot<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
-        let scope = box ServiceWorkerGlobalScope::new_inherited(init,
-                                                                  worker_url,
-                                                                  from_devtools_receiver,
-                                                                  runtime,
-                                                                  own_sender,
-                                                                  receiver,
-                                                                  timer_event_chan,
-                                                                  timer_event_port,
-                                                                  swmanager_sender,
-                                                                  scope_url);
+        let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
+            init,
+            worker_url,
+            from_devtools_receiver,
+            runtime,
+            own_sender,
+            receiver,
+            timer_event_chan,
+            timer_event_port,
+            swmanager_sender,
+            scope_url
+        ));
         unsafe {
             ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
         }
@@ -307,9 +309,9 @@ impl ServiceWorkerGlobalScope {
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
-        box ServiceWorkerChan {
+        Box::new(ServiceWorkerChan {
             sender: self.own_sender.clone()
-        }
+        })
     }
 
     fn dispatch_activate(&self) {

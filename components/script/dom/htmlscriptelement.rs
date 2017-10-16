@@ -84,7 +84,7 @@ impl HTMLScriptElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
                creator: ElementCreator) -> DomRoot<HTMLScriptElement> {
-        Node::reflect_node(box HTMLScriptElement::new_inherited(local_name, prefix, document, creator),
+        Node::reflect_node(Box::new(HTMLScriptElement::new_inherited(local_name, prefix, document, creator)),
                            document,
                            HTMLScriptElementBinding::Wrap)
     }
@@ -279,9 +279,9 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         canceller: Some(doc.window().task_canceller())
     };
 
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+    ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
         listener.notify_fetch(message.to().unwrap());
-    });
+    }));
     doc.fetch_async(LoadType::Script(url), request, action_sender);
 }
 

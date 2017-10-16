@@ -50,12 +50,13 @@ impl BluetoothRemoteGATTService {
                isPrimary: bool,
                instanceID: String)
                -> DomRoot<BluetoothRemoteGATTService> {
-        reflect_dom_object(box BluetoothRemoteGATTService::new_inherited(device,
-                                                                         uuid,
-                                                                         isPrimary,
-                                                                         instanceID),
-                           global,
-                           BluetoothRemoteGATTServiceBinding::Wrap)
+        reflect_dom_object(
+            Box::new(BluetoothRemoteGATTService::new_inherited(
+                device, uuid, isPrimary, instanceID
+            )),
+            global,
+            BluetoothRemoteGATTServiceBinding::Wrap
+        )
     }
 
     fn get_instance_id(&self) -> String {

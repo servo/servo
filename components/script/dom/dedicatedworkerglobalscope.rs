@@ -133,16 +133,18 @@ impl DedicatedWorkerGlobalScope {
                closing: Arc<AtomicBool>)
                -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
-        let scope = box DedicatedWorkerGlobalScope::new_inherited(init,
-                                                                  worker_url,
-                                                                  from_devtools_receiver,
-                                                                  runtime,
-                                                                  parent_sender,
-                                                                  own_sender,
-                                                                  receiver,
-                                                                  timer_event_chan,
-                                                                  timer_event_port,
-                                                                  closing);
+        let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
+            init,
+            worker_url,
+            from_devtools_receiver,
+            runtime,
+            parent_sender,
+            own_sender,
+            receiver,
+            timer_event_chan,
+            timer_event_port,
+            closing
+        ));
         unsafe {
             DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
         }
@@ -193,8 +195,10 @@ impl DedicatedWorkerGlobalScope {
                                                               &init.resource_threads.sender()) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
-                    parent_sender.send(CommonScriptMsg::Task(WorkerEvent,
-                        box SimpleWorkerErrorHandler::new(worker))).unwrap();
+                    parent_sender.send(CommonScriptMsg::Task(
+                        WorkerEvent,
+                        Box::new(SimpleWorkerErrorHandler::new(worker))
+                    )).unwrap();
                     return;
                 }
                 Ok((metadata, bytes)) => (metadata, bytes)
@@ -211,10 +215,10 @@ impl DedicatedWorkerGlobalScope {
             let (timer_tx, timer_rx) = channel();
             let (timer_ipc_chan, timer_ipc_port) = ipc::channel().unwrap();
             let worker_for_route = worker.clone();
-            ROUTER.add_route(timer_ipc_port.to_opaque(), box move |message| {
+            ROUTER.add_route(timer_ipc_port.to_opaque(), Box::new(move |message| {
                 let event = message.to().unwrap();
                 timer_tx.send((worker_for_route.clone(), event)).unwrap();
-            });
+            }));
 
             let global = DedicatedWorkerGlobalScope::new(
                 init, url, devtools_mpsc_port, runtime,
@@ -257,19 +261,19 @@ impl DedicatedWorkerGlobalScope {
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
-        box WorkerThreadWorkerChan {
+        Box::new(WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
             worker: self.worker.borrow().as_ref().unwrap().clone(),
-        }
+        })
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
-        let chan = box SendableWorkerScriptChan {
+        let chan = Box::new(SendableWorkerScriptChan {
             sender: tx,
             worker: self.worker.borrow().as_ref().unwrap().clone(),
-        };
-        (chan, box rx)
+        });
+        (chan, Box::new(rx))
     }
 
     #[allow(unsafe_code)]
@@ -355,7 +359,7 @@ impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let task = box task!(forward_error_to_worker_object: move || {
+        let task = Box::new(task!(forward_error_to_worker_object: move || {
             let worker = worker.root();
             let global = worker.global();
 
@@ -378,7 +382,7 @@ impl DedicatedWorkerGlobalScope {
             if event_status == EventStatus::NotCanceled {
                 global.report_an_error(error_info, unsafe { NullHandleValue });
             }
-        });
+        }));
         // TODO: Should use the DOM manipulation task source.
         self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task)).unwrap();
     }
@@ -401,9 +405,9 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let task = box task!(post_worker_message: move || {
+        let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
-        });
+        }));
         self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task)).unwrap();
         Ok(())
     }

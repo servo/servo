@@ -60,7 +60,7 @@ impl TestBinding {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TestBinding> {
-        reflect_dom_object(box TestBinding::new_inherited(),
+        reflect_dom_object(Box::new(TestBinding::new_inherited()),
                            global, TestBindingBinding::Wrap)
     }
 
@@ -730,7 +730,7 @@ impl TestBindingMethods for TestBinding {
         }
         impl SimpleHandler {
             fn new(callback: Rc<SimpleCallback>) -> Box<Callback> {
-                box SimpleHandler { handler: callback }
+                Box::new(SimpleHandler { handler: callback })
             }
         }
         impl Callback for SimpleHandler {

@@ -58,10 +58,13 @@ impl Range {
                start_container: &Node, start_offset: u32,
                end_container: &Node, end_offset: u32)
                -> DomRoot<Range> {
-        let range = reflect_dom_object(box Range::new_inherited(start_container, start_offset,
-                                                                end_container, end_offset),
-                                       document.window(),
-                                       RangeBinding::Wrap);
+        let range = reflect_dom_object(
+            Box::new(Range::new_inherited(
+                start_container, start_offset, end_container, end_offset
+            )),
+            document.window(),
+            RangeBinding::Wrap
+        );
         start_container.ranges().push(WeakRef::new(&range));
         if start_container != end_container {
             end_container.ranges().push(WeakRef::new(&range));
