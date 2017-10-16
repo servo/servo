@@ -112,7 +112,7 @@ use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::style_structs;
 use style::invalidation::element::restyle_hints;
 use style::media_queries::{Device, MediaList, parse_media_query_list};
-use style::parser::{ParserContext, self};
+use style::parser::{Parse, ParserContext, self};
 use style::properties::{CascadeFlags, ComputedValues, DeclarationSource, Importance};
 use style::properties::{IS_FIELDSET_CONTENT, IS_LINK, IS_VISITED_LINK, LonghandIdSet};
 use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
@@ -146,6 +146,7 @@ use style::values::animated::{Animate, Procedure, ToAnimatedZero};
 use style::values::computed::{Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style::values::specified;
+use style::values::specified::gecko::IntersectionObserverRootMargin;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
@@ -2212,6 +2213,7 @@ pub extern "C" fn Servo_ParseEasing(
 ) -> bool {
     use style::properties::longhands::transition_timing_function;
 
+    // FIXME Dummy URL data would work fine here.
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let context = ParserContext::new(Origin::Author,
                                      url_data,
@@ -4268,5 +4270,41 @@ pub extern "C" fn Servo_ComputeColor(
             }
         }
         Err(_) => false,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseIntersectionObserverRootMargin(
+    value: *const nsAString,
+    result: *mut structs::nsCSSRect,
+) -> bool {
+    let value = unsafe { value.as_ref().unwrap().to_string() };
+    let result = unsafe { result.as_mut().unwrap() };
+
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+
+    let url_data = unsafe { dummy_url_data() };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        PARSING_MODE_DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    let margin = parser.parse_entirely(|p| {
+        IntersectionObserverRootMargin::parse(&context, p)
+    });
+    match margin {
+        Ok(margin) => {
+            let rect = margin.0;
+            result.mTop.set_from(rect.0);
+            result.mRight.set_from(rect.1);
+            result.mBottom.set_from(rect.2);
+            result.mLeft.set_from(rect.3);
+            true
+        }
+        Err(..) => false,
     }
 }

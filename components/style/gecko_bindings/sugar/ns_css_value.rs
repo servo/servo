@@ -75,15 +75,25 @@ impl nsCSSValue {
     pub unsafe fn set_lop(&mut self, lop: LengthOrPercentage) {
         match lop {
             LengthOrPercentage::Length(px) => {
-                bindings::Gecko_CSSValue_SetPixelLength(self, px.px())
+                self.set_px(px.px())
             }
             LengthOrPercentage::Percentage(pc) => {
-                bindings::Gecko_CSSValue_SetPercentage(self, pc.0)
+                self.set_percentage(pc.0)
             }
             LengthOrPercentage::Calc(calc) => {
                 bindings::Gecko_CSSValue_SetCalc(self, calc.into())
             }
         }
+    }
+
+    /// Sets a px value to this nsCSSValue.
+    pub unsafe fn set_px(&mut self, px: f32) {
+        bindings::Gecko_CSSValue_SetPixelLength(self, px)
+    }
+
+    /// Sets a percentage value to this nsCSSValue.
+    pub unsafe fn set_percentage(&mut self, unit_value: f32) {
+        bindings::Gecko_CSSValue_SetPercentage(self, unit_value)
     }
 
     /// Returns LengthOrPercentage value.
