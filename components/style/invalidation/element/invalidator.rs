@@ -114,14 +114,13 @@ enum InvalidationKind {
 
 /// An `Invalidation` is a complex selector that describes which elements,
 /// relative to a current element we are processing, must be restyled.
-///
-/// When `offset` points to the right-most compound selector in `selector`,
-/// then the Invalidation `represents` the fact that the current element
-/// must be restyled if the compound selector matches.  Otherwise, if
-/// describes which descendants (or later siblings) must be restyled.
 #[derive(Clone)]
 pub struct Invalidation {
     selector: Selector<SelectorImpl>,
+    /// The offset of the selector pointing to a compound selector.
+    ///
+    /// This order is a "parse order" offset, that is, zero is the leftmost part
+    /// of the selector written as parsed / serialized.
     offset: usize,
     /// Whether the invalidation was already matched by any previous sibling or
     /// ancestor.
@@ -149,7 +148,7 @@ impl Invalidation {
         // for the weird pseudos in <input type="number">.
         //
         // We should be able to do better here!
-        match self.selector.combinator_at(self.offset) {
+        match self.selector.combinator_at_parse_order(self.offset - 1) {
             Combinator::NextSibling |
             Combinator::Child => false,
             _ => true,
@@ -157,7 +156,7 @@ impl Invalidation {
     }
 
     fn kind(&self) -> InvalidationKind {
-        if self.selector.combinator_at(self.offset).is_ancestor() {
+        if self.selector.combinator_at_parse_order(self.offset - 1).is_ancestor() {
             InvalidationKind::Descendant
         } else {
             InvalidationKind::Sibling
@@ -170,7 +169,7 @@ impl fmt::Debug for Invalidation {
         use cssparser::ToCss;
 
         f.write_str("Invalidation(")?;
-        for component in self.selector.iter_raw_parse_order_from(self.offset - 1) {
+        for component in self.selector.iter_raw_parse_order_from(self.offset) {
             if matches!(*component, Component::Combinator(..)) {
                 break;
             }
@@ -624,14 +623,14 @@ where
         let mut invalidated_self = false;
         let mut matched = false;
         match matching_result {
-            CompoundSelectorMatchingResult::Matched { next_combinator_offset: 0 } => {
+            CompoundSelectorMatchingResult::FullyMatched => {
                 debug!(" > Invalidation matched completely");
                 matched = true;
                 invalidated_self = true;
             }
             CompoundSelectorMatchingResult::Matched { next_combinator_offset } => {
                 let next_combinator =
-                    invalidation.selector.combinator_at(next_combinator_offset);
+                    invalidation.selector.combinator_at_parse_order(next_combinator_offset);
                 matched = true;
 
                 if matches!(next_combinator, Combinator::PseudoElement) {
@@ -640,7 +639,7 @@ where
                     // around, so there could also be state pseudo-classes.
                     let pseudo_selector =
                         invalidation.selector
-                            .iter_raw_parse_order_from(next_combinator_offset - 1)
+                            .iter_raw_parse_order_from(next_combinator_offset + 1)
                             .skip_while(|c| matches!(**c, Component::NonTSPseudoClass(..)))
                             .next()
                             .unwrap();
@@ -681,7 +680,7 @@ where
 
                 let next_invalidation = Invalidation {
                     selector: invalidation.selector.clone(),
-                    offset: next_combinator_offset,
+                    offset: next_combinator_offset + 1,
                     matched_by_any_previous: false,
                 };
 

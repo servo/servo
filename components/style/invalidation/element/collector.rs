@@ -463,16 +463,18 @@ where
 
         if dependency.affects_descendants() {
             debug_assert_ne!(dependency.selector_offset, 0);
+            debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
             debug_assert!(!dependency.affects_later_siblings());
             self.descendant_invalidations.push(Invalidation::new(
                 dependency.selector.clone(),
-                dependency.selector_offset,
+                dependency.selector.len() - dependency.selector_offset + 1,
             ));
         } else if dependency.affects_later_siblings() {
             debug_assert_ne!(dependency.selector_offset, 0);
+            debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
             self.sibling_invalidations.push(Invalidation::new(
                 dependency.selector.clone(),
-                dependency.selector_offset,
+                dependency.selector.len() - dependency.selector_offset + 1,
             ));
         }
     }

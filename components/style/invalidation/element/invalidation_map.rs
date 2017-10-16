@@ -79,7 +79,7 @@ impl Dependency {
             return None;
         }
 
-        Some(self.selector.combinator_at(self.selector_offset))
+        Some(self.selector.combinator_at_match_order(self.selector_offset - 1))
     }
 
     /// Whether this dependency affects the style of the element.
