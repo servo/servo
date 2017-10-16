@@ -2021,6 +2021,18 @@ pub mod style_structs {
                     .take(self.transition_property_count())
                     .any(|t| t.seconds() > 0.)
             }
+        % elif style_struct.name == "Column":
+            /// Whether this is a multicol style.
+            #[cfg(feature = "servo")]
+            pub fn is_multicol(&self) -> bool {
+                match self.column_width {
+                    Either::First(_width) => true,
+                    Either::Second(_auto) => match self.column_count {
+                        Either::First(_n) => true,
+                        Either::Second(_auto) => false,
+                    }
+                }
+            }
         % endif
     }
 
@@ -2239,17 +2251,16 @@ impl ComputedValuesInner {
         }
     }
 
+    /// Whether the current style or any of its ancestors is multicolumn.
+    #[inline]
+    pub fn can_be_fragmented(&self) -> bool {
+        self.flags.contains(::properties::computed_value_flags::CAN_BE_FRAGMENTED)
+    }
+
     /// Whether the current style is multicolumn.
     #[inline]
     pub fn is_multicol(&self) -> bool {
-        let style = self.get_column();
-        match style.column_width {
-            Either::First(_width) => true,
-            Either::Second(_auto) => match style.column_count {
-                Either::First(_n) => true,
-                Either::Second(_auto) => false,
-            }
-        }
+        self.get_column().is_multicol()
     }
 
     /// Resolves the currentColor keyword.

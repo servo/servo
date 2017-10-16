@@ -153,13 +153,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
 
     /// Get this node as an element, if it's one.
     fn as_element(&self) -> Option<Self::ConcreteElement>;
-
-    /// Whether this node can be fragmented. This is used for multicol, and only
-    /// for Servo.
-    fn can_be_fragmented(&self) -> bool;
-
-    /// Set whether this node can be fragmented.
-    unsafe fn set_can_be_fragmented(&self, value: bool);
 }
 
 /// Wrapper to output the ElementData along with the node when formatting for

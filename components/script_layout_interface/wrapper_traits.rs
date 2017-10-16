@@ -240,8 +240,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// data flags, and we have this annoying trait separation between script and layout :-(
     unsafe fn unsafe_get(self) -> Self::ConcreteNode;
 
-    fn can_be_fragmented(&self) -> bool;
-
     fn node_text_content(&self) -> String;
 
     /// If the insertion point is within this node, returns it. Otherwise, returns `None`.

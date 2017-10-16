@@ -299,10 +299,6 @@ impl ComputedValuesInner {
         !self.get_box().gecko.mBinding.mPtr.mRawPtr.is_null()
     }
 
-    // FIXME(bholley): Implement this properly.
-    #[inline]
-    pub fn is_multicol(&self) -> bool { false }
-
     pub fn to_declaration_block(&self, property: PropertyDeclarationId) -> PropertyDeclarationBlock {
         let value = match property {
             % for prop in data.longhands:

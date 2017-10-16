@@ -38,10 +38,9 @@ use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use nonzero::NonZeroUsize;
 use range::Range;
-use script::layout_exports::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
-use script::layout_exports::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
+use script::layout_exports::{HANDLED_SNAPSHOT, HAS_DIRTY_DESCENDANTS, HAS_SNAPSHOT, IS_IN_DOC};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
 use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers};
 use script::layout_exports::LayoutDom;
@@ -204,14 +203,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
         as_element(self.node)
-    }
-
-    fn can_be_fragmented(&self) -> bool {
-        unsafe { self.node.get_flag(CAN_BE_FRAGMENTED) }
-    }
-
-    unsafe fn set_can_be_fragmented(&self, value: bool) {
-        self.node.set_flag(CAN_BE_FRAGMENTED, value)
     }
 }
 
@@ -903,10 +894,6 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     unsafe fn unsafe_get(self) -> Self::ConcreteNode {
         self.node
-    }
-
-    fn can_be_fragmented(&self) -> bool {
-        self.node.can_be_fragmented()
     }
 
     fn node_text_content(&self) -> String {
