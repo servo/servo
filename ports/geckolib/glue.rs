@@ -44,7 +44,7 @@ use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrow
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoSelectorListBorrowed, RawServoSelectorListOwned};
-use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
+use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetBorrowedOrNull, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedDataBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ServoStyleContextBorrowed};
 use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
@@ -145,6 +145,7 @@ use style::values::{CustomIdent, KeyframesName};
 use style::values::animated::{Animate, Procedure, ToAnimatedZero};
 use style::values::computed::{Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
+use style::values::specified;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
@@ -4205,4 +4206,67 @@ pub unsafe extern "C" fn Servo_SelectorList_Parse(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_SelectorList_Drop(list: RawServoSelectorListOwned) {
     let _ = list.into_box::<::selectors::SelectorList<SelectorImpl>>();
+}
+
+fn parse_color(value: &str) -> Result<specified::Color, ()> {
+    let mut input = ParserInput::new(value);
+    let mut parser = Parser::new(&mut input);
+    parser.parse_entirely(specified::Color::parse_color).map_err(|_| ())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_IsValidCSSColor(
+    value: *const nsAString,
+) -> bool {
+    let value = unsafe { (*value).to_string() };
+    parse_color(&value).is_ok()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ComputeColor(
+    raw_data: RawServoStyleSetBorrowedOrNull,
+    current_color: structs::nscolor,
+    value: *const nsAString,
+    result_color: *mut structs::nscolor,
+) -> bool {
+    use style::gecko;
+
+    let current_color = gecko::values::convert_nscolor_to_rgba(current_color);
+    let value = unsafe { (*value).to_string() };
+    let result_color = unsafe { result_color.as_mut().unwrap() };
+
+    match parse_color(&value) {
+        Ok(specified_color) => {
+            let computed_color = match raw_data {
+                Some(raw_data) => {
+                    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+                    let metrics = get_metrics_provider_for_product();
+                    let mut conditions = Default::default();
+                    let context = create_context(
+                        &data,
+                        &metrics,
+                        data.stylist.device().default_computed_values(),
+                        /* parent_style = */ None,
+                        /* pseudo = */ None,
+                        /* for_smil_animation = */ false,
+                        &mut conditions,
+                    );
+                    specified_color.to_computed_color(Some(&context))
+                }
+                None => {
+                    specified_color.to_computed_color(None)
+                }
+            };
+
+            match computed_color {
+                Some(computed_color) => {
+                    let rgba = computed_color.to_rgba(current_color);
+                    *result_color = gecko::values::convert_rgba_to_nscolor(&rgba);
+                    true
+                }
+                None => false,
+            }
+        }
+        Err(_) => false,
+    }
 }

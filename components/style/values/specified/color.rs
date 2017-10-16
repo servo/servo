@@ -67,42 +67,7 @@ impl From<RGBA> for Color {
 
 impl Parse for Color {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // Currently we only store authored value for color keywords,
-        // because all browsers serialize those values as keywords for
-        // specified value.
-        let start = input.state();
-        let authored = match input.next() {
-            Ok(&Token::Ident(ref s)) => Some(s.to_lowercase().into_boxed_str()),
-            _ => None,
-        };
-        input.reset(&start);
-        match input.try(CSSParserColor::parse) {
-            Ok(value) =>
-                Ok(match value {
-                    CSSParserColor::CurrentColor => Color::CurrentColor,
-                    CSSParserColor::RGBA(rgba) => Color::Numeric {
-                        parsed: rgba,
-                        authored: authored,
-                    },
-                }),
-            Err(e) => {
-                #[cfg(feature = "gecko")] {
-                    if let Ok(system) = input.try(SystemColor::parse) {
-                        return Ok(Color::System(system));
-                    } else if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
-                        return Ok(Color::Special(c));
-                    }
-                }
-                match e {
-                    BasicParseError { kind: BasicParseErrorKind::UnexpectedToken(t), location } => {
-                        Err(location.new_custom_error(
-                            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(t))
-                        ))
-                    }
-                    e => Err(e.into())
-                }
-            }
-        }
+        Color::parse_color(input)
     }
 }
 
@@ -244,6 +209,46 @@ impl Color {
             _ => true,
         }
     }
+
+    /// Parse a <color> value.
+    pub fn parse_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // Currently we only store authored value for color keywords,
+        // because all browsers serialize those values as keywords for
+        // specified value.
+        let start = input.state();
+        let authored = match input.next() {
+            Ok(&Token::Ident(ref s)) => Some(s.to_lowercase().into_boxed_str()),
+            _ => None,
+        };
+        input.reset(&start);
+        match input.try(CSSParserColor::parse) {
+            Ok(value) =>
+                Ok(match value {
+                    CSSParserColor::CurrentColor => Color::CurrentColor,
+                    CSSParserColor::RGBA(rgba) => Color::Numeric {
+                        parsed: rgba,
+                        authored: authored,
+                    },
+                }),
+            Err(e) => {
+                #[cfg(feature = "gecko")] {
+                    if let Ok(system) = input.try(SystemColor::parse) {
+                        return Ok(Color::System(system));
+                    } else if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
+                        return Ok(Color::Special(c));
+                    }
+                }
+                match e {
+                    BasicParseError { kind: BasicParseErrorKind::UnexpectedToken(t), location } => {
+                        Err(location.new_custom_error(
+                            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(t))
+                        ))
+                    }
+                    e => Err(e.into())
+                }
+            }
+        }
+    }
 }
 
 #[cfg(feature = "gecko")]
@@ -252,52 +257,70 @@ fn convert_nscolor_to_computedcolor(color: nscolor) -> ComputedColor {
     ComputedColor::rgba(convert_nscolor_to_rgba(color))
 }
 
-impl ToComputedValue for Color {
-    type ComputedValue = ComputedColor;
-
-    fn to_computed_value(&self, context: &Context) -> ComputedColor {
+impl Color {
+    /// Converts this Color into a ComputedColor.
+    ///
+    /// If `context` is `None`, and the specified color requires data from
+    /// the context to resolve, then `None` is returned.
+    pub fn to_computed_color(
+        &self,
+        _context: Option<&Context>,
+    ) -> Option<ComputedColor> {
         match *self {
             Color::CurrentColor => {
-                if let Some(longhand) = context.for_non_inherited_property {
-                    if longhand.stores_complex_colors_lossily() {
-                        context.rule_cache_conditions.borrow_mut()
-                            .set_uncacheable();
-                    }
-                }
-                ComputedColor::currentcolor()
+                Some(ComputedColor::currentcolor())
             }
-            Color::Numeric { ref parsed, .. } => ComputedColor::rgba(*parsed),
+            Color::Numeric { ref parsed, .. } => {
+                Some(ComputedColor::rgba(*parsed))
+            }
             Color::Complex(ref complex) => {
-                if complex.foreground_ratio != 0 {
-                    if let Some(longhand) = context.for_non_inherited_property {
-                        if longhand.stores_complex_colors_lossily() {
-                            context.rule_cache_conditions.borrow_mut()
-                                .set_uncacheable();
-                        }
-                    }
-                }
-                *complex
+                Some(*complex)
             }
             #[cfg(feature = "gecko")]
-            Color::System(system) =>
-                convert_nscolor_to_computedcolor(system.to_computed_value(context)),
+            Color::System(system) => {
+                _context.map(|context| {
+                    convert_nscolor_to_computedcolor(
+                        system.to_computed_value(context)
+                    )
+                })
+            }
             #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
-                let pres_context = context.device().pres_context();
-                convert_nscolor_to_computedcolor(match special {
-                    Keyword::MozDefaultColor => pres_context.mDefaultColor,
-                    Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
-                    Keyword::MozHyperlinktext => pres_context.mLinkColor,
-                    Keyword::MozActiveHyperlinktext => pres_context.mActiveLinkColor,
-                    Keyword::MozVisitedHyperlinktext => pres_context.mVisitedLinkColor,
+                _context.map(|context| {
+                    let pres_context = context.device().pres_context();
+                    convert_nscolor_to_computedcolor(match special {
+                        Keyword::MozDefaultColor => pres_context.mDefaultColor,
+                        Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
+                        Keyword::MozHyperlinktext => pres_context.mLinkColor,
+                        Keyword::MozActiveHyperlinktext => pres_context.mActiveLinkColor,
+                        Keyword::MozVisitedHyperlinktext => pres_context.mVisitedLinkColor,
+                    })
                 })
             }
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => {
-                ComputedColor::rgba(context.device().body_text_color())
+                _context.map(|context| {
+                    ComputedColor::rgba(context.device().body_text_color())
+                })
             },
         }
+    }
+}
+
+impl ToComputedValue for Color {
+    type ComputedValue = ComputedColor;
+
+    fn to_computed_value(&self, context: &Context) -> ComputedColor {
+        let result = self.to_computed_color(Some(context)).unwrap();
+        if result.foreground_ratio != 0 {
+            if let Some(longhand) = context.for_non_inherited_property {
+                if longhand.stores_complex_colors_lossily() {
+                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                }
+            }
+        }
+        result
     }
 
     fn from_computed_value(computed: &ComputedColor) -> Self {
