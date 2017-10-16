@@ -5,12 +5,12 @@
 //! The struct that takes care of encapsulating all the logic on where and how
 //! element styles need to be invalidated.
 
-use context::{SharedStyleContext, StackLimitChecker};
+use context::StackLimitChecker;
 use data::ElementData;
 use dom::{TElement, TNode};
 use selector_parser::SelectorImpl;
 use selectors::NthIndexCache;
-use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
+use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, VisitedHandlingMode};
 use selectors::matching::CompoundSelectorMatchingResult;
 use selectors::matching::matches_compound_selector;
 use selectors::parser::{Combinator, Component, Selector};
@@ -38,7 +38,7 @@ where
         element: E,
         data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
-        shared_context: &SharedStyleContext,
+        quirks_mode: QuirksMode,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool;
@@ -77,7 +77,7 @@ where
 
 /// The struct that takes care of encapsulating all the logic on where and how
 /// element styles need to be invalidated.
-pub struct TreeStyleInvalidator<'a, 'b: 'a, E, P: 'a>
+pub struct TreeStyleInvalidator<'a, E, P: 'a>
 where
     E: TElement,
     P: InvalidationProcessor<E>
@@ -93,7 +93,7 @@ where
     // Seems like we could at least avoid running invalidation for the
     // descendants if an element has no data, though.
     data: Option<&'a mut ElementData>,
-    shared_context: &'a SharedStyleContext<'b>,
+    quirks_mode: QuirksMode,
     stack_limit_checker: Option<&'a StackLimitChecker>,
     nth_index_cache: Option<&'a mut NthIndexCache>,
     processor: &'a mut P,
@@ -224,7 +224,7 @@ impl InvalidationResult {
     }
 }
 
-impl<'a, 'b: 'a, E, P: 'a> TreeStyleInvalidator<'a, 'b, E, P>
+impl<'a, E, P: 'a> TreeStyleInvalidator<'a, E, P>
 where
     E: TElement,
     P: InvalidationProcessor<E>,
@@ -233,7 +233,7 @@ where
     pub fn new(
         element: E,
         data: Option<&'a mut ElementData>,
-        shared_context: &'a SharedStyleContext<'b>,
+        quirks_mode: QuirksMode,
         stack_limit_checker: Option<&'a StackLimitChecker>,
         nth_index_cache: Option<&'a mut NthIndexCache>,
         processor: &'a mut P,
@@ -241,7 +241,7 @@ where
         Self {
             element,
             data,
-            shared_context,
+            quirks_mode,
             stack_limit_checker,
             nth_index_cache,
             processor,
@@ -259,7 +259,7 @@ where
             self.element,
             self.data.as_mut().map(|d| &mut **d),
             self.nth_index_cache.as_mut().map(|c| &mut **c),
-            self.shared_context,
+            self.quirks_mode,
             &mut descendant_invalidations,
             &mut sibling_invalidations,
         );
@@ -296,7 +296,7 @@ where
             let mut sibling_invalidator = TreeStyleInvalidator::new(
                 sibling,
                 sibling_data.as_mut().map(|d| &mut **d),
-                self.shared_context,
+                self.quirks_mode,
                 self.stack_limit_checker,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
                 self.processor,
@@ -364,7 +364,7 @@ where
             let mut child_invalidator = TreeStyleInvalidator::new(
                 child,
                 child_data.as_mut().map(|d| &mut **d),
-                self.shared_context,
+                self.quirks_mode,
                 self.stack_limit_checker,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
                 self.processor,
@@ -609,7 +609,7 @@ where
                 None,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
                 VisitedHandlingMode::AllLinksVisitedAndUnvisited,
-                self.shared_context.quirks_mode(),
+                self.quirks_mode,
             );
 
             matches_compound_selector(
