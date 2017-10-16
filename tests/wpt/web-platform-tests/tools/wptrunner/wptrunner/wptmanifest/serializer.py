@@ -28,6 +28,8 @@ class ManifestSerializer(NodeVisitor):
     def serialize(self, root):
         self.indent = 2
         rv = "\n".join(self.visit(root))
+        if not rv:
+            return rv
         if rv[-1] != "\n":
             rv = rv + "\n"
         return rv

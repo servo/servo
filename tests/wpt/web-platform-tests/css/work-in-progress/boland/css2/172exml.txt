@@ -1,9 +1,0 @@
-<XML:stylesheet type="text/css" href="172.css">
-<foo>
-<bar>Fredrick the Great meets Bach</bar>
-<stack>
-  <row>This is the <d>top</d> row.</row>
-  <row>This is the <d>middle</d>row.</row>
-  <row>This is the <d>bottom</d>row.</row>
-</stack>
-</foo>

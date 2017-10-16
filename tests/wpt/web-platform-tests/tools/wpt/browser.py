@@ -70,9 +70,9 @@ class Firefox(Browser):
             raise ValueError("Unable to construct a valid Firefox package name for current platform")
 
         if platform == "linux":
-            bits = "-%s" % uname[-1]
+            bits = "-%s" % uname[4]
         elif platform == "win":
-            bits = "64" if uname[-1] == "x86_64" else "32"
+            bits = "64" if uname[4] == "x86_64" else "32"
         else:
             bits = ""
 
@@ -89,7 +89,7 @@ class Firefox(Browser):
             raise ValueError("Unable to construct a valid Geckodriver package name for current platform")
 
         if platform in ("linux", "win"):
-            bits = "64" if uname[-1] == "x86_64" else "32"
+            bits = "64" if uname[4] == "x86_64" else "32"
         else:
             bits = ""
 
@@ -227,7 +227,7 @@ class Chrome(Browser):
             raise ValueError("Unable to construct a valid Chrome package name for current platform")
 
         if platform == "linux":
-            bits = "64" if uname[-1] == "x86_64" else "32"
+            bits = "64" if uname[4] == "x86_64" else "32"
         elif platform == "mac":
             bits = "64"
         elif platform == "win":

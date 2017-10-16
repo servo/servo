@@ -1,11 +1,11 @@
-<!DOCTYPE html >
+<!DOCTYPE html>
 <html>
     <head>
         <title>HTML 5 Foreign Content SVG in HTML </title>
         <meta description="Test to verify SVG inside HTML I element parses correctly" />
-        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />        
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <script type="text/javascript">
-        
+
             function RunTest()
             {
                 try
@@ -15,7 +15,7 @@
                     {
                         var svgNamespace = "http://www.w3.org/2000/svg";
                         var textElem = document.createElementNS(svgNamespace, "text");
-                        
+
                         var textContent = document.createTextNode("FillerText");
                         textElem.appendChild(textContent);
 
@@ -25,7 +25,7 @@
                     }
                 }
                 catch(ex)
-                {                    
+                {
                 }
             }
         </script>
@@ -38,7 +38,7 @@
         </div>
         <div>
             <i>
-                <svg id="svg1" width="100px" height="100px">                    
+                <svg id="svg1" width="100px" height="100px">
                 </svg>
             </i>
         </div>

@@ -4,48 +4,25 @@
         <title>HTML 5 Foreign Content SVG in HTML </title>
         <meta description="Test to verify SVG elements inside SVG namespace are camelCased" />
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
-        
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
         <script type="text/javascript">
-        
             function RunTest()
             {
-                try
+                var parentNode = document.getElementById("svg1");
+
+                for(var i=1;i<parentNode.childNodes.length;i=i+2)
                 {
-                    var bResult = "FAIL";
-                    var parentNode = document.getElementById("svg1");
-                            
-                    for(var i=1;i<parentNode.childNodes.length;i=i+2)
-                    {
-                        var idName = parentNode.childNodes[i].id;
-                        var tagName = parentNode.childNodes[i].localName;
-                        if(idName!=tagName)
-                        {
-                            bResult = "FAIL";
-                            break;
-                        }
-                        else
-                        {
-                            bResult = "PASS"
-                        }
-                    }
+                    var idName = parentNode.childNodes[i].id;
+                    var localName = parentNode.childNodes[i].localName;
+                    assert_equals(localName, idName);
                 }
-                catch(ex)
-                {
-                    bResult = "PASS";
-                }
-				
-                document.getElementById("testresult").innerHTML = bResult;
             }
         </script>
     </head>
-    
-    <body onload="RunTest()">
 
-        <div class="testdata">
-            <p id="instructions"> Test passes if the word "PASS" appears below  </p>
-            <p> Test Result : </p>
-            <p id="testresult"> RUNNING </div>
-        </div>
+    <body onload="test(RunTest)">
+
         <svg id="svg1">
 
             <altglyph id="altGlyph" />
@@ -88,11 +65,8 @@
             <radialgradient id="radialGradient" />
             <textpath id="textPath" />
 
-        </svg> 
-        
+        </svg>
 
-        
     </body>
 
 </html>
-

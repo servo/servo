@@ -150,6 +150,7 @@ class SauceConnect():
             "--api-key=%s" % self.sauce_key,
             "--no-remove-colliding-tunnels",
             "--tunnel-identifier=%s" % self.sauce_tunnel_id,
+            "--metrics-address=0.0.0.0:9876",
             "--readyfile=./sauce_is_ready",
             "--tunnel-domains",
             "web-platform.test",

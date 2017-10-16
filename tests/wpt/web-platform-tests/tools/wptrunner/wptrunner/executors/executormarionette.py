@@ -62,12 +62,12 @@ class MarionetteProtocol(Protocol):
         self.marionette = marionette.Marionette(host='localhost',
                                                 port=self.marionette_port,
                                                 socket_timeout=None,
-                                                startup_timeout=startup_timeout)
+                                                startup_timeout=None)
 
         # XXX Move this timeout somewhere
         self.logger.debug("Waiting for Marionette connection")
         while True:
-            success = self.marionette.wait_for_port(60 * self.timeout_multiplier)
+            success = self.marionette.wait_for_port(startup_timeout)
             #When running in a debugger wait indefinitely for firefox to start
             if success or self.executor.debug_info is None:
                 break

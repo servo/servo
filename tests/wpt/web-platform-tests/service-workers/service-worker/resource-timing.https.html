@@ -13,6 +13,10 @@ function verify(performance, resource, description) {
     assert_greater_than(entry.workerStart, 0, description);
     assert_greater_than_equal(entry.workerStart, entry.startTime, description);
     assert_less_than_equal(entry.workerStart, entry.fetchStart, description);
+    assert_greater_than_equal(entry.responseStart, entry.fetchStart, description);
+    assert_greater_than_equal(entry.responseEnd, entry.responseStart, description);
+    assert_greater_than(entry.responseEnd, entry.fetchStart, description);
+    assert_greater_than(entry.duration, 0, description);
     if (resource.indexOf('redirect.py') != -1) {
         assert_less_than_equal(entry.workerStart, entry.redirectStart,
                                description);

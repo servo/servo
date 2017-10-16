@@ -17,7 +17,7 @@ var OTHER_BASE_URL = host_info['HTTPS_REMOTE_ORIGIN'] + base_path();
 var SCOPE1 = BASE_URL + 'resources/navigation-redirect-scope1.py?';
 var SCOPE2 = BASE_URL + 'resources/navigation-redirect-scope2.py?';
 var OUT_SCOPE = BASE_URL + 'resources/navigation-redirect-out-scope.py?';
-var SCRIPT = 'resources/navigation-redirect-worker.js';
+var SCRIPT = 'resources/redirect-worker.js';
 
 var OTHER_ORIGIN_IFRAME_URL =
     OTHER_BASE_URL + 'resources/navigation-redirect-other-origin.html';
@@ -322,9 +322,9 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(OUT_SCOPE),
+            SCOPE1 + 'sw=manual&url=' + encodeURIComponent(OUT_SCOPE),
             OUT_SCOPE,
-            [[SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(OUT_SCOPE)],
+            [[SCOPE1 + 'sw=manual&url=' + encodeURIComponent(OUT_SCOPE)],
              [],
              []]);
       });
@@ -332,9 +332,9 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE1),
+            SCOPE1 + 'sw=manual&url=' + encodeURIComponent(SCOPE1),
             SCOPE1,
-            [[SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE1), SCOPE1],
+            [[SCOPE1 + 'sw=manual&url=' + encodeURIComponent(SCOPE1), SCOPE1],
              [],
              []]);
       });
@@ -342,9 +342,9 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE2),
+            SCOPE1 + 'sw=manual&url=' + encodeURIComponent(SCOPE2),
             SCOPE2,
-            [[SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE2)],
+            [[SCOPE1 + 'sw=manual&url=' + encodeURIComponent(SCOPE2)],
              [SCOPE2],
              []]);
       });
@@ -352,10 +352,10 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaque&url=' +
+            SCOPE1 + 'sw=manual&url=' +
             encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE),
             OTHER_ORIGIN_OUT_SCOPE,
-            [[SCOPE1 + 'sw=opaque&url=' +
+            [[SCOPE1 + 'sw=manual&url=' +
               encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE)],
              [],
              []]);
@@ -364,9 +364,9 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
+            SCOPE1 + 'sw=manual&url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
             OTHER_ORIGIN_SCOPE,
-            [[SCOPE1 + 'sw=opaque&url=' +
+            [[SCOPE1 + 'sw=manual&url=' +
               encodeURIComponent(OTHER_ORIGIN_SCOPE)],
              [],
              [OTHER_ORIGIN_SCOPE]]);
@@ -375,9 +375,9 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaque&noLocationRedirect',
-            SCOPE1 + 'sw=opaque&noLocationRedirect',
-            [[SCOPE1 + 'sw=opaque&noLocationRedirect'],
+            SCOPE1 + 'sw=manual&noLocationRedirect',
+            SCOPE1 + 'sw=manual&noLocationRedirect',
+            [[SCOPE1 + 'sw=manual&noLocationRedirect'],
              [],
              []]);
       });
@@ -388,10 +388,10 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            SCOPE1 + 'sw=manualThroughCache&url=' +
             encodeURIComponent(OUT_SCOPE),
             OUT_SCOPE,
-            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            [[SCOPE1 + 'sw=manualThroughCache&url=' +
               encodeURIComponent(OUT_SCOPE)],
              [],
              []]);
@@ -402,10 +402,10 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            SCOPE1 + 'sw=manualThroughCache&url=' +
             encodeURIComponent(SCOPE1),
             SCOPE1,
-            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            [[SCOPE1 + 'sw=manualThroughCache&url=' +
               encodeURIComponent(SCOPE1), SCOPE1],
              [],
              []]);
@@ -416,10 +416,10 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            SCOPE1 + 'sw=manualThroughCache&url=' +
             encodeURIComponent(SCOPE2),
             SCOPE2,
-            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            [[SCOPE1 + 'sw=manualThroughCache&url=' +
               encodeURIComponent(SCOPE2)],
              [SCOPE2],
              []]);
@@ -430,10 +430,10 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            SCOPE1 + 'sw=manualThroughCache&url=' +
             encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE),
             OTHER_ORIGIN_OUT_SCOPE,
-            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            [[SCOPE1 + 'sw=manualThroughCache&url=' +
               encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE)],
              [],
              []]);
@@ -444,10 +444,10 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            SCOPE1 + 'sw=manualThroughCache&url=' +
             encodeURIComponent(OTHER_ORIGIN_SCOPE),
             OTHER_ORIGIN_SCOPE,
-            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            [[SCOPE1 + 'sw=manualThroughCache&url=' +
               encodeURIComponent(OTHER_ORIGIN_SCOPE)],
              [],
              [OTHER_ORIGIN_SCOPE]]);
@@ -458,9 +458,9 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
-            SCOPE1 + 'sw=opaqueThroughCache&noLocationRedirect',
-            SCOPE1 + 'sw=opaqueThroughCache&noLocationRedirect',
-            [[SCOPE1 + 'sw=opaqueThroughCache&noLocationRedirect'],
+            SCOPE1 + 'sw=manualThroughCache&noLocationRedirect',
+            SCOPE1 + 'sw=manualThroughCache&noLocationRedirect',
+            [[SCOPE1 + 'sw=manualThroughCache&noLocationRedirect'],
              [],
              []]);
       });

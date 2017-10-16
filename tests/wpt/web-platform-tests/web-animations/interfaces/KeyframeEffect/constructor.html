@@ -29,35 +29,7 @@ test(function(t) {
 }, "a KeyframeEffectReadOnly can be constructed with no frames");
 
 test(function(t) {
-  gEasingValueTests.forEach(function(subtest) {
-    var easing = subtest[0];
-    var expected = subtest[1];
-    var effect = new KeyframeEffectReadOnly(target, {
-      left: ["10px", "20px"],
-      easing: easing
-    });
-    assert_equals(effect.getKeyframes()[0].easing, expected,
-                  "resulting easing for '" + easing + "'");
-  });
-}, "easing values are parsed correctly when passed to the " +
-   "KeyframeEffectReadOnly constructor in a property-indexed keyframe");
-
-test(function(t) {
-  gEasingValueTests.forEach(function(subtest) {
-    var easing = subtest[0];
-    var expected = subtest[1];
-    var effect = new KeyframeEffectReadOnly(target, [
-      { offset: 0, left: "10px", easing: easing },
-      { offset: 1, left: "20px" }
-    ]);
-    assert_equals(effect.getKeyframes()[0].easing, expected,
-                  "resulting easing for '" + easing + "'");
-  });
-}, "easing values are parsed correctly when passed to the " +
-   "KeyframeEffectReadOnly constructor in regular keyframes");
-
-test(function(t) {
-  gEasingValueTests.forEach(function(subtest) {
+  gEasingParsingTests.forEach(function(subtest) {
     var easing = subtest[0];
     var expected = subtest[1];
     var effect = new KeyframeEffectReadOnly(target, {
@@ -68,15 +40,6 @@ test(function(t) {
   });
 }, "easing values are parsed correctly when passed to the " +
    "KeyframeEffectReadOnly constructor in KeyframeEffectOptions");
-
-test(function(t) {
-  gInvalidEasings.forEach(invalidEasing => {
-    assert_throws(new TypeError, () => {
-      new KeyframeEffectReadOnly(target, { easing: invalidEasing });
-    }, `TypeError is thrown for easing '${invalidEasing}'`);
-  });
-}, 'invalid easing values are correctly rejected when passed to the ' +
-   'KeyframeEffectReadOnly constructor in regular keyframes');
 
 test(function(t) {
   gInvalidEasings.forEach(invalidEasing => {
@@ -158,26 +121,6 @@ gPropertyIndexedKeyframesTests.forEach(function(subtest) {
      " roundtrips");
 });
 
-test(function(t) {
-  var expectedOrder = ["composite", "easing", "offset", "left", "marginLeft"];
-  var actualOrder = [];
-  var kf1 = {};
-  var kf2 = { marginLeft: "10px", left: "20px", offset: 1 };
-  [{ p: "marginLeft", v: "10px" },
-   { p: "left",       v: "20px" },
-   { p: "offset",     v: "0" },
-   { p: "easing",     v: "linear" },
-   { p: "composite",  v: "replace" }].forEach(function(e) {
-    Object.defineProperty(kf1, e.p, {
-      enumerable: true,
-      get: function() { actualOrder.push(e.p); return e.v; }
-    });
-  });
-  new KeyframeEffectReadOnly(target, [kf1, kf2]);
-  assert_array_equals(actualOrder, expectedOrder, "property access order");
-}, "the KeyframeEffectReadOnly constructor reads keyframe properties in the " +
-   "expected order");
-
 gKeyframeSequenceTests.forEach(function(subtest) {
   test(function(t) {
     var effect = new KeyframeEffectReadOnly(target, subtest.input);
@@ -200,15 +143,6 @@ gInvalidKeyframesTests.forEach(function(subtest) {
       new KeyframeEffectReadOnly(target, subtest.input);
     });
   }, "KeyframeEffectReadOnly constructor throws with " + subtest.desc);
-});
-
-gInvalidEasingInKeyframeSequenceTests.forEach(function(subtest) {
-  test(function(t) {
-    assert_throws(new TypeError, function() {
-      new KeyframeEffectReadOnly(target, subtest.input);
-    });
-  }, "Invalid easing [" + subtest.desc + "] in keyframe sequence " +
-     "should be thrown");
 });
 
 test(function(t) {

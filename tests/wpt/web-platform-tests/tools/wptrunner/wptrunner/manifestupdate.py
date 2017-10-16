@@ -29,8 +29,11 @@ set of results and conditionals. The AST of the underlying parsed manifest
 is updated with the changes, and the result is serialised to a file.
 """
 
+
 class ConditionError(Exception):
-    pass
+    def __init__(self, cond=None):
+        self.cond = cond
+
 
 Result = namedtuple("Result", ["run_info", "status"])
 
@@ -102,6 +105,7 @@ class ExpectedManifest(ManifestItem):
         return urlparse.urljoin(self.url_base,
                                 "/".join(self.test_path.split(os.path.sep)))
 
+
 class TestNode(ManifestItem):
     def __init__(self, node):
         """Tree node associated with a particular test in a manifest
@@ -111,12 +115,13 @@ class TestNode(ManifestItem):
         ManifestItem.__init__(self, node)
         self.updated_expected = []
         self.new_expected = []
+        self.new_disabled = False
         self.subtests = {}
         self.default_status = None
         self._from_file = True
 
     @classmethod
-    def create(cls, test_type, test_id):
+    def create(cls, test_id):
         """Create a TestNode corresponding to a given test
 
         :param test_type: The type of the test
@@ -127,14 +132,13 @@ class TestNode(ManifestItem):
         node = DataNode(name)
         self = cls(node)
 
-        self.set("type", test_type)
         self._from_file = False
         return self
 
     @property
     def is_empty(self):
-        required_keys = set(["type"])
-        if set(self._data.keys()) != required_keys:
+        ignore_keys = set(["type"])
+        if set(self._data.keys()) - ignore_keys:
             return False
         return all(child.is_empty for child in self.children)
 
@@ -182,7 +186,7 @@ class TestNode(ManifestItem):
             self.new_expected.append(Result(run_info, result.status))
             self.root.modified = True
 
-    def coalesce_expected(self):
+    def coalesce_expected(self, stability=None):
         """Update the underlying manifest AST for this test based on all the
         added results.
 
@@ -191,9 +195,11 @@ class TestNode(ManifestItem):
         that get more than one different result in the updated run, and add new
         conditionals for anything that doesn't match an existing conditional.
 
-        Conditionals not matched by any added result are not changed."""
+        Conditionals not matched by any added result are not changed.
 
-        final_conditionals = []
+        When `stability` is not None, disable any test that shows multiple
+        unexpected results for the same set of parameters.
+        """
 
         try:
             unconditional_status = self.get("expected")
@@ -203,7 +209,7 @@ class TestNode(ManifestItem):
         for conditional_value, results in self.updated_expected:
             if not results:
                 # The conditional didn't match anything in these runs so leave it alone
-                final_conditionals.append(conditional_value)
+                pass
             elif all(results[0].status == result.status for result in results):
                 # All the new values for this conditional matched, so update the node
                 result = results[0]
@@ -213,7 +219,6 @@ class TestNode(ManifestItem):
                         self.remove_value("expected", conditional_value)
                 else:
                     conditional_value.value = result.status
-                    final_conditionals.append(conditional_value)
             elif conditional_value.condition_node is not None:
                 # Blow away the existing condition and rebuild from scratch
                 # This isn't sure to work if we have a conditional later that matches
@@ -234,20 +239,22 @@ class TestNode(ManifestItem):
                 status = self.new_expected[0].status
                 if status != self.default_status:
                     self.set("expected", status, condition=None)
-                    final_conditionals.append(self._data["expected"][-1])
             else:
                 try:
                     conditionals = group_conditionals(
                         self.new_expected,
                         property_order=self.root.property_order,
                         boolean_properties=self.root.boolean_properties)
-                except ConditionError:
-                    print "Conflicting test results for %s, cannot update" % self.root.test_path
+                except ConditionError as e:
+                    if stability is not None:
+                       self.set("disabled", stability or "unstable", e.cond.children[0])
+                       self.new_disabled = True
+                    else:
+                        print "Conflicting test results for %s, cannot update" % self.root.test_path
                     return
                 for conditional_node, status in conditionals:
                     if status != unconditional_status:
                         self.set("expected", status, condition=conditional_node.children[0])
-                        final_conditionals.append(self._data["expected"][-1])
 
         if ("expected" in self._data and
             len(self._data["expected"]) > 0 and
@@ -368,6 +375,9 @@ def group_conditionals(values, property_order=None, boolean_properties=None):
     for run_info, status in values:
         prop_set = tuple((prop, run_info[prop]) for prop in include_props)
         if prop_set in conditions:
+            if conditions[prop_set][1] != status:
+                # A prop_set contains contradictory results
+                raise ConditionError(make_expr(prop_set, status, boolean_properties))
             continue
 
         expr = make_expr(prop_set, status, boolean_properties=boolean_properties)

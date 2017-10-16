@@ -1,7 +1,0 @@
-   /* this is used in the test document (002): */
-   .teST { background: red; color: yellow; } /* should be overridden, and matches the class exactly */
-   .TEst { background: white; color: green; } /* in quirks mode, this should also match the class */
-
-   /* this is used in the control document (002b): */
-   .conTROL { background: white; color: green; } /* matches the class exactly */
-   .CONTROL { background: red; color: yellow; } /* should not match */

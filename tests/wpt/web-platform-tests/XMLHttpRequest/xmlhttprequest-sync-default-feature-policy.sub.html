@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<body>
+  <meta charset="utf-8">
+  <title>Synchronous XMLHttpRequest Feature Policy Test</title>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script src=util/utils.js></script>
+  <script>
+  'use strict';
+  run_all_fp_tests_allow_all(
+      'http://{{domains[www]}}:{{ports[http][0]}}',
+      'sync-xhr',
+      'InvalidAccessError: Failed to execute \'open\' on \'XMLHttpRequest\': ' +
+      'Synchronous requests are disabled by Feature Policy.',
+      () => {
+        return new Promise((resolve, reject) => {
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "data:,", false);
+            xhr.send();
+            resolve();
+          } catch(e) {
+            reject(e);
+          }
+       });
+      });
+  </script>
+</body>

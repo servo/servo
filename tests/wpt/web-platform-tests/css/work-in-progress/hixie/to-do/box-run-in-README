@@ -1,5 +1,0 @@
-There is a run-in test in the first-line tests. See:
-   http://www.hixie.ch/tests/adhoc/css/box/block/first-line/009.html
-
-There is also a comprehensive run-in test here, but it was invalid last I checked:
-   http://www.hixie.ch/tests/evil/mixed/display-runin.html

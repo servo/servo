@@ -1,3 +1,0 @@
-<?xml-stylesheet href="test.css" type="text/css"?>
-<!--first test-->
-<tim boland/>

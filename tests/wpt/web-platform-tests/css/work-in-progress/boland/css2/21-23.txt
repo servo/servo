@@ -1,8 +1,0 @@
-<?xml version=1?>
-<?xml-stylesheet href="test.css" type="text/css"?>
-<!DOCTYPE UID>
-<!--first test-->
-<UID>
-<name>tim</name>
-<title>scientist</title>
-</UID>
