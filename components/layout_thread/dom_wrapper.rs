@@ -859,11 +859,6 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
-    #[inline]
-    fn type_id_without_excluding_pseudo_elements(&self) -> LayoutNodeType {
-        self.node.type_id()
-    }
-
     fn parent_style(&self) -> Arc<ComputedValues> {
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_data().unwrap().borrow();
