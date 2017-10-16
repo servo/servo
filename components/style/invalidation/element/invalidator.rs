@@ -6,7 +6,6 @@
 //! element styles need to be invalidated.
 
 use context::StackLimitChecker;
-use data::ElementData;
 use dom::{TElement, TNode};
 use selector_parser::SelectorImpl;
 use selectors::NthIndexCache;
@@ -18,9 +17,6 @@ use smallvec::SmallVec;
 use std::fmt;
 
 /// A trait to abstract the collection of invalidations for a given pass.
-///
-/// The `data` argument is a mutable reference to the element's style data, if
-/// any.
 pub trait InvalidationProcessor<E>
 where
     E: TElement,
@@ -36,7 +32,6 @@ where
     fn collect_invalidations(
         &mut self,
         element: E,
-        data: Option<&mut ElementData>,
         nth_index_cache: Option<&mut NthIndexCache>,
         quirks_mode: QuirksMode,
         descendant_invalidations: &mut InvalidationVector,
@@ -45,34 +40,17 @@ where
 
     /// Returns whether the invalidation process should process the descendants
     /// of the given element.
-    fn should_process_descendants(
-        &mut self,
-        element: E,
-        data: Option<&mut ElementData>,
-    ) -> bool;
+    fn should_process_descendants(&mut self, element: E) -> bool;
 
     /// Executes an arbitrary action when the recursion limit is exceded (if
     /// any).
-    fn recursion_limit_exceeded(
-        &mut self,
-        element: E,
-        data: Option<&mut ElementData>,
-    );
+    fn recursion_limit_exceeded(&mut self, element: E);
 
     /// Executes an action when `Self` is invalidated.
-    fn invalidated_self(
-        &mut self,
-        element: E,
-        data: Option<&mut ElementData>,
-    );
+    fn invalidated_self(&mut self, element: E);
 
     /// Executes an action when any descendant of `Self` is invalidated.
-    fn invalidated_descendants(
-        &mut self,
-        element: E,
-        data: Option<&mut ElementData>,
-        child: E,
-    );
+    fn invalidated_descendants(&mut self, element: E, child: E);
 }
 
 /// The struct that takes care of encapsulating all the logic on where and how
@@ -83,16 +61,6 @@ where
     P: InvalidationProcessor<E>
 {
     element: E,
-    // TODO(emilio): It's tempting enough to just avoid running invalidation for
-    // elements without data.
-    //
-    // But that's be wrong for sibling invalidations when a new element has been
-    // inserted in the tree and still has no data (though I _think_ the slow
-    // selector bits save us, it'd be nice not to depend on them).
-    //
-    // Seems like we could at least avoid running invalidation for the
-    // descendants if an element has no data, though.
-    data: Option<&'a mut ElementData>,
     quirks_mode: QuirksMode,
     stack_limit_checker: Option<&'a StackLimitChecker>,
     nth_index_cache: Option<&'a mut NthIndexCache>,
@@ -232,7 +200,6 @@ where
     /// Trivially constructs a new `TreeStyleInvalidator`.
     pub fn new(
         element: E,
-        data: Option<&'a mut ElementData>,
         quirks_mode: QuirksMode,
         stack_limit_checker: Option<&'a StackLimitChecker>,
         nth_index_cache: Option<&'a mut NthIndexCache>,
@@ -240,7 +207,6 @@ where
     ) -> Self {
         Self {
             element,
-            data,
             quirks_mode,
             stack_limit_checker,
             nth_index_cache,
@@ -257,7 +223,6 @@ where
 
         let invalidated_self = self.processor.collect_invalidations(
             self.element,
-            self.data.as_mut().map(|d| &mut **d),
             self.nth_index_cache.as_mut().map(|c| &mut **c),
             self.quirks_mode,
             &mut descendant_invalidations,
@@ -291,11 +256,8 @@ where
         let mut any_invalidated = false;
 
         while let Some(sibling) = current {
-            let mut sibling_data = sibling.mutate_data();
-
             let mut sibling_invalidator = TreeStyleInvalidator::new(
                 sibling,
-                sibling_data.as_mut().map(|d| &mut **d),
                 self.quirks_mode,
                 self.stack_limit_checker,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
@@ -359,11 +321,8 @@ where
 
         let mut invalidated_child = false;
         let invalidated_descendants = {
-            let mut child_data = child.mutate_data();
-
             let mut child_invalidator = TreeStyleInvalidator::new(
                 child,
-                child_data.as_mut().map(|d| &mut **d),
                 self.quirks_mode,
                 self.stack_limit_checker,
                 self.nth_index_cache.as_mut().map(|c| &mut **c),
@@ -392,11 +351,7 @@ where
         // Since we keep the traversal flags in terms of the flattened tree,
         // we need to propagate it as appropriate.
         if invalidated_child || invalidated_descendants {
-            self.processor.invalidated_descendants(
-                self.element,
-                self.data.as_mut().map(|d| &mut **d),
-                child,
-            );
+            self.processor.invalidated_descendants(self.element, child);
         }
 
         invalidated_child || invalidated_descendants
@@ -467,10 +422,7 @@ where
         debug!(" > {:?}", invalidations);
 
         let should_process =
-            self.processor.should_process_descendants(
-                self.element,
-                self.data.as_mut().map(|d| &mut **d),
-            );
+            self.processor.should_process_descendants(self.element);
 
         if !should_process {
             return false;
@@ -478,10 +430,7 @@ where
 
         if let Some(checker) = self.stack_limit_checker {
             if checker.limit_exceeded() {
-                self.processor.recursion_limit_exceeded(
-                    self.element,
-                    self.data.as_mut().map(|d| &mut **d)
-                );
+                self.processor.recursion_limit_exceeded(self.element);
                 return true;
             }
         }
@@ -771,10 +720,7 @@ where
         }
 
         if invalidated_self {
-            self.processor.invalidated_self(
-                self.element,
-                self.data.as_mut().map(|d| &mut **d),
-            );
+            self.processor.invalidated_self(self.element);
         }
 
         SingleInvalidationResult { invalidated_self, matched, }
