@@ -763,12 +763,12 @@ impl Stylist {
 
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoText |
             PseudoElement::ServoInputText => false,
             PseudoElement::ServoAnonymousBlock |
             PseudoElement::ServoAnonymousTable |
-            PseudoElement::ServoAnonymousTableCell |
-            PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableWrapper |
             PseudoElement::ServoTableWrapper |
             PseudoElement::ServoInlineBlockWrapper |

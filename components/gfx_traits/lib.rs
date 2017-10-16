@@ -42,10 +42,9 @@ impl StackingContextId {
         StackingContextId(0)
     }
 
-    /// Returns a new sacking context id with the given numeric id.
-    #[inline]
-    pub fn new(id: u64) -> StackingContextId {
-        StackingContextId(id)
+    pub fn next(&self) -> StackingContextId {
+        let StackingContextId(id) = *self;
+        StackingContextId(id + 1)
     }
 }
 
