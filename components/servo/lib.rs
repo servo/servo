@@ -183,7 +183,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             };
 
             let mut debug_flags = webrender::DebugFlags::empty();
-            debug_flags.set(webrender::PROFILER_DBG, opts.webrender_stats);
+            debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
 
             webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
