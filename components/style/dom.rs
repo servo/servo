@@ -64,28 +64,48 @@ pub trait NodeInfo {
     fn is_element(&self) -> bool;
     /// Whether this node is a text node.
     fn is_text_node(&self) -> bool;
-
-    /// Whether this node needs layout.
-    ///
-    /// Comments, doctypes, etc are ignored by layout algorithms.
-    fn needs_layout(&self) -> bool { self.is_element() || self.is_text_node() }
 }
 
 /// A node iterator that only returns node that don't need layout.
 pub struct LayoutIterator<T>(pub T);
 
-impl<T, I> Iterator for LayoutIterator<T>
-    where T: Iterator<Item=I>,
-          I: NodeInfo,
+impl<T, N> Iterator for LayoutIterator<T>
+where
+    T: Iterator<Item = N>,
+    N: NodeInfo,
 {
-    type Item = I;
-    fn next(&mut self) -> Option<I> {
+    type Item = N;
+
+    fn next(&mut self) -> Option<N> {
         loop {
-            // Filter out nodes that layout should ignore.
-            let n = self.0.next();
-            if n.is_none() || n.as_ref().unwrap().needs_layout() {
-                return n
+            match self.0.next() {
+                Some(n) => {
+                    // Filter out nodes that layout should ignore.
+                    if n.is_text_node() || n.is_element() {
+                        return Some(n)
+                    }
+                }
+                None => return None,
             }
+        }
+    }
+}
+
+/// An iterator over the DOM children of a node.
+pub struct DomChildren<N>(Option<N>);
+impl<N> Iterator for DomChildren<N>
+where
+    N: TNode
+{
+    type Item = N;
+
+    fn next(&mut self) -> Option<N> {
+        match self.0.take() {
+            Some(n) => {
+                self.0 = n.next_sibling();
+                Some(n)
+            }
+            None => None,
         }
     }
 }
@@ -96,29 +116,34 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// The concrete `TElement` type.
     type ConcreteElement: TElement<ConcreteNode = Self>;
 
-    /// A concrete children iterator type in order to iterate over the `Node`s.
-    ///
-    /// TODO(emilio): We should eventually replace this with the `impl Trait`
-    /// syntax.
-    type ConcreteChildrenIterator: Iterator<Item = Self>;
-
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
 
-    /// Get this node's parent element if present.
-    fn parent_element(&self) -> Option<Self::ConcreteElement> {
-        self.parent_node().and_then(|n| n.as_element())
-    }
+    /// Get this node's first child.
+    fn first_child(&self) -> Option<Self>;
 
-    /// Returns an iterator over this node's children.
-    fn children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+    /// Get this node's first child.
+    fn last_child(&self) -> Option<Self>;
+
+    /// Get this node's previous sibling.
+    fn prev_sibling(&self) -> Option<Self>;
+
+    /// Get this node's next sibling.
+    fn next_sibling(&self) -> Option<Self>;
+
+    /// Iterate over the DOM children of an element.
+    fn dom_children(&self) -> DomChildren<Self> {
+        DomChildren(self.first_child())
+    }
 
     /// Get this node's parent element from the perspective of a restyle
     /// traversal.
     fn traversal_parent(&self) -> Option<Self::ConcreteElement>;
 
-    /// Get this node's children from the perspective of a restyle traversal.
-    fn traversal_children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+    /// Get this node's parent element if present.
+    fn parent_element(&self) -> Option<Self::ConcreteElement> {
+        self.parent_node().and_then(|n| n.as_element())
+    }
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -135,10 +160,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
 
     /// Set whether this node can be fragmented.
     unsafe fn set_can_be_fragmented(&self, value: bool);
-
-    /// Whether this node is in the document right now needed to clear the
-    /// restyle data appropriately on some forced restyles.
-    fn is_in_doc(&self) -> bool;
 }
 
 /// Wrapper to output the ElementData along with the node when formatting for
@@ -223,9 +244,11 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
         write!(f, "  ")?;
     }
     stringify(f, n)?;
-    for kid in n.traversal_children() {
-        writeln!(f, "")?;
-        fmt_subtree(f, stringify, kid, indent + 1)?;
+    if let Some(e) = n.as_element() {
+        for kid in e.traversal_children() {
+            writeln!(f, "")?;
+            fmt_subtree(f, stringify, kid, indent + 1)?;
+        }
     }
 
     Ok(())
@@ -255,6 +278,12 @@ pub trait TElement
 {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
+
+    /// A concrete children iterator type in order to iterate over the `Node`s.
+    ///
+    /// TODO(emilio): We should eventually replace this with the `impl Trait`
+    /// syntax.
+    type TraversalChildrenIterator: Iterator<Item = Self::ConcreteNode>;
 
     /// Type of the font metrics provider
     ///
@@ -294,6 +323,9 @@ pub trait TElement
     fn traversal_parent(&self) -> Option<Self> {
         self.as_node().traversal_parent()
     }
+
+    /// Get this node's children from the perspective of a restyle traversal.
+    fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator>;
 
     /// Returns the parent element we should inherit from.
     ///

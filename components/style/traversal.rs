@@ -841,7 +841,7 @@ where
     let is_initial_style = context.thread_local.is_initial_style();
 
     // Loop over all the traversal children.
-    for child_node in element.as_node().traversal_children() {
+    for child_node in element.traversal_children() {
         let child = match child_node.as_element() {
             Some(el) => el,
             None => {
@@ -933,7 +933,7 @@ where
     let mut parents = SmallVec::<[E; 32]>::new();
     parents.push(root);
     while let Some(p) = parents.pop() {
-        for kid in p.as_node().traversal_children() {
+        for kid in p.traversal_children() {
             if let Some(kid) = kid.as_element() {
                 // We maintain an invariant that, if an element has data, all its
                 // ancestors have data as well.
