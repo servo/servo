@@ -14,8 +14,7 @@ bitflags! {
     ///
     /// TODO(emilio): We really really want to use the NS_EVENT_STATE bindings
     /// for this.
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(MallocSizeOf)]
     pub flags ElementState: u64 {
         /// The mouse is down on this element.
         /// <https://html.spec.whatwg.org/multipage/#selector-active>

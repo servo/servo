@@ -27,9 +27,7 @@ pub type HorizontalPosition = PositionComponent<X>;
 pub type VerticalPosition = PositionComponent<Y>;
 
 /// The specified value of a component of a CSS `<position>`.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum PositionComponent<S> {
     /// `center`
     Center,

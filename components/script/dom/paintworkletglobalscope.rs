@@ -68,7 +68,7 @@ pub struct PaintWorkletGlobalScope {
     /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
     /// The image cache
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     /// <https://drafts.css-houdini.org/css-paint-api/#paint-definitions>
     paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition>>>,
@@ -464,7 +464,7 @@ pub enum PaintWorkletTask {
 /// <https://drafts.css-houdini.org/css-paint-api/#paint-definition>
 /// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
 /// which can't be moved.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PaintDefinition {
     class_constructor: Heap<JSVal>,

@@ -27,7 +27,7 @@ pub struct WebGLProgram {
     linked: Cell<bool>,
     fragment_shader: MutNullableDom<WebGLShader>,
     vertex_shader: MutNullableDom<WebGLShader>,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
 }
 

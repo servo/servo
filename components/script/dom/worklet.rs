@@ -151,7 +151,7 @@ impl WorkletMethods for Worklet {
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
 pub struct WorkletId(Uuid);
 
-known_heap_size!(0, WorkletId);
+malloc_size_of_is_0!(WorkletId);
 
 impl WorkletId {
     fn new() -> WorkletId {
@@ -653,10 +653,10 @@ impl WorkletThread {
 }
 
 /// An executor of worklet tasks
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct WorkletExecutor {
     worklet_id: WorkletId,
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     primary_sender: Sender<WorkletData>,
 }
 

@@ -64,7 +64,7 @@ pub struct WebGLCreateContextResult {
     pub share_mode: WebGLContextShareMode,
 }
 
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
 pub enum WebGLContextShareMode {
     /// Fast: a shared texture_id is used in WebRender.
     SharedTexture,
@@ -73,10 +73,10 @@ pub enum WebGLContextShareMode {
 }
 
 /// Helper struct to send WebGLCommands to a specific WebGLContext.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct WebGLMsgSender {
     ctx_id: WebGLContextId,
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     sender: WebGLChan,
 }
 
@@ -313,8 +313,8 @@ macro_rules! define_resource_id {
             }
         }
 
-        impl ::heapsize::HeapSizeOf for $name {
-            fn heap_size_of_children(&self) -> usize { 0 }
+        impl ::malloc_size_of::MallocSizeOf for $name {
+            fn size_of(&self, _ops: &mut ::malloc_size_of::MallocSizeOfOps) -> usize { 0 }
         }
     }
 }
@@ -327,12 +327,9 @@ define_resource_id!(WebGLProgramId);
 define_resource_id!(WebGLShaderId);
 define_resource_id!(WebGLVertexArrayId);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord)]
+#[derive(PartialEq, PartialOrd, Serialize)]
 pub struct WebGLContextId(pub usize);
-
-impl ::heapsize::HeapSizeOf for WebGLContextId {
-    fn heap_size_of_children(&self) -> usize { 0 }
-}
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum WebGLError {

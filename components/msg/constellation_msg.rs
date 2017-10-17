@@ -18,7 +18,7 @@ pub enum KeyState {
 }
 
 //N.B. Based on the glutin key enum
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum Key {
     Space,
     Apostrophe,
@@ -217,14 +217,14 @@ impl PipelineNamespace {
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PipelineNamespaceId(pub u32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PipelineIndex(pub NonZero<u32>);
-known_heap_size!(0, PipelineIndex);
+malloc_size_of_is_0!(PipelineIndex);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PipelineId {
     pub namespace_id: PipelineNamespaceId,
     pub index: PipelineIndex
@@ -276,9 +276,9 @@ impl fmt::Display for PipelineId {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct BrowsingContextIndex(pub NonZero<u32>);
-known_heap_size!(0, BrowsingContextIndex);
+malloc_size_of_is_0!(BrowsingContextIndex);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct BrowsingContextId {
     pub namespace_id: PipelineNamespaceId,
     pub index: BrowsingContextIndex,
@@ -305,7 +305,7 @@ impl fmt::Display for BrowsingContextId {
 
 thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> = Cell::new(None));
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TopLevelBrowsingContextId(BrowsingContextId);
 
 impl TopLevelBrowsingContextId {
@@ -362,7 +362,7 @@ pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
     BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FrameType {
     IFrame,
     MozBrowserIFrame,

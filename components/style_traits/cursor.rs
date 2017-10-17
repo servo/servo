@@ -16,9 +16,8 @@ macro_rules! define_cursor {
         ]
     ) => {
         /// <https://drafts.csswg.org/css-ui/#cursor>
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
+        #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
         #[repr(u8)]
         #[allow(missing_docs)]
         pub enum Cursor {

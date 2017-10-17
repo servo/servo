@@ -140,7 +140,7 @@ pub struct Element {
     attrs: DomRefCell<Vec<Dom<Attr>>>,
     id_attribute: DomRefCell<Option<Atom>>,
     is: DomRefCell<Option<LocalName>>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     style_attribute: DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
     class_list: MutNullableDom<DOMTokenList>,
@@ -149,12 +149,12 @@ pub struct Element {
     /// operations may require restyling this element or its descendants. The
     /// flags are not atomic, so the style system takes care of only set them
     /// when it has exclusive access to the element.
-    #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
+    #[ignore_malloc_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue>
     custom_element_reaction_queue: DomRefCell<Vec<CustomElementReaction>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-definition>
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     custom_element_state: Cell<CustomElementState>,
@@ -176,7 +176,7 @@ impl fmt::Debug for DomRoot<Element> {
     }
 }
 
-#[derive(HeapSizeOf, PartialEq)]
+#[derive(MallocSizeOf, PartialEq)]
 pub enum ElementCreator {
     ParserCreated(u64),
     ScriptCreated,
@@ -188,7 +188,7 @@ pub enum CustomElementCreationMode {
 }
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
-#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CustomElementState {
     Undefined,
     Failed,
@@ -3025,7 +3025,7 @@ impl<'a> AttributeMutation<'a> {
 /// A holder for an element's "tag name", which will be lazily
 /// resolved and cached. Should be reset when the document
 /// owner changes.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct TagName {
     ptr: DomRefCell<Option<LocalName>>,
 }

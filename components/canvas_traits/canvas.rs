@@ -82,13 +82,13 @@ pub enum FromScriptMsg {
     SendPixels(IpcSender<Option<Vec<u8>>>),
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct CanvasGradientStop {
     pub offset: f64,
     pub color: RGBA,
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct LinearGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -110,7 +110,7 @@ impl LinearGradientStyle {
     }
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct RadialGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -165,7 +165,7 @@ pub enum FillOrStrokeStyle {
     Surface(SurfaceStyle),
 }
 
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum LineCapStyle {
     Butt = 0,
     Round = 1,
@@ -185,7 +185,7 @@ impl FromStr for LineCapStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum LineJoinStyle {
     Round = 0,
     Bevel = 1,
@@ -227,7 +227,7 @@ impl FromStr for RepetitionStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CompositionStyle {
     SrcIn,
     SrcOut,
@@ -281,7 +281,7 @@ impl CompositionStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum BlendingStyle {
     Multiply,
     Screen,
@@ -347,7 +347,7 @@ impl BlendingStyle {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CompositionOrBlending {
     Composition(CompositionStyle),
     Blending(BlendingStyle),

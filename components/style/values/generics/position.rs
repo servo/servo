@@ -6,10 +6,8 @@
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToAnimatedZero, ToComputedValue)]
+#[derive(MallocSizeOf, PartialEq, ToAnimatedZero, ToComputedValue)]
 pub struct Position<H, V> {
     /// The horizontal component of position.
     pub horizontal: H,

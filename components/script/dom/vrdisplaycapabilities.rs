@@ -14,7 +14,7 @@ use webvr_traits::WebVRDisplayCapabilities;
 #[dom_struct]
 pub struct VRDisplayCapabilities {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     capabilities: DomRefCell<WebVRDisplayCapabilities>
 }
 

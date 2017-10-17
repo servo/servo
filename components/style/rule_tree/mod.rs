@@ -9,8 +9,6 @@
 use applicable_declarations::ApplicableDeclarationList;
 #[cfg(feature = "gecko")]
 use gecko::selector_parser::PseudoElement;
-#[cfg(feature = "servo")]
-use heapsize::HeapSizeOf;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
@@ -46,7 +44,7 @@ use thread_state;
 /// logs from http://logs.glob.uno/?c=mozilla%23servo&s=3+Apr+2017&e=3+Apr+2017#c644094
 /// to se a discussion about the different memory orderings used here.
 #[derive(Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct RuleTree {
     root: StrongRuleNode,
 }
@@ -463,7 +461,7 @@ const RULE_TREE_GC_INTERVAL: usize = 300;
 /// [1]: https://drafts.csswg.org/css-cascade/#cascade-origin
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
     UANormal = 0,
@@ -827,10 +825,7 @@ pub struct StrongRuleNode {
 }
 
 #[cfg(feature = "servo")]
-impl HeapSizeOf for StrongRuleNode {
-    fn heap_size_of_children(&self) -> usize { 0 }
-}
-
+malloc_size_of_is_0!(StrongRuleNode);
 
 impl StrongRuleNode {
     fn new(n: Box<RuleNode>) -> Self {

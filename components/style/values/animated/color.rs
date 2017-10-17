@@ -11,7 +11,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 ///
 /// Unlike in computed values, each component value may exceed the
 /// range `[0.0, 1.0]`.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToAnimatedZero)]
 pub struct RGBA {
     /// The red component.
@@ -70,7 +70,7 @@ impl ComputeSquaredDistance for RGBA {
 }
 
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Color {
     pub color: RGBA,

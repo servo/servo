@@ -415,7 +415,7 @@ macro_rules! __define_css_keyword_enum__add_optional_traits {
     ($name: ident [ $( $css: expr => $variant: ident ),+ ]
                   [ $( $alias: expr => $alias_variant: ident),* ]) => {
         __define_css_keyword_enum__actual! {
-            $name [ Deserialize, Serialize, HeapSizeOf ]
+            $name [ Deserialize, Serialize, MallocSizeOf ]
                   [ $( $css => $variant ),+ ]
                   [ $( $alias => $alias_variant ),* ]
         }
@@ -490,9 +490,7 @@ pub mod specified {
 
     /// Whether to allow negative lengths or not.
     #[repr(u8)]
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
+    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd)]
     pub enum AllowedNumericType {
         /// Allow all kind of numeric values.
         All,

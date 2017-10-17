@@ -14,13 +14,13 @@ extern crate canvas_traits;
 extern crate cssparser;
 extern crate euclid;
 extern crate gfx_traits;
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 #[macro_use] extern crate html5ever;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
@@ -72,11 +72,11 @@ impl StyleData {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub struct OpaqueStyleAndLayoutData {
     // NB: We really store a `StyleAndLayoutData` here, so be careful!
-    #[ignore_heap_size_of = "TODO(#6910) Box value that should be counted but \
-                             the type lives in layout"]
+    #[ignore_malloc_size_of = "TODO(#6910) Box value that should be counted but \
+                               the type lives in layout"]
     pub ptr: NonZero<*mut StyleData>,
 }
 
@@ -84,7 +84,7 @@ pub struct OpaqueStyleAndLayoutData {
 unsafe impl Send for OpaqueStyleAndLayoutData {}
 
 /// Information that we need stored in each DOM node.
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct DomParallelInfo {
     /// The number of children remaining to process during bottom-up traversal.
     pub children_to_process: AtomicIsize,

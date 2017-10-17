@@ -18,7 +18,7 @@ use style::stylesheets::NamespaceRule;
 #[dom_struct]
 pub struct CSSNamespaceRule {
     cssrule: CSSRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     namespacerule: Arc<Locked<NamespaceRule>>,
 }
 

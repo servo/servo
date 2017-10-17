@@ -12,9 +12,7 @@ use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A generic value for the `initial-letter` property.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum InitialLetter<Number, Integer> {
     /// `normal`
     Normal,
@@ -31,9 +29,7 @@ impl<N, I> InitialLetter<N, I> {
 }
 
 /// A generic spacing value for the `letter-spacing` and `word-spacing` properties.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum Spacing<Value> {
     /// `normal`
     Normal,
@@ -111,10 +107,8 @@ where
 }
 
 /// A generic value for the `line-height` property.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToAnimatedValue, ToCss)]
+#[derive(MallocSizeOf, PartialEq, ToAnimatedValue, ToCss)]
 pub enum LineHeight<Number, LengthOrPercentage> {
     /// `normal`
     Normal,

@@ -30,7 +30,7 @@ use std::default::Default;
 use style::element_state::*;
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 enum ButtonType {
     Submit,
     Reset,

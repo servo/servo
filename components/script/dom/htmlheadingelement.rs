@@ -10,7 +10,7 @@ use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum HeadingLevel {
     Heading1,
     Heading2,

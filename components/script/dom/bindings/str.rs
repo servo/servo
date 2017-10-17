@@ -19,7 +19,7 @@ use std::str;
 use std::str::{Bytes, FromStr};
 
 /// Encapsulates the IDL `ByteString` type.
-#[derive(Clone, Debug, Default, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct ByteString(Vec<u8>);
 
 impl ByteString {
@@ -78,7 +78,7 @@ impl ops::Deref for ByteString {
 
 /// A string that is constructed from a UCS-2 buffer by replacing invalid code
 /// points with the replacement character.
-#[derive(Clone, Default, HeapSizeOf)]
+#[derive(Clone, Default, MallocSizeOf)]
 pub struct USVString(pub String);
 
 
@@ -153,7 +153,7 @@ pub fn is_token(s: &[u8]) -> bool {
 ///
 /// This type is currently `!Send`, in order to help with an independent
 /// experiment to store `JSString`s rather than Rust `String`s.
-#[derive(Clone, Debug, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct DOMString(String, PhantomData<*const ()>);
 
 impl DOMString {

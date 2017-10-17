@@ -6,14 +6,14 @@
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
 extern crate ipc_channel;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
+#[macro_use] extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate msg;
 extern crate num_traits;
 #[macro_use] extern crate serde;
@@ -25,7 +25,6 @@ extern crate webrender_api;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
-use heapsize::HeapSizeOf;
 use hyper::Error as HyperError;
 use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::http::RawStatus;
@@ -60,7 +59,7 @@ pub mod image {
 
 /// A loading context, for context-specific sniffing, as defined in
 /// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub enum LoadContext {
     Browsing,
     Image,
@@ -73,13 +72,13 @@ pub enum LoadContext {
     CacheManifest,
 }
 
-#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CustomResponse {
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
     pub headers: Headers,
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
     pub raw_status: RawStatus,
@@ -104,7 +103,7 @@ pub struct CustomResponseMediator {
 
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
 /// for providing a referrer header for a request
-#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ReferrerPolicy {
     /// "no-referrer"
     NoReferrer,
@@ -310,11 +309,7 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 }
 
 // Ignore the sub-fields
-impl HeapSizeOf for ResourceThreads {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
+malloc_size_of_is_0!(ResourceThreads);
 
 #[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum IncludeSubdomains {
@@ -322,7 +317,7 @@ pub enum IncludeSubdomains {
     NotIncluded,
 }
 
-#[derive(Deserialize, HeapSizeOf, Serialize)]
+#[derive(Deserialize, MallocSizeOf, Serialize)]
 pub enum MessageData {
     Text(String),
     Binary(Vec<u8>),
@@ -395,7 +390,7 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
     core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceCorsData {
     /// CORS Preflight flag
     pub preflight: bool,
@@ -404,7 +399,7 @@ pub struct ResourceCorsData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -412,14 +407,14 @@ pub struct Metadata {
     /// Location URL from the response headers.
     pub location_url: Option<Result<ServoUrl, String>>,
 
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     /// MIME type / subtype.
     pub content_type: Option<Serde<ContentType>>,
 
     /// Character set.
     pub charset: Option<String>,
 
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     /// Headers
     pub headers: Option<Serde<Headers>>,
 
@@ -509,11 +504,11 @@ pub fn load_whole_resource(request: RequestInit,
 }
 
 /// An unique identifier to keep track of each load message in the resource handler
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct ResourceId(pub u32);
 
 /// Network errors that have to be exported out of the loaders
-#[derive(Clone, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum NetworkError {
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),

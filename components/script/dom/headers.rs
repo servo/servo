@@ -21,12 +21,12 @@ use std::str;
 pub struct Headers {
     reflector_: Reflector,
     guard: Cell<Guard>,
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     header_list: DomRefCell<HyperHeaders>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,

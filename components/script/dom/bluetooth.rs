@@ -56,13 +56,13 @@ const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each othe
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
 const BT_DESC_CONVERSION_ERROR: &'static str = "Can't convert to an IDL value of type BluetoothPermissionDescriptor";
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct AllowedBluetoothDevice {
     pub deviceId: DOMString,
     pub mayUseGATT: bool,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct BluetoothExtraPermissionData {
     allowed_devices: DomRefCell<Vec<AllowedBluetoothDevice>>,
 }

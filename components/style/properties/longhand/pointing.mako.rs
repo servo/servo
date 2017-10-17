@@ -21,9 +21,7 @@
         #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+        #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
         pub enum Keyword {
             Auto,
             Cursor(Cursor),

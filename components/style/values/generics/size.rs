@@ -13,10 +13,8 @@ use values::animated::ToAnimatedValue;
 
 /// A generic size, for `border-*-radius` longhand properties, or
 /// `border-spacing`.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToComputedValue)]
+#[derive(MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct Size<L>(pub Size2D<L>);
 
 impl<L> Size<L> {

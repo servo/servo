@@ -20,7 +20,7 @@ pub struct Client {
     active_worker: MutNullableDom<ServiceWorker>,
     url: ServoUrl,
     frame_type: FrameType,
-    #[ignore_heap_size_of = "Defined in uuid"]
+    #[ignore_malloc_size_of = "Defined in uuid"]
     id: Uuid
 }
 

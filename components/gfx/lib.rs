@@ -35,14 +35,15 @@ extern crate gfx_traits;
 // shapers. For now, however, this is a hard dependency.
 extern crate harfbuzz_sys as harfbuzz;
 
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[cfg_attr(target_os = "windows", macro_use)]
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
