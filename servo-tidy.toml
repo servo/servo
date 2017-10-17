@@ -80,7 +80,6 @@ directories = [
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
   "./ports/cef",
-  "./components/style/gecko_bindings/nsstring_vendor/",
 ]
 
 # Directories that are checked for correct file extension
