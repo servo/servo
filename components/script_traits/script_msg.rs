@@ -27,7 +27,6 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
-use webrender_api::ClipId;
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -134,8 +133,6 @@ pub enum ScriptMsg {
     SetFinalUrl(ServoUrl),
     /// Check if an alert dialog box should be presented
     Alert(String, IpcSender<bool>),
-    /// Scroll a page in a window
-    ScrollFragmentPoint(ClipId, Point2D<f32>, bool),
     /// Set title of current page
     /// <https://html.spec.whatwg.org/multipage/#document.title>
     SetTitle(Option<String>),

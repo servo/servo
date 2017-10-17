@@ -1082,6 +1082,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got {:?} WebVR events", events.len());
                 self.handle_webvr_events(pipeline_ids, events);
             }
+            FromCompositorMsg::ForwardEvent(destination_pipeline_id, event) => {
+                self.forward_event(destination_pipeline_id, event);
+            }
+            FromCompositorMsg::SetCursor(cursor) => {
+                self.handle_set_cursor_msg(cursor)
+            }
         }
     }
 
@@ -1175,15 +1181,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got focus message");
                 self.handle_focus_msg(source_pipeline_id);
             }
-            FromScriptMsg::ForwardEvent(dest_id, event) => {
-                let msg = ConstellationControlMsg::SendEvent(dest_id, event);
-                let result = match self.pipelines.get(&dest_id) {
-                    None => { debug!("Pipeline {:?} got event after closure.", dest_id); return; }
-                    Some(pipeline) => pipeline.event_loop.send(msg),
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(dest_id, e);
-                }
+            FromScriptMsg::ForwardEvent(destination_pipeline_id, event) => {
+                self.forward_event(destination_pipeline_id, event);
             }
             FromScriptMsg::GetClipboardContents(sender) => {
                 let contents = match self.clipboard_ctx {
@@ -1250,13 +1249,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got Alert message");
                 self.handle_alert(source_top_ctx_id, message, sender);
             }
-
-            FromScriptMsg::ScrollFragmentPoint(scroll_root_id, point, smooth) => {
-                self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(scroll_root_id,
-                                                                                point,
-                                                                                smooth));
-            }
-
             FromScriptMsg::GetClientWindow(send) => {
                 self.embedder_proxy.send(EmbedderMsg::GetClientWindow(source_top_ctx_id, send));
             }
@@ -1589,6 +1581,20 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 },
                 None => warn!("constellation got webvr event for dead pipeline")
             }
+        }
+    }
+
+    fn forward_event(&mut self, destination_pipeline_id: PipelineId, event: CompositorEvent) {
+        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
+        let result = match self.pipelines.get(&destination_pipeline_id) {
+            None => {
+                debug!("Pipeline {:?} got event after closure.", destination_pipeline_id);
+                return;
+            }
+            Some(pipeline) => pipeline.event_loop.send(msg),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(destination_pipeline_id, e);
         }
     }
 

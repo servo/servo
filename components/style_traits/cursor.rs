@@ -35,6 +35,15 @@ macro_rules! define_cursor {
                     _ => Err(())
                 }
             }
+
+            /// From the C u8 value, get the corresponding Cursor enum.
+            pub fn from_u8(value: u8) -> Result<Cursor, ()> {
+                match value {
+                    $( $c_value => Ok(Cursor::$c_variant), )+
+                    $( #[cfg(feature = "gecko")] $g_value => Ok(Cursor::$g_variant), )+
+                    _ => Err(())
+                }
+            }
         }
 
         impl ToCss for Cursor {

@@ -68,6 +68,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
+use style_traits::cursor::Cursor;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_api::{ClipId, DevicePixel, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -435,13 +436,13 @@ pub enum CompositorEvent {
     /// The window was resized.
     ResizeEvent(WindowSizeData, WindowSizeType),
     /// A mouse button state changed.
-    MouseButtonEvent(MouseEventType, MouseButton, Point2D<f32>),
+    MouseButtonEvent(MouseEventType, MouseButton, Point2D<f32>, Option<UntrustedNodeAddress>),
     /// The mouse was moved over a point (or was moved out of the recognizable region).
-    MouseMoveEvent(Option<Point2D<f32>>),
+    MouseMoveEvent(Option<Point2D<f32>>, Option<UntrustedNodeAddress>),
     /// A touch event was generated with a touch ID and location.
-    TouchEvent(TouchEventType, TouchId, Point2D<f32>),
+    TouchEvent(TouchEventType, TouchId, Point2D<f32>, Option<UntrustedNodeAddress>),
     /// Touchpad pressure event
-    TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase),
+    TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase, Option<UntrustedNodeAddress>),
     /// A key was pressed.
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
 }
@@ -799,6 +800,10 @@ pub enum ConstellationMsg {
     CloseBrowser(TopLevelBrowsingContextId),
     /// Make browser visible.
     SelectBrowser(TopLevelBrowsingContextId),
+    /// Forward an event to the script task of the given pipeline.
+    ForwardEvent(PipelineId, CompositorEvent),
+    /// Requesting a change to the onscreen cursor.
+    SetCursor(Cursor),
 }
 
 /// Resources required by workerglobalscopes

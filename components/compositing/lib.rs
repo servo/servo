@@ -9,6 +9,7 @@ extern crate gfx_traits;
 extern crate gleam;
 extern crate image;
 extern crate ipc_channel;
+extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate msg;

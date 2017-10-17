@@ -246,6 +246,17 @@ impl PipelineId {
         webrender_api::PipelineId(namespace_id, index.get())
     }
 
+    #[allow(unsafe_code)]
+    pub fn from_webrender(pipeline: webrender_api::PipelineId) -> PipelineId {
+        let webrender_api::PipelineId(namespace_id, index) = pipeline;
+        unsafe {
+            PipelineId {
+                namespace_id: PipelineNamespaceId(namespace_id),
+                index: PipelineIndex(NonZero::new_unchecked(index)),
+            }
+        }
+    }
+
     pub fn root_scroll_node(&self) -> webrender_api::ClipId {
         webrender_api::ClipId::root_scroll_node(self.to_webrender())
     }
