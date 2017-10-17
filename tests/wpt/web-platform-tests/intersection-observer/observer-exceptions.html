@@ -35,6 +35,18 @@ test(function () {
 
 test(function () {
   assert_throws("SYNTAX_ERR", function() {
+    new IntersectionObserver(e => {}, {rootMargin: "calc(1px + 2px)"})
+  })
+}, 'IntersectionObserver constructor width { rootMargin: "calc(1px + 2px)" }');
+
+test(function () {
+  assert_throws("SYNTAX_ERR", function() {
+    new IntersectionObserver(e => {}, {rootMargin: "1px !important"})
+  })
+}, 'IntersectionObserver constructor width { rootMargin: "1px !important" }');
+
+test(function () {
+  assert_throws("SYNTAX_ERR", function() {
     new IntersectionObserver(e => {}, {rootMargin: "1px 1px 1px 1px 1px"})
   })
 }, 'IntersectionObserver constructor with { rootMargin: "1px 1px 1px 1px 1px" }');
