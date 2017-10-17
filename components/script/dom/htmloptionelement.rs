@@ -32,10 +32,10 @@ use style::str::{split_html_space_chars, str_join};
 pub struct HTMLOptionElement {
     htmlelement: HTMLElement,
 
-    /// https://html.spec.whatwg.org/multipage/#attr-option-selected
+    /// <https://html.spec.whatwg.org/multipage/#attr-option-selected>
     selectedness: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/#concept-option-dirtiness
+    /// <https://html.spec.whatwg.org/multipage/#concept-option-dirtiness>
     dirtiness: Cell<bool>,
 }
 

@@ -59,7 +59,7 @@ pub mod image {
 }
 
 /// A loading context, for context-specific sniffing, as defined in
-/// https://mimesniff.spec.whatwg.org/#context-specific-sniffing
+/// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub enum LoadContext {
     Browsing,
@@ -159,17 +159,17 @@ pub enum FetchResponseMsg {
 }
 
 pub trait FetchTaskTarget {
-    /// https://fetch.spec.whatwg.org/#process-request-body
+    /// <https://fetch.spec.whatwg.org/#process-request-body>
     ///
     /// Fired when a chunk of the request body is transmitted
     fn process_request_body(&mut self, request: &Request);
 
-    /// https://fetch.spec.whatwg.org/#process-request-end-of-file
+    /// <https://fetch.spec.whatwg.org/#process-request-end-of-file>
     ///
     /// Fired when the entire request finishes being transmitted
     fn process_request_eof(&mut self, request: &Request);
 
-    /// https://fetch.spec.whatwg.org/#process-response
+    /// <https://fetch.spec.whatwg.org/#process-response>
     ///
     /// Fired when headers are received
     fn process_response(&mut self, response: &Response);
@@ -177,7 +177,7 @@ pub trait FetchTaskTarget {
     /// Fired when a chunk of response content is received
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
 
-    /// https://fetch.spec.whatwg.org/#process-response-end-of-file
+    /// <https://fetch.spec.whatwg.org/#process-response-end-of-file>
     ///
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, response: &Response);

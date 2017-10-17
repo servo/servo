@@ -230,10 +230,10 @@ pub struct CallSetup {
     old_compartment: *mut JSCompartment,
     /// The exception handling used for the call.
     handling: ExceptionHandling,
-    /// https://heycam.github.io/webidl/#es-invoking-callback-functions
+    /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 8 and 18.2.
     entry_script: Option<AutoEntryScript>,
-    /// https://heycam.github.io/webidl/#es-invoking-callback-functions
+    /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 9 and 18.1.
     incumbent_script: Option<AutoIncumbentScript>,
 }

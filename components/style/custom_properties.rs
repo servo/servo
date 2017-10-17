@@ -28,7 +28,7 @@ pub type Name = Atom;
 
 /// Parse a custom property name.
 ///
-/// https://drafts.csswg.org/css-variables/#typedef-custom-property-name
+/// <https://drafts.csswg.org/css-variables/#typedef-custom-property-name>
 pub fn parse_name(s: &str) -> Result<&str, ()> {
     if s.starts_with("--") {
         Ok(&s[2..])
@@ -317,7 +317,7 @@ fn parse_self_contained_declaration_value<'i, 't>(
     Ok((first, css, last))
 }
 
-/// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
+/// <https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value>
 fn parse_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
     references: Option<&mut PrecomputedHashSet<Name>>,

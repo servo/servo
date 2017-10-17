@@ -534,7 +534,7 @@ impl ToCssWithGuard for ViewportRule {
 }
 
 /// Computes the cascade precedence as according to
-/// http://dev.w3.org/csswg/css-cascade/#cascade-origin
+/// <http://dev.w3.org/csswg/css-cascade/#cascade-origin>
 fn cascade_precendence(origin: Origin, important: bool) -> u8 {
     match (origin, important) {
         (Origin::UserAgent, true) => 1,

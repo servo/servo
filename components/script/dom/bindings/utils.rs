@@ -194,7 +194,7 @@ pub unsafe fn find_enum_value<'a, T>(cx: *mut JSContext,
 }
 
 /// Returns wether `obj` is a platform object
-/// https://heycam.github.io/webidl/#dfn-platform-object
+/// <https://heycam.github.io/webidl/#dfn-platform-object>
 pub fn is_platform_object(obj: *mut JSObject) -> bool {
     unsafe {
         // Fast-path the common case

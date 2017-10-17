@@ -43,7 +43,7 @@ impl OneOrMoreSeparated for Source {
 /// A `UrlSource` represents a font-face source that has been specified with a
 /// `url()` function.
 ///
-/// https://drafts.csswg.org/css-fonts/#src-desc
+/// <https://drafts.csswg.org/css-fonts/#src-desc>
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct UrlSource {
@@ -235,7 +235,7 @@ macro_rules! font_face_descriptors_common {
     ) => {
         /// Data inside a `@font-face` rule.
         ///
-        /// https://drafts.csswg.org/css-fonts/#font-face-rule
+        /// <https://drafts.csswg.org/css-fonts/#font-face-rule>
         #[derive(Clone, Debug, Eq, PartialEq)]
         pub struct FontFaceRuleData {
             $(

@@ -858,7 +858,7 @@ fn get_ellipse_radius<F>(size: &Size2D<Au>, center: &Point2D<Au>, cmp: F) -> Siz
 }
 
 /// Determines the radius of a circle if it was not explictly provided.
-/// https://drafts.csswg.org/css-images-3/#typedef-size
+/// <https://drafts.csswg.org/css-images-3/#typedef-size>
 fn convert_circle_size_keyword(keyword: ShapeExtent,
                                size: &Size2D<Au>,
                                center: &Point2D<Au>) -> Size2D<Au> {
@@ -882,7 +882,7 @@ fn convert_circle_size_keyword(keyword: ShapeExtent,
 }
 
 /// Determines the radius of an ellipse if it was not explictly provided.
-/// https://drafts.csswg.org/css-images-3/#typedef-size
+/// <https://drafts.csswg.org/css-images-3/#typedef-size>
 fn convert_ellipse_size_keyword(keyword: ShapeExtent,
                                 size: &Size2D<Au>,
                                 center: &Point2D<Au>) -> Size2D<Au> {

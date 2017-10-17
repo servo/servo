@@ -48,7 +48,7 @@ impl HTMLBodyElement {
                            HTMLBodyElementBinding::Wrap)
     }
 
-    /// https://drafts.csswg.org/cssom-view/#the-html-body-element
+    /// <https://drafts.csswg.org/cssom-view/#the-html-body-element>
     pub fn is_the_html_body_element(&self) -> bool {
         let self_node = self.upcast::<Node>();
         let root_elem = self.upcast::<Element>().root_element();

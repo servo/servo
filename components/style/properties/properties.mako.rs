@@ -1623,7 +1623,7 @@ impl PropertyDeclaration {
 
     /// The `context` parameter controls this:
     ///
-    /// https://drafts.csswg.org/css-animations/#keyframes
+    /// <https://drafts.csswg.org/css-animations/#keyframes>
     /// > The <declaration-list> inside of <keyframe-block> accepts any CSS property
     /// > except those defined in this specification,
     /// > but does accept the `animation-play-state` property and interprets it specially.
@@ -2377,7 +2377,7 @@ impl ComputedValuesInner {
            effects.mix_blend_mode != mix_blend_mode::T::normal
     }
 
-    /// https://drafts.csswg.org/css-transforms/#grouping-property-values
+    /// <https://drafts.csswg.org/css-transforms/#grouping-property-values>
     pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
         use computed_values::transform_style;
 

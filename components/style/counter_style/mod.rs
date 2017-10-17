@@ -229,55 +229,55 @@ macro_rules! counter_style_descriptors {
 }
 
 counter_style_descriptors! {
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
     "system" system / eCSSCounterDesc_System: System = {
         System::Symbolic
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-negative>
     "negative" negative / eCSSCounterDesc_Negative: Negative = {
         Negative(Symbol::String("-".to_owned()), None)
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-prefix
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-prefix>
     "prefix" prefix / eCSSCounterDesc_Prefix: Symbol = {
         Symbol::String("".to_owned())
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-suffix
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-suffix>
     "suffix" suffix / eCSSCounterDesc_Suffix: Symbol = {
         Symbol::String(". ".to_owned())
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-range
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
     "range" range / eCSSCounterDesc_Range: Ranges = {
         Ranges(Vec::new())  // Empty Vec represents 'auto'
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-pad
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
     "pad" pad / eCSSCounterDesc_Pad: Pad = {
         Pad(0, Symbol::String("".to_owned()))
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-fallback>
     "fallback" fallback / eCSSCounterDesc_Fallback: Fallback = {
         // FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=1359323 use atom!()
         Fallback(CustomIdent(Atom::from("decimal")))
     }
 
-    /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
+    /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
     "symbols" symbols / eCSSCounterDesc_Symbols: Symbols = !
 
-    /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
+    /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols>
     "additive-symbols" additive_symbols / eCSSCounterDesc_AdditiveSymbols: AdditiveSymbols = !
 
-    /// https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as
+    /// <https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as>
     "speak-as" speak_as / eCSSCounterDesc_SpeakAs: SpeakAs = {
         SpeakAs::Auto
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#counter-style-system
+/// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
 #[derive(Clone, Debug)]
 pub enum System {
     /// 'cyclic'
@@ -343,7 +343,7 @@ impl ToCss for System {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#typedef-symbol
+/// <https://drafts.csswg.org/css-counter-styles/#typedef-symbol>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub enum Symbol {
@@ -388,7 +388,7 @@ impl Symbol {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
+/// <https://drafts.csswg.org/css-counter-styles/#counter-style-negative>
 #[derive(Clone, Debug, ToCss)]
 pub struct Negative(pub Symbol, pub Option<Symbol>);
 
@@ -401,7 +401,7 @@ impl Parse for Negative {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#counter-style-range
+/// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
 ///
 /// Empty Vec represents 'auto'
 #[derive(Clone, Debug)]
@@ -467,7 +467,7 @@ fn bound_to_css<W>(range: Option<i32>, dest: &mut W) -> fmt::Result where W: fmt
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#counter-style-pad
+/// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
 #[derive(Clone, Debug, ToCss)]
 pub struct Pad(pub u32, pub Symbol);
 
@@ -483,7 +483,7 @@ impl Parse for Pad {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#counter-style-fallback
+/// <https://drafts.csswg.org/css-counter-styles/#counter-style-fallback>
 #[derive(Clone, Debug, ToCss)]
 pub struct Fallback(pub CustomIdent);
 
@@ -493,7 +493,7 @@ impl Parse for Fallback {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
+/// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub struct Symbols(pub Vec<Symbol>);
@@ -528,7 +528,7 @@ impl ToCss for Symbols {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols
+/// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols>
 #[derive(Clone, Debug, ToCss)]
 pub struct AdditiveSymbols(pub Vec<AdditiveTuple>);
 
@@ -571,7 +571,7 @@ impl Parse for AdditiveTuple {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as
+/// <https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as>
 #[derive(Clone, Debug, ToCss)]
 pub enum SpeakAs {
     /// auto

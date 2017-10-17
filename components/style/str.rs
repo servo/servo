@@ -21,7 +21,7 @@ pub type StaticStringVec = &'static [&'static str];
 
 /// A "space character" according to:
 ///
-/// https://html.spec.whatwg.org/multipage/#space-character
+/// <https://html.spec.whatwg.org/multipage/#space-character>
 pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u{0020}',
     '\u{0009}',

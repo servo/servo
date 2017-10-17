@@ -134,7 +134,7 @@ impl WeakMediaQueryListVec {
     }
 
     /// Evaluate media query lists and report changes
-    /// https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes
+    /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
     pub fn evaluate_and_report_changes(&self) {
         rooted_vec!(let mut mql_list);
         self.cell.borrow_mut().update(|mql| {

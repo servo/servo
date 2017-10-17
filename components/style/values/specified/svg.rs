@@ -43,7 +43,7 @@ fn parse_context_value<'i, 't, T>(input: &mut Parser<'i, 't>, value: T)
 }
 
 /// A value of <length> | <percentage> | <number> for stroke-dashoffset.
-/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
 pub type SvgLengthOrPercentageOrNumber =
     generic::SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number>;
 
@@ -66,7 +66,7 @@ impl From<SvgLengthOrPercentageOrNumber> for SVGLength {
 }
 
 /// A value of <length> | <percentage> | <number> for stroke-width/stroke-dasharray.
-/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
 pub type NonNegativeSvgLengthOrPercentageOrNumber =
     generic::SvgLengthOrPercentageOrNumber<NonNegativeLengthOrPercentage, NonNegativeNumber>;
 

@@ -852,7 +852,7 @@ def check_spec(file_name, lines):
     macro_patt = re.compile("^\s*\S+!(.*)$")
 
     # Pattern representing a line with comment containing a spec link
-    link_patt = re.compile("^\s*///? https://.+$")
+    link_patt = re.compile("^\s*///? (<https://.+>|https://.+)$")
 
     # Pattern representing a line with comment or attribute
     comment_patt = re.compile("^\s*(///?.+|#\[.+\])$")

@@ -42,7 +42,7 @@ impl TextDecoder {
                            TextDecoderBinding::Wrap)
     }
 
-    /// https://encoding.spec.whatwg.org/#dom-textdecoder
+    /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
     pub fn Constructor(global: &GlobalScope,
                        label: DOMString,
                        options: &TextDecoderBinding::TextDecoderOptions)

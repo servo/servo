@@ -223,7 +223,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes
+    /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
         // TODO: srcdoc
 

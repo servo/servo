@@ -30,7 +30,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
-    /// https://fullscreen.spec.whatwg.org/#new-stacking-layer
+    /// <https://fullscreen.spec.whatwg.org/#new-stacking-layer>
     ///
     ///    Any position value other than 'absolute' and 'fixed' are
     ///    computed to 'absolute' if the element is in a top layer.
@@ -53,7 +53,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     }
 
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
-    /// https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
+    /// <https://drafts.csswg.org/css2/visuren.html#dis-pos-flo>
     fn blockify_if_necessary(
         &mut self,
         layout_parent_style: &ComputedValues,
@@ -160,7 +160,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
-    /// https://drafts.csswg.org/css-writing-modes-3/#block-flow:
+    /// <https://drafts.csswg.org/css-writing-modes-3/#block-flow:>
     ///
     ///    If a box has a different writing-mode value than its containing
     ///    block:
@@ -171,8 +171,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// This matches the adjustment that Gecko does, not exactly following
     /// the spec. See also:
     ///
-    /// https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html
-    /// https://github.com/servo/servo/issues/15754
+    /// <https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html>
+    /// <https://github.com/servo/servo/issues/15754>
     fn adjust_for_writing_mode(
         &mut self,
         layout_parent_style: &ComputedValues,
@@ -519,7 +519,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Resolves "justify-items: auto" based on the inherited style if needed to
     /// comply with:
     ///
-    /// https://drafts.csswg.org/css-align/#valdef-justify-items-legacy
+    /// <https://drafts.csswg.org/css-align/#valdef-justify-items-legacy>
     ///
     /// (Note that "auto" is being renamed to "legacy")
     #[cfg(feature = "gecko")]

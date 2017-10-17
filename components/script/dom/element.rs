@@ -151,12 +151,12 @@ pub struct Element {
     /// when it has exclusive access to the element.
     #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
-    /// https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue
+    /// <https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue>
     custom_element_reaction_queue: DomRefCell<Vec<CustomElementReaction>>,
-    /// https://dom.spec.whatwg.org/#concept-element-custom-element-definition
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-definition>
     #[ignore_heap_size_of = "Rc"]
     custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
-    /// https://dom.spec.whatwg.org/#concept-element-custom-element-state
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     custom_element_state: Cell<CustomElementState>,
 }
 
@@ -187,7 +187,7 @@ pub enum CustomElementCreationMode {
     Asynchronous,
 }
 
-/// https://dom.spec.whatwg.org/#concept-element-custom-element-state
+/// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
 #[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum CustomElementState {
     Undefined,
@@ -2063,7 +2063,7 @@ impl ElementMethods for Element {
         self.upcast::<Node>().client_rect().size.height
     }
 
-    /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
+    /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         let qname = QualName::new(self.prefix().clone(),
                                   self.namespace().clone(),
@@ -2075,7 +2075,7 @@ impl ElementMethods for Element {
         }
     }
 
-    /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
+    /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
     fn SetInnerHTML(&self, value: DOMString) -> ErrorResult {
         // Step 1.
         let frag = self.parse_fragment(value)?;
@@ -2779,7 +2779,7 @@ impl Element {
 
     /// Please call this method *only* for real click events
     ///
-    /// https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
+    /// <https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps>
     ///
     /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
     /// If the spec says otherwise, check with Manishearth first
@@ -2859,7 +2859,7 @@ impl Element {
         self.state.get().contains(IN_ACTIVE_STATE)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#concept-selector-active
+    /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
     pub fn set_active_state(&self, value: bool) {
         self.set_state(IN_ACTIVE_STATE, value);
 
@@ -2936,7 +2936,7 @@ impl Element {
         self.set_state(IN_FULLSCREEN_STATE, value)
     }
 
-    /// https://dom.spec.whatwg.org/#connected
+    /// <https://dom.spec.whatwg.org/#connected>
     pub fn is_connected(&self) -> bool {
         let node = self.upcast::<Node>();
         let root = node.GetRootNode();
@@ -2998,11 +2998,11 @@ impl Element {
 #[derive(Clone, Copy)]
 pub enum AttributeMutation<'a> {
     /// The attribute is set, keep track of old value.
-    /// https://dom.spec.whatwg.org/#attribute-is-set
+    /// <https://dom.spec.whatwg.org/#attribute-is-set>
     Set(Option<&'a AttrValue>),
 
     /// The attribute is removed.
-    /// https://dom.spec.whatwg.org/#attribute-is-removed
+    /// <https://dom.spec.whatwg.org/#attribute-is-removed>
     Removed,
 }
 

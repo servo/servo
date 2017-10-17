@@ -34,7 +34,7 @@ impl CSSStyleValue {
 }
 
 impl CSSStyleValueMethods for CSSStyleValue {
-    /// https://drafts.css-houdini.org/css-typed-om-1/#CSSStyleValue-stringification-behavior
+    /// <https://drafts.css-houdini.org/css-typed-om-1/#CSSStyleValue-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
         DOMString::from(&*self.value)
     }
@@ -44,7 +44,7 @@ impl CSSStyleValue {
     /// Parse the value as a `url()`.
     /// TODO: This should really always be an absolute URL, but we currently
     /// return relative URLs for computed values, so we pass in a base.
-    /// https://github.com/servo/servo/issues/17625
+    /// <https://github.com/servo/servo/issues/17625>
     pub fn get_url(&self, base_url: ServoUrl) -> Option<ServoUrl> {
         let mut input = ParserInput::new(&*self.value);
         let mut parser = Parser::new(&mut input);

@@ -63,7 +63,7 @@ impl<L> BorderSpacing<L> {
 
 /// A generic value for `border-radius`, `outline-radius` and `inset()`.
 ///
-/// https://drafts.csswg.org/css-backgrounds-3/#border-radius
+/// <https://drafts.csswg.org/css-backgrounds-3/#border-radius>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]

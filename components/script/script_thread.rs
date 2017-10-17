@@ -468,7 +468,7 @@ pub struct ScriptThread {
 
     content_process_shutdown_chan: IpcSender<()>,
 
-    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     microtask_queue: Rc<MicrotaskQueue>,
 
     /// Microtask Queue for adding support for mutation observer microtasks
@@ -494,7 +494,7 @@ pub struct ScriptThread {
     /// of the transition.
     transitioning_nodes: DomRefCell<Vec<Dom<Node>>>,
 
-    /// https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack
+    /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: CustomElementReactionStack,
 
     /// The Webrender Document ID associated with this thread.
@@ -1602,7 +1602,7 @@ impl ScriptThread {
     }
 
     /// Handles a mozbrowser event, for example see:
-    /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
+    /// <https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart>
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
                                    top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
@@ -2309,7 +2309,7 @@ impl ScriptThread {
         document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
+    /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, parent_pipeline_id: PipelineId,

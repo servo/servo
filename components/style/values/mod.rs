@@ -95,7 +95,7 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
     }
 }
 
-/// https://drafts.csswg.org/css-values-4/#custom-idents
+/// <https://drafts.csswg.org/css-values-4/#custom-idents>
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -126,7 +126,7 @@ impl ToCss for CustomIdent {
     }
 }
 
-/// https://drafts.csswg.org/css-animations/#typedef-keyframes-name
+/// <https://drafts.csswg.org/css-animations/#typedef-keyframes-name>
 #[derive(Clone, Debug, ToComputedValue)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -138,7 +138,7 @@ pub enum KeyframesName {
 }
 
 impl KeyframesName {
-    /// https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
+    /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
     pub fn from_ident(value: &str) -> Self {
         let location = SourceLocation { line: 0, column: 0 };
         let custom_ident = CustomIdent::from_ident(location, &value.into(), &["none"]).ok();

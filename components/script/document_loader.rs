@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Tracking of pending loads in a document.
-//! https://html.spec.whatwg.org/multipage/#the-end
+//!
+//! <https://html.spec.whatwg.org/multipage/#the-end>
 
 use dom::bindings::root::Dom;
 use dom::document::Document;

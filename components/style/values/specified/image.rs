@@ -37,11 +37,11 @@ use values::specified::url::SpecifiedUrl;
 pub type ImageLayer = Either<None_, Image>;
 
 /// Specified values for an image according to CSS-IMAGES.
-/// https://drafts.csswg.org/css-images/#image-values
+/// <https://drafts.csswg.org/css-images/#image-values>
 pub type Image = GenericImage<Gradient, MozImageRect, SpecifiedUrl>;
 
 /// Specified values for a CSS gradient.
-/// https://drafts.csswg.org/css-images/#gradients
+/// <https://drafts.csswg.org/css-images/#gradients>
 #[cfg(not(feature = "gecko"))]
 pub type Gradient = GenericGradient<
     LineDirection,
@@ -53,7 +53,7 @@ pub type Gradient = GenericGradient<
 >;
 
 /// Specified values for a CSS gradient.
-/// https://drafts.csswg.org/css-images/#gradients
+/// <https://drafts.csswg.org/css-images/#gradients>
 #[cfg(feature = "gecko")]
 pub type Gradient = GenericGradient<
     LineDirection,

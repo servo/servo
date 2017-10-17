@@ -27,11 +27,11 @@ use values::specified::position::{X, Y};
 pub type ImageLayer = Either<None_, Image>;
 
 /// Computed values for an image according to CSS-IMAGES.
-/// https://drafts.csswg.org/css-images/#image-values
+/// <https://drafts.csswg.org/css-images/#image-values>
 pub type Image = GenericImage<Gradient, MozImageRect, ComputedUrl>;
 
 /// Computed values for a CSS gradient.
-/// https://drafts.csswg.org/css-images/#gradients
+/// <https://drafts.csswg.org/css-images/#gradients>
 pub type Gradient = GenericGradient<
     LineDirection,
     Length,

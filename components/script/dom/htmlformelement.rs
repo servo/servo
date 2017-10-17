@@ -452,7 +452,7 @@ impl HTMLFormElement {
     }
 
     /// Interactively validate the constraints of form elements
-    /// https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints
+    /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
     fn interactive_validation(&self) -> Result<(), ()> {
         // Step 1-3
         let _unhandled_invalid_controls = match self.static_validation() {
@@ -466,7 +466,7 @@ impl HTMLFormElement {
     }
 
     /// Statitically validate the constraints of form elements
-    /// https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints
+    /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
     fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
         let node = self.upcast::<Node>();
         // FIXME(#3553): This is an incorrect way of getting controls owned by the
@@ -506,7 +506,7 @@ impl HTMLFormElement {
         Err(unhandled_invalid_controls)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 1 to 3
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
@@ -564,7 +564,7 @@ impl HTMLFormElement {
         //       https://html.spec.whatwg.org/multipage/#the-directionality
     }
 
-    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // Step 4

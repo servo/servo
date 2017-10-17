@@ -57,7 +57,7 @@ pub struct Device {
     /// The body text color, stored as an `nscolor`, used for the "tables
     /// inherit from body" quirk.
     ///
-    /// https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk
+    /// <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
     body_text_color: AtomicUsize,
     /// Whether any styles computed in the document relied on the root font-size
     /// by using rem units.
@@ -118,7 +118,7 @@ impl Device {
 
     /// Sets the body text color for the "inherit color from body" quirk.
     ///
-    /// https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk
+    /// <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
     pub fn set_body_text_color(&self, color: RGBA) {
         self.body_text_color.store(convert_rgba_to_nscolor(&color) as usize, Ordering::Relaxed)
     }

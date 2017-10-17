@@ -135,7 +135,7 @@ impl HTMLMetaElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#meta-referrer
+    /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
     fn apply_referrer(&self) {
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             if let Some(head) = parent.downcast::<HTMLHeadElement>() {

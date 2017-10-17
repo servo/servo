@@ -38,7 +38,7 @@ impl HTMLBaseElement {
                            HTMLBaseElementBinding::Wrap)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#frozen-base-url
+    /// <https://html.spec.whatwg.org/multipage/#frozen-base-url>
     pub fn frozen_base_url(&self) -> ServoUrl {
         let href = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"))
             .expect("The frozen base url is only defined for base elements \

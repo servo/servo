@@ -548,7 +548,7 @@ unsafe extern "C" fn has_instance_hook(cx: *mut JSContext,
 }
 
 /// Return whether a value is an instance of a given prototype.
-/// http://heycam.github.io/webidl/#es-interface-hasinstance
+/// <http://heycam.github.io/webidl/#es-interface-hasinstance>
 unsafe fn has_instance(
         cx: *mut JSContext,
         interface_object: HandleObject,

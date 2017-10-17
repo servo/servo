@@ -9,7 +9,7 @@ use context::QuirksMode;
 use selectors::{Element, NthIndexCache, SelectorList};
 use selectors::matching::{self, MatchingContext, MatchingMode};
 
-/// https://dom.spec.whatwg.org/#dom-element-matches
+/// <https://dom.spec.whatwg.org/#dom-element-matches>
 pub fn element_matches<E>(
     element: &E,
     selector_list: &SelectorList<E::Impl>,
@@ -28,7 +28,7 @@ where
     matching::matches_selector_list(selector_list, element, &mut context)
 }
 
-/// https://dom.spec.whatwg.org/#dom-element-closest
+/// <https://dom.spec.whatwg.org/#dom-element-closest>
 pub fn element_closest<E>(
     element: E,
     selector_list: &SelectorList<E::Impl>,

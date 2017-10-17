@@ -109,7 +109,7 @@ impl BrowsingContext {
 /// When we operate on the joint session history, entries are sorted chronologically,
 /// so we timestamp the entries by when the entry was added to the session history.
 ///
-/// https://html.spec.whatwg.org/multipage/#session-history-entry
+/// <https://html.spec.whatwg.org/multipage/#session-history-entry>
 #[derive(Clone)]
 pub struct SessionHistoryEntry {
     /// The timestamp for when the session history entry was created

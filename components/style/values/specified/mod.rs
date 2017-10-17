@@ -365,7 +365,7 @@ impl ToComputedValue for Opacity {
 
 /// An specified `<integer>`, optionally coming from a `calc()` expression.
 ///
-/// https://drafts.csswg.org/css-values/#integers
+/// <https://drafts.csswg.org/css-values/#integers>
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

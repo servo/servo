@@ -357,7 +357,7 @@ impl HTMLImageElement {
         window.add_pending_reflow();
     }
 
-    /// https://html.spec.whatwg.org/multipage/#abort-the-image-request
+    /// <https://html.spec.whatwg.org/multipage/#abort-the-image-request>
     fn abort_request(&self, state: State, request: ImageRequestPhase) {
         let mut request = match request {
             ImageRequestPhase::Current => self.current_request.borrow_mut(),
@@ -369,7 +369,7 @@ impl HTMLImageElement {
         request.metadata = None;
     }
 
-    /// https://html.spec.whatwg.org/multipage/#update-the-source-set
+    /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
     fn update_source_set(&self) -> Vec<DOMString> {
         let elem = self.upcast::<Element>();
         // TODO: follow the algorithm
@@ -380,7 +380,7 @@ impl HTMLImageElement {
         vec![src]
     }
 
-    /// https://html.spec.whatwg.org/multipage/#select-an-image-source
+    /// <https://html.spec.whatwg.org/multipage/#select-an-image-source>
     fn select_image_source(&self) -> Option<DOMString> {
         // TODO: select an image source from source set
         self.update_source_set().first().cloned()
@@ -536,7 +536,7 @@ impl HTMLImageElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#update-the-image-data
+    /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     fn update_the_image_data(&self) {
         let document = document_from_node(self);
         let window = document.window();

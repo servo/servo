@@ -68,7 +68,7 @@ impl SymbolsType {
     }
 }
 
-/// https://drafts.csswg.org/css-counter-styles/#typedef-counter-style
+/// <https://drafts.csswg.org/css-counter-styles/#typedef-counter-style>
 ///
 /// Since wherever <counter-style> is used, 'none' is a valid value as
 /// well, we combine them into one type to make code simpler.
@@ -159,8 +159,8 @@ impl<T: ToCss> ToCss for FontSettingTag<T> {
 }
 
 impl<T: Parse> Parse for FontSettingTag<T> {
-    /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
-    /// https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-
+    /// <https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings>
+    /// <https://drafts.csswg.org/css-fonts-4/#low-level-font-variation->
     /// settings-control-the-font-variation-settings-property
     /// <string> [ on | off | <integer> ]
     /// <string> <number>
@@ -201,7 +201,7 @@ pub enum FontSettings<T> {
 }
 
 impl<T: Parse> Parse for FontSettings<T> {
-    /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
+    /// <https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings>
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(FontSettings::Normal);

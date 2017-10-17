@@ -34,7 +34,8 @@ pub struct BlobBuf {
 }
 
 /// Parse URL as Blob URL scheme's definition
-/// https://w3c.github.io/FileAPI/#DefinitionOfScheme
+///
+/// <https://w3c.github.io/FileAPI/#DefinitionOfScheme>
 pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), ()> {
     let url_inner = Url::parse(url.path()).map_err(|_| ())?;
     let id = {
@@ -47,6 +48,7 @@ pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), ()> {
 
 /// Given an URL, returning the Origin that a Blob created under this
 /// URL should have.
+///
 /// HACK(izgzhen): Not well-specified on spec, and it is a bit a hack
 /// both due to ambiguity of spec and that we have to serialization the
 /// Origin here.

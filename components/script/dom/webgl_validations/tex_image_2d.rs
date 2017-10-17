@@ -270,7 +270,7 @@ pub struct TexImage2DValidatorResult {
 }
 
 /// TexImage2d validator as per
-/// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml
+/// <https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml>
 impl<'a> WebGLValidator for TexImage2DValidator<'a> {
     type ValidatedOutput = TexImage2DValidatorResult;
     type Error = TexImageValidationError;

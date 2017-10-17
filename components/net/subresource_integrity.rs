@@ -16,7 +16,7 @@ const SUPPORTED_ALGORITHM: &'static [&'static str] = &[
 pub type StaticCharVec = &'static [char];
 /// A "space character" according to:
 ///
-/// https://html.spec.whatwg.org/multipage/#space-character
+/// <https://html.spec.whatwg.org/multipage/#space-character>
 pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u{0020}',
     '\u{0009}',
@@ -44,7 +44,7 @@ impl SriEntry {
     }
 }
 
-/// https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata
+/// <https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata>
 pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
     // Step 1
     let mut result = vec![];
@@ -77,7 +77,7 @@ pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
     return result;
 }
 
-/// https://w3c.github.io/webappsec-subresource-integrity/#getprioritizedhashfunction
+/// <https://w3c.github.io/webappsec-subresource-integrity/#getprioritizedhashfunction>
 pub fn get_prioritized_hash_function(hash_func_left: &str, hash_func_right: &str) -> Option<String> {
     let left_priority = SUPPORTED_ALGORITHM.iter().position(|s| s.to_owned() == hash_func_left).unwrap();
     let right_priority = SUPPORTED_ALGORITHM.iter().position(|s| s.to_owned() == hash_func_right).unwrap();
@@ -93,7 +93,7 @@ pub fn get_prioritized_hash_function(hash_func_left: &str, hash_func_right: &str
 
 }
 
-/// https://w3c.github.io/webappsec-subresource-integrity/#get-the-strongest-metadata
+/// <https://w3c.github.io/webappsec-subresource-integrity/#get-the-strongest-metadata>
 pub fn get_strongest_metadata(integrity_metadata_list: Vec<SriEntry>) -> Vec<SriEntry> {
     let mut result: Vec<SriEntry> = vec![integrity_metadata_list[0].clone()];
     let mut current_algorithm = result[0].alg.clone();
@@ -114,7 +114,7 @@ pub fn get_strongest_metadata(integrity_metadata_list: Vec<SriEntry>) -> Vec<Sri
     result
 }
 
-/// https://w3c.github.io/webappsec-subresource-integrity/#apply-algorithm-to-response
+/// <https://w3c.github.io/webappsec-subresource-integrity/#apply-algorithm-to-response>
 fn apply_algorithm_to_response(body: MutexGuard<ResponseBody>,
                                message_digest: MessageDigest)
                                -> String {
@@ -126,7 +126,7 @@ fn apply_algorithm_to_response(body: MutexGuard<ResponseBody>,
     }
 }
 
-/// https://w3c.github.io/webappsec-subresource-integrity/#is-response-eligible
+/// <https://w3c.github.io/webappsec-subresource-integrity/#is-response-eligible>
 fn is_eligible_for_integrity_validation(response: &Response) -> bool {
     match response.response_type {
         ResponseType::Basic | ResponseType::Default | ResponseType::Cors => true,
@@ -134,7 +134,7 @@ fn is_eligible_for_integrity_validation(response: &Response) -> bool {
     }
 }
 
-/// https://w3c.github.io/webappsec-subresource-integrity/#does-response-match-metadatalist
+/// <https://w3c.github.io/webappsec-subresource-integrity/#does-response-match-metadatalist>
 pub fn is_response_integrity_valid(integrity_metadata: &str, response: &Response) -> bool {
     let parsed_metadata_list: Vec<SriEntry> = parsed_metadata(integrity_metadata);
 

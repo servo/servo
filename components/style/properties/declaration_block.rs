@@ -308,7 +308,7 @@ impl PropertyDeclarationBlock {
 
     /// Find the value of the given property in this block and serialize it
     ///
-    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue>
     pub fn property_value_to_css<W>(&self, property: &PropertyId, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
@@ -365,7 +365,7 @@ impl PropertyDeclarationBlock {
         }
     }
 
-    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority>
     pub fn property_priority(&self, property: &PropertyId) -> Importance {
         // Step 1: done when parsing a string to PropertyId
 
@@ -560,7 +560,7 @@ impl PropertyDeclarationBlock {
         updated_at_least_one
     }
 
-    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
+    /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty>
     ///
     /// Returns whether any declaration was actually removed.
     pub fn remove_property(&mut self, property: &PropertyId) -> bool {

@@ -144,7 +144,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 }
 
 impl HTMLButtonElement {
-    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 3.1 to 3.7 (specific to HTMLButtonElement)
     pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
         // Step 3.1: disabled state check is in get_unclean_dataset

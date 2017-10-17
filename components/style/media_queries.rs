@@ -47,15 +47,15 @@ impl MediaList {
     }
 }
 
-/// https://drafts.csswg.org/mediaqueries/#mq-prefix
+/// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub enum Qualifier {
     /// Hide a media query from legacy UAs:
-    /// https://drafts.csswg.org/mediaqueries/#mq-only
+    /// <https://drafts.csswg.org/mediaqueries/#mq-only>
     Only,
     /// Negate a media query:
-    /// https://drafts.csswg.org/mediaqueries/#mq-not
+    /// <https://drafts.csswg.org/mediaqueries/#mq-not>
     Not,
 }
 
@@ -133,7 +133,7 @@ impl ToCss for MediaQuery {
     }
 }
 
-/// http://dev.w3.org/csswg/mediaqueries-3/#media0
+/// <http://dev.w3.org/csswg/mediaqueries-3/#media0>
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaQueryType {
@@ -162,7 +162,7 @@ impl MediaQueryType {
     }
 }
 
-/// https://drafts.csswg.org/mediaqueries/#media-types
+/// <https://drafts.csswg.org/mediaqueries/#media-types>
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaType(pub CustomIdent);
@@ -241,7 +241,7 @@ impl MediaQuery {
 /// Always returns a media query list. If any invalid media query is found, the
 /// media query list is only filled with the equivalent of "not all", see:
 ///
-/// https://drafts.csswg.org/mediaqueries/#error-handling
+/// <https://drafts.csswg.org/mediaqueries/#error-handling>
 pub fn parse_media_query_list<R>(
     context: &ParserContext,
     input: &mut Parser,
@@ -311,7 +311,7 @@ impl MediaList {
     }
 
     /// Append a new media query item to the media list.
-    /// https://drafts.csswg.org/cssom/#dom-medialist-appendmedium
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-appendmedium>
     ///
     /// Returns true if added, false if fail to parse the medium string.
     pub fn append_medium(&mut self, context: &ParserContext, new_medium: &str) -> bool {
@@ -330,7 +330,7 @@ impl MediaList {
     }
 
     /// Delete a media query from the media list.
-    /// https://drafts.csswg.org/cssom/#dom-medialist-deletemedium
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-deletemedium>
     ///
     /// Returns true if found and deleted, false otherwise.
     pub fn delete_medium(&mut self, context: &ParserContext, old_medium: &str) -> bool {

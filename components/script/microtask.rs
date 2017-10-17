@@ -25,7 +25,7 @@ use std::rc::Rc;
 pub struct MicrotaskQueue {
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
     microtask_queue: DomRefCell<Vec<Microtask>>,
-    /// https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint
+    /// <https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint>
     performing_a_microtask_checkpoint: Cell<bool>,
 }
 
@@ -57,7 +57,7 @@ impl MicrotaskQueue {
         self.microtask_queue.borrow_mut().push(job);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
+    /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     pub fn checkpoint<F>(&self, target_provider: F)
         where F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>

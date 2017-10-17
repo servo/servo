@@ -193,7 +193,7 @@ pub fn set_default_accept_language(headers: &mut Headers) {
     ]));
 }
 
-/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
+/// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade>
 fn no_referrer_when_downgrade_header(referrer_url: ServoUrl, url: ServoUrl) -> Option<ServoUrl> {
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
@@ -201,7 +201,7 @@ fn no_referrer_when_downgrade_header(referrer_url: ServoUrl, url: ServoUrl) -> O
     return strip_url(referrer_url, false);
 }
 
-/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin
+/// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin>
 fn strict_origin(referrer_url: ServoUrl, url: ServoUrl) -> Option<ServoUrl> {
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
@@ -209,7 +209,7 @@ fn strict_origin(referrer_url: ServoUrl, url: ServoUrl) -> Option<ServoUrl> {
     strip_url(referrer_url, true)
 }
 
-/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin-when-cross-origin
+/// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin-when-cross-origin>
 fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Option<ServoUrl> {
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
@@ -218,7 +218,7 @@ fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Opt
     strip_url(referrer_url, cross_origin)
 }
 
-/// https://w3c.github.io/webappsec-referrer-policy/#strip-url
+/// <https://w3c.github.io/webappsec-referrer-policy/#strip-url>
 fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> {
     if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
         {
@@ -236,7 +236,7 @@ fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> 
     return None;
 }
 
-/// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+/// <https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer>
 /// Steps 4-6.
 pub fn determine_request_referrer(headers: &mut Headers,
                                   referrer_policy: ReferrerPolicy,
@@ -1376,7 +1376,7 @@ fn response_needs_revalidation(_response: &Response) -> bool {
     false
 }
 
-/// https://fetch.spec.whatwg.org/#redirect-status
+/// <https://fetch.spec.whatwg.org/#redirect-status>
 pub fn is_redirect_status(status: StatusCode) -> bool {
     match status {
         StatusCode::MovedPermanently |

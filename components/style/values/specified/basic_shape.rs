@@ -237,7 +237,7 @@ impl Parse for ShapeRadius {
     }
 }
 
-/// https://drafts.csswg.org/css-shapes/#basic-shape-serialization
+/// <https://drafts.csswg.org/css-shapes/#basic-shape-serialization>
 ///
 /// Positions get serialized differently with basic shapes. Keywords
 /// are converted to percentages where possible. Only the two or four

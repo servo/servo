@@ -24,7 +24,7 @@ fn main() {
     write!(&mut file, "; &SET }}").unwrap();
 }
 
-/// https://html.spec.whatwg.org/multipage/#selectors
+/// <https://html.spec.whatwg.org/multipage/#selectors>
 static ASCII_CASE_INSENSITIVE_HTML_ATTRIBUTES: &'static str = r#"
     accept
     accept-charset

@@ -74,7 +74,7 @@ const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
 #[dom_struct]
-/// https://drafts.css-houdini.org/worklets/#worklet
+/// <https://drafts.css-houdini.org/worklets/#worklet>
 pub struct Worklet {
     reflector: Reflector,
     window: Dom<Window>,
@@ -109,7 +109,7 @@ impl Worklet {
 
 impl WorkletMethods for Worklet {
     #[allow(unrooted_must_root)]
-    /// https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
+    /// <https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule>
     fn AddModule(&self, module_url: USVString, options: &WorkletOptions) -> Rc<Promise> {
         // Step 1.
         let promise = Promise::new(self.window.upcast());
@@ -159,7 +159,7 @@ impl WorkletId {
     }
 }
 
-/// https://drafts.css-houdini.org/worklets/#pending-tasks-struct
+/// <https://drafts.css-houdini.org/worklets/#pending-tasks-struct>
 #[derive(Clone, Debug)]
 struct PendingTasksStruct(Arc<AtomicIsize>);
 
@@ -275,7 +275,7 @@ impl WorkletThreadPool {
     /// Loads a worklet module into every worklet thread.
     /// If all of the threads load successfully, the promise is resolved.
     /// If any of the threads fails to load, the promise is rejected.
-    /// https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script
+    /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
     fn fetch_and_invoke_a_worklet_script(&self,
                                          pipeline_id: PipelineId,
                                          worklet_id: WorkletId,
@@ -552,7 +552,7 @@ impl WorkletThread {
     }
 
     /// Fetch and invoke a worklet script.
-    /// https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script
+    /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
     fn fetch_and_invoke_a_worklet_script(&self,
                                          global_scope: &WorkletGlobalScope,
                                          pipeline_id: PipelineId,

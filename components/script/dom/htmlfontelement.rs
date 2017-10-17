@@ -130,7 +130,7 @@ impl HTMLFontElementLayoutHelpers for LayoutDom<HTMLFontElement> {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size>
 fn parse_size(mut input: &str) -> AttrValue {
     let original_input = input;
     // Steps 1 & 2 are not relevant

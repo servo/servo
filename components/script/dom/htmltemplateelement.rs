@@ -20,7 +20,7 @@ use html5ever::{LocalName, Prefix};
 pub struct HTMLTemplateElement {
     htmlelement: HTMLElement,
 
-    /// https://html.spec.whatwg.org/multipage/#template-contents
+    /// <https://html.spec.whatwg.org/multipage/#template-contents>
     contents: MutNullableDom<DocumentFragment>,
 }
 
@@ -46,7 +46,7 @@ impl HTMLTemplateElement {
 }
 
 impl HTMLTemplateElementMethods for HTMLTemplateElement {
-    /// https://html.spec.whatwg.org/multipage/#dom-template-content
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
     fn Content(&self) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
             let doc = document_from_node(self);
@@ -60,7 +60,7 @@ impl VirtualMethods for HTMLTemplateElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#template-adopting-steps
+    /// <https://html.spec.whatwg.org/multipage/#template-adopting-steps>
     fn adopting_steps(&self, old_doc: &Document) {
         self.super_type().unwrap().adopting_steps(old_doc);
         // Step 1.
@@ -69,7 +69,7 @@ impl VirtualMethods for HTMLTemplateElement {
         Node::adopt(self.Content().upcast(), &doc);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext
+    /// <https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext>
     fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
                      clone_children: CloneChildrenFlag) {
         self.super_type().unwrap().cloning_steps(copy, maybe_doc, clone_children);

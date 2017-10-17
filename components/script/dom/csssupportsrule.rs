@@ -46,14 +46,14 @@ impl CSSSupportsRule {
                            CSSSupportsRuleBinding::Wrap)
     }
 
-    /// https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface
+    /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
     pub fn get_condition_text(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
         let rule = self.supportsrule.read_with(&guard);
         rule.condition.to_css_string().into()
     }
 
-    /// https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface
+    /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
     pub fn set_condition_text(&self, text: DOMString) {
         let mut input = ParserInput::new(&text);
         let mut input = Parser::new(&mut input);

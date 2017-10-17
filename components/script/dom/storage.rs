@@ -147,7 +147,7 @@ impl StorageMethods for Storage {
 
 
 impl Storage {
-    /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
+    /// <https://html.spec.whatwg.org/multipage/#send-a-storage-notification>
     fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
                                      new_value: Option<String>) {
         let storage = self.storage_type;
@@ -156,7 +156,7 @@ impl Storage {
         self.global().script_to_constellation_chan().send(msg).unwrap();
     }
 
-    /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
+    /// <https://html.spec.whatwg.org/multipage/#send-a-storage-notification>
     pub fn queue_storage_event(
         &self,
         url: ServoUrl,

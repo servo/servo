@@ -199,7 +199,7 @@ impl Performance {
     /// notify the observers if no other notification task is already queued.
     ///
     /// Algorithm spec:
-    /// https://w3c.github.io/performance-timeline/#queue-a-performanceentry
+    /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     pub fn queue_entry(&self, entry: &PerformanceEntry,
                        add_to_performance_entries_buffer: bool) {
         // Steps 1-3.
@@ -233,7 +233,7 @@ impl Performance {
     /// Observers notifications task.
     ///
     /// Algorithm spec (step 7):
-    /// https://w3c.github.io/performance-timeline/#queue-a-performanceentry
+    /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     pub fn notify_observers(&self) {
         // Step 7.1.
         self.pending_notification_observers_task.set(false);

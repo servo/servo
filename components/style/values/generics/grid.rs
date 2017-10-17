@@ -16,7 +16,7 @@ use values::specified::grid::parse_line_names;
 
 /// A `<grid-line>` type.
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-grid-row-start-grid-line
+/// <https://drafts.csswg.org/css-grid/#typedef-grid-row-start-grid-line>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, Default, PartialEq, ToComputedValue)]
@@ -25,7 +25,7 @@ pub struct GridLine<Integer> {
     pub is_span: bool,
     /// A custom identifier for named lines.
     ///
-    /// https://drafts.csswg.org/css-grid/#grid-placement-slot
+    /// <https://drafts.csswg.org/css-grid/#grid-placement-slot>
     pub ident: Option<CustomIdent>,
     /// Denotes the nth grid line from grid item's placement.
     pub line_num: Option<Integer>,
@@ -144,7 +144,7 @@ add_impls_for_keyword_enum!(TrackKeyword);
 /// A track breadth for explicit grid track sizing. It's generic solely to
 /// avoid re-implementing it for the computed type.
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-track-breadth
+/// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToComputedValue)]
@@ -160,7 +160,7 @@ pub enum TrackBreadth<L> {
 impl<L> TrackBreadth<L> {
     /// Check whether this is a `<fixed-breadth>` (i.e., it only has `<length-percentage>`)
     ///
-    /// https://drafts.csswg.org/css-grid/#typedef-fixed-breadth
+    /// <https://drafts.csswg.org/css-grid/#typedef-fixed-breadth>
     #[inline]
     pub fn is_fixed(&self) -> bool {
         match *self {
@@ -183,7 +183,7 @@ impl<L: ToCss> ToCss for TrackBreadth<L> {
 /// A `<track-size>` type for explicit grid track sizing. Like `<track-breadth>`, this is
 /// generic only to avoid code bloat. It only takes `<length-percentage>`
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-track-size
+/// <https://drafts.csswg.org/css-grid/#typedef-track-size>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
@@ -193,18 +193,18 @@ pub enum TrackSize<L> {
     /// A `minmax` function for a range over an inflexible `<track-breadth>`
     /// and a flexible `<track-breadth>`
     ///
-    /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax
+    /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax>
     Minmax(TrackBreadth<L>, TrackBreadth<L>),
     /// A `fit-content` function.
     ///
-    /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content
+    /// <https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content>
     FitContent(L),
 }
 
 impl<L> TrackSize<L> {
     /// Check whether this is a `<fixed-size>`
     ///
-    /// https://drafts.csswg.org/css-grid/#typedef-fixed-size
+    /// <https://drafts.csswg.org/css-grid/#typedef-fixed-size>
     pub fn is_fixed(&self) -> bool {
         match *self {
             TrackSize::Breadth(ref breadth) => breadth.is_fixed(),
@@ -347,7 +347,7 @@ where
 
 /// The initial argument of the `repeat` function.
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-track-repeat
+/// <https://drafts.csswg.org/css-grid/#typedef-track-repeat>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
@@ -477,7 +477,7 @@ pub enum TrackListValue<LengthOrPercentage, Integer> {
 
 /// The type of a `<track-list>` as determined during parsing.
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-track-list
+/// <https://drafts.csswg.org/css-grid/#typedef-track-list>
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -501,7 +501,7 @@ pub enum TrackListType {
 
 /// A grid `<track-list>` type.
 ///
-/// https://drafts.csswg.org/css-grid/#typedef-track-list
+/// <https://drafts.csswg.org/css-grid/#typedef-track-list>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq)]

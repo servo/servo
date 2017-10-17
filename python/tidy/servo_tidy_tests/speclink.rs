@@ -19,11 +19,11 @@ impl SpecLinkMethods for SpecLink {
     fn Foo() {}
 
     /// A spec link.
-    /// https://example.com/
+    /// <https://example.com/>
     fn Foo() {}
 
     /// A spec link.
-    /// https://example.com/
+    /// <https://example.com/>
     /// Doc comments are OK
     // Regular comments are OK
     #[allow(attributes_too)]

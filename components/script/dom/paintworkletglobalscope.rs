@@ -62,7 +62,7 @@ use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
 
-/// https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope
+/// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
 pub struct PaintWorkletGlobalScope {
     /// The worklet global for this object
@@ -70,9 +70,9 @@ pub struct PaintWorkletGlobalScope {
     /// The image cache
     #[ignore_heap_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
-    /// https://drafts.css-houdini.org/css-paint-api/#paint-definitions
+    /// <https://drafts.css-houdini.org/css-paint-api/#paint-definitions>
     paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition>>>,
-    /// https://drafts.css-houdini.org/css-paint-api/#paint-class-instances
+    /// <https://drafts.css-houdini.org/css-paint-api/#paint-class-instances>
     paint_class_instances: DomRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
     /// The most recent name the worklet was called with
     cached_name: DomRefCell<Atom>,
@@ -169,7 +169,7 @@ impl PaintWorkletGlobalScope {
         }
     }
 
-    /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
+    /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn draw_a_paint_image(&self,
                           name: &Atom,
                           size_in_px: TypedSize2D<f32, CSSPixel>,
@@ -187,7 +187,7 @@ impl PaintWorkletGlobalScope {
         self.invoke_a_paint_callback(name, size_in_px, size_in_dpx, device_pixel_ratio, properties, arguments)
     }
 
-    /// https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback
+    /// <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
     #[allow(unsafe_code)]
     fn invoke_a_paint_callback(&self,
                                name: &Atom,
@@ -367,7 +367,7 @@ impl PaintWorkletGlobalScope {
 impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
     #[allow(unrooted_must_root)]
-    /// https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint
+    /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>
     fn RegisterPaint(&self, name: DOMString, paint_ctor: Rc<VoidFunction>) -> Fallible<()> {
         let name = Atom::from(name);
         let cx = self.worklet_global.get_cx();
@@ -461,7 +461,7 @@ pub enum PaintWorkletTask {
 }
 
 /// A paint definition
-/// https://drafts.css-houdini.org/css-paint-api/#paint-definition
+/// <https://drafts.css-houdini.org/css-paint-api/#paint-definition>
 /// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
 /// which can't be moved.
 #[derive(HeapSizeOf, JSTraceable)]

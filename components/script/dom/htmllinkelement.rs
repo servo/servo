@@ -55,7 +55,7 @@ pub struct HTMLLinkElement {
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
 
-    /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
+    /// <https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts>
     parser_inserted: Cell<bool>,
     /// The number of loads that this link element has triggered (could be more
     /// than one because of imports) and have not yet finished.
@@ -156,7 +156,7 @@ fn string_is_stylesheet(value: &Option<String>) -> bool {
 
 /// Favicon spec usage in accordance with CEF implementation:
 /// only url of icon is required/used
-/// https://html.spec.whatwg.org/multipage/#rel-icon
+/// <https://html.spec.whatwg.org/multipage/#rel-icon>
 fn is_favicon(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
@@ -250,7 +250,7 @@ impl VirtualMethods for HTMLLinkElement {
 
 
 impl HTMLLinkElement {
-    /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
+    /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
         if document.browsing_context().is_none() {

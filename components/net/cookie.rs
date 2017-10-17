@@ -42,7 +42,7 @@ impl Cookie {
             .unwrap_or(None)
     }
 
-    /// http://tools.ietf.org/html/rfc6265#section-5.3
+    /// <http://tools.ietf.org/html/rfc6265#section-5.3>
     pub fn new_wrapped(mut cookie: cookie_rs::Cookie<'static>, request: &ServoUrl, source: CookieSource)
                        -> Option<Cookie> {
         // Step 3
