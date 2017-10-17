@@ -13,12 +13,12 @@ extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
-extern crate heapsize;
 #[macro_use] extern crate html5ever;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate malloc_size_of;
 extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;

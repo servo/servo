@@ -7,13 +7,13 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
-use heapsize::HeapSizeOf;
+use malloc_size_of::MallocSizeOf;
 use std::any::Any;
 use super::{WebGLExtension, WebGLExtensions};
 
 /// Trait used internally by WebGLExtensions to store and
 /// handle the different WebGL extensions in a common list.
-pub trait WebGLExtensionWrapper: JSTraceable + HeapSizeOf {
+pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
     fn instance_or_init(&self,
                         ctx: &WebGLRenderingContext,
                         ext: &WebGLExtensions)
@@ -26,7 +26,7 @@ pub trait WebGLExtensionWrapper: JSTraceable + HeapSizeOf {
 }
 
 #[must_root]
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
     extension: MutNullableDom<T::Extension>
 }
@@ -42,7 +42,7 @@ impl<T: WebGLExtension> TypedWebGLExtensionWrapper<T> {
 }
 
 impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
-                              where T: WebGLExtension + JSTraceable + HeapSizeOf + 'static {
+                              where T: WebGLExtension + JSTraceable + MallocSizeOf + 'static {
     #[allow(unsafe_code)]
     fn instance_or_init(&self,
                         ctx: &WebGLRenderingContext,
@@ -82,7 +82,9 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
     }
 }
 
-impl<T> TypedWebGLExtensionWrapper<T> where T: WebGLExtension + JSTraceable + HeapSizeOf + 'static {
+impl<T> TypedWebGLExtensionWrapper<T>
+    where T: WebGLExtension + JSTraceable + MallocSizeOf + 'static
+{
     pub fn dom_object(&self) -> Option<DomRoot<T::Extension>> {
         self.extension.get()
     }

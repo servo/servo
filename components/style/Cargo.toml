@@ -16,12 +16,11 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["malloc_size_of", "malloc_size_of_derive", "nsstring_vendor", "num_cpus",
+gecko = ["nsstring_vendor", "num_cpus",
          "style_traits/gecko", "fallible/known_system_malloc"]
 use_bindgen = ["bindgen", "regex", "toml"]
-servo = ["serde", "heapsize", "heapsize_derive",
-         "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
-         "cssparser/heapsize", "cssparser/serde", "encoding", "smallvec/heapsizeof",
+servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
+         "cssparser/serde", "encoding", "malloc_size_of/servo",
 
          # FIXME: Uncomment when https://github.com/servo/servo/pull/16953 has landed:
          #"arrayvec/use_union"
@@ -42,16 +41,14 @@ euclid = "0.15"
 fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
-heapsize = {version = "0.4", optional = true}
-heapsize_derive = {version = "0.1", optional = true}
 itertools = "0.5"
 itoa = "0.3"
 html5ever = {version = "0.20", optional = true}
 lazy_static = "0.2"
 lru_cache = { path = "../lru_cache" }
 log = "0.3"
-malloc_size_of = { path = "../malloc_size_of", optional=true }
-malloc_size_of_derive = { path = "../malloc_size_of_derive", optional=true }
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 matches = "0.1"
 nsstring_vendor = {path = "gecko_bindings/nsstring_vendor", optional = true}
 num_cpus = {version = "1.1.0", optional = true}

@@ -24,7 +24,7 @@ use style::values::KeyframesName;
 #[dom_struct]
 pub struct CSSKeyframesRule {
     cssrule: CSSRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     keyframesrule: Arc<Locked<KeyframesRule>>,
     rulelist: MutNullableDom<CSSRuleList>,
 }

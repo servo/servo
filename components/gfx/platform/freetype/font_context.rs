@@ -8,7 +8,7 @@ use freetype::freetype::FT_Library;
 use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
-use heapsize::{HeapSizeOf, heap_size_of};
+use malloc_size_of::{malloc_size_of, MallocSizeOf, MallocSizeOfOps};
 use std::mem;
 use std::os::raw::{c_long, c_void};
 use std::ptr;
@@ -31,7 +31,7 @@ extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
     mem::forget(vec);
 
     unsafe {
-        let actual_size = heap_size_of(ptr as *const _);
+        let actual_size = malloc_size_of(ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size += actual_size;
     }
@@ -41,7 +41,7 @@ extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
 
 extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     unsafe {
-        let actual_size = heap_size_of(ptr as *const _);
+        let actual_size = malloc_size_of(ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size -= actual_size;
 
@@ -55,7 +55,7 @@ extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
     let old_actual_size;
     let mut vec;
     unsafe {
-        old_actual_size = heap_size_of(old_ptr as *const _);
+        old_actual_size = malloc_size_of(old_ptr as *const _);
         vec = Vec::<u8>::from_raw_parts(old_ptr as *mut u8, old_actual_size, old_actual_size);
     };
 
@@ -71,7 +71,7 @@ extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
     mem::forget(vec);
 
     unsafe {
-        let new_actual_size = heap_size_of(new_ptr as *const _);
+        let new_actual_size = malloc_size_of(new_ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size += new_actual_size;
         (*user).size -= old_actual_size;
@@ -104,13 +104,13 @@ impl Drop for FreeTypeLibraryHandle {
     }
 }
 
-impl HeapSizeOf for FreeTypeLibraryHandle {
-    fn heap_size_of_children(&self) -> usize {
+impl MallocSizeOf for FreeTypeLibraryHandle {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         unsafe {
             (*self.user).size +
-                heap_size_of(self.ctx as *const _) +
-                heap_size_of(self.mem as *const _) +
-                heap_size_of(self.user as *const _)
+                ops.malloc_size_of(self.ctx as *const _) +
+                ops.malloc_size_of(self.mem as *const _) +
+                ops.malloc_size_of(self.user as *const _)
         }
     }
 }
@@ -123,9 +123,9 @@ pub struct FontContextHandle {
     pub ctx: Rc<FreeTypeLibraryHandle>,
 }
 
-impl HeapSizeOf for FontContextHandle {
-    fn heap_size_of_children(&self) -> usize {
-        self.ctx.heap_size_of_children()
+impl MallocSizeOf for FontContextHandle {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.ctx.size_of(ops)
     }
 }
 

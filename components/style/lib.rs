@@ -50,8 +50,6 @@ extern crate fallible;
 extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 extern crate hashglobe;
-#[cfg(feature = "servo")] extern crate heapsize;
-#[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 extern crate itertools;
 extern crate itoa;
 #[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
@@ -60,8 +58,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate lru_cache;
-#[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of;
-#[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of_derive;
+#[macro_use] extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;

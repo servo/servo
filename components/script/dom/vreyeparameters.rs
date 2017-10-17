@@ -20,7 +20,7 @@ use webvr_traits::WebVREyeParameters;
 #[dom_struct]
 pub struct VREyeParameters {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     parameters: DomRefCell<WebVREyeParameters>,
     offset: Heap<*mut JSObject>,
     fov: Dom<VRFieldOfView>,

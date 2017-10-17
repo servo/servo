@@ -46,7 +46,7 @@ use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLay
 #[dom_struct]
 pub struct VRDisplay {
     eventtarget: EventTarget,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     display: DomRefCell<WebVRDisplayData>,
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
@@ -55,19 +55,19 @@ pub struct VRDisplay {
     right_eye_params: MutDom<VREyeParameters>,
     capabilities: MutDom<VRDisplayCapabilities>,
     stage_params: MutNullableDom<VRStageParameters>,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     frame_data: DomRefCell<WebVRFrameData>,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     layer: DomRefCell<WebVRLayer>,
     layer_ctx: MutNullableDom<WebGLRenderingContext>,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     next_raf_id: Cell<u32>,
     /// List of request animation frame callbacks
-    #[ignore_heap_size_of = "closures are hard"]
+    #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<FrameRequestCallback>>)>>,
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "closures are hard"]
     frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<Vec<u8>, ()>>>>,
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
@@ -78,7 +78,7 @@ unsafe_no_jsmanaged_fields!(WebVRDisplayData);
 unsafe_no_jsmanaged_fields!(WebVRFrameData);
 unsafe_no_jsmanaged_fields!(WebVRLayer);
 
-#[derive(Clone, Copy, Eq, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq)]
 enum VRFrameDataStatus {
     Waiting,
     Synced,

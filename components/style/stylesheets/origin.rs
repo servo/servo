@@ -12,7 +12,7 @@ use std::ops::BitOrAssign;
 /// <https://drafts.csswg.org/css-cascade/#cascading-origins>
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum Origin {
     /// <https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent>
     UserAgent = 1 << 0,
@@ -40,7 +40,7 @@ impl Origin {
 
 bitflags! {
     /// A set of origins. This is equivalent to Gecko's OriginFlags.
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
     pub flags OriginSet: u8 {
         /// <https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent>
         const ORIGIN_USER_AGENT = Origin::UserAgent as u8,
@@ -104,9 +104,7 @@ impl Iterator for OriginSetIterator {
 }
 
 /// An object that stores a `T` for each origin of the CSS cascade.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, MallocSizeOf)]
 pub struct PerOrigin<T> {
     /// Data for `Origin::UserAgent`.
     pub user_agent: T,

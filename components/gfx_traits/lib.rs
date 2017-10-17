@@ -7,8 +7,8 @@
 
 #![deny(unsafe_code)]
 
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 #[macro_use] extern crate range;
 #[macro_use] extern crate serde;
 
@@ -28,7 +28,7 @@ impl Epoch {
 }
 
 /// A unique ID for every stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct StackingContextId(
     /// The identifier for this StackingContext, derived from the Flow's memory address
     /// and fragment type.  As a space optimization, these are combined into a single word.
@@ -53,7 +53,7 @@ int_range_index! {
     #[derive(Deserialize, Serialize)]
     #[doc = "An index that refers to a byte offset in a text run. This could \
              point to the middle of a glyph."]
-    #[derive(HeapSizeOf)]
+    #[derive(MallocSizeOf)]
     struct ByteIndex(isize)
 }
 
@@ -62,7 +62,7 @@ int_range_index! {
 /// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
 /// into the lower 2 bits of the `StackingContextId`, which otherwise contains a 32-bit-aligned
 /// heap address.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FragmentType {
     /// A StackingContext for the fragment body itself.
     FragmentBody,

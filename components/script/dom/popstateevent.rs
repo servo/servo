@@ -22,7 +22,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct PopStateEvent {
     event: Event,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
+    #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     state: Heap<JSVal>,
 }
 

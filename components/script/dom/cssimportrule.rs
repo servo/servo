@@ -17,7 +17,7 @@ use style::stylesheets::ImportRule;
 #[dom_struct]
 pub struct CSSImportRule {
     cssrule: CSSRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     import_rule: Arc<Locked<ImportRule>>,
 }
 

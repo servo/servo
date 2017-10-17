@@ -19,7 +19,6 @@ euclid = "0.15"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.4"
 html5ever = "0.20.0"
 ipc-channel = "0.9"
 layout = {path = "../layout"}
@@ -27,6 +26,7 @@ layout_traits = {path = "../layout_traits"}
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
+malloc_size_of = { path = "../malloc_size_of" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

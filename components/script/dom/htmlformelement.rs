@@ -57,7 +57,7 @@ use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
 #[dom_struct]
@@ -166,7 +166,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
     fn Elements(&self) -> DomRoot<HTMLFormControlsCollection> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct ElementsFilter {
             form: DomRoot<HTMLFormElement>
         }
@@ -235,13 +235,13 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum SubmittedFrom {
     FromForm,
     NotFromForm
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum ResetFrom {
     FromForm,
     NotFromForm
@@ -674,14 +674,14 @@ impl HTMLFormElement {
     }
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum FormDatumValue {
     #[allow(dead_code)]
     File(DomRoot<File>),
     String(DOMString)
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
@@ -701,21 +701,21 @@ impl FormDatum {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormEncType {
     TextPlainEncoded,
     UrlEncoded,
     FormDataEncoded
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormMethod {
     FormGet,
     FormPost,
     FormDialog
 }
 
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 #[allow(dead_code)]
 pub enum FormSubmittableElement {
     ButtonElement(DomRoot<HTMLButtonElement>),
@@ -759,7 +759,7 @@ impl FormSubmittableElement {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormSubmitter<'a> {
     FormElement(&'a HTMLFormElement),
     InputElement(&'a HTMLInputElement),

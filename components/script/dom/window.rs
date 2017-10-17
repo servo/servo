@@ -127,14 +127,14 @@ use webrender_api::{ClipId, DocumentId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WindowState {
     Alive,
     Zombie,     // Pipeline is closed, but the window hasn't been GCed yet.
 }
 
 /// Extra information concerning the reason for reflowing.
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
     RefreshTick,
@@ -161,24 +161,24 @@ pub enum ReflowReason {
 #[dom_struct]
 pub struct Window {
     globalscope: GlobalScope,
-    #[ignore_heap_size_of = "trait objects are hard"]
+    #[ignore_malloc_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     dom_manipulation_task_source: DOMManipulationTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     user_interaction_task_source: UserInteractionTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     networking_task_source: NetworkingTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     history_traversal_task_source: HistoryTraversalTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
-    #[ignore_heap_size_of = "task sources are hard"]
+    #[ignore_malloc_size_of = "task sources are hard"]
     performance_timeline_task_source: PerformanceTimelineTaskSource,
     navigator: MutNullableDom<Navigator>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
@@ -196,7 +196,7 @@ pub struct Window {
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
     /// Pending resize event, if any.
@@ -209,22 +209,22 @@ pub struct Window {
     dom_static: GlobalStaticData,
 
     /// The JavaScript runtime.
-    #[ignore_heap_size_of = "Rc<T> is hard"]
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
     js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout thread.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     layout_chan: Sender<Msg>,
 
     /// A handle to perform RPC calls into the layout, quickly.
-    #[ignore_heap_size_of = "trait objects are hard"]
+    #[ignore_malloc_size_of = "trait objects are hard"]
     layout_rpc: Box<LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
     /// A handle for communicating messages to the bluetooth thread.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
@@ -242,7 +242,7 @@ pub struct Window {
     pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
@@ -251,7 +251,7 @@ pub struct Window {
     current_viewport: Cell<Rect<Au>>,
 
     /// A flag to prevent async events from attempting to interact with this window.
-    #[ignore_heap_size_of = "defined in std"]
+    #[ignore_malloc_size_of = "defined in std"]
     ignore_further_async_events: DomRefCell<Arc<AtomicBool>>,
 
     error_reporter: CSSErrorReporter,
@@ -265,11 +265,11 @@ pub struct Window {
     test_runner: MutNullableDom<TestRunner>,
 
     /// A handle for communicating messages to the webvr thread, if available.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     webgl_chan: WebGLChan,
 
     /// A handle for communicating messages to the webvr thread, if available.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// A map for storing the previous permission state read results.
@@ -290,7 +290,7 @@ pub struct Window {
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
     paint_worklet: MutNullableDom<Worklet>,
     /// The Webrender Document id associated with this window.
-    #[ignore_heap_size_of = "defined in webrender_api"]
+    #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_document: DocumentId,
 }
 
