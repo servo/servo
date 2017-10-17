@@ -1226,8 +1226,6 @@ pub struct DefineClipScrollNodeItem {
 /// How a box shadow should be clipped.
 #[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum BoxShadowClipMode {
-    /// No special clipping should occur. This is used for (shadowed) text decorations.
-    None,
     /// The area inside `box_bounds` should be clipped out. Corresponds to the normal CSS
     /// `box-shadow`.
     Outset,
