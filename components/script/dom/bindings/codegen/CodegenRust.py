@@ -2029,7 +2029,7 @@ def DOMClass(descriptor):
     # padding.
     protoList.extend(['PrototypeList::ID::Last'] * (descriptor.config.maxProtoChainLength - len(protoList)))
     prototypeChainString = ', '.join(protoList)
-    heapSizeOf = 'heap_size_of_raw_self_and_children::<%s>' % descriptor.concreteType
+    mallocSizeOf = 'malloc_size_of_including_raw_self::<%s>' % descriptor.concreteType
     if descriptor.isGlobal():
         globals_ = camel_to_upper_snake(descriptor.name)
     else:
@@ -2038,9 +2038,9 @@ def DOMClass(descriptor):
 DOMClass {
     interface_chain: [ %s ],
     type_id: %s,
-    heap_size_of: %s as unsafe fn(_) -> _,
+    malloc_size_of: %s as unsafe fn(&mut _, _) -> _,
     global: InterfaceObjectMap::%s,
-}""" % (prototypeChainString, DOMClassTypeId(descriptor), heapSizeOf, globals_)
+}""" % (prototypeChainString, DOMClassTypeId(descriptor), mallocSizeOf, globals_)
 
 
 class CGDOMJSClass(CGThing):
@@ -4005,7 +4005,7 @@ class CGEnum(CGThing):
         ident = enum.identifier.name
         decl = """\
 #[repr(usize)]
-#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf, Debug)]
+#[derive(Copy, Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum %s {
     %s
 }
@@ -5794,7 +5794,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::weakref::WeakReferenceable',
         'dom::windowproxy::WindowProxy',
         'dom::globalscope::GlobalScope',
-        'mem::heap_size_of_raw_self_and_children',
+        'mem::malloc_size_of_including_raw_self',
         'libc',
         'servo_config::prefs::PREFS',
         'std::borrow::ToOwned',

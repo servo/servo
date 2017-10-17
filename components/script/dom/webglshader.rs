@@ -18,7 +18,7 @@ use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
 
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ShaderCompilationStatus {
     NotCompiled,
     Succeeded,
@@ -35,7 +35,7 @@ pub struct WebGLShader {
     is_deleted: Cell<bool>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
 }
 

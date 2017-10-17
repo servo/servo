@@ -40,9 +40,7 @@ impl AnimationRules {
 }
 
 /// Whether a given declaration comes from CSS parsing, or from CSSOM.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum DeclarationSource {
     /// The declaration was obtained from CSS parsing of sheets and such.
     Parsing,
@@ -53,9 +51,7 @@ pub enum DeclarationSource {
 /// A declaration [importance][importance].
 ///
 /// [importance]: https://drafts.csswg.org/css-cascade/#importance
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum Importance {
     /// Indicates a declaration without `!important`.
     Normal,

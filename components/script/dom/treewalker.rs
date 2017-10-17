@@ -23,7 +23,7 @@ pub struct TreeWalker {
     root_node: Dom<Node>,
     current_node: MutDom<Node>,
     what_to_show: u32,
-    #[ignore_heap_size_of = "function pointers and Rc<T> are hard"]
+    #[ignore_malloc_size_of = "function pointers and Rc<T> are hard"]
     filter: Filter
 }
 

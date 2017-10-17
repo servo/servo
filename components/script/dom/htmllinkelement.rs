@@ -38,7 +38,7 @@ use style::stylesheets::{CssRuleType, Stylesheet};
 use style_traits::PARSING_MODE_DEFAULT;
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct RequestGenerationId(u32);
 
 impl RequestGenerationId {
@@ -51,7 +51,7 @@ impl RequestGenerationId {
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
 

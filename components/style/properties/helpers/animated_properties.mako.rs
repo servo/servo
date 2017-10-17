@@ -77,9 +77,7 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 /// a shorthand with at least one transitionable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum TransitionProperty {
     /// All, any transitionable property changing should generate a transition.
     ///
@@ -203,7 +201,7 @@ pub fn nscsspropertyid_is_transitionable(property: nsCSSPropertyID) -> bool {
 /// property.
 #[cfg(feature = "servo")]
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:
@@ -339,7 +337,7 @@ unsafe impl HasSimpleFFI for AnimationValueMap {}
 /// FIXME: We need to add a path for custom properties, but that's trivial after
 /// this (is a similar path to that of PropertyDeclaration).
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum AnimationValue {
     % for prop in data.longhands:
         % if prop.animatable:
@@ -1190,7 +1188,7 @@ fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
 
 /// A 2d matrix for interpolation.
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
 // FIXME: We use custom derive for ComputeSquaredDistance. However, If possible, we should convert
 // the InnerMatrix2D into types with physical meaning. This custom derive computes the squared
@@ -1202,18 +1200,18 @@ pub struct InnerMatrix2D {
 }
 
 /// A 2d translation function.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 pub struct Translate2D(f32, f32);
 
 /// A 2d scale function.
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct Scale2D(f32, f32);
 
 /// A decomposed 2d matrix.
 #[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct MatrixDecomposed2D {
     /// The translation function.
     pub translate: Translate2D,
@@ -1497,33 +1495,33 @@ impl From<ComputedMatrix> for RawGeckoGfxMatrix4x4 {
 }
 
 /// A 3d translation.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 pub struct Translate3D(f32, f32, f32);
 
 /// A 3d scale function.
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct Scale3D(f32, f32, f32);
 
 /// A 3d skew function.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Animate, Clone, Copy, Debug)]
 pub struct Skew(f32, f32, f32);
 
 /// A 3d perspective transformation.
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct Perspective(f32, f32, f32, f32);
 
 /// A quaternion used to represent a rotation.
 #[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct Quaternion(f64, f64, f64, f64);
 
 /// A decomposed 3d matrix.
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct MatrixDecomposed3D {
     /// A translation function.
     pub translate: Translate3D,

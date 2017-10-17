@@ -182,11 +182,11 @@ impl UserAgentCascadeData {
 
 /// All the computed information for a stylesheet.
 #[derive(Default)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 struct DocumentCascadeData {
     #[cfg_attr(
         feature = "servo",
-        ignore_heap_size_of = "Arc, owned by UserAgentCascadeDataCache"
+        ignore_malloc_size_of = "Arc, owned by UserAgentCascadeDataCache"
     )]
     user_agent: Arc<UserAgentCascadeData>,
     user: CascadeData,
@@ -338,7 +338,7 @@ impl DocumentCascadeData {
 
 /// A wrapper over a StylesheetSet that can be `Sync`, since it's only used and
 /// exposed via mutable methods in the `Stylist`.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 struct StylistStylesheetSet(StylesheetSet<StylistSheet>);
 // Read above to see why this is fine.
 unsafe impl Sync for StylistStylesheetSet {}
@@ -370,7 +370,7 @@ impl ops::DerefMut for StylistStylesheetSet {
 ///
 /// This structure is effectively created once per pipeline, in the
 /// LayoutThread corresponding to that pipeline.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct Stylist {
     /// Device that the stylist is currently evaluating against.
     ///
@@ -393,7 +393,7 @@ pub struct Stylist {
     stylesheets: StylistStylesheetSet,
 
     /// If true, the quirks-mode stylesheet is applied.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
 
     /// Selector maps for all of the style sheets in the stylist, after
@@ -1517,7 +1517,7 @@ impl Stylist {
 /// This struct holds data which users of Stylist may want to extract
 /// from stylesheets which can be done at the same time as updating.
 #[derive(Debug, Default)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct ExtraStyleData {
     /// A list of effective font-face rules and their origin.
     #[cfg(feature = "gecko")]
@@ -1783,7 +1783,7 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
 ///
 /// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
 /// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Debug)]
 struct CascadeData {
     /// Rules from stylesheets at this `CascadeData`'s origin.
@@ -1808,7 +1808,7 @@ struct CascadeData {
     /// to avoid taking element snapshots when an irrelevant attribute changes.
     /// (We don't bother storing the namespace, since namespaced attributes
     /// are rare.)
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "just an array")]
     attribute_dependencies: NonCountingBloomFilter,
 
     /// Whether `"style"` appears in an attribute selector.  This is not common,
@@ -1828,13 +1828,13 @@ struct CascadeData {
     /// hence in our selector maps).  Used to determine when sharing styles is
     /// safe: we disallow style sharing for elements whose id matches this
     /// filter, and hence might be in one of our selector maps.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "just an array")]
     mapped_ids: NonCountingBloomFilter,
 
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
 
     /// Effective media query results cached from the last rebuild.
@@ -2251,21 +2251,16 @@ impl Default for CascadeData {
 
 /// A rule, that wraps a style rule, but represents a single selector of the
 /// rule.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct Rule {
     /// The selector this struct represents. We store this and the
     /// any_{important,normal} booleans inline in the Rule to avoid
     /// pointer-chasing when gathering applicable declarations, which
     /// can ruin performance when there are a lot of rules.
-    #[cfg_attr(feature = "gecko",
-               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    #[ignore_malloc_size_of = "CssRules have primary refs, we measure there"]
     pub selector: Selector<SelectorImpl>,
 
     /// The ancestor hashes associated with the selector.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
     pub hashes: AncestorHashes,
 
     /// The source order this style rule appears in. Note that we only use
@@ -2277,7 +2272,7 @@ pub struct Rule {
     #[cfg_attr(feature = "gecko",
                ignore_malloc_size_of =
                    "Secondary ref. Primary ref is in StyleRule under Stylesheet.")]
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
 }
 

@@ -37,7 +37,7 @@ pub struct Promise {
     /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
     /// native instance exists. This ensures that the reflector will never be GCed
     /// while native code could still interact with its native representation.
-    #[ignore_heap_size_of = "SM handles JS values"]
+    #[ignore_malloc_size_of = "SM handles JS values"]
     permanent_js_root: Heap<JSVal>,
 }
 

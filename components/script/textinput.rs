@@ -22,7 +22,7 @@ pub enum Selection {
     NotSelected
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum SelectionDirection {
     Forward,
     Backward,
@@ -49,7 +49,7 @@ impl From<SelectionDirection> for DOMString {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
@@ -58,7 +58,7 @@ pub struct TextPoint {
 }
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
     /// Current text input content, split across lines without trailing '\n'
     lines: Vec<DOMString>,
@@ -68,7 +68,7 @@ pub struct TextInput<T: ClipboardProvider> {
     pub selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
-    #[ignore_heap_size_of = "Can't easily measure this generic type"]
+    #[ignore_malloc_size_of = "Can't easily measure this generic type"]
     clipboard_provider: T,
     /// The maximum number of UTF-16 code units this text input is allowed to hold.
     ///

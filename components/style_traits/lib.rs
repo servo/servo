@@ -15,10 +15,8 @@ extern crate app_units;
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate cssparser;
 extern crate euclid;
-#[cfg(feature = "servo")] extern crate heapsize;
-#[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
-#[cfg(feature = "gecko")] extern crate malloc_size_of;
-#[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of_derive;
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 #[cfg(feature = "servo")] extern crate webrender_api;
@@ -41,7 +39,7 @@ pub enum DevicePixel {}
 /// Represents a mobile style pinch zoom factor.
 /// TODO(gw): Once WR supports pinch zoom, use a type directly from webrender_api.
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize, MallocSizeOf))]
 pub struct PinchZoomFactor(f32);
 
 impl PinchZoomFactor {

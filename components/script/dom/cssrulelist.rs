@@ -37,7 +37,7 @@ impl From<RulesMutateError> for Error {
 pub struct CSSRuleList {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     rules: RulesSource,
     dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>
 }

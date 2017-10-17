@@ -118,7 +118,7 @@ impl MediaQueryListMethods for MediaQueryList {
     event_handler!(change, GetOnchange, SetOnchange);
 }
 
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct WeakMediaQueryListVec {
     cell: DomRefCell<WeakRefVec<MediaQueryList>>,
 }

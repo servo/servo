@@ -32,7 +32,7 @@ const VALID_ENTRY_TYPES: &'static [&'static str] = &[
 #[dom_struct]
 pub struct PerformanceObserver {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "can't measure Rc values"]
+    #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<PerformanceObserverCallback>,
     entries: DomRefCell<DOMPerformanceEntryList>,
 }

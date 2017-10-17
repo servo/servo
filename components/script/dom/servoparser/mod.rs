@@ -74,13 +74,13 @@ pub struct ServoParser {
     /// The document associated with this parser.
     document: Dom<Document>,
     /// Input received from network.
-    #[ignore_heap_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in html5ever"]
     network_input: DomRefCell<BufferQueue>,
     /// Part of an UTF-8 code point spanning input chunks
-    #[ignore_heap_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in html5ever"]
     incomplete_utf8: DomRefCell<Option<IncompleteUtf8>>,
     /// Input received from script. Used only to support document.write().
-    #[ignore_heap_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in html5ever"]
     script_input: DomRefCell<BufferQueue>,
     /// The tokenizer of this parser.
     tokenizer: DomRefCell<Tokenizer>,
@@ -493,13 +493,13 @@ impl<I> Iterator for FragmentParsingResult<I>
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(JSTraceable, MallocSizeOf, PartialEq)]
 enum ParserKind {
     Normal,
     ScriptCreated,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 enum Tokenizer {
     Html(self::html::Tokenizer),
@@ -742,7 +742,7 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<N
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct Sink {
     base_url: ServoUrl,

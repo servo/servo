@@ -32,10 +32,10 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use heapsize::HeapSizeOf;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -65,7 +65,7 @@ impl CommonEventHandler {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
@@ -116,9 +116,9 @@ enum EventListenerType {
     Inline(InlineEventListener),
 }
 
-impl HeapSizeOf for EventListenerType {
-    fn heap_size_of_children(&self) -> usize {
-        // FIXME: Rc<T> isn't HeapSizeOf and we can't ignore it due to #6870 and #6871
+impl MallocSizeOf for EventListenerType {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // FIXME: Rc<T> isn't MallocSizeOf and we can't ignore it due to #6870 and #6871
         0
     }
 }
@@ -225,14 +225,14 @@ impl CompiledEventListener {
     }
 }
 
-#[derive(Clone, DenyPublicFields, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, DenyPublicFields, JSTraceable, MallocSizeOf, PartialEq)]
 /// A listener in a collection of event listeners.
 struct EventListenerEntry {
     phase: ListenerPhase,
     listener: EventListenerType
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 /// A mix of potentially uncompiled and compiled event listeners of the same type.
 struct EventListeners(Vec<EventListenerEntry>);
 

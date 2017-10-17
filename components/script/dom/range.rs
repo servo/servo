@@ -27,8 +27,8 @@ use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 
@@ -933,7 +933,7 @@ impl RangeMethods for Range {
     }
 }
 
-#[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
+#[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct BoundaryPoint {
     node: MutDom<Node>,
@@ -1251,9 +1251,9 @@ impl WeakRangeVec {
 }
 
 #[allow(unsafe_code)]
-impl HeapSizeOf for WeakRangeVec {
-    fn heap_size_of_children(&self) -> usize {
-        unsafe { (*self.cell.get()).heap_size_of_children() }
+impl MallocSizeOf for WeakRangeVec {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { (*self.cell.get()).size_of(ops) }
     }
 }
 

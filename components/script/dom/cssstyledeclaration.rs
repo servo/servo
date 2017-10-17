@@ -33,12 +33,12 @@ pub struct CSSStyleDeclaration {
     pseudo: Option<PseudoElement>,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub enum CSSStyleOwner {
     Element(Dom<Element>),
     CSSRule(Dom<CSSRule>,
-            #[ignore_heap_size_of = "Arc"]
+            #[ignore_malloc_size_of = "Arc"]
             Arc<Locked<PropertyDeclarationBlock>>),
 }
 
@@ -154,7 +154,7 @@ impl CSSStyleOwner {
     }
 }
 
-#[derive(HeapSizeOf, PartialEq)]
+#[derive(MallocSizeOf, PartialEq)]
 pub enum CSSModificationAccess {
     ReadWrite,
     Readonly,

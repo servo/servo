@@ -30,7 +30,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 ///
 /// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
 #[repr(usize)]
 pub enum PseudoElement {
@@ -251,7 +251,7 @@ pub type PseudoClassStringArg = Box<str>;
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
 pub enum NonTSPseudoClass {
     Active,
@@ -368,7 +368,7 @@ impl NonTSPseudoClass {
 /// The abstract struct we implement the selector parser implementation on top
 /// of.
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct SelectorImpl;
 
 impl ::selectors::SelectorImpl for SelectorImpl {
@@ -601,7 +601,7 @@ impl DerefMut for SnapshotMap {
 
 /// Servo's version of an element snapshot.
 #[derive(Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct ServoElementSnapshot {
     /// The stored state of the element.
     pub state: Option<ElementState>,

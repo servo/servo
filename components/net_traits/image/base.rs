@@ -7,7 +7,7 @@ use piston_image::{self, DynamicImage, ImageFormat};
 use std::fmt;
 use webrender_api;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {
     /// Luminance channel only
     K8,
@@ -19,14 +19,14 @@ pub enum PixelFormat {
     BGRA8,
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     pub bytes: IpcSharedMemory,
-    #[ignore_heap_size_of = "Defined in webrender_api"]
+    #[ignore_malloc_size_of = "Defined in webrender_api"]
     pub id: Option<webrender_api::ImageKey>,
 }
 
@@ -37,7 +37,7 @@ impl fmt::Debug for Image {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct ImageMetadata {
     pub width: u32,
     pub height: u32,
