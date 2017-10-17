@@ -89,7 +89,7 @@ use script_layout_interface::message::ReflowGoal;
 use script_thread::ScriptThread;
 use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::sink::Push;
 use servo_arc::Arc;
