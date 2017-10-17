@@ -31,7 +31,19 @@ test(function () {
   assert_throws("SYNTAX_ERR", function() {
     new IntersectionObserver(e => {}, {rootMargin: "auto"})
   })
-}, 'IntersectionObserver constructor width { rootMargin: "auto" }');
+}, 'IntersectionObserver constructor with { rootMargin: "auto" }');
+
+test(function () {
+  assert_throws("SYNTAX_ERR", function() {
+    new IntersectionObserver(e => {}, {rootMargin: "calc(1px + 2px)"})
+  })
+}, 'IntersectionObserver constructor with { rootMargin: "calc(1px + 2px)" }');
+
+test(function () {
+  assert_throws("SYNTAX_ERR", function() {
+    new IntersectionObserver(e => {}, {rootMargin: "1px !important"})
+  })
+}, 'IntersectionObserver constructor with { rootMargin: "1px !important" }');
 
 test(function () {
   assert_throws("SYNTAX_ERR", function() {
