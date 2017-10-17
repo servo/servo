@@ -12,4 +12,5 @@ path = "lib.rs"
 [dependencies]
 app_units = "0.5"
 euclid = "0.15"
-heapsize = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }

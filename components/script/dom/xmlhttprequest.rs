@@ -73,7 +73,7 @@ use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Position;
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -82,7 +82,7 @@ enum XMLHttpRequestState {
     Done = 4,
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
@@ -131,20 +131,20 @@ pub struct XMLHttpRequest {
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
     response_blob: MutNullableDom<Blob>,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
+    #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     response_json: Heap<JSVal>,
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     response_headers: DomRefCell<Headers>,
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     override_mime_type: DomRefCell<Option<Mime>>,
-    #[ignore_heap_size_of = "Defined in rust-encoding"]
+    #[ignore_malloc_size_of = "Defined in rust-encoding"]
     override_charset: DomRefCell<Option<EncodingRef>>,
 
     // Associated concepts
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     request_method: DomRefCell<Method>,
     request_url: DomRefCell<Option<ServoUrl>>,
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     request_headers: DomRefCell<Headers>,
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
@@ -1243,7 +1243,7 @@ impl XMLHttpRequest {
         use std::fmt;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
-        #[derive(Clone, Debug, HeapSizeOf)]
+        #[derive(Clone, Debug, MallocSizeOf)]
         struct SetCookie2;
         impl Header for SetCookie2 {
             fn header_name() -> &'static str {
@@ -1334,9 +1334,9 @@ impl XMLHttpRequest {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct XHRTimeoutCallback {
-    #[ignore_heap_size_of = "Because it is non-owning"]
+    #[ignore_malloc_size_of = "Because it is non-owning"]
     xhr: Trusted<XMLHttpRequest>,
     generation_id: GenerationId,
 }

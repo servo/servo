@@ -294,17 +294,13 @@ ${helpers.predefined_type("object-position",
     pub type SpecifiedValue = computed_value::T;
 
     pub mod computed_value {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
         pub enum AutoFlow {
             Row,
             Column,
         }
 
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
         pub struct T {
             pub autoflow: AutoFlow,
             pub dense: bool,

@@ -38,25 +38,25 @@ use style::context::QuirksMode as ServoQuirksMode;
 
 type ParseNodeId = usize;
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct ParseNode {
     id: ParseNodeId,
     qual_name: Option<QualName>,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 enum NodeOrText {
     Node(ParseNode),
     Text(String),
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct Attribute {
     name: QualName,
     value: String,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 enum ParseOperation {
     GetTemplateContents { target: ParseNodeId, contents: ParseNodeId },
 
@@ -99,21 +99,21 @@ enum ParseOperation {
     Pop { node: ParseNodeId },
 
     SetQuirksMode {
-        #[ignore_heap_size_of = "Defined in style"]
+        #[ignore_malloc_size_of = "Defined in style"]
         mode: ServoQuirksMode
     },
 }
 
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 enum ToTokenizerMsg {
     // From HtmlTokenizer
     TokenizerResultDone {
-        #[ignore_heap_size_of = "Defined in html5ever"]
+        #[ignore_malloc_size_of = "Defined in html5ever"]
         updated_input: VecDeque<SendTendril<UTF8>>
     },
     TokenizerResultScript {
         script: ParseNode,
-        #[ignore_heap_size_of = "Defined in html5ever"]
+        #[ignore_malloc_size_of = "Defined in html5ever"]
         updated_input: VecDeque<SendTendril<UTF8>>
     },
     End, // Sent to Tokenizer to signify HtmlTokenizer's end method has returned
@@ -122,10 +122,10 @@ enum ToTokenizerMsg {
     ProcessOperation(ParseOperation),
 }
 
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 enum ToHtmlTokenizerMsg {
     Feed {
-        #[ignore_heap_size_of = "Defined in html5ever"]
+        #[ignore_malloc_size_of = "Defined in html5ever"]
         input: VecDeque<SendTendril<UTF8>>
     },
     End,
@@ -165,15 +165,15 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 //   |             |                         |   |________|  |
 //   |_____________|                         |_______________|
 //
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct Tokenizer {
     document: Dom<Document>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     receiver: Receiver<ToTokenizerMsg>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     nodes: HashMap<ParseNodeId, Dom<Node>>,
     url: ServoUrl,
 }
@@ -495,7 +495,7 @@ fn run(sink: Sink,
     }
 }
 
-#[derive(Default, HeapSizeOf, JSTraceable)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 struct ParseNodeData {
     contents: Option<ParseNode>,
     is_integration_point: bool,

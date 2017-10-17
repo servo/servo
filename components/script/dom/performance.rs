@@ -50,7 +50,7 @@ const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
 
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct PerformanceEntryList {
     entries: DOMPerformanceEntryList,
 }
@@ -101,7 +101,7 @@ impl IntoIterator for PerformanceEntryList {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct PerformanceObserver {
     observer: DomRoot<DOMPerformanceObserver>,
     entry_types: Vec<DOMString>,

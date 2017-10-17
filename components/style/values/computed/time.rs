@@ -9,9 +9,8 @@ use style_traits::ToCss;
 use values::CSSFloat;
 
 /// A computed `<time>` value.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct Time {
     seconds: CSSFloat,
 }

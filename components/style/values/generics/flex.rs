@@ -7,7 +7,7 @@
 use values::computed::Percentage;
 
 /// A generic value for the `flex-basis` property.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum FlexBasis<LengthOrPercentage> {
     /// `auto`

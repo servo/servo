@@ -811,7 +811,7 @@ pub extern "C" fn Servo_Element_SizeOfExcludingThisAndCVs(malloc_size_of: GeckoM
     if let Some(data) = borrow {
         let have_seen_ptr = move |ptr| { unsafe { Gecko_HaveSeenPtr(seen_ptrs, ptr) } };
         let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
-                                           malloc_enclosing_size_of.unwrap(),
+                                           Some(malloc_enclosing_size_of.unwrap()),
                                            Some(Box::new(have_seen_ptr)));
         (*data).size_of_excluding_cvs(&mut ops)
     } else {
@@ -1124,7 +1124,7 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
-                                       malloc_enclosing_size_of.unwrap(),
+                                       Some(malloc_enclosing_size_of.unwrap()),
                                        None);
     StylesheetContents::as_arc(&sheet).size_of(&guard, &mut ops)
 }
@@ -3973,7 +3973,7 @@ pub extern "C" fn Servo_StyleSet_AddSizeOfExcludingThis(
 ) {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
-                                       malloc_enclosing_size_of.unwrap(),
+                                       Some(malloc_enclosing_size_of.unwrap()),
                                        None);
     let sizes = unsafe { sizes.as_mut() }.unwrap();
     data.add_size_of(&mut ops, sizes);
@@ -3986,7 +3986,7 @@ pub extern "C" fn Servo_UACache_AddSizeOf(
     sizes: *mut ServoStyleSetSizes
 ) {
     let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
-                                       malloc_enclosing_size_of.unwrap(),
+                                       Some(malloc_enclosing_size_of.unwrap()),
                                        None);
     let sizes = unsafe { sizes.as_mut() }.unwrap();
     add_size_of_ua_cache(&mut ops, sizes);

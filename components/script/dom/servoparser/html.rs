@@ -28,10 +28,10 @@ use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use std::io;
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct Tokenizer {
-    #[ignore_heap_size_of = "Defined in html5ever"]
+    #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>>,
 }
 

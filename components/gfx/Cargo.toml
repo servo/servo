@@ -21,12 +21,12 @@ fnv = "1.0"
 fontsan = {git = "https://github.com/servo/fontsan"}
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
-heapsize = "0.4"
-heapsize_derive = "0.1"
 ipc-channel = "0.9"
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.4"

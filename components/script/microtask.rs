@@ -21,7 +21,7 @@ use std::mem;
 use std::rc::Rc;
 
 /// A collection of microtasks in FIFO order.
-#[derive(Default, HeapSizeOf, JSTraceable)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct MicrotaskQueue {
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
     microtask_queue: DomRefCell<Vec<Microtask>>,
@@ -29,7 +29,7 @@ pub struct MicrotaskQueue {
     performing_a_microtask_checkpoint: Cell<bool>,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
     MediaElement(MediaElementMicrotask),
@@ -43,9 +43,9 @@ pub trait MicrotaskRunnable {
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct EnqueuedPromiseCallback {
-    #[ignore_heap_size_of = "Rc has unclear ownership"]
+    #[ignore_malloc_size_of = "Rc has unclear ownership"]
     pub callback: Rc<PromiseJobCallback>,
     pub pipeline: PipelineId,
 }

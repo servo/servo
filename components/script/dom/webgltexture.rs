@@ -36,7 +36,7 @@ pub struct WebGLTexture {
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
     /// Stores information about mipmap levels and cubemap faces.
-    #[ignore_heap_size_of = "Arrays are cumbersome"]
+    #[ignore_malloc_size_of = "Arrays are cumbersome"]
     image_info_array: DomRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
     /// Face count can only be 1 or 6
     face_count: Cell<u8>,
@@ -44,7 +44,7 @@ pub struct WebGLTexture {
     // Store information for min and mag filters
     min_filter: Cell<Option<u32>>,
     mag_filter: Cell<Option<u32>>,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
     /// True if this texture is used for the DOMToTexture feature.
     attached_to_dom: Cell<bool>,
@@ -394,7 +394,7 @@ impl Drop for WebGLTexture {
     }
 }
 
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct ImageInfo {
     width: u32,
     height: u32,

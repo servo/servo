@@ -115,9 +115,8 @@ const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 ///
 /// The 16-bit field stores the primary value in its lower 8 bits, and the optional fallback value
 /// in its upper 8 bits.  This matches the representation of these properties in Gecko.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct AlignJustifyContent(u16);
 
 impl AlignJustifyContent {

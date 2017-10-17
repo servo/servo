@@ -117,9 +117,7 @@
             use values::computed::ComputedVecIter;
 
             /// The computed value, effectively a list of single values.
-            #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-            #[derive(Clone, Debug, PartialEq)]
+            #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
             % if need_animatable or animation_value_type == "ComputedValue":
             #[derive(Animate, ComputeSquaredDistance)]
             % endif
@@ -178,9 +176,7 @@
         }
 
         /// The specified value of ${name}.
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
         impl ToCss for SpecifiedValue {
@@ -950,9 +946,7 @@
             pub type T = ::values::computed::${length_type};
         }
 
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Debug, PartialEq, ToCss)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
         pub struct SpecifiedValue(pub ${length_type});
 
         % if length_type == "MozLength":

@@ -48,7 +48,7 @@ pub struct Request {
     body_used: Cell<bool>,
     headers: MutNullableDom<Headers>,
     mime_type: DomRefCell<Vec<u8>>,
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 

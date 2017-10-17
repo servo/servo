@@ -69,7 +69,7 @@ impl BlobImpl {
 #[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "No clear owner"]
+    #[ignore_malloc_size_of = "No clear owner"]
     blob_impl: DomRefCell<BlobImpl>,
     /// content-type string
     type_string: String,
