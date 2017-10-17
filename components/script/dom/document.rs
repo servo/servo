@@ -158,13 +158,13 @@ pub enum TouchEventResult {
     Forwarded,
 }
 
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
 }
 
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub struct PendingRestyle {
     /// If this element had a state or attribute change since the last restyle, track
     /// the original condition of the element.
@@ -187,10 +187,10 @@ impl PendingRestyle {
     }
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 #[must_root]
 struct StyleSheetInDocument {
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     sheet: Arc<Stylesheet>,
     owner: Dom<Element>,
 }
@@ -228,7 +228,7 @@ pub struct Document {
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
     url: DomRefCell<ServoUrl>,
-    #[ignore_heap_size_of = "defined in selectors"]
+    #[ignore_malloc_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
@@ -321,7 +321,7 @@ pub struct Document {
     /// <https://html.spec.whatwg.org/multipage/#target-element>
     target_element: MutNullableDom<Element>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
@@ -346,7 +346,7 @@ pub struct Document {
     form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -354,7 +354,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -362,7 +362,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -371,7 +371,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -379,7 +379,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -387,7 +387,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -395,7 +395,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -1978,7 +1978,7 @@ impl Document {
     }
 }
 
-#[derive(HeapSizeOf, PartialEq)]
+#[derive(MallocSizeOf, PartialEq)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
@@ -2092,7 +2092,7 @@ fn url_has_network_scheme(url: &ServoUrl) -> bool {
     }
 }
 
-#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum HasBrowsingContext {
     No,
     Yes,
@@ -3470,7 +3470,7 @@ impl DocumentMethods for Document {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNullJSObjectPtr> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
         }
@@ -3945,10 +3945,10 @@ pub enum FocusEventType {
 /// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
 /// without mutating the DOM), then we fall back to simple timeouts to save energy over video
 /// refresh.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct FakeRequestAnimationFrameCallback {
     /// The document.
-    #[ignore_heap_size_of = "non-owning"]
+    #[ignore_malloc_size_of = "non-owning"]
     document: Trusted<Document>,
 }
 
@@ -3959,11 +3959,11 @@ impl FakeRequestAnimationFrameCallback {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum AnimationFrameCallback {
     DevtoolsFramerateTick { actor_name: String },
     FrameRequestCallback {
-        #[ignore_heap_size_of = "Rc is hard"]
+        #[ignore_malloc_size_of = "Rc is hard"]
         callback: Rc<FrameRequestCallback>
     },
 }
@@ -3985,7 +3985,7 @@ impl AnimationFrameCallback {
     }
 }
 
-#[derive(Default, HeapSizeOf, JSTraceable)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PendingInOrderScriptVec {
     scripts: DomRefCell<VecDeque<PendingScript>>,
@@ -4021,7 +4021,7 @@ impl PendingInOrderScriptVec {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PendingScript {
     element: Dom<HTMLScriptElement>,

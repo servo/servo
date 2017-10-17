@@ -9,10 +9,10 @@
 
 extern crate cssparser;
 extern crate euclid;
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
 #[macro_use] extern crate lazy_static;
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate nonzero;
 extern crate offscreen_gl_context;
 #[macro_use] extern crate serde;

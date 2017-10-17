@@ -26,7 +26,7 @@ pub use gecko::media_queries::{Device, Expression};
 
 /// A type that encapsulates a media query list.
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct MediaList {
     /// The list of media queries.
     pub media_queries: Vec<MediaQuery>,
@@ -48,7 +48,7 @@ impl MediaList {
 }
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub enum Qualifier {
     /// Hide a media query from legacy UAs:
@@ -63,7 +63,7 @@ pub enum Qualifier {
 ///
 /// [mq]: https://drafts.csswg.org/mediaqueries/
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct MediaQuery {
     /// The qualifier for this query.
     pub qualifier: Option<Qualifier>,
@@ -135,7 +135,7 @@ impl ToCss for MediaQuery {
 
 /// <http://dev.w3.org/csswg/mediaqueries-3/#media0>
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum MediaQueryType {
     /// A media type that matches every device.
     All,
@@ -164,7 +164,7 @@ impl MediaQueryType {
 
 /// <https://drafts.csswg.org/mediaqueries/#media-types>
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct MediaType(pub CustomIdent);
 
 impl MediaType {

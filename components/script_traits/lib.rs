@@ -15,13 +15,14 @@ extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx_traits;
-extern crate heapsize;
-#[macro_use]
-extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate libc;
+#[macro_use]
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
@@ -42,7 +43,6 @@ use canvas_traits::webgl::WebGLPipeline;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Size2D, Length, Point2D, Vector2D, Rect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
-use heapsize::HeapSizeOf;
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::{Error as IpcError};
@@ -81,11 +81,7 @@ pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSende
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UntrustedNodeAddress(pub *const c_void);
 
-impl HeapSizeOf for UntrustedNodeAddress {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
+malloc_size_of_is_0!(UntrustedNodeAddress);
 
 #[allow(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
@@ -225,7 +221,7 @@ pub enum DiscardBrowsingContext {
 ///
 /// * <https://html.spec.whatwg.org/multipage/#active-document>
 /// * <https://html.spec.whatwg.org/multipage/#fully-active>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum DocumentActivity {
     /// An inactive document
     Inactive,
@@ -245,7 +241,7 @@ pub enum PaintMetricType {
 }
 
 /// The reason why the pipeline id of an iframe is being updated.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum UpdatePipelineIdReason {
     /// The pipeline id is being updated due to a navigation.
     Navigation,
@@ -420,7 +416,7 @@ pub enum MouseButton {
 }
 
 /// The types of mouse events
-#[derive(Deserialize, HeapSizeOf, Serialize)]
+#[derive(Deserialize, MallocSizeOf, Serialize)]
 pub enum MouseEventType {
     /// Mouse button clicked
     Click,
@@ -448,7 +444,7 @@ pub enum CompositorEvent {
 }
 
 /// Touchpad pressure phase for `TouchpadPressureEvent`.
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum TouchpadPressurePhase {
     /// Pressure before a regular click.
     BeforeClick,
@@ -478,7 +474,7 @@ pub enum TimerSchedulerMsg {
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
 /// Describes the thread that requested the TimerEvent.
-#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum TimerSource {
     /// The event was requested from a window (ScriptThread).
     FromWindow(PipelineId),
@@ -487,14 +483,14 @@ pub enum TimerSource {
 }
 
 /// The id to be used for a `TimerEvent` is defined by the corresponding `TimerEventRequest`.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct TimerEventId(pub u32);
 
 /// Unit of measurement.
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum Milliseconds {}
 /// Unit of measurement.
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub enum Nanoseconds {}
 
 /// Amount of milliseconds.
@@ -721,7 +717,7 @@ pub struct ScrollState {
 }
 
 /// Data about the window size.
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
@@ -732,7 +728,7 @@ pub struct WindowSizeData {
 }
 
 /// The type of window size change.
-#[derive(Clone, Copy, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum WindowSizeType {
     /// Initial load.
     Initial,
@@ -877,7 +873,7 @@ impl fmt::Debug for Painter {
 /// The result of executing paint code: the image together with any image URLs that need to be loaded.
 ///
 /// TODO: this should return a WR display list. <https://github.com/servo/servo/issues/17497>
-#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct DrawAPaintImageResult {
     /// The image height
     pub width: u32,

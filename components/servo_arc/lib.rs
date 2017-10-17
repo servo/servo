@@ -27,8 +27,6 @@ extern crate nodrop;
 #[cfg(feature = "servo")] extern crate serde;
 extern crate stable_deref_trait;
 
-#[cfg(feature = "servo")]
-use heapsize::HeapSizeOf;
 use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
@@ -475,15 +473,6 @@ impl<T: ?Sized> AsRef<T> for Arc<T> {
 
 unsafe impl<T: ?Sized> StableDeref for Arc<T> {}
 unsafe impl<T: ?Sized> CloneStableDeref for Arc<T> {}
-
-// This is what the HeapSize crate does for regular arc, but is questionably
-// sound. See https://github.com/servo/heapsize/issues/37
-#[cfg(feature = "servo")]
-impl<T: HeapSizeOf> HeapSizeOf for Arc<T> {
-    fn heap_size_of_children(&self) -> usize {
-        (**self).heap_size_of_children()
-    }
-}
 
 #[cfg(feature = "servo")]
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Arc<T>

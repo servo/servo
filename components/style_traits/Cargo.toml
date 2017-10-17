@@ -10,7 +10,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["heapsize", "heapsize_derive", "serde", "servo_atoms", "cssparser/heapsize", "cssparser/serde", "webrender_api"]
+servo = ["serde", "servo_atoms", "cssparser/serde", "webrender_api"]
 gecko = []
 
 [dependencies]
@@ -18,8 +18,6 @@ app_units = "0.5"
 bitflags = "0.7"
 cssparser = "0.22.0"
 euclid = "0.15"
-heapsize = {version = "0.4", optional = true}
-heapsize_derive = {version = "0.1", optional = true}
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 selectors = { path = "../selectors" }

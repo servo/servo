@@ -19,18 +19,14 @@
     use style_traits::ToCss;
 
 
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+    #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
     pub enum Side {
         Clip,
         Ellipsis,
         String(Box<str>),
     }
 
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+    #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
     pub struct SpecifiedValue {
         pub first: Side,
         pub second: Option<Side>
@@ -39,9 +35,7 @@
     pub mod computed_value {
         pub use super::Side;
 
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         pub struct T {
             // When the specified value only has one side, that's the "second"
             // side, and the sides are logical, so "second" means "end".  The
@@ -153,9 +147,7 @@ ${helpers.single_keyword("unicode-bidi",
     use style_traits::ToCss;
 
     bitflags! {
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(ToComputedValue)]
+        #[derive(MallocSizeOf, ToComputedValue)]
         pub flags SpecifiedValue: u8 {
             const NONE = 0,
             const UNDERLINE = 0x01,

@@ -56,10 +56,10 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
-use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
@@ -147,7 +147,7 @@ pub struct Node {
 
 bitflags! {
     #[doc = "Flags for node items."]
-    #[derive(HeapSizeOf, JSTraceable)]
+    #[derive(JSTraceable, MallocSizeOf)]
     pub flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 1 << 0,
@@ -200,7 +200,7 @@ impl Drop for Node {
 /// suppress observers flag
 /// <https://dom.spec.whatwg.org/#concept-node-insert>
 /// <https://dom.spec.whatwg.org/#concept-node-remove>
-#[derive(Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf)]
 enum SuppressObserver {
     Suppressed,
     Unsuppressed
@@ -1368,7 +1368,7 @@ impl Iterator for TreeIterator {
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -2531,7 +2531,7 @@ impl VirtualMethods for Node {
 }
 
 /// A summary of the changes that happened to a node.
-#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,
@@ -2704,11 +2704,11 @@ struct UniqueId {
 
 unsafe_no_jsmanaged_fields!(UniqueId);
 
-impl HeapSizeOf for UniqueId {
+impl MallocSizeOf for UniqueId {
     #[allow(unsafe_code)]
-    fn heap_size_of_children(&self) -> usize {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if let &Some(ref uuid) = unsafe { &*self.cell.get() } {
-            unsafe { heap_size_of(&** uuid as *const Uuid as *const _) }
+            unsafe { ops.malloc_size_of(&** uuid) }
         } else {
             0
         }

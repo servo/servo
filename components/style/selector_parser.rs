@@ -35,7 +35,7 @@ pub use servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
 pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 
 /// Servo's selector parser.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct SelectorParser<'a> {
     /// The origin of the stylesheet we're parsing.
     pub stylesheet_origin: Origin,
@@ -103,8 +103,7 @@ pub enum PseudoElementCascadeType {
 }
 
 /// A per-functional-pseudo map, from a given pseudo to a `T`.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(MallocSizeOf)]
 pub struct PerPseudoElementMap<T> {
     entries: [Option<T>; SIMPLE_PSEUDO_COUNT],
 }

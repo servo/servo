@@ -294,7 +294,7 @@ impl EventMethods for Event {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum EventBubbles {
     Bubbles,
     DoesNotBubble
@@ -318,7 +318,7 @@ impl From<EventBubbles> for bool {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum EventCancelable {
     Cancelable,
     NotCancelable
@@ -344,7 +344,7 @@ impl From<EventCancelable> for bool {
 
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, PartialEq)]
 #[repr(u16)]
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 pub enum EventPhase {
     None      = EventConstants::NONE,
     Capturing = EventConstants::CAPTURING_PHASE,
@@ -363,7 +363,7 @@ pub enum EventPhase {
 ///
 /// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
 ///
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum EventDefault {
     /// The default action of the event is allowed (constructor's default)
     Allowed,

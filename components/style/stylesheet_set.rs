@@ -12,7 +12,7 @@ use std::slice;
 use stylesheets::{Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
 
 /// Entry for a StylesheetSet.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 struct StylesheetSetEntry<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
@@ -103,7 +103,7 @@ where
 
 /// The validity of the data in a given cascade origin.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum OriginValidity {
     /// The origin is clean, all the data already there is valid, though we may
     /// have new sheets at the end.
@@ -260,7 +260,7 @@ where
     }
 }
 
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 struct SheetCollection<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
@@ -366,7 +366,7 @@ where
 }
 
 /// The set of stylesheets effective for a given document.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct StylesheetSet<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,

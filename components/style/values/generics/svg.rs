@@ -16,9 +16,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// An SVG paint value
 ///
 /// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct SVGPaint<ColorType, UrlPaintServer> {
     /// The paint source
@@ -32,9 +30,7 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 /// Whereas the spec only allows PaintServer
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
     /// `none`
@@ -111,9 +107,7 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 
 /// A value of <length> | <percentage> | <number> for svg which allow unitless length.
 /// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
 #[derive(ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
     /// <length> | <percentage>
@@ -194,9 +188,7 @@ impl <LengthOrPercentageType: Parse, NumberType: Parse> Parse for
 }
 
 /// An SVG length value supports `context-value` in addition to length.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero)]
 #[derive(ToComputedValue, ToCss)]
 pub enum SVGLength<LengthType> {
@@ -207,9 +199,8 @@ pub enum SVGLength<LengthType> {
 }
 
 /// Generic value for stroke-dasharray.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, ToAnimatedValue, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
+         ToComputedValue)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     Values(Vec<LengthType>),
@@ -242,9 +233,7 @@ impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCs
 
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
 #[derive(PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SVGOpacity<OpacityType> {
     /// `<opacity-value>`

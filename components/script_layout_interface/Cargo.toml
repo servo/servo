@@ -16,12 +16,12 @@ canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.22.0"
 euclid = "0.15"
 gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.4"
-heapsize_derive = "0.1"
 html5ever = "0.20.0"
 ipc-channel = "0.9"
 libc = "0.2"
 log = "0.3.5"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}

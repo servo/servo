@@ -250,9 +250,7 @@ static ${name}: LonghandIdSet = LonghandIdSet {
 </%def>
 
 /// A set of longhand properties
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
@@ -400,9 +398,7 @@ impl PropertyDeclarationIdSet {
 }
 
 /// An enum to represent a CSS Wide keyword.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
     Initial,
@@ -465,9 +461,7 @@ bitflags! {
 }
 
 /// An identifier for a given longhand property.
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum LonghandId {
     % for i, property in enumerate(data.longhands):
         /// ${property.name}
@@ -731,9 +725,7 @@ impl LonghandId {
 }
 
 /// An identifier for a given shorthand property.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
 pub enum ShorthandId {
     % for property in data.shorthands:
         /// ${property.name}
@@ -1022,7 +1014,7 @@ impl<'a, T: ToCss> ToCss for DeclaredValue<'a, T> {
 /// An identifier for a given property declaration, which can be either a
 /// longhand or a custom property.
 #[derive(Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum PropertyDeclarationId<'a> {
     /// A longhand.
     Longhand(LonghandId),
@@ -1810,12 +1802,10 @@ pub mod style_structs {
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, MallocSizeOf)]
         % else:
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         % endif
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         /// The ${style_struct.name} style struct.
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
@@ -3575,7 +3565,7 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
 
 /// An identifier for a given alias property.
 #[derive(Clone, Copy, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum AliasId {
     % for i, property in enumerate(data.all_aliases()):
         /// ${property.name}

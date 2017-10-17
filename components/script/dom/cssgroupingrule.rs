@@ -19,7 +19,7 @@ use style::stylesheets::CssRules as StyleCssRules;
 #[dom_struct]
 pub struct CSSGroupingRule {
     cssrule: CSSRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     rules: Arc<Locked<StyleCssRules>>,
     rulelist: MutNullableDom<CSSRuleList>,
 }

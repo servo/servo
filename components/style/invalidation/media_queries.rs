@@ -23,9 +23,7 @@ use stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
 ///
 /// If this changes, though, we may need to remove the item from the cache if
 /// present before it goes away.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct MediaListKey(usize);
 
 impl MediaListKey {
@@ -53,9 +51,7 @@ impl ToMediaListKey for MediaRule {}
 
 /// A struct that holds the result of a media query evaluation pass for the
 /// media queries that evaluated successfully.
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, MallocSizeOf, PartialEq)]
 pub struct EffectiveMediaQueryResults {
     /// The set of media lists that matched last time.
     set: FnvHashSet<MediaListKey>,

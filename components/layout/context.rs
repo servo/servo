@@ -8,7 +8,7 @@ use fnv::FnvHasher;
 use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
-use heapsize::HeapSizeOf;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -42,10 +42,10 @@ pub fn with_thread_local_font_context<F, R>(layout_context: &LayoutContext, f: F
     })
 }
 
-pub fn heap_size_of_persistent_local_context() -> usize {
+pub fn malloc_size_of_persistent_local_context(ops: &mut MallocSizeOfOps) -> usize {
     FONT_CONTEXT_KEY.with(|r| {
         if let Some(ref context) = *r.borrow() {
-            context.heap_size_of_children()
+            context.size_of(ops)
         } else {
             0
         }
