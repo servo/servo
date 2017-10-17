@@ -58,7 +58,7 @@ impl KeyframesRule {
     /// If the selector is not valid, or no keyframe is found, returns None.
     ///
     /// Related spec:
-    /// https://drafts.csswg.org/css-animations-1/#interface-csskeyframesrule-findrule
+    /// <https://drafts.csswg.org/css-animations-1/#interface-csskeyframesrule-findrule>
     pub fn find_rule(&self, guard: &SharedRwLockReadGuard, selector: &str) -> Option<usize> {
         let mut input = ParserInput::new(selector);
         if let Ok(selector) = Parser::new(&mut input).parse_entirely(KeyframeSelector::parse) {

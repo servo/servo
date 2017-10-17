@@ -75,7 +75,7 @@ impl DeepCloneWithLock for SupportsRule {
 
 /// An @supports condition
 ///
-/// https://drafts.csswg.org/css-conditional-3/#at-supports
+/// <https://drafts.csswg.org/css-conditional-3/#at-supports>
 #[derive(Clone, Debug)]
 pub enum SupportsCondition {
     /// `not (condition)`
@@ -95,7 +95,7 @@ pub enum SupportsCondition {
 impl SupportsCondition {
     /// Parse a condition
     ///
-    /// https://drafts.csswg.org/css-conditional/#supports_condition
+    /// <https://drafts.csswg.org/css-conditional/#supports_condition>
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<SupportsCondition, ParseError<'i>> {
         if let Ok(_) = input.try(|i| i.expect_ident_matching("not")) {
             let inner = SupportsCondition::parse_in_parens(input)?;
@@ -133,7 +133,7 @@ impl SupportsCondition {
         }
     }
 
-    /// https://drafts.csswg.org/css-conditional-3/#supports_condition_in_parens
+    /// <https://drafts.csswg.org/css-conditional-3/#supports_condition_in_parens>
     fn parse_in_parens<'i, 't>(input: &mut Parser<'i, 't>) -> Result<SupportsCondition, ParseError<'i>> {
         // Whitespace is normally taken care of in `Parser::next`,
         // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
@@ -171,7 +171,7 @@ impl SupportsCondition {
 }
 
 /// supports_condition | declaration
-/// https://drafts.csswg.org/css-conditional/#dom-css-supports-conditiontext-conditiontext
+/// <https://drafts.csswg.org/css-conditional/#dom-css-supports-conditiontext-conditiontext>
 pub fn parse_condition_or_declaration<'i, 't>(input: &mut Parser<'i, 't>)
                                               -> Result<SupportsCondition, ParseError<'i>> {
     if let Ok(condition) = input.try(SupportsCondition::parse) {
@@ -237,7 +237,7 @@ impl ToCss for Declaration {
     }
 }
 
-/// https://drafts.csswg.org/css-syntax-3/#typedef-any-value
+/// <https://drafts.csswg.org/css-syntax-3/#typedef-any-value>
 fn consume_any_value<'i, 't>(input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
     input.expect_no_error_token().map_err(|err| err.into())
 }
@@ -254,7 +254,7 @@ impl Declaration {
 
     /// Determine if a declaration parses
     ///
-    /// https://drafts.csswg.org/css-conditional-3/#support-definition
+    /// <https://drafts.csswg.org/css-conditional-3/#support-definition>
     pub fn eval(&self, context: &ParserContext) -> bool {
         debug_assert_eq!(context.rule_type(), CssRuleType::Style);
 

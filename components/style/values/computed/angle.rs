@@ -67,7 +67,7 @@ impl Angle {
         Angle::Radian(0.0)
     }
 
-    /// https://drafts.csswg.org/css-transitions/#animtype-number
+    /// <https://drafts.csswg.org/css-transitions/#animtype-number>
     #[inline]
     fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Angle::from_radians(self.radians().animate(&other.radians(), procedure)?))

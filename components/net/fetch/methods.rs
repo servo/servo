@@ -494,7 +494,7 @@ fn scheme_fetch(request: &mut Request,
     }
 }
 
-/// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+/// <https://fetch.spec.whatwg.org/#cors-safelisted-request-header>
 pub fn is_cors_safelisted_request_header(h: &HeaderView) -> bool {
     if h.is::<ContentType>() {
         match h.value() {
@@ -509,7 +509,7 @@ pub fn is_cors_safelisted_request_header(h: &HeaderView) -> bool {
     }
 }
 
-/// https://fetch.spec.whatwg.org/#cors-safelisted-method
+/// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
 pub fn is_cors_safelisted_method(m: &Method) -> bool {
     match *m {
         Method::Get | Method::Head | Method::Post => true,
@@ -528,9 +528,9 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
     }
 }
 
-/// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?
+/// <https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?>
 pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &Headers) -> bool {
-    /// https://fetch.spec.whatwg.org/#x-content-type-options-header
+    /// <https://fetch.spec.whatwg.org/#x-content-type-options-header>
     /// This is needed to parse `X-Content-Type-Options` according to spec,
     /// which requires that we inspect only the first value.
     ///
@@ -572,7 +572,7 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
     // Note: an invalid MIME type will produce a `None`.
     let content_type_header = response_headers.get::<ContentType>();
 
-    /// https://html.spec.whatwg.org/multipage/#scriptingLanguages
+    /// <https://html.spec.whatwg.org/multipage/#scriptingLanguages>
     #[inline]
     fn is_javascript_mime_type(mime_type: &Mime) -> bool {
         let javascript_mime_types: [Mime; 16] = [
@@ -619,7 +619,7 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
     };
 }
 
-/// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-mime-type?
+/// <https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-mime-type?>
 fn should_be_blocked_due_to_mime_type(request_type: Type, response_headers: &Headers) -> bool {
     let mime_type = match response_headers.get::<ContentType>() {
         Some(header) => header,
@@ -634,7 +634,7 @@ fn should_be_blocked_due_to_mime_type(request_type: Type, response_headers: &Hea
     }
 }
 
-/// https://fetch.spec.whatwg.org/#block-bad-port
+/// <https://fetch.spec.whatwg.org/#block-bad-port>
 pub fn should_be_blocked_due_to_bad_port(url: &ServoUrl) -> bool {
     // Step 1 is not applicable, this function just takes the URL directly.
 
@@ -662,12 +662,12 @@ pub fn should_be_blocked_due_to_bad_port(url: &ServoUrl) -> bool {
     false
 }
 
-/// https://fetch.spec.whatwg.org/#network-scheme
+/// <https://fetch.spec.whatwg.org/#network-scheme>
 fn is_network_scheme(scheme: &str) -> bool {
     scheme == "ftp" || scheme == "http" || scheme == "https"
 }
 
-/// https://fetch.spec.whatwg.org/#bad-port
+/// <https://fetch.spec.whatwg.org/#bad-port>
 fn is_bad_port(port: u16) -> bool {
     static BAD_PORTS: [u16; 64] = [
         1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42,

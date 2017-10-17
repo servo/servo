@@ -712,7 +712,7 @@ impl<T: DomObject> LayoutDom<T> {
     }
 }
 
-/// Helper trait for safer manipulations of Option<Heap<T>> values.
+/// Helper trait for safer manipulations of `Option<Heap<T>>` values.
 pub trait OptionalHeapSetter {
     type Value;
     /// Update this optional heap value with a new value.

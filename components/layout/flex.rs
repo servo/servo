@@ -264,7 +264,7 @@ impl FlexLine {
     /// This method implements the flexible lengths resolving algorithm.
     /// The 'collapse' parameter is used to indicate whether items with 'visibility: collapse'
     /// is included in length resolving. The result main size is stored in 'item.main_size'.
-    /// https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
+    /// <https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths>
     pub fn flex_resolve(&mut self, items: &mut [FlexItem], collapse: bool) {
         let mut total_grow = 0.0;
         let mut total_shrink = 0.0;

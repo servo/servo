@@ -84,7 +84,7 @@ pub struct CalcLengthOrPercentage {
 }
 
 impl ToCss for CalcLengthOrPercentage {
-    /// https://drafts.csswg.org/css-values/#calc-serialize
+    /// <https://drafts.csswg.org/css-values/#calc-serialize>
     ///
     /// FIXME(emilio): Should this simplify away zeros?
     #[allow(unused_assignments)]

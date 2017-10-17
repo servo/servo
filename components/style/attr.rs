@@ -393,7 +393,7 @@ impl PartialEq<Atom> for AttrValue {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values>
 pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     match parse_length(value) {
         LengthOrPercentageOrAuto::Length(x) if x == Au::zero() => LengthOrPercentageOrAuto::Auto,

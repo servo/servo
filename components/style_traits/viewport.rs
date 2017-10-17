@@ -21,7 +21,7 @@ define_css_keyword_enum!(Orientation:
 
 /// A set of viewport descriptors:
 ///
-/// https://drafts.csswg.org/css-device-adapt/#viewport-desc
+/// <https://drafts.csswg.org/css-device-adapt/#viewport-desc>
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
 pub struct ViewportConstraints {
@@ -29,15 +29,15 @@ pub struct ViewportConstraints {
     ///  * https://drafts.csswg.org/css-device-adapt/#width-desc
     ///  * https://drafts.csswg.org/css-device-adapt/#height-desc
     pub size: TypedSize2D<f32, CSSPixel>,
-    /// https://drafts.csswg.org/css-device-adapt/#zoom-desc
+    /// <https://drafts.csswg.org/css-device-adapt/#zoom-desc>
     pub initial_zoom: PinchZoomFactor,
-    /// https://drafts.csswg.org/css-device-adapt/#min-max-width-desc
+    /// <https://drafts.csswg.org/css-device-adapt/#min-max-width-desc>
     pub min_zoom: Option<PinchZoomFactor>,
-    /// https://drafts.csswg.org/css-device-adapt/#min-max-width-desc
+    /// <https://drafts.csswg.org/css-device-adapt/#min-max-width-desc>
     pub max_zoom: Option<PinchZoomFactor>,
-    /// https://drafts.csswg.org/css-device-adapt/#user-zoom-desc
+    /// <https://drafts.csswg.org/css-device-adapt/#user-zoom-desc>
     pub user_zoom: UserZoom,
-    /// https://drafts.csswg.org/css-device-adapt/#orientation-desc
+    /// <https://drafts.csswg.org/css-device-adapt/#orientation-desc>
     pub orientation: Orientation
 }
 
@@ -73,7 +73,7 @@ impl ToCss for ViewportConstraints {
     }
 }
 
-/// https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom
+/// <https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom>
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Zoom {
@@ -103,7 +103,7 @@ impl ToCss for Zoom {
 impl Zoom {
     /// Parse a zoom value per:
     ///
-    /// https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom
+    /// <https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom>
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
         use PARSING_MODE_DEFAULT;
         use cssparser::Token;

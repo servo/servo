@@ -45,7 +45,7 @@ const DEFAULT_RECONNECTION_TIME: u64 = 5000;
 struct GenerationId(u32);
 
 #[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
-/// https://html.spec.whatwg.org/multipage/#dom-eventsource-readystate
+/// <https://html.spec.whatwg.org/multipage/#dom-eventsource-readystate>
 enum ReadyState {
     Connecting = 0,
     Open = 1,
@@ -90,7 +90,7 @@ struct EventSourceContext {
 }
 
 impl EventSourceContext {
-    /// https://html.spec.whatwg.org/multipage/#announce-the-connection
+    /// <https://html.spec.whatwg.org/multipage/#announce-the-connection>
     fn announce_the_connection(&self) {
         let event_source = self.event_source.root();
         if self.gen_id != event_source.generation_id.get() {
@@ -111,7 +111,7 @@ impl EventSourceContext {
         );
     }
 
-    /// https://html.spec.whatwg.org/multipage/#fail-the-connection
+    /// <https://html.spec.whatwg.org/multipage/#fail-the-connection>
     fn fail_the_connection(&self) {
         let event_source = self.event_source.root();
         if self.gen_id != event_source.generation_id.get() {

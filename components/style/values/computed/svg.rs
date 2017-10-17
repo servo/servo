@@ -37,7 +37,7 @@ impl SVGPaint {
 }
 
 /// A value of <length> | <percentage> | <number> for stroke-dashoffset.
-/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
 pub type SvgLengthOrPercentageOrNumber =
     generic::SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number>;
 
@@ -52,7 +52,7 @@ impl From<Au> for SVGLength {
 }
 
 /// A value of <length> | <percentage> | <number> for stroke-width/stroke-dasharray.
-/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
 pub type NonNegativeSvgLengthOrPercentageOrNumber =
     generic::SvgLengthOrPercentageOrNumber<NonNegativeLengthOrPercentage, NonNegativeNumber>;
 

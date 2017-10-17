@@ -213,15 +213,15 @@ impl FontRelativeLength {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A viewport-relative length.
 ///
-/// https://drafts.csswg.org/css-values/#viewport-relative-lengths
+/// <https://drafts.csswg.org/css-values/#viewport-relative-lengths>
 pub enum ViewportPercentageLength {
     /// A vw unit: https://drafts.csswg.org/css-values/#vw
     Vw(CSSFloat),
     /// A vh unit: https://drafts.csswg.org/css-values/#vh
     Vh(CSSFloat),
-    /// https://drafts.csswg.org/css-values/#vmin
+    /// <https://drafts.csswg.org/css-values/#vmin>
     Vmin(CSSFloat),
-    /// https://drafts.csswg.org/css-values/#vmax
+    /// <https://drafts.csswg.org/css-values/#vmax>
     Vmax(CSSFloat)
 }
 
@@ -440,24 +440,24 @@ impl Mul<CSSFloat> for PhysicalLength {
 
 /// A `<length>` without taking `calc` expressions into account
 ///
-/// https://drafts.csswg.org/css-values/#lengths
+/// <https://drafts.csswg.org/css-values/#lengths>
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum NoCalcLength {
     /// An absolute length
     ///
-    /// https://drafts.csswg.org/css-values/#absolute-length
+    /// <https://drafts.csswg.org/css-values/#absolute-length>
     Absolute(AbsoluteLength),
 
     /// A font-relative length:
     ///
-    /// https://drafts.csswg.org/css-values/#font-relative-lengths
+    /// <https://drafts.csswg.org/css-values/#font-relative-lengths>
     FontRelative(FontRelativeLength),
 
     /// A viewport-relative length.
     ///
-    /// https://drafts.csswg.org/css-values/#viewport-relative-lengths
+    /// <https://drafts.csswg.org/css-values/#viewport-relative-lengths>
     ViewportPercentage(ViewportPercentageLength),
 
     /// HTML5 "character width", as defined in HTML5 § 14.5.4.
@@ -581,7 +581,7 @@ impl NoCalcLength {
 /// An extension to `NoCalcLength` to parse `calc` expressions.
 /// This is commonly used for the `<length>` values.
 ///
-/// https://drafts.csswg.org/css-values/#lengths
+/// <https://drafts.csswg.org/css-values/#lengths>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
@@ -590,7 +590,7 @@ pub enum Length {
     NoCalc(NoCalcLength),
     /// A calc expression.
     ///
-    /// https://drafts.csswg.org/css-values/#calc-notation
+    /// <https://drafts.csswg.org/css-values/#calc-notation>
     Calc(Box<CalcLengthOrPercentage>),
 }
 
@@ -908,7 +908,7 @@ impl LengthOrPercentage {
 
     /// Parse a length, treating dimensionless numbers as pixels
     ///
-    /// https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value
+    /// <https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value>
     pub fn parse_numbers_are_pixels<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                             -> Result<LengthOrPercentage, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| Self::parse(context, i)) {
@@ -959,7 +959,7 @@ impl Parse for LengthOrPercentage {
 
 impl LengthOrPercentage {
     /// Parses a length or a percentage, allowing the unitless length quirk.
-    /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
+    /// <https://quirks.spec.whatwg.org/#the-unitless-length-quirk>
     #[inline]
     pub fn parse_quirky<'i, 't>(context: &ParserContext,
                                 input: &mut Parser<'i, 't>,
@@ -1191,7 +1191,7 @@ impl NonNegativeLengthOrPercentage {
     }
 
     /// Parses a length or a percentage, allowing the unitless length quirk.
-    /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
+    /// <https://quirks.spec.whatwg.org/#the-unitless-length-quirk>
     #[inline]
     pub fn parse_quirky<'i, 't>(context: &ParserContext,
                                 input: &mut Parser<'i, 't>,

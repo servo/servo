@@ -7,7 +7,7 @@
 //! The list is a file located on the `resources` folder and loaded once on first need.
 //!
 //! The list can be updated with `./mach update-pub-domains` from this source:
-//! https://publicsuffix.org/list/
+//! <https://publicsuffix.org/list/>
 //!
 //! This implementation is not strictly following the specification of the list. Wildcards are not
 //! restricted to appear only in the leftmost position, but the current list has no such cases so

@@ -33,7 +33,7 @@ use std::sync::Arc;
 use std::sync::mpsc::Sender;
 
 #[dom_struct]
-/// https://drafts.css-houdini.org/worklets/#workletglobalscope
+/// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
 pub struct WorkletGlobalScope {
     /// The global for this worklet.
     globalscope: GlobalScope,
@@ -154,7 +154,7 @@ pub struct WorkletGlobalScopeInit {
     pub image_cache: Arc<ImageCache>,
 }
 
-/// https://drafts.css-houdini.org/worklets/#worklet-global-scope-type
+/// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
 #[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable)]
 pub enum WorkletGlobalScopeType {
     /// A servo-specific testing worklet

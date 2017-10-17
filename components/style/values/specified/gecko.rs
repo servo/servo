@@ -85,7 +85,7 @@ impl ToNsCssValue for PixelOrPercentage {
 /// Only bare px or percentage values are allowed. Other length units and
 /// calc() values are not allowed.
 ///
-/// https://w3c.github.io/IntersectionObserver/#parse-a-root-margin
+/// <https://w3c.github.io/IntersectionObserver/#parse-a-root-margin>
 pub struct IntersectionObserverRootMargin(pub Rect<PixelOrPercentage>);
 
 impl Parse for IntersectionObserverRootMargin {

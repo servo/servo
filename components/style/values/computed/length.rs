@@ -307,7 +307,7 @@ pub enum LengthOrPercentage {
 }
 
 impl LengthOrPercentage {
-    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
     fn animate_fallback(
         &self,
         other: &Self,
@@ -465,7 +465,7 @@ pub enum LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
     fn animate_fallback(
         &self,
         other: &Self,
@@ -561,7 +561,7 @@ pub enum LengthOrPercentageOrNone {
 }
 
 impl LengthOrPercentageOrNone {
-    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    /// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
     fn animate_fallback(
         &self,
         other: &Self,

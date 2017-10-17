@@ -57,7 +57,7 @@ impl PinchZoomFactor {
 }
 
 /// One CSS "px" in the coordinate system of the "initial viewport":
-/// http://www.w3.org/TR/css-device-adapt/#initial-viewport
+/// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
 ///
 /// `CSSPixel` is equal to `DeviceIndependentPixel` times a "page zoom" factor controlled by the user.  This is
 /// the desktop-style "full page" zoom that enlarges content but then reflows the layout viewport
@@ -201,14 +201,14 @@ bitflags! {
     /// The mode to use when parsing values.
     pub flags ParsingMode: u8 {
         /// In CSS, lengths must have units, except for zero values, where the unit can be omitted.
-        /// https://www.w3.org/TR/css3-values/#lengths
+        /// <https://www.w3.org/TR/css3-values/#lengths>
         const PARSING_MODE_DEFAULT = 0x00,
         /// In SVG, a coordinate or length value without a unit identifier (e.g., "25") is assumed
         /// to be in user units (px).
-        /// https://www.w3.org/TR/SVG/coords.html#Units
+        /// <https://www.w3.org/TR/SVG/coords.html#Units>
         const PARSING_MODE_ALLOW_UNITLESS_LENGTH = 0x01,
         /// In SVG, out-of-range values are not treated as an error in parsing.
-        /// https://www.w3.org/TR/SVG/implnote.html#RangeClamping
+        /// <https://www.w3.org/TR/SVG/implnote.html#RangeClamping>
         const PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES = 0x02,
     }
 }
@@ -228,6 +228,6 @@ impl ParsingMode {
 #[cfg(feature = "servo")]
 /// Speculatively execute paint code in the worklet thread pool.
 pub trait SpeculativePainter: Send + Sync {
-    /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
+    /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn speculatively_draw_a_paint_image(&self, properties: Vec<(Atom, String)>, arguments: Vec<String>);
 }

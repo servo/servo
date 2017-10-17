@@ -83,12 +83,12 @@ impl ImmutableOrigin {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin
+    /// <https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin>
     pub fn ascii_serialization(&self) -> String {
         self.clone().into_url_origin().ascii_serialization()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#unicode-serialisation-of-an-origin
+    /// <https://html.spec.whatwg.org/multipage/#unicode-serialisation-of-an-origin>
     pub fn unicode_serialization(&self) -> String {
         self.clone().into_url_origin().unicode_serialization()
     }

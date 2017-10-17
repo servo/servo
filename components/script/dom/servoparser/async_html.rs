@@ -730,7 +730,7 @@ impl TreeSink for Sink {
         self.send_op(ParseOperation::ReparentChildren { parent: parent.id, new_parent: new_parent.id });
     }
 
-    /// https://html.spec.whatwg.org/multipage/#html-integration-point
+    /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
     /// Specifically, the <annotation-xml> cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Self::Handle) -> bool {
         let node_data = self.get_parse_node_data(&handle.id);

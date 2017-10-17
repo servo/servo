@@ -201,64 +201,64 @@ impl Default for RequestInit {
 /// the Fetch spec.
 #[derive(Clone, HeapSizeOf)]
 pub struct Request {
-    /// https://fetch.spec.whatwg.org/#concept-request-method
+    /// <https://fetch.spec.whatwg.org/#concept-request-method>
     #[ignore_heap_size_of = "Defined in hyper"]
     pub method: Method,
-    /// https://fetch.spec.whatwg.org/#local-urls-only-flag
+    /// <https://fetch.spec.whatwg.org/#local-urls-only-flag>
     pub local_urls_only: bool,
-    /// https://fetch.spec.whatwg.org/#sandboxed-storage-area-urls-flag
+    /// <https://fetch.spec.whatwg.org/#sandboxed-storage-area-urls-flag>
     pub sandboxed_storage_area_urls: bool,
-    /// https://fetch.spec.whatwg.org/#concept-request-header-list
+    /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
-    /// https://fetch.spec.whatwg.org/#unsafe-request-flag
+    /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
     pub unsafe_request: bool,
-    /// https://fetch.spec.whatwg.org/#concept-request-body
+    /// <https://fetch.spec.whatwg.org/#concept-request-body>
     pub body: Option<Vec<u8>>,
     // TODO: client object
     pub window: Window,
     // TODO: target browsing context
-    /// https://fetch.spec.whatwg.org/#request-keepalive-flag
+    /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
-    /// https://fetch.spec.whatwg.org/#request-service-workers-mode
+    /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
     pub service_workers_mode: ServiceWorkersMode,
-    /// https://fetch.spec.whatwg.org/#concept-request-initiator
+    /// <https://fetch.spec.whatwg.org/#concept-request-initiator>
     pub initiator: Initiator,
-    /// https://fetch.spec.whatwg.org/#concept-request-type
+    /// <https://fetch.spec.whatwg.org/#concept-request-type>
     pub type_: Type,
-    /// https://fetch.spec.whatwg.org/#concept-request-destination
+    /// <https://fetch.spec.whatwg.org/#concept-request-destination>
     pub destination: Destination,
     // TODO: priority object
-    /// https://fetch.spec.whatwg.org/#concept-request-origin
+    /// <https://fetch.spec.whatwg.org/#concept-request-origin>
     pub origin: Origin,
-    /// https://fetch.spec.whatwg.org/#concept-request-referrer
+    /// <https://fetch.spec.whatwg.org/#concept-request-referrer>
     pub referrer: Referrer,
-    /// https://fetch.spec.whatwg.org/#concept-request-referrer-policy
+    /// <https://fetch.spec.whatwg.org/#concept-request-referrer-policy>
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
-    /// https://fetch.spec.whatwg.org/#synchronous-flag
+    /// <https://fetch.spec.whatwg.org/#synchronous-flag>
     pub synchronous: bool,
-    /// https://fetch.spec.whatwg.org/#concept-request-mode
+    /// <https://fetch.spec.whatwg.org/#concept-request-mode>
     pub mode: RequestMode,
-    /// https://fetch.spec.whatwg.org/#use-cors-preflight-flag
+    /// <https://fetch.spec.whatwg.org/#use-cors-preflight-flag>
     pub use_cors_preflight: bool,
-    /// https://fetch.spec.whatwg.org/#concept-request-credentials-mode
+    /// <https://fetch.spec.whatwg.org/#concept-request-credentials-mode>
     pub credentials_mode: CredentialsMode,
-    /// https://fetch.spec.whatwg.org/#concept-request-use-url-credentials-flag
+    /// <https://fetch.spec.whatwg.org/#concept-request-use-url-credentials-flag>
     pub use_url_credentials: bool,
-    /// https://fetch.spec.whatwg.org/#concept-request-cache-mode
+    /// <https://fetch.spec.whatwg.org/#concept-request-cache-mode>
     pub cache_mode: CacheMode,
-    /// https://fetch.spec.whatwg.org/#concept-request-redirect-mode
+    /// <https://fetch.spec.whatwg.org/#concept-request-redirect-mode>
     pub redirect_mode: RedirectMode,
-    /// https://fetch.spec.whatwg.org/#concept-request-integrity-metadata
+    /// <https://fetch.spec.whatwg.org/#concept-request-integrity-metadata>
     pub integrity_metadata: String,
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
-    /// https://fetch.spec.whatwg.org/#concept-request-url-list
+    /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
     pub url_list: Vec<ServoUrl>,
-    /// https://fetch.spec.whatwg.org/#concept-request-redirect-count
+    /// <https://fetch.spec.whatwg.org/#concept-request-redirect-count>
     pub redirect_count: u32,
-    /// https://fetch.spec.whatwg.org/#concept-request-response-tainting
+    /// <https://fetch.spec.whatwg.org/#concept-request-response-tainting>
     pub response_tainting: ResponseTainting,
 }
 
@@ -333,27 +333,27 @@ impl Request {
         req
     }
 
-    /// https://fetch.spec.whatwg.org/#concept-request-url
+    /// <https://fetch.spec.whatwg.org/#concept-request-url>
     pub fn url(&self) -> ServoUrl {
         self.url_list.first().unwrap().clone()
     }
 
-    /// https://fetch.spec.whatwg.org/#concept-request-current-url
+    /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
     pub fn current_url(&self) -> ServoUrl {
         self.url_list.last().unwrap().clone()
     }
 
-    /// https://fetch.spec.whatwg.org/#concept-request-current-url
+    /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
     pub fn current_url_mut(&mut self) -> &mut ServoUrl {
         self.url_list.last_mut().unwrap()
     }
 
-    /// https://fetch.spec.whatwg.org/#navigation-request
+    /// <https://fetch.spec.whatwg.org/#navigation-request>
     pub fn is_navigation_request(&self) -> bool {
         self.destination == Destination::Document
     }
 
-    /// https://fetch.spec.whatwg.org/#subresource-request
+    /// <https://fetch.spec.whatwg.org/#subresource-request>
     pub fn is_subresource_request(&self) -> bool {
         match self.destination {
             Destination::Font | Destination::Image | Destination::Manifest | Destination::Media |

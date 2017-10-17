@@ -80,42 +80,42 @@ impl TouchEvent {
 }
 
 impl<'a> TouchEventMethods for &'a TouchEvent {
-    /// https://w3c.github.io/touch-events/#widl-TouchEvent-ctrlKey
+    /// <https://w3c.github.io/touch-events/#widl-TouchEvent-ctrlKey>
     fn CtrlKey(&self) -> bool {
         self.ctrl_key.get()
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchEvent-shiftKey
+    /// <https://w3c.github.io/touch-events/#widl-TouchEvent-shiftKey>
     fn ShiftKey(&self) -> bool {
         self.shift_key.get()
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchEvent-altKey
+    /// <https://w3c.github.io/touch-events/#widl-TouchEvent-altKey>
     fn AltKey(&self) -> bool {
         self.alt_key.get()
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchEvent-metaKey
+    /// <https://w3c.github.io/touch-events/#widl-TouchEvent-metaKey>
     fn MetaKey(&self) -> bool {
         self.meta_key.get()
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchEventInit-touches
+    /// <https://w3c.github.io/touch-events/#widl-TouchEventInit-touches>
     fn Touches(&self) -> DomRoot<TouchList> {
         self.touches.get()
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchEvent-targetTouches
+    /// <https://w3c.github.io/touch-events/#widl-TouchEvent-targetTouches>
     fn TargetTouches(&self) -> DomRoot<TouchList> {
         self.target_touches.get()
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchEvent-changedTouches
+    /// <https://w3c.github.io/touch-events/#widl-TouchEvent-changedTouches>
     fn ChangedTouches(&self) -> DomRoot<TouchList> {
         self.changed_touches.get()
     }
 
-    /// https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
     }

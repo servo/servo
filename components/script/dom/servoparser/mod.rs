@@ -88,11 +88,11 @@ pub struct ServoParser {
     last_chunk_received: Cell<bool>,
     /// Whether this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#script-nesting-level
+    /// <https://html.spec.whatwg.org/multipage/#script-nesting-level>
     script_nesting_level: Cell<usize>,
-    /// https://html.spec.whatwg.org/multipage/#abort-a-parser
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
     aborted: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#script-created-parser
+    /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
 }
 
@@ -198,7 +198,7 @@ impl ServoParser {
 
     /// Corresponds to the latter part of the "Otherwise" branch of the 'An end
     /// tag whose tag name is "script"' of
-    /// https://html.spec.whatwg.org/multipage/#parsing-main-incdata
+    /// <https://html.spec.whatwg.org/multipage/#parsing-main-incdata>
     ///
     /// This first moves everything from the script input to the beginning of
     /// the network input, effectively resetting the insertion point to just
@@ -930,7 +930,7 @@ impl TreeSink for Sink {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#html-integration-point
+    /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
     /// Specifically, the <annotation-xml> cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();

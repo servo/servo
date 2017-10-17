@@ -679,7 +679,7 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
 }
 
 /// Return the resolved value of property for a given (pseudo)element.
-/// https://drafts.csswg.org/cssom/#resolved-value
+/// <https://drafts.csswg.org/cssom/#resolved-value>
 pub fn process_resolved_style_request<'a, N>(context: &LayoutContext,
                                              node: N,
                                              pseudo: &Option<PseudoElement>,

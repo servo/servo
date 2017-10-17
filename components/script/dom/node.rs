@@ -198,8 +198,8 @@ impl Drop for Node {
 }
 
 /// suppress observers flag
-/// https://dom.spec.whatwg.org/#concept-node-insert
-/// https://dom.spec.whatwg.org/#concept-node-remove
+/// <https://dom.spec.whatwg.org/#concept-node-insert>
+/// <https://dom.spec.whatwg.org/#concept-node-remove>
 #[derive(Clone, Copy, HeapSizeOf)]
 enum SuppressObserver {
     Suppressed,
@@ -764,7 +764,7 @@ impl Node {
         }
     }
 
-    /// https://dom.spec.whatwg.org/#scope-match-a-selectors-string
+    /// <https://dom.spec.whatwg.org/#scope-match-a-selectors-string>
     /// Get an iterator over all nodes which match a set of selectors
     /// Be careful not to do anything which may manipulate the DOM tree
     /// whilst iterating, otherwise the iterator may be invalidated.
@@ -1887,7 +1887,7 @@ impl Node {
         copy
     }
 
-    /// https://html.spec.whatwg.org/multipage/#child-text-content
+    /// <https://html.spec.whatwg.org/multipage/#child-text-content>
     pub fn child_text_content(&self) -> DOMString {
         Node::collect_text_contents(self.children())
     }

@@ -1031,19 +1031,19 @@ impl WeakRangeVec {
     }
 
     /// Used for steps 2.1-2. when inserting a node.
-    /// https://dom.spec.whatwg.org/#concept-node-insert
+    /// <https://dom.spec.whatwg.org/#concept-node-insert>
     pub fn increase_above(&self, node: &Node, offset: u32, delta: u32) {
         self.map_offset_above(node, offset, |offset| offset + delta);
     }
 
     /// Used for steps 4-5. when removing a node.
-    /// https://dom.spec.whatwg.org/#concept-node-remove
+    /// <https://dom.spec.whatwg.org/#concept-node-remove>
     pub fn decrease_above(&self, node: &Node, offset: u32, delta: u32) {
         self.map_offset_above(node, offset, |offset| offset - delta);
     }
 
     /// Used for steps 2-3. when removing a node.
-    /// https://dom.spec.whatwg.org/#concept-node-remove
+    /// <https://dom.spec.whatwg.org/#concept-node-remove>
     pub fn drain_to_parent(&self, context: &UnbindContext, child: &Node) {
         if self.is_empty() {
             return;
@@ -1072,7 +1072,7 @@ impl WeakRangeVec {
     }
 
     /// Used for steps 7.1-2. when normalizing a node.
-    /// https://dom.spec.whatwg.org/#dom-node-normalize
+    /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     pub fn drain_to_preceding_text_sibling(&self, node: &Node, sibling: &Node, length: u32) {
         if self.is_empty() {
             return;
@@ -1099,7 +1099,7 @@ impl WeakRangeVec {
     }
 
     /// Used for steps 7.3-4. when normalizing a node.
-    /// https://dom.spec.whatwg.org/#dom-node-normalize
+    /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     pub fn move_to_text_child_at(&self,
                                  node: &Node, offset: u32,
                                  child: &Node, new_offset: u32) {
@@ -1142,7 +1142,7 @@ impl WeakRangeVec {
     }
 
     /// Used for steps 8-11. when replacing character data.
-    /// https://dom.spec.whatwg.org/#concept-cd-replace
+    /// <https://dom.spec.whatwg.org/#concept-cd-replace>
     pub fn replace_code_units(&self,
                               node: &Node, offset: u32,
                               removed_code_units: u32, added_code_units: u32) {
@@ -1156,7 +1156,7 @@ impl WeakRangeVec {
     }
 
     /// Used for steps 7.2-3. when splitting a text node.
-    /// https://dom.spec.whatwg.org/#concept-text-split
+    /// <https://dom.spec.whatwg.org/#concept-text-split>
     pub fn move_to_following_text_sibling_above(&self,
                                                 node: &Node, offset: u32,
                                                 sibling: &Node) {
@@ -1202,7 +1202,7 @@ impl WeakRangeVec {
     }
 
     /// Used for steps 7.4-5. when splitting a text node.
-    /// https://dom.spec.whatwg.org/#concept-text-split
+    /// <https://dom.spec.whatwg.org/#concept-text-split>
     pub fn increment_at(&self, node: &Node, offset: u32) {
         unsafe {
             (*self.cell.get()).update(|entry| {

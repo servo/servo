@@ -57,7 +57,7 @@ use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 
-/// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
+/// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
 pub trait RepeatableListAnimatable: Animate {}
 
 /// Returns true if this nsCSSPropertyID is one of the animatable properties.
@@ -655,7 +655,7 @@ macro_rules! repeated_vec_impl {
 
 repeated_vec_impl!(SmallVec<[T; 1]>, Vec<T>);
 
-/// https://drafts.csswg.org/css-transitions/#animtype-visibility
+/// <https://drafts.csswg.org/css-transitions/#animtype-visibility>
 impl Animate for Visibility {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -686,7 +686,7 @@ impl ToAnimatedZero for Visibility {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+/// <https://drafts.csswg.org/css-transitions/#animtype-lpcalc>
 impl Animate for CalcLengthOrPercentage {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -738,7 +738,7 @@ impl ToAnimatedZero for MaxLength {
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
-/// http://dev.w3.org/csswg/css-transitions/#animtype-font-weight
+/// <http://dev.w3.org/csswg/css-transitions/#animtype-font-weight>
 impl Animate for FontWeight {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -759,7 +759,7 @@ impl ToAnimatedZero for FontWeight {
     }
 }
 
-/// https://drafts.csswg.org/css-fonts/#font-stretch-prop
+/// <https://drafts.csswg.org/css-fonts/#font-stretch-prop>
 impl Animate for FontStretch {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
@@ -786,7 +786,7 @@ impl ToAnimatedZero for FontStretch {
 }
 
 /// We should treat font stretch as real number in order to interpolate this property.
-/// https://drafts.csswg.org/css-fonts-3/#font-stretch-animation
+/// <https://drafts.csswg.org/css-fonts-3/#font-stretch-animation>
 impl From<FontStretch> for f64 {
     fn from(stretch: FontStretch) -> f64 {
         use self::FontStretch::*;
@@ -815,7 +815,7 @@ impl Into<FontStretch> for f64 {
     }
 }
 
-/// https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
+/// <https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def>
 #[cfg(feature = "gecko")]
 impl Animate for FontVariationSettings {
     #[inline]
@@ -989,7 +989,7 @@ impl<'a> Iterator for FontSettingTagIter<'a> {
 impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
     where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
 
-/// https://drafts.csswg.org/css-transitions/#animtype-rect
+/// <https://drafts.csswg.org/css-transitions/#animtype-rect>
 impl Animate for ClipRect {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -1018,7 +1018,7 @@ impl ToAnimatedZero for ClipRect {
 
 /// Build an equivalent 'identity transform function list' based
 /// on an existing transform list.
-/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+/// <http://dev.w3.org/csswg/css-transforms/#none-transform-animation>
 impl ToAnimatedZero for TransformOperation {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
@@ -1078,7 +1078,7 @@ fn animate_multiplicative_factor(
     Ok((this - 1.).animate(&(other - 1.), procedure)? + 1.)
 }
 
-/// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+/// <http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms>
 impl Animate for TransformOperation {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
@@ -1159,7 +1159,7 @@ impl Animate for TransformOperation {
     }
 }
 
-/// https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined
+/// <https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined>
 fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
     let half_rad = a.radians() / 2.0;
     let sc = (half_rad).sin() * (half_rad).cos();
@@ -1246,7 +1246,7 @@ impl Animate for Scale2D {
 }
 
 impl Animate for MatrixDecomposed2D {
-    /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values
+    /// <https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values>
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         // If x-axis of one is flipped, and y-axis of the other,
         // convert to an unflipped rotation.
@@ -1375,7 +1375,7 @@ impl ComputeSquaredDistance for ComputedMatrix {
 
 impl From<ComputedMatrix> for MatrixDecomposed2D {
     /// Decompose a 2D matrix.
-    /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
+    /// <https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix>
     fn from(matrix: ComputedMatrix) -> MatrixDecomposed2D {
         let mut row0x = matrix.m11;
         let mut row0y = matrix.m12;
@@ -1439,7 +1439,7 @@ impl From<ComputedMatrix> for MatrixDecomposed2D {
 
 impl From<MatrixDecomposed2D> for ComputedMatrix {
     /// Recompose a 2D matrix.
-    /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix
+    /// <https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix>
     fn from(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
         let mut computed_matrix = ComputedMatrix::identity();
         computed_matrix.m11 = decomposed.matrix.m11;
@@ -1577,7 +1577,7 @@ impl ComputeSquaredDistance for Quaternion {
 }
 
 /// Decompose a 3D matrix.
-/// https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix
+/// <https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix>
 fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D, ()> {
     // Normalize the matrix.
     if matrix.m44 == 0.0 {
@@ -1829,7 +1829,7 @@ impl Animate for Perspective {
 }
 
 impl Animate for MatrixDecomposed3D {
-    /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
+    /// <https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values>
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         use std::f64;
 
@@ -1911,7 +1911,7 @@ impl Animate for MatrixDecomposed3D {
 
 impl From<MatrixDecomposed3D> for ComputedMatrix {
     /// Recompose a 3D matrix.
-    /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix
+    /// <https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix>
     fn from(decomposed: MatrixDecomposed3D) -> ComputedMatrix {
         let mut matrix = ComputedMatrix::identity();
 
@@ -2106,7 +2106,7 @@ impl ComputedMatrix {
     }
 }
 
-/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
+/// <https://drafts.csswg.org/css-transforms/#interpolation-of-transforms>
 impl Animate for TransformList {
     #[inline]
     fn animate(
@@ -2463,7 +2463,7 @@ where
     }
 }
 
-/// https://www.w3.org/TR/SVG11/painting.html#StrokeDasharrayProperty
+/// <https://www.w3.org/TR/SVG11/painting.html#StrokeDasharrayProperty>
 impl<L> Animate for SVGStrokeDashArray<L>
 where
     L: Clone + RepeatableListAnimatable,
@@ -2521,7 +2521,7 @@ where
                          'Sepia' ]
 %>
 
-/// https://drafts.fxtf.org/filters/#animation-of-filters
+/// <https://drafts.fxtf.org/filters/#animation-of-filters>
 impl Animate for AnimatedFilter {
     fn animate(
         &self,
@@ -2553,7 +2553,7 @@ impl Animate for AnimatedFilter {
     }
 }
 
-/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+/// <http://dev.w3.org/csswg/css-transforms/#none-transform-animation>
 impl ToAnimatedZero for AnimatedFilter {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {

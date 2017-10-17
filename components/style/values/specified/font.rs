@@ -239,7 +239,7 @@ impl ToComputedValue for KeywordSize {
 }
 
 impl FontSize {
-    /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
+    /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size>
     pub fn from_html_size(size: u8) -> Self {
         FontSize::Keyword(match size {
             // If value is less than 1, let it be 1.

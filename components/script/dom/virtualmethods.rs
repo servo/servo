@@ -63,8 +63,8 @@ pub trait VirtualMethods {
     fn super_type(&self) -> Option<&VirtualMethods>;
 
     /// Called when attributes of a node are mutated.
-    /// https://dom.spec.whatwg.org/#attribute-is-set
-    /// https://dom.spec.whatwg.org/#attribute-is-removed
+    /// <https://dom.spec.whatwg.org/#attribute-is-set>
+    /// <https://dom.spec.whatwg.org/#attribute-is-removed>
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         if let Some(s) = self.super_type() {
             s.attribute_mutated(attr, mutation);
@@ -100,7 +100,7 @@ pub trait VirtualMethods {
     /// Called when a Node is removed from a tree, where 'tree_in_doc'
     /// indicates whether the tree is part of a Document.
     /// Implements removing steps:
-    /// https://dom.spec.whatwg.org/#concept-node-remove-ext
+    /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
     fn unbind_from_tree(&self, context: &UnbindContext) {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(context);
@@ -121,14 +121,14 @@ pub trait VirtualMethods {
         }
     }
 
-    /// https://dom.spec.whatwg.org/#concept-node-adopt-ext
+    /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
     fn adopting_steps(&self, old_doc: &Document) {
         if let Some(ref s) = self.super_type() {
             s.adopting_steps(old_doc);
         }
     }
 
-    /// https://dom.spec.whatwg.org/#concept-node-clone-ext
+    /// <https://dom.spec.whatwg.org/#concept-node-clone-ext>
     fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
                      clone_children: CloneChildrenFlag) {
         if let Some(ref s) = self.super_type() {

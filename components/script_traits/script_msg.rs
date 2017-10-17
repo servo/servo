@@ -137,7 +137,7 @@ pub enum ScriptMsg {
     /// Scroll a page in a window
     ScrollFragmentPoint(ClipId, Point2D<f32>, bool),
     /// Set title of current page
-    /// https://html.spec.whatwg.org/multipage/#document.title
+    /// <https://html.spec.whatwg.org/multipage/#document.title>
     SetTitle(Option<String>),
     /// Send a key event
     SendKeyEvent(Option<char>, Key, KeyState, KeyModifiers),

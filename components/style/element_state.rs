@@ -18,35 +18,35 @@ bitflags! {
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub flags ElementState: u64 {
         /// The mouse is down on this element.
-        /// https://html.spec.whatwg.org/multipage/#selector-active
+        /// <https://html.spec.whatwg.org/multipage/#selector-active>
         /// FIXME(#7333): set/unset this when appropriate
         const IN_ACTIVE_STATE = 1 << 0,
         /// This element has focus.
-        /// https://html.spec.whatwg.org/multipage/#selector-focus
+        /// <https://html.spec.whatwg.org/multipage/#selector-focus>
         const IN_FOCUS_STATE = 1 << 1,
         /// The mouse is hovering over this element.
-        /// https://html.spec.whatwg.org/multipage/#selector-hover
+        /// <https://html.spec.whatwg.org/multipage/#selector-hover>
         const IN_HOVER_STATE = 1 << 2,
         /// Content is enabled (and can be disabled).
-        /// http://www.whatwg.org/html/#selector-enabled
+        /// <http://www.whatwg.org/html/#selector-enabled>
         const IN_ENABLED_STATE = 1 << 3,
         /// Content is disabled.
-        /// http://www.whatwg.org/html/#selector-disabled
+        /// <http://www.whatwg.org/html/#selector-disabled>
         const IN_DISABLED_STATE = 1 << 4,
         /// Content is checked.
-        /// https://html.spec.whatwg.org/multipage/#selector-checked
+        /// <https://html.spec.whatwg.org/multipage/#selector-checked>
         const IN_CHECKED_STATE = 1 << 5,
-        /// https://html.spec.whatwg.org/multipage/#selector-indeterminate
+        /// <https://html.spec.whatwg.org/multipage/#selector-indeterminate>
         const IN_INDETERMINATE_STATE = 1 << 6,
-        /// https://html.spec.whatwg.org/multipage/#selector-placeholder-shown
+        /// <https://html.spec.whatwg.org/multipage/#selector-placeholder-shown>
         const IN_PLACEHOLDER_SHOWN_STATE = 1 << 7,
-        /// https://html.spec.whatwg.org/multipage/#selector-target
+        /// <https://html.spec.whatwg.org/multipage/#selector-target>
         const IN_TARGET_STATE = 1 << 8,
-        /// https://fullscreen.spec.whatwg.org/#%3Afullscreen-pseudo-class
+        /// <https://fullscreen.spec.whatwg.org/#%3Afullscreen-pseudo-class>
         const IN_FULLSCREEN_STATE = 1 << 9,
-        /// https://html.spec.whatwg.org/multipage/#selector-valid
+        /// <https://html.spec.whatwg.org/multipage/#selector-valid>
         const IN_VALID_STATE = 1 << 10,
-        /// https://html.spec.whatwg.org/multipage/#selector-invalid
+        /// <https://html.spec.whatwg.org/multipage/#selector-invalid>
         const IN_INVALID_STATE = 1 << 11,
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-ui-valid
         const IN_MOZ_UI_VALID_STATE = 1 << 12,
@@ -66,31 +66,31 @@ bitflags! {
         const IN_HANDLER_DISABLED_STATE = 1 << 19,
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-crashed
         const IN_HANDLER_CRASHED_STATE = 1 << 20,
-        /// https://html.spec.whatwg.org/multipage/#selector-required
+        /// <https://html.spec.whatwg.org/multipage/#selector-required>
         const IN_REQUIRED_STATE = 1 << 21,
-        /// https://html.spec.whatwg.org/multipage/#selector-optional
+        /// <https://html.spec.whatwg.org/multipage/#selector-optional>
         const IN_OPTIONAL_STATE = 1 << 22,
-        /// https://html.spec.whatwg.org/multipage/#selector-read-write
+        /// <https://html.spec.whatwg.org/multipage/#selector-read-write>
         const IN_READ_WRITE_STATE = 1 << 22,
         /// Non-standard: Older custom-elements spec.
         const IN_UNRESOLVED_STATE = 1 << 23,
-        /// https://html.spec.whatwg.org/multipage/#selector-visited
+        /// <https://html.spec.whatwg.org/multipage/#selector-visited>
         const IN_VISITED_STATE = 1 << 24,
-        /// https://html.spec.whatwg.org/multipage/#selector-link
+        /// <https://html.spec.whatwg.org/multipage/#selector-link>
         const IN_UNVISITED_STATE = 1 << 25,
-        /// https://drafts.csswg.org/selectors-4/#the-any-link-pseudo
+        /// <https://drafts.csswg.org/selectors-4/#the-any-link-pseudo>
         const IN_VISITED_OR_UNVISITED_STATE = IN_VISITED_STATE.bits | IN_UNVISITED_STATE.bits,
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-drag-over
         const IN_DRAGOVER_STATE = 1 << 26,
-        /// https://html.spec.whatwg.org/multipage/#selector-in-range
+        /// <https://html.spec.whatwg.org/multipage/#selector-in-range>
         const IN_INRANGE_STATE = 1 << 27,
-        /// https://html.spec.whatwg.org/multipage/#selector-out-of-range
+        /// <https://html.spec.whatwg.org/multipage/#selector-out-of-range>
         const IN_OUTOFRANGE_STATE = 1 << 28,
-        /// https://html.spec.whatwg.org/multipage/#selector-read-only
+        /// <https://html.spec.whatwg.org/multipage/#selector-read-only>
         const IN_MOZ_READONLY_STATE = 1 << 29,
-        /// https://html.spec.whatwg.org/multipage/#selector-read-write
+        /// <https://html.spec.whatwg.org/multipage/#selector-read-write>
         const IN_MOZ_READWRITE_STATE = 1 << 30,
-        /// https://html.spec.whatwg.org/multipage/#selector-default
+        /// <https://html.spec.whatwg.org/multipage/#selector-default>
         const IN_DEFAULT_STATE = 1 << 31,
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-submit-invalid
         const IN_MOZ_SUBMITINVALID_STATE = 1 << 32,
@@ -114,7 +114,7 @@ bitflags! {
         const IN_HANDLER_VULNERABLE_UPDATABLE_STATE = 1 << 41,
         /// Non-standard & undocumented.
         const IN_HANDLER_VULNERABLE_NO_UPDATE_STATE = 1 << 42,
-        /// https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo
+        /// <https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo>
         const IN_FOCUS_WITHIN_STATE = 1 << 43,
         /// :dir matching; the states are used for dynamic change detection.
         /// State that elements that match :dir(ltr) are in.

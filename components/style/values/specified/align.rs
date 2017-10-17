@@ -111,7 +111,7 @@ const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 
 /// Value of the `align-content` or `justify-content` property.
 ///
-/// https://drafts.csswg.org/css-align/#content-distribution
+/// <https://drafts.csswg.org/css-align/#content-distribution>
 ///
 /// The 16-bit field stores the primary value in its lower 8 bits, and the optional fallback value
 /// in its upper 8 bits.  This matches the representation of these properties in Gecko.
@@ -135,7 +135,7 @@ impl AlignJustifyContent {
 
     /// Construct a value including a fallback alignment.
     ///
-    /// https://drafts.csswg.org/css-align/#fallback-alignment
+    /// <https://drafts.csswg.org/css-align/#fallback-alignment>
     #[inline]
     pub fn with_fallback(flags: AlignFlags, fallback: AlignFlags) -> Self {
         AlignJustifyContent(flags.bits() as u16 | ((fallback.bits() as u16) << ALIGN_ALL_SHIFT))
@@ -207,7 +207,7 @@ impl Parse for AlignJustifyContent {
 
 /// Value of the `align-self` or `justify-self` property.
 ///
-/// https://drafts.csswg.org/css-align/#self-alignment
+/// <https://drafts.csswg.org/css-align/#self-alignment>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub struct AlignJustifySelf(pub AlignFlags);
@@ -245,7 +245,7 @@ impl Parse for AlignJustifySelf {
 
 /// Value of the `align-items` property
 ///
-/// https://drafts.csswg.org/css-align/#self-alignment
+/// <https://drafts.csswg.org/css-align/#self-alignment>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub struct AlignItems(pub AlignFlags);
@@ -283,7 +283,7 @@ impl Parse for AlignItems {
 
 /// Value of the `justify-items` property
 ///
-/// https://drafts.csswg.org/css-align/#justify-items-property
+/// <https://drafts.csswg.org/css-align/#justify-items-property>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub struct JustifyItems(pub AlignFlags);

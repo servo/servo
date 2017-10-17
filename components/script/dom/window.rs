@@ -287,7 +287,7 @@ pub struct Window {
 
     /// Worklets
     test_worklet: MutNullableDom<Worklet>,
-    /// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+    /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
     paint_worklet: MutNullableDom<Worklet>,
     /// The Webrender Document id associated with this window.
     #[ignore_heap_size_of = "defined in webrender_api"]
@@ -360,7 +360,7 @@ impl Window {
     }
 
     /// Returns the window proxy if it has not been discarded.
-    /// https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
+    /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
         self.window_proxy.get()
             .and_then(|window_proxy| if window_proxy.is_browsing_context_discarded() {
@@ -742,13 +742,13 @@ impl WindowMethods for Window {
         base64_atob(atob)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
         self.Document()
             .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback })
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
     fn CancelAnimationFrame(&self, ident: u32) {
         let doc = self.Document();
         doc.cancel_animation_frame(ident);
@@ -1090,7 +1090,7 @@ impl Window {
         self.ignore_further_async_events.borrow().store(true, Ordering::SeqCst);
     }
 
-    /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
     pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
         // Step 3
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
@@ -1144,7 +1144,7 @@ impl Window {
                               None);
     }
 
-    /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
+    /// <https://drafts.csswg.org/cssom-view/#perform-a-scroll>
     pub fn perform_a_scroll(&self,
                             x: f32,
                             y: f32,

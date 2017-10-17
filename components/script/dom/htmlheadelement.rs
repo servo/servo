@@ -39,7 +39,7 @@ impl HTMLHeadElement {
                            HTMLHeadElementBinding::Wrap)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#meta-referrer
+    /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
     pub fn set_document_referrer(&self) {
         let doc = document_from_node(self);
 

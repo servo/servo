@@ -15,7 +15,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// An SVG paint value
 ///
-/// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
+/// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
@@ -64,7 +64,7 @@ impl<ColorType, UrlPaintServer> SVGPaintKind<ColorType, UrlPaintServer> {
 
 /// Parse SVGPaint's fallback.
 /// fallback is keyword(none), Color or empty.
-/// https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint
+/// <https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint>
 fn parse_fallback<'i, 't, ColorType: Parse>(context: &ParserContext,
                                             input: &mut Parser<'i, 't>)
                                             -> Option<Either<ColorType, None_>> {
@@ -110,7 +110,7 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 }
 
 /// A value of <length> | <percentage> | <number> for svg which allow unitless length.
-/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+/// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToAnimatedValue)]

@@ -158,7 +158,7 @@ pub struct LoadData {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum JsEvalResult {
     /// The js evaluation had a non-string result, 204 status code.
-    /// https://html.spec.whatwg.org/multipage/#navigate 12.11
+    /// <https://html.spec.whatwg.org/multipage/#navigate> 12.11
     NoContent,
     /// The js evaluation had a string result.
     Ok(Vec<u8>)
@@ -221,8 +221,9 @@ pub enum DiscardBrowsingContext {
 /// A document is active if it is the current active document in its session history,
 /// it is fuly active if it is active and all of its ancestors are active,
 /// and it is inactive otherwise.
-/// https://html.spec.whatwg.org/multipage/#active-document
-/// https://html.spec.whatwg.org/multipage/#fully-active
+///
+/// * <https://html.spec.whatwg.org/multipage/#active-document>
+/// * <https://html.spec.whatwg.org/multipage/#fully-active>
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub enum DocumentActivity {
     /// An inactive document
@@ -402,7 +403,7 @@ pub enum TouchEventType {
 
 /// An opaque identifier for a touch point.
 ///
-/// http://w3c.github.io/touch-events/#widl-Touch-identifier
+/// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
@@ -722,7 +723,7 @@ pub struct ScrollState {
 #[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
-    /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
+    /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
     pub initial_viewport: TypedSize2D<f32, CSSPixel>,
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
@@ -853,7 +854,7 @@ impl From<RecvTimeoutError> for PaintWorkletError {
 
 /// Execute paint code in the worklet thread pool.
 pub trait Painter: SpeculativePainter {
-    /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
+    /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn draw_a_paint_image(&self,
                           size: TypedSize2D<f32, CSSPixel>,
                           zoom: ScaleFactor<f32, CSSPixel, DevicePixel>,
@@ -869,7 +870,8 @@ impl fmt::Debug for Painter {
 }
 
 /// The result of executing paint code: the image together with any image URLs that need to be loaded.
-/// TODO: this should return a WR display list. https://github.com/servo/servo/issues/17497
+///
+/// TODO: this should return a WR display list. <https://github.com/servo/servo/issues/17497>
 #[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub struct DrawAPaintImageResult {
     /// The image height

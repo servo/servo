@@ -72,7 +72,7 @@ impl MutationObserver {
         Ok(observer)
     }
 
-    /// https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask
+    /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
     pub fn queue_mutation_observer_compound_microtask() {
         // Step 1
         if ScriptThread::is_mutation_observer_compound_microtask_queued() {
@@ -84,7 +84,7 @@ impl MutationObserver {
         ScriptThread::enqueue_microtask(Microtask::NotifyMutationObservers);
     }
 
-    /// https://dom.spec.whatwg.org/#notify-mutation-observers
+    /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
     pub fn notify_mutation_observers() {
         // Step 1
         ScriptThread::set_mutation_observer_compound_microtask_queued(false);
@@ -103,7 +103,7 @@ impl MutationObserver {
         // TODO: Step 6 (slot signals)
     }
 
-    /// https://dom.spec.whatwg.org/#queueing-a-mutation-record
+    /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
         // Step 1
         let mut interestedObservers: Vec<(DomRoot<MutationObserver>, Option<DOMString>)> = vec![];
@@ -182,7 +182,7 @@ impl MutationObserver {
 }
 
 impl MutationObserverMethods for MutationObserver {
-    /// https://dom.spec.whatwg.org/#dom-mutationobserver-observe
+    /// <https://dom.spec.whatwg.org/#dom-mutationobserver-observe>
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
         let attribute_filter = options.attributeFilter.clone().unwrap_or(vec![]);
         let attribute_old_value = options.attributeOldValue.unwrap_or(false);

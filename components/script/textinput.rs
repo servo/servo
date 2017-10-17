@@ -72,7 +72,7 @@ pub struct TextInput<T: ClipboardProvider> {
     clipboard_provider: T,
     /// The maximum number of UTF-16 code units this text input is allowed to hold.
     ///
-    /// https://html.spec.whatwg.org/multipage/#attr-fe-maxlength
+    /// <https://html.spec.whatwg.org/multipage/#attr-fe-maxlength>
     pub max_length: Option<usize>,
     pub min_length: Option<usize>,
     pub selection_direction: SelectionDirection,

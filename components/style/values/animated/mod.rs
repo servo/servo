@@ -48,15 +48,15 @@ pub trait Animate: Sized {
 
 /// An animation procedure.
 ///
-/// https://w3c.github.io/web-animations/#procedures-for-animating-properties
+/// <https://w3c.github.io/web-animations/#procedures-for-animating-properties>
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Procedure {
-    /// https://w3c.github.io/web-animations/#animation-interpolation
+    /// <https://w3c.github.io/web-animations/#animation-interpolation>
     Interpolate { progress: f64 },
-    /// https://w3c.github.io/web-animations/#animation-addition
+    /// <https://w3c.github.io/web-animations/#animation-addition>
     Add,
-    /// https://w3c.github.io/web-animations/#animation-accumulation
+    /// <https://w3c.github.io/web-animations/#animation-accumulation>
     Accumulate { count: u64 },
 }
 
@@ -113,7 +113,7 @@ impl Procedure {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-number
+/// <https://drafts.csswg.org/css-transitions/#animtype-number>
 impl Animate for i32 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -121,7 +121,7 @@ impl Animate for i32 {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-number
+/// <https://drafts.csswg.org/css-transitions/#animtype-number>
 impl Animate for f32 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -132,7 +132,7 @@ impl Animate for f32 {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-number
+/// <https://drafts.csswg.org/css-transitions/#animtype-number>
 impl Animate for f64 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {

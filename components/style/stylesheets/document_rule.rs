@@ -194,7 +194,7 @@ impl ToCss for UrlMatchingFunction {
 
 /// A `@document` rule's condition.
 ///
-/// https://www.w3.org/TR/2012/WD-css3-conditional-20120911/#at-document
+/// <https://www.w3.org/TR/2012/WD-css3-conditional-20120911/#at-document>
 ///
 /// The `@document` rule's condition is written as a comma-separated list of
 /// URL matching functions, and the condition evaluates to true whenever any

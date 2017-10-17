@@ -865,7 +865,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    /// http://w3c.github.io/touch-events/#mouse-events
+    /// <http://w3c.github.io/touch-events/#mouse-events>
     fn simulate_mouse_click(&mut self, p: TypedPoint2D<f32, DevicePixel>) {
         let button = MouseButton::Left;
         self.dispatch_mouse_window_move_event_class(p);

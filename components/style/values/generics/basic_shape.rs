@@ -16,7 +16,7 @@ use values::generics::rect::Rect;
 /// A clipping shape, for `clip-path`.
 pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, Url>;
 
-/// https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box
+/// <https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box>
 #[allow(missing_docs)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -71,7 +71,7 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
     Polygon(Polygon<LengthOrPercentage>),
 }
 
-/// https://drafts.csswg.org/css-shapes/#funcdef-inset
+/// <https://drafts.csswg.org/css-shapes/#funcdef-inset>
 #[allow(missing_docs)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -81,7 +81,7 @@ pub struct InsetRect<LengthOrPercentage> {
     pub round: Option<BorderRadius<LengthOrPercentage>>,
 }
 
-/// https://drafts.csswg.org/css-shapes/#funcdef-circle
+/// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
 #[allow(missing_docs)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -91,7 +91,7 @@ pub struct Circle<H, V, LengthOrPercentage> {
     pub radius: ShapeRadius<LengthOrPercentage>,
 }
 
-/// https://drafts.csswg.org/css-shapes/#funcdef-ellipse
+/// <https://drafts.csswg.org/css-shapes/#funcdef-ellipse>
 #[allow(missing_docs)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -102,7 +102,7 @@ pub struct Ellipse<H, V, LengthOrPercentage> {
     pub semiaxis_y: ShapeRadius<LengthOrPercentage>,
 }
 
-/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
+/// <https://drafts.csswg.org/css-shapes/#typedef-shape-radius>
 #[allow(missing_docs)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -121,7 +121,7 @@ pub enum ShapeRadius<LengthOrPercentage> {
 #[derive(Clone, Debug, PartialEq, ToComputedValue)]
 /// A generic type for representing the `polygon()` function
 ///
-/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
+/// <https://drafts.csswg.org/css-shapes/#funcdef-polygon>
 pub struct Polygon<LengthOrPercentage> {
     /// The filling rule for a polygon.
     pub fill: FillRule,

@@ -12,7 +12,7 @@ use script_traits::ConstellationControlMsg;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-/// https://html.spec.whatwg.org/multipage/#event-loop
+/// <https://html.spec.whatwg.org/multipage/#event-loop>
 pub struct EventLoop {
     script_chan: IpcSender<ConstellationControlMsg>,
     dont_send_or_sync: PhantomData<Rc<()>>,

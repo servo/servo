@@ -219,7 +219,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
     }
 }
 
-/// https://dom.spec.whatwg.org/#document
+/// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
 pub struct Document {
     node: Node,
@@ -261,23 +261,23 @@ pub struct Document {
     focused: MutNullableDom<Element>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
-    /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
+    /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     deferred_scripts: PendingInOrderScriptVec,
-    /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
+    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible>
     asap_in_order_scripts_list: PendingInOrderScriptVec,
-    /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
+    /// <https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible>
     asap_scripts_set: DomRefCell<Vec<Dom<HTMLScriptElement>>>,
-    /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
+    /// <https://html.spec.whatwg.org/multipage/#concept-n-noscript>
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: bool,
-    /// https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier
+    /// <https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier>
     /// Current identifier of animation frame callback
     animation_frame_ident: Cell<u32>,
-    /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
+    /// <https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks>
     /// List of animation frame callbacks
     animation_frame_list: DomRefCell<Vec<(u32, Option<AnimationFrameCallback>)>>,
     /// Whether we're in the process of running animation callbacks.
@@ -294,7 +294,7 @@ pub struct Document {
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableDom<HTMLBaseElement>,
     /// This field is set to the document itself for inert documents.
-    /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
+    /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to the layout thread when the
     /// time comes.
@@ -302,10 +302,10 @@ pub struct Document {
     /// This flag will be true if layout suppressed a reflow attempt that was
     /// needed in order for the page to be painted.
     needs_paint: Cell<bool>,
-    /// http://w3c.github.io/touch-events/#dfn-active-touch-point
+    /// <http://w3c.github.io/touch-events/#dfn-active-touch-point>
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
     /// Navigation Timing properties:
-    /// https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming
+    /// <https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming>
     dom_loading: Cell<u64>,
     dom_interactive: Cell<u64>,
     dom_content_loaded_event_start: Cell<u64>,
@@ -313,21 +313,21 @@ pub struct Document {
     dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
-    /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: MutableOrigin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Cell<Option<ReferrerPolicy>>,
-    /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
     referrer: Option<String>,
-    /// https://html.spec.whatwg.org/multipage/#target-element
+    /// <https://html.spec.whatwg.org/multipage/#target-element>
     target_element: MutNullableDom<Element>,
-    /// https://w3c.github.io/uievents/#event-type-dblclick
+    /// <https://w3c.github.io/uievents/#event-type-dblclick>
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
-    /// https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter
+    /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
@@ -421,7 +421,7 @@ impl Document {
     #[inline]
     pub fn has_browsing_context(&self) -> bool { self.has_browsing_context }
 
-    /// https://html.spec.whatwg.org/multipage/#concept-document-bc
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-bc>
     #[inline]
     pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
         if self.has_browsing_context {
@@ -524,7 +524,7 @@ impl Document {
     }
 
     /// Refresh the cached first base element in the DOM.
-    /// https://github.com/w3c/web-platform-tests/issues/2122
+    /// <https://github.com/w3c/web-platform-tests/issues/2122>
     pub fn refresh_base_element(&self) {
         let base = self.upcast::<Node>()
                        .traverse_preorder()
@@ -667,7 +667,7 @@ impl Document {
     }
 
     /// Attempt to find a named element in this page's document.
-    /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
+    /// <https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document>
     pub fn find_fragment_node(&self, fragid: &str) -> Option<DomRoot<Element>> {
         // Step 1 is not handled here; the fragid is already obtained by the calling function
         // Step 2: Simply use None to indicate the top of the document.
@@ -682,7 +682,7 @@ impl Document {
 
     /// Scroll to the target element, and when we do not find a target
     /// and the fragment is empty or "top", scroll to the top.
-    /// https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier
+    /// <https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier>
     pub fn check_and_scroll_fragment(&self, fragment: &str) {
         let target = self.find_fragment_node(fragment);
 
@@ -1522,7 +1522,7 @@ impl Document {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     pub fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
 
@@ -1554,7 +1554,7 @@ impl Document {
         ident
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
     pub fn cancel_animation_frame(&self, ident: u32) {
         let mut list = self.animation_frame_list.borrow_mut();
         if let Some(pair) = list.iter_mut().find(|pair| pair.0 == ident) {
@@ -1562,7 +1562,7 @@ impl Document {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
+    /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub fn run_the_animation_frame_callbacks(&self) {
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
@@ -2000,7 +2000,7 @@ impl Document {
         event.fire(target);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
+    /// <https://html.spec.whatwg.org/multipage/#cookie-averse-document-object>
     pub fn is_cookie_averse(&self) -> bool {
         !self.has_browsing_context || !url_has_network_scheme(&self.url())
     }
@@ -2013,7 +2013,7 @@ impl Document {
         self.window.layout().nodes_from_point_response()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
+    /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub fn lookup_custom_element_definition(&self,
                                             namespace: &Namespace,
                                             local_name: &LocalName,
@@ -2151,7 +2151,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, ori
     Some(host)
 }
 
-/// https://url.spec.whatwg.org/#network-scheme
+/// <https://url.spec.whatwg.org/#network-scheme>
 fn url_has_network_scheme(url: &ServoUrl) -> bool {
     match url.scheme() {
         "ftp" | "http" | "https" => true,
@@ -2225,7 +2225,7 @@ impl Document {
                     /// Per-process shared lock for author-origin stylesheets
                     ///
                     /// FIXME: make it per-document or per-pipeline instead:
-                    /// https://github.com/servo/servo/issues/16027
+                    /// <https://github.com/servo/servo/issues/16027>
                     /// (Need to figure out what to do with the style attribute
                     /// of elements adopted into another document.)
                     static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
@@ -2466,7 +2466,7 @@ impl Document {
         })
     }
 
-    /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
+    /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     pub fn appropriate_template_contents_owner_document(&self) -> DomRoot<Document> {
         self.appropriate_template_contents_owner_document.or_init(|| {
             let doctype = if self.is_html_document {
@@ -3977,7 +3977,7 @@ fn update_with_current_time_ms(marker: &Cell<u64>) {
     }
 }
 
-/// https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token
+/// <https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token>
 pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     match_ignore_ascii_case! { token,
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),

@@ -21,14 +21,14 @@ pub struct CSS {
 }
 
 impl CSS {
-    /// http://dev.w3.org/csswg/cssom/#serialize-an-identifier
+    /// <http://dev.w3.org/csswg/cssom/#serialize-an-identifier>
     pub fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
         let mut escaped = String::new();
         serialize_identifier(&ident, &mut escaped).unwrap();
         Ok(DOMString::from(escaped))
     }
 
-    /// https://drafts.csswg.org/css-conditional/#dom-css-supports
+    /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
     pub fn Supports(win: &Window, property: DOMString, value: DOMString) -> bool {
         let mut decl = String::new();
         serialize_identifier(&property, &mut decl).unwrap();
@@ -45,7 +45,7 @@ impl CSS {
         decl.eval(&context)
     }
 
-    /// https://drafts.csswg.org/css-conditional/#dom-css-supports
+    /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
     pub fn Supports_(win: &Window, condition: DOMString) -> bool {
         let mut input = ParserInput::new(&condition);
         let mut input = Parser::new(&mut input);

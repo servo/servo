@@ -44,7 +44,7 @@ impl VirtualMethods for HTMLSourceElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted
+    /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
     fn bind_to_tree(&self, tree_in_doc: bool) {
         self.super_type().unwrap().bind_to_tree(tree_in_doc);
         let parent = self.upcast::<Node>().GetParentNode().unwrap();

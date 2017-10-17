@@ -40,6 +40,7 @@ pub struct Opts {
     pub device_pixels_per_px: Option<f32>,
 
     /// `None` to disable the time profiler or `Some` to enable it with:
+    ///
     ///  - an interval in seconds to cause it to produce output on that interval.
     ///    (`i.e. -p 5`).
     ///  - a file path to write profiling info to a TSV file upon Servo's termination.
@@ -68,7 +69,7 @@ pub struct Opts {
     pub output_file: Option<String>,
 
     /// Replace unpaires surrogates in DOM strings with U+FFFD.
-    /// See https://github.com/servo/servo/issues/6564
+    /// See <https://github.com/servo/servo/issues/6564>
     pub replace_surrogates: bool,
 
     /// Log GC passes and their durations.
@@ -296,7 +297,7 @@ pub struct DebugOptions {
     pub convert_mouse_to_touch: bool,
 
     /// Replace unpaires surrogates in DOM strings with U+FFFD.
-    /// See https://github.com/servo/servo/issues/6564
+    /// See <https://github.com/servo/servo/issues/6564>
     pub replace_surrogates: bool,
 
     /// Log GC passes and their durations.

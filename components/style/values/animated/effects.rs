@@ -27,7 +27,7 @@ pub type TextShadowList = ShadowList<SimpleShadow>;
 
 /// An animated value for shadow lists.
 ///
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
+/// <https://drafts.csswg.org/css-transitions/#animtype-shadow-list>
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShadowList<Shadow>(Vec<Shadow>);

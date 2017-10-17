@@ -30,13 +30,13 @@ pub enum Image<Gradient, MozImageRect, ImageUrl> {
     /// A `-moz-element(# <element-id>)`
     Element(Atom),
     /// A paint worklet image.
-    /// https://drafts.css-houdini.org/css-paint-api/
+    /// <https://drafts.css-houdini.org/css-paint-api/>
     #[cfg(feature = "servo")]
     PaintWorklet(PaintWorklet),
 }
 
 /// A CSS gradient.
-/// https://drafts.csswg.org/css-images/#gradients
+/// <https://drafts.csswg.org/css-images/#gradients>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToComputedValue)]
@@ -110,7 +110,7 @@ pub enum Ellipse<LengthOrPercentage> {
     Extent(ShapeExtent),
 }
 
-/// https://drafts.csswg.org/css-images/#typedef-extent-keyword
+/// <https://drafts.csswg.org/css-images/#typedef-extent-keyword>
 define_css_keyword_enum!(ShapeExtent:
     "closest-side" => ClosestSide,
     "farthest-side" => FarthestSide,
@@ -122,7 +122,7 @@ define_css_keyword_enum!(ShapeExtent:
 add_impls_for_keyword_enum!(ShapeExtent);
 
 /// A gradient item.
-/// https://drafts.csswg.org/css-images-4/#color-stop-syntax
+/// <https://drafts.csswg.org/css-images-4/#color-stop-syntax>
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
@@ -134,7 +134,7 @@ pub enum GradientItem<Color, LengthOrPercentage> {
 }
 
 /// A color stop.
-/// https://drafts.csswg.org/css-images/#typedef-color-stop-list
+/// <https://drafts.csswg.org/css-images/#typedef-color-stop-list>
 #[derive(Clone, Copy, PartialEq, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -146,7 +146,7 @@ pub struct ColorStop<Color, LengthOrPercentage> {
 }
 
 /// Specified values for a paint worklet.
-/// https://drafts.css-houdini.org/css-paint-api/
+/// <https://drafts.css-houdini.org/css-paint-api/>
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PaintWorklet {

@@ -90,7 +90,7 @@ pub struct GlobalScope {
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
-    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
+    /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>
     in_error_reporting_mode: Cell<bool>,
 
     /// Associated resource threads for use by DOM objects like XMLHttpRequest,
@@ -107,7 +107,7 @@ pub struct GlobalScope {
     /// It is refcounted because windows in the same script thread share the
     /// same microtask queue.
     ///
-    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     #[ignore_heap_size_of = "Rc<T> is hard"]
     microtask_queue: Rc<MicrotaskQueue>,
 }
@@ -303,7 +303,7 @@ impl GlobalScope {
         self.downcast::<Window>().expect("expected a Window scope")
     }
 
-    /// https://html.spec.whatwg.org/multipage/#report-the-error
+    /// <https://html.spec.whatwg.org/multipage/#report-the-error>
     pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
         // Step 1.
         if self.in_error_reporting_mode.get() {

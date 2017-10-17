@@ -54,29 +54,29 @@ use time::{self, Timespec, Duration};
 // media element event task source.
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
     network_state: Cell<NetworkState>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-readystate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
     ready_state: Cell<ReadyState>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-srcobject
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
     src_object: MutNullableDom<Blob>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-currentsrc>
     current_src: DomRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
-    /// https://html.spec.whatwg.org/multipage/#fire-loadeddata
+    /// <https://html.spec.whatwg.org/multipage/#fire-loadeddata>
     ///
     /// Reset to false every time the load algorithm is invoked.
     fired_loadeddata_event: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-error
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-error>
     error: MutNullableDom<MediaError>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-paused
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
     paused: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#attr-media-autoplay
+    /// <https://html.spec.whatwg.org/multipage/#attr-media-autoplay>
     autoplaying: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag
+    /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
-    /// https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises
+    /// <https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises>
     #[ignore_heap_size_of = "promises are hard"]
     pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// Play promises which are soon to be fulfilled by a queued task.
@@ -84,7 +84,7 @@ pub struct HTMLMediaElement {
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
 }
 
-/// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
+/// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 #[repr(u8)]
 pub enum NetworkState {
@@ -94,7 +94,7 @@ pub enum NetworkState {
     NoSource = HTMLMediaElementConstants::NETWORK_NO_SOURCE as u8,
 }
 
-/// https://html.spec.whatwg.org/multipage/#dom-media-readystate
+/// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq, PartialOrd)]
 #[repr(u8)]
 enum ReadyState {
@@ -145,7 +145,7 @@ impl HTMLMediaElement {
     /// Nothing happens if the element was already delaying the load event and
     /// we pass true to that method again.
     ///
-    /// https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag
+    /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     fn delay_load_event(&self, delay: bool) {
         let mut blocker = self.delaying_the_load_event_flag.borrow_mut();
         if delay && blocker.is_none() {
@@ -155,7 +155,7 @@ impl HTMLMediaElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-media-play
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
     // FIXME(nox): Move this back to HTMLMediaElementMethods::Play once
     // Rc<Promise> doesn't require #[allow(unrooted_must_root)] anymore.
     fn play(&self, promise: &Rc<Promise>) {
@@ -236,7 +236,7 @@ impl HTMLMediaElement {
         // Not applicable here, the promise is returned from Play.
     }
 
-    /// https://html.spec.whatwg.org/multipage/#internal-pause-steps
+    /// <https://html.spec.whatwg.org/multipage/#internal-pause-steps>
     fn internal_pause_steps(&self) {
         // Step 1.
         self.autoplaying.set(false);
@@ -807,7 +807,7 @@ impl HTMLMediaElement {
 
     /// Handles insertion of `source` children.
     ///
-    /// https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted
+    /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
     pub fn handle_source_child_insertion(&self) {
         if self.upcast::<Element>().has_attribute(&local_name!("src")) {
             return;

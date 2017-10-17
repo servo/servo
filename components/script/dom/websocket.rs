@@ -129,7 +129,7 @@ impl WebSocket {
                            global, WebSocketBinding::Wrap)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-websocket
+    /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
     pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
                        protocols: Option<StringOrStringSequence>)
@@ -391,14 +391,14 @@ impl WebSocketMethods for WebSocket {
 
 
 /// Task queued when *the WebSocket connection is established*.
-/// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
+/// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
 struct ConnectionEstablishedTask {
     address: Trusted<WebSocket>,
     protocol_in_use: Option<String>,
 }
 
 impl TaskOnce for ConnectionEstablishedTask {
-    /// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
+    /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
     fn run_once(self) {
         let ws = self.address.root();
 

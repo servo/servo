@@ -17,7 +17,7 @@ pub type FileOrigin = String;
 
 /// Relative slice positions of a sequence,
 /// whose semantic should be consistent with (start, end) parameters in
-/// https://w3c.github.io/FileAPI/#dfn-slice
+/// <https://w3c.github.io/FileAPI/#dfn-slice>
 #[derive(Clone, Deserialize, Serialize)]
 pub struct RelativePos {
     /// Relative to first byte if non-negative,
@@ -59,7 +59,7 @@ impl RelativePos {
     }
 
     /// Compute absolute range by giving the total size
-    /// https://w3c.github.io/FileAPI/#slice-method-algo
+    /// <https://w3c.github.io/FileAPI/#slice-method-algo>
     pub fn to_abs_range(&self, size: usize) -> Range<usize> {
         let size = size as i64;
 

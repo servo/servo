@@ -71,7 +71,7 @@ pub enum ListenerPhase {
     Bubbling,
 }
 
-/// https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler
+/// <https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler>
 #[derive(Clone, JSTraceable, PartialEq)]
 struct InternalRawUncompiledHandler {
     source: DOMString,
@@ -90,7 +90,7 @@ enum InlineEventListener {
 impl InlineEventListener {
     /// Get a compiled representation of this event handler, compiling it from its
     /// raw source if necessary.
-    /// https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
+    /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
     fn get_compiled_handler(&mut self, owner: &EventTarget, ty: &Atom)
                             -> Option<CommonEventHandler> {
         match mem::replace(self, InlineEventListener::Null) {
@@ -314,7 +314,7 @@ impl EventTarget {
         *self.handlers.borrow_mut() = Default::default();
     }
 
-    /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11
+    /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11>
     fn set_inline_event_listener(&self,
                                  ty: Atom,
                                  listener: Option<InlineEventListener>) {
@@ -353,7 +353,7 @@ impl EventTarget {
     }
 
     /// Store the raw uncompiled event handler for on-demand compilation later.
-    /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
+    /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3>
     pub fn set_event_handler_uncompiled(&self,
                                         url: ServoUrl,
                                         line: usize,

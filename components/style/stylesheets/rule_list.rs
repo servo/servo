@@ -65,7 +65,7 @@ impl CssRules {
         })
     }
 
-    /// https://drafts.csswg.org/cssom/#remove-a-css-rule
+    /// <https://drafts.csswg.org/cssom/#remove-a-css-rule>
     pub fn remove_rule(&mut self, index: usize) -> Result<(), RulesMutateError> {
         // Step 1, 2
         if index >= self.0.len() {
@@ -92,7 +92,7 @@ impl CssRules {
 
 /// A trait to implement helpers for `Arc<Locked<CssRules>>`.
 pub trait CssRulesHelpers {
-    /// https://drafts.csswg.org/cssom/#insert-a-css-rule
+    /// <https://drafts.csswg.org/cssom/#insert-a-css-rule>
     ///
     /// Written in this funky way because parsing an @import rule may cause us
     /// to clone a stylesheet from the same document due to caching in the CSS

@@ -165,7 +165,7 @@ impl NonTSPseudoClass {
         }
     }
 
-    /// https://drafts.csswg.org/selectors-4/#useraction-pseudos
+    /// <https://drafts.csswg.org/selectors-4/#useraction-pseudos>
     ///
     /// We intentionally skip the link-related ones.
     pub fn is_safe_user_action_state(&self) -> bool {

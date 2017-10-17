@@ -128,7 +128,7 @@ impl Color {
 
     /// Parse a color, with quirks.
     ///
-    /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
+    /// <https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk>
     pub fn parse_quirky<'i, 't>(context: &ParserContext,
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks)
@@ -145,7 +145,7 @@ impl Color {
 
     /// Parse a <quirky-color> value.
     ///
-    /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
+    /// <https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk>
     fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
         let location = input.current_source_location();
         let (value, unit) = match *input.next()? {

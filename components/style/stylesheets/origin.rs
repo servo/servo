@@ -9,18 +9,18 @@ use std::ops::BitOrAssign;
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
-/// https://drafts.csswg.org/css-cascade/#cascading-origins
+/// <https://drafts.csswg.org/css-cascade/#cascading-origins>
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Origin {
-    /// https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent
+    /// <https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent>
     UserAgent = 1 << 0,
 
-    /// https://drafts.csswg.org/css-cascade/#cascade-origin-user
+    /// <https://drafts.csswg.org/css-cascade/#cascade-origin-user>
     User = 1 << 1,
 
-    /// https://drafts.csswg.org/css-cascade/#cascade-origin-author
+    /// <https://drafts.csswg.org/css-cascade/#cascade-origin-author>
     Author = 1 << 2,
 }
 
@@ -42,11 +42,11 @@ bitflags! {
     /// A set of origins. This is equivalent to Gecko's OriginFlags.
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub flags OriginSet: u8 {
-        /// https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent
+        /// <https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent>
         const ORIGIN_USER_AGENT = Origin::UserAgent as u8,
-        /// https://drafts.csswg.org/css-cascade/#cascade-origin-user
+        /// <https://drafts.csswg.org/css-cascade/#cascade-origin-user>
         const ORIGIN_USER = Origin::User as u8,
-        /// https://drafts.csswg.org/css-cascade/#cascade-origin-author
+        /// <https://drafts.csswg.org/css-cascade/#cascade-origin-author>
         const ORIGIN_AUTHOR = Origin::Author as u8,
     }
 }

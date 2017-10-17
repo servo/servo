@@ -31,17 +31,17 @@ impl TouchList {
 }
 
 impl TouchListMethods for TouchList {
-    /// https://w3c.github.io/touch-events/#widl-TouchList-length
+    /// <https://w3c.github.io/touch-events/#widl-TouchList-length>
     fn Length(&self) -> u32 {
         self.touches.len() as u32
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index
+    /// <https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index>
     fn Item(&self, index: u32) -> Option<DomRoot<Touch>> {
         self.touches.get(index as usize).map(|js| DomRoot::from_ref(&**js))
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index
+    /// <https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Touch>> {
         self.Item(index)
     }

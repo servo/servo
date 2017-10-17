@@ -669,7 +669,7 @@ impl HTMLInputElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 3.1 to 3.7 (specific to HTMLInputElement)
     pub fn form_datums(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         // 3.1: disabled state check is in get_unclean_dataset
