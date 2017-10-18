@@ -64,9 +64,9 @@ def host_triple():
 
 def download(desc, src, writer, start_byte=0):
     if start_byte:
-        print("Resuming download of {}...".format(desc))
+        print("Resuming download of {} ...".format(src))
     else:
-        print("Downloading {}...".format(desc))
+        print("Downloading {} ...".format(src))
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
