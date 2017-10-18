@@ -21,7 +21,7 @@ use style::context::ThreadLocalStyleContext;
 use style::data::{ElementStyles, self};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::driver;
-use style::element_state::ElementState;
+use style::element_state::{DocumentState, ElementState};
 use style::error_reporting::{NullReporter, ParseErrorReporter};
 use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
 use style::gecko::data::{GeckoStyleSheet, PerDocumentStyleData, PerDocumentStyleDataImpl};
@@ -4043,6 +4043,17 @@ pub extern "C" fn Servo_StyleSet_HasStateDependency(
     }
 
     has_dep
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_HasDocumentStateDependency(
+    raw_data: RawServoStyleSetBorrowed,
+    state: u64,
+) -> bool {
+    let state = DocumentState::from_bits_truncate(state);
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+
+    data.stylist.has_document_state_dependency(state)
 }
 
 #[no_mangle]
