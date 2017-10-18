@@ -389,4 +389,4 @@ impl From<*mut nsAtom> for Atom {
     }
 }
 
-size_of_is_0!(Atom);
+malloc_size_of_is_0!(Atom);
