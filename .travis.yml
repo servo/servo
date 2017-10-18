@@ -28,9 +28,13 @@ matrix:
       before_cache:
         - ./mach clean-nightlies --keep 2 --force
         - ./mach clean-cargo-cache --keep 2 --force
-      env: CCACHE=/usr/bin/ccache
+      env:
+        - CCACHE=/usr/bin/ccache
+        - LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
       addons:
         apt:
+          sources:
+            - llvm-toolchain-precise-3.9
           packages:
             - cmake
             - freeglut3-dev
@@ -42,6 +46,9 @@ matrix:
             - ccache
             - libdbus-glib-1-dev
             - libedit-dev
+            - clang-3.9
+            - llvm-3.9
+            - llvm-3.9-runtime
 
 branches:
   only:
