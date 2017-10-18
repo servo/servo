@@ -96,9 +96,7 @@ impl DeepCloneWithLock for KeyframesRule {
 
 /// A number from 0 to 1, indicating the percentage of the animation when this
 /// keyframe should run.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd)]
 pub struct KeyframePercentage(pub f32);
 
 impl ::std::cmp::Ord for KeyframePercentage {
@@ -260,16 +258,14 @@ impl DeepCloneWithLock for Keyframe {
 /// declarations to apply.
 ///
 /// TODO: Find a better name for this?
-#[derive(Debug)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, MallocSizeOf)]
 pub enum KeyframesStepValue {
     /// A step formed by a declaration block specified by the CSS.
     Declarations {
         /// The declaration block per se.
         #[cfg_attr(feature = "gecko",
                    ignore_malloc_size_of = "XXX: Primary ref, measure if DMD says it's worthwhile")]
-        #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+        #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
         block: Arc<Locked<PropertyDeclarationBlock>>
     },
     /// A synthetic step computed from the current computed values at the time
@@ -278,9 +274,7 @@ pub enum KeyframesStepValue {
 }
 
 /// A single step from a keyframe animation.
-#[derive(Debug)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, MallocSizeOf)]
 pub struct KeyframesStep {
     /// The percentage of the animation duration when this step starts.
     pub start_percentage: KeyframePercentage,
@@ -350,9 +344,7 @@ impl KeyframesStep {
 /// of keyframes, in order.
 ///
 /// It only takes into account animable properties.
-#[derive(Debug)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, MallocSizeOf)]
 pub struct KeyframesAnimation {
     /// The difference steps of the animation.
     pub steps: Vec<KeyframesStep>,

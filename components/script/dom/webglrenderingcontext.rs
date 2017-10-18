@@ -135,7 +135,7 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
 
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
-    #[derive(HeapSizeOf, JSTraceable)]
+    #[derive(JSTraceable, MallocSizeOf)]
     flags TextureUnpacking: u8 {
         const FLIP_Y_AXIS = 0x01,
         const PREMULTIPLY_ALPHA = 0x02,
@@ -145,7 +145,7 @@ bitflags! {
 
 /// Information about the bound textures of a WebGL texture unit.
 #[must_root]
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct TextureUnitBindings {
     bound_texture_2d: MutNullableDom<WebGLTexture>,
     bound_texture_cube_map: MutNullableDom<WebGLTexture>,
@@ -181,15 +181,15 @@ impl TextureUnitBindings {
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Channels are hard"]
+    #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: WebGLMsgSender,
-    #[ignore_heap_size_of = "Defined in webrender"]
+    #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     share_mode: WebGLContextShareMode,
-    #[ignore_heap_size_of = "Defined in offscreen_gl_context"]
+    #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
     limits: GLLimits,
     canvas: Dom<HTMLCanvasElement>,
-    #[ignore_heap_size_of = "Defined in canvas_traits"]
+    #[ignore_malloc_size_of = "Defined in canvas_traits"]
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
     texture_unpacking_alignment: Cell<u32>,
@@ -201,11 +201,11 @@ pub struct WebGLRenderingContext {
     bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
     bound_attrib_buffers: DomRefCell<FnvHashMap<u32, Dom<WebGLBuffer>>>,
     current_program: MutNullableDom<WebGLProgram>,
-    #[ignore_heap_size_of = "Because it's small"]
+    #[ignore_malloc_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
-    #[ignore_heap_size_of = "Because it's small"]
+    #[ignore_malloc_size_of = "Because it's small"]
     current_scissor: Cell<(i32, i32, i32, i32)>,
-    #[ignore_heap_size_of = "Because it's small"]
+    #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
     extension_manager: WebGLExtensions,
 }

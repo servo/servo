@@ -47,12 +47,12 @@ pub struct CustomElementRegistry {
 
     window: Dom<Window>,
 
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     when_defined: DomRefCell<HashMap<LocalName, Rc<Promise>>>,
 
     element_definition_is_running: Cell<bool>,
 
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     definitions: DomRefCell<HashMap<LocalName, Rc<CustomElementDefinition>>>,
 }
 
@@ -369,35 +369,35 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct LifecycleCallbacks {
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     connected_callback: Option<Rc<Function>>,
 
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     disconnected_callback: Option<Rc<Function>>,
 
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     adopted_callback: Option<Rc<Function>>,
 
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     attribute_changed_callback: Option<Rc<Function>>,
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum ConstructionStackEntry {
     Element(DomRoot<Element>),
     AlreadyConstructedMarker,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#custom-element-definition>
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct CustomElementDefinition {
     pub name: LocalName,
 
     pub local_name: LocalName,
 
-    #[ignore_heap_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Rc"]
     pub constructor: Rc<Function>,
 
     pub observed_attributes: Vec<DOMString>,
@@ -580,15 +580,15 @@ pub fn try_upgrade_element(element: &Element) {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub enum CustomElementReaction {
     Upgrade(
-        #[ignore_heap_size_of = "Rc"]
+        #[ignore_malloc_size_of = "Rc"]
         Rc<CustomElementDefinition>
     ),
     Callback(
-        #[ignore_heap_size_of = "Rc"]
+        #[ignore_malloc_size_of = "Rc"]
         Rc<Function>,
         Box<[Heap<JSVal>]>
     ),
@@ -617,14 +617,14 @@ pub enum CallbackReaction {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#processing-the-backup-element-queue>
-#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 enum BackupElementQueueFlag {
     Processing,
     NotProcessing,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct CustomElementReactionStack {
     stack: DomRefCell<Vec<ElementQueue>>,
@@ -773,7 +773,7 @@ impl CustomElementReactionStack {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#element-queue>
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct ElementQueue {
     queue: DomRefCell<VecDeque<Dom<Element>>>,

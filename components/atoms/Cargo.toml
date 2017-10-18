@@ -10,7 +10,7 @@ build = "build.rs"
 path = "lib.rs"
 
 [dependencies]
-string_cache = {version = "0.6", features = ["heapsize"]}
+string_cache = {version = "0.6"}
 
 [build-dependencies]
 string_cache_codegen = "0.4"

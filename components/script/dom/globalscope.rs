@@ -72,22 +72,22 @@ pub struct GlobalScope {
     console_timers: DomRefCell<HashMap<DOMString, u64>>,
 
     /// For providing instructions to an optional devtools server.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the memory profiler.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     mem_profiler_chan: mem::ProfilerChan,
 
     /// For sending messages to the time profiler.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     time_profiler_chan: time::ProfilerChan,
 
     /// A handle for communicating messages to the constellation thread.
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     script_to_constellation_chan: ScriptToConstellationChan,
 
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>
@@ -108,7 +108,7 @@ pub struct GlobalScope {
     /// same microtask queue.
     ///
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
-    #[ignore_heap_size_of = "Rc<T> is hard"]
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
     microtask_queue: Rc<MicrotaskQueue>,
 }
 

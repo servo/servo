@@ -13,7 +13,6 @@ extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
-extern crate heapsize;
 #[macro_use]
 extern crate html5ever;
 extern crate ipc_channel;
@@ -25,6 +24,7 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate malloc_size_of;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
@@ -60,7 +60,6 @@ use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{Epoch, node_id_from_clip_id};
-use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
@@ -68,7 +67,7 @@ use layout::construct::ConstructionResult;
 use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
-use layout::context::heap_size_of_persistent_local_context;
+use layout::context::malloc_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
@@ -85,6 +84,7 @@ use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
+use malloc_size_of::{malloc_size_of, MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -773,6 +773,9 @@ impl LayoutThread {
                                reports_chan: ReportsChan,
                                possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut reports = vec![];
+        // Servo uses vanilla jemalloc, which doesn't have a
+        // malloc_enclosing_size_of function.
+        let mut ops = MallocSizeOfOps::new(malloc_size_of, None, None);
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
@@ -781,20 +784,20 @@ impl LayoutThread {
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
+            size: display_list.map_or(0, |sc| sc.size_of(&mut ops)),
         });
 
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.stylist.heap_size_of_children(),
+            size: self.stylist.size_of(&mut ops),
         });
 
         // The LayoutThread has data in Persistent TLS...
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "local-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: heap_size_of_persistent_local_context(),
+            size: malloc_size_of_persistent_local_context(&mut ops),
         });
 
         reports_chan.send(reports);

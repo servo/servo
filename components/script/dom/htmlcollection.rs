@@ -26,7 +26,7 @@ pub trait CollectionFilter : JSTraceable {
 // An optional u32, using maxint to represent None.
 // It would be nicer just to use Option<u32> for this, but that would produce word
 // alignment issues since Option<u32> uses 33 bits.
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 struct OptionU32 {
     bits: u32,
 }
@@ -54,7 +54,7 @@ impl OptionU32 {
 pub struct HTMLCollection {
     reflector_: Reflector,
     root: Dom<Node>,
-    #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
+    #[ignore_malloc_size_of = "Contains a trait object; can't measure due to #6870"]
     filter: Box<CollectionFilter + 'static>,
     // We cache the version of the root node and all its decendents,
     // the length of the collection, and a cursor into the collection.
@@ -119,7 +119,7 @@ impl HTMLCollection {
                              -> DomRoot<HTMLCollection> {
         // case 1
         if qualified_name == local_name!("*") {
-            #[derive(HeapSizeOf, JSTraceable)]
+            #[derive(JSTraceable, MallocSizeOf)]
             struct AllFilter;
             impl CollectionFilter for AllFilter {
                 fn filter(&self, _elem: &Element, _root: &Node) -> bool {
@@ -129,7 +129,7 @@ impl HTMLCollection {
             return HTMLCollection::create(window, root, Box::new(AllFilter));
         }
 
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct HtmlDocumentFilter {
             qualified_name: LocalName,
             ascii_lower_qualified_name: LocalName,
@@ -169,7 +169,7 @@ impl HTMLCollection {
     }
 
     pub fn by_qual_tag_name(window: &Window, root: &Node, qname: QualName) -> DomRoot<HTMLCollection> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct TagNameNSFilter {
             qname: QualName
         }
@@ -193,7 +193,7 @@ impl HTMLCollection {
 
     pub fn by_atomic_class_name(window: &Window, root: &Node, classes: Vec<Atom>)
                          -> DomRoot<HTMLCollection> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct ClassNameFilter {
             classes: Vec<Atom>
         }
@@ -212,7 +212,7 @@ impl HTMLCollection {
     }
 
     pub fn children(window: &Window, root: &Node) -> DomRoot<HTMLCollection> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {

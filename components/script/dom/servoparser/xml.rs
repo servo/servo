@@ -16,10 +16,10 @@ use xml5ever::buffer_queue::BufferQueue;
 use xml5ever::tokenizer::XmlTokenizer;
 use xml5ever::tree_builder::{Tracer as XmlTracer, XmlTreeBuilder};
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct Tokenizer {
-    #[ignore_heap_size_of = "Defined in xml5ever"]
+    #[ignore_malloc_size_of = "Defined in xml5ever"]
     inner: XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>>,
 }
 

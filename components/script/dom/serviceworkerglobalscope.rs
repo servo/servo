@@ -71,13 +71,13 @@ impl ScriptChan for ServiceWorkerChan {
 #[dom_struct]
 pub struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     receiver: Receiver<ServiceWorkerScriptMsg>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     own_sender: Sender<ServiceWorkerScriptMsg>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     timer_event_port: Receiver<()>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
 }

@@ -44,7 +44,7 @@ use traversal_flags::{TraversalFlags, self};
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf, Deserialize, Serialize))]
 pub struct OpaqueNode(pub usize);
 
 impl OpaqueNode {

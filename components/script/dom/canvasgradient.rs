@@ -24,7 +24,7 @@ pub struct CanvasGradient {
     stops: DomRefCell<Vec<CanvasGradientStop>>,
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum CanvasGradientStyle {
     Linear(LinearGradientStyle),
     Radial(RadialGradientStyle),

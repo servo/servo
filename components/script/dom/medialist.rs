@@ -24,7 +24,7 @@ use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 pub struct MediaList {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     media_queries: Arc<Locked<StyleMediaList>>,
 }
 

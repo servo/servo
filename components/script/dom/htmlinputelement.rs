@@ -62,7 +62,7 @@ const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[allow(dead_code)]
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 enum InputType {
     InputSubmit,
     InputReset,
@@ -93,7 +93,7 @@ pub struct HTMLInputElement {
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
-    #[ignore_heap_size_of = "#7193"]
+    #[ignore_malloc_size_of = "#7193"]
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
     activation_state: DomRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
@@ -105,7 +105,7 @@ pub struct HTMLInputElement {
 
 #[derive(JSTraceable)]
 #[must_root]
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 struct InputActivationState {
     indeterminate: bool,
     checked: bool,

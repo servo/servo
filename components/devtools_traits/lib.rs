@@ -14,10 +14,10 @@
 
 #[macro_use]
 extern crate bitflags;
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 extern crate hyper;
 extern crate ipc_channel;
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate msg;
 #[macro_use] extern crate serde;
 extern crate servo_url;
@@ -40,7 +40,7 @@ pub struct DevtoolsPageInfo {
     pub url: ServoUrl,
 }
 
-#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CSSError {
     pub filename: String,
     pub line: u32,
@@ -144,7 +144,7 @@ pub struct TimelineMarker {
     pub end_stack: Option<Vec<()>>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum TimelineMarkerType {
     Reflow,
     DOMEvent,
@@ -355,5 +355,5 @@ impl PreciseTime {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct WorkerId(pub u32);

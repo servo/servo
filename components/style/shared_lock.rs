@@ -26,10 +26,10 @@ use stylesheets::Origin;
 /// but that may not be web-compatible and may need to be changed (at which
 /// point Servo could use AtomicRefCell too).
 #[derive(Clone)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct SharedRwLock {
     #[cfg(feature = "servo")]
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     arc: Arc<RwLock<()>>,
 
     #[cfg(feature = "gecko")]

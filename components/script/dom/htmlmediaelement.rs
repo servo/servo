@@ -77,15 +77,15 @@ pub struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises>
-    #[ignore_heap_size_of = "promises are hard"]
+    #[ignore_malloc_size_of = "promises are hard"]
     pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// Play promises which are soon to be fulfilled by a queued task.
-    #[ignore_heap_size_of = "promises are hard"]
+    #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u8)]
 pub enum NetworkState {
     Empty = HTMLMediaElementConstants::NETWORK_EMPTY as u8,
@@ -95,7 +95,7 @@ pub enum NetworkState {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 #[repr(u8)]
 enum ReadyState {
     HaveNothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
@@ -940,7 +940,7 @@ impl VirtualMethods for HTMLMediaElement {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum MediaElementMicrotask {
     ResourceSelectionTask {
         elem: DomRoot<HTMLMediaElement>,

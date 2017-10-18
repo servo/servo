@@ -17,9 +17,7 @@ use values::specified::grid::parse_line_names;
 /// A `<grid-line>` type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-grid-row-start-grid-line>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, Default, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct GridLine<Integer> {
     /// Flag to check whether it's a `span` keyword.
     pub is_span: bool,
@@ -145,9 +143,7 @@ add_impls_for_keyword_enum!(TrackKeyword);
 /// avoid re-implementing it for the computed type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 pub enum TrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
@@ -184,9 +180,7 @@ impl<L: ToCss> ToCss for TrackBreadth<L> {
 /// generic only to avoid code bloat. It only takes `<length-percentage>`
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-size>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum TrackSize<L> {
     /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
@@ -348,9 +342,7 @@ where
 /// The initial argument of the `repeat` function.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-repeat>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum RepeatCount<Integer> {
     /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
     Number(Integer),
@@ -382,9 +374,7 @@ impl Parse for RepeatCount<specified::Integer> {
 ///
 /// It can also hold `repeat()` function parameters, which expands into the respective
 /// values in its computed form.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct TrackRepeat<L, I> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
     pub count: RepeatCount<I>,
@@ -465,9 +455,7 @@ impl<L: Clone> TrackRepeat<L, specified::Integer> {
 }
 
 /// Track list values. Can be <track-size> or <track-repeat>
-#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum TrackListValue<LengthOrPercentage, Integer> {
     /// A <track-size> value.
     TrackSize(TrackSize<LengthOrPercentage>),
@@ -478,9 +466,7 @@ pub enum TrackListValue<LengthOrPercentage, Integer> {
 /// The type of a `<track-list>` as determined during parsing.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 pub enum TrackListType {
     /// [`<auto-track-list>`](https://drafts.csswg.org/css-grid/#typedef-auto-track-list)
     ///
@@ -502,9 +488,7 @@ pub enum TrackListType {
 /// A grid `<track-list>` type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct TrackList<LengthOrPercentage, Integer> {
     /// The type of this `<track-list>` (auto, explicit or general).
     ///
@@ -571,9 +555,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
 ///
 /// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
 /// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
-#[derive(Clone, Debug, Default, PartialEq)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
     pub names: Box<[Box<[CustomIdent]>]>,
@@ -668,9 +650,7 @@ impl ToCss for LineNameList {
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum GridTemplateComponent<L, I> {
     /// `none` value.
     None,

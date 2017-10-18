@@ -19,7 +19,7 @@ use dom_struct::dom_struct;
 use std::cell::Cell;
 
 #[must_root]
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 enum WebGLFramebufferAttachment {
     Renderbuffer(Dom<WebGLRenderbuffer>),
     Texture { texture: Dom<WebGLTexture>, level: i32 },
@@ -34,7 +34,7 @@ pub struct WebGLFramebuffer {
     is_deleted: Cell<bool>,
     size: Cell<Option<(i32, i32)>>,
     status: Cell<u32>,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
 
     // The attachment points for textures and renderbuffers on this

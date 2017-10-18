@@ -32,7 +32,7 @@ use style::stylesheets::{Stylesheet, StylesheetContents, CssRule, CssRules, Orig
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
 }

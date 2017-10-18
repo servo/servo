@@ -25,7 +25,7 @@ use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 #[dom_struct]
 pub struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     mediarule: Arc<Locked<MediaRule>>,
     medialist: MutNullableDom<MediaList>,
 }
