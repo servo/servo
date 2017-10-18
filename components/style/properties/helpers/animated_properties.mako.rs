@@ -1157,6 +1157,27 @@ impl Animate for TransformOperation {
     }
 }
 
+fn is_matched_operation(first: &TransformOperation, second: &TransformOperation) -> bool {
+    match (first, second) {
+        (&TransformOperation::Matrix(..),
+         &TransformOperation::Matrix(..)) |
+        (&TransformOperation::MatrixWithPercents(..),
+         &TransformOperation::MatrixWithPercents(..)) |
+        (&TransformOperation::Skew(..),
+         &TransformOperation::Skew(..)) |
+        (&TransformOperation::Translate(..),
+         &TransformOperation::Translate(..)) |
+        (&TransformOperation::Scale(..),
+         &TransformOperation::Scale(..)) |
+        (&TransformOperation::Rotate(..),
+         &TransformOperation::Rotate(..)) |
+        (&TransformOperation::Perspective(..),
+         &TransformOperation::Perspective(..)) => true,
+        // InterpolateMatrix and AccumulateMatrix are for mismatched transform.
+        _ => false
+    }
+}
+
 /// <https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined>
 fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
     let half_rad = a.radians() / 2.0;
@@ -2138,23 +2159,37 @@ impl Animate for TransformList {
             Cow::Owned(self.to_animated_zero()?)
         };
 
+        // For matched transform lists.
         {
             let this = (*this).0.as_ref().map_or(&[][..], |l| l);
             let other = (*other).0.as_ref().map_or(&[][..], |l| l);
             if this.len() == other.len() {
-                let result = this.iter().zip(other).map(|(this, other)| {
-                    this.animate(other, procedure)
-                }).collect::<Result<Vec<_>, _>>();
-                if let Ok(list) = result {
-                    return Ok(TransformList(if list.is_empty() {
-                        None
-                    } else {
-                        Some(list)
-                    }));
+                let is_matched_transforms = this.iter().zip(other).all(|(this, other)| {
+                    is_matched_operation(this, other)
+                });
+
+                if is_matched_transforms {
+                    let result = this.iter().zip(other).map(|(this, other)| {
+                        this.animate(other, procedure)
+                    }).collect::<Result<Vec<_>, _>>();
+                    if let Ok(list) = result {
+                        return Ok(TransformList(if list.is_empty() {
+                            None
+                        } else {
+                            Some(list)
+                        }));
+                    }
+
+                    // Can't animate for a pair of matched transform lists?
+                    // This means we have at least one undecomposable matrix,
+                    // so we should report Err here, and let the caller do
+                    // the fallback procedure.
+                    return Err(());
                 }
             }
         }
 
+        // For mismatched transform lists.
         match procedure {
             Procedure::Add => Err(()),
             Procedure::Interpolate { progress } => {
