@@ -11,7 +11,7 @@ use url_serde;
 use uuid::Uuid;
 
 /// The origin of an URL
-#[derive(Clone, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum ImmutableOrigin {
     /// A globally unique identifier
     Opaque(OpaqueOrigin),
@@ -98,13 +98,13 @@ impl ImmutableOrigin {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OpaqueOrigin(Uuid);
 
-known_heap_size!(0, OpaqueOrigin);
+malloc_size_of_is_0!(OpaqueOrigin);
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
 #[derive(Clone, Debug)]
 pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
 
-known_heap_size!(0, MutableOrigin);
+malloc_size_of_is_0!(MutableOrigin);
 
 impl MutableOrigin {
     pub fn new(origin: ImmutableOrigin) -> MutableOrigin {

@@ -39,8 +39,6 @@ extern crate euclid;
 extern crate fnv;
 extern crate gleam;
 extern crate half;
-#[macro_use] extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 #[macro_use] extern crate html5ever;
 #[macro_use]
 extern crate hyper;
@@ -56,6 +54,8 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[macro_use] extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate metrics;
 #[macro_use]
 extern crate mime;

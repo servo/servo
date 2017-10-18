@@ -24,7 +24,7 @@ use stylesheets::{CssRule, StylesheetInDocument};
 /// element is determined by whether the invalidation is stored in the
 /// StylesheetInvalidationSet's invalid_scopes or invalid_elements table.
 #[derive(Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 enum Invalidation {
     /// An element with a given id.
     ID(Atom),
@@ -75,7 +75,7 @@ impl Invalidation {
 ///
 /// TODO(emilio): We might be able to do the same analysis for media query
 /// changes too (or even selector changes?).
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct StylesheetInvalidationSet {
     /// The subtrees we know we have to restyle so far.
     invalid_scopes: FnvHashSet<Invalidation>,

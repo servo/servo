@@ -35,7 +35,7 @@ pub struct Gamepad {
     axes: Heap<*mut JSObject>,
     buttons: Dom<GamepadButtonList>,
     pose: Option<Dom<VRPose>>,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     hand: WebVRGamepadHand,
     display_id: u32
 }

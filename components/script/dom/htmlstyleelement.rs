@@ -31,7 +31,7 @@ use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 #[dom_struct]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
     /// <https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts>

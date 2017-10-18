@@ -39,7 +39,7 @@ use task::TaskCanceller;
 use task_source::TaskSource;
 use task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum FileReaderFunction {
     ReadAsText,
     ReadAsDataUrl,
@@ -48,7 +48,7 @@ pub enum FileReaderFunction {
 
 pub type TrustedFileReader = Trusted<FileReader>;
 
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub struct ReadMetaData {
     pub blobtype: String,
     pub label: Option<String>,
@@ -66,18 +66,18 @@ impl ReadMetaData {
     }
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
 #[repr(u16)]
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum FileReaderReadyState {
     Empty = FileReaderConstants::EMPTY,
     Loading = FileReaderConstants::LOADING,
     Done = FileReaderConstants::DONE,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum FileReaderResult {
     ArrayBuffer(Heap<JSVal>),
     String(DOMString),

@@ -26,7 +26,7 @@ use std::default::Default;
 #[dom_struct]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     image: DomRefCell<Option<Arc<Image>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
 }

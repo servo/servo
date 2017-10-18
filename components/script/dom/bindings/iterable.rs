@@ -22,7 +22,7 @@ use std::cell::Cell;
 use std::ptr;
 
 /// The values that an iterator will iterate over.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum IteratorType {
     /// The keys of the iterable object.
     Keys,

@@ -14,7 +14,6 @@
 //! These methods are a lie. They are not actually fallible. This is just to make
 //! it smooth to switch between hashmap impls in a codebase.
 
-use heapsize::HeapSizeOf;
 use std::collections::HashMap as StdMap;
 use std::collections::HashSet as StdSet;
 use std::fmt;
@@ -161,14 +160,6 @@ impl<T, S> HashSet<T, S>
 // Pass through trait impls
 // We can't derive these since the bounds are not obvious to the derive macro
 
-
-impl<K: HeapSizeOf + Hash + Eq, V: HeapSizeOf, S: BuildHasher>
-        HeapSizeOf for HashMap<K, V, S> {
-    fn heap_size_of_children(&self) -> usize {
-        self.0.heap_size_of_children()
-    }
-}
-
 impl<K: Hash + Eq, V, S: BuildHasher + Default> Default for HashMap<K, V, S> {
     fn default() -> Self {
         HashMap(Default::default())
@@ -222,13 +213,6 @@ impl<'a, K, V, S> IntoIterator for &'a mut HashMap<K, V, S>
 
     fn into_iter(self) -> MapIterMut<'a, K, V> {
         self.0.iter_mut()
-    }
-}
-
-
-impl<T: HeapSizeOf + Eq + Hash, S: BuildHasher> HeapSizeOf for HashSet<T, S> {
-    fn heap_size_of_children(&self) -> usize {
-        self.0.heap_size_of_children()
     }
 }
 

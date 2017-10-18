@@ -11,7 +11,6 @@ readme = "README.md"
 
 [dependencies]
 libc = "0.2"
-heapsize = "0.4"
 
 [dev-dependencies]
 rand = "0.3"

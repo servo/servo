@@ -24,6 +24,6 @@ rustc-serialize = "0.3.4"
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-url = {version = "1.2", features = ["heap_size"]}
+url = "1.2"
 uuid = {version = "0.5", features = ["v4"]}
 webdriver = "0.22"

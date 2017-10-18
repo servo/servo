@@ -55,14 +55,12 @@ pub fn dir_selector_to_state(s: &[u16]) -> ElementState {
 /// This allows us to quickly scan through the dependency sites of all style
 /// rules and determine the maximum effect that a given state or attribute
 /// change may have on the style of elements in the document.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct Dependency {
     /// The dependency selector.
     #[cfg_attr(feature = "gecko",
                ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
 
     /// The offset into the selector that we should match on.
@@ -115,9 +113,7 @@ impl SelectorMapEntry for Dependency {
 
 /// The same, but for state selectors, which can track more exactly what state
 /// do they track.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct StateDependency {
     /// The other dependency fields.
     pub dep: Dependency,
@@ -139,9 +135,7 @@ impl SelectorMapEntry for StateDependency {
 /// In particular, we want to lookup as few things as possible to get the fewer
 /// selectors the better, so this looks up by id, class, or looks at the list of
 /// state/other attribute affecting selectors.
-#[derive(Debug)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, MallocSizeOf)]
 pub struct InvalidationMap {
     /// A map from a given class name to all the selectors with that class
     /// selector.

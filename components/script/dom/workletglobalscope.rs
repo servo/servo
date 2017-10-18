@@ -40,7 +40,7 @@ pub struct WorkletGlobalScope {
     /// The base URL for this worklet.
     base_url: ServoUrl,
     /// Sender back to the script thread
-    #[ignore_heap_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "channels are hard"]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Worklet task executor
     executor: WorkletExecutor,
@@ -155,7 +155,7 @@ pub struct WorkletGlobalScopeInit {
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
 pub enum WorkletGlobalScopeType {
     /// A servo-specific testing worklet
     Test,

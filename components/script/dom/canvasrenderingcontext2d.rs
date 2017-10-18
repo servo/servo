@@ -51,7 +51,7 @@ use std::sync::Arc;
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[must_root]
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 enum CanvasFillOrStrokeStyle {
     Color(RGBA),
@@ -63,12 +63,12 @@ enum CanvasFillOrStrokeStyle {
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     /// For rendering contexts created by an HTML canvas element, this is Some,
     /// for ones created by a paint worklet, this is None.
     canvas: Option<Dom<HTMLCanvasElement>>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     /// Any missing image URLs.
     missing_image_urls: DomRefCell<Vec<ServoUrl>>,
@@ -81,7 +81,7 @@ pub struct CanvasRenderingContext2D {
 }
 
 #[must_root]
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 struct CanvasContextState {
     global_alpha: f64,
     global_composition: CompositionOrBlending,

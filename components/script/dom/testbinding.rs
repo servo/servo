@@ -723,9 +723,9 @@ impl TestBindingMethods for TestBinding {
         p.append_native_handler(&handler);
         return p;
 
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct SimpleHandler {
-            #[ignore_heap_size_of = "Rc has unclear ownership semantics"]
+            #[ignore_malloc_size_of = "Rc has unclear ownership semantics"]
             handler: Rc<SimpleCallback>,
         }
         impl SimpleHandler {
@@ -804,9 +804,9 @@ impl TestBinding {
     pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool { false }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct TestBindingCallback {
-    #[ignore_heap_size_of = "unclear ownership semantics"]
+    #[ignore_malloc_size_of = "unclear ownership semantics"]
     promise: TrustedPromise,
     value: DOMString,
 }

@@ -22,7 +22,7 @@ use std::rc::Rc;
 use std::str;
 use url::form_urlencoded;
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub enum BodyType {
     Blob,
     FormData,

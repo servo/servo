@@ -15,7 +15,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
         panic!("#[dom_struct] takes no arguments");
     }
     let attributes = quote! {
-        #[derive(DenyPublicFields, DomObject, HeapSizeOf, JSTraceable)]
+        #[derive(DenyPublicFields, DomObject, JSTraceable, MallocSizeOf)]
         #[must_root]
         #[repr(C)]
     };

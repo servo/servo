@@ -56,7 +56,7 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
 
 bitflags! {
-    #[derive(HeapSizeOf, JSTraceable)]
+    #[derive(JSTraceable, MallocSizeOf)]
     flags SandboxAllowance: u8 {
         const ALLOW_NOTHING = 0x00,
         const ALLOW_SAME_ORIGIN = 0x01,
