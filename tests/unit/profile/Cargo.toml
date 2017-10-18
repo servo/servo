@@ -9,7 +9,13 @@ name = "profile_tests"
 path = "lib.rs"
 doctest = false
 
+[features]
+unstable = ["servo_allocator/unstable"]
+
 [dependencies]
 ipc-channel = "0.9"
 profile = {path = "../../../components/profile"}
 profile_traits = {path = "../../../components/profile_traits"}
+
+# Work around https://github.com/alexcrichton/jemallocator/issues/19
+servo_allocator = {path = "../../../components/allocator"}
