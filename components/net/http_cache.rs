@@ -5,7 +5,7 @@
 #![deny(missing_docs)]
 
 //! A memory cache Implements the logic specified in http://tools.ietf.org/html/rfc7234
-//! and http://tools.ietf.org/html/rfc7232.
+//! and <http://tools.ietf.org/html/rfc7232>.
 
 use fetch::methods::DoneChannel;
 use http_loader::is_redirect_status;
@@ -107,16 +107,16 @@ pub struct HttpCache {
 
 
 /// Determine if a given response is cacheable based on the initial metadata received.
-/// Based on https://tools.ietf.org/html/rfc7234#section-3
+/// Based on <https://tools.ietf.org/html/rfc7234#section-3>
 fn response_is_cacheable(metadata: &Metadata) -> bool {
     // TODO: if we determine that this cache should be considered shared:
-    // 1. check for absence of private response directive https://tools.ietf.org/html/rfc7234#section-5.2.2.6
+    // 1. check for absence of private response directive <https://tools.ietf.org/html/rfc7234#section-5.2.2.6>
     // 2. check for absence of the Authorization header field.
     let mut is_cacheable = false;
     if let Some((ref code, _)) = metadata.status {
         match *code {
             200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => {
-                // Status codes that are cacheable by default https://tools.ietf.org/html/rfc7231#section-6.1
+                // Status codes that are cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
                 is_cacheable = true;
             },
             _ => {},
@@ -151,7 +151,8 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     is_cacheable
 }
 
-/// Calculating Age https://tools.ietf.org/html/rfc7234#section-4.2.3
+/// Calculating Age
+/// <https://tools.ietf.org/html/rfc7234#section-4.2.3>
 fn calculate_response_age(response: &Response) -> Duration {
     // TODO: follow the spec more closely (Date headers, request/response lag, ...)
     if let Some(secs) = response.headers.get_raw("Age") {
@@ -166,7 +167,7 @@ fn calculate_response_age(response: &Response) -> Duration {
 /// Determine the expiry date of the given response headers,
 /// or uses a heuristic if none are present.
 fn get_response_expiry(response: &Response) -> Duration {
-    // Calculating Freshness Lifetime https://tools.ietf.org/html/rfc7234#section-4.2.1
+    // Calculating Freshness Lifetime <https://tools.ietf.org/html/rfc7234#section-4.2.1>
     if let Some(&header::CacheControl(ref directives)) = response.headers.get::<header::CacheControl>() {
         let has_no_cache_directive = directives.iter().any(|directive| {
             header::CacheDirective::NoCache == *directive
@@ -205,7 +206,8 @@ fn get_response_expiry(response: &Response) -> Duration {
            return Duration::seconds(0i64);
        }
     }
-    // Calculating Heuristic Freshness https://tools.ietf.org/html/rfc7234#section-4.2.2
+    // Calculating Heuristic Freshness
+    // <https://tools.ietf.org/html/rfc7234#section-4.2.2>
     if let Some((ref code, _)) = response.raw_status {
         let heuristic_freshness = if let Some(&header::LastModified(header::HttpDate(t))) =
             response.headers.get::<header::LastModified>() {
@@ -213,13 +215,13 @@ fn get_response_expiry(response: &Response) -> Duration {
             let current = time::now().to_timespec();
             (current - last_modified) / 10
         } else {
-            // https://tools.ietf.org/html/rfc7234#section-5.5.4
+            // <https://tools.ietf.org/html/rfc7234#section-5.5.4>
             // Since we do not generate such a warning, 24 hours is the max for heuristic calculation.
             Duration::hours(24)
         };
         match *code {
             200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => {
-                // Status codes that are cacheable by default https://tools.ietf.org/html/rfc7231#section-6.1
+                // Status codes that are cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
                 return heuristic_freshness
             },
             _ => {
@@ -239,7 +241,8 @@ fn get_response_expiry(response: &Response) -> Duration {
     Duration::seconds(0i64)
 }
 
-/// Request Cache-Control Directives https://tools.ietf.org/html/rfc7234#section-5.2.1
+/// Request Cache-Control Directives
+/// <https://tools.ietf.org/html/rfc7234#section-5.2.1>
 fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
     let directive_data = match request.headers.get_raw("cache-control") {
         Some(data) => data,
@@ -296,9 +299,9 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource, c
     let now = Duration::seconds(time::now().to_timespec().sec);
     let last_validated = Duration::seconds(cached_resource.last_validated.to_timespec().sec);
     let time_since_validated = now - last_validated;
-    // TODO: take must-revalidate into account https://tools.ietf.org/html/rfc7234#section-5.2.2.1
+    // TODO: take must-revalidate into account <https://tools.ietf.org/html/rfc7234#section-5.2.2.1>
     // TODO: since this cache is shared, taking proxy-revalidate into account
-    // https://tools.ietf.org/html/rfc7234#section-5.2.2.7
+    // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
     let has_expired = (adjusted_expires < time_since_validated) ||
         (adjusted_expires == time_since_validated);
     CachedResponse { response: response, needs_validation: has_expired }
@@ -313,9 +316,10 @@ impl HttpCache {
         }
     }
 
-    /// https://tools.ietf.org/html/rfc7234#section-4 Constructing Responses from Caches.
+    /// Constructing Responses from Caches.
+    /// <https://tools.ietf.org/html/rfc7234#section-4>
     pub fn construct_response(&self, request: &Request) -> Option<CachedResponse> {
-        // TODO: generate warning headers as appropriate https://tools.ietf.org/html/rfc7234#section-5.5
+        // TODO: generate warning headers as appropriate <https://tools.ietf.org/html/rfc7234#section-5.5>
        if request.method != Method::Get {
             // Only Get requests are cached, avoid a url based match for others.
             return None;
@@ -330,7 +334,7 @@ impl HttpCache {
             let cached_headers = cached_resource.metadata.headers.lock().unwrap();
             let original_request_headers = cached_resource.request_headers.lock().unwrap();
             if let Some(vary_data) = cached_headers.get_raw("Vary") {
-                // Calculating Secondary Keys with Vary https://tools.ietf.org/html/rfc7234#section-4.1
+                // Calculating Secondary Keys with Vary <https://tools.ietf.org/html/rfc7234#section-4.1>
                 let vary_data_string = String::from_utf8_lossy(&vary_data[0]);
                 let vary_values = vary_data_string.split(",").map(|val| val.trim());
                 for vary_val in vary_values {
@@ -377,7 +381,8 @@ impl HttpCache {
         None
     }
 
-    /// https://tools.ietf.org/html/rfc7234#section-4.3.4 Freshening Stored Responses upon Validation.
+    /// Freshening Stored Responses upon Validation.
+    /// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
     pub fn refresh(&mut self, request: &Request, response: Response, done_chan: &mut DoneChannel) -> Option<Response> {
         assert!(response.status == Some(StatusCode::NotModified));
         let entry_key = CacheKey::new(request.clone());
@@ -417,7 +422,8 @@ impl HttpCache {
         }
     }
 
-    /// https://tools.ietf.org/html/rfc7234#section-4.4 Invalidation.
+    /// Invalidation.
+    /// <https://tools.ietf.org/html/rfc7234#section-4.4>
     pub fn invalidate(&mut self, request: &Request, response: &Response) {
         if let Some(&header::Location(ref location)) = response.headers.get::<header::Location>() {
             self.invalidate_for_url(location);
@@ -431,7 +437,8 @@ impl HttpCache {
         self.invalidate_for_url(&request.url().as_str());
     }
 
-    /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
+    /// Storing Responses in Caches.
+    /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub fn store(&mut self, request: &Request, response: &Response) {
         if let Some(status) = response.status {
             // Not caching redirects, for simplicity, not per the spec.
