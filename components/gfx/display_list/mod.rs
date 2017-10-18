@@ -61,8 +61,7 @@ impl DisplayList {
 
     // Returns the text index within a node for the point of interest.
     pub fn text_index(&self, node: OpaqueNode, point_in_item: &Point2D<Au>) -> Option<usize> {
-        let mut traversal = DisplayListTraversal::new(self);
-        while let Some(item) = traversal.next() {
+        for item in &self.list {
             match item {
                 &DisplayItem::Text(ref text) => {
                     let base = item.base();
@@ -93,94 +92,6 @@ impl DisplayList {
                                         item.clip_and_scroll_info()));
         }
         print_tree.end_level();
-    }
-}
-
-pub struct DisplayListTraversal<'a> {
-    pub display_list: &'a DisplayList,
-    pub next_item_index: usize,
-    pub first_item_index: usize,
-    pub last_item_index: usize,
-}
-
-impl<'a> DisplayListTraversal<'a> {
-    pub fn new(display_list: &'a DisplayList) -> DisplayListTraversal {
-        DisplayListTraversal {
-            display_list: display_list,
-            next_item_index: 0,
-            first_item_index: 0,
-            last_item_index: display_list.list.len(),
-        }
-    }
-
-    pub fn new_partial(display_list: &'a DisplayList,
-                       stacking_context_id: StackingContextId,
-                       start: usize,
-                       end: usize)
-                       -> DisplayListTraversal {
-        debug_assert!(start <= end);
-        debug_assert!(display_list.list.len() > start);
-        debug_assert!(display_list.list.len() > end);
-
-        let stacking_context_start = display_list.list[0..start].iter().rposition(|item|
-            match item {
-                &DisplayItem::PushStackingContext(ref item) =>
-                    item.stacking_context.id == stacking_context_id,
-                _ => false,
-            }).unwrap_or(start);
-        debug_assert!(stacking_context_start <= start);
-
-        DisplayListTraversal {
-            display_list: display_list,
-            next_item_index: stacking_context_start,
-            first_item_index: start,
-            last_item_index: end + 1,
-        }
-    }
-
-    pub fn previous_item_id(&self) -> usize {
-        self.next_item_index - 1
-    }
-
-    pub fn skip_to_end_of_stacking_context(&mut self, id: StackingContextId) {
-        self.next_item_index = self.display_list.list[self.next_item_index..].iter()
-                                                                             .position(|item| {
-            match item {
-                &DisplayItem::PopStackingContext(ref item) => item.stacking_context_id == id,
-                _ => false
-            }
-        }).unwrap_or(self.display_list.list.len());
-        debug_assert!(self.next_item_index < self.last_item_index);
-    }
-}
-
-impl<'a> Iterator for DisplayListTraversal<'a> {
-    type Item = &'a DisplayItem;
-
-    fn next(&mut self) -> Option<&'a DisplayItem> {
-        while self.next_item_index < self.last_item_index {
-            debug_assert!(self.next_item_index <= self.last_item_index);
-
-            let reached_first_item = self.next_item_index >= self.first_item_index;
-            let item = &self.display_list.list[self.next_item_index];
-
-            self.next_item_index += 1;
-
-            if reached_first_item {
-                return Some(item)
-            }
-
-            // Before we reach the starting item, we only emit stacking context boundaries. This
-            // is to ensure that we properly position items when we are processing a display list
-            // slice that is relative to a certain stacking context.
-            match item {
-                &DisplayItem::PushStackingContext(_) |
-                &DisplayItem::PopStackingContext(_) => return Some(item),
-                _ => {}
-            }
-        }
-
-        None
     }
 }
 
