@@ -415,7 +415,7 @@ impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedSize2D<T, U> {
 
 /// For use on types where size_of() returns 0.
 #[macro_export]
-macro_rules! size_of_is_0(
+macro_rules! malloc_size_of_is_0(
     ($($ty:ty),+) => (
         $(
             impl $crate::MallocSizeOf for $ty {
@@ -438,14 +438,14 @@ macro_rules! size_of_is_0(
     );
 );
 
-size_of_is_0!(bool, char, str);
-size_of_is_0!(u8, u16, u32, u64, usize);
-size_of_is_0!(i8, i16, i32, i64, isize);
-size_of_is_0!(f32, f64);
+malloc_size_of_is_0!(bool, char, str);
+malloc_size_of_is_0!(u8, u16, u32, u64, usize);
+malloc_size_of_is_0!(i8, i16, i32, i64, isize);
+malloc_size_of_is_0!(f32, f64);
 
-size_of_is_0!(Range<u8>, Range<u16>, Range<u32>, Range<u64>, Range<usize>);
-size_of_is_0!(Range<i8>, Range<i16>, Range<i32>, Range<i64>, Range<isize>);
-size_of_is_0!(Range<f32>, Range<f64>);
+malloc_size_of_is_0!(Range<u8>, Range<u16>, Range<u32>, Range<u64>, Range<usize>);
+malloc_size_of_is_0!(Range<i8>, Range<i16>, Range<i32>, Range<i64>, Range<isize>);
+malloc_size_of_is_0!(Range<f32>, Range<f64>);
 
-size_of_is_0!(app_units::Au);
-size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
+malloc_size_of_is_0!(app_units::Au);
+malloc_size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
