@@ -554,7 +554,7 @@ mod bindings {
         use std::thread;
         macro_rules! run_tasks {
             ($($task:expr,)+) => {
-                if setup_logging() {
+                if setup_logging() || cfg!(target_pointer_width = "32") {
                     $($task;)+
                 } else {
                     let threads = vec![$( thread::spawn(|| $task) ),+];
