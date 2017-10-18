@@ -1834,7 +1834,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn match_non_ts_pseudo_class<F>(
         &self,
         pseudo_class: &NonTSPseudoClass,
-        context: &mut MatchingContext,
+        context: &mut MatchingContext<Self::Impl>,
         relevant_link: &RelevantLinkStatus,
         flags_setter: &mut F,
     ) -> bool
@@ -1975,7 +1975,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn match_pseudo_element(
         &self,
         pseudo_element: &PseudoElement,
-        _context: &mut MatchingContext
+        _context: &mut MatchingContext<Self::Impl>,
     ) -> bool {
         // TODO(emilio): I believe we could assert we are a pseudo-element and
         // match the proper pseudo-element, given how we rulehash the stuff
