@@ -88,15 +88,14 @@ class MachCommands(CommandBase):
             # in that directory).
             if stable:
                 base_url = static_s3
-            else:
+            elif not self.config["build"]["llvm-assertions"]:
                 import toml
                 channel = "%s/%s/channel-rust-nightly.toml" % (static_s3, self.rust_nightly_date())
                 nightly_commit_hash = toml.load(urllib2.urlopen(channel))["pkg"]["rustc"]["git_commit_hash"]
 
-                base_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds"
-                if not self.config["build"]["llvm-assertions"]:
-                    base_url += "-alt"
-                base_url += "/" + nightly_commit_hash
+                base_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds-alt/" + nightly_commit_hash
+            else:
+                base_url = "%s/%s" % (static_s3, self.rust_nightly_date())
 
             rustc_url = base_url + "/rustc-%s-%s.tar.gz" % (version, host_triple())
             tgz_file = rust_dir + '-rustc.tar.gz'
