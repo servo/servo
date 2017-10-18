@@ -107,25 +107,36 @@ pub struct HttpCache {
 
 
 /// Determine if a given response is cacheable based on the initial metadata received.
-/// Based on http://tools.ietf.org/html/rfc7234#section-5
+/// Based on https://tools.ietf.org/html/rfc7234#section-3
 fn response_is_cacheable(metadata: &Metadata) -> bool {
-    // Note: If this cache were to be treated as shared:
-    // TODO: check for absence of private response directive https://tools.ietf.org/html/rfc7234#section-5.2.2.6
-    // TODO: check for absence of the Authorization header field.
-    // TODO: check that the response either:
-    // *  contains an Expires header field (see Section 5.3), or
-    // *  contains a max-age response directive (see Section 5.2.2.8), or
-    // *  contains a s-maxage response directive (see Section 5.2.2.9) and the cache is shared, or
-    // *  contains a Cache Control Extension (see Section 5.2.3) that allows it to be cached, or
-    // *  has a status code that is defined as cacheable by default (see Section 4.2.2), or
-    // *  contains a public response directive (see Section 5.2.2.5).
-    // TODO write a new http-cache/shared_cache.html wpt test suite for the above.
+    // TODO: if we determine that this cache should be considered shared:
+    // 1. check for absence of private response directive https://tools.ietf.org/html/rfc7234#section-5.2.2.6
+    // 2. check for absence of the Authorization header field.
+    let mut is_cacheable = false;
+    if let Some((ref code, _)) = metadata.status {
+        match *code {
+            200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => {
+                // Status codes that are cacheable by default https://tools.ietf.org/html/rfc7231#section-6.1
+                is_cacheable = true;
+            },
+            _ => {},
+        }
+    } else {
+        // Status code is None, thus not understood by the cache.
+        return false;
+    };
     let headers = metadata.headers.as_ref().unwrap();
+    if let Some(_) = headers.get::<header::Expires>() {
+        is_cacheable = true;
+    }
     match headers.get::<header::CacheControl>() {
         Some(&header::CacheControl(ref directive)) => {
             for directive in directive.iter() {
-                if header::CacheDirective::NoStore == *directive {
-                    return false;
+                match *directive {
+                    header::CacheDirective::NoStore => return false,
+                    header::CacheDirective::Public | header::CacheDirective::SMaxAge(_)
+                    | header::CacheDirective::MaxAge(_) => is_cacheable = true,
+                _ => {},
                 }
             }
         },
@@ -137,7 +148,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
         },
         _ => ()
     }
-    return true;
+    is_cacheable
 }
 
 /// Calculating Age https://tools.ietf.org/html/rfc7234#section-4.2.3
@@ -422,23 +433,13 @@ impl HttpCache {
 
     /// https://tools.ietf.org/html/rfc7234#section-3 Storing Responses in Caches.
     pub fn store(&mut self, request: &Request, response: &Response) {
-        let entry_key = CacheKey::new(request.clone());
-        if request.method != Method::Get {
-             // For simplicity, only cache Get requests https://tools.ietf.org/html/rfc7234#section-2
-             return
-        }
         if let Some(status) = response.status {
-            // Not caching redirects.
+            // Not caching redirects, for simplicity, not per the spec.
             if is_redirect_status(status) {
                 return
             }
         }
-        if let Some((ref code, _)) = response.raw_status {
-            // Not caching Not Modified.
-            if *code == 304 {
-                return
-            }
-        }
+        let entry_key = CacheKey::new(request.clone());
         let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
                filtered: _,
