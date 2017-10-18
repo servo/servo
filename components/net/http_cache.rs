@@ -109,7 +109,7 @@ pub struct HttpCache {
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
 fn response_is_cacheable(metadata: &Metadata) -> bool {
-    // Note: this cache should be treated as shared for now.
+    // Note: If this cache were to be treated as shared:
     // TODO: check for absence of private response directive https://tools.ietf.org/html/rfc7234#section-5.2.2.6
     // TODO: check for absence of the Authorization header field.
     // TODO: check that the response either:
@@ -323,7 +323,7 @@ impl HttpCache {
                 let vary_data_string = String::from_utf8_lossy(&vary_data[0]);
                 let vary_values = vary_data_string.split(",").map(|val| val.trim());
                 for vary_val in vary_values {
-                    // For every header name found in the Vary header field in the stored response.
+                    // For every header name found in the Vary header of the stored response.
                     if vary_val == "*" {
                         // A Vary header field-value of "*" always fails to match.
                         can_be_constructed = false;
@@ -373,9 +373,9 @@ impl HttpCache {
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
                 let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
-                // Received a response with 304 status code whose url matches a stored resource.
-                // 1. update the headers of the stored resource.
-                // 2. return a response, constructed from the updated stored resource.
+                // Received a response with 304 status code, in response to a request that matches a cached resource.
+                // 1. update the headers of the cached resource.
+                // 2. return a response, constructed from the cached resource.
                 stored_headers.extend(response.headers.iter());
                 let mut constructed_response = Response::new(cached_resource.metadata.final_url.clone());
                 constructed_response.headers = stored_headers.clone();
