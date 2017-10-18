@@ -10,7 +10,7 @@ use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr, SourceLocation};
 use dom::{OpaqueNode, TElement, TNode};
-use element_state::ElementState;
+use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
@@ -351,6 +351,11 @@ impl NonTSPseudoClass {
             ServoNonZeroBorder |
             ServoCaseSensitiveTypeAttr(_) => ElementState::empty(),
         }
+    }
+
+    /// Get the document state flag associated with a pseudo-class, if any.
+    pub fn document_state_flag(&self) -> DocumentState {
+        DocumentState::empty()
     }
 
     /// Returns true if the given pseudoclass should trigger style sharing cache revalidation.
