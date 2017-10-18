@@ -867,6 +867,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
         if self.is_in_anonymous_subtree() ||
            self.has_xbl_binding_with_content() ||
+           self.is_in_shadow_tree() ||
            self.may_have_anonymous_children() {
             unsafe {
                 let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
