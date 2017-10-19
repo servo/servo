@@ -45,8 +45,8 @@ ${helpers.predefined_type("background-image", "ImageLayer",
 
 <%helpers:vector_longhand name="background-repeat" animation_value_type="discrete"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat"
-                          flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
-                          PropertyFlags::APPLIES_TO_PLACEHOLDER""">
+                          flags="PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                          PropertyFlags::APPLIES_TO_PLACEHOLDER">
     use std::fmt;
     use style_traits::ToCss;
 
