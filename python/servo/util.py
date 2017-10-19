@@ -22,6 +22,20 @@ import urllib2
 import certifi
 
 
+try:
+    from ssl import HAS_SNI
+except ImportError:
+    HAS_SNI = False
+
+# The cafile parameter was added in 2.7.9
+if HAS_SNI and sys.version_info >= (2, 7, 9):
+    STATIC_RUST_LANG_ORG_DIST = "https://static.rust-lang.org/dist"
+    URLOPEN_KWARGS = {"cafile": certifi.where()}
+else:
+    STATIC_RUST_LANG_ORG_DIST = "https://static-rust-lang-org.s3.amazonaws.com/dist"
+    URLOPEN_KWARGS = {}
+
+
 def delete(path):
     if os.path.isdir(path) and not os.path.islink(path):
         shutil.rmtree(path)
@@ -74,7 +88,7 @@ def download(desc, src, writer, start_byte=0):
         req = urllib2.Request(src)
         if start_byte:
             req = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
-        resp = urllib2.urlopen(req, cafile=certifi.where())
+        resp = urllib2.urlopen(req, **URLOPEN_KWARGS)
 
         fsize = None
         if resp.info().getheader('Content-Length'):

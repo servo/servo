@@ -25,16 +25,6 @@ import toml
 from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple, host_platform
 
-try:
-    from ssl import HAS_SNI
-except ImportError:
-    HAS_SNI = False
-
-if HAS_SNI:
-    STATIC_RUST_LANG_ORG_DIST = "https://static.rust-lang.org/dist"
-else:
-    STATIC_RUST_LANG_ORG_DIST = "https://static-rust-lang-org.s3.amazonaws.com/dist"
-
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
 

@@ -21,8 +21,9 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, STATIC_RUST_LANG_ORG_DIST
+from servo.command_base import CommandBase, cd, call
 from servo.build_commands import notify_build_done
+from servo.util import STATIC_RUST_LANG_ORG_DIST, URLOPEN_KWARGS
 
 
 @CommandProvider
@@ -263,7 +264,7 @@ class MachCommands(CommandBase):
              category='devenv')
     def rustup(self):
         url = STATIC_RUST_LANG_ORG_DIST + "/channel-rust-nightly-date.txt"
-        nightly_date = urllib2.urlopen(url).read()
+        nightly_date = urllib2.urlopen(url, **URLOPEN_KWARGS).read()
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:
             f.write("nightly-%s\n" % nightly_date)
