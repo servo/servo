@@ -875,9 +875,7 @@ pub struct BoxShadowDisplayItem {
     pub spread_radius: Au,
 
     /// The border radius of this shadow.
-    ///
-    /// TODO(pcwalton): Elliptical radii; different radii for each corner.
-    pub border_radius: Au,
+    pub border_radius: BorderRadii<Au>,
 
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,
