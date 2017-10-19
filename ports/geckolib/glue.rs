@@ -123,7 +123,7 @@ use style::properties::animated_properties::AnimationValue;
 use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
 use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::{CascadeLevel, StyleSource};
+use style::rule_tree::{CascadeLevel, StrongRuleNode, StyleSource};
 use style::selector_parser::{PseudoElementCascadeType, SelectorImpl};
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
@@ -684,16 +684,38 @@ pub extern "C" fn Servo_AnimationValue_Uncompute(
         PropertyDeclarationBlock::with_one(value.uncompute(), Importance::Normal))).into_strong()
 }
 
-#[no_mangle]
-pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawServoStyleSetBorrowed,
-                                                                 element: RawGeckoElementBorrowed,
-                                                                 computed_values: ServoStyleContextBorrowed,
-                                                                 snapshots: *const ServoElementSnapshotTable,
-                                                                 pseudo_type: CSSPseudoElementType)
-                                                                 -> ServoStyleContextStrong
-{
+// Return the ComputedValues by a base ComputedValues and the rules.
+fn resolve_rules_for_element_with_context<'a>(
+    element: GeckoElement<'a>,
+    mut context: StyleContext<GeckoElement<'a>>,
+    rules: StrongRuleNode
+) -> Arc<ComputedValues> {
     use style::style_resolver::{PseudoElementResolution, StyleResolverForElement};
 
+    // This currently ignores visited styles, which seems acceptable, as
+    // existing browsers don't appear to animate visited styles.
+    let inputs =
+        CascadeInputs {
+            rules: Some(rules),
+            visited_rules: None,
+        };
+
+    // Actually `PseudoElementResolution` doesn't matter.
+    StyleResolverForElement::new(element,
+                                 &mut context,
+                                 RuleInclusion::All,
+                                 PseudoElementResolution::IfApplicable)
+        .cascade_style_and_visited_with_default_parents(inputs).0
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(
+    raw_style_set: RawServoStyleSetBorrowed,
+    element: RawGeckoElementBorrowed,
+    computed_values: ServoStyleContextBorrowed,
+    snapshots: *const ServoElementSnapshotTable,
+    pseudo_type: CSSPseudoElementType
+) -> ServoStyleContextStrong {
     debug_assert!(!snapshots.is_null());
     let computed_values = unsafe { ArcBorrow::from_ref(computed_values) };
 
@@ -702,11 +724,9 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
         Some(ref rules) => rules,
     };
 
-    let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    let without_animations =
-        doc_data.stylist.rule_tree().remove_animation_rules(rules);
-
-    if without_animations == *rules {
+    let doc_data = PerDocumentStyleData::from_ffi(raw_style_set).borrow();
+    let without_animations_rules = doc_data.stylist.rule_tree().remove_animation_rules(rules);
+    if without_animations_rules == *rules {
         return computed_values.clone_arc().into();
     }
 
@@ -716,9 +736,9 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
         Some(data) => data,
         None => return computed_values.clone_arc().into(),
     };
-    let styles = &element_data.styles;
 
     if let Some(pseudo) = PseudoElement::from_pseudo_type(pseudo_type) {
+        let styles = &element_data.styles;
         // This style already doesn't have animations.
         return styles
             .pseudos
@@ -735,23 +755,61 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
                                        TraversalFlags::empty(),
                                        unsafe { &*snapshots });
     let mut tlc = ThreadLocalStyleContext::new(&shared);
-    let mut context = StyleContext {
+    let context = StyleContext {
         shared: &shared,
         thread_local: &mut tlc,
     };
 
-    // This currently ignores visited styles, which seems acceptable, as
-    // existing browsers don't appear to animate visited styles.
-    let inputs =
-        CascadeInputs {
-            rules: Some(without_animations),
-            visited_rules: None,
-        };
+    resolve_rules_for_element_with_context(element, context, without_animations_rules).into()
+}
 
-    // Actually `PseudoElementResolution` doesn't matter.
-    StyleResolverForElement::new(element, &mut context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
-        .cascade_style_and_visited_with_default_parents(inputs)
-        .0.into()
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_GetComputedValuesByAddingAnimation(
+    raw_style_set: RawServoStyleSetBorrowed,
+    element: RawGeckoElementBorrowed,
+    computed_values: ServoStyleContextBorrowed,
+    snapshots: *const ServoElementSnapshotTable,
+    animation_value: RawServoAnimationValueBorrowed,
+) -> ServoStyleContextStrong {
+    debug_assert!(!snapshots.is_null());
+    let computed_values = unsafe { ArcBorrow::from_ref(computed_values) };
+    let rules = match computed_values.rules {
+        None => return ServoStyleContextStrong::null(),
+        Some(ref rules) => rules,
+    };
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let uncomputed_value = AnimationValue::as_arc(&animation_value).uncompute();
+    let doc_data = PerDocumentStyleData::from_ffi(raw_style_set).borrow();
+
+    let with_animations_rules = {
+        let guards = StylesheetGuards::same(&guard);
+        let declarations =
+            Arc::new(global_style_data.shared_lock.wrap(
+                PropertyDeclarationBlock::with_one(uncomputed_value, Importance::Normal)));
+        doc_data.stylist
+            .rule_tree()
+            .add_animation_rules_at_transition_level(rules, declarations, &guards)
+    };
+
+    let element = GeckoElement(element);
+    if element.borrow_data().is_none() {
+        return ServoStyleContextStrong::null();
+    }
+
+    let shared = create_shared_context(&global_style_data,
+                                       &guard,
+                                       &doc_data,
+                                       TraversalFlags::empty(),
+                                       unsafe { &*snapshots });
+    let mut tlc: ThreadLocalStyleContext<GeckoElement> = ThreadLocalStyleContext::new(&shared);
+    let context = StyleContext {
+        shared: &shared,
+        thread_local: &mut tlc,
+    };
+
+    resolve_rules_for_element_with_context(element, context, with_animations_rules).into()
 }
 
 #[no_mangle]
