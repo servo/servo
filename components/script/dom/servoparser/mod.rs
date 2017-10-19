@@ -751,6 +751,19 @@ pub struct Sink {
     script: MutNullableDom<HTMLScriptElement>,
 }
 
+impl Sink {
+    fn same_tree(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+
+        x.is_in_same_home_subtree(y)
+    }
+
+    fn has_parent_node(&self, node: &Dom<Node>) -> bool {
+         node.GetParentNode().is_some()
+    }
+}
+
 #[allow(unrooted_must_root)]  // FIXME: really?
 impl TreeSink for Sink {
     type Output = Self;
@@ -779,13 +792,6 @@ impl TreeSink for Sink {
             ns: elem.namespace(),
             local: elem.local_name(),
         }
-    }
-
-    fn same_tree(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
-        let x = x.downcast::<Element>().expect("Element node expected");
-        let y = y.downcast::<Element>().expect("Element node expected");
-
-        x.is_in_same_home_subtree(y)
     }
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
@@ -818,10 +824,6 @@ impl TreeSink for Sink {
             DOMString::from(String::from(target)), DOMString::from(String::from(data)),
             doc);
         Dom::from_ref(pi.upcast())
-    }
-
-    fn has_parent_node(&self, node: &Dom<Node>) -> bool {
-         node.GetParentNode().is_some()
     }
 
     fn associate_with_form(&mut self, target: &Dom<Node>, form: &Dom<Node>, nodes: (&Dom<Node>, Option<&Dom<Node>>)) {
