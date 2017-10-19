@@ -141,8 +141,8 @@ ${helpers.single_keyword("unicode-bidi",
 <%helpers:longhand name="text-decoration-line"
                    custom_cascade="${product == 'servo'}"
                    animation_value_type="discrete"
-                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
-                   PropertyFlags::APPLIES_TO_PLACEHOLDER""",
+                   flags="PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;

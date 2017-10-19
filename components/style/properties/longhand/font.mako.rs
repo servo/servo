@@ -69,8 +69,8 @@ macro_rules! impl_gecko_keyword_conversions {
 </%def>
 
 <%helpers:longhand name="font-family" animation_value_type="discrete"
-                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
-                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
+                   flags="PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     #[cfg(feature = "gecko")] use gecko_bindings::bindings;
     #[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -620,8 +620,8 @@ ${helpers.single_keyword_system("font-variant-caps",
                                 animation_value_type="discrete")}
 
 <%helpers:longhand name="font-weight" animation_value_type="ComputedValue"
-                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
-                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
+                   flags="PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use properties::longhands::system_font::SystemFont;
 
@@ -786,8 +786,8 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand name="font-size" animation_value_type="NonNegativeLength"
-                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
-                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
+                   flags="PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use values::specified::AllowQuirks;
