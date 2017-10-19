@@ -157,6 +157,22 @@ pub enum TouchEventResult {
     Forwarded,
 }
 
+pub enum FireMouseEventType {
+    Move,
+    Over,
+    Out,
+}
+
+impl FireMouseEventType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            &FireMouseEventType::Move => "mousemove",
+            &FireMouseEventType::Over => "mouseout",
+            &FireMouseEventType::Out => "mouseover",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum IsHTMLDocument {
     HTMLDocument,
@@ -1036,13 +1052,13 @@ impl Document {
         event.fire(target);
     }
 
-    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: String) {
+    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: FireMouseEventType) {
         let client_x = client_point.x.to_i32().unwrap_or(0);
         let client_y = client_point.y.to_i32().unwrap_or(0);
 
         let mouse_event = MouseEvent::new(
             &self.window,
-            DOMString::from(event_name),
+            DOMString::from(event_name.as_str()),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             Some(&self.window),
@@ -1095,7 +1111,7 @@ impl Document {
             None => return,
         };
 
-        self.fire_mouse_event(client_point, new_target.upcast(), "mousemove".to_owned());
+        self.fire_mouse_event(client_point, new_target.upcast(), FireMouseEventType::Move);
 
         // Nothing more to do here, mousemove is sent,
         // and the element under the mouse hasn't changed.
@@ -1124,7 +1140,7 @@ impl Document {
             }
 
             // Remove hover state to old target and its parents
-            self.fire_mouse_event(client_point, old_target.upcast(), "mouseout".to_owned());
+            self.fire_mouse_event(client_point, old_target.upcast(), FireMouseEventType::Out);
 
             // TODO: Fire mouseleave here only if the old target is
             // not an ancestor of the new target.
@@ -1141,7 +1157,7 @@ impl Document {
                 element.set_hover_state(true);
             }
 
-            self.fire_mouse_event(client_point, &new_target.upcast(), "mouseover".to_owned());
+            self.fire_mouse_event(client_point, &new_target.upcast(), FireMouseEventType::Over);
 
             // TODO: Fire mouseenter here.
         }
