@@ -69,13 +69,13 @@ impl<'a> ParserContext<'a> {
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
-    ) -> ParserContext<'a> {
+    ) -> Self {
         ParserContext {
-            stylesheet_origin: stylesheet_origin,
-            url_data: url_data,
-            rule_type: rule_type,
-            parsing_mode: parsing_mode,
-            quirks_mode: quirks_mode,
+            stylesheet_origin,
+            url_data,
+            rule_type,
+            parsing_mode,
+            quirks_mode,
             namespaces: None,
         }
     }
@@ -85,8 +85,8 @@ impl<'a> ParserContext<'a> {
         url_data: &'a UrlExtraData,
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
-        quirks_mode: QuirksMode
-    ) -> ParserContext<'a> {
+        quirks_mode: QuirksMode,
+    ) -> Self {
         Self::new(
             Origin::Author,
             url_data,
@@ -118,11 +118,14 @@ impl<'a> ParserContext<'a> {
     }
 
     /// Record a CSS parse error with this context’s error reporting.
-    pub fn log_css_error<R>(&self,
-                            context: &ParserErrorContext<R>,
-                            location: SourceLocation,
-                            error: ContextualParseError)
-        where R: ParseErrorReporter
+    pub fn log_css_error<R>(
+        &self,
+        context: &ParserErrorContext<R>,
+        location: SourceLocation,
+        error: ContextualParseError,
+    )
+    where
+        R: ParseErrorReporter,
     {
         let location = SourceLocation {
             line: location.line,
