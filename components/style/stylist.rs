@@ -763,13 +763,21 @@ impl Stylist {
 
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
+            // Anonymous table flows shouldn't inherit their parents properties in order
+            // to avoid doubling up styles such as transformations.
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoText |
             PseudoElement::ServoInputText => false,
             PseudoElement::ServoAnonymousBlock |
+
+            // For tables, we do want style to inherit, because TableWrapper is responsible
+            // for handling clipping and scrolling, while Table is responsible for creating
+            // stacking contexts. StackingContextCollectionFlags makes sure this is processed
+            // properly.
             PseudoElement::ServoAnonymousTable |
-            PseudoElement::ServoAnonymousTableCell |
-            PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableWrapper |
+
             PseudoElement::ServoTableWrapper |
             PseudoElement::ServoInlineBlockWrapper |
             PseudoElement::ServoInlineAbsolute => true,
