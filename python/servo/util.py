@@ -19,6 +19,7 @@ import sys
 import tarfile
 import zipfile
 import urllib2
+import certifi
 
 
 def delete(path):
@@ -73,7 +74,7 @@ def download(desc, src, writer, start_byte=0):
         req = urllib2.Request(src)
         if start_byte:
             req = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
-        resp = urllib2.urlopen(req)
+        resp = urllib2.urlopen(req, cafile=certifi.where())
 
         fsize = None
         if resp.info().getheader('Content-Length'):
