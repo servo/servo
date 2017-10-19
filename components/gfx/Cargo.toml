@@ -15,7 +15,7 @@ unstable = ["simd"]
 
 [dependencies]
 app_units = "0.5"
-bitflags = "0.7"
+bitflags = "1.0"
 euclid = "0.15"
 fnv = "1.0"
 fontsan = {git = "https://github.com/servo/fontsan"}

@@ -28,7 +28,7 @@
         animation_value_type="AnimatedColor",
         logical=is_logical,
         allow_quirks=not is_logical,
-        flags="APPLIES_TO_FIRST_LETTER",
+        flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
         ignored_when_colors_disabled=True,
     )}
 
@@ -36,7 +36,7 @@
                               "specified::BorderStyle::none",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
-                              flags="APPLIES_TO_FIRST_LETTER",
+                              flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
                               animation_value_type="discrete" if not is_logical else "none",
                               logical=is_logical)}
 
@@ -48,7 +48,7 @@
                               spec=maybe_logical_spec(side, "width"),
                               animation_value_type="NonNegativeLength",
                               logical=is_logical,
-                              flags="APPLIES_TO_FIRST_LETTER",
+                              flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
                               allow_quirks=not is_logical)}
 % endfor
 
@@ -63,7 +63,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
-                              flags="APPLIES_TO_FIRST_LETTER",
+                              flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
                               animation_value_type="BorderCornerRadius")}
 % endfor
 
@@ -73,7 +73,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
     <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="discrete"
                        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
                        products="gecko"
-                       flags="APPLIES_TO_FIRST_LETTER"
+                       flags="PropertyFlags::APPLIES_TO_FIRST_LETTER"
                        ignored_when_colors_disabled="True">
         use std::fmt;
         use style_traits::ToCss;
@@ -207,7 +207,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
+    flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
     boxed="True")}
 
 ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
@@ -216,11 +216,11 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     initial_specified_value="specified::LengthOrNumberRect::all(specified::LengthOrNumber::zero())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
+    flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
 <%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER"
+                   flags="PropertyFlags::APPLIES_TO_FIRST_LETTER"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use style_traits::ToCss;
 
@@ -279,7 +279,7 @@ ${helpers.predefined_type("border-image-width", "BorderImageWidth",
     initial_specified_value="specified::BorderImageWidth::all(specified::BorderImageSideWidth::one())",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
+    flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
 ${helpers.predefined_type("border-image-slice", "BorderImageSlice",
@@ -287,7 +287,7 @@ ${helpers.predefined_type("border-image-slice", "BorderImageSlice",
     initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage::new(1.)).into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
     animation_value_type="discrete",
-    flags="APPLIES_TO_FIRST_LETTER",
+    flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
 #[cfg(feature = "gecko")]

@@ -14,8 +14,7 @@ use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow;
-use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
-use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
+use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins};
@@ -25,7 +24,7 @@ use std::ops::Range;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
-use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
+use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::values::computed::flex::FlexBasis;
 use style::values::generics::flex::FlexBasis as GenericFlexBasis;
@@ -449,7 +448,7 @@ impl FlexFlow {
         if !fixed_width {
             for kid in self.block_flow.base.children.iter_mut() {
                 let base = flow::mut_base(kid);
-                let is_absolutely_positioned = base.flags.contains(IS_ABSOLUTELY_POSITIONED);
+                let is_absolutely_positioned = base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
                     let flex_item_inline_sizes = IntrinsicISizes {
                         minimum_inline_size: base.intrinsic_inline_sizes.minimum_inline_size,
@@ -475,7 +474,7 @@ impl FlexFlow {
         if !fixed_width {
             for kid in self.block_flow.base.children.iter_mut() {
                 let base = flow::mut_base(kid);
-                let is_absolutely_positioned = base.flags.contains(IS_ABSOLUTELY_POSITIONED);
+                let is_absolutely_positioned = base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
                     computation.content_intrinsic_sizes.minimum_inline_size =
                         max(computation.content_intrinsic_sizes.minimum_inline_size,
@@ -518,7 +517,7 @@ impl FlexFlow {
         for kid in &mut self.items {
             let kid_base = flow::mut_base(children.get(kid.index));
             kid_base.block_container_explicit_block_size = container_block_size;
-            if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
+            if kid_base.flags.contains(FlowFlags::INLINE_POSITION_IS_STATIC) {
                 // The inline-start margin edge of the child flow is at our inline-start content
                 // edge, and its inline-size is our content inline-size.
                 kid_base.position.start.i =
@@ -855,7 +854,7 @@ impl Flow for FlexFlow {
                 .iter()
                 .enumerate()
                 .filter(|&(_, flow)| {
-                    !flow.as_block().base.flags.contains(IS_ABSOLUTELY_POSITIONED)
+                    !flow.as_block().base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
                 })
                 .map(|(index, flow)| FlexItem::new(index, flow))
                 .collect();
@@ -873,7 +872,8 @@ impl Flow for FlexFlow {
         let _scope = layout_debug_scope!("flex::assign_inline_sizes {:x}", self.block_flow.base.debug_id());
         debug!("assign_inline_sizes");
 
-        if !self.block_flow.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
+        if !self.block_flow.base.restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW |
+                                                           ServoRestyleDamage::REFLOW) {
             return
         }
 

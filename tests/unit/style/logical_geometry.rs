@@ -3,26 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::{Size2D, Point2D, SideOffsets2D, Rect};
-use style::logical_geometry::{FLAG_RTL, FLAG_VERTICAL, FLAG_VERTICAL_LR};
-use style::logical_geometry::{FLAG_SIDEWAYS, FLAG_UPRIGHT};
 use style::logical_geometry::{WritingMode, LogicalSize, LogicalPoint, LogicalMargin, LogicalRect};
 
 #[cfg(test)]
 fn modes() -> [WritingMode; 13] {
     [
         WritingMode::empty(),
-        FLAG_VERTICAL,
-        FLAG_VERTICAL | FLAG_VERTICAL_LR,
-        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_SIDEWAYS,
-        FLAG_VERTICAL | FLAG_SIDEWAYS,
-        FLAG_VERTICAL | FLAG_UPRIGHT,
-        FLAG_RTL,
-        FLAG_VERTICAL | FLAG_RTL,
-        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_RTL,
-        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_SIDEWAYS | FLAG_RTL,
-        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_UPRIGHT | FLAG_RTL,
-        FLAG_VERTICAL | FLAG_SIDEWAYS | FLAG_RTL,
-        FLAG_VERTICAL | FLAG_UPRIGHT | FLAG_RTL,
+        WritingMode::VERTICAL,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_LR,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::SIDEWAYS,
+        WritingMode::VERTICAL | WritingMode::SIDEWAYS,
+        WritingMode::VERTICAL | WritingMode::UPRIGHT,
+        WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::SIDEWAYS | WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::VERTICAL_LR | WritingMode::UPRIGHT | WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::SIDEWAYS | WritingMode::RTL,
+        WritingMode::VERTICAL | WritingMode::UPRIGHT | WritingMode::RTL,
     ]
 }
 

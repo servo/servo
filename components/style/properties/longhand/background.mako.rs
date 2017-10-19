@@ -15,7 +15,8 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
     allow_quirks=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+    PropertyFlags::APPLIES_TO_PLACEHOLDER""",
 )}
 
 ${helpers.predefined_type("background-image", "ImageLayer",
@@ -25,7 +26,8 @@ ${helpers.predefined_type("background-image", "ImageLayer",
     vector="True",
     animation_value_type="discrete",
     ignored_when_colors_disabled="True",
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+    PropertyFlags::APPLIES_TO_PLACEHOLDER""")}
 
 % for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
     ${helpers.predefined_type(
@@ -36,13 +38,15 @@ ${helpers.predefined_type("background-image", "ImageLayer",
         spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
         animation_value_type="ComputedValue",
         vector=True,
-        flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+        flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+        PropertyFlags::APPLIES_TO_PLACEHOLDER""",
     )}
 % endfor
 
 <%helpers:vector_longhand name="background-repeat" animation_value_type="discrete"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat"
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER">
+                          flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                          PropertyFlags::APPLIES_TO_PLACEHOLDER""">
     use std::fmt;
     use style_traits::ToCss;
 
@@ -142,7 +146,8 @@ ${helpers.single_keyword("background-attachment",
                          gecko_constant_prefix="NS_STYLE_IMAGELAYER_ATTACHMENT",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
                          animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+                         flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                         PropertyFlags::APPLIES_TO_PLACEHOLDER""")}
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
@@ -151,7 +156,8 @@ ${helpers.single_keyword("background-clip",
                          gecko_enum_prefix="StyleGeometryBox",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
                          animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+                         flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                         PropertyFlags::APPLIES_TO_PLACEHOLDER""")}
 
 ${helpers.single_keyword("background-origin",
                          "padding-box border-box content-box",
@@ -159,7 +165,8 @@ ${helpers.single_keyword("background-origin",
                          gecko_enum_prefix="StyleGeometryBox",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
                          animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+                         flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                         PropertyFlags::APPLIES_TO_PLACEHOLDER""")}
 
 ${helpers.predefined_type("background-size", "BackgroundSize",
     initial_value="computed::BackgroundSize::auto()",
@@ -168,7 +175,8 @@ ${helpers.predefined_type("background-size", "BackgroundSize",
     vector=True,
     animation_value_type="BackgroundSizeList",
     need_animatable=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+    PropertyFlags::APPLIES_TO_PLACEHOLDER""",
     extra_prefixes="webkit")}
 
 // https://drafts.fxtf.org/compositing/#background-blend-mode
@@ -179,4 +187,5 @@ ${helpers.single_keyword("background-blend-mode",
                          gecko_constant_prefix="NS_STYLE_BLEND",
                          vector=True, products="gecko", animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/compositing/#background-blend-mode",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+                         flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                         PropertyFlags::APPLIES_TO_PLACEHOLDER""")}

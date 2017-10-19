@@ -13,9 +13,9 @@ use stylesheets::OriginSet;
 /// Checks that the values for OriginFlags are the ones we expect.
 pub fn assert_flags_match() {
     use stylesheets::origin::*;
-    debug_assert_eq!(OriginFlags_UserAgent.0, ORIGIN_USER_AGENT.bits());
-    debug_assert_eq!(OriginFlags_Author.0, ORIGIN_AUTHOR.bits());
-    debug_assert_eq!(OriginFlags_User.0, ORIGIN_USER.bits());
+    debug_assert_eq!(OriginFlags_UserAgent.0, OriginSet::ORIGIN_USER_AGENT.bits());
+    debug_assert_eq!(OriginFlags_Author.0, OriginSet::ORIGIN_AUTHOR.bits());
+    debug_assert_eq!(OriginFlags_User.0, OriginSet::ORIGIN_USER.bits());
 }
 
 impl From<OriginFlags> for OriginSet {

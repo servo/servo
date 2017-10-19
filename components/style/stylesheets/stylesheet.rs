@@ -18,7 +18,7 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use std::mem;
 use std::sync::atomic::{AtomicBool, Ordering};
-use style_traits::PARSING_MODE_DEFAULT;
+use style_traits::ParsingMode;
 use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::rule_parser::{State, TopLevelRuleParser};
@@ -364,7 +364,7 @@ impl Stylesheet {
                 origin,
                 url_data,
                 None,
-                PARSING_MODE_DEFAULT,
+                ParsingMode::DEFAULT,
                 quirks_mode
             );
         let error_context = ParserErrorContext { error_reporter };

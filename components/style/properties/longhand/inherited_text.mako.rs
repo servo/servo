@@ -10,7 +10,8 @@ ${helpers.predefined_type("line-height",
                           "LineHeight",
                           "computed::LineHeight::normal()",
                           animation_value_type="LineHeight",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                          PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                           spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height")}
 
 // CSS Text Module Level 3
@@ -20,7 +21,8 @@ ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
                          extra_gecko_values="full-width",
                          animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                         flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                         PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
 
 ${helpers.single_keyword("hyphens", "manual none auto",
@@ -66,7 +68,7 @@ ${helpers.single_keyword("word-break",
                                   extra_specified="${'distribute' if product == 'gecko' else ''}"
                                   gecko_enum_prefix="StyleTextJustify"
                                   animation_value_type="discrete"
-                                  flags="APPLIES_TO_PLACEHOLDER",
+                                  flags="PropertyFlags::APPLIES_TO_PLACEHOLDER",
                                   spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
 
     impl ToComputedValue for SpecifiedValue {
@@ -109,7 +111,7 @@ ${helpers.single_keyword("text-align-last",
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
 <%helpers:longhand name="text-align" animation_value_type="discrete"
-                   flags="APPLIES_TO_PLACEHOLDER"
+                   flags="PropertyFlags::APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-text/#propdef-text-align">
     pub mod computed_value {
         use style_traits::ToCss;
@@ -267,14 +269,16 @@ ${helpers.predefined_type("letter-spacing",
                           "LetterSpacing",
                           "computed::LetterSpacing::normal()",
                           animation_value_type="ComputedValue",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                          PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                           spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing")}
 
 ${helpers.predefined_type("word-spacing",
                           "WordSpacing",
                           "computed::WordSpacing::normal()",
                           animation_value_type="ComputedValue",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                          PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                           spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
 
 <%helpers:longhand name="-servo-text-decorations-in-effect"
@@ -347,7 +351,7 @@ ${helpers.predefined_type("word-spacing",
                                   animation_value_type="discrete"
                                   // Only allowed for UA sheets, which set it
                                   // !important.
-                                  flags="APPLIES_TO_PLACEHOLDER"
+                                  flags="PropertyFlags::APPLIES_TO_PLACEHOLDER"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
     trivial_to_computed_value!(SpecifiedValue);
     % if product != "gecko":
@@ -392,7 +396,8 @@ ${helpers.predefined_type(
     vector=True,
     animation_value_type="AnimatedTextShadowList",
     ignored_when_colors_disabled=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+    PropertyFlags::APPLIES_TO_PLACEHOLDER""",
     spec="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property",
 )}
 
@@ -694,7 +699,8 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+    PropertyFlags::APPLIES_TO_PLACEHOLDER""",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color",
 )}
 
@@ -706,7 +712,8 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+    PropertyFlags::APPLIES_TO_PLACEHOLDER""",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color",
 )}
 
@@ -716,7 +723,8 @@ ${helpers.predefined_type("-webkit-text-stroke-width",
                           initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
                           computed_type="::values::computed::NonNegativeLength",
                           products="gecko",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                          PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
                           animation_value_type="discrete")}
 

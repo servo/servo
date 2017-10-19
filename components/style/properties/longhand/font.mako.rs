@@ -69,7 +69,8 @@ macro_rules! impl_gecko_keyword_conversions {
 </%def>
 
 <%helpers:longhand name="font-family" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     #[cfg(feature = "gecko")] use gecko_bindings::bindings;
     #[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -596,7 +597,8 @@ ${helpers.single_keyword_system("font-style",
                                 gecko_constant_prefix="NS_FONT_STYLE",
                                 gecko_ffi_name="mFont.style",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                                PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                                 animation_value_type="discrete")}
 
 
@@ -613,11 +615,13 @@ ${helpers.single_keyword_system("font-variant-caps",
                                 gecko_ffi_name="mFont.variantCaps",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                                 custom_consts=font_variant_caps_custom_consts,
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                                PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                                 animation_value_type="discrete")}
 
 <%helpers:longhand name="font-weight" animation_value_type="ComputedValue"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use properties::longhands::system_font::SystemFont;
 
@@ -782,7 +786,8 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand name="font-size" animation_value_type="NonNegativeLength"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use values::specified::AllowQuirks;
@@ -917,7 +922,8 @@ ${helpers.single_keyword_system("font-variant-caps",
 
 <%helpers:longhand products="gecko" name="font-size-adjust"
                    animation_value_type="longhands::font_size_adjust::computed_value::T"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use properties::longhands::system_font::SystemFont;
 
@@ -1034,7 +1040,8 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
@@ -1128,7 +1135,8 @@ ${helpers.single_keyword_system("font-stretch",
                                 gecko_constant_prefix="NS_FONT_STRETCH",
                                 cast_type='i16',
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                                PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                                 animation_value_type="ComputedValue")}
 
 ${helpers.single_keyword_system("font-kerning",
@@ -1137,11 +1145,13 @@ ${helpers.single_keyword_system("font-kerning",
                                 gecko_ffi_name="mFont.kerning",
                                 gecko_constant_prefix="NS_FONT_KERNING",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-kerning",
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                                PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                                 animation_value_type="discrete")}
 
 <%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1253,15 +1263,15 @@ ${helpers.single_keyword_system("font-kerning",
 
     bitflags! {
         #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-        pub flags ParsingFlags: u8 {
-            const NORMAL = 0,
-            const HISTORICAL_FORMS = 0x01,
-            const STYLISTIC = 0x02,
-            const STYLESET = 0x04,
-            const CHARACTER_VARIANT = 0x08,
-            const SWASH = 0x10,
-            const ORNAMENTS = 0x20,
-            const ANNOTATION = 0x40,
+        pub struct ParsingFlags: u8 {
+            const NORMAL = 0;
+            const HISTORICAL_FORMS = 0x01;
+            const STYLISTIC = 0x02;
+            const STYLESET = 0x04;
+            const CHARACTER_VARIANT = 0x08;
+            const SWASH = 0x10;
+            const ORNAMENTS = 0x20;
+            const ANNOTATION = 0x40;
         }
     }
 
@@ -1282,7 +1292,7 @@ ${helpers.single_keyword_system("font-kerning",
 
         let mut parsed_alternates = ParsingFlags::empty();
         macro_rules! check_if_parsed(
-            ($input:expr, $flag:ident) => (
+            ($input:expr, $flag:path) => (
                 if parsed_alternates.contains($flag) {
                     return Err($input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
@@ -1294,7 +1304,7 @@ ${helpers.single_keyword_system("font-kerning",
             match input.next()?.clone() {
                 Token::Ident(ref ident) => {
                     if *ident == "historical-forms" {
-                        check_if_parsed!(input, HISTORICAL_FORMS);
+                        check_if_parsed!(input, ParsingFlags::HISTORICAL_FORMS);
                         alternates.push(VariantAlternates::HistoricalForms);
                         Ok(())
                     } else {
@@ -1306,7 +1316,7 @@ ${helpers.single_keyword_system("font-kerning",
                         match_ignore_ascii_case! { &name,
                             % for value in "swash stylistic ornaments annotation".split():
                             "${value}" => {
-                                check_if_parsed!(i, ${value.upper()});
+                                check_if_parsed!(i, ParsingFlags::${value.upper()});
                                 let location = i.current_source_location();
                                 let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
                                 alternates.push(VariantAlternates::${to_camel_case(value)}(ident));
@@ -1315,7 +1325,7 @@ ${helpers.single_keyword_system("font-kerning",
                             % endfor
                             % for value in "styleset character-variant".split():
                             "${value}" => {
-                                check_if_parsed!(i, ${to_rust_ident(value).upper()});
+                                check_if_parsed!(i, ParsingFlags:: ${to_rust_ident(value).upper()});
                                 let idents = i.parse_comma_separated(|i| {
                                     let location = i.current_source_location();
                                     CustomIdent::from_ident(location, i.expect_ident()?, &[])
@@ -1341,7 +1351,7 @@ ${helpers.single_keyword_system("font-kerning",
 
 #[cfg(feature = "gecko")]
 macro_rules! exclusive_value {
-    (($value:ident, $set:expr) => $ident:ident) => {
+    (($value:ident, $set:expr) => $ident:path) => {
         if $value.intersects($set) {
             return Err(())
         } else {
@@ -1351,7 +1361,8 @@ macro_rules! exclusive_value {
 }
 
 <%helpers:longhand name="font-variant-east-asian" products="gecko" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1360,17 +1371,17 @@ macro_rules! exclusive_value {
 
     bitflags! {
         #[derive(MallocSizeOf)]
-        pub flags VariantEastAsian: u16 {
-            const NORMAL = 0,
-            const JIS78 = 0x01,
-            const JIS83 = 0x02,
-            const JIS90 = 0x04,
-            const JIS04 = 0x08,
-            const SIMPLIFIED = 0x10,
-            const TRADITIONAL = 0x20,
-            const FULL_WIDTH = 0x40,
-            const PROPORTIONAL_WIDTH = 0x80,
-            const RUBY = 0x100,
+        pub struct VariantEastAsian: u16 {
+            const NORMAL = 0;
+            const JIS78 = 0x01;
+            const JIS83 = 0x02;
+            const JIS90 = 0x04;
+            const JIS04 = 0x08;
+            const SIMPLIFIED = 0x10;
+            const TRADITIONAL = 0x20;
+            const FULL_WIDTH = 0x40;
+            const PROPORTIONAL_WIDTH = 0x80;
+            const RUBY = 0x100;
         }
     }
 
@@ -1384,15 +1395,15 @@ macro_rules! exclusive_value {
     <%self:simple_system_boilerplate name="font_variant_east_asian"></%self:simple_system_boilerplate>
 
     //                                 servo_bit: gecko_bit
-    <% font_variant_east_asian_map = { "JIS78": "JIS78",
-                                       "JIS83": "JIS83",
-                                       "JIS90": "JIS90",
-                                       "JIS04": "JIS04",
-                                       "SIMPLIFIED": "SIMPLIFIED",
-                                       "TRADITIONAL": "TRADITIONAL",
-                                       "FULL_WIDTH": "FULL_WIDTH",
-                                       "PROPORTIONAL_WIDTH": "PROP_WIDTH",
-                                       "RUBY": "RUBY" } %>
+    <% font_variant_east_asian_map = { "VariantEastAsian::JIS78": "JIS78",
+                                       "VariantEastAsian::JIS83": "JIS83",
+                                       "VariantEastAsian::JIS90": "JIS90",
+                                       "VariantEastAsian::JIS04": "JIS04",
+                                       "VariantEastAsian::SIMPLIFIED": "SIMPLIFIED",
+                                       "VariantEastAsian::TRADITIONAL": "TRADITIONAL",
+                                       "VariantEastAsian::FULL_WIDTH": "FULL_WIDTH",
+                                       "VariantEastAsian::PROPORTIONAL_WIDTH": "PROP_WIDTH",
+                                       "VariantEastAsian::RUBY": "RUBY" } %>
 
     ${helpers.gecko_bitflags_conversion(font_variant_east_asian_map, 'NS_FONT_VARIANT_EAST_ASIAN_',
                                         'VariantEastAsian', kw_type='u16')}
@@ -1407,7 +1418,7 @@ macro_rules! exclusive_value {
             let mut has_any = false;
 
             macro_rules! write_value {
-                ($ident:ident => $str:expr) => {
+                ($ident:path => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
                             dest.write_str(" ")?;
@@ -1418,15 +1429,15 @@ macro_rules! exclusive_value {
                 }
             }
 
-            write_value!(JIS78 => "jis78");
-            write_value!(JIS83 => "jis83");
-            write_value!(JIS90 => "jis90");
-            write_value!(JIS04 => "jis04");
-            write_value!(SIMPLIFIED => "simplified");
-            write_value!(TRADITIONAL => "traditional");
-            write_value!(FULL_WIDTH => "full-width");
-            write_value!(PROPORTIONAL_WIDTH => "proportional-width");
-            write_value!(RUBY => "ruby");
+            write_value!(VariantEastAsian::JIS78 => "jis78");
+            write_value!(VariantEastAsian::JIS83 => "jis83");
+            write_value!(VariantEastAsian::JIS90 => "jis90");
+            write_value!(VariantEastAsian::JIS04 => "jis04");
+            write_value!(VariantEastAsian::SIMPLIFIED => "simplified");
+            write_value!(VariantEastAsian::TRADITIONAL => "traditional");
+            write_value!(VariantEastAsian::FULL_WIDTH => "full-width");
+            write_value!(VariantEastAsian::PROPORTIONAL_WIDTH => "proportional-width");
+            write_value!(VariantEastAsian::RUBY => "ruby");
 
             debug_assert!(has_any);
             Ok(())
@@ -1448,8 +1459,10 @@ macro_rules! exclusive_value {
     /// normal | [ <east-asian-variant-values> || <east-asian-width-values> || ruby ]
     /// <east-asian-variant-values> = [ jis78 | jis83 | jis90 | jis04 | simplified | traditional ]
     /// <east-asian-width-values>   = [ full-width | proportional-width ]
-    <% east_asian_variant_values = "JIS78 | JIS83 | JIS90 | JIS04 | SIMPLIFIED | TRADITIONAL" %>
-    <% east_asian_width_values = "FULL_WIDTH | PROPORTIONAL_WIDTH" %>
+    <% east_asian_variant_values = """VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
+                                      VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
+                                      VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL""" %>
+    <% east_asian_width_values = "VariantEastAsian::FULL_WIDTH | VariantEastAsian::PROPORTIONAL_WIDTH" %>
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantEastAsian::empty();
@@ -1461,23 +1474,23 @@ macro_rules! exclusive_value {
         while let Ok(flag) = input.try(|input| {
             Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "jis78" =>
-                    exclusive_value!((result, ${east_asian_variant_values}) => JIS78),
+                    exclusive_value!((result, ${east_asian_variant_values}) => VariantEastAsian::JIS78),
                 "jis83" =>
-                    exclusive_value!((result, ${east_asian_variant_values}) => JIS83),
+                    exclusive_value!((result, ${east_asian_variant_values}) => VariantEastAsian::JIS83),
                 "jis90" =>
-                    exclusive_value!((result, ${east_asian_variant_values}) => JIS90),
+                    exclusive_value!((result, ${east_asian_variant_values}) => VariantEastAsian::JIS90),
                 "jis04" =>
-                    exclusive_value!((result, ${east_asian_variant_values}) => JIS04),
+                    exclusive_value!((result, ${east_asian_variant_values}) => VariantEastAsian::JIS04),
                 "simplified" =>
-                    exclusive_value!((result, ${east_asian_variant_values}) => SIMPLIFIED),
+                    exclusive_value!((result, ${east_asian_variant_values}) => VariantEastAsian::SIMPLIFIED),
                 "traditional" =>
-                    exclusive_value!((result, ${east_asian_variant_values}) => TRADITIONAL),
+                    exclusive_value!((result, ${east_asian_variant_values}) => VariantEastAsian::TRADITIONAL),
                 "full-width" =>
-                    exclusive_value!((result, ${east_asian_width_values}) => FULL_WIDTH),
+                    exclusive_value!((result, ${east_asian_width_values}) => VariantEastAsian::FULL_WIDTH),
                 "proportional-width" =>
-                    exclusive_value!((result, ${east_asian_width_values}) => PROPORTIONAL_WIDTH),
+                    exclusive_value!((result, ${east_asian_width_values}) => VariantEastAsian::PROPORTIONAL_WIDTH),
                 "ruby" =>
-                    exclusive_value!((result, RUBY) => RUBY),
+                    exclusive_value!((result, VariantEastAsian::RUBY) => VariantEastAsian::RUBY),
                 _ => return Err(()),
             })
         }) {
@@ -1496,7 +1509,8 @@ macro_rules! exclusive_value {
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-ligatures">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1504,18 +1518,18 @@ macro_rules! exclusive_value {
 
 
     bitflags! {
-        #[derive(MallocSizeOf)]
-        pub flags VariantLigatures: u16 {
-            const NORMAL = 0,
-            const NONE = 0x01,
-            const COMMON_LIGATURES = 0x02,
-            const NO_COMMON_LIGATURES = 0x04,
-            const DISCRETIONARY_LIGATURES = 0x08,
-            const NO_DISCRETIONARY_LIGATURES = 0x10,
-            const HISTORICAL_LIGATURES = 0x20,
-            const NO_HISTORICAL_LIGATURES = 0x40,
-            const CONTEXTUAL = 0x80,
-            const NO_CONTEXTUAL = 0x100,
+      #[derive(MallocSizeOf)]
+        pub struct VariantLigatures: u16 {
+            const NORMAL = 0;
+            const NONE = 0x01;
+            const COMMON_LIGATURES = 0x02;
+            const NO_COMMON_LIGATURES = 0x04;
+            const DISCRETIONARY_LIGATURES = 0x08;
+            const NO_DISCRETIONARY_LIGATURES = 0x10;
+            const HISTORICAL_LIGATURES = 0x20;
+            const NO_HISTORICAL_LIGATURES = 0x40;
+            const CONTEXTUAL = 0x80;
+            const NO_CONTEXTUAL = 0x100;
         }
     }
 
@@ -1529,15 +1543,15 @@ macro_rules! exclusive_value {
     <%self:simple_system_boilerplate name="font_variant_ligatures"></%self:simple_system_boilerplate>
 
     //                                 servo_bit: gecko_bit
-    <% font_variant_ligatures_map = { "NONE": "NONE",
-                                      "COMMON_LIGATURES": "COMMON",
-                                      "NO_COMMON_LIGATURES": "NO_COMMON",
-                                      "DISCRETIONARY_LIGATURES": "DISCRETIONARY",
-                                      "NO_DISCRETIONARY_LIGATURES": "NO_DISCRETIONARY",
-                                      "HISTORICAL_LIGATURES": "HISTORICAL",
-                                      "NO_HISTORICAL_LIGATURES": "NO_HISTORICAL",
-                                      "CONTEXTUAL": "CONTEXTUAL",
-                                      "NO_CONTEXTUAL": "NO_CONTEXTUAL" } %>
+    <% font_variant_ligatures_map = { "VariantLigatures::NONE": "NONE",
+                                      "VariantLigatures::COMMON_LIGATURES": "COMMON",
+                                      "VariantLigatures::NO_COMMON_LIGATURES": "NO_COMMON",
+                                      "VariantLigatures::DISCRETIONARY_LIGATURES": "DISCRETIONARY",
+                                      "VariantLigatures::NO_DISCRETIONARY_LIGATURES": "NO_DISCRETIONARY",
+                                      "VariantLigatures::HISTORICAL_LIGATURES": "HISTORICAL",
+                                      "VariantLigatures::NO_HISTORICAL_LIGATURES": "NO_HISTORICAL",
+                                      "VariantLigatures::CONTEXTUAL": "CONTEXTUAL",
+                                      "VariantLigatures::NO_CONTEXTUAL": "NO_CONTEXTUAL" } %>
 
     ${helpers.gecko_bitflags_conversion(font_variant_ligatures_map, 'NS_FONT_VARIANT_LIGATURES_',
                                         'VariantLigatures', kw_type='u16')}
@@ -1547,14 +1561,14 @@ macro_rules! exclusive_value {
             if self.is_empty() {
                 return dest.write_str("normal")
             }
-            if self.contains(NONE) {
+            if self.contains(VariantLigatures::NONE) {
                 return dest.write_str("none")
             }
 
             let mut has_any = false;
 
             macro_rules! write_value {
-                ($ident:ident => $str:expr) => {
+                ($ident:path => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
                             dest.write_str(" ")?;
@@ -1565,14 +1579,14 @@ macro_rules! exclusive_value {
                 }
             }
 
-            write_value!(COMMON_LIGATURES => "common-ligatures");
-            write_value!(NO_COMMON_LIGATURES => "no-common-ligatures");
-            write_value!(DISCRETIONARY_LIGATURES => "discretionary-ligatures");
-            write_value!(NO_DISCRETIONARY_LIGATURES => "no-discretionary-ligatures");
-            write_value!(HISTORICAL_LIGATURES => "historical-ligatures");
-            write_value!(NO_HISTORICAL_LIGATURES => "no-historical-ligatures");
-            write_value!(CONTEXTUAL => "contextual");
-            write_value!(NO_CONTEXTUAL => "no-contextual");
+            write_value!(VariantLigatures::COMMON_LIGATURES => "common-ligatures");
+            write_value!(VariantLigatures::NO_COMMON_LIGATURES => "no-common-ligatures");
+            write_value!(VariantLigatures::DISCRETIONARY_LIGATURES => "discretionary-ligatures");
+            write_value!(VariantLigatures::NO_DISCRETIONARY_LIGATURES => "no-discretionary-ligatures");
+            write_value!(VariantLigatures::HISTORICAL_LIGATURES => "historical-ligatures");
+            write_value!(VariantLigatures::NO_HISTORICAL_LIGATURES => "no-historical-ligatures");
+            write_value!(VariantLigatures::CONTEXTUAL => "contextual");
+            write_value!(VariantLigatures::NO_CONTEXTUAL => "no-contextual");
 
             debug_assert!(has_any);
             Ok(())
@@ -1592,7 +1606,7 @@ macro_rules! exclusive_value {
     }
     #[inline]
     pub fn get_none_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Value(NONE)
+        SpecifiedValue::Value(VariantLigatures::NONE)
     }
 
     /// normal | none |
@@ -1604,10 +1618,11 @@ macro_rules! exclusive_value {
     /// <discretionary-lig-values> = [ discretionary-ligatures | no-discretionary-ligatures ]
     /// <historical-lig-values>    = [ historical-ligatures | no-historical-ligatures ]
     /// <contextual-alt-values>    = [ contextual | no-contextual ]
-    <% common_lig_values = "COMMON_LIGATURES | NO_COMMON_LIGATURES" %>
-    <% discretionary_lig_values = "DISCRETIONARY_LIGATURES | NO_DISCRETIONARY_LIGATURES" %>
-    <% historical_lig_values = "HISTORICAL_LIGATURES | NO_HISTORICAL_LIGATURES" %>
-    <% contextual_alt_values = "CONTEXTUAL | NO_CONTEXTUAL" %>
+    <% common_lig_values = "VariantLigatures::COMMON_LIGATURES | VariantLigatures::NO_COMMON_LIGATURES" %>
+    <% discretionary_lig_values = """VariantLigatures::DISCRETIONARY_LIGATURES |
+                                     VariantLigatures::NO_DISCRETIONARY_LIGATURES""" %>
+    <% historical_lig_values = "VariantLigatures::HISTORICAL_LIGATURES | VariantLigatures::NO_HISTORICAL_LIGATURES" %>
+    <% contextual_alt_values = "VariantLigatures::CONTEXTUAL | VariantLigatures::NO_CONTEXTUAL" %>
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantLigatures::empty();
@@ -1616,27 +1631,29 @@ macro_rules! exclusive_value {
             return Ok(SpecifiedValue::Value(result))
         }
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue::Value(NONE))
+            return Ok(SpecifiedValue::Value(VariantLigatures::NONE))
         }
 
         while let Ok(flag) = input.try(|input| {
             Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "common-ligatures" =>
-                    exclusive_value!((result, ${common_lig_values}) => COMMON_LIGATURES),
+                    exclusive_value!((result, ${common_lig_values}) => VariantLigatures::COMMON_LIGATURES),
                 "no-common-ligatures" =>
-                    exclusive_value!((result, ${common_lig_values}) => NO_COMMON_LIGATURES),
+                    exclusive_value!((result, ${common_lig_values}) => VariantLigatures::NO_COMMON_LIGATURES),
                 "discretionary-ligatures" =>
-                    exclusive_value!((result, ${discretionary_lig_values}) => DISCRETIONARY_LIGATURES),
+                    exclusive_value!((result, ${discretionary_lig_values}) =>
+                        VariantLigatures::DISCRETIONARY_LIGATURES),
                 "no-discretionary-ligatures" =>
-                    exclusive_value!((result, ${discretionary_lig_values}) => NO_DISCRETIONARY_LIGATURES),
+                    exclusive_value!((result, ${discretionary_lig_values}) =>
+                        VariantLigatures::NO_DISCRETIONARY_LIGATURES),
                 "historical-ligatures" =>
-                    exclusive_value!((result, ${historical_lig_values}) => HISTORICAL_LIGATURES),
+                    exclusive_value!((result, ${historical_lig_values}) => VariantLigatures::HISTORICAL_LIGATURES),
                 "no-historical-ligatures" =>
-                    exclusive_value!((result, ${historical_lig_values}) => NO_HISTORICAL_LIGATURES),
+                    exclusive_value!((result, ${historical_lig_values}) => VariantLigatures::NO_HISTORICAL_LIGATURES),
                 "contextual" =>
-                    exclusive_value!((result, ${contextual_alt_values}) => CONTEXTUAL),
+                    exclusive_value!((result, ${contextual_alt_values}) => VariantLigatures::CONTEXTUAL),
                 "no-contextual" =>
-                    exclusive_value!((result, ${contextual_alt_values}) => NO_CONTEXTUAL),
+                    exclusive_value!((result, ${contextual_alt_values}) => VariantLigatures::NO_CONTEXTUAL),
                 _ => return Err(()),
             })
         }) {
@@ -1655,7 +1672,8 @@ macro_rules! exclusive_value {
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1664,16 +1682,16 @@ macro_rules! exclusive_value {
 
     bitflags! {
         #[derive(MallocSizeOf)]
-        pub flags VariantNumeric: u8 {
-            const NORMAL = 0,
-            const LINING_NUMS = 0x01,
-            const OLDSTYLE_NUMS = 0x02,
-            const PROPORTIONAL_NUMS = 0x04,
-            const TABULAR_NUMS = 0x08,
-            const DIAGONAL_FRACTIONS = 0x10,
-            const STACKED_FRACTIONS = 0x20,
-            const SLASHED_ZERO = 0x40,
-            const ORDINAL = 0x80,
+        pub struct VariantNumeric: u8 {
+            const NORMAL = 0;
+            const LINING_NUMS = 0x01;
+            const OLDSTYLE_NUMS = 0x02;
+            const PROPORTIONAL_NUMS = 0x04;
+            const TABULAR_NUMS = 0x08;
+            const DIAGONAL_FRACTIONS = 0x10;
+            const STACKED_FRACTIONS = 0x20;
+            const SLASHED_ZERO = 0x40;
+            const ORDINAL = 0x80;
         }
     }
 
@@ -1688,14 +1706,14 @@ macro_rules! exclusive_value {
 
 
     //                              servo_bit: gecko_bit
-    <% font_variant_numeric_map = { "LINING_NUMS": "LINING",
-                                    "OLDSTYLE_NUMS": "OLDSTYLE",
-                                    "PROPORTIONAL_NUMS": "PROPORTIONAL",
-                                    "TABULAR_NUMS": "TABULAR",
-                                    "DIAGONAL_FRACTIONS": "DIAGONAL_FRACTIONS",
-                                    "STACKED_FRACTIONS": "STACKED_FRACTIONS",
-                                    "SLASHED_ZERO": "SLASHZERO",
-                                    "ORDINAL": "ORDINAL" } %>
+    <% font_variant_numeric_map = { "VariantNumeric::LINING_NUMS": "LINING",
+                                    "VariantNumeric::OLDSTYLE_NUMS": "OLDSTYLE",
+                                    "VariantNumeric::PROPORTIONAL_NUMS": "PROPORTIONAL",
+                                    "VariantNumeric::TABULAR_NUMS": "TABULAR",
+                                    "VariantNumeric::DIAGONAL_FRACTIONS": "DIAGONAL_FRACTIONS",
+                                    "VariantNumeric::STACKED_FRACTIONS": "STACKED_FRACTIONS",
+                                    "VariantNumeric::SLASHED_ZERO": "SLASHZERO",
+                                    "VariantNumeric::ORDINAL": "ORDINAL" } %>
 
     ${helpers.gecko_bitflags_conversion(font_variant_numeric_map, 'NS_FONT_VARIANT_NUMERIC_',
                                         'VariantNumeric')}
@@ -1709,7 +1727,7 @@ macro_rules! exclusive_value {
             let mut has_any = false;
 
             macro_rules! write_value {
-                ($ident:ident => $str:expr) => {
+                ($ident:path => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
                             dest.write_str(" ")?;
@@ -1720,14 +1738,14 @@ macro_rules! exclusive_value {
                 }
             }
 
-            write_value!(LINING_NUMS => "lining-nums");
-            write_value!(OLDSTYLE_NUMS => "oldstyle-nums");
-            write_value!(PROPORTIONAL_NUMS => "proportional-nums");
-            write_value!(TABULAR_NUMS => "tabular-nums");
-            write_value!(DIAGONAL_FRACTIONS => "diagonal-fractions");
-            write_value!(STACKED_FRACTIONS => "stacked-fractions");
-            write_value!(SLASHED_ZERO => "slashed-zero");
-            write_value!(ORDINAL => "ordinal");
+            write_value!(VariantNumeric::LINING_NUMS => "lining-nums");
+            write_value!(VariantNumeric::OLDSTYLE_NUMS => "oldstyle-nums");
+            write_value!(VariantNumeric::PROPORTIONAL_NUMS => "proportional-nums");
+            write_value!(VariantNumeric::TABULAR_NUMS => "tabular-nums");
+            write_value!(VariantNumeric::DIAGONAL_FRACTIONS => "diagonal-fractions");
+            write_value!(VariantNumeric::STACKED_FRACTIONS => "stacked-fractions");
+            write_value!(VariantNumeric::SLASHED_ZERO => "slashed-zero");
+            write_value!(VariantNumeric::ORDINAL => "ordinal");
 
             debug_assert!(has_any);
             Ok(())
@@ -1755,9 +1773,9 @@ macro_rules! exclusive_value {
     /// <numeric-figure-values>   = [ lining-nums | oldstyle-nums ]
     /// <numeric-spacing-values>  = [ proportional-nums | tabular-nums ]
     /// <numeric-fraction-values> = [ diagonal-fractions | stacked-fractions ]
-    <% numeric_figure_values = "LINING_NUMS | OLDSTYLE_NUMS" %>
-    <% numeric_spacing_values = "PROPORTIONAL_NUMS | TABULAR_NUMS" %>
-    <% numeric_fraction_values = "DIAGONAL_FRACTIONS | STACKED_FRACTIONS" %>
+    <% numeric_figure_values = "VariantNumeric::LINING_NUMS | VariantNumeric::OLDSTYLE_NUMS" %>
+    <% numeric_spacing_values = "VariantNumeric::PROPORTIONAL_NUMS | VariantNumeric::TABULAR_NUMS" %>
+    <% numeric_fraction_values = "VariantNumeric::DIAGONAL_FRACTIONS | VariantNumeric::STACKED_FRACTIONS" %>
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantNumeric::empty();
@@ -1769,21 +1787,21 @@ macro_rules! exclusive_value {
         while let Ok(flag) = input.try(|input| {
             Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "ordinal" =>
-                    exclusive_value!((result, ORDINAL) => ORDINAL),
+                    exclusive_value!((result, VariantNumeric::ORDINAL) => VariantNumeric::ORDINAL),
                 "slashed-zero" =>
-                    exclusive_value!((result, SLASHED_ZERO) => SLASHED_ZERO),
+                    exclusive_value!((result, VariantNumeric::SLASHED_ZERO) => VariantNumeric::SLASHED_ZERO),
                 "lining-nums" =>
-                    exclusive_value!((result, ${numeric_figure_values}) => LINING_NUMS),
+                    exclusive_value!((result, ${numeric_figure_values}) => VariantNumeric::LINING_NUMS),
                 "oldstyle-nums" =>
-                    exclusive_value!((result, ${numeric_figure_values}) => OLDSTYLE_NUMS),
+                    exclusive_value!((result, ${numeric_figure_values}) => VariantNumeric::OLDSTYLE_NUMS),
                 "proportional-nums" =>
-                    exclusive_value!((result, ${numeric_spacing_values}) => PROPORTIONAL_NUMS),
+                    exclusive_value!((result, ${numeric_spacing_values}) => VariantNumeric::PROPORTIONAL_NUMS),
                 "tabular-nums" =>
-                    exclusive_value!((result, ${numeric_spacing_values}) => TABULAR_NUMS),
+                    exclusive_value!((result, ${numeric_spacing_values}) => VariantNumeric::TABULAR_NUMS),
                 "diagonal-fractions" =>
-                    exclusive_value!((result, ${numeric_fraction_values}) => DIAGONAL_FRACTIONS),
+                    exclusive_value!((result, ${numeric_fraction_values}) => VariantNumeric::DIAGONAL_FRACTIONS),
                 "stacked-fractions" =>
-                    exclusive_value!((result, ${numeric_fraction_values}) => STACKED_FRACTIONS),
+                    exclusive_value!((result, ${numeric_fraction_values}) => VariantNumeric::STACKED_FRACTIONS),
                 _ => return Err(()),
             })
         }) {
@@ -1807,12 +1825,14 @@ ${helpers.single_keyword_system("font-variant-position",
                                 gecko_ffi_name="mFont.variantPosition",
                                 gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
-                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                                PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                                 animation_value_type="discrete")}
 
 <%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use properties::longhands::system_font::SystemFont;
     use values::generics::FontSettings;
@@ -1856,7 +1876,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 %>
 <%helpers:longhand name="font-variation-settings" products="gecko"
                    animation_value_type="ComputedValue"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="${variation_spec}">
     use values::generics::FontSettings;
 
@@ -1881,7 +1902,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 
 <%helpers:longhand name="font-language-override" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+                   flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                   PropertyFlags::APPLIES_TO_PLACEHOLDER"""
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -2463,7 +2485,8 @@ ${helpers.single_keyword("-moz-osx-font-smoothing",
                          gecko_ffi_name="mFont.smoothing",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth)",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                         flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
+                         PropertyFlags::APPLIES_TO_PLACEHOLDER""",
                          animation_value_type="discrete")}
 
 ${helpers.predefined_type("-moz-min-font-size-ratio",

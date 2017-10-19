@@ -72,7 +72,7 @@ use layout::context::malloc_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
-use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT, RelayoutMode};
+use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
 use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
@@ -132,11 +132,11 @@ use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
-use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
+use style::servo::restyle_damage::ServoRestyleDamage;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::Stylist;
-use style::thread_state;
+use style::thread_state::{self, ThreadState};
 use style::timer::Timer;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
@@ -285,7 +285,7 @@ impl LayoutThreadFactory for LayoutThread {
               layout_threads: usize,
               paint_time_metrics: PaintTimeMetrics) {
         thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
-            thread_state::initialize(thread_state::LAYOUT);
+            thread_state::initialize(ThreadState::LAYOUT);
 
             // In order to get accurate crash reports, we install the top-level bc id.
             TopLevelBrowsingContextId::install(top_level_browsing_context_id);
@@ -975,7 +975,7 @@ impl LayoutThread {
             let traversal = ComputeStackingRelativePositions { layout_context: layout_context };
             traversal.traverse(layout_root);
 
-            if flow::base(layout_root).restyle_damage.contains(REPAINT) ||
+            if flow::base(layout_root).restyle_damage.contains(ServoRestyleDamage::REPAINT) ||
                     rw_data.display_list.is_none() {
                 if reflow_goal.needs_display_list() {
                     let mut build_state =
@@ -1545,7 +1545,7 @@ impl LayoutThread {
             // that are needed in both incremental and non-incremental traversals.
             let damage = FlowRef::deref_mut(root_flow).compute_layout_damage();
 
-            if opts::get().nonincremental_layout || damage.contains(REFLOW_ENTIRE_DOCUMENT) {
+            if opts::get().nonincremental_layout || damage.contains(SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT) {
                 FlowRef::deref_mut(root_flow).reflow_entire_document()
             }
         });
@@ -1568,7 +1568,8 @@ impl LayoutThread {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        if flow::base(&**root_flow).restyle_damage.intersects(REFLOW | REFLOW_OUT_OF_FLOW) {
+        if flow::base(&**root_flow).restyle_damage.intersects(ServoRestyleDamage::REFLOW |
+                                                              ServoRestyleDamage::REFLOW_OUT_OF_FLOW) {
             profile(time::ProfilerCategory::LayoutMain,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
@@ -1635,7 +1636,8 @@ impl LayoutThread {
         debug!("reflowing all nodes!");
         flow::mut_base(flow)
             .restyle_damage
-            .insert(REPAINT | STORE_OVERFLOW | REFLOW | REPOSITION);
+            .insert(ServoRestyleDamage::REPAINT | ServoRestyleDamage::STORE_OVERFLOW |
+                    ServoRestyleDamage::REFLOW | ServoRestyleDamage::REPOSITION);
 
         for child in flow::child_iter_mut(flow) {
             LayoutThread::reflow_all_nodes(child);
