@@ -53,6 +53,7 @@ core-text = "7.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.3"
+servo_allocator = {path = "../allocator"}
 
 [target.'cfg(target_os = "linux")'.dependencies]
 servo-fontconfig = "0.2.1"

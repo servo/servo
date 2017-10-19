@@ -354,7 +354,7 @@ impl ReportsForest {
 
 mod system_reporter {
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
-    use libc::{c_char, c_void, size_t};
+    use libc::{c_void, size_t};
     #[cfg(target_os = "linux")]
     use libc::c_int;
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
@@ -460,11 +460,7 @@ mod system_reporter {
     }
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
-    extern {
-        #[cfg_attr(any(target_os = "macos", target_os = "android"), link_name = "je_mallctl")]
-        fn mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
-                   newp: *mut c_void, newlen: size_t) -> ::libc::c_int;
-    }
+    use jemalloc_sys::mallctl;
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {

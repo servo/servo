@@ -10,7 +10,7 @@ name = "profile"
 path = "lib.rs"
 
 [features]
-unstable = []
+unstable = ["jemalloc-sys"]
 
 [dependencies]
 profile_traits = {path = "../profile_traits"}
@@ -31,3 +31,4 @@ regex = "0.2"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 libc = "0.2"
+jemalloc-sys = {version = "0.1.3", optional = true}

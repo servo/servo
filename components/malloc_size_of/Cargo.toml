@@ -8,9 +8,6 @@ publish = false
 [lib]
 path = "lib.rs"
 
-[target.'cfg(windows)'.dependencies]
-kernel32-sys = "0.2.1"
-
 [features]
 servo = ["js", "string_cache", "url", "webrender_api", "xml5ever"]
 

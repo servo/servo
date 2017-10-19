@@ -39,6 +39,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
+extern crate servo_allocator;
 extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_config;
@@ -84,7 +85,7 @@ use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
-use malloc_size_of::{malloc_size_of, MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -775,7 +776,7 @@ impl LayoutThread {
         let mut reports = vec![];
         // Servo uses vanilla jemalloc, which doesn't have a
         // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(malloc_size_of, None, None);
+        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();

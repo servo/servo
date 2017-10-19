@@ -8,7 +8,8 @@ use freetype::freetype::FT_Library;
 use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
-use malloc_size_of::{malloc_size_of, MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use servo_allocator::usable_size;
 use std::mem;
 use std::os::raw::{c_long, c_void};
 use std::ptr;
@@ -31,7 +32,7 @@ extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
     mem::forget(vec);
 
     unsafe {
-        let actual_size = malloc_size_of(ptr as *const _);
+        let actual_size = usable_size(ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size += actual_size;
     }
@@ -41,7 +42,7 @@ extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
 
 extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     unsafe {
-        let actual_size = malloc_size_of(ptr as *const _);
+        let actual_size = usable_size(ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size -= actual_size;
 
@@ -50,13 +51,14 @@ extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     }
 }
 
-extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
+extern fn ft_realloc(mem: FT_Memory, old_size: c_long, new_req_size: c_long,
                      old_ptr: *mut c_void) -> *mut c_void {
     let old_actual_size;
     let mut vec;
     unsafe {
-        old_actual_size = malloc_size_of(old_ptr as *const _);
-        vec = Vec::<u8>::from_raw_parts(old_ptr as *mut u8, old_actual_size, old_actual_size);
+        old_actual_size = usable_size(old_ptr as *const _);
+        let old_size = old_size as usize;
+        vec = Vec::<u8>::from_raw_parts(old_ptr as *mut u8, old_size, old_size);
     };
 
     let new_req_size = new_req_size as usize;
@@ -71,7 +73,7 @@ extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
     mem::forget(vec);
 
     unsafe {
-        let new_actual_size = malloc_size_of(new_ptr as *const _);
+        let new_actual_size = usable_size(new_ptr as *const _);
         let user = (*mem).user as *mut User;
         (*user).size += new_actual_size;
         (*user).size -= old_actual_size;
