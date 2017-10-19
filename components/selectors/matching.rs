@@ -20,39 +20,37 @@ pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: usize = 4096;
 bitflags! {
     /// Set of flags that are set on either the element or its parent (depending
     /// on the flag) if the element could potentially match a selector.
-    pub struct ElementSelectorFlags: usize {
+    pub flags ElementSelectorFlags: usize {
         /// When a child is added or removed from the parent, all the children
         /// must be restyled, because they may match :nth-last-child,
         /// :last-of-type, :nth-last-of-type, or :only-of-type.
-        const HAS_SLOW_SELECTOR = 1 << 0;
+        const HAS_SLOW_SELECTOR = 1 << 0,
 
         /// When a child is added or removed from the parent, any later
         /// children must be restyled, because they may match :nth-child,
         /// :first-of-type, or :nth-of-type.
-        const HAS_SLOW_SELECTOR_LATER_SIBLINGS = 1 << 1;
+        const HAS_SLOW_SELECTOR_LATER_SIBLINGS = 1 << 1,
 
         /// When a child is added or removed from the parent, the first and
         /// last children must be restyled, because they may match :first-child,
         /// :last-child, or :only-child.
-        const HAS_EDGE_CHILD_SELECTOR = 1 << 2;
+        const HAS_EDGE_CHILD_SELECTOR = 1 << 2,
 
         /// The element has an empty selector, so when a child is appended we
         /// might need to restyle the parent completely.
-        const HAS_EMPTY_SELECTOR = 1 << 3;
+        const HAS_EMPTY_SELECTOR = 1 << 3,
     }
 }
 
 impl ElementSelectorFlags {
     /// Returns the subset of flags that apply to the element.
     pub fn for_self(self) -> ElementSelectorFlags {
-        self & (ElementSelectorFlags::HAS_EMPTY_SELECTOR)
+        self & (HAS_EMPTY_SELECTOR)
     }
 
     /// Returns the subset of flags that apply to the parent.
     pub fn for_parent(self) -> ElementSelectorFlags {
-        self & (ElementSelectorFlags::HAS_SLOW_SELECTOR |
-                ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS |
-                ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR)
+        self & (HAS_SLOW_SELECTOR | HAS_SLOW_SELECTOR_LATER_SIBLINGS | HAS_EDGE_CHILD_SELECTOR)
     }
 }
 
@@ -518,7 +516,7 @@ where
     let combinator = selector_iter.next_sequence();
     let siblings = combinator.map_or(false, |c| c.is_sibling());
     if siblings {
-        flags_setter(element, ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS);
+        flags_setter(element, HAS_SLOW_SELECTOR_LATER_SIBLINGS);
     }
 
     if !matches_all_simple_selectors {
@@ -718,7 +716,7 @@ where
             element.is_root()
         }
         Component::Empty => {
-            flags_setter(element, ElementSelectorFlags::HAS_EMPTY_SELECTOR);
+            flags_setter(element, HAS_EMPTY_SELECTOR);
             element.is_empty()
         }
         Component::Scope => {
@@ -793,9 +791,9 @@ where
     }
 
     flags_setter(element, if is_from_end {
-        ElementSelectorFlags::HAS_SLOW_SELECTOR
+        HAS_SLOW_SELECTOR
     } else {
-        ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS
+        HAS_SLOW_SELECTOR_LATER_SIBLINGS
     });
 
     // Grab a reference to the appropriate cache.
@@ -888,7 +886,7 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    flags_setter(element, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
+    flags_setter(element, HAS_EDGE_CHILD_SELECTOR);
     element.prev_sibling_element().is_none()
 }
 
@@ -898,6 +896,6 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    flags_setter(element, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
+    flags_setter(element, HAS_EDGE_CHILD_SELECTOR);
     element.next_sibling_element().is_none()
 }

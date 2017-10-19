@@ -140,7 +140,8 @@ pub mod layout_exports {
     pub use dom::characterdata::LayoutCharacterDataHelpers;
     pub use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
     pub use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-    pub use dom::node::NodeFlags;
+    pub use dom::node::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
+    pub use dom::node::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
     pub use dom::node::{LayoutNodeHelpers, Node};
     pub use dom::text::Text;
 }

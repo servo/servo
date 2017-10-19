@@ -51,7 +51,7 @@ impl ToComputedValue for specified::JustifyItems {
         use values::specified::align;
         let specified = *self;
         let computed =
-            if self.0 != align::AlignFlags::AUTO {
+            if self.0 != align::ALIGN_AUTO {
                 *self
             } else {
                 // If the inherited value of `justify-items` includes the

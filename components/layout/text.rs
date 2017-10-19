@@ -7,14 +7,15 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use fragment::{Fragment, ScannedTextFlags};
-use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use gfx::font::{FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
+use fragment::{Fragment, REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES, ScannedTextFlags};
+use fragment::{SELECTED, ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
+use gfx::font::{KEEP_ALL_FLAG, RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
-use inline::{InlineFragmentNodeFlags, InlineFragments};
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragments, LAST_FRAGMENT_OF_ELEMENT};
 use linked_list::split_off_head;
 use ordered_float::NotNaN;
 use range::Range;
@@ -290,15 +291,15 @@ impl TextRunScanner {
             let mut flags = ShapingFlags::empty();
             if let Some(v) = letter_spacing.value() {
                 if v.px() != 0. {
-                    flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+                    flags.insert(IGNORE_LIGATURES_SHAPING_FLAG);
                 }
             }
             if text_rendering == text_rendering::T::optimizespeed {
-                flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-                flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
+                flags.insert(IGNORE_LIGATURES_SHAPING_FLAG);
+                flags.insert(DISABLE_KERNING_SHAPING_FLAG)
             }
             if word_break == word_break::T::keep_all {
-                flags.insert(ShapingFlags::KEEP_ALL_FLAG);
+                flags.insert(KEEP_ALL_FLAG);
             }
             let options = ShapingOptions {
                 letter_spacing: letter_spacing.value().cloned().map(Au::from),
@@ -312,7 +313,7 @@ impl TextRunScanner {
                 let mut options = options;
                 options.script = run_info.script;
                 if run_info.bidi_level.is_rtl() {
-                    options.flags.insert(ShapingFlags::RTL_FLAG);
+                    options.flags.insert(RTL_FLAG);
                 }
                 let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
                 ScannedTextRun {
@@ -363,11 +364,11 @@ impl TextRunScanner {
 
                 if requires_line_break_afterward_if_wrapping_on_newlines {
                     byte_range.extend_by(ByteIndex(-1)); // Trim the '\n'
-                    flags.insert(ScannedTextFlags::REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
+                    flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
 
                 if mapping.selected {
-                    flags.insert(ScannedTextFlags::SELECTED);
+                    flags.insert(SELECTED);
                 }
 
                 let insertion_point = if mapping.contains_insertion_point(scanned_run.insertion_point) {
@@ -401,10 +402,10 @@ impl TextRunScanner {
                 if let Some(ref mut context) = new_fragment.inline_context {
                     for node in &mut context.nodes {
                         if !is_last_mapping_of_this_old_fragment {
-                            node.flags.remove(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT);
+                            node.flags.remove(LAST_FRAGMENT_OF_ELEMENT);
                         }
                         if !is_first_mapping_of_this_old_fragment {
-                            node.flags.remove(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT);
+                            node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT);
                         }
                     }
                 }

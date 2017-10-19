@@ -11,7 +11,8 @@ use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState};
+use display_list_builder::{DisplayListBuildState, NEVER_CREATES_STACKING_CONTEXT};
+use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use flow;
 use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
@@ -26,7 +27,7 @@ use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::servo::restyle_damage::ServoRestyleDamage;
+use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
@@ -504,8 +505,7 @@ impl Flow for TableFlow {
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         // Stacking contexts are collected by the table wrapper.
-        self.block_flow.collect_stacking_contexts_for_block(state,
-            StackingContextCollectionFlags::NEVER_CREATES_STACKING_CONTEXT);
+        self.block_flow.collect_stacking_contexts_for_block(state, NEVER_CREATES_STACKING_CONTEXT);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
@@ -735,7 +735,7 @@ impl TableLikeFlow for BlockFlow {
         debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
                       border_collapse::T::separate || block_direction_spacing == Au(0));
 
-        if self.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
+        if self.base.restyle_damage.contains(REFLOW) {
             // Our current border-box position.
             let block_start_border_padding = self.fragment.border_padding.block_start;
             let mut current_block_offset = block_start_border_padding;
@@ -809,7 +809,7 @@ impl TableLikeFlow for BlockFlow {
             }
         }
 
-        self.base.restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
+        self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 }
 

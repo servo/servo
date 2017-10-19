@@ -18,7 +18,7 @@ use style::stylesheets::viewport_rule::*;
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
-use style_traits::{ParsingMode, PinchZoomFactor};
+use style_traits::{PARSING_MODE_DEFAULT, PinchZoomFactor};
 use style_traits::viewport::*;
 
 macro_rules! stylesheet {
@@ -303,7 +303,7 @@ fn multiple_stylesheets_cascading() {
 fn constrain_viewport() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Viewport),
-                                     ParsingMode::DEFAULT,
+                                     PARSING_MODE_DEFAULT,
                                      QuirksMode::NoQuirks);
     let error_context = ParserErrorContext { error_reporter: &CSSErrorReporterTest };
 

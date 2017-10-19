@@ -13,7 +13,7 @@ use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::CssRuleType;
 use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
-use style_traits::ParsingMode;
+use style_traits::PARSING_MODE_DEFAULT;
 
 #[dom_struct]
 pub struct CSS {
@@ -39,7 +39,7 @@ impl CSS {
         let context = ParserContext::new_for_cssom(
             &url,
             Some(CssRuleType::Style),
-            ParsingMode::DEFAULT,
+            PARSING_MODE_DEFAULT,
             QuirksMode::NoQuirks
         );
         decl.eval(&context)
@@ -55,7 +55,7 @@ impl CSS {
             let context = ParserContext::new_for_cssom(
                 &url,
                 Some(CssRuleType::Style),
-                ParsingMode::DEFAULT,
+                PARSING_MODE_DEFAULT,
                 QuirksMode::NoQuirks
             );
             cond.eval(&context)

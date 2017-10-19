@@ -37,7 +37,7 @@ use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
-use dom::node::{Node, NodeFlags, UnbindContext, VecPreOrderInsertionHelper};
+use dom::node::{Node, PARSER_ASSOCIATED_FORM_OWNER, UnbindContext, VecPreOrderInsertionHelper};
 use dom::node::{document_from_node, window_from_node};
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
@@ -879,7 +879,7 @@ pub trait FormControl: DomObject {
     fn set_form_owner_from_parser(&self, form: &HTMLFormElement) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
-        node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, true);
+        node.set_flag(PARSER_ASSOCIATED_FORM_OWNER, true);
         form.add_control(self);
         self.set_form_owner(Some(form));
     }
@@ -968,8 +968,8 @@ pub trait FormControl: DomObject {
         // Part of step 12.
         // '..suppress the running of the reset the form owner algorithm
         // when the parser subsequently attempts to insert the element..'
-        let must_skip_reset = node.get_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER);
-        node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, false);
+        let must_skip_reset = node.get_flag(PARSER_ASSOCIATED_FORM_OWNER);
+        node.set_flag(PARSER_ASSOCIATED_FORM_OWNER, false);
 
         if !must_skip_reset {
             self.form_attribute_mutated(AttributeMutation::Set(None));

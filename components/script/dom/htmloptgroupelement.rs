@@ -15,7 +15,7 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use style::element_state::ElementState;
+use style::element_state::*;
 
 #[dom_struct]
 pub struct HTMLOptGroupElement {
@@ -28,7 +28,7 @@ impl HTMLOptGroupElement {
                      document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       local_name, prefix, document)
         }
     }

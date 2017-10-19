@@ -136,10 +136,10 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(JSTraceable, MallocSizeOf)]
-    struct TextureUnpacking: u8 {
-        const FLIP_Y_AXIS = 0x01;
-        const PREMULTIPLY_ALPHA = 0x02;
-        const CONVERT_COLORSPACE = 0x04;
+    flags TextureUnpacking: u8 {
+        const FLIP_Y_AXIS = 0x01,
+        const PREMULTIPLY_ALPHA = 0x02,
+        const CONVERT_COLORSPACE = 0x04,
     }
 }
 
@@ -235,7 +235,7 @@ impl WebGLRenderingContext {
                 limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
-                texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
+                texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
                 texture_unpacking_alignment: Cell::new(4),
                 bound_framebuffer: MutNullableDom::new(None),
                 bound_textures: DomRefCell::new(Default::default()),
@@ -878,7 +878,7 @@ impl WebGLRenderingContext {
                        width: usize,
                        height: usize,
                        unpacking_alignment: usize) -> Vec<u8> {
-        if !self.texture_unpacking_settings.get().contains(TextureUnpacking::FLIP_Y_AXIS) {
+        if !self.texture_unpacking_settings.get().contains(FLIP_Y_AXIS) {
             return pixels;
         }
 
@@ -906,7 +906,7 @@ impl WebGLRenderingContext {
                           format: TexFormat,
                           data_type: TexDataType,
                           pixels: Vec<u8>) -> Vec<u8> {
-        if !self.texture_unpacking_settings.get().contains(TextureUnpacking::PREMULTIPLY_ALPHA) {
+        if !self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
             return pixels;
         }
 
@@ -990,7 +990,7 @@ impl WebGLRenderingContext {
                       source_premultiplied: bool,
                       source_from_image_or_canvas: bool,
                       mut pixels: Vec<u8>) -> Vec<u8> {
-        let dest_premultiply = self.texture_unpacking_settings.get().contains(TextureUnpacking::PREMULTIPLY_ALPHA);
+        let dest_premultiply = self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA);
         if !source_premultiplied && dest_premultiply {
             if source_from_image_or_canvas {
                 // When the pixels come from image or canvas or imagedata, use RGBA8 format
@@ -2450,9 +2450,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match param_name {
             constants::UNPACK_FLIP_Y_WEBGL => {
                if param_value != 0 {
-                    texture_settings.insert(TextureUnpacking::FLIP_Y_AXIS)
+                    texture_settings.insert(FLIP_Y_AXIS)
                 } else {
-                    texture_settings.remove(TextureUnpacking::FLIP_Y_AXIS)
+                    texture_settings.remove(FLIP_Y_AXIS)
                 }
 
                 self.texture_unpacking_settings.set(texture_settings);
@@ -2460,9 +2460,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
             constants::UNPACK_PREMULTIPLY_ALPHA_WEBGL => {
                 if param_value != 0 {
-                    texture_settings.insert(TextureUnpacking::PREMULTIPLY_ALPHA)
+                    texture_settings.insert(PREMULTIPLY_ALPHA)
                 } else {
-                    texture_settings.remove(TextureUnpacking::PREMULTIPLY_ALPHA)
+                    texture_settings.remove(PREMULTIPLY_ALPHA)
                 }
 
                 self.texture_unpacking_settings.set(texture_settings);
@@ -2471,9 +2471,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::UNPACK_COLORSPACE_CONVERSION_WEBGL => {
                 match param_value as u32 {
                     constants::BROWSER_DEFAULT_WEBGL
-                        => texture_settings.insert(TextureUnpacking::CONVERT_COLORSPACE),
+                        => texture_settings.insert(CONVERT_COLORSPACE),
                     constants::NONE
-                        => texture_settings.remove(TextureUnpacking::CONVERT_COLORSPACE),
+                        => texture_settings.remove(CONVERT_COLORSPACE),
                     _ => return self.webgl_error(InvalidEnum),
                 }
 

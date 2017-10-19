@@ -25,7 +25,7 @@ use std::cell::Cell;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
-use style_traits::ParsingMode;
+use style_traits::PARSING_MODE_DEFAULT;
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
@@ -87,7 +87,7 @@ impl HTMLStyleElement {
         let url = window.get_url();
         let context = CssParserContext::new_for_cssom(&url,
                                                       Some(CssRuleType::Media),
-                                                      ParsingMode::DEFAULT,
+                                                      PARSING_MODE_DEFAULT,
                                                       doc.quirks_mode());
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mut input = ParserInput::new(&mq_str);

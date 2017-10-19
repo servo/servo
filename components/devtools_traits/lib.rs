@@ -243,9 +243,9 @@ pub struct ConsoleMessage {
 
 bitflags! {
     #[derive(Deserialize, Serialize)]
-    pub struct CachedConsoleMessageTypes: u8 {
-        const PAGE_ERROR  = 1 << 0;
-        const CONSOLE_API = 1 << 1;
+    pub flags CachedConsoleMessageTypes: u8 {
+        const PAGE_ERROR  = 1 << 0,
+        const CONSOLE_API = 1 << 1,
     }
 }
 

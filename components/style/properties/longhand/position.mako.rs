@@ -45,7 +45,7 @@ macro_rules! impl_align_conversions {
 ${helpers.predefined_type("z-index", "IntegerOrAuto",
                           "Either::Second(Auto)",
                           spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
-                          flags="PropertyFlags::CREATES_STACKING_CONTEXT",
+                          flags="CREATES_STACKING_CONTEXT",
                           animation_value_type="ComputedValue")}
 
 

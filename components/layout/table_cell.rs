@@ -13,7 +13,7 @@ use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
 use display_list_builder::StackingContextCollectionState;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use flow::{self, Flow, FlowClass, FlowFlags, OpaqueFlow};
+use flow::{self, Flow, FlowClass, IS_ABSOLUTELY_POSITIONED, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
@@ -102,7 +102,7 @@ impl TableCellFlow {
         let mut extents = None;
         for kid in flow::base(self).children.iter() {
             let kid_base = flow::base(kid);
-            if kid_base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+            if kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 continue
             }
             let start = kid_base.position.start.b -
@@ -144,7 +144,7 @@ impl TableCellFlow {
 
         for kid in flow::mut_base(self).children.iter_mut() {
             let kid_base = flow::mut_base(kid);
-            if !kid_base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+            if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 kid_base.position.start.b += offset
             }
         }

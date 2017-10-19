@@ -148,39 +148,39 @@ pub struct Node {
 bitflags! {
     #[doc = "Flags for node items."]
     #[derive(JSTraceable, MallocSizeOf)]
-    pub struct NodeFlags: u16 {
+    pub flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
-        const IS_IN_DOC = 1 << 0;
+        const IS_IN_DOC = 1 << 0,
 
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
-        const HAS_DIRTY_DESCENDANTS = 1 << 1;
+        const HAS_DIRTY_DESCENDANTS = 1 << 1,
         // TODO: find a better place to keep this (#4105)
         // https://critic.hoppipolla.co.uk/showcomment?chain=8873
         // Perhaps using a Set in Document?
         #[doc = "Specifies whether or not there is an authentic click in progress on \
                  this element."]
-        const CLICK_IN_PROGRESS = 1 << 2;
+        const CLICK_IN_PROGRESS = 1 << 2,
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
-        const SEQUENTIALLY_FOCUSABLE = 1 << 3;
+        const SEQUENTIALLY_FOCUSABLE = 1 << 3,
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 1 << 4;
+        const CAN_BE_FRAGMENTED = 1 << 4,
 
         // There's a free bit here.
 
         #[doc = "Specifies whether the parser has set an associated form owner for \
                  this element. Only applicable for form-associatable elements."]
-        const PARSER_ASSOCIATED_FORM_OWNER = 1 << 6;
+        const PARSER_ASSOCIATED_FORM_OWNER = 1 << 6,
 
         /// Whether this element has a snapshot stored due to a style or
         /// attribute change.
         ///
         /// See the `style::restyle_hints` module.
-        const HAS_SNAPSHOT = 1 << 7;
+        const HAS_SNAPSHOT = 1 << 7,
 
         /// Whether this element has already handled the stored snapshot.
-        const HANDLED_SNAPSHOT = 1 << 8;
+        const HANDLED_SNAPSHOT = 1 << 8,
     }
 }
 
@@ -261,9 +261,9 @@ impl Node {
 
         let parent_in_doc = self.is_in_doc();
         for node in new_child.traverse_preorder() {
-            node.set_flag(NodeFlags::IS_IN_DOC, parent_in_doc);
+            node.set_flag(IS_IN_DOC, parent_in_doc);
             // Out-of-document elements never have the descendants flag set.
-            debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
+            debug_assert!(!node.get_flag(HAS_DIRTY_DESCENDANTS));
             vtable_for(&&*node).bind_to_tree(parent_in_doc);
         }
         let document = new_child.owner_doc();
@@ -303,8 +303,8 @@ impl Node {
 
         for node in child.traverse_preorder() {
             // Out-of-document elements never have the descendants flag set.
-            node.set_flag(NodeFlags::IS_IN_DOC | NodeFlags::HAS_DIRTY_DESCENDANTS |
-                          NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT,
+            node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS |
+                          HAS_SNAPSHOT | HANDLED_SNAPSHOT,
                           false);
         }
         for node in child.traverse_preorder() {
@@ -427,7 +427,7 @@ impl Node {
     }
 
     pub fn is_in_doc(&self) -> bool {
-        self.flags.get().contains(NodeFlags::IS_IN_DOC)
+        self.flags.get().contains(IS_IN_DOC)
     }
 
     /// Returns the type ID of this node.
@@ -489,7 +489,7 @@ impl Node {
     }
 
     pub fn has_dirty_descendants(&self) -> bool {
-        self.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS)
+        self.get_flag(HAS_DIRTY_DESCENDANTS)
     }
 
     pub fn rev_version(&self) {
@@ -1394,7 +1394,7 @@ impl Node {
 
     #[allow(unrooted_must_root)]
     pub fn new_document_node() -> Node {
-        Node::new_(NodeFlags::new() | NodeFlags::IS_IN_DOC, None)
+        Node::new_(NodeFlags::new() | IS_IN_DOC, None)
     }
 
     #[allow(unrooted_must_root)]

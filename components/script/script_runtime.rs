@@ -33,7 +33,7 @@ use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
-use style::thread_state::{self, ThreadState};
+use style::thread_state;
 use task::TaskBox;
 use time::{Tm, now};
 
@@ -394,8 +394,8 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
 #[allow(unsafe_code)]
 unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut os::raw::c_void) {
     match status {
-        JSGCStatus::JSGC_BEGIN => thread_state::enter(ThreadState::IN_GC),
-        JSGCStatus::JSGC_END   => thread_state::exit(ThreadState::IN_GC),
+        JSGCStatus::JSGC_BEGIN => thread_state::enter(thread_state::IN_GC),
+        JSGCStatus::JSGC_END   => thread_state::exit(thread_state::IN_GC),
     }
 }
 

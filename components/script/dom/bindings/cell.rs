@@ -5,7 +5,7 @@
 //! A shareable mutable container for the DOM.
 
 use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
-use style::thread_state::{self, ThreadState};
+use style::thread_state;
 
 /// A mutable field in the DOM.
 ///
@@ -45,7 +45,7 @@ impl<T> DomRefCell<T> {
     ///
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
-        debug_assert!(thread_state::get().contains(ThreadState::SCRIPT));
+        debug_assert!(thread_state::get().contains(thread_state::SCRIPT));
         &mut *self.value.as_ptr()
     }
 

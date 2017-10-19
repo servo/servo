@@ -138,13 +138,13 @@ mod data_flags {
         // While this has the same layout as u16, it cannot be passed
         // over FFI safely as a u16.
         #[repr(C)]
-        pub struct DataFlags : u16 {
-            const TERMINATED = 1 << 0; // IsTerminated returns true
-            const VOIDED = 1 << 1; // IsVoid returns true
-            const SHARED = 1 << 2; // mData points to a heap-allocated, shared buffer
-            const OWNED = 1 << 3; // mData points to a heap-allocated, raw buffer
-            const INLINE = 1 << 4; // mData points to a writable, inline buffer
-            const LITERAL = 1 << 5; // mData points to a string literal; TERMINATED will also be set
+        pub flags DataFlags : u16 {
+            const TERMINATED = 1 << 0, // IsTerminated returns true
+            const VOIDED = 1 << 1, // IsVoid returns true
+            const SHARED = 1 << 2, // mData points to a heap-allocated, shared buffer
+            const OWNED = 1 << 3, // mData points to a heap-allocated, raw buffer
+            const INLINE = 1 << 4, // mData points to a writable, inline buffer
+            const LITERAL = 1 << 5, // mData points to a string literal; TERMINATED will also be set
         }
     }
 }
@@ -154,9 +154,9 @@ mod class_flags {
         // While this has the same layout as u16, it cannot be passed
         // over FFI safely as a u16.
         #[repr(C)]
-        pub struct ClassFlags : u16 {
-            const INLINE = 1 << 0; // |this|'s buffer is inline
-            const NULL_TERMINATED = 1 << 1; // |this| requires its buffer is null-terminated
+        pub flags ClassFlags : u16 {
+            const INLINE = 1 << 0, // |this|'s buffer is inline
+            const NULL_TERMINATED = 1 << 1, // |this| requires its buffer is null-terminated
         }
     }
 }
@@ -212,7 +212,7 @@ macro_rules! define_string_types {
                 $StringRepr {
                     data: &NUL,
                     length: 0,
-                    dataflags: DataFlags::TERMINATED | DataFlags::LITERAL,
+                    dataflags: data_flags::TERMINATED | data_flags::LITERAL,
                     classflags: classflags,
                 }
             }
@@ -536,7 +536,7 @@ macro_rules! define_string_types {
         impl $String {
             pub fn new() -> $String {
                 $String {
-                    hdr: $StringRepr::new(ClassFlags::NULL_TERMINATED),
+                    hdr: $StringRepr::new(class_flags::NULL_TERMINATED),
                 }
             }
         }
@@ -618,8 +618,8 @@ macro_rules! define_string_types {
                     hdr: $StringRepr {
                         data: ptr,
                         length: length,
-                        dataflags: DataFlags::OWNED | DataFlags::TERMINATED,
-                        classflags: ClassFlags::NULL_TERMINATED,
+                        dataflags: data_flags::OWNED | data_flags::TERMINATED,
+                        classflags: class_flags::NULL_TERMINATED,
                     }
                 }
             }

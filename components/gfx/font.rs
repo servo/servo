@@ -139,17 +139,17 @@ impl Font {
 }
 
 bitflags! {
-    pub struct ShapingFlags: u8 {
+    pub flags ShapingFlags: u8 {
         #[doc = "Set if the text is entirely whitespace."]
-        const IS_WHITESPACE_SHAPING_FLAG = 0x01;
+        const IS_WHITESPACE_SHAPING_FLAG = 0x01,
         #[doc = "Set if we are to ignore ligatures."]
-        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02;
+        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02,
         #[doc = "Set if we are to disable kerning."]
-        const DISABLE_KERNING_SHAPING_FLAG = 0x04;
+        const DISABLE_KERNING_SHAPING_FLAG = 0x04,
         #[doc = "Text direction is right-to-left."]
-        const RTL_FLAG = 0x08;
+        const RTL_FLAG = 0x08,
         #[doc = "Set if word-break is set to keep-all."]
-        const KEEP_ALL_FLAG = 0x10;
+        const KEEP_ALL_FLAG = 0x10,
     }
 }
 
@@ -186,8 +186,8 @@ impl Font {
         let result = self.shape_cache.borrow_mut().entry(lookup_key).or_insert_with(|| {
             let start_time = time::precise_time_ns();
             let mut glyphs = GlyphStore::new(text.len(),
-                                             options.flags.contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
-                                             options.flags.contains(ShapingFlags::RTL_FLAG));
+                                             options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
+                                             options.flags.contains(RTL_FLAG));
 
             if self.can_do_fast_shaping(text, options) {
                 debug!("shape_text: Using ASCII fast path.");
@@ -211,7 +211,7 @@ impl Font {
 
     fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
         options.script == Script::Latin &&
-            !options.flags.contains(ShapingFlags::RTL_FLAG) &&
+            !options.flags.contains(RTL_FLAG) &&
             self.handle.can_do_fast_shaping() &&
             text.is_ascii()
     }
