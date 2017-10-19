@@ -78,7 +78,7 @@ use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
-use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
+use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsAtom, nsCSSPropertyID};
@@ -2793,16 +2793,41 @@ pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, resul
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
-    let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
+pub unsafe extern "C" fn Servo_MediaList_SetText(
+    list: RawServoMediaListBorrowed,
+    text: *const nsACString,
+    caller_type: CallerType,
+) {
+    let text = (*text).as_str_unchecked();
+
     let mut input = ParserInput::new(&text);
     let mut parser = Parser::new(&mut input);
-    let url_data = unsafe { dummy_url_data() };
-    let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
-                                               QuirksMode::NoQuirks);
-     write_locked_arc(list, |list: &mut MediaList| {
-        *list = parse_media_query_list(&context, &mut parser, &NullReporter);
+    let url_data = dummy_url_data();
+
+    // TODO(emilio): If the need for `CallerType` appears in more places,
+    // consider adding an explicit member in `ParserContext` instead of doing
+    // this (or adding a dummy "chrome://" url data).
+    //
+    // For media query parsing it's effectively the same, so for now...
+    let origin = match caller_type {
+        CallerType::System => Origin::UserAgent,
+        CallerType::NonSystem => Origin::Author,
+    };
+
+    let context = ParserContext::new(
+        origin,
+        url_data,
+        Some(CssRuleType::Media),
+        PARSING_MODE_DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    write_locked_arc(list, |list: &mut MediaList| {
+        *list = parse_media_query_list(
+            &context,
+            &mut parser,
+            &NullReporter,
+        );
     })
 }
 
