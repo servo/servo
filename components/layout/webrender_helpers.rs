@@ -73,7 +73,6 @@ trait ToBoxShadowClipMode {
 impl ToBoxShadowClipMode for BoxShadowClipMode {
     fn to_clip_mode(&self) -> webrender_api::BoxShadowClipMode {
         match *self {
-            BoxShadowClipMode::None => webrender_api::BoxShadowClipMode::None,
             BoxShadowClipMode::Inset => webrender_api::BoxShadowClipMode::Inset,
             BoxShadowClipMode::Outset => webrender_api::BoxShadowClipMode::Outset,
         }
