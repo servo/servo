@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 macro_rules! task {
-    ($name:ident: move || $body:tt) => {{
+    ($name:ident: move || $body:tt, $pipeline:stmt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
         impl<F> ::task::TaskOnce for $name<F>
@@ -22,6 +22,10 @@ macro_rules! task {
 
             fn run_once(self) {
                 (self.0)();
+            }
+
+            fn task(&self) -> Option<PipelineId> {
+                $pipeline
             }
         }
         $name(move || $body)
