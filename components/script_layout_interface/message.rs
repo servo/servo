@@ -120,7 +120,7 @@ pub enum ReflowGoal {
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
     OffsetParentQuery(TrustedNodeAddress),
     MarginStyleQuery(TrustedNodeAddress),
-    TextIndexQuery(TrustedNodeAddress, i32, i32),
+    TextIndexQuery(TrustedNodeAddress, Point2D<f32>),
     NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
 }
 

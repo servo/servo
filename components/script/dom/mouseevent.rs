@@ -15,6 +15,7 @@ use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use euclid::Point2D;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::default::Default;
@@ -32,6 +33,7 @@ pub struct MouseEvent {
     meta_key: Cell<bool>,
     button: Cell<i16>,
     related_target: MutNullableDom<EventTarget>,
+    point_in_target: Cell<Option<Point2D<f32>>>
 }
 
 impl MouseEvent {
@@ -48,6 +50,7 @@ impl MouseEvent {
             meta_key: Cell::new(false),
             button: Cell::new(0),
             related_target: Default::default(),
+            point_in_target: Cell::new(None),
         }
     }
 
@@ -57,28 +60,34 @@ impl MouseEvent {
                            MouseEventBinding::Wrap)
     }
 
-    pub fn new(window: &Window,
-               type_: DOMString,
-               can_bubble: EventBubbles,
-               cancelable: EventCancelable,
-               view: Option<&Window>,
-               detail: i32,
-               screen_x: i32,
-               screen_y: i32,
-               client_x: i32,
-               client_y: i32,
-               ctrl_key: bool,
-               alt_key: bool,
-               shift_key: bool,
-               meta_key: bool,
-               button: i16,
-               related_target: Option<&EventTarget>) -> DomRoot<MouseEvent> {
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        screen_x: i32,
+        screen_y: i32,
+        client_x: i32,
+        client_y: i32,
+        ctrl_key: bool,
+        alt_key: bool,
+        shift_key: bool,
+        meta_key: bool,
+        button: i16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32>>
+    ) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window);
-        ev.InitMouseEvent(type_, bool::from(can_bubble), bool::from(cancelable),
-                          view, detail,
-                          screen_x, screen_y, client_x, client_y,
-                          ctrl_key, alt_key, shift_key, meta_key,
-                          button, related_target);
+        ev.InitMouseEvent(
+            type_, bool::from(can_bubble), bool::from(cancelable),
+            view, detail,
+            screen_x, screen_y, client_x, client_y,
+            ctrl_key, alt_key, shift_key, meta_key,
+            button, related_target,
+        );
+        ev.point_in_target.set(point_in_target);
         ev
     }
 
@@ -87,17 +96,23 @@ impl MouseEvent {
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
-        let event = MouseEvent::new(window,
-                                    type_,
-                                    bubbles,
-                                    cancelable,
-                                    init.parent.parent.view.r(),
-                                    init.parent.parent.detail,
-                                    init.screenX, init.screenY,
-                                    init.clientX, init.clientY, init.parent.ctrlKey,
-                                    init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
-                                    init.button, init.relatedTarget.r());
+        let event = MouseEvent::new(
+            window,
+            type_,
+            bubbles,
+            cancelable,
+            init.parent.parent.view.r(),
+            init.parent.parent.detail,
+            init.screenX, init.screenY,
+            init.clientX, init.clientY, init.parent.ctrlKey,
+            init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
+            init.button, init.relatedTarget.r(), None
+        );
         Ok(event)
+    }
+
+    pub fn point_in_target(&self) -> Option<Point2D<f32>> {
+        self.point_in_target.get()
     }
 }
 
@@ -166,22 +181,24 @@ impl MouseEventMethods for MouseEvent {
     }
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-initMouseEvent
-    fn InitMouseEvent(&self,
-                      type_arg: DOMString,
-                      can_bubble_arg: bool,
-                      cancelable_arg: bool,
-                      view_arg: Option<&Window>,
-                      detail_arg: i32,
-                      screen_x_arg: i32,
-                      screen_y_arg: i32,
-                      client_x_arg: i32,
-                      client_y_arg: i32,
-                      ctrl_key_arg: bool,
-                      alt_key_arg: bool,
-                      shift_key_arg: bool,
-                      meta_key_arg: bool,
-                      button_arg: i16,
-                      related_target_arg: Option<&EventTarget>) {
+    fn InitMouseEvent(
+        &self,
+        type_arg: DOMString,
+        can_bubble_arg: bool,
+        cancelable_arg: bool,
+        view_arg: Option<&Window>,
+        detail_arg: i32,
+        screen_x_arg: i32,
+        screen_y_arg: i32,
+        client_x_arg: i32,
+        client_y_arg: i32,
+        ctrl_key_arg: bool,
+        alt_key_arg: bool,
+        shift_key_arg: bool,
+        meta_key_arg: bool,
+        button_arg: i16,
+        related_target_arg: Option<&EventTarget>,
+    ) {
         if self.upcast::<Event>().dispatching() {
             return;
         }

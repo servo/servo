@@ -2191,8 +2191,15 @@ impl ScriptThread {
                 self.handle_resize_event(pipeline_id, new_size, size_type);
             }
 
-            MouseButtonEvent(event_type, button, point, node_address) => {
-                self.handle_mouse_event(pipeline_id, event_type, button, point, node_address);
+            MouseButtonEvent(event_type, button, point, node_address, point_in_node) => {
+                self.handle_mouse_event(
+                    pipeline_id,
+                    event_type,
+                    button,
+                    point,
+                    node_address,
+                    point_in_node
+                );
             }
 
             MouseMoveEvent(point, node_address) => {
@@ -2303,7 +2310,8 @@ impl ScriptThread {
         mouse_event_type: MouseEventType,
         button: MouseButton,
         point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>
+        node_address: Option<UntrustedNodeAddress>,
+        point_in_node: Option<Point2D<f32>>
     ) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
@@ -2314,7 +2322,8 @@ impl ScriptThread {
             button,
             point,
             mouse_event_type,
-            node_address
+            node_address,
+            point_in_node
         );
     }
 

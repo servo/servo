@@ -1361,18 +1361,19 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
             },
-            ReflowGoal::TextIndexQuery(node, mouse_x, mouse_y) => {
+            ReflowGoal::TextIndexQuery(node, point_in_node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 let opaque_node = node.opaque();
-                let client_point = Point2D::new(Au::from_px(mouse_x),
-                                                Au::from_px(mouse_y));
-                rw_data.text_index_response =
-                    TextIndexResponse(rw_data.display_list
-                                      .as_ref()
-                                      .expect("Tried to hit test with no display list")
-                                      .text_index(opaque_node,
-                                                  &client_point,
-                                                  &rw_data.scroll_offsets));
+                let point_in_node = Point2D::new(
+                    Au::from_f32_px(point_in_node.x),
+                    Au::from_f32_px(point_in_node.y)
+                );
+                rw_data.text_index_response = TextIndexResponse(
+                    rw_data.display_list
+                    .as_ref()
+                    .expect("Tried to hit test with no display list")
+                    .text_index(opaque_node, &point_in_node)
+                );
             },
             ReflowGoal::NodeGeometryQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };

@@ -1481,8 +1481,12 @@ impl Window {
         self.layout_rpc.margin_style()
     }
 
-    pub fn text_index_query(&self, node: TrustedNodeAddress, mouse_x: i32, mouse_y: i32) -> TextIndexResponse {
-        if !self.reflow(ReflowGoal::TextIndexQuery(node, mouse_x, mouse_y), ReflowReason::Query) {
+    pub fn text_index_query(
+        &self,
+        node: TrustedNodeAddress,
+        point_in_node: Point2D<f32>
+    ) -> TextIndexResponse {
+        if !self.reflow(ReflowGoal::TextIndexQuery(node, point_in_node), ReflowReason::Query) {
             return TextIndexResponse(None);
         }
         self.layout_rpc.text_index()

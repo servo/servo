@@ -11,8 +11,6 @@ use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
-use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
@@ -1106,23 +1104,19 @@ impl VirtualMethods for HTMLInputElement {
                         // dispatch_key_event (document.rs) triggers a click event when releasing
                         // the space key. There's no nice way to catch this so let's use this for
                         // now.
-                        if !(mouse_event.ScreenX() == 0 && mouse_event.ScreenY() == 0 &&
-                            mouse_event.GetRelatedTarget().is_none()) {
-                                let window = window_from_node(self);
-                                let translated_x = mouse_event.ClientX() + window.PageXOffset();
-                                let translated_y = mouse_event.ClientY() + window.PageYOffset();
-                                let TextIndexResponse(index) = window.text_index_query(
-                                    self.upcast::<Node>().to_trusted_node_address(),
-                                    translated_x,
-                                    translated_y
-                                );
-                                if let Some(i) = index {
-                                    self.textinput.borrow_mut().set_edit_point_index(i as usize);
-                                    // trigger redraw
-                                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                                    event.PreventDefault();
-                                }
+                        if let Some(point_in_target) = mouse_event.point_in_target() {
+                            let window = window_from_node(self);
+                            let TextIndexResponse(index) = window.text_index_query(
+                                self.upcast::<Node>().to_trusted_node_address(),
+                                point_in_target
+                            );
+                            if let Some(i) = index {
+                                self.textinput.borrow_mut().set_edit_point_index(i as usize);
+                                // trigger redraw
+                                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                                event.PreventDefault();
                             }
+                        }
                     }
                 }
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() &&

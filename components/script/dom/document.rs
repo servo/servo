@@ -836,7 +836,8 @@ impl Document {
         _button: MouseButton,
         client_point: Point2D<f32>,
         mouse_event_type: MouseEventType,
-        node_address: Option<UntrustedNodeAddress>
+        node_address: Option<UntrustedNodeAddress>,
+        point_in_node: Option<Point2D<f32>>
     ) {
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
@@ -871,22 +872,25 @@ impl Document {
         let client_x = client_point.x as i32;
         let client_y = client_point.y as i32;
         let click_count = 1;
-        let event = MouseEvent::new(&self.window,
-                                    DOMString::from(mouse_event_type_string),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
-                                    Some(&self.window),
-                                    click_count,
-                                    client_x,
-                                    client_y,
-                                    client_x,
-                                    client_y, // TODO: Get real screen coordinates?
-                                    false,
-                                    false,
-                                    false,
-                                    false,
-                                    0i16,
-                                    None);
+        let event = MouseEvent::new(
+            &self.window,
+            DOMString::from(mouse_event_type_string),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(&self.window),
+            click_count,
+            client_x,
+            client_y,
+            client_x,
+            client_y, // TODO: Get real screen coordinates?
+            false,
+            false,
+            false,
+            false,
+            0i16,
+            None,
+            point_in_node,
+        );
         let event = event.upcast::<Event>();
 
         // https://w3c.github.io/uievents/#trusted-events
@@ -943,22 +947,25 @@ impl Document {
                 let client_x = click_pos.x as i32;
                 let client_y = click_pos.y as i32;
 
-                let event = MouseEvent::new(&self.window,
-                                            DOMString::from("dblclick"),
-                                            EventBubbles::Bubbles,
-                                            EventCancelable::Cancelable,
-                                            Some(&self.window),
-                                            click_count,
-                                            client_x,
-                                            client_y,
-                                            client_x,
-                                            client_y,
-                                            false,
-                                            false,
-                                            false,
-                                            false,
-                                            0i16,
-                                            None);
+                let event = MouseEvent::new(
+                    &self.window,
+                    DOMString::from("dblclick"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
+                    Some(&self.window),
+                    click_count,
+                    client_x,
+                    client_y,
+                    client_x,
+                    client_y,
+                    false,
+                    false,
+                    false,
+                    false,
+                    0i16,
+                    None,
+                    None
+                );
                 event.upcast::<Event>().fire(target.upcast());
 
                 // When a double click occurs, self.last_click_info is left as None so that a
@@ -1034,22 +1041,25 @@ impl Document {
         let client_x = client_point.x.to_i32().unwrap_or(0);
         let client_y = client_point.y.to_i32().unwrap_or(0);
 
-        let mouse_event = MouseEvent::new(&self.window,
-                                          DOMString::from(event_name),
-                                          EventBubbles::Bubbles,
-                                          EventCancelable::Cancelable,
-                                          Some(&self.window),
-                                          0i32,
-                                          client_x,
-                                          client_y,
-                                          client_x,
-                                          client_y,
-                                          false,
-                                          false,
-                                          false,
-                                          false,
-                                          0i16,
-                                          None);
+        let mouse_event = MouseEvent::new(
+            &self.window,
+            DOMString::from(event_name),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(&self.window),
+            0i32,
+            client_x,
+            client_y,
+            client_x,
+            client_y,
+            false,
+            false,
+            false,
+            false,
+            0i16,
+            None,
+            None
+        );
         let event = mouse_event.upcast::<Event>();
         event.fire(target);
     }

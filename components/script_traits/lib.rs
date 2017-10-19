@@ -432,7 +432,13 @@ pub enum CompositorEvent {
     /// The window was resized.
     ResizeEvent(WindowSizeData, WindowSizeType),
     /// A mouse button state changed.
-    MouseButtonEvent(MouseEventType, MouseButton, Point2D<f32>, Option<UntrustedNodeAddress>),
+    MouseButtonEvent(
+        MouseEventType,
+        MouseButton,
+        Point2D<f32>,
+        Option<UntrustedNodeAddress>,
+        Option<Point2D<f32>>
+    ),
     /// The mouse was moved over a point (or was moved out of the recognizable region).
     MouseMoveEvent(Option<Point2D<f32>>, Option<UntrustedNodeAddress>),
     /// A touch event was generated with a touch ID and location.

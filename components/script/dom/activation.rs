@@ -93,6 +93,7 @@ pub fn synthetic_click_activation(element: &Element,
                                 alt_key,
                                 meta_key,
                                 0,
+                                None,
                                 None);
     let event = mouse.upcast::<Event>();
     if source == ActivationSource::FromClick {
