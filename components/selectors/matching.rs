@@ -55,15 +55,15 @@ impl ElementSelectorFlags {
 }
 
 /// Holds per-compound-selector data.
-struct LocalMatchingContext<'a, 'b: 'a> {
-    shared: &'a mut MatchingContext<'b>,
+struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
+    shared: &'a mut MatchingContext<'b, Impl>,
     matches_hover_and_active_quirk: bool,
 }
 
 pub fn matches_selector_list<E>(
     selector_list: &SelectorList<E::Impl>,
     element: &E,
-    context: &mut MatchingContext,
+    context: &mut MatchingContext<E::Impl>,
 ) -> bool
 where
     E: Element
@@ -141,9 +141,13 @@ impl RelevantLinkStatus {
     /// If we found the relevant link for this element, record that in the
     /// overall matching context for the element as a whole and stop looking for
     /// addtional links.
-    fn examine_potential_link<E>(&self, element: &E, context: &mut MatchingContext)
-                                 -> RelevantLinkStatus
-        where E: Element,
+    fn examine_potential_link<E>(
+        &self,
+        element: &E,
+        context: &mut MatchingContext<E::Impl>,
+    ) -> RelevantLinkStatus
+    where
+        E: Element,
     {
         // If a relevant link was previously found, we no longer want to look
         // for links.  Only the nearest ancestor link is considered relevant.
@@ -168,8 +172,13 @@ impl RelevantLinkStatus {
     /// matching.  This is true only if the element is a link, an relevant link
     /// exists for the element, and the visited handling mode is set to accept
     /// relevant links as visited.
-    pub fn is_visited<E>(&self, element: &E, context: &MatchingContext) -> bool
-        where E: Element,
+    pub fn is_visited<E>(
+        &self,
+        element: &E,
+        context: &MatchingContext<E::Impl>,
+    ) -> bool
+    where
+        E: Element,
     {
         if !element.is_link() {
             return false
@@ -193,8 +202,13 @@ impl RelevantLinkStatus {
     /// as visited.  If this is a relevant link, then is it unvisited if the
     /// visited handling mode is set to treat all links as unvisted (including
     /// relevant links).
-    pub fn is_unvisited<E>(&self, element: &E, context: &MatchingContext) -> bool
-        where E: Element,
+    pub fn is_unvisited<E>(
+        &self,
+        element: &E,
+        context: &MatchingContext<E::Impl>
+    ) -> bool
+    where
+        E: Element,
     {
         if !element.is_link() {
             return false
@@ -277,7 +291,7 @@ pub fn matches_selector<E, F>(
     offset: usize,
     hashes: Option<&AncestorHashes>,
     element: &E,
-    context: &mut MatchingContext,
+    context: &mut MatchingContext<E::Impl>,
     flags_setter: &mut F,
 ) -> bool
 where
@@ -318,7 +332,7 @@ pub enum CompoundSelectorMatchingResult {
 pub fn matches_compound_selector<E>(
     selector: &Selector<E::Impl>,
     mut from_offset: usize,
-    context: &mut MatchingContext,
+    context: &mut MatchingContext<E::Impl>,
     element: &E,
 ) -> CompoundSelectorMatchingResult
 where
@@ -361,7 +375,7 @@ where
 pub fn matches_complex_selector<E, F>(
     mut iter: SelectorIter<E::Impl>,
     element: &E,
-    context: &mut MatchingContext,
+    context: &mut MatchingContext<E::Impl>,
     flags_setter: &mut F,
 ) -> bool
 where
@@ -410,7 +424,7 @@ where
 #[inline]
 fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
     selector_iter: &SelectorIter<Impl>,
-    context: &MatchingContext,
+    context: &MatchingContext<Impl>,
     rightmost: Rightmost,
 ) -> bool {
     if context.quirks_mode() != QuirksMode::Quirks {
@@ -465,7 +479,7 @@ enum Rightmost {
 fn matches_complex_selector_internal<E, F>(
     mut selector_iter: SelectorIter<E::Impl>,
     element: &E,
-    context: &mut MatchingContext,
+    context: &mut MatchingContext<E::Impl>,
     relevant_link: &mut RelevantLinkStatus,
     flags_setter: &mut F,
     rightmost: Rightmost,
@@ -589,7 +603,7 @@ where
 fn matches_simple_selector<E, F>(
     selector: &Component<E::Impl>,
     element: &E,
-    context: &mut LocalMatchingContext,
+    context: &mut LocalMatchingContext<E::Impl>,
     relevant_link: &RelevantLinkStatus,
     flags_setter: &mut F,
 ) -> bool
@@ -761,7 +775,7 @@ fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T)
 #[inline]
 fn matches_generic_nth_child<E, F>(
     element: &E,
-    context: &mut LocalMatchingContext,
+    context: &mut LocalMatchingContext<E::Impl>,
     a: i32,
     b: i32,
     is_of_type: bool,

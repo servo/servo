@@ -1198,7 +1198,7 @@ impl Stylist {
         animation_rules: AnimationRules,
         rule_inclusion: RuleInclusion,
         applicable_declarations: &mut V,
-        context: &mut MatchingContext,
+        context: &mut MatchingContext<E::Impl>,
         flags_setter: &mut F,
     )
     where

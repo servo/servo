@@ -162,17 +162,20 @@ impl SelectorMap<Rule> {
     ///
     /// Extract matching rules as per element's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    pub fn get_all_matching_rules<E, V, F>(&self,
-                                           element: &E,
-                                           rule_hash_target: &E,
-                                           matching_rules_list: &mut V,
-                                           context: &mut MatchingContext,
-                                           quirks_mode: QuirksMode,
-                                           flags_setter: &mut F,
-                                           cascade_level: CascadeLevel)
-        where E: TElement,
-              V: VecLike<ApplicableDeclarationBlock>,
-              F: FnMut(&E, ElementSelectorFlags),
+    pub fn get_all_matching_rules<E, V, F>(
+        &self,
+        element: &E,
+        rule_hash_target: &E,
+        matching_rules_list: &mut V,
+        context: &mut MatchingContext<E::Impl>,
+        quirks_mode: QuirksMode,
+        flags_setter: &mut F,
+        cascade_level: CascadeLevel,
+    )
+    where
+        E: TElement,
+        V: VecLike<ApplicableDeclarationBlock>,
+        F: FnMut(&E, ElementSelectorFlags),
     {
         if self.is_empty() {
             return
@@ -223,15 +226,18 @@ impl SelectorMap<Rule> {
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    fn get_matching_rules<E, V, F>(element: &E,
-                                   rules: &[Rule],
-                                   matching_rules: &mut V,
-                                   context: &mut MatchingContext,
-                                   flags_setter: &mut F,
-                                   cascade_level: CascadeLevel)
-        where E: TElement,
-              V: VecLike<ApplicableDeclarationBlock>,
-              F: FnMut(&E, ElementSelectorFlags),
+    fn get_matching_rules<E, V, F>(
+        element: &E,
+        rules: &[Rule],
+        matching_rules: &mut V,
+        context: &mut MatchingContext<E::Impl>,
+        flags_setter: &mut F,
+        cascade_level: CascadeLevel,
+    )
+    where
+        E: TElement,
+        V: VecLike<ApplicableDeclarationBlock>,
+        F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules {
             if matches_selector(&rule.selector,

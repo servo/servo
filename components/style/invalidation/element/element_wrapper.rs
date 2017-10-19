@@ -152,7 +152,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn match_non_ts_pseudo_class<F>(
         &self,
         pseudo_class: &NonTSPseudoClass,
-        context: &mut MatchingContext,
+        context: &mut MatchingContext<Self::Impl>,
         relevant_link: &RelevantLinkStatus,
         _setter: &mut F,
     ) -> bool
@@ -258,7 +258,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn match_pseudo_element(
         &self,
         pseudo_element: &PseudoElement,
-        context: &mut MatchingContext,
+        context: &mut MatchingContext<Self::Impl>,
     ) -> bool {
         self.element.match_pseudo_element(pseudo_element, context)
     }
