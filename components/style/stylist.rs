@@ -22,6 +22,10 @@ use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
+#[cfg(feature = "servo")]
+use properties::INHERIT_ALL;
+use properties::IS_LINK;
+use properties::VISITED_DEPENDENT_ONLY;
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
@@ -50,7 +54,7 @@ use stylesheets::StyleRule;
 use stylesheets::StylesheetInDocument;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
-use thread_state::{self, ThreadState};
+use thread_state;
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
@@ -787,7 +791,7 @@ impl Stylist {
         };
         let mut cascade_flags = CascadeFlags::empty();
         if inherit_all {
-            cascade_flags.insert(CascadeFlags::INHERIT_ALL);
+            cascade_flags.insert(INHERIT_ALL);
         }
         self.precomputed_values_for_pseudo(
             guards,
@@ -903,7 +907,7 @@ impl Stylist {
             let inherited_style;
             let inherited_style_ignoring_first_line;
             let layout_parent_style_for_visited;
-            if cascade_flags.contains(CascadeFlags::IS_LINK) {
+            if cascade_flags.contains(IS_LINK) {
                 // We just want to use our parent style as our parent.
                 inherited_style = parent_style;
                 inherited_style_ignoring_first_line = parent_style_ignoring_first_line;
@@ -929,7 +933,7 @@ impl Stylist {
                 Some(layout_parent_style_for_visited),
                 None,
                 font_metrics,
-                cascade_flags | CascadeFlags::VISITED_DEPENDENT_ONLY,
+                cascade_flags | VISITED_DEPENDENT_ONLY,
                 self.quirks_mode,
                 /* rule_cache = */ None,
                 &mut Default::default(),
@@ -998,7 +1002,7 @@ impl Stylist {
 
             // Gecko calls this from sequential mode, so we can directly apply
             // the flags.
-            debug_assert!(thread_state::get() == ThreadState::LAYOUT);
+            debug_assert!(thread_state::get() == thread_state::LAYOUT);
             let self_flags = flags.for_self();
             if !self_flags.is_empty() {
                 unsafe { element.set_selector_flags(self_flags); }

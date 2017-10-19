@@ -22,12 +22,11 @@ pub use gecko::snapshot::SnapshotMap;
 
 bitflags! {
     // See NonTSPseudoClass::is_enabled_in()
-    struct NonTSPseudoClassFlag: u8 {
-        const PSEUDO_CLASS_ENABLED_IN_UA_SHEETS = 1 << 0;
-        const PSEUDO_CLASS_ENABLED_IN_CHROME = 1 << 1;
+    flags NonTSPseudoClassFlag: u8 {
+        const PSEUDO_CLASS_ENABLED_IN_UA_SHEETS = 1 << 0,
+        const PSEUDO_CLASS_ENABLED_IN_CHROME = 1 << 1,
         const PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME =
-            NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS.bits |
-            NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_CHROME.bits;
+            PSEUDO_CLASS_ENABLED_IN_UA_SHEETS.bits | PSEUDO_CLASS_ENABLED_IN_CHROME.bits,
     }
 }
 
@@ -135,7 +134,7 @@ impl NonTSPseudoClass {
     fn has_any_flag(&self, flags: NonTSPseudoClassFlag) -> bool {
         macro_rules! check_flag {
             (_) => (false);
-            ($flags:ident) => (NonTSPseudoClassFlag::$flags.intersects(flags));
+            ($flags:expr) => ($flags.intersects(flags));
         }
         macro_rules! pseudo_class_check_is_enabled_in {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -162,7 +161,7 @@ impl NonTSPseudoClass {
                 unsafe { mozilla::StylePrefs_sUnprefixedFullscreenApiEnabled },
             // Otherwise, a pseudo-class is enabled in content when it
             // doesn't have any enabled flag.
-            _ => !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+            _ => !self.has_any_flag(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
         }
     }
 
@@ -179,7 +178,7 @@ impl NonTSPseudoClass {
     pub fn state_flag(&self) -> ElementState {
         macro_rules! flag {
             (_) => (ElementState::empty());
-            ($state:ident) => (ElementState::$state);
+            ($state:ident) => (::element_state::$state);
         }
         macro_rules! pseudo_class_state {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -291,9 +290,9 @@ impl<'a> SelectorParser<'a> {
                                -> bool {
         pseudo_class.is_enabled_in_content() ||
             (self.in_user_agent_stylesheet() &&
-             pseudo_class.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS)) ||
+             pseudo_class.has_any_flag(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS)) ||
             (self.in_chrome_stylesheet() &&
-             pseudo_class.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_CHROME))
+             pseudo_class.has_any_flag(PSEUDO_CLASS_ENABLED_IN_CHROME))
     }
 }
 

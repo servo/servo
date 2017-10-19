@@ -19,8 +19,8 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::StackingContextId;
-use inline::{InlineFragmentNodeFlags, InlineFragmentContext, InlineFragmentNodeInfo};
-use inline::{InlineMetrics, LineMetrics};
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
+use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
@@ -48,7 +48,7 @@ use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize
 use style::properties::ComputedValues;
 use style::properties::longhands::transform::computed_value::T as TransformList;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::ServoRestyleDamage;
+use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
 use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -533,13 +533,13 @@ pub struct ScannedTextFragmentInfo {
 }
 
 bitflags! {
-    pub struct ScannedTextFlags: u8 {
+    pub flags ScannedTextFlags: u8 {
         /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
         /// `white-space: pre` is in effect).
-        const REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES = 0x01;
+        const REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES = 0x01,
 
         /// Is this fragment selected?
-        const SELECTED = 0x02;
+        const SELECTED = 0x02,
     }
 }
 
@@ -566,11 +566,11 @@ impl ScannedTextFragmentInfo {
     }
 
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
-        self.flags.contains(ScannedTextFlags::REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES)
+        self.flags.contains(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES)
     }
 
     pub fn selected(&self) -> bool {
-        self.flags.contains(ScannedTextFlags::SELECTED)
+        self.flags.contains(SELECTED)
     }
 }
 
@@ -671,7 +671,7 @@ impl Fragment {
         let writing_mode = style.writing_mode;
 
         let mut restyle_damage = node.restyle_damage();
-        restyle_damage.remove(ServoRestyleDamage::RECONSTRUCT_FLOW);
+        restyle_damage.remove(RECONSTRUCT_FLOW);
 
         Fragment {
             node: node.opaque(),
@@ -700,7 +700,7 @@ impl Fragment {
                                       -> Fragment {
         let writing_mode = style.writing_mode;
 
-        restyle_damage.remove(ServoRestyleDamage::RECONSTRUCT_FLOW);
+        restyle_damage.remove(RECONSTRUCT_FLOW);
 
         Fragment {
             node: node,
@@ -753,7 +753,7 @@ impl Fragment {
                                                           size);
 
         let mut restyle_damage = RestyleDamage::rebuild_and_reflow();
-        restyle_damage.remove(ServoRestyleDamage::RECONSTRUCT_FLOW);
+        restyle_damage.remove(RECONSTRUCT_FLOW);
 
         Fragment {
             node: self.node,
@@ -818,7 +818,7 @@ impl Fragment {
         });
         debug_assert!(ellipsis_fragments.len() == 1);
         ellipsis_fragment = ellipsis_fragments.fragments.into_iter().next().unwrap();
-        ellipsis_fragment.flags |= FragmentFlags::IS_ELLIPSIS;
+        ellipsis_fragment.flags |= IS_ELLIPSIS;
         ellipsis_fragment
     }
 
@@ -858,36 +858,35 @@ impl Fragment {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             SpecificFragmentInfo::Table => {
-                QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
+                INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
             }
             SpecificFragmentInfo::TableCell => {
-                let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
+                let base_quantities = INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
                         border_collapse::T::separate {
-                    base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
+                    base_quantities | INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
                     base_quantities
                 }
             }
             SpecificFragmentInfo::TableWrapper => {
-                let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS |
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
+                let base_quantities = INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
                         border_collapse::T::separate {
-                    base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
+                    base_quantities | INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
                     base_quantities
                 }
             }
             SpecificFragmentInfo::TableRow => {
-                let base_quantities =
-                    QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
+                let base_quantities = INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
                         border_collapse::T::separate {
-                    base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
+                    base_quantities | INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
                     base_quantities
                 }
@@ -915,8 +914,7 @@ impl Fragment {
         // FIXME(pcwalton): Percentages should be relative to any definite size per CSS-SIZING.
         // This will likely need to be done by pushing down definite sizes during selector
         // cascading.
-        let margin = if flags.contains(
-                QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS) {
+        let margin = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS) {
             let margin = style.logical_margin();
             (MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
              MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero())
@@ -927,8 +925,7 @@ impl Fragment {
         // FIXME(pcwalton): Percentages should be relative to any definite size per CSS-SIZING.
         // This will likely need to be done by pushing down definite sizes during selector
         // cascading.
-        let padding = if flags.contains(
-                QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING) {
+        let padding = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_PADDING) {
             let padding = style.logical_padding();
             (padding.inline_start.to_used_value(Au(0)) +
              padding.inline_end.to_used_value(Au(0)))
@@ -936,8 +933,7 @@ impl Fragment {
             Au(0)
         };
 
-        let border = if flags.contains(
-                QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER) {
+        let border = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_BORDER) {
             self.border_width().inline_start_end()
         } else {
             Au(0)
@@ -956,7 +952,7 @@ impl Fragment {
         let (border_padding, margin) = self.surrounding_intrinsic_inline_size();
 
         let mut specified = Au(0);
-        if flags.contains(QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
+        if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
             specified = MaybeAuto::from_style(style.content_inline_size(),
                                               Au(0)).specified_or_zero();
             specified = max(style.min_inline_size().to_used_value(Au(0)), specified);
@@ -1207,10 +1203,10 @@ impl Fragment {
                 inline_fragment_context.nodes.iter().fold(style_border_width, |accumulator, node| {
                     let mut this_border_width =
                         node.style.border_width_for_writing_mode(writing_mode);
-                    if !node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT) {
+                    if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         this_border_width.inline_start = Au(0)
                     }
-                    if !node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+                    if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
                         this_border_width.inline_end = Au(0)
                     }
                     accumulator + this_border_width
@@ -1264,15 +1260,13 @@ impl Fragment {
         if let Some(ref inline_context) = self.inline_context {
             for node in &inline_context.nodes {
                 let margin = node.style.logical_margin();
-                let this_inline_start_margin = if !node.flags.contains(
-                        InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT) {
+                let this_inline_start_margin = if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                     Au(0)
                 } else {
                     MaybeAuto::from_style(margin.inline_start,
                                           containing_block_inline_size).specified_or_zero()
                 };
-                let this_inline_end_margin = if!node.flags.contains(
-                        InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+                let this_inline_end_margin = if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
                     Au(0)
                 } else {
                     MaybeAuto::from_style(margin.inline_end,
@@ -1345,10 +1339,10 @@ impl Fragment {
                 let zero_padding = LogicalMargin::zero(writing_mode);
                 inline_fragment_context.nodes.iter().fold(zero_padding, |accumulator, node| {
                     let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
-                    if !node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT) {
+                    if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         padding.inline_start = Au(0)
                     }
-                    if !node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+                    if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
                         padding.inline_end = Au(0)
                     }
                     accumulator + padding
@@ -1590,12 +1584,12 @@ impl Fragment {
                 let mut border_width = node.style.logical_border_width();
                 let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
                 let mut margin = model::specified_margin_from_style(&*node.style, writing_mode);
-                if !node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT) {
+                if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                     border_width.inline_start = Au(0);
                     padding.inline_start = Au(0);
                     margin.inline_start = Au(0);
                 }
-                if !node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+                if !node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
                     border_width.inline_end = Au(0);
                     padding.inline_end = Au(0);
                     margin.inline_end = Au(0);
@@ -1653,9 +1647,9 @@ impl Fragment {
 
         let mut flags = SplitOptions::empty();
         if starts_line {
-            flags.insert(SplitOptions::STARTS_LINE);
+            flags.insert(STARTS_LINE);
             if self.style().get_inheritedtext().overflow_wrap == overflow_wrap::T::break_word {
-                flags.insert(SplitOptions::RETRY_AT_CHARACTER_BOUNDARIES)
+                flags.insert(RETRY_AT_CHARACTER_BOUNDARIES)
             }
         }
 
@@ -1673,7 +1667,7 @@ impl Fragment {
                 // Break at character boundaries.
                 let character_breaking_strategy =
                     text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
-                flags.remove(SplitOptions::RETRY_AT_CHARACTER_BOUNDARIES);
+                flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
                 self.calculate_split_position_using_breaking_strategy(
                     character_breaking_strategy,
                     max_inline_size,
@@ -1836,12 +1830,12 @@ impl Fragment {
             if split_is_empty || overflowing {
                 // If we've been instructed to retry at character boundaries (probably via
                 // `overflow-wrap: break-word`), do so.
-                if flags.contains(SplitOptions::RETRY_AT_CHARACTER_BOUNDARIES) {
+                if flags.contains(RETRY_AT_CHARACTER_BOUNDARIES) {
                     let character_breaking_strategy =
                         text_fragment_info.run
                                           .character_slices_in_range(&text_fragment_info.range);
                     let mut flags = flags;
-                    flags.remove(SplitOptions::RETRY_AT_CHARACTER_BOUNDARIES);
+                    flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
                     return self.calculate_split_position_using_breaking_strategy(
                         character_breaking_strategy,
                         max_inline_size,
@@ -1850,7 +1844,7 @@ impl Fragment {
 
                 // We aren't at the start of the line, so don't overflow. Let inline layout wrap to
                 // the next line instead.
-                if !flags.contains(SplitOptions::STARTS_LINE) {
+                if !flags.contains(STARTS_LINE) {
                     return None
                 }
             }
@@ -1886,7 +1880,7 @@ impl Fragment {
                 this_info.range_end_including_stripped_whitespace =
                     other_info.range_end_including_stripped_whitespace;
                 if other_info.requires_line_break_afterward_if_wrapping_on_newlines() {
-                    this_info.flags.insert(ScannedTextFlags::REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
+                    this_info.flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
                 if other_info.insertion_point.is_some() {
                     this_info.insertion_point = other_info.insertion_point;
@@ -2346,7 +2340,7 @@ impl Fragment {
                 // side, then we can't merge with the next fragment.
                 if let Some(ref inline_context) = self.inline_context {
                     for inline_context_node in inline_context.nodes.iter() {
-                        if !inline_context_node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+                        if !inline_context_node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_end !=
@@ -2367,7 +2361,7 @@ impl Fragment {
                 // preceding side, then it can't merge with us.
                 if let Some(ref inline_context) = other.inline_context {
                     for inline_context_node in inline_context.nodes.iter() {
-                        if !inline_context_node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT) {
+                        if !inline_context_node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_start !=
@@ -2813,15 +2807,14 @@ impl Fragment {
                         .zip(inline_context_of_next_fragment.nodes.iter().rev())
                 {
                     if !inline_context_node_from_next_fragment.flags.contains(
-                            InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+                            LAST_FRAGMENT_OF_ELEMENT) {
                         continue
                     }
                     if inline_context_node_from_next_fragment.address !=
                             inline_context_node_from_this_fragment.address {
                         continue
                     }
-                    inline_context_node_from_this_fragment.flags.insert(
-                        InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT);
+                    inline_context_node_from_this_fragment.flags.insert(LAST_FRAGMENT_OF_ELEMENT);
                 }
             }
         }
@@ -2836,7 +2829,7 @@ impl Fragment {
                             inline_context_of_this_fragment.nodes.iter_mut().rev())
                 {
                     if !inline_context_node_from_prev_fragment.flags.contains(
-                            InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT) {
+                            FIRST_FRAGMENT_OF_ELEMENT) {
                         continue
                     }
                     if inline_context_node_from_prev_fragment.address !=
@@ -2844,7 +2837,7 @@ impl Fragment {
                         continue
                     }
                     inline_context_node_from_this_fragment.flags.insert(
-                        InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT);
+                        FIRST_FRAGMENT_OF_ELEMENT);
                 }
             }
         }
@@ -2985,23 +2978,23 @@ impl fmt::Debug for Fragment {
 }
 
 bitflags! {
-    struct QuantitiesIncludedInIntrinsicInlineSizes: u8 {
-        const INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS = 0x01;
-        const INTRINSIC_INLINE_SIZE_INCLUDES_PADDING = 0x02;
-        const INTRINSIC_INLINE_SIZE_INCLUDES_BORDER = 0x04;
-        const INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED = 0x08;
+    flags QuantitiesIncludedInIntrinsicInlineSizes: u8 {
+        const INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS = 0x01,
+        const INTRINSIC_INLINE_SIZE_INCLUDES_PADDING = 0x02,
+        const INTRINSIC_INLINE_SIZE_INCLUDES_BORDER = 0x04,
+        const INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED = 0x08,
     }
 }
 
 bitflags! {
     // Various flags we can use when splitting fragments. See
     // `calculate_split_position_using_breaking_strategy()`.
-    struct SplitOptions: u8 {
+    flags SplitOptions: u8 {
         #[doc = "True if this is the first fragment on the line."]
-        const STARTS_LINE = 0x01;
+        const STARTS_LINE = 0x01,
         #[doc = "True if we should attempt to split at character boundaries if this split fails. \
                  This is used to implement `overflow-wrap: break-word`."]
-        const RETRY_AT_CHARACTER_BOUNDARIES = 0x02;
+        const RETRY_AT_CHARACTER_BOUNDARIES = 0x02,
     }
 }
 
@@ -3117,14 +3110,14 @@ impl Overflow {
 }
 
 bitflags! {
-    pub struct FragmentFlags: u8 {
+    pub flags FragmentFlags: u8 {
         // TODO(stshine): find a better name since these flags can also be used for grid item.
         /// Whether this fragment represents a child in a row flex container.
-        const IS_INLINE_FLEX_ITEM = 0b0000_0001;
+        const IS_INLINE_FLEX_ITEM = 0b0000_0001,
         /// Whether this fragment represents a child in a column flex container.
-        const IS_BLOCK_FLEX_ITEM = 0b0000_0010;
+        const IS_BLOCK_FLEX_ITEM = 0b0000_0010,
         /// Whether this fragment represents the generated text from a text-overflow clip.
-        const IS_ELLIPSIS = 0b0000_0100;
+        const IS_ELLIPSIS = 0b0000_0100,
     }
 }
 

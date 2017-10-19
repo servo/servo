@@ -26,7 +26,7 @@ use std::iter::{Enumerate, IntoIterator, Peekable};
 use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
-use style::servo::restyle_damage::ServoRestyleDamage;
+use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::computed::{Color, LengthOrPercentageOrAuto};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
@@ -114,7 +114,7 @@ impl TableRowFlow {
     /// methods
     #[inline(always)]
     fn assign_block_size_table_row_base(&mut self, layout_context: &LayoutContext) {
-        if self.block_flow.base.restyle_damage.contains(ServoRestyleDamage::REFLOW) {
+        if self.block_flow.base.restyle_damage.contains(REFLOW) {
             // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of
             // all cells).
             let mut max_block_size = Au(0);
@@ -195,7 +195,7 @@ impl TableRowFlow {
             }
         }
 
-        self.block_flow.base.restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
+        self.block_flow.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     pub fn populate_collapsed_border_spacing<'a, I>(

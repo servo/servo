@@ -25,7 +25,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
-use style::element_state::ElementState;
+use style::element_state::*;
 use style::str::{split_html_space_chars, str_join};
 
 #[dom_struct]
@@ -45,7 +45,7 @@ impl HTMLOptionElement {
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       local_name, prefix, document),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),

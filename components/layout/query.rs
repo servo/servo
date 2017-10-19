@@ -11,7 +11,7 @@ use euclid::{Point2D, Vector2D, Rect, Size2D};
 use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{DisplayList, OpaqueNode, ScrollOffsetMap};
-use inline::InlineFragmentNodeFlags;
+use inline::LAST_FRAGMENT_OF_ELEMENT;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
@@ -562,7 +562,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 },
             }
 
-            if node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT) {
+            if node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
                 self.has_processed_node = true;
             }
         } else if self.node_offset_box.is_none() {

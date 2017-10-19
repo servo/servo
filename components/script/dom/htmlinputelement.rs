@@ -48,7 +48,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ops::Range;
 use style::attr::AttrValue;
-use style::element_state::ElementState;
+use style::element_state::*;
 use style::str::split_commas;
 use textinput::{SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
@@ -137,8 +137,7 @@ impl HTMLInputElement {
         let chan = document.window().upcast::<GlobalScope>().script_to_constellation_chan().clone();
         HTMLInputElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE |
-                                                      ElementState::IN_READ_WRITE_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
             input_type: Cell::new(InputType::InputText),
             placeholder: DomRefCell::new(DOMString::new()),
@@ -281,13 +280,13 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn checked_state_for_layout(self) -> bool {
-        self.upcast::<Element>().get_state_for_layout().contains(ElementState::IN_CHECKED_STATE)
+        self.upcast::<Element>().get_state_for_layout().contains(IN_CHECKED_STATE)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn indeterminate_state_for_layout(self) -> bool {
-        self.upcast::<Element>().get_state_for_layout().contains(ElementState::IN_INDETERMINATE_STATE)
+        self.upcast::<Element>().get_state_for_layout().contains(IN_INDETERMINATE_STATE)
     }
 }
 
@@ -337,7 +336,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn Checked(&self) -> bool {
-        self.upcast::<Element>().state().contains(ElementState::IN_CHECKED_STATE)
+        self.upcast::<Element>().state().contains(IN_CHECKED_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
@@ -539,12 +538,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
-        self.upcast::<Element>().state().contains(ElementState::IN_INDETERMINATE_STATE)
+        self.upcast::<Element>().state().contains(IN_INDETERMINATE_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn SetIndeterminate(&self, val: bool) {
-        self.upcast::<Element>().set_state(ElementState::IN_INDETERMINATE_STATE, val)
+        self.upcast::<Element>().set_state(IN_INDETERMINATE_STATE, val)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -746,7 +745,7 @@ impl HTMLInputElement {
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
-        self.upcast::<Element>().set_state(ElementState::IN_CHECKED_STATE, checked);
+        self.upcast::<Element>().set_state(IN_CHECKED_STATE, checked);
 
         if dirty {
             self.checked_changed.set(true);

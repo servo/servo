@@ -22,7 +22,7 @@ use inline::InlineFlow;
 use style::computed_values::{list_style_type, position};
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::servo::restyle_damage::ServoRestyleDamage;
+use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
 
 #[allow(unsafe_code)]
 unsafe impl ::flow::HasBaseFlow for ListItemFlow {}
@@ -56,7 +56,7 @@ impl ListItemFlow {
                 list_style_type::T::square |
                 list_style_type::T::disclosure_open |
                 list_style_type::T::disclosure_closed => {}
-                _ => this.block_flow.base.restyle_damage.insert(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT),
+                _ => this.block_flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT),
             }
         }
 

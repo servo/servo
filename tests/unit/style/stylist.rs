@@ -18,7 +18,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{Stylist, Rule};
 use style::stylist::needs_revalidation_for_testing;
-use style::thread_state::{self, ThreadState};
+use style::thread_state;
 
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
@@ -185,7 +185,7 @@ fn mock_stylist() -> Stylist {
 
 #[test]
 fn test_stylist_device_accessors() {
-    thread_state::initialize(ThreadState::LAYOUT);
+    thread_state::initialize(thread_state::LAYOUT);
     let stylist = mock_stylist();
     assert_eq!(stylist.device().media_type(), MediaType::screen());
     let mut stylist_mut = mock_stylist();
@@ -194,7 +194,7 @@ fn test_stylist_device_accessors() {
 
 #[test]
 fn test_stylist_rule_tree_accessors() {
-    thread_state::initialize(ThreadState::LAYOUT);
+    thread_state::initialize(thread_state::LAYOUT);
     let stylist = mock_stylist();
     stylist.rule_tree();
     stylist.rule_tree().root();

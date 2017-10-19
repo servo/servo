@@ -417,13 +417,13 @@ full_cef_class_impl! {
             };
             let mut key_modifiers = KeyModifiers::empty();
             if (*event).modifiers & EVENTFLAG_SHIFT_DOWN as u32 != 0 {
-               key_modifiers = key_modifiers | constellation_msg::KeyModifiers::SHIFT;
+               key_modifiers = key_modifiers | constellation_msg::SHIFT;
             }
             if (*event).modifiers & EVENTFLAG_CONTROL_DOWN as u32 != 0 {
-               key_modifiers = key_modifiers | constellation_msg::KeyModifiers::CONTROL;
+               key_modifiers = key_modifiers | constellation_msg::CONTROL;
             }
             if (*event).modifiers & EVENTFLAG_ALT_DOWN as u32 != 0 {
-               key_modifiers = key_modifiers | constellation_msg::KeyModifiers::ALT;
+               key_modifiers = key_modifiers | constellation_msg::ALT;
             }
             let ch = char::from_u32((*event).character as u32);
             this.downcast().send_window_event(WindowEvent::KeyEvent(ch, key, key_state, key_modifiers))

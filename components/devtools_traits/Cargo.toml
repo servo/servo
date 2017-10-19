@@ -10,7 +10,7 @@ name = "devtools_traits"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "1.0"
+bitflags = "0.7"
 hyper = "0.10"
 hyper_serde = "0.7"
 ipc-channel = "0.9"

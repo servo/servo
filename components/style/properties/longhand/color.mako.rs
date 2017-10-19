@@ -13,8 +13,7 @@ ${helpers.predefined_type(
     "ColorPropertyValue",
     "::cssparser::RGBA::new(0, 0, 0, 255)",
     animation_value_type="AnimatedRGBA",
-    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
-    PropertyFlags::APPLIES_TO_PLACEHOLDER""",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     ignored_when_colors_disabled="True",
     spec="https://drafts.csswg.org/css-color/#color"
 )}

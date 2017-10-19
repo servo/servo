@@ -329,20 +329,20 @@ impl NonTSPseudoClass {
     /// Gets a given state flag for this pseudo-class. This is used to do
     /// selector matching, and it's set from the DOM.
     pub fn state_flag(&self) -> ElementState {
-        use element_state::ElementState;
+        use element_state::*;
         use self::NonTSPseudoClass::*;
         match *self {
-            Active => ElementState::IN_ACTIVE_STATE,
-            Focus => ElementState::IN_FOCUS_STATE,
-            Fullscreen => ElementState::IN_FULLSCREEN_STATE,
-            Hover => ElementState::IN_HOVER_STATE,
-            Enabled => ElementState::IN_ENABLED_STATE,
-            Disabled => ElementState::IN_DISABLED_STATE,
-            Checked => ElementState::IN_CHECKED_STATE,
-            Indeterminate => ElementState::IN_INDETERMINATE_STATE,
-            ReadOnly | ReadWrite => ElementState::IN_READ_WRITE_STATE,
-            PlaceholderShown => ElementState::IN_PLACEHOLDER_SHOWN_STATE,
-            Target => ElementState::IN_TARGET_STATE,
+            Active => IN_ACTIVE_STATE,
+            Focus => IN_FOCUS_STATE,
+            Fullscreen => IN_FULLSCREEN_STATE,
+            Hover => IN_HOVER_STATE,
+            Enabled => IN_ENABLED_STATE,
+            Disabled => IN_DISABLED_STATE,
+            Checked => IN_CHECKED_STATE,
+            Indeterminate => IN_INDETERMINATE_STATE,
+            ReadOnly | ReadWrite => IN_READ_WRITE_STATE,
+            PlaceholderShown => IN_PLACEHOLDER_SHOWN_STATE,
+            Target => IN_TARGET_STATE,
 
             AnyLink |
             Lang(_) |

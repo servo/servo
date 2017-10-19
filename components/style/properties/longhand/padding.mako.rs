@@ -20,6 +20,6 @@
                               animation_value_type="NonNegativeLengthOrPercentage",
                               logical = side[1],
                               spec = spec,
-                              flags="PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_PLACEHOLDER",
+                              flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER",
                               allow_quirks=not side[1])}
 % endfor

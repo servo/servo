@@ -20,7 +20,7 @@ use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use msg::constellation_msg::{self, Key, TopLevelBrowsingContextId as BrowserId};
-use msg::constellation_msg::{KeyModifiers, KeyState, TraversalDirection};
+use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER, TraversalDirection};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
@@ -52,29 +52,29 @@ use winapi;
 static mut G_NESTED_EVENT_LOOP_LISTENER: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
 bitflags! {
-    struct GlutinKeyModifiers: u8 {
-        const LEFT_CONTROL = 1;
-        const RIGHT_CONTROL = 2;
-        const LEFT_SHIFT = 4;
-        const RIGHT_SHIFT = 8;
-        const LEFT_ALT = 16;
-        const RIGHT_ALT = 32;
-        const LEFT_SUPER = 64;
-        const RIGHT_SUPER = 128;
+    flags KeyModifiers: u8 {
+        const LEFT_CONTROL = 1,
+        const RIGHT_CONTROL = 2,
+        const LEFT_SHIFT = 4,
+        const RIGHT_SHIFT = 8,
+        const LEFT_ALT = 16,
+        const RIGHT_ALT = 32,
+        const LEFT_SUPER = 64,
+        const RIGHT_SUPER = 128,
     }
 }
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]
-const CMD_OR_CONTROL: KeyModifiers = KeyModifiers::SUPER;
+const CMD_OR_CONTROL: constellation_msg::KeyModifiers = SUPER;
 #[cfg(not(target_os = "macos"))]
-const CMD_OR_CONTROL: KeyModifiers = KeyModifiers::CONTROL;
+const CMD_OR_CONTROL: constellation_msg::KeyModifiers = CONTROL;
 
 // Some shortcuts use Cmd on Mac and Alt on other systems.
 #[cfg(target_os = "macos")]
-const CMD_OR_ALT: KeyModifiers = KeyModifiers::SUPER;
+const CMD_OR_ALT: constellation_msg::KeyModifiers = SUPER;
 #[cfg(not(target_os = "macos"))]
-const CMD_OR_ALT: KeyModifiers = KeyModifiers::ALT;
+const CMD_OR_ALT: constellation_msg::KeyModifiers = ALT;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 const LINE_HEIGHT: f32 = 38.0;
@@ -189,7 +189,7 @@ pub struct Window {
     browser_id: Cell<Option<BrowserId>>,
 
     mouse_pos: Cell<Point2D<i32>>,
-    key_modifiers: Cell<GlutinKeyModifiers>,
+    key_modifiers: Cell<KeyModifiers>,
     current_url: RefCell<Option<ServoUrl>>,
 
     #[cfg(not(target_os = "windows"))]
@@ -322,7 +322,7 @@ impl Window {
             browser_id: Cell::new(None),
 
             mouse_pos: Cell::new(Point2D::new(0, 0)),
-            key_modifiers: Cell::new(GlutinKeyModifiers::empty()),
+            key_modifiers: Cell::new(KeyModifiers::empty()),
             current_url: RefCell::new(None),
 
             #[cfg(not(target_os = "windows"))]
@@ -403,14 +403,14 @@ impl Window {
 
     fn toggle_keyboard_modifiers(&self, virtual_key_code: VirtualKeyCode) {
         match virtual_key_code {
-            VirtualKeyCode::LControl => self.toggle_modifier(GlutinKeyModifiers::LEFT_CONTROL),
-            VirtualKeyCode::RControl => self.toggle_modifier(GlutinKeyModifiers::RIGHT_CONTROL),
-            VirtualKeyCode::LShift => self.toggle_modifier(GlutinKeyModifiers::LEFT_SHIFT),
-            VirtualKeyCode::RShift => self.toggle_modifier(GlutinKeyModifiers::RIGHT_SHIFT),
-            VirtualKeyCode::LAlt => self.toggle_modifier(GlutinKeyModifiers::LEFT_ALT),
-            VirtualKeyCode::RAlt => self.toggle_modifier(GlutinKeyModifiers::RIGHT_ALT),
-            VirtualKeyCode::LWin => self.toggle_modifier(GlutinKeyModifiers::LEFT_SUPER),
-            VirtualKeyCode::RWin => self.toggle_modifier(GlutinKeyModifiers::RIGHT_SUPER),
+            VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
+            VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
+            VirtualKeyCode::LShift => self.toggle_modifier(LEFT_SHIFT),
+            VirtualKeyCode::RShift => self.toggle_modifier(RIGHT_SHIFT),
+            VirtualKeyCode::LAlt => self.toggle_modifier(LEFT_ALT),
+            VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
+            VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
+            VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
             _ => {}
         }
     }
@@ -550,7 +550,7 @@ impl Window {
         false
     }
 
-    fn toggle_modifier(&self, modifier: GlutinKeyModifiers) {
+    fn toggle_modifier(&self, modifier: KeyModifiers) {
         let mut modifiers = self.key_modifiers.get();
         modifiers.toggle(modifier);
         self.key_modifiers.set(modifiers);
@@ -929,19 +929,19 @@ impl Window {
         }
     }
 
-    fn glutin_mods_to_script_mods(modifiers: GlutinKeyModifiers) -> constellation_msg::KeyModifiers {
+    fn glutin_mods_to_script_mods(modifiers: KeyModifiers) -> constellation_msg::KeyModifiers {
         let mut result = constellation_msg::KeyModifiers::empty();
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_SHIFT | GlutinKeyModifiers::RIGHT_SHIFT) {
-            result.insert(KeyModifiers::SHIFT);
+        if modifiers.intersects(LEFT_SHIFT | RIGHT_SHIFT) {
+            result.insert(SHIFT);
         }
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_CONTROL | GlutinKeyModifiers::RIGHT_CONTROL) {
-            result.insert(KeyModifiers::CONTROL);
+        if modifiers.intersects(LEFT_CONTROL | RIGHT_CONTROL) {
+            result.insert(CONTROL);
         }
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_ALT | GlutinKeyModifiers::RIGHT_ALT) {
-            result.insert(KeyModifiers::ALT);
+        if modifiers.intersects(LEFT_ALT | RIGHT_ALT) {
+            result.insert(ALT);
         }
-        if modifiers.intersects(GlutinKeyModifiers::LEFT_SUPER | GlutinKeyModifiers::RIGHT_SUPER) {
-            result.insert(KeyModifiers::SUPER);
+        if modifiers.intersects(LEFT_SUPER | RIGHT_SUPER) {
+            result.insert(SUPER);
         }
         result
     }
@@ -1229,32 +1229,32 @@ impl WindowMethods for Window {
         };
         match (mods, ch, key) {
             (_, Some('+'), _) => {
-                if mods & !KeyModifiers::SHIFT == CMD_OR_CONTROL {
+                if mods & !SHIFT == CMD_OR_CONTROL {
                     self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
-                } else if mods & !KeyModifiers::SHIFT == CMD_OR_CONTROL | KeyModifiers::ALT {
+                } else if mods & !SHIFT == CMD_OR_CONTROL | ALT {
                     self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                 }
             }
             (CMD_OR_CONTROL, Some('-'), _) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
             }
-            (_, Some('-'), _) if mods == CMD_OR_CONTROL | KeyModifiers::ALT => {
+            (_, Some('-'), _) if mods == CMD_OR_CONTROL | ALT => {
                 self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
             }
             (CMD_OR_CONTROL, Some('0'), _) => {
                 self.event_queue.borrow_mut().push(WindowEvent::ResetZoom);
             }
 
-            (KeyModifiers::NONE, None, Key::NavigateForward) => {
+            (NONE, None, Key::NavigateForward) => {
                 let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
                 self.event_queue.borrow_mut().push(event);
             }
-            (KeyModifiers::NONE, None, Key::NavigateBackward) => {
+            (NONE, None, Key::NavigateBackward) => {
                 let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
                 self.event_queue.borrow_mut().push(event);
             }
 
-            (KeyModifiers::NONE, None, Key::Escape) => {
+            (NONE, None, Key::Escape) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
@@ -1269,7 +1269,7 @@ impl WindowMethods for Window {
                 self.event_queue.borrow_mut().push(event);
             }
 
-            (KeyModifiers::NONE, None, Key::PageDown) => {
+            (NONE, None, Key::PageDown) => {
                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
                                    -self.framebuffer_size()
                                         .to_f32()
@@ -1278,7 +1278,7 @@ impl WindowMethods for Window {
                 self.scroll_window(scroll_location,
                                    TouchEventType::Move);
             }
-            (KeyModifiers::NONE, None, Key::PageUp) => {
+            (NONE, None, Key::PageUp) => {
                 let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
                                    self.framebuffer_size()
                                        .to_f32()
@@ -1288,26 +1288,26 @@ impl WindowMethods for Window {
                                    TouchEventType::Move);
             }
 
-            (KeyModifiers::NONE, None, Key::Home) => {
+            (NONE, None, Key::Home) => {
                 self.scroll_window(ScrollLocation::Start, TouchEventType::Move);
             }
 
-            (KeyModifiers::NONE, None, Key::End) => {
+            (NONE, None, Key::End) => {
                 self.scroll_window(ScrollLocation::End, TouchEventType::Move);
             }
 
-            (KeyModifiers::NONE, None, Key::Up) => {
+            (NONE, None, Key::Up) => {
                 self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
                                    TouchEventType::Move);
             }
-            (KeyModifiers::NONE, None, Key::Down) => {
+            (NONE, None, Key::Down) => {
                 self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
                                    TouchEventType::Move);
             }
-            (KeyModifiers::NONE, None, Key::Left) => {
+            (NONE, None, Key::Left) => {
                 self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)), TouchEventType::Move);
             }
-            (KeyModifiers::NONE, None, Key::Right) => {
+            (NONE, None, Key::Right) => {
                 self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)), TouchEventType::Move);
             }
             (CMD_OR_CONTROL, Some('r'), _) => {
@@ -1320,15 +1320,15 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
-            (KeyModifiers::CONTROL, None, Key::F10) => {
+            (CONTROL, None, Key::F10) => {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
                 self.event_queue.borrow_mut().push(event);
             }
-            (KeyModifiers::CONTROL, None, Key::F11) => {
+            (CONTROL, None, Key::F11) => {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
                 self.event_queue.borrow_mut().push(event);
             }
-            (KeyModifiers::CONTROL, None, Key::F12) => {
+            (CONTROL, None, Key::F12) => {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::Profiler);
                 self.event_queue.borrow_mut().push(event);
             }

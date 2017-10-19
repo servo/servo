@@ -47,16 +47,16 @@ const DIALOG_COLUMN_ID: &'static str = "Id";
 const DIALOG_COLUMN_NAME: &'static str = "Name";
 
 bitflags! {
-    struct Flags: u32 {
-        const BROADCAST                   = 0b000000001;
-        const READ                        = 0b000000010;
-        const WRITE_WITHOUT_RESPONSE      = 0b000000100;
-        const WRITE                       = 0b000001000;
-        const NOTIFY                      = 0b000010000;
-        const INDICATE                    = 0b000100000;
-        const AUTHENTICATED_SIGNED_WRITES = 0b001000000;
-        const RELIABLE_WRITE              = 0b010000000;
-        const WRITABLE_AUXILIARIES        = 0b100000000;
+    flags Flags: u32 {
+        const BROADCAST                   = 0b000000001,
+        const READ                        = 0b000000010,
+        const WRITE_WITHOUT_RESPONSE      = 0b000000100,
+        const WRITE                       = 0b000001000,
+        const NOTIFY                      = 0b000010000,
+        const INDICATE                    = 0b000100000,
+        const AUTHENTICATED_SIGNED_WRITES = 0b001000000,
+        const RELIABLE_WRITE              = 0b010000000,
+        const WRITABLE_AUXILIARIES        = 0b100000000,
     }
 }
 
@@ -522,15 +522,15 @@ impl BluetoothManager {
         let flags = characteristic.get_flags().unwrap_or(vec!());
         for flag in flags {
             match flag.as_ref() {
-                "broadcast" => props.insert(Flags::BROADCAST),
-                "read" => props.insert(Flags::READ),
-                "write-without-response" => props.insert(Flags::WRITE_WITHOUT_RESPONSE),
-                "write" => props.insert(Flags::WRITE),
-                "notify" => props.insert(Flags::NOTIFY),
-                "indicate" => props.insert(Flags::INDICATE),
-                "authenticated-signed-writes" => props.insert(Flags::AUTHENTICATED_SIGNED_WRITES),
-                "reliable-write" => props.insert(Flags::RELIABLE_WRITE),
-                "writable-auxiliaries" => props.insert(Flags::WRITABLE_AUXILIARIES),
+                "broadcast" => props.insert(BROADCAST),
+                "read" => props.insert(READ),
+                "write-without-response" => props.insert(WRITE_WITHOUT_RESPONSE),
+                "write" => props.insert(WRITE),
+                "notify" => props.insert(NOTIFY),
+                "indicate" => props.insert(INDICATE),
+                "authenticated-signed-writes" => props.insert(AUTHENTICATED_SIGNED_WRITES),
+                "reliable-write" => props.insert(RELIABLE_WRITE),
+                "writable-auxiliaries" => props.insert(WRITABLE_AUXILIARIES),
                 _ => (),
             }
         }
@@ -747,15 +747,15 @@ impl BluetoothManager {
                             BluetoothCharacteristicMsg {
                                 uuid: uuid,
                                 instance_id: characteristic.get_id(),
-                                broadcast: properties.contains(Flags::BROADCAST),
-                                read: properties.contains(Flags::READ),
-                                write_without_response: properties.contains(Flags::WRITE_WITHOUT_RESPONSE),
-                                write: properties.contains(Flags::WRITE),
-                                notify: properties.contains(Flags::NOTIFY),
-                                indicate: properties.contains(Flags::INDICATE),
-                                authenticated_signed_writes: properties.contains(Flags::AUTHENTICATED_SIGNED_WRITES),
-                                reliable_write: properties.contains(Flags::RELIABLE_WRITE),
-                                writable_auxiliaries: properties.contains(Flags::WRITABLE_AUXILIARIES),
+                                broadcast: properties.contains(BROADCAST),
+                                read: properties.contains(READ),
+                                write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
+                                write: properties.contains(WRITE),
+                                notify: properties.contains(NOTIFY),
+                                indicate: properties.contains(INDICATE),
+                                authenticated_signed_writes: properties.contains(AUTHENTICATED_SIGNED_WRITES),
+                                reliable_write: properties.contains(RELIABLE_WRITE),
+                                writable_auxiliaries: properties.contains(WRITABLE_AUXILIARIES),
                             }
                         );
                     }

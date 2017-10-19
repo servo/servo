@@ -35,7 +35,7 @@ use html5ever::{LocalName, Prefix};
 use std::default::Default;
 use std::iter;
 use style::attr::AttrValue;
-use style::element_state::ElementState;
+use style::element_state::*;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;
@@ -73,7 +73,7 @@ impl HTMLSelectElement {
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       local_name, prefix, document),
                 options: Default::default(),
                 form_owner: Default::default(),

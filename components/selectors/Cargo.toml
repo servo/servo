@@ -23,7 +23,7 @@ gecko_like_types = []
 bench = []
 
 [dependencies]
-bitflags = "1.0"
+bitflags = "0.7"
 matches = "0.1"
 cssparser = "0.22.0"
 log = "0.3"

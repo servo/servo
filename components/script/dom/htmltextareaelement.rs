@@ -32,7 +32,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
-use style::element_state::ElementState;
+use style::element_state::*;
 use textinput::{KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
@@ -111,8 +111,7 @@ impl HTMLTextAreaElement {
         let chan = document.window().upcast::<GlobalScope>().script_to_constellation_chan().clone();
         HTMLTextAreaElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE |
-                                                      ElementState::IN_READ_WRITE_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
             placeholder: DomRefCell::new(DOMString::new()),
             textinput: DomRefCell::new(TextInput::new(

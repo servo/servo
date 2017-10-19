@@ -10,38 +10,38 @@ use traversal_flags::TraversalFlags;
 
 bitflags! {
     /// The kind of restyle we need to do for a given element.
-    pub struct RestyleHint: u8 {
+    pub flags RestyleHint: u8 {
         /// Do a selector match of the element.
-        const RESTYLE_SELF = 1 << 0;
+        const RESTYLE_SELF = 1 << 0,
 
         /// Do a selector match of the element's descendants.
-        const RESTYLE_DESCENDANTS = 1 << 1;
+        const RESTYLE_DESCENDANTS = 1 << 1,
 
         /// Recascade the current element.
-        const RECASCADE_SELF = 1 << 2;
+        const RECASCADE_SELF = 1 << 2,
 
         /// Recascade all descendant elements.
-        const RECASCADE_DESCENDANTS = 1 << 3;
+        const RECASCADE_DESCENDANTS = 1 << 3,
 
         /// Replace the style data coming from CSS transitions without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
-        const RESTYLE_CSS_TRANSITIONS = 1 << 4;
+        const RESTYLE_CSS_TRANSITIONS = 1 << 4,
 
         /// Replace the style data coming from CSS animations without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
-        const RESTYLE_CSS_ANIMATIONS = 1 << 5;
+        const RESTYLE_CSS_ANIMATIONS = 1 << 5,
 
         /// Don't re-run selector-matching on the element, only the style
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
-        const RESTYLE_STYLE_ATTRIBUTE = 1 << 6;
+        const RESTYLE_STYLE_ATTRIBUTE = 1 << 6,
 
         /// Replace the style data coming from SMIL animations without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
-        const RESTYLE_SMIL = 1 << 7;
+        const RESTYLE_SMIL = 1 << 7,
     }
 }
 
@@ -49,26 +49,26 @@ impl RestyleHint {
     /// Creates a new `RestyleHint` indicating that the current element and all
     /// its descendants must be fully restyled.
     pub fn restyle_subtree() -> Self {
-        RestyleHint::RESTYLE_SELF | RestyleHint::RESTYLE_DESCENDANTS
+        RESTYLE_SELF | RESTYLE_DESCENDANTS
     }
 
     /// Creates a new `RestyleHint` indicating that the current element and all
     /// its descendants must be recascaded.
     pub fn recascade_subtree() -> Self {
-        RestyleHint::RECASCADE_SELF | RestyleHint::RECASCADE_DESCENDANTS
+        RECASCADE_SELF | RECASCADE_DESCENDANTS
     }
 
     /// Returns whether this hint invalidates the element and all its
     /// descendants.
     pub fn contains_subtree(&self) -> bool {
-        self.contains(RestyleHint::RESTYLE_SELF | RestyleHint::RESTYLE_DESCENDANTS)
+        self.contains(RESTYLE_SELF | RESTYLE_DESCENDANTS)
     }
 
     /// Returns whether we need to restyle this element.
     pub fn has_non_animation_invalidations(&self) -> bool {
         self.intersects(
-            RestyleHint::RESTYLE_SELF |
-            RestyleHint::RECASCADE_SELF |
+            RESTYLE_SELF |
+            RECASCADE_SELF |
             (Self::replacements() & !Self::for_animations())
         )
     }
@@ -96,10 +96,10 @@ impl RestyleHint {
     /// Returns a new `CascadeHint` appropriate for children of the current
     /// element.
     fn propagate_for_non_animation_restyle(&self) -> Self {
-        if self.contains(RestyleHint::RESTYLE_DESCENDANTS) {
+        if self.contains(RESTYLE_DESCENDANTS) {
             return Self::restyle_subtree()
         }
-        if self.contains(RestyleHint::RECASCADE_DESCENDANTS) {
+        if self.contains(RECASCADE_DESCENDANTS) {
             return Self::recascade_subtree()
         }
         Self::empty()
@@ -108,24 +108,24 @@ impl RestyleHint {
     /// Creates a new `RestyleHint` that indicates the element must be
     /// recascaded.
     pub fn recascade_self() -> Self {
-        RestyleHint::RECASCADE_SELF
+        RECASCADE_SELF
     }
 
     /// Returns a hint that contains all the replacement hints.
     pub fn replacements() -> Self {
-        RestyleHint::RESTYLE_STYLE_ATTRIBUTE | Self::for_animations()
+        RESTYLE_STYLE_ATTRIBUTE | Self::for_animations()
     }
 
     /// The replacements for the animation cascade levels.
     #[inline]
     pub fn for_animations() -> Self {
-        RestyleHint::RESTYLE_SMIL | RestyleHint::RESTYLE_CSS_ANIMATIONS | RestyleHint::RESTYLE_CSS_TRANSITIONS
+        RESTYLE_SMIL | RESTYLE_CSS_ANIMATIONS | RESTYLE_CSS_TRANSITIONS
     }
 
     /// Returns whether the hint specifies that the currently element must be
     /// recascaded.
     pub fn has_recascade_self(&self) -> bool {
-        self.contains(RestyleHint::RECASCADE_SELF)
+        self.contains(RECASCADE_SELF)
     }
 
     /// Returns whether the hint specifies that an animation cascade level must
@@ -139,7 +139,7 @@ impl RestyleHint {
     /// be replaced.
     #[inline]
     pub fn has_animation_hint_or_recascade(&self) -> bool {
-        self.intersects(Self::for_animations() | RestyleHint::RECASCADE_SELF)
+        self.intersects(Self::for_animations() | RECASCADE_SELF)
     }
 
     /// Returns whether the hint specifies some restyle work other than an
@@ -153,7 +153,7 @@ impl RestyleHint {
     /// for the element.
     #[inline]
     pub fn match_self(&self) -> bool {
-        self.intersects(RestyleHint::RESTYLE_SELF)
+        self.intersects(RESTYLE_SELF)
     }
 
     /// Returns whether the hint specifies that some cascade levels must be
@@ -177,7 +177,7 @@ impl RestyleHint {
         // normal restyle.  (We could have separate RECASCADE_SELF_NORMAL and
         // RECASCADE_SELF_ANIMATIONS flags to make it clear, but this isn't
         // currently necessary.)
-        self.remove(RestyleHint::RECASCADE_SELF);
+        self.remove(RECASCADE_SELF);
     }
 }
 
@@ -204,23 +204,23 @@ impl From<nsRestyleHint> for RestyleHint {
 
         if (raw.0 & (eRestyle_Self.0 | eRestyle_Subtree.0)) != 0 {
             raw.0 &= !eRestyle_Self.0;
-            hint.insert(RestyleHint::RESTYLE_SELF);
+            hint.insert(RESTYLE_SELF);
         }
 
         if (raw.0 & (eRestyle_Subtree.0 | eRestyle_SomeDescendants.0)) != 0 {
             raw.0 &= !eRestyle_Subtree.0;
             raw.0 &= !eRestyle_SomeDescendants.0;
-            hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
+            hint.insert(RESTYLE_DESCENDANTS);
         }
 
         if (raw.0 & (eRestyle_ForceDescendants.0 | eRestyle_Force.0)) != 0 {
             raw.0 &= !eRestyle_Force.0;
-            hint.insert(RestyleHint::RECASCADE_SELF);
+            hint.insert(RECASCADE_SELF);
         }
 
         if (raw.0 & eRestyle_ForceDescendants.0) != 0 {
             raw.0 &= !eRestyle_ForceDescendants.0;
-            hint.insert(RestyleHint::RECASCADE_DESCENDANTS);
+            hint.insert(RECASCADE_DESCENDANTS);
         }
 
         hint.insert(RestyleHint::from_bits_truncate(raw.0 as u8));
@@ -239,7 +239,7 @@ pub fn assert_restyle_hints_match() {
     use gecko_bindings::structs;
 
     macro_rules! check_restyle_hints {
-        ( $( $a:ident => $b:path),*, ) => {
+        ( $( $a:ident => $b:ident ),*, ) => {
             if cfg!(debug_assertions) {
                 let mut replacements = RestyleHint::replacements();
                 $(
@@ -254,9 +254,9 @@ pub fn assert_restyle_hints_match() {
     }
 
     check_restyle_hints! {
-        nsRestyleHint_eRestyle_CSSTransitions => RestyleHint::RESTYLE_CSS_TRANSITIONS,
-        nsRestyleHint_eRestyle_CSSAnimations => RestyleHint::RESTYLE_CSS_ANIMATIONS,
-        nsRestyleHint_eRestyle_StyleAttribute => RestyleHint::RESTYLE_STYLE_ATTRIBUTE,
-        nsRestyleHint_eRestyle_StyleAttribute_Animations => RestyleHint::RESTYLE_SMIL,
+        nsRestyleHint_eRestyle_CSSTransitions => RESTYLE_CSS_TRANSITIONS,
+        nsRestyleHint_eRestyle_CSSAnimations => RESTYLE_CSS_ANIMATIONS,
+        nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
+        nsRestyleHint_eRestyle_StyleAttribute_Animations => RESTYLE_SMIL,
     }
 }

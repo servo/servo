@@ -42,7 +42,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
-use style::thread_state::{self, ThreadState};
+use style::thread_state;
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -167,7 +167,7 @@ impl DedicatedWorkerGlobalScope {
         let origin = GlobalScope::current().expect("No current global object").origin().immutable().clone();
 
         thread::Builder::new().name(name).spawn(move || {
-            thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
+            thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
 
             if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
                 TopLevelBrowsingContextId::install(top_level_browsing_context_id);

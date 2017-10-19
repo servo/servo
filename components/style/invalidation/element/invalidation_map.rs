@@ -20,16 +20,16 @@ use smallvec::SmallVec;
 #[cfg(feature = "gecko")]
 /// Gets the element state relevant to the given `:dir` pseudo-class selector.
 pub fn dir_selector_to_state(s: &[u16]) -> ElementState {
-    use element_state::ElementState;
+    use element_state::{IN_LTR_STATE, IN_RTL_STATE};
 
     // Jump through some hoops to deal with our Box<[u16]> thing.
     const LTR: [u16; 4] = [b'l' as u16, b't' as u16, b'r' as u16, 0];
     const RTL: [u16; 4] = [b'r' as u16, b't' as u16, b'l' as u16, 0];
 
     if LTR == *s {
-        ElementState::IN_LTR_STATE
+        IN_LTR_STATE
     } else if RTL == *s {
-        ElementState::IN_RTL_STATE
+        IN_RTL_STATE
     } else {
         // :dir(something-random) is a valid selector, but shouldn't
         // match anything.

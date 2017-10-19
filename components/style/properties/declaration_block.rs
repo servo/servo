@@ -19,7 +19,7 @@ use smallvec::SmallVec;
 use std::fmt;
 use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
-use style_traits::{ToCss, ParseError, ParsingMode, StyleParseErrorKind};
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseErrorKind};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use values::computed::Context;
@@ -853,7 +853,7 @@ impl ToCss for PropertyDeclarationBlock {
                     // Substeps 7 and 8
                     // We need to check the shorthand whether it's an alias property or not.
                     // If it's an alias property, it should be serialized like its longhand.
-                    if shorthand.flags().contains(PropertyFlags::SHORTHAND_ALIAS_PROPERTY) {
+                    if shorthand.flags().contains(SHORTHAND_ALIAS_PROPERTY) {
                         append_serialization::<_, Cloned<slice::Iter< _>>, _>(
                              dest,
                              &property,
@@ -1023,7 +1023,7 @@ pub fn parse_style_attribute<R>(input: &str,
     let context = ParserContext::new(Origin::Author,
                                      url_data,
                                      Some(CssRuleType::Style),
-                                     ParsingMode::DEFAULT,
+                                     PARSING_MODE_DEFAULT,
                                      quirks_mode);
     let error_context = ParserErrorContext { error_reporter: error_reporter };
     let mut input = ParserInput::new(input);

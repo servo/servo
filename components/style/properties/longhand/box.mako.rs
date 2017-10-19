@@ -16,7 +16,7 @@
 <%helpers:longhand name="display"
                    animation_value_type="discrete"
                    custom_cascade="${product == 'servo'}"
-                   flags="PropertyFlags::APPLIES_TO_PLACEHOLDER"
+                   flags="APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-display/#propdef-display">
     <%
         values = """inline block inline-block
@@ -227,7 +227,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
 
 ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                          animation_value_type="discrete",
-                         flags="PropertyFlags::CREATES_STACKING_CONTEXT PropertyFlags::ABSPOS_CB",
+                         flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
                          spec="https://drafts.csswg.org/css-position/#position-property")}
 
 <%helpers:single_keyword_computed name="float"
@@ -240,7 +240,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
                                   gecko_pref_ident="float_"
-                                  flags="PropertyFlags::APPLIES_TO_FIRST_LETTER"
+                                  flags="APPLIES_TO_FIRST_LETTER"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -362,8 +362,7 @@ ${helpers.predefined_type(
     "VerticalAlign",
     "computed::VerticalAlign::baseline()",
     animation_value_type="ComputedValue",
-    flags="""PropertyFlags::APPLIES_TO_FIRST_LETTER PropertyFlags::APPLIES_TO_FIRST_LINE
-    PropertyFlags::APPLIES_TO_PLACEHOLDER""",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align",
 )}
 
@@ -376,7 +375,7 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
     products="gecko", animation_value_type="discrete", internal=True,
-    flags="PropertyFlags::APPLIES_TO_PLACEHOLDER",
+    flags="APPLIES_TO_PLACEHOLDER",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
@@ -390,12 +389,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          extra_gecko_values="-moz-hidden-unscrollable",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
-                         flags="PropertyFlags::APPLIES_TO_PLACEHOLDER",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 <%helpers:longhand name="overflow-y" animation_value_type="discrete"
-                   flags="PropertyFlags::APPLIES_TO_PLACEHOLDER",
+                   flags="APPLIES_TO_PLACEHOLDER",
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
@@ -669,7 +668,7 @@ ${helpers.predefined_type(
 
 <%helpers:longhand name="transform" extra_prefixes="webkit"
                    animation_value_type="ComputedValue"
-                   flags="PropertyFlags::CREATES_STACKING_CONTEXT PropertyFlags::FIXPOS_CB"
+                   flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
@@ -1572,7 +1571,7 @@ ${helpers.single_keyword("isolation",
                          "auto isolate",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
-                         flags="PropertyFlags::CREATES_STACKING_CONTEXT",
+                         flags="CREATES_STACKING_CONTEXT",
                          animation_value_type="discrete")}
 
 // TODO add support for logical values recto and verso
@@ -1605,7 +1604,7 @@ ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-ui/#propdef-resize",
-                         flags="PropertyFlags::APPLIES_TO_PLACEHOLDER",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          animation_value_type="discrete")}
 
 
@@ -1616,7 +1615,7 @@ ${helpers.predefined_type("perspective",
                           gecko_ffi_name="mChildPerspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
-                          flags="PropertyFlags::CREATES_STACKING_CONTEXT PropertyFlags::FIXPOS_CB",
+                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           animation_value_type="ComputedValue")}
 
 ${helpers.predefined_type("perspective-origin",
@@ -1647,7 +1646,7 @@ ${helpers.single_keyword("transform-style",
                          "flat preserve-3d",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
                          extra_prefixes="moz webkit",
-                         flags="PropertyFlags::CREATES_STACKING_CONTEXT PropertyFlags::FIXPOS_CB",
+                         flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                          animation_value_type="discrete")}
 
 ${helpers.predefined_type("transform-origin",
@@ -1662,7 +1661,7 @@ ${helpers.predefined_type("transform-origin",
 // like `content`(layout style paint) in gecko. We should implement `size` and `content`,
 // also update the glue once they are implemented in gecko.
 <%helpers:longhand name="contain" animation_value_type="discrete" products="gecko"
-                   flags="PropertyFlags::FIXPOS_CB"
+                   flags="FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -1673,12 +1672,12 @@ ${helpers.predefined_type("transform-origin",
 
     bitflags! {
         #[derive(MallocSizeOf, ToComputedValue)]
-        pub struct SpecifiedValue: u8 {
-            const LAYOUT = 0x01;
-            const STYLE = 0x02;
-            const PAINT = 0x04;
-            const STRICT = 0x8;
-            const STRICT_BITS = SpecifiedValue::LAYOUT.bits | SpecifiedValue::STYLE.bits | SpecifiedValue::PAINT.bits;
+        pub flags SpecifiedValue: u8 {
+            const LAYOUT = 0x01,
+            const STYLE = 0x02,
+            const PAINT = 0x04,
+            const STRICT = 0x8,
+            const STRICT_BITS = LAYOUT.bits | STYLE.bits | PAINT.bits,
         }
     }
 
@@ -1687,13 +1686,13 @@ ${helpers.predefined_type("transform-origin",
             if self.is_empty() {
                 return dest.write_str("none")
             }
-            if self.contains(SpecifiedValue::STRICT) {
+            if self.contains(STRICT) {
                 return dest.write_str("strict")
             }
 
             let mut has_any = false;
             macro_rules! maybe_write_value {
-                ($ident:path => $str:expr) => {
+                ($ident:ident => $str:expr) => {
                     if self.contains($ident) {
                         if has_any {
                             dest.write_str(" ")?;
@@ -1703,9 +1702,9 @@ ${helpers.predefined_type("transform-origin",
                     }
                 }
             }
-            maybe_write_value!(SpecifiedValue::LAYOUT => "layout");
-            maybe_write_value!(SpecifiedValue::STYLE => "style");
-            maybe_write_value!(SpecifiedValue::PAINT => "paint");
+            maybe_write_value!(LAYOUT => "layout");
+            maybe_write_value!(STYLE => "style");
+            maybe_write_value!(PAINT => "paint");
 
             debug_assert!(has_any);
             Ok(())
@@ -1726,15 +1725,15 @@ ${helpers.predefined_type("transform-origin",
             return Ok(result)
         }
         if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
-            result.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
+            result.insert(STRICT | STRICT_BITS);
             return Ok(result)
         }
 
         while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
-                "layout" => Some(SpecifiedValue::LAYOUT),
-                "style" => Some(SpecifiedValue::STYLE),
-                "paint" => Some(SpecifiedValue::PAINT),
+                "layout" => Some(LAYOUT),
+                "style" => Some(STYLE),
+                "paint" => Some(PAINT),
                 _ => None
             };
             let flag = match flag {
@@ -1865,7 +1864,7 @@ ${helpers.predefined_type(
     products="gecko",
     boxed=True,
     animation_value_type="ComputedValue",
-    flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
+    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}
 
@@ -1885,28 +1884,28 @@ ${helpers.predefined_type(
         /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[derive(ToComputedValue)]
-        pub struct SpecifiedValue: u8 {
-            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8;
-            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8;
-            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8;
-            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8;
-            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8;
+        pub flags SpecifiedValue: u8 {
+            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8,
+            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8,
+            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8,
+            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8,
+            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8,
         }
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                SpecifiedValue::TOUCH_ACTION_NONE => dest.write_str("none"),
-                SpecifiedValue::TOUCH_ACTION_AUTO => dest.write_str("auto"),
-                SpecifiedValue::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
+                TOUCH_ACTION_NONE => dest.write_str("none"),
+                TOUCH_ACTION_AUTO => dest.write_str("auto"),
+                TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
+                _ if self.contains(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y) => {
                     dest.write_str("pan-x pan-y")
                 },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X) => {
+                _ if self.contains(TOUCH_ACTION_PAN_X) => {
                     dest.write_str("pan-x")
                 },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
+                _ if self.contains(TOUCH_ACTION_PAN_Y) => {
                     dest.write_str("pan-y")
                 },
                 _ => panic!("invalid touch-action value"),
@@ -1916,28 +1915,28 @@ ${helpers.predefined_type(
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue::TOUCH_ACTION_AUTO
+        TOUCH_ACTION_AUTO
     }
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         // FIXME: remove clone() when lifetimes are non-lexical
         try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(SpecifiedValue::TOUCH_ACTION_AUTO),
-            "none" => Ok(SpecifiedValue::TOUCH_ACTION_NONE),
-            "manipulation" => Ok(SpecifiedValue::TOUCH_ACTION_MANIPULATION),
+            "auto" => Ok(TOUCH_ACTION_AUTO),
+            "none" => Ok(TOUCH_ACTION_NONE),
+            "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),
             "pan-x" => {
                 if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
+                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
                 } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X)
+                    Ok(TOUCH_ACTION_PAN_X)
                 }
             },
             "pan-y" => {
                 if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
+                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
                 } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_Y)
+                    Ok(TOUCH_ACTION_PAN_Y)
                 }
             },
         }

@@ -17,6 +17,6 @@
                               alias=maybe_moz_logical_alias(product, side, "-moz-margin-%s"),
                               allow_quirks=not side[1],
                               animation_value_type="ComputedValue", logical = side[1], spec = spec,
-                              flags="PropertyFlags::APPLIES_TO_FIRST_LETTER",
+                              flags="APPLIES_TO_FIRST_LETTER",
                               allowed_in_page_rule=True)}
 % endfor

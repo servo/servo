@@ -11,6 +11,8 @@ use context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use context::{SharedStyleContext, StyleContext};
 use data::ElementData;
 use dom::TElement;
+use invalidation::element::restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS};
+use invalidation::element::restyle_hints::{RESTYLE_SMIL, RESTYLE_STYLE_ATTRIBUTE};
 use invalidation::element::restyle_hints::RestyleHint;
 use properties::ComputedValues;
 use rule_tree::{CascadeLevel, StrongRuleNode};
@@ -18,7 +20,7 @@ use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::{Arc, ArcBorrow};
 use style_resolver::ResolvedElementStyles;
-use traversal_flags::TraversalFlags;
+use traversal_flags;
 
 /// Represents the result of comparing an element's old and new style.
 #[derive(Debug)]
@@ -159,7 +161,7 @@ trait PrivateMatchMethods: TElement {
             // animation is running or not.
             // TODO: We should check which @keyframes changed/added/deleted
             // and update only animations corresponding to those @keyframes.
-            (context.shared.traversal_flags.contains(TraversalFlags::ForCSSRuleChanges) &&
+            (context.shared.traversal_flags.contains(traversal_flags::ForCSSRuleChanges) &&
              (has_new_animation_style || has_animations)) ||
             !old_box_style.animations_equals(new_box_style) ||
              (old_display_style == display::T::none &&
@@ -181,10 +183,10 @@ trait PrivateMatchMethods: TElement {
         new_values: &ComputedValues,
         restyle_hints: RestyleHint
     ) {
-        use context::PostAnimationTasks;
+        use context::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL;
         use properties::longhands::display::computed_value as display;
 
-        if !restyle_hints.intersects(RestyleHint::RESTYLE_SMIL) {
+        if !restyle_hints.intersects(RESTYLE_SMIL) {
             return;
         }
 
@@ -204,7 +206,7 @@ trait PrivateMatchMethods: TElement {
             // restyle).
             let task = ::context::SequentialTask::process_post_animation(
                 *self,
-                PostAnimationTasks::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL,
+                DISPLAY_CHANGED_FROM_NONE_FOR_SMIL,
             );
             context.thread_local.tasks.push(task);
         }
@@ -217,6 +219,7 @@ trait PrivateMatchMethods: TElement {
                           new_values: &mut Arc<ComputedValues>,
                           restyle_hint: RestyleHint,
                           important_rules_changed: bool) {
+        use context::{CASCADE_RESULTS, CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
         if context.shared.traversal_flags.for_animation_only() {
@@ -234,7 +237,7 @@ trait PrivateMatchMethods: TElement {
 
         let mut tasks = UpdateAnimationsTasks::empty();
         if self.needs_animations_update(context, old_values.as_ref(), new_values) {
-            tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
+            tasks.insert(CSS_ANIMATIONS);
         }
 
         let before_change_style = if self.might_need_transitions_update(old_values.as_ref().map(|s| &**s),
@@ -262,7 +265,7 @@ trait PrivateMatchMethods: TElement {
                 if let Some(values_without_transitions) = after_change_style {
                     *new_values = values_without_transitions;
                 }
-                tasks.insert(UpdateAnimationsTasks::CSS_TRANSITIONS);
+                tasks.insert(CSS_TRANSITIONS);
 
                 // We need to clone old_values into SequentialTask, so we can use it later.
                 old_values.clone()
@@ -274,9 +277,9 @@ trait PrivateMatchMethods: TElement {
         };
 
         if self.has_animations() {
-            tasks.insert(UpdateAnimationsTasks::EFFECT_PROPERTIES);
+            tasks.insert(EFFECT_PROPERTIES);
             if important_rules_changed {
-                tasks.insert(UpdateAnimationsTasks::CASCADE_RESULTS);
+                tasks.insert(CASCADE_RESULTS);
             }
         }
 
@@ -342,7 +345,7 @@ trait PrivateMatchMethods: TElement {
         debug!("accumulate_damage_for: {:?}", self);
 
         // Don't accumulate damage if we're in a forgetful traversal.
-        if shared_context.traversal_flags.contains(TraversalFlags::Forgetful) {
+        if shared_context.traversal_flags.contains(traversal_flags::Forgetful) {
             debug!(" > forgetful traversal");
             return ChildCascadeRequirement::MustCascadeChildren;
         }
@@ -398,7 +401,7 @@ trait PrivateMatchMethods: TElement {
                 // seems not common enough to care about.
                 #[cfg(feature = "gecko")]
                 {
-                    use values::specified::align::AlignFlags;
+                    use values::specified::align;
 
                     let old_justify_items =
                         old_values.get_position().clone_justify_items();
@@ -406,10 +409,10 @@ trait PrivateMatchMethods: TElement {
                         new_values.get_position().clone_justify_items();
 
                     let was_legacy_justify_items =
-                        old_justify_items.computed.0.contains(AlignFlags::LEGACY);
+                        old_justify_items.computed.0.contains(align::ALIGN_LEGACY);
 
                     let is_legacy_justify_items =
-                        new_justify_items.computed.0.contains(AlignFlags::LEGACY);
+                        new_justify_items.computed.0.contains(align::ALIGN_LEGACY);
 
                     if is_legacy_justify_items != was_legacy_justify_items {
                         return ChildCascadeRequirement::MustCascadeChildren;
@@ -581,7 +584,7 @@ pub trait MatchMethods : TElement {
         }
 
         // Don't accumulate damage if we're in a forgetful traversal.
-        if context.shared.traversal_flags.contains(TraversalFlags::Forgetful) {
+        if context.shared.traversal_flags.contains(traversal_flags::Forgetful) {
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
@@ -765,7 +768,7 @@ pub trait MatchMethods : TElement {
 
         if !context.shared.traversal_flags.for_animation_only() {
             let mut result = false;
-            if replacements.contains(RestyleHint::RESTYLE_STYLE_ATTRIBUTE) {
+            if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();
                 result |= replace_rule_node(CascadeLevel::StyleAttributeNormal,
                                             style_attribute,
@@ -787,7 +790,7 @@ pub trait MatchMethods : TElement {
         if replacements.intersects(RestyleHint::for_animations()) {
             debug_assert!(context.shared.traversal_flags.for_animation_only());
 
-            if replacements.contains(RestyleHint::RESTYLE_SMIL) {
+            if replacements.contains(RESTYLE_SMIL) {
                 replace_rule_node(CascadeLevel::SMILOverride,
                                   self.get_smil_override(),
                                   primary_rules);
@@ -803,12 +806,12 @@ pub trait MatchMethods : TElement {
 
             // Apply Transition rules and Animation rules if the corresponding restyle hint
             // is contained.
-            if replacements.contains(RestyleHint::RESTYLE_CSS_TRANSITIONS) {
+            if replacements.contains(RESTYLE_CSS_TRANSITIONS) {
                 replace_rule_node_for_animation(CascadeLevel::Transitions,
                                                 primary_rules);
             }
 
-            if replacements.contains(RestyleHint::RESTYLE_CSS_ANIMATIONS) {
+            if replacements.contains(RESTYLE_CSS_ANIMATIONS) {
                 replace_rule_node_for_animation(CascadeLevel::Animations,
                                                 primary_rules);
             }

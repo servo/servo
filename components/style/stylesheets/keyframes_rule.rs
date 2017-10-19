@@ -15,7 +15,7 @@ use properties::longhands::transition_timing_function::single_value::SpecifiedVa
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
-use style_traits::{ParsingMode, ToCss, ParseError, StyleParseErrorKind};
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseErrorKind};
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::{KeyframesName, serialize_percentage};
@@ -218,7 +218,7 @@ impl Keyframe {
             parent_stylesheet_contents.origin,
             &url_data,
             Some(CssRuleType::Keyframe),
-            ParsingMode::DEFAULT,
+            PARSING_MODE_DEFAULT,
             parent_stylesheet_contents.quirks_mode
         );
         let error_context = ParserErrorContext { error_reporter: &error_reporter };

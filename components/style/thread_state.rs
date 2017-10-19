@@ -11,26 +11,26 @@ use std::cell::RefCell;
 
 bitflags! {
     /// A thread state flag, used for multiple assertions.
-    pub struct ThreadState: u32 {
+    pub flags ThreadState: u32 {
         /// Whether we're in a script thread.
-        const SCRIPT          = 0x01;
+        const SCRIPT          = 0x01,
         /// Whether we're in a layout thread.
-        const LAYOUT          = 0x02;
+        const LAYOUT          = 0x02,
 
         /// Whether we're in a script worker thread (actual web workers), or in
         /// a layout worker thread.
-        const IN_WORKER       = 0x0100;
+        const IN_WORKER       = 0x0100,
 
         /// Whether the current thread is going through a GC.
-        const IN_GC           = 0x0200;
+        const IN_GC           = 0x0200,
     }
 }
 
-macro_rules! thread_types ( ( $( $fun:ident = $flag:path ; )* ) => (
+macro_rules! thread_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     impl ThreadState {
         /// Whether the current thread is a worker thread.
         pub fn is_worker(self) -> bool {
-            self.contains(ThreadState::IN_WORKER)
+            self.contains(IN_WORKER)
         }
 
         $(
@@ -43,8 +43,8 @@ macro_rules! thread_types ( ( $( $fun:ident = $flag:path ; )* ) => (
 ));
 
 thread_types! {
-    is_script = ThreadState::SCRIPT;
-    is_layout = ThreadState::LAYOUT;
+    is_script = SCRIPT;
+    is_layout = LAYOUT;
 }
 
 thread_local!(static STATE: RefCell<Option<ThreadState>> = RefCell::new(None));
@@ -63,7 +63,7 @@ pub fn initialize(x: ThreadState) {
 
 /// Initializes the current thread as a layout worker thread.
 pub fn initialize_layout_worker_thread() {
-    initialize(ThreadState::LAYOUT | ThreadState::IN_WORKER);
+    initialize(LAYOUT | IN_WORKER);
 }
 
 /// Gets the current thread state.

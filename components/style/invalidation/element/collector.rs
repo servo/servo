@@ -9,11 +9,11 @@ use Atom;
 use context::{QuirksMode, SharedStyleContext};
 use data::ElementData;
 use dom::TElement;
-use element_state::ElementState;
+use element_state::{ElementState, IN_VISITED_OR_UNVISITED_STATE};
 use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::invalidation_map::*;
 use invalidation::element::invalidator::{InvalidationVector, Invalidation, InvalidationProcessor};
-use invalidation::element::restyle_hints::RestyleHint;
+use invalidation::element::restyle_hints::*;
 use selector_map::SelectorMap;
 use selector_parser::Snapshot;
 use selectors::NthIndexCache;
@@ -102,7 +102,7 @@ where
         // force a restyle here. Matching doesn't depend on the actual visited
         // state at all, so we can't look at matching results to decide what to
         // do for this case.
-        if state_changes.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
+        if state_changes.intersects(IN_VISITED_OR_UNVISITED_STATE) {
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints.
@@ -186,7 +186,7 @@ where
         };
 
         if invalidated_self {
-            self.data.hint.insert(RestyleHint::RESTYLE_SELF);
+            self.data.hint.insert(RESTYLE_SELF);
         }
 
         invalidated_self
@@ -195,7 +195,7 @@ where
     fn should_process_descendants(&mut self, element: E) -> bool {
         if element == self.element {
             return !self.data.styles.is_display_none() &&
-                !self.data.hint.contains(RestyleHint::RESTYLE_DESCENDANTS)
+                !self.data.hint.contains(RESTYLE_DESCENDANTS)
         }
 
         let data = match element.borrow_data() {
@@ -204,17 +204,17 @@ where
         };
 
         !data.styles.is_display_none() &&
-            !data.hint.contains(RestyleHint::RESTYLE_DESCENDANTS)
+            !data.hint.contains(RESTYLE_DESCENDANTS)
     }
 
     fn recursion_limit_exceeded(&mut self, element: E) {
         if element == self.element {
-            self.data.hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
+            self.data.hint.insert(RESTYLE_DESCENDANTS);
             return;
         }
 
         if let Some(mut data) = element.mutate_data() {
-            data.hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
+            data.hint.insert(RESTYLE_DESCENDANTS);
         }
     }
 
@@ -242,7 +242,7 @@ where
     fn invalidated_self(&mut self, element: E) {
         debug_assert_ne!(element, self.element);
         if let Some(mut data) = element.mutate_data() {
-            data.hint.insert(RestyleHint::RESTYLE_SELF);
+            data.hint.insert(RESTYLE_SELF);
         }
     }
 }
@@ -333,7 +333,7 @@ where
                     return true;
                 }
                 let visited_dependent =
-                    if dependency.state.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
+                    if dependency.state.intersects(IN_VISITED_OR_UNVISITED_STATE) {
                         VisitedDependent::Yes
                     } else {
                         VisitedDependent::No

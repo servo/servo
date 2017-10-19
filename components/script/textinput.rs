@@ -7,6 +7,7 @@
 use clipboard_provider::ClipboardProvider;
 use dom::bindings::str::DOMString;
 use dom::keyboardevent::KeyboardEvent;
+use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
@@ -113,12 +114,12 @@ pub enum Direction {
 /// i.e. cmd on Mac OS or ctrl on other platforms.
 #[cfg(target_os = "macos")]
 fn is_control_key(mods: KeyModifiers) -> bool {
-    mods.contains(KeyModifiers::SUPER) && !mods.contains(KeyModifiers::CONTROL | KeyModifiers::ALT)
+    mods.contains(SUPER) && !mods.contains(CONTROL | ALT)
 }
 
 #[cfg(not(target_os = "macos"))]
 fn is_control_key(mods: KeyModifiers) -> bool {
-    mods.contains(KeyModifiers::CONTROL) && !mods.contains(KeyModifiers::SUPER | KeyModifiers::ALT)
+    mods.contains(CONTROL) && !mods.contains(SUPER | ALT)
 }
 
 /// The length in bytes of the first n characters in a UTF-8 string.
@@ -584,36 +585,31 @@ impl<T: ClipboardProvider> TextInput<T> {
                               printable: Option<char>,
                               key: Key,
                               mods: KeyModifiers) -> KeyReaction {
-        let maybe_select = if mods.contains(KeyModifiers::SHIFT) {
-                Selection::Selected
-            } else {
-                Selection::NotSelected
-        };
-
+        let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
         match (printable, key) {
-            (_, Key::B) if mods.contains(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+            (_, Key::B) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
-            (_, Key::F) if mods.contains(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+            (_, Key::F) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
-            (_, Key::A) if mods.contains(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+            (_, Key::A) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
-            (_, Key::E) if mods.contains(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+            (_, Key::E) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
-            (None, Key::A) if mods == KeyModifiers::CONTROL => {
+            (None, Key::A) if mods == CONTROL => {
                 self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
-            (None, Key::E) if mods == KeyModifiers::CONTROL => {
+            (None, Key::E) if mods == CONTROL => {
                 self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
@@ -645,30 +641,30 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::DispatchInput
             },
             #[cfg(target_os = "macos")]
-            (None, Key::Left) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Left) if mods.contains(SUPER) => {
                 self.adjust_horizontal_to_line_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
-            (None, Key::Right) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Right) if mods.contains(SUPER) => {
                 self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
-            (None, Key::Up) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Up) if mods.contains(SUPER) => {
                 self.adjust_horizontal_to_limit(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             #[cfg(target_os = "macos")]
-            (None, Key::Down) if mods.contains(KeyModifiers::SUPER) => {
+            (None, Key::Down) if mods.contains(SUPER) => {
                 self.adjust_horizontal_to_limit(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
-            (None, Key::Left) if mods.contains(KeyModifiers::ALT) => {
+            (None, Key::Left) if mods.contains(ALT) => {
                 self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
-            (None, Key::Right) if mods.contains(KeyModifiers::ALT) => {
+            (None, Key::Right) if mods.contains(ALT) => {
                 self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },

@@ -65,8 +65,8 @@ use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::mutationobserver::{Mutation, MutationObserver};
 use dom::namednodemap::NamedNodeMap;
-use dom::node::{ChildrenMutation, LayoutNodeHelpers, Node};
-use dom::node::{NodeDamage, NodeFlags, UnbindContext};
+use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
+use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::promise::Promise;
@@ -90,6 +90,7 @@ use script_thread::ScriptThread;
 use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::sink::Push;
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -106,8 +107,8 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::dom_apis;
-use style::element_state::ElementState;
-use style::invalidation::element::restyle_hints::RestyleHint;
+use style::element_state::*;
+use style::invalidation::element::restyle_hints::RESTYLE_SELF;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::rule_tree::CascadeLevel;
@@ -291,7 +292,7 @@ impl Element {
 
         // FIXME(bholley): I think we should probably only do this for
         // NodeStyleDamaged, but I'm preserving existing behavior.
-        restyle.hint.insert(RestyleHint::RESTYLE_SELF);
+        restyle.hint.insert(RESTYLE_SELF);
 
         if damage == NodeDamage::OtherNodeDamage {
             restyle.damage = RestyleDamage::rebuild_and_reflow();
@@ -1068,7 +1069,7 @@ impl Element {
         }
         // TODO: Check whether the element is being rendered (i.e. not hidden).
         let node = self.upcast::<Node>();
-        if node.get_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE) {
+        if node.get_flag(SEQUENTIALLY_FOCUSABLE) {
             return true;
         }
         // https://html.spec.whatwg.org/multipage/#specially-focusable
@@ -2486,11 +2487,11 @@ impl VirtualMethods for Element {
         }
 
         let flags = self.selector_flags.get();
-        if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR) {
+        if flags.intersects(HAS_SLOW_SELECTOR) {
             // All children of this node need to be restyled when any child changes.
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         } else {
-            if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
+            if flags.intersects(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
                     for child in next_child.inclusively_following_siblings() {
                         if child.is::<Element>() {
@@ -2499,7 +2500,7 @@ impl VirtualMethods for Element {
                     }
                 }
             }
-            if flags.intersects(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
+            if flags.intersects(HAS_EDGE_CHILD_SELECTOR) {
                 if let Some(child) = mutation.modified_edge_element() {
                     child.dirty(NodeDamage::OtherNodeDamage);
                 }
@@ -2753,11 +2754,11 @@ impl Element {
     }
 
     pub fn click_in_progress(&self) -> bool {
-        self.upcast::<Node>().get_flag(NodeFlags::CLICK_IN_PROGRESS)
+        self.upcast::<Node>().get_flag(CLICK_IN_PROGRESS)
     }
 
     pub fn set_click_in_progress(&self, click: bool) {
-        self.upcast::<Node>().set_flag(NodeFlags::CLICK_IN_PROGRESS, click)
+        self.upcast::<Node>().set_flag(CLICK_IN_PROGRESS, click)
     }
 
     // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
@@ -2857,12 +2858,12 @@ impl Element {
     }
 
     pub fn active_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_ACTIVE_STATE)
+        self.state.get().contains(IN_ACTIVE_STATE)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
     pub fn set_active_state(&self, value: bool) {
-        self.set_state(ElementState::IN_ACTIVE_STATE, value);
+        self.set_state(IN_ACTIVE_STATE, value);
 
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             parent.set_active_state(value);
@@ -2870,71 +2871,71 @@ impl Element {
     }
 
     pub fn focus_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_FOCUS_STATE)
+        self.state.get().contains(IN_FOCUS_STATE)
     }
 
     pub fn set_focus_state(&self, value: bool) {
-        self.set_state(ElementState::IN_FOCUS_STATE, value);
+        self.set_state(IN_FOCUS_STATE, value);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     pub fn hover_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_HOVER_STATE)
+        self.state.get().contains(IN_HOVER_STATE)
     }
 
     pub fn set_hover_state(&self, value: bool) {
-        self.set_state(ElementState::IN_HOVER_STATE, value)
+        self.set_state(IN_HOVER_STATE, value)
     }
 
     pub fn enabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_ENABLED_STATE)
+        self.state.get().contains(IN_ENABLED_STATE)
     }
 
     pub fn set_enabled_state(&self, value: bool) {
-        self.set_state(ElementState::IN_ENABLED_STATE, value)
+        self.set_state(IN_ENABLED_STATE, value)
     }
 
     pub fn disabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_DISABLED_STATE)
+        self.state.get().contains(IN_DISABLED_STATE)
     }
 
     pub fn set_disabled_state(&self, value: bool) {
-        self.set_state(ElementState::IN_DISABLED_STATE, value)
+        self.set_state(IN_DISABLED_STATE, value)
     }
 
     pub fn read_write_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_READ_WRITE_STATE)
+        self.state.get().contains(IN_READ_WRITE_STATE)
     }
 
     pub fn set_read_write_state(&self, value: bool) {
-        self.set_state(ElementState::IN_READ_WRITE_STATE, value)
+        self.set_state(IN_READ_WRITE_STATE, value)
     }
 
     pub fn placeholder_shown_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_PLACEHOLDER_SHOWN_STATE)
+        self.state.get().contains(IN_PLACEHOLDER_SHOWN_STATE)
     }
 
     pub fn set_placeholder_shown_state(&self, value: bool) {
         if self.placeholder_shown_state() != value {
-            self.set_state(ElementState::IN_PLACEHOLDER_SHOWN_STATE, value);
+            self.set_state(IN_PLACEHOLDER_SHOWN_STATE, value);
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
     }
 
     pub fn target_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_TARGET_STATE)
+        self.state.get().contains(IN_TARGET_STATE)
     }
 
     pub fn set_target_state(&self, value: bool) {
-        self.set_state(ElementState::IN_TARGET_STATE, value)
+        self.set_state(IN_TARGET_STATE, value)
     }
 
     pub fn fullscreen_state(&self) -> bool {
-        self.state.get().contains(ElementState::IN_FULLSCREEN_STATE)
+        self.state.get().contains(IN_FULLSCREEN_STATE)
     }
 
     pub fn set_fullscreen_state(&self, value: bool) {
-        self.set_state(ElementState::IN_FULLSCREEN_STATE, value)
+        self.set_state(IN_FULLSCREEN_STATE, value)
     }
 
     /// <https://dom.spec.whatwg.org/#connected>

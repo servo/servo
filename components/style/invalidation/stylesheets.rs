@@ -11,7 +11,7 @@ use Atom;
 use LocalName as SelectorLocalName;
 use dom::{TElement, TNode};
 use fnv::FnvHashSet;
-use invalidation::element::restyle_hints::RestyleHint;
+use invalidation::element::restyle_hints::{RESTYLE_SELF, RestyleHint};
 use media_queries::Device;
 use selector_parser::SelectorImpl;
 use selectors::attr::CaseSensitivity;
@@ -223,12 +223,12 @@ impl StylesheetInvalidationSet {
 
         let mut self_invalid = false;
 
-        if !data.hint.contains(RestyleHint::RESTYLE_SELF) {
+        if !data.hint.contains(RESTYLE_SELF) {
             for invalidation in &self.invalid_elements {
                 if invalidation.matches(element) {
                     debug!("process_invalidations_in_subtree: {:?} matched self {:?}",
                            element, invalidation);
-                    data.hint.insert(RestyleHint::RESTYLE_SELF);
+                    data.hint.insert(RESTYLE_SELF);
                     self_invalid = true;
                     break;
                 }

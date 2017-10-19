@@ -9,7 +9,7 @@ name = "glutin_app"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "1.0"
+bitflags = "0.7"
 compositing = {path = "../../components/compositing"}
 euclid = "0.15"
 gleam = "0.4"

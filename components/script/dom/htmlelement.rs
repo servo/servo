@@ -24,7 +24,7 @@ use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllabelelement::HTMLLabelElement;
-use dom::node::{Node, NodeFlags};
+use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
@@ -76,18 +76,18 @@ impl HTMLElement {
         let element = self.upcast::<Element>();
         let node = self.upcast::<Node>();
         if element.has_attribute(&local_name!("tabindex")) {
-            node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, true);
+            node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
         } else {
             match node.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) |
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement))
-                    => node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, true),
+                    => node.set_flag(SEQUENTIALLY_FOCUSABLE, true),
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
                     if element.has_attribute(&local_name!("href")) {
-                        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, true);
+                        node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
                     }
                 },
                 _ => {
@@ -97,9 +97,9 @@ impl HTMLElement {
                             AttrValue::String(ref string) => string == "true",
                             _ => false,
                         };
-                        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, is_true);
+                        node.set_flag(SEQUENTIALLY_FOCUSABLE, is_true);
                     } else {
-                        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, false);
+                        node.set_flag(SEQUENTIALLY_FOCUSABLE, false);
                     }
                     //TODO set SEQUENTIALLY_FOCUSABLE flag if editing host
                     //TODO set SEQUENTIALLY_FOCUSABLE flag if "sorting interface th elements"

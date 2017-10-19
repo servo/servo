@@ -10,7 +10,7 @@ use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list_builder::{StackingContextCollectionFlags, StackingContextCollectionState};
+use display_list_builder::{NEVER_CREATES_CONTAINING_BLOCK, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -184,8 +184,7 @@ impl Flow for TableRowGroupFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
-        self.block_flow.collect_stacking_contexts_for_block(state,
-            StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK);
+        self.block_flow.collect_stacking_contexts_for_block(state, NEVER_CREATES_CONTAINING_BLOCK);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

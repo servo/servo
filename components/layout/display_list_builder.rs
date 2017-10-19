@@ -17,7 +17,7 @@ use context::LayoutContext;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Transform3D, TypedSize2D};
 use euclid::Vector2D;
 use flex::FlexFlow;
-use flow::{BaseFlow, Flow, FlowFlags};
+use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
 use fnv::FnvHashMap;
 use fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
@@ -32,7 +32,7 @@ use gfx::display_list::{PopAllTextShadowsDisplayItem, PushTextShadowDisplayItem}
 use gfx::display_list::{RadialGradientDisplayItem, SolidColorDisplayItem, StackingContext};
 use gfx::display_list::{StackingContextType, TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
-use inline::{InlineFragmentNodeFlags, InlineFlow};
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto};
@@ -54,7 +54,7 @@ use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalS
 use style::properties::ComputedValues;
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
 use style::properties::style_structs;
-use style::servo::restyle_damage::ServoRestyleDamage;
+use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA};
 use style::values::computed::{Angle, Gradient, GradientItem, LengthOrPercentage, Percentage};
 use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
@@ -105,8 +105,7 @@ fn convert_repeat_mode(from: RepeatKeyword) -> RepeatMode {
 fn establishes_containing_block_for_absolute(flags: StackingContextCollectionFlags,
                                              positioning: position::T)
                                              -> bool {
-    !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK) &&
-                    position::T::static_ != positioning
+    !flags.contains(NEVER_CREATES_CONTAINING_BLOCK) && position::T::static_ != positioning
 }
 
 trait RgbColor {
@@ -1869,7 +1868,7 @@ impl FragmentDisplayListBuilding for Fragment {
                           border_painting_mode: BorderPaintingMode,
                           display_list_section: DisplayListSection,
                           clip: &Rect<Au>) {
-        self.restyle_damage.remove(ServoRestyleDamage::REPAINT);
+        self.restyle_damage.remove(REPAINT);
         if self.style().get_inheritedbox().visibility != visibility::T::visible {
             return
         }
@@ -1915,10 +1914,8 @@ impl FragmentDisplayListBuilding for Fragment {
                         state,
                         &*node.style,
                         Some(InlineNodeBorderInfo {
-                            is_first_fragment_of_element:
-                                node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT),
-                            is_last_fragment_of_element:
-                                node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT),
+                            is_first_fragment_of_element: node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
+                            is_last_fragment_of_element: node.flags.contains(LAST_FRAGMENT_OF_ELEMENT),
                         }),
                         border_painting_mode,
                         &stacking_relative_border_box,
@@ -2396,13 +2393,13 @@ impl FragmentDisplayListBuilding for Fragment {
 }
 
 bitflags! {
-    pub struct StackingContextCollectionFlags: u8 {
+    pub flags StackingContextCollectionFlags: u8 {
         /// This flow never establishes a containing block.
-        const NEVER_CREATES_CONTAINING_BLOCK = 0b001;
+        const NEVER_CREATES_CONTAINING_BLOCK = 0b001,
         /// This flow never creates a ClipScrollNode.
-        const NEVER_CREATES_CLIP_SCROLL_NODE = 0b010;
+        const NEVER_CREATES_CLIP_SCROLL_NODE = 0b010,
         /// This flow never creates a stacking context.
-        const NEVER_CREATES_STACKING_CONTEXT = 0b100;
+        const NEVER_CREATES_STACKING_CONTEXT = 0b100,
     }
 }
 
@@ -2660,7 +2657,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             self.transform_clip_to_coordinate_space(state, preserved_state);
         }
 
-        if !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CLIP_SCROLL_NODE) {
+        if !flags.contains(NEVER_CREATES_CLIP_SCROLL_NODE) {
             self.setup_clip_scroll_node_for_position(state, &stacking_relative_border_box);
             self.setup_clip_scroll_node_for_overflow(state, &stacking_relative_border_box);
             self.setup_clip_scroll_node_for_css_clip(state, preserved_state,
@@ -2670,7 +2667,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         // We keep track of our position so that any stickily positioned elements can
         // properly determine the extent of their movement relative to scrolling containers.
-        if !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK) {
+        if !flags.contains(NEVER_CREATES_CONTAINING_BLOCK) {
             let border_box = if self.fragment.establishes_stacking_context() {
                 stacking_relative_border_box
             } else {
@@ -2887,7 +2884,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                 parent_stacking_context_id: StackingContextId,
                                                 parent_clip_and_scroll_info: ClipAndScrollInfo,
                                                 state: &mut StackingContextCollectionState) {
-        let creation_mode = if self.base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) ||
+        let creation_mode = if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
                                self.fragment.style.get_box().position != position::T::static_ {
             StackingContextType::PseudoPositioned
         } else {
@@ -2943,7 +2940,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                     border_painting_mode: BorderPaintingMode) {
         let background_border_section = if self.base.flags.is_float() {
             DisplayListSection::BackgroundAndBorders
-        } else if self.base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+        } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             if self.fragment.establishes_stacking_context() {
                 DisplayListSection::BackgroundAndBorders
             } else {
@@ -2979,7 +2976,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         &self,
         flags: StackingContextCollectionFlags,
     ) -> BlockStackingContextType {
-        if flags.contains(StackingContextCollectionFlags::NEVER_CREATES_STACKING_CONTEXT) {
+        if flags.contains(NEVER_CREATES_STACKING_CONTEXT) {
             return BlockStackingContextType::NonstackingContext;
         }
 
@@ -2987,7 +2984,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             return BlockStackingContextType::StackingContext
         }
 
-        if self.base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             return BlockStackingContextType::PseudoStackingContext
         }
 
