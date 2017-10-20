@@ -8,7 +8,7 @@ pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
         % if pseudo.is_tree_pseudo_element():
-        ${pseudo.capitalized()}(Box<[String]>),
+        ${pseudo.capitalized()}(Box<[Atom]>),
         % else:
         ${pseudo.capitalized()},
         % endif
@@ -207,7 +207,7 @@ impl PseudoElement {
     ///
     /// Returns `None` if the pseudo-element is not recognized.
     #[inline]
-    pub fn tree_pseudo_element(name: &str, args: Box<[String]>) -> Option<Self> {
+    pub fn tree_pseudo_element(name: &str, args: Box<[Atom]>) -> Option<Self> {
         use std::ascii::AsciiExt;
         debug_assert!(name.starts_with("-moz-tree-"));
         let tree_part = &name[10..];
@@ -234,10 +234,10 @@ impl ToCss for PseudoElement {
                 dest.write_char('(')?;
                 let mut iter = args.iter();
                 if let Some(first) = iter.next() {
-                    serialize_identifier(first, dest)?;
+                    serialize_identifier(&first.to_string(), dest)?;
                     for item in iter {
                         dest.write_str(", ")?;
-                        serialize_identifier(item, dest)?;
+                        serialize_identifier(&item.to_string(), dest)?;
                     }
                 }
                 dest.write_char(')')

@@ -392,7 +392,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             loop {
                 let location = parser.current_source_location();
                 match parser.next() {
-                    Ok(&Token::Ident(ref ident)) => args.push(ident.as_ref().to_owned()),
+                    Ok(&Token::Ident(ref ident)) => args.push(Atom::from(ident.as_ref())),
                     Ok(&Token::Comma) => {},
                     Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                     Err(BasicParseError { kind: BasicParseErrorKind::EndOfInput, .. }) => break,

@@ -140,29 +140,29 @@ pub enum PseudoElement {
         /// :-moz-ruby-text-container
         RubyTextContainer,
         /// :-moz-tree-column
-        MozTreeColumn(Box<[String]>),
+        MozTreeColumn(Box<[Atom]>),
         /// :-moz-tree-row
-        MozTreeRow(Box<[String]>),
+        MozTreeRow(Box<[Atom]>),
         /// :-moz-tree-separator
-        MozTreeSeparator(Box<[String]>),
+        MozTreeSeparator(Box<[Atom]>),
         /// :-moz-tree-cell
-        MozTreeCell(Box<[String]>),
+        MozTreeCell(Box<[Atom]>),
         /// :-moz-tree-indentation
-        MozTreeIndentation(Box<[String]>),
+        MozTreeIndentation(Box<[Atom]>),
         /// :-moz-tree-line
-        MozTreeLine(Box<[String]>),
+        MozTreeLine(Box<[Atom]>),
         /// :-moz-tree-twisty
-        MozTreeTwisty(Box<[String]>),
+        MozTreeTwisty(Box<[Atom]>),
         /// :-moz-tree-image
-        MozTreeImage(Box<[String]>),
+        MozTreeImage(Box<[Atom]>),
         /// :-moz-tree-cell-text
-        MozTreeCellText(Box<[String]>),
+        MozTreeCellText(Box<[Atom]>),
         /// :-moz-tree-checkbox
-        MozTreeCheckbox(Box<[String]>),
+        MozTreeCheckbox(Box<[Atom]>),
         /// :-moz-tree-progressmeter
-        MozTreeProgressmeter(Box<[String]>),
+        MozTreeProgressmeter(Box<[Atom]>),
         /// :-moz-tree-drop-feedback
-        MozTreeDropFeedback(Box<[String]>),
+        MozTreeDropFeedback(Box<[Atom]>),
         /// :-moz-svg-marker-anon-child
         MozSVGMarkerAnonChild,
         /// :-moz-svg-outer-svg-anon-child
@@ -1636,7 +1636,7 @@ None
     ///
     /// Returns `None` if the pseudo-element is not recognized.
     #[inline]
-    pub fn tree_pseudo_element(name: &str, args: Box<[String]>) -> Option<Self> {
+    pub fn tree_pseudo_element(name: &str, args: Box<[Atom]>) -> Option<Self> {
         use std::ascii::AsciiExt;
         debug_assert!(name.starts_with("-moz-tree-"));
         let tree_part = &name[10..];
@@ -1784,10 +1784,10 @@ impl ToCss for PseudoElement {
                 dest.write_char('(')?;
                 let mut iter = args.iter();
                 if let Some(first) = iter.next() {
-                    serialize_identifier(first, dest)?;
+                    serialize_identifier(&first.to_string(), dest)?;
                     for item in iter {
                         dest.write_str(", ")?;
-                        serialize_identifier(item, dest)?;
+                        serialize_identifier(&item.to_string(), dest)?;
                     }
                 }
                 dest.write_char(')')
