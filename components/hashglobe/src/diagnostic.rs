@@ -166,7 +166,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         canary: usize,
         canary_addr: *const usize,
         position: usize,
-        count: usize,
+        count: usize
     ) {
         use ::std::ffi::CString;
         let key = b"HashMapJournal\0";
@@ -179,9 +179,10 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         }
 
         panic!(
-            concat!("HashMap Corruption (sz={}, cap={}, pairsz={}, hash={:#x}, cnry={:#x}, ",
+            concat!("HashMap Corruption (sz={}, buffer_hash_sz={}, cap={}, pairsz={}, hash={:#x}, cnry={:#x}, ",
                 "count={}, last_pos={}, base_addr={:?}, cnry_addr={:?}, jrnl_len={})"),
             self.map.len(),
+            self.map.diagnostic_count_hashes(),
             self.map.raw_capacity(),
             ::std::mem::size_of::<(K, (usize, V))>(),
             hash,
