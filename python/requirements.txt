@@ -26,4 +26,9 @@ colorama == 0.3.7
 # For package uploading
 boto3 == 1.4.4
 
+# Default root CAs on Windows CI do not trust CloudFront certificates,
+# connecting to https://static.rust-lang.org would fail:
+# https://github.com/servo/servo/pull/18942
+certifi
+
 -e python/tidy
