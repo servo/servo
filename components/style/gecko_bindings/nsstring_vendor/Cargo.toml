@@ -1,12 +1,15 @@
 [package]
-name = "nsstring"
+name = "nsstring_vendor"
 version = "0.1.0"
 authors = ["nobody@mozilla.com"]
 license = "MPL-2.0"
 description = "Rust bindings to xpcom string types"
 
-[features]
-gecko_debug = []
+
+# Revendoring nsstring from m-c into Servo
 
 [dependencies]
 bitflags = "0.8"
+
+[features]
+gecko_debug = []
