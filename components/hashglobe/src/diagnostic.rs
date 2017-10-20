@@ -62,17 +62,21 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         let mut position = 0;
         let mut count = 0;
         let mut bad_canary = None;
-        for (_,v) in self.map.iter() {
+
+        let mut iter = self.map.iter();
+        while let Some((h, _, v)) = iter.next_with_hash() {
             let canary_ref = &v.0;
             position += 1;
+
             if *canary_ref == CANARY {
                 continue;
             }
+
             count += 1;
-            bad_canary = Some((*canary_ref, canary_ref, position));
+            bad_canary = Some((h, *canary_ref, canary_ref, position));
         }
         if let Some(c) = bad_canary {
-            self.report_corruption(c.0, c.1, c.2, count);
+            self.report_corruption(c.0, c.1, c.2, c.3, count);
         }
     }
 
@@ -158,6 +162,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
     #[inline(never)]
     fn report_corruption(
         &self,
+        hash: usize,
         canary: usize,
         canary_addr: *const usize,
         position: usize,
@@ -172,12 +177,14 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
                 value.as_ptr(),
             );
         }
+
         panic!(
-            concat!("HashMap Corruption (sz={}, cap={}, pairsz={}, cnry={:#x}, count={}, ",
-                    "last_pos={}, base_addr={:?}, cnry_addr={:?}, jrnl_len={})"),
+            concat!("HashMap Corruption (sz={}, cap={}, pairsz={}, hash={:#x}, cnry={:#x}, ",
+                "count={}, last_pos={}, base_addr={:?}, cnry_addr={:?}, jrnl_len={})"),
             self.map.len(),
             self.map.raw_capacity(),
             ::std::mem::size_of::<(K, (usize, V))>(),
+            hash,
             canary,
             count,
             position,

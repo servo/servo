@@ -1339,6 +1339,12 @@ impl<'a, K: Debug, V: Debug> fmt::Debug for Iter<'a, K, V> {
     }
 }
 
+impl<'a, K: 'a, V: 'a>  Iter<'a, K, V> {
+    pub fn next_with_hash(&mut self) -> Option<(usize, &'a K, &'a V)> {
+        self.inner.next_with_hash()
+    }
+}
+
 /// A mutable iterator over the entries of a `HashMap`.
 ///
 /// This `struct` is created by the [`iter_mut`] method on [`HashMap`]. See its

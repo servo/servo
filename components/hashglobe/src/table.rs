@@ -1130,6 +1130,15 @@ impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {
     }
 }
 
+impl<'a, K, V> Iter<'a, K, V> {
+    pub fn next_with_hash(&mut self) -> Option<(usize, &'a K, &'a V)> {
+        self.iter.next().map(|raw| unsafe {
+            let (hash_ptr, pair_ptr) = raw.hash_pair();
+            (*hash_ptr, &(*pair_ptr).0, &(*pair_ptr).1)
+        })
+    }
+}
+
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
 
