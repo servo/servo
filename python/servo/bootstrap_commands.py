@@ -308,7 +308,10 @@ class MachCommands(CommandBase):
                 stdout, _ = cmd.communicate()
                 for line in stdout.splitlines():
                     if line.startswith(b"+") and not line.startswith(b"+++"):
-                        to_keep.add(line[1:])
+                        line = line[len(b"+"):]
+                        if line.startswith(b"nightly-"):
+                            line = line[len(b"nightly-"):]
+                        to_keep.add(line)
 
         removing_anything = False
         for tool in ["rust", "cargo"]:
