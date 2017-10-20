@@ -118,16 +118,16 @@
 #[macro_use]
 extern crate bitflags;
 
-use std::ops::{Deref, DerefMut};
-use std::marker::PhantomData;
 use std::borrow;
-use std::slice;
-use std::mem;
-use std::fmt;
 use std::cmp;
+use std::fmt;
+use std::marker::PhantomData;
+use std::mem;
+use std::ops::{Deref, DerefMut};
+use std::os::raw::c_void;
+use std::slice;
 use std::str;
 use std::u32;
-use std::os::raw::c_void;
 
 ///////////////////////////////////
 // Internal Implementation Flags //
@@ -138,7 +138,7 @@ mod data_flags {
         // While this has the same layout as u16, it cannot be passed
         // over FFI safely as a u16.
         #[repr(C)]
-        pub flags DataFlags : u16 {
+        pub flags DataFlags: u16 {
             const TERMINATED = 1 << 0, // IsTerminated returns true
             const VOIDED = 1 << 1, // IsVoid returns true
             const SHARED = 1 << 2, // mData points to a heap-allocated, shared buffer
@@ -154,15 +154,15 @@ mod class_flags {
         // While this has the same layout as u16, it cannot be passed
         // over FFI safely as a u16.
         #[repr(C)]
-        pub flags ClassFlags : u16 {
+        pub flags ClassFlags: u16 {
             const INLINE = 1 << 0, // |this|'s buffer is inline
             const NULL_TERMINATED = 1 << 1, // |this| requires its buffer is null-terminated
         }
     }
 }
 
-use data_flags::DataFlags;
 use class_flags::ClassFlags;
+use data_flags::DataFlags;
 
 ////////////////////////////////////
 // Generic String Bindings Macros //
@@ -183,6 +183,7 @@ macro_rules! define_string_types {
 
         drop = $drop: ident;
         assign = $assign: ident, $fallible_assign: ident;
+        take_from = $take_from: ident, $fallible_take_from: ident;
         append = $append: ident, $fallible_append: ident;
         set_length = $set_length: ident, $fallible_set_length: ident;
         begin_writing = $begin_writing: ident, $fallible_begin_writing: ident;
@@ -268,6 +269,25 @@ macro_rules! define_string_types {
             /// Returns Ok(()) on success, and Err(()) if the allocation failed.
             pub fn fallible_assign<T: $StringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
                 if unsafe { $fallible_assign(self, other.adapt().as_ptr()) } {
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            }
+
+            /// Take the value of `other` and set `self`, overwriting any value
+            /// currently stored. The passed-in string will be truncated.
+            pub fn take_from(&mut self, other: &mut $AString) {
+                unsafe { $take_from(self, other) };
+            }
+
+            /// Take the value of `other` and set `self`, overwriting any value
+            /// currently stored. If this function fails, the source string will
+            /// be left untouched, otherwise it will be truncated.
+            ///
+            /// Returns Ok(()) on success, and Err(()) if the allocation failed.
+            pub fn fallible_take_from(&mut self, other: &mut $AString) -> Result<(), ()> {
+                if unsafe { $fallible_take_from(self, other) } {
                     Ok(())
                 } else {
                     Err(())
@@ -780,6 +800,7 @@ define_string_types! {
 
     drop = Gecko_FinalizeCString;
     assign = Gecko_AssignCString, Gecko_FallibleAssignCString;
+    take_from = Gecko_TakeFromCString, Gecko_FallibleTakeFromCString;
     append = Gecko_AppendCString, Gecko_FallibleAppendCString;
     set_length = Gecko_SetLengthCString, Gecko_FallibleSetLengthCString;
     begin_writing = Gecko_BeginWritingCString, Gecko_FallibleBeginWritingCString;
@@ -913,6 +934,7 @@ define_string_types! {
 
     drop = Gecko_FinalizeString;
     assign = Gecko_AssignString, Gecko_FallibleAssignString;
+    take_from = Gecko_TakeFromString, Gecko_FallibleTakeFromString;
     append = Gecko_AppendString, Gecko_FallibleAppendString;
     set_length = Gecko_SetLengthString, Gecko_FallibleSetLengthString;
     begin_writing = Gecko_BeginWritingString, Gecko_FallibleBeginWritingString;
@@ -998,10 +1020,12 @@ extern "C" {
     fn Gecko_FinalizeCString(this: *mut nsACString);
 
     fn Gecko_AssignCString(this: *mut nsACString, other: *const nsACString);
+    fn Gecko_TakeFromCString(this: *mut nsACString, other: *mut nsACString);
     fn Gecko_AppendCString(this: *mut nsACString, other: *const nsACString);
     fn Gecko_SetLengthCString(this: *mut nsACString, length: u32);
     fn Gecko_BeginWritingCString(this: *mut nsACString) -> *mut u8;
     fn Gecko_FallibleAssignCString(this: *mut nsACString, other: *const nsACString) -> bool;
+    fn Gecko_FallibleTakeFromCString(this: *mut nsACString, other: *mut nsACString) -> bool;
     fn Gecko_FallibleAppendCString(this: *mut nsACString, other: *const nsACString) -> bool;
     fn Gecko_FallibleSetLengthCString(this: *mut nsACString, length: u32) -> bool;
     fn Gecko_FallibleBeginWritingCString(this: *mut nsACString) -> *mut u8;
@@ -1009,10 +1033,12 @@ extern "C" {
     fn Gecko_FinalizeString(this: *mut nsAString);
 
     fn Gecko_AssignString(this: *mut nsAString, other: *const nsAString);
+    fn Gecko_TakeFromString(this: *mut nsAString, other: *mut nsAString);
     fn Gecko_AppendString(this: *mut nsAString, other: *const nsAString);
     fn Gecko_SetLengthString(this: *mut nsAString, length: u32);
     fn Gecko_BeginWritingString(this: *mut nsAString) -> *mut u16;
     fn Gecko_FallibleAssignString(this: *mut nsAString, other: *const nsAString) -> bool;
+    fn Gecko_FallibleTakeFromString(this: *mut nsAString, other: *mut nsAString) -> bool;
     fn Gecko_FallibleAppendString(this: *mut nsAString, other: *const nsAString) -> bool;
     fn Gecko_FallibleSetLengthString(this: *mut nsAString, length: u32) -> bool;
     fn Gecko_FallibleBeginWritingString(this: *mut nsAString) -> *mut u16;
@@ -1022,4 +1048,158 @@ extern "C" {
     fn Gecko_AppendUTF8toString(this: *mut nsAString, other: *const nsACString);
     fn Gecko_FallibleAppendUTF16toCString(this: *mut nsACString, other: *const nsAString) -> bool;
     fn Gecko_FallibleAppendUTF8toString(this: *mut nsAString, other: *const nsACString) -> bool;
+}
+
+//////////////////////////////////////
+// Repr Validation Helper Functions //
+//////////////////////////////////////
+
+pub mod test_helpers {
+    //! This module only exists to help with ensuring that the layout of the
+    //! structs inside of rust and C++ are identical.
+    //!
+    //! It is public to ensure that these testing functions are avaliable to
+    //! gtest code.
+
+    use std::mem;
+    use super::{class_flags, data_flags};
+    use super::{nsCStr, nsCString, nsCStringRepr};
+    use super::{nsStr, nsString, nsStringRepr};
+
+    /// Generates an #[no_mangle] extern "C" function which returns the size and
+    /// alignment of the given type with the given name.
+    macro_rules! size_align_check {
+        ($T:ty, $fname:ident) => {
+            #[no_mangle]
+            #[allow(non_snake_case)]
+            pub extern fn $fname(size: *mut usize, align: *mut usize) {
+                unsafe {
+                    *size = mem::size_of::<$T>();
+                    *align = mem::align_of::<$T>();
+                }
+            }
+        };
+        ($T:ty, $U:ty, $V:ty, $fname:ident) => {
+            #[no_mangle]
+            #[allow(non_snake_case)]
+            pub extern fn $fname(size: *mut usize, align: *mut usize) {
+                unsafe {
+                    *size = mem::size_of::<$T>();
+                    *align = mem::align_of::<$T>();
+
+                    assert_eq!(*size, mem::size_of::<$U>());
+                    assert_eq!(*align, mem::align_of::<$U>());
+                    assert_eq!(*size, mem::size_of::<$V>());
+                    assert_eq!(*align, mem::align_of::<$V>());
+                }
+            }
+        }
+    }
+
+    size_align_check!(nsStringRepr, nsString, nsStr<'static>,
+                      Rust_Test_ReprSizeAlign_nsString);
+    size_align_check!(nsCStringRepr, nsCString, nsCStr<'static>,
+                      Rust_Test_ReprSizeAlign_nsCString);
+
+    /// Generates a $[no_mangle] extern "C" function which returns the size,
+    /// alignment and offset in the parent struct of a given member, with the
+    /// given name.
+    ///
+    /// This method can trigger Undefined Behavior if the accessing the member
+    /// $member on a given type would use that type's `Deref` implementation.
+    macro_rules! member_check {
+        ($T:ty, $member:ident, $method:ident) => {
+            #[no_mangle]
+            #[allow(non_snake_case)]
+            pub extern fn $method(size: *mut usize,
+                                  align: *mut usize,
+                                  offset: *mut usize) {
+                unsafe {
+                    // Create a temporary value of type T to get offsets, sizes
+                    // and aligns off of
+                    let tmp: $T = mem::zeroed();
+                    *size = mem::size_of_val(&tmp.$member);
+                    *align = mem::align_of_val(&tmp.$member);
+                    *offset =
+                        (&tmp.$member as *const _ as usize) -
+                        (&tmp as *const _ as usize);
+                    mem::forget(tmp);
+                }
+            }
+        };
+        ($T:ty, $U:ty, $V:ty, $member:ident, $method:ident) => {
+            #[no_mangle]
+            #[allow(non_snake_case)]
+            pub extern fn $method(size: *mut usize,
+                                  align: *mut usize,
+                                  offset: *mut usize) {
+                unsafe {
+                    // Create a temporary value of type T to get offsets, sizes
+                    // and alignments from.
+                    let tmp: $T = mem::zeroed();
+                    *size = mem::size_of_val(&tmp.$member);
+                    *align = mem::align_of_val(&tmp.$member);
+                    *offset =
+                        (&tmp.$member as *const _ as usize) -
+                        (&tmp as *const _ as usize);
+                    mem::forget(tmp);
+
+                    let tmp: $U = mem::zeroed();
+                    assert_eq!(*size, mem::size_of_val(&tmp.hdr.$member));
+                    assert_eq!(*align, mem::align_of_val(&tmp.hdr.$member));
+                    assert_eq!(*offset,
+                               (&tmp.hdr.$member as *const _ as usize) -
+                               (&tmp as *const _ as usize));
+                    mem::forget(tmp);
+
+                    let tmp: $V = mem::zeroed();
+                    assert_eq!(*size, mem::size_of_val(&tmp.hdr.$member));
+                    assert_eq!(*align, mem::align_of_val(&tmp.hdr.$member));
+                    assert_eq!(*offset,
+                               (&tmp.hdr.$member as *const _ as usize) -
+                               (&tmp as *const _ as usize));
+                    mem::forget(tmp);
+                }
+            }
+        }
+    }
+
+    member_check!(nsStringRepr, nsString, nsStr<'static>,
+                  data, Rust_Test_Member_nsString_mData);
+    member_check!(nsStringRepr, nsString, nsStr<'static>,
+                  length, Rust_Test_Member_nsString_mLength);
+    member_check!(nsStringRepr, nsString, nsStr<'static>,
+                  dataflags, Rust_Test_Member_nsString_mDataFlags);
+    member_check!(nsStringRepr, nsString, nsStr<'static>,
+                  classflags, Rust_Test_Member_nsString_mClassFlags);
+    member_check!(nsCStringRepr, nsCString, nsCStr<'static>,
+                  data, Rust_Test_Member_nsCString_mData);
+    member_check!(nsCStringRepr, nsCString, nsCStr<'static>,
+                  length, Rust_Test_Member_nsCString_mLength);
+    member_check!(nsCStringRepr, nsCString, nsCStr<'static>,
+                  dataflags, Rust_Test_Member_nsCString_mDataFlags);
+    member_check!(nsCStringRepr, nsCString, nsCStr<'static>,
+                  classflags, Rust_Test_Member_nsCString_mClassFlags);
+
+    #[no_mangle]
+    #[allow(non_snake_case)]
+    pub extern fn Rust_Test_NsStringFlags(f_terminated: *mut u16,
+                                          f_voided: *mut u16,
+                                          f_shared: *mut u16,
+                                          f_owned: *mut u16,
+                                          f_inline: *mut u16,
+                                          f_literal: *mut u16,
+                                          f_class_inline: *mut u16,
+                                          f_class_null_terminated: *mut u16) {
+        unsafe {
+            *f_terminated = data_flags::TERMINATED.bits();
+            *f_voided = data_flags::VOIDED.bits();
+            *f_shared = data_flags::SHARED.bits();
+            *f_owned = data_flags::OWNED.bits();
+            *f_inline = data_flags::INLINE.bits();
+            *f_literal = data_flags::LITERAL.bits();
+            *f_class_inline = class_flags::INLINE.bits();
+            *f_class_null_terminated = class_flags::NULL_TERMINATED.bits();
+        }
+    }
 }
