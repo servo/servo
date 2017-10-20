@@ -1980,6 +1980,7 @@ impl Window {
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
             Box::new(self.task_canceller().wrap_task(task)),
+            self.upcast::<GlobalScope>().pipeline_id()
         ));
     }
 }

@@ -310,7 +310,7 @@ impl WorkletThreadPool {
     /// For testing.
     pub fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
         let (sender, receiver) = mpsc::channel();
-        let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
+        let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)), None);
         let _ = self.primary_sender.send(msg);
         receiver.recv().expect("Test worklet has died?")
     }

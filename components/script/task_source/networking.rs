@@ -41,6 +41,7 @@ impl NetworkingTaskSource {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(task),
+            None                //TODO
         ))
     }
 }

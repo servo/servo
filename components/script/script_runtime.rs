@@ -51,7 +51,7 @@ impl fmt::Debug for CommonScriptMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::Task(ref category, ref task) => {
+            CommonScriptMsg::Task(ref category, ref task, _) => {
                 f.debug_tuple("Task").field(category).field(task).finish()
             },
         }

@@ -1190,8 +1190,8 @@ impl ScriptThread {
                     MainThreadScriptMsg::ExitWindow(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
-                    MainThreadScriptMsg::RegisterPaintWorklet(pipeline_id, ..) => Some(pipeline_id),
-                    MainThreadScriptMsg::DispatchJobQueue(_) => None,
+                    MainThreadScriptMsg::RegisterPaintWorklet{pipeline_id, ..} => Some(pipeline_id),
+                    MainThreadScriptMsg::DispatchJobQueue{..} => None,
                 }
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),

@@ -40,7 +40,8 @@ impl TaskSource for PerformanceTimelineTaskSource {
     {
         let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::PerformanceTimelineTask,
-            Box::new(canceller.wrap_task(task))
+            Box::new(canceller.wrap_task(task)),
+            None
         );
         self.0.send(msg).map_err(|_| ())
     }
