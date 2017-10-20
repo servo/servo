@@ -147,7 +147,7 @@ impl PseudoElement {
                 % if not pseudo.is_anon_box():
                     PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType::${pseudo.original_ident},
                 % elif pseudo.is_tree_pseudo_element():
-                    PseudoElement::${pseudo.capitalized()}(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::${pseudo.capitalized()}(..) => CSSPseudoElementType::XULTree,
                 % elif pseudo.is_inheriting_anon_box():
                     PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType_InheritingAnonBox,
                 % else:
