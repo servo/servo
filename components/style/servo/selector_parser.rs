@@ -62,9 +62,8 @@ pub enum PseudoElement {
     ServoInlineAbsolute,
 }
 
-/// The count of simple (non-functional) pseudo-elements (that is, all
-/// pseudo-elements for now).
-pub const SIMPLE_PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
+/// The count of all pseudo-elements.
+pub const PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
 
 impl ::selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
@@ -110,12 +109,12 @@ impl PseudoElement {
 
     /// An index for this pseudo-element to be indexed in an enumerated array.
     #[inline]
-    pub fn simple_index(&self) -> Option<usize> {
-        Some(self.clone() as usize)
+    pub fn index(&self) -> usize {
+        self.clone() as usize
     }
 
-    /// An array of `None`, one per simple pseudo-element.
-    pub fn simple_pseudo_none_array<T>() -> [Option<T>; SIMPLE_PSEUDO_COUNT] {
+    /// An array of `None`, one per pseudo-element.
+    pub fn pseudo_none_array<T>() -> [Option<T>; PSEUDO_COUNT] {
         Default::default()
     }
 

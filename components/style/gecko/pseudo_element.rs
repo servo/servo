@@ -46,7 +46,7 @@ impl PseudoElement {
             return PseudoElementCascadeType::Eager
         }
 
-        if self.is_anon_box() {
+        if self.is_precomputed() {
             return PseudoElementCascadeType::Precomputed
         }
 
@@ -137,7 +137,7 @@ impl PseudoElement {
     /// Whether this pseudo-element is precomputed.
     #[inline]
     pub fn is_precomputed(&self) -> bool {
-        self.is_anon_box()
+        self.is_anon_box() && !self.is_tree_pseudo_element()
     }
 
     /// Covert non-canonical pseudo-element to canonical one, and keep a
