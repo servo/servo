@@ -661,10 +661,7 @@ impl HTMLImageElement {
     }
     pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
-        let usemap_attr = match elem.get_attribute(&ns!(), &local_name!("usemap")) {
-            Some(attr) => attr,
-            None => return None,
-        };
+        let usemap_attr = elem.get_attribute(&ns!(), &local_name!("usemap"))?;
 
         let value = usemap_attr.value();
 

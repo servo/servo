@@ -317,16 +317,10 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                           actor_pipelines: &HashMap<PipelineId, String>) -> Option<String> {
         let actors = actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
-            let actor_name = match (*actor_workers).get(&(id, worker_id)) {
-                Some(name) => name,
-                None => return None,
-            };
+            let actor_name = (*actor_workers).get(&(id, worker_id))?;
             Some(actors.find::<WorkerActor>(actor_name).console.clone())
         } else {
-            let actor_name = match (*actor_pipelines).get(&id) {
-                Some(name) => name,
-                None => return None,
-            };
+            let actor_name = (*actor_pipelines).get(&id)?;
             Some(actors.find::<TabActor>(actor_name).console.clone())
         }
     }

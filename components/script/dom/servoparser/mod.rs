@@ -480,10 +480,7 @@ impl<I> Iterator for FragmentParsingResult<I>
     type Item = DomRoot<Node>;
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
-        let next = match self.inner.next() {
-            Some(next) => next,
-            None => return None,
-        };
+        let next = self.inner.next()?;
         next.remove_self();
         Some(next)
     }
