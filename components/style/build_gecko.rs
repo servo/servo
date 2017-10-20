@@ -7,7 +7,7 @@ mod common {
     use std::path::{Path, PathBuf};
 
     lazy_static! {
-        pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("gecko");
+        pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("gecko");
     }
 
     /// Copy contents of one directory into another.
@@ -74,7 +74,7 @@ mod bindings {
     lazy_static! {
         static ref CONFIG: toml::Table = {
             // Load Gecko's binding generator config from the source tree.
-            let path = PathBuf::from(env::var("MOZ_SRC").unwrap())
+            let path = PathBuf::from(env::var_os("MOZ_SRC").unwrap())
                 .join("layout/style/ServoBindings.toml");
             read_config(&path)
         };
@@ -82,7 +82,7 @@ mod bindings {
             // Load build-specific config overrides.
             // FIXME: We should merge with CONFIG above instead of
             // forcing callers to do it.
-            let path = PathBuf::from(env::var("MOZ_TOPOBJDIR").unwrap())
+            let path = PathBuf::from(env::var_os("MOZ_TOPOBJDIR").unwrap())
                 .join("layout/style/bindgen.toml");
             read_config(&path)
         };
@@ -98,7 +98,7 @@ mod bindings {
         };
         static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
         static ref DISTDIR_PATH: PathBuf = {
-            let path = PathBuf::from(env::var("MOZ_DIST").unwrap());
+            let path = PathBuf::from(env::var_os("MOZ_DIST").unwrap());
             if !path.is_absolute() || !path.is_dir() {
                 panic!("MOZ_DIST must be an absolute directory, was: {}", path.display());
             }
@@ -452,7 +452,7 @@ mod bindings {
             }
         }
 
-        if let Ok(path) = env::var("STYLO_BUILD_LOG") {
+        if let Some(path) = env::var_os("STYLO_BUILD_LOG") {
             log::set_logger(|log_level| {
                 log_level.set(log::LogLevelFilter::Debug);
                 Box::new(BuildLogger {
@@ -536,7 +536,7 @@ mod bindings {
     }
 
     fn generate_atoms() {
-        let script = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
+        let script = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
             .join("gecko").join("regen_atoms.py");
         println!("cargo:rerun-if-changed={}", script.display());
         let status = Command::new(&*PYTHON)
@@ -587,7 +587,7 @@ mod bindings {
     use super::common::*;
 
     pub fn generate() {
-        let dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("gecko/generated");
+        let dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("gecko/generated");
         println!("cargo:rerun-if-changed={}", dir.display());
         copy_dir(&dir, &*OUTDIR_PATH, |path| {
             println!("cargo:rerun-if-changed={}", path.display());

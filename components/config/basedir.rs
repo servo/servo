@@ -77,9 +77,10 @@ pub fn default_config_dir() -> Option<PathBuf> {
 
 #[cfg(target_os = "windows")]
 pub fn default_config_dir() -> Option<PathBuf> {
-    let mut config_dir = match env::var("APPDATA") {
-        Ok(appdata_path) => PathBuf::from(appdata_path),
-        Err(_) => { let mut dir = env::home_dir().unwrap();
+    let mut config_dir = match env::var_os("APPDATA") {
+        Some(appdata_path) => PathBuf::from(appdata_path),
+        None => {
+            let mut dir = env::home_dir().unwrap();
             dir.push("Appdata");
             dir.push("Roaming");
             dir
