@@ -16,7 +16,7 @@ use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
 use webrender_api::{self, ClipAndScrollInfo, ComplexClipRegion, DisplayListBuilder};
-use webrender_api::{ExtendMode, LayoutTransform};
+use webrender_api::{ClipMode, ExtendMode, LayoutTransform};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -447,7 +447,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.color,
                                         item.blur_radius.to_f32_px(),
                                         item.spread_radius.to_f32_px(),
-                                        item.border_radius.to_f32_px(),
+                                        item.border_radius.to_border_radius(),
                                         item.clip_mode.to_clip_mode());
             }
             DisplayItem::PushTextShadow(ref item) => {
@@ -528,6 +528,7 @@ impl ToWebRenderClip for ClippingRegion {
             ComplexClipRegion::new(
                 complex_clipping_region.rect.to_rectf(),
                 complex_clipping_region.radii.to_border_radius(),
+                ClipMode::Clip,
              )
         }).collect()
     }

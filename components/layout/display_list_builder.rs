@@ -71,8 +71,8 @@ use style_traits::CSSPixel;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_api::{ClipAndScrollInfo, ClipId, ColorF, ComplexClipRegion, GradientStop, LineStyle};
-use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, StickyFrameInfo};
+use webrender_api::{ClipAndScrollInfo, ClipId, ClipMode, ColorF, ComplexClipRegion, GradientStop};
+use webrender_api::{LineStyle, LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, StickyFrameInfo};
 use webrender_api::StickySideConstraint;
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
 
@@ -979,6 +979,7 @@ impl FragmentDisplayListBuilding for Fragment {
             LocalClip::RoundedRect(bounds.to_rectf(), ComplexClipRegion::new(
                 bounds.to_rectf(),
                 border_radii.to_border_radius(),
+                ClipMode::Clip,
              ))
         } else {
             LocalClip::Rect(bounds.to_rectf())
@@ -1478,6 +1479,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                       self.node,
                                                       style.get_cursor(Cursor::Default),
                                                       display_list_section);
+            let border_radius = build_border_radius(absolute_bounds, style.get_border());
             state.add_display_item(DisplayItem::BoxShadow(Box::new(BoxShadowDisplayItem {
                 base: base,
                 box_bounds: *absolute_bounds,
@@ -1486,9 +1488,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                       Au::from(box_shadow.base.vertical)),
                 blur_radius: Au::from(box_shadow.base.blur),
                 spread_radius: Au::from(box_shadow.spread),
-                border_radius: model::specified_border_radius(style.get_border()
-                                                                   .border_top_left_radius,
-                                                              absolute_bounds.size).width,
+                border_radius,
                 clip_mode: if box_shadow.inset {
                     BoxShadowClipMode::Inset
                 } else {
@@ -2010,6 +2010,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     stacking_relative_border_box.to_rectf(),
                     ComplexClipRegion::new(stacking_relative_content_box.to_rectf(),
                                            radii.to_border_radius(),
+                                           ClipMode::Clip,
                  ))
             } else {
                 LocalClip::Rect(stacking_relative_border_box.to_rectf())
