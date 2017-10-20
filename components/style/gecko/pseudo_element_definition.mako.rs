@@ -203,6 +203,19 @@ impl PseudoElement {
         None
     }
 
+    /// Construct a tree pseudo-element from atom and args.
+    #[inline]
+    pub fn from_tree_pseudo_atom(atom: &Atom, args: Box<[Atom]>) -> Option<Self> {
+        % for pseudo in PSEUDOS:
+            % if pseudo.is_tree_pseudo_element():
+                if atom == &atom!("${pseudo.value}") {
+                    return Some(PseudoElement::${pseudo.capitalized()}(args));
+                }
+            % endif
+        % endfor
+        None
+    }
+
     /// Constructs an atom from a string of text, and whether we're in a
     /// user-agent stylesheet.
     ///

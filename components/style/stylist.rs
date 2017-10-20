@@ -817,13 +817,21 @@ impl Stylist {
         rule_inclusion: RuleInclusion,
         parent_style: &ComputedValues,
         is_probe: bool,
-        font_metrics: &FontMetricsProvider
+        font_metrics: &FontMetricsProvider,
+        matching_fn: Option<&Fn(&PseudoElement) -> bool>,
     ) -> Option<Arc<ComputedValues>>
     where
         E: TElement,
     {
         let cascade_inputs =
-            self.lazy_pseudo_rules(guards, element, pseudo, is_probe, rule_inclusion);
+            self.lazy_pseudo_rules(
+                guards,
+                element,
+                pseudo,
+                is_probe,
+                rule_inclusion,
+                matching_fn
+            );
         self.compute_pseudo_element_style_with_inputs(
             &cascade_inputs,
             pseudo,
@@ -977,7 +985,8 @@ impl Stylist {
         element: &E,
         pseudo: &PseudoElement,
         is_probe: bool,
-        rule_inclusion: RuleInclusion
+        rule_inclusion: RuleInclusion,
+        matching_fn: Option<&Fn(&PseudoElement) -> bool>,
     ) -> CascadeInputs
     where
         E: TElement
@@ -1024,6 +1033,7 @@ impl Stylist {
                 None,
                 self.quirks_mode,
             );
+        matching_context.pseudo_element_matching_fn = matching_fn;
 
         self.push_applicable_declarations(
             element,
@@ -1060,6 +1070,7 @@ impl Stylist {
                     VisitedHandlingMode::RelevantLinkVisited,
                     self.quirks_mode,
                 );
+            matching_context.pseudo_element_matching_fn = matching_fn;
 
             self.push_applicable_declarations(
                 element,
@@ -1287,6 +1298,7 @@ impl Stylist {
                     context.nth_index_cache.as_mut().map(|s| &mut **s),
                     stylist.quirks_mode,
                 );
+                matching_context.pseudo_element_matching_fn = context.pseudo_element_matching_fn;
 
                 map.get_all_matching_rules(
                     element,

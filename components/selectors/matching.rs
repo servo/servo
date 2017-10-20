@@ -387,9 +387,20 @@ where
     if context.nesting_level == 0 &&
         context.matching_mode == MatchingMode::ForStatelessPseudoElement {
         // Consume the pseudo.
-        let pseudo = iter.next().unwrap();
-        debug_assert!(matches!(*pseudo, Component::PseudoElement(..)),
-                      "Used MatchingMode::ForStatelessPseudoElement in a non-pseudo selector");
+        match *iter.next().unwrap() {
+            Component::PseudoElement(ref pseudo) => {
+                if let Some(ref f) = context.pseudo_element_matching_fn {
+                    if !f(pseudo) {
+                        return false;
+                    }
+                }
+            }
+            _ => {
+                debug_assert!(false,
+                              "Used MatchingMode::ForStatelessPseudoElement \
+                               in a non-pseudo selector");
+            }
+        }
 
         // The only other parser-allowed Component in this sequence is a state
         // class. We just don't match in that case.

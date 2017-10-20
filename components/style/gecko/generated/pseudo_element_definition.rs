@@ -1326,6 +1326,48 @@ impl PseudoElement {
         None
     }
 
+    /// Construct a tree pseudo-element from atom and args.
+    #[inline]
+    pub fn from_tree_pseudo_atom(atom: &Atom, args: Box<[Atom]>) -> Option<Self> {
+                if atom == &atom!(":-moz-tree-column") {
+                    return Some(PseudoElement::MozTreeColumn(args));
+                }
+                if atom == &atom!(":-moz-tree-row") {
+                    return Some(PseudoElement::MozTreeRow(args));
+                }
+                if atom == &atom!(":-moz-tree-separator") {
+                    return Some(PseudoElement::MozTreeSeparator(args));
+                }
+                if atom == &atom!(":-moz-tree-cell") {
+                    return Some(PseudoElement::MozTreeCell(args));
+                }
+                if atom == &atom!(":-moz-tree-indentation") {
+                    return Some(PseudoElement::MozTreeIndentation(args));
+                }
+                if atom == &atom!(":-moz-tree-line") {
+                    return Some(PseudoElement::MozTreeLine(args));
+                }
+                if atom == &atom!(":-moz-tree-twisty") {
+                    return Some(PseudoElement::MozTreeTwisty(args));
+                }
+                if atom == &atom!(":-moz-tree-image") {
+                    return Some(PseudoElement::MozTreeImage(args));
+                }
+                if atom == &atom!(":-moz-tree-cell-text") {
+                    return Some(PseudoElement::MozTreeCellText(args));
+                }
+                if atom == &atom!(":-moz-tree-checkbox") {
+                    return Some(PseudoElement::MozTreeCheckbox(args));
+                }
+                if atom == &atom!(":-moz-tree-progressmeter") {
+                    return Some(PseudoElement::MozTreeProgressmeter(args));
+                }
+                if atom == &atom!(":-moz-tree-drop-feedback") {
+                    return Some(PseudoElement::MozTreeDropFeedback(args));
+                }
+        None
+    }
+
     /// Constructs an atom from a string of text, and whether we're in a
     /// user-agent stylesheet.
     ///
