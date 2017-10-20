@@ -41,9 +41,9 @@ euclid = "0.15"
 fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
+html5ever = {version = "0.21", optional = true}
 itertools = "0.5"
 itoa = "0.3"
-html5ever = {version = "0.20", optional = true}
 lazy_static = "0.2"
 lru_cache = { path = "../lru_cache" }
 log = "0.3"

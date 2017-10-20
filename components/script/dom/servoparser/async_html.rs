@@ -586,10 +586,6 @@ impl TreeSink for Sink {
         target.qual_name.as_ref().expect("Expected qual name of node!").expanded()
     }
 
-    fn same_tree(&self, _: &Self::Handle, _: &Self::Handle) -> bool {
-        unreachable!();
-    }
-
     fn create_element(&mut self, name: QualName, html_attrs: Vec<HtmlAttribute>, _flags: ElementFlags)
         -> Self::Handle {
         let mut node = self.new_parse_node();
@@ -630,10 +626,6 @@ impl TreeSink for Sink {
             data: String::from(data)
         });
         node
-    }
-
-    fn has_parent_node(&self, _: &Self::Handle) -> bool {
-        unreachable!();
     }
 
     fn associate_with_form(
