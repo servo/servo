@@ -17,7 +17,7 @@ use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use style_traits::{ParseError, StyleParseErrorKind};
 
-pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, SIMPLE_PSEUDO_COUNT};
+pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
 
 bitflags! {

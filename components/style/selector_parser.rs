@@ -102,16 +102,16 @@ pub enum PseudoElementCascadeType {
     Precomputed,
 }
 
-/// A per-functional-pseudo map, from a given pseudo to a `T`.
+/// A per-pseudo map, from a given pseudo to a `T`.
 #[derive(MallocSizeOf)]
 pub struct PerPseudoElementMap<T> {
-    entries: [Option<T>; SIMPLE_PSEUDO_COUNT],
+    entries: [Option<T>; PSEUDO_COUNT],
 }
 
 impl<T> Default for PerPseudoElementMap<T> {
     fn default() -> Self {
         Self {
-            entries: PseudoElement::simple_pseudo_none_array(),
+            entries: PseudoElement::pseudo_none_array(),
         }
     }
 }
@@ -137,11 +137,7 @@ where
 impl<T> PerPseudoElementMap<T> {
     /// Get an entry in the map.
     pub fn get(&self, pseudo: &PseudoElement) -> Option<&T> {
-        let index = match pseudo.simple_index() {
-            Some(i) => i,
-            None => return None,
-        };
-        self.entries[index].as_ref()
+        self.entries[pseudo.index()].as_ref()
     }
 
     /// Clear this enumerated array.
@@ -161,13 +157,8 @@ impl<T> PerPseudoElementMap<T> {
     /// Set an entry value.
     ///
     /// Returns an error if the element is not a simple pseudo.
-    pub fn set(&mut self, pseudo: &PseudoElement, value: T) -> Result<(), ()> {
-        let index = match pseudo.simple_index() {
-            Some(i) => i,
-            None => return Err(()),
-        };
-        self.entries[index] = Some(value);
-        Ok(())
+    pub fn set(&mut self, pseudo: &PseudoElement, value: T) {
+        self.entries[pseudo.index()] = Some(value);
     }
 
     /// Get an entry for `pseudo`, or create it with calling `f`.
@@ -175,18 +166,15 @@ impl<T> PerPseudoElementMap<T> {
         &mut self,
         pseudo: &PseudoElement,
         f: F,
-    ) -> Result<&mut T, ()>
+    ) -> &mut T
     where
         F: FnOnce() -> T,
     {
-        let index = match pseudo.simple_index() {
-            Some(i) => i,
-            None => return Err(()),
-        };
+        let index = pseudo.index();
         if self.entries[index].is_none() {
             self.entries[index] = Some(f());
         }
-        Ok(self.entries[index].as_mut().unwrap())
+        self.entries[index].as_mut().unwrap()
     }
 
     /// Get an iterator for the entries.

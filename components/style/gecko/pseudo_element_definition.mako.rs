@@ -27,6 +27,12 @@ pub const EAGER_PSEUDO_COUNT: usize = ${len(EAGER_PSEUDOS)};
 /// The number of non-functional pseudo-elements.
 pub const SIMPLE_PSEUDO_COUNT: usize = ${len(SIMPLE_PSEUDOS)};
 
+/// The number of tree pseudo-elements.
+pub const TREE_PSEUDO_COUNT: usize = ${len(TREE_PSEUDOS)};
+
+/// The number of all pseudo-elements.
+pub const PSEUDO_COUNT: usize = ${len(PSEUDOS)};
+
 /// The list of eager pseudos.
 pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
     % for eager_pseudo_name in EAGER_PSEUDOS:
@@ -49,24 +55,22 @@ impl PseudoElement {
         }
     }
 
-    /// Returns an index if the pseudo-element is a simple (non-functional)
-    /// pseudo.
+    /// Returns an index of the pseudo-element.
     #[inline]
-    pub fn simple_index(&self) -> Option<usize> {
+    pub fn index(&self) -> usize {
         match *self {
-            % for i, pseudo in enumerate(SIMPLE_PSEUDOS):
-            ${pseudo_element_variant(pseudo)} => Some(${i}),
+            % for i, pseudo in enumerate(PSEUDOS):
+            ${pseudo_element_variant(pseudo)} => ${i},
             % endfor
-            _ => None,
         }
     }
 
     /// Returns an array of `None` values.
     ///
     /// FIXME(emilio): Integer generics can't come soon enough.
-    pub fn simple_pseudo_none_array<T>() -> [Option<T>; SIMPLE_PSEUDO_COUNT] {
+    pub fn pseudo_none_array<T>() -> [Option<T>; PSEUDO_COUNT] {
         [
-            ${",\n".join(["None" for pseudo in SIMPLE_PSEUDOS])}
+            ${",\n            ".join(["None" for pseudo in PSEUDOS])}
         ]
     }
 

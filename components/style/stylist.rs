@@ -1995,7 +1995,6 @@ impl CascadeData {
                                     .as_mut()
                                     .expect("Expected precomputed declarations for the UA level")
                                     .get_or_insert_with(&pseudo.canonical(), Vec::new)
-                                    .expect("Unexpected tree pseudo-element?")
                                     .push(ApplicableDeclarationBlock::new(
                                         StyleSource::Style(locked.clone()),
                                         self.rules_source_order,
@@ -2012,7 +2011,7 @@ impl CascadeData {
                                         let mut map = Box::new(SelectorMap::new());
                                         map.begin_mutation();
                                         map
-                                    }).expect("Unexpected tree pseudo-element?")
+                                    })
                             }
                         };
 
