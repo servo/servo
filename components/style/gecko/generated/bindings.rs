@@ -2733,7 +2733,7 @@ extern "C" {
     pub fn Servo_DeclarationBlock_RemovePropertyById(declarations:
                                                          RawServoDeclarationBlockBorrowed,
                                                      property:
-                                                         nsCSSPropertyID);
+                                                         nsCSSPropertyID) -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_HasCSSWideKeyword(declarations:

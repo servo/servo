@@ -2670,10 +2670,13 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_SetPropertyById(
     )
 }
 
-fn remove_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId) {
+fn remove_property(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property_id: PropertyId
+) -> bool {
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.remove_property(&property_id);
-    });
+        decls.remove_property(&property_id)
+    })
 }
 
 #[no_mangle]
@@ -2681,13 +2684,15 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_RemoveProperty(
     declarations: RawServoDeclarationBlockBorrowed,
     property: *const nsACString,
 ) {
-    remove_property(declarations, get_property_id_from_property!(property, ()))
+    remove_property(declarations, get_property_id_from_property!(property, ()));
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawServoDeclarationBlockBorrowed,
-                                                            property: nsCSSPropertyID) {
-    remove_property(declarations, get_property_id_from_nscsspropertyid!(property, ()))
+pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(
+    declarations: RawServoDeclarationBlockBorrowed,
+    property: nsCSSPropertyID
+) -> bool {
+    remove_property(declarations, get_property_id_from_nscsspropertyid!(property, false))
 }
 
 #[no_mangle]
