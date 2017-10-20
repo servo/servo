@@ -76,7 +76,6 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use malloc_size_of::MallocSizeOfOps;
 use mem::malloc_size_of_including_self;
-use mem::heap_size_of_self_and_children;
 use metrics::{InteractiveWindow, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
@@ -1148,10 +1147,53 @@ impl ScriptThread {
     }
 
     fn message_to_pipeline(&self, msg: &MixedMessage) -> Option<PipelineId> {
+        use script_traits::ConstellationControlMsg::*;
         match *msg {
-            MixedMessage::FromConstellation(ref inner_msg) => inner_msg.pipeline(),
+            MixedMessage::FromConstellation(ref inner_msg) => {
+                match *inner_msg {
+                    NavigationResponse(id, _) => Some(id),
+                    AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
+                    Resize(id, ..) => Some(id),
+                    ResizeInactive(id, ..) => Some(id),
+                    ExitPipeline(id, ..) => Some(id),
+                    ExitScriptThread => None,
+                    SendEvent(id, ..) => Some(id),
+                    Viewport(id, ..) => Some(id),
+                    SetScrollState(id, ..) => Some(id),
+                    GetTitle(id) => Some(id),
+                    SetDocumentActivity(id, ..) => Some(id),
+                    ChangeFrameVisibilityStatus(id, ..) => Some(id),
+                    NotifyVisibilityChange(id, ..) => Some(id),
+                    Navigate(id, ..) => Some(id),
+                    PostMessage(id, ..) => Some(id),
+                    MozBrowserEvent(id, ..) => Some(id),
+                    UpdatePipelineId(_, _, id, _) => Some(id),
+                    FocusIFrame(id, ..) => Some(id),
+                    WebDriverScriptCommand(id, ..) => Some(id),
+                    TickAllAnimations(id) => Some(id),
+                    TransitionEnd(..) => None,
+                    WebFontLoaded(id) => Some(id),
+                    DispatchIFrameLoadEvent { .. } => None,
+                    DispatchStorageEvent(id, ..) => Some(id),
+                    ReportCSSError(id, ..) => Some(id),
+                    Reload(id, ..) => Some(id),
+                    WebVREvents(id, ..) => Some(id),
+                    PaintMetric(..) => None,
+                    InteractiveMetric(..) => None,
+                }
+            },
             MixedMessage::FromDevtools(ref inner_msg) => inner_msg.pipeline(),
-            MixedMessage::FromScript(_) => None,
+            MixedMessage::FromScript(ref inner_msg) => {
+                match *inner_msg {
+                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(_,_, pipeline_id)) =>
+                        Some(pipeline_id),
+                    MainThreadScriptMsg::ExitWindow(pipeline_id) => Some(pipeline_id),
+                    MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
+                    MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
+                    MainThreadScriptMsg::RegisterPaintWorklet(pipeline_id, ..) => Some(pipeline_id),
+                    MainThreadScriptMsg::DispatchJobQueue(_) => None,
+                }
+            },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
             MixedMessage::FromScheduler(ref timer_event) => {
                 let TimerEvent(source, _) = *timer_event;

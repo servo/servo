@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use msg::constellation_msg::PipelineId;
 
 macro_rules! task {
-    ($name:ident: move || $body:tt, $pipeline:stmt) => {{
+    ($name:ident: move || $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
         impl<F> ::task::TaskOnce for $name<F>
@@ -23,10 +23,6 @@ macro_rules! task {
 
             fn run_once(self) {
                 (self.0)();
-            }
-
-            fn task(&self) -> Option<PipelineId> {
-                $pipeline
             }
         }
         $name(move || $body)
@@ -44,8 +40,6 @@ pub trait TaskOnce: Send {
     }
 
     fn run_once(self);
-
-    fn pipeline(&self) -> Option<PipelineId> { None }
 }
 
 /// A boxed version of `TaskOnce`.
@@ -122,10 +116,6 @@ where
         if !self.is_cancelled() {
             self.inner.run_once()
         }
-    }
-
-    pub fn pipeline(&self) -> Option<PipelineId> {
-        None
     }
 }
 
