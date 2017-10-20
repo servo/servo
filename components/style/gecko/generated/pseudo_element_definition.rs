@@ -546,6 +546,26 @@ impl PseudoElement {
                  PseudoElement::Before | PseudoElement::After | PseudoElement::FirstLine | PseudoElement::FirstLetter)
     }
 
+    /// Whether this pseudo-element is tree pseudo-element.
+    #[inline]
+    pub fn is_tree_pseudo_element(&self) -> bool {
+        match *self {
+            PseudoElement::MozTreeColumn(..) => true,
+            PseudoElement::MozTreeRow(..) => true,
+            PseudoElement::MozTreeSeparator(..) => true,
+            PseudoElement::MozTreeCell(..) => true,
+            PseudoElement::MozTreeIndentation(..) => true,
+            PseudoElement::MozTreeLine(..) => true,
+            PseudoElement::MozTreeTwisty(..) => true,
+            PseudoElement::MozTreeImage(..) => true,
+            PseudoElement::MozTreeCellText(..) => true,
+            PseudoElement::MozTreeCheckbox(..) => true,
+            PseudoElement::MozTreeProgressmeter(..) => true,
+            PseudoElement::MozTreeDropFeedback(..) => true,
+            _ => false,
+        }
+    }
+
     /// Gets the flags associated to this pseudo-element, or 0 if it's an
     /// anonymous box.
     pub fn flags(&self) -> u32 {

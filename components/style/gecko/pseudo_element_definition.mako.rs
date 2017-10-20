@@ -94,6 +94,17 @@ impl PseudoElement {
                  ${" | ".join(map(lambda name: "PseudoElement::{}".format(name), EAGER_PSEUDOS))})
     }
 
+    /// Whether this pseudo-element is tree pseudo-element.
+    #[inline]
+    pub fn is_tree_pseudo_element(&self) -> bool {
+        match *self {
+            % for pseudo in TREE_PSEUDOS:
+            ${pseudo_element_variant(pseudo)} => true,
+            % endfor
+            _ => false,
+        }
+    }
+
     /// Gets the flags associated to this pseudo-element, or 0 if it's an
     /// anonymous box.
     pub fn flags(&self) -> u32 {

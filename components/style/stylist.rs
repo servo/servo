@@ -1983,13 +1983,8 @@ impl CascadeData {
 
                         let map = match selector.pseudo_element() {
                             Some(pseudo) if pseudo.is_precomputed() => {
-                                if !selector.is_universal() ||
-                                   !matches!(origin, Origin::UserAgent) {
-                                    // ::-moz-tree selectors may appear in
-                                    // non-UA sheets (even though they never
-                                    // match).
-                                    continue;
-                                }
+                                debug_assert!(selector.is_universal());
+                                debug_assert!(matches!(origin, Origin::UserAgent));
 
                                 precomputed_pseudo_element_decls
                                     .as_mut()
