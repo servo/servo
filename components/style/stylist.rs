@@ -8,7 +8,7 @@ use {Atom, LocalName, Namespace};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use context::{CascadeInputs, QuirksMode};
 use dom::TElement;
-use element_state::ElementState;
+use element_state::{DocumentState, ElementState};
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
@@ -625,18 +625,20 @@ impl Stylist {
         }
     }
 
-    /// Returns whether the given ElementState bit might be relied upon by a
-    /// selector of some rule in the stylist.
-    pub fn might_have_state_dependency(&self, state: ElementState) -> bool {
-        self.has_state_dependency(state)
-    }
-
     /// Returns whether the given ElementState bit is relied upon by a selector
     /// of some rule in the stylist.
     pub fn has_state_dependency(&self, state: ElementState) -> bool {
         self.cascade_data
             .iter_origins()
             .any(|(d, _)| d.state_dependencies.intersects(state))
+    }
+
+    /// Returns whether the given DocumentState bit is relied upon by a selector
+    /// of some rule in the stylist.
+    pub fn has_document_state_dependency(&self, state: DocumentState) -> bool {
+        self.cascade_data
+            .iter_origins()
+            .any(|(d, _)| d.document_state_dependencies.intersects(state))
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1677,6 +1679,8 @@ struct StylistSelectorVisitor<'a> {
     style_attribute_dependency: &'a mut bool,
     /// All the states selectors in the page reference.
     state_dependencies: &'a mut ElementState,
+    /// All the document states selectors in the page reference.
+    document_state_dependencies: &'a mut DocumentState,
 }
 
 fn component_needs_revalidation(
@@ -1764,6 +1768,7 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         match *s {
             Component::NonTSPseudoClass(ref p) => {
                 self.state_dependencies.insert(p.state_flag());
+                self.document_state_dependencies.insert(p.document_state_flag());
             }
             Component::ID(ref id) if !self.passed_rightmost_selector => {
                 // We want to stop storing mapped ids as soon as we've moved off
@@ -1832,6 +1837,11 @@ struct CascadeData {
     /// when an irrelevant element state bit changes.
     state_dependencies: ElementState,
 
+    /// The document state bits that are relied on by selectors.  This is used
+    /// to tell whether we need to restyle the entire document when a document
+    /// state bit changes.
+    document_state_dependencies: DocumentState,
+
     /// The ids that appear in the rightmost complex selector of selectors (and
     /// hence in our selector maps).  Used to determine when sharing styles is
     /// safe: we disallow style sharing for elements whose id matches this
@@ -1873,6 +1883,7 @@ impl CascadeData {
             attribute_dependencies: NonCountingBloomFilter::new(),
             style_attribute_dependency: false,
             state_dependencies: ElementState::empty(),
+            document_state_dependencies: DocumentState::empty(),
             mapped_ids: NonCountingBloomFilter::new(),
             selectors_for_cache_revalidation: SelectorMap::new(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),
@@ -2037,6 +2048,7 @@ impl CascadeData {
                                 attribute_dependencies: &mut self.attribute_dependencies,
                                 style_attribute_dependency: &mut self.style_attribute_dependency,
                                 state_dependencies: &mut self.state_dependencies,
+                                document_state_dependencies: &mut self.document_state_dependencies,
                                 mapped_ids: &mut self.mapped_ids,
                             };
 
@@ -2225,6 +2237,7 @@ impl CascadeData {
         self.attribute_dependencies.clear();
         self.style_attribute_dependency = false;
         self.state_dependencies = ElementState::empty();
+        self.document_state_dependencies = DocumentState::empty();
         self.mapped_ids.clear();
         self.selectors_for_cache_revalidation.clear();
     }
@@ -2333,12 +2346,14 @@ pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
     let mut mapped_ids = NonCountingBloomFilter::new();
     let mut style_attribute_dependency = false;
     let mut state_dependencies = ElementState::empty();
+    let mut document_state_dependencies = DocumentState::empty();
     let mut visitor = StylistSelectorVisitor {
         needs_revalidation: false,
         passed_rightmost_selector: false,
         attribute_dependencies: &mut attribute_dependencies,
         style_attribute_dependency: &mut style_attribute_dependency,
         state_dependencies: &mut state_dependencies,
+        document_state_dependencies: &mut document_state_dependencies,
         mapped_ids: &mut mapped_ids,
     };
     s.visit(&mut visitor);

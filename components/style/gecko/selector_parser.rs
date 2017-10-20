@@ -5,7 +5,7 @@
 //! Gecko-specific bits for selector-parsing.
 
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser, ToCss, Token, CowRcStr, SourceLocation};
-use element_state::ElementState;
+use element_state::{self, DocumentState, ElementState};
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
@@ -193,6 +193,15 @@ impl NonTSPseudoClass {
             }
         }
         apply_non_ts_list!(pseudo_class_state)
+    }
+
+    /// Get the document state flag associated with a pseudo-class, if any.
+    pub fn document_state_flag(&self) -> DocumentState {
+        match *self {
+            NonTSPseudoClass::MozLocaleDir(..) => element_state::NS_DOCUMENT_STATE_RTL_LOCALE,
+            NonTSPseudoClass::MozWindowInactive => element_state::NS_DOCUMENT_STATE_WINDOW_INACTIVE,
+            _ => DocumentState::empty(),
+        }
     }
 
     /// Returns true if the given pseudoclass should trigger style sharing cache
@@ -432,13 +441,6 @@ impl SelectorImpl {
         for pseudo in &EAGER_PSEUDOS {
             fun(pseudo.clone())
         }
-    }
-
-
-    /// Returns the relevant state flag for a given non-tree-structural
-    /// pseudo-class.
-    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
-        pc.state_flag()
     }
 }
 

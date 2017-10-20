@@ -144,6 +144,7 @@ bitflags! {
     ///
     /// NB: Is important for this to remain in sync with Gecko's
     /// dom/base/nsIDocument.h.
+    #[derive(MallocSizeOf)]
     pub flags DocumentState: u64 {
         /// RTL locale: specific to the XUL localedir attribute
         const NS_DOCUMENT_STATE_RTL_LOCALE = 1 << 0,

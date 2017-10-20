@@ -10,7 +10,7 @@ use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr, SourceLocation};
 use dom::{OpaqueNode, TElement, TNode};
-use element_state::ElementState;
+use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
@@ -353,6 +353,11 @@ impl NonTSPseudoClass {
         }
     }
 
+    /// Get the document state flag associated with a pseudo-class, if any.
+    pub fn document_state_flag(&self) -> DocumentState {
+        DocumentState::empty()
+    }
+
     /// Returns true if the given pseudoclass should trigger style sharing cache revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
         self.state_flag().is_empty()
@@ -560,12 +565,6 @@ impl SelectorImpl {
         for i in 0..EAGER_PSEUDO_COUNT {
             fun(PseudoElement::from_eager_index(i));
         }
-    }
-
-    /// Returns the pseudo-class state flag for selector matching.
-    #[inline]
-    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
-        pc.state_flag()
     }
 }
 
