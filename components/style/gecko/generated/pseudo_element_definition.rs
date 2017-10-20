@@ -871,6 +871,26 @@ None
         (self.atom().as_ptr(), self.pseudo_type())
     }
 
+    /// Get the argument list of a tree pseudo-element.
+    #[inline]
+    pub fn tree_pseudo_args(&self) -> Option<&[Atom]> {
+        match *self {
+            PseudoElement::MozTreeColumn(ref args) => Some(args),
+            PseudoElement::MozTreeRow(ref args) => Some(args),
+            PseudoElement::MozTreeSeparator(ref args) => Some(args),
+            PseudoElement::MozTreeCell(ref args) => Some(args),
+            PseudoElement::MozTreeIndentation(ref args) => Some(args),
+            PseudoElement::MozTreeLine(ref args) => Some(args),
+            PseudoElement::MozTreeTwisty(ref args) => Some(args),
+            PseudoElement::MozTreeImage(ref args) => Some(args),
+            PseudoElement::MozTreeCellText(ref args) => Some(args),
+            PseudoElement::MozTreeCheckbox(ref args) => Some(args),
+            PseudoElement::MozTreeProgressmeter(ref args) => Some(args),
+            PseudoElement::MozTreeDropFeedback(ref args) => Some(args),
+            _ => None,
+        }
+    }
+
     /// Construct a pseudo-element from an `Atom`.
     #[inline]
     pub fn from_atom(atom: &Atom) -> Option<Self> {
@@ -1768,19 +1788,8 @@ impl ToCss for PseudoElement {
                 PseudoElement::MozSVGForeignContent => dest.write_str(":-moz-svg-foreign-content")?,
                 PseudoElement::MozSVGText => dest.write_str(":-moz-svg-text")?,
         }
-        match *self {
-            PseudoElement::MozTreeColumn(ref args) |
-            PseudoElement::MozTreeRow(ref args) |
-            PseudoElement::MozTreeSeparator(ref args) |
-            PseudoElement::MozTreeCell(ref args) |
-            PseudoElement::MozTreeIndentation(ref args) |
-            PseudoElement::MozTreeLine(ref args) |
-            PseudoElement::MozTreeTwisty(ref args) |
-            PseudoElement::MozTreeImage(ref args) |
-            PseudoElement::MozTreeCellText(ref args) |
-            PseudoElement::MozTreeCheckbox(ref args) |
-            PseudoElement::MozTreeProgressmeter(ref args) |
-            PseudoElement::MozTreeDropFeedback(ref args) => {
+        if let Some(args) = self.tree_pseudo_args() {
+            if !args.is_empty() {
                 dest.write_char('(')?;
                 let mut iter = args.iter();
                 if let Some(first) = iter.next() {
@@ -1790,9 +1799,9 @@ impl ToCss for PseudoElement {
                         serialize_identifier(&item.to_string(), dest)?;
                     }
                 }
-                dest.write_char(')')
+                dest.write_char(')')?;
             }
-            _ => Ok(()),
         }
+        Ok(())
     }
 }

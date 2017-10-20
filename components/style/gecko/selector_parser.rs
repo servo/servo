@@ -379,6 +379,13 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     fn parse_pseudo_element(&self, location: SourceLocation, name: CowRcStr<'i>)
                             -> Result<PseudoElement, ParseError<'i>> {
         PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
+            .or_else(|| {
+                if name.starts_with("-moz-tree-") {
+                    PseudoElement::tree_pseudo_element(&name, Box::new([]))
+                } else {
+                    None
+                }
+            })
             .ok_or(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())))
     }
 
