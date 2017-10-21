@@ -22,6 +22,7 @@ use selectors::attr::CaseSensitivity;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
 use smallvec::SmallVec;
+use stylesheets::origin::{Origin, OriginSet};
 use stylist::Stylist;
 
 #[derive(Debug, PartialEq)]
@@ -188,10 +189,16 @@ where
                 invalidates_self: false,
             };
 
-            // TODO(emilio): We could use the cut_off_inheritance from XBL to
-            // skip user and author stuff in here if it's true.
-            self.shared_context.stylist.each_invalidation_map(|invalidation_map| {
-                collector.collect_dependencies_in_invalidation_map(invalidation_map);
+            let document_origins = if self.cut_off_inheritance {
+                Origin::UserAgent.into()
+            } else {
+                OriginSet::all()
+            };
+
+            self.shared_context.stylist.each_invalidation_map(|invalidation_map, origin| {
+                if document_origins.contains(origin.into()) {
+                    collector.collect_dependencies_in_invalidation_map(invalidation_map);
+                }
             });
 
             for stylist in self.xbl_stylists {
@@ -199,7 +206,7 @@ where
                 // figure out what to do with the quirks mode mismatches
                 // (that is, when bug 1406875 is properly fixed).
                 collector.quirks_mode = stylist.quirks_mode();
-                stylist.each_invalidation_map(|invalidation_map| {
+                stylist.each_invalidation_map(|invalidation_map, _| {
                     collector.collect_dependencies_in_invalidation_map(invalidation_map);
                 })
             }

@@ -486,10 +486,10 @@ impl Stylist {
     /// create a whole new iterator type.
     pub fn each_invalidation_map<'a, F>(&'a self, mut f: F)
     where
-        F: FnMut(&'a InvalidationMap)
+        F: FnMut(&'a InvalidationMap, Origin)
     {
-        for (data, _) in self.cascade_data.iter_origins() {
-            f(&data.invalidation_map)
+        for (data, origin) in self.cascade_data.iter_origins() {
+            f(&data.invalidation_map, origin)
         }
     }
 
