@@ -17,7 +17,7 @@
 use CaseSensitivityExt;
 use app_units::Au;
 use applicable_declarations::ApplicableDeclarationBlock;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, TElement, TNode};
@@ -355,9 +355,9 @@ impl<'lb> GeckoXBLBinding<'lb> {
         }
     }
 
-    fn each_xbl_stylist<F>(self, f: &mut F)
+    fn each_xbl_stylist<F>(&self, f: &mut F)
     where
-        F: FnMut(&Stylist),
+        F: FnMut(AtomicRef<'lb, Stylist>),
     {
         if let Some(base) = self.base_binding() {
             base.each_xbl_stylist(f);
@@ -369,7 +369,7 @@ impl<'lb> GeckoXBLBinding<'lb> {
 
         if let Some(raw_data) = raw_data {
             let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
-            f(&data.stylist);
+            f(AtomicRef::map(data, |d| &d.stylist));
         }
     }
 }
@@ -476,7 +476,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_xbl_binding(&self) -> Option<GeckoXBLBinding> {
+    fn get_xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
         if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
             return None;
         }
@@ -485,7 +485,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_xbl_binding_with_content(&self) -> Option<GeckoXBLBinding> {
+    fn get_xbl_binding_with_content(&self) -> Option<GeckoXBLBinding<'le>> {
         self.get_xbl_binding()
             .and_then(|b| b.get_binding_with_content())
     }
@@ -1246,9 +1246,10 @@ impl<'le> TElement for GeckoElement<'le> {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 
-    fn each_xbl_stylist<F>(&self, mut f: F) -> bool
+    fn each_xbl_stylist<'a, F>(&self, mut f: F) -> bool
     where
-        F: FnMut(&Stylist),
+        'le: 'a,
+        F: FnMut(AtomicRef<'a, Stylist>),
     {
         // Walk the binding scope chain, starting with the binding attached to
         // our content, up till we run out of scopes or we get cut off.

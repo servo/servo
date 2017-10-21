@@ -33,9 +33,9 @@ where
     fn collect_invalidations(
         &mut self,
         element: E,
-        self_invalidations: &mut InvalidationVector,
-        descendant_invalidations: &mut InvalidationVector,
-        sibling_invalidations: &mut InvalidationVector,
+        self_invalidations: &mut InvalidationVector<'a>,
+        descendant_invalidations: &mut InvalidationVector<'a>,
+        sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool;
 
     /// Returns whether the invalidation process should process the descendants
@@ -68,7 +68,7 @@ where
 }
 
 /// A vector of invalidations, optimized for small invalidation sets.
-pub type InvalidationVector = SmallVec<[Invalidation; 10]>;
+pub type InvalidationVector<'a> = SmallVec<[Invalidation<'a>; 10]>;
 
 /// The kind of invalidation we're processing.
 ///
@@ -83,8 +83,8 @@ enum InvalidationKind {
 /// An `Invalidation` is a complex selector that describes which elements,
 /// relative to a current element we are processing, must be restyled.
 #[derive(Clone)]
-pub struct Invalidation {
-    selector: Selector<SelectorImpl>,
+pub struct Invalidation<'a> {
+    selector: &'a Selector<SelectorImpl>,
     /// The offset of the selector pointing to a compound selector.
     ///
     /// This order is a "parse order" offset, that is, zero is the leftmost part
@@ -99,9 +99,9 @@ pub struct Invalidation {
     matched_by_any_previous: bool,
 }
 
-impl Invalidation {
+impl<'a> Invalidation<'a> {
     /// Create a new invalidation for a given selector and offset.
-    pub fn new(selector: Selector<SelectorImpl>, offset: usize) -> Self {
+    pub fn new(selector: &'a Selector<SelectorImpl>, offset: usize) -> Self {
         Self {
             selector,
             offset,
@@ -140,7 +140,7 @@ impl Invalidation {
     }
 }
 
-impl fmt::Debug for Invalidation {
+impl<'a> fmt::Debug for Invalidation<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use cssparser::ToCss;
 
@@ -259,7 +259,7 @@ where
     /// was invalidated.
     fn invalidate_siblings(
         &mut self,
-        sibling_invalidations: &mut InvalidationVector,
+        sibling_invalidations: &mut InvalidationVector<'b>,
     ) -> bool {
         if sibling_invalidations.is_empty() {
             return false;
@@ -300,7 +300,7 @@ where
     fn invalidate_pseudo_element_or_nac(
         &mut self,
         child: E,
-        invalidations: &InvalidationVector
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         let mut sibling_invalidations = InvalidationVector::new();
 
@@ -325,8 +325,8 @@ where
     fn invalidate_child(
         &mut self,
         child: E,
-        invalidations: &InvalidationVector,
-        sibling_invalidations: &mut InvalidationVector,
+        invalidations: &InvalidationVector<'b>,
+        sibling_invalidations: &mut InvalidationVector<'b>,
     ) -> bool {
         let mut invalidations_for_descendants = InvalidationVector::new();
 
@@ -368,7 +368,7 @@ where
 
     fn invalidate_nac(
         &mut self,
-        invalidations: &InvalidationVector,
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         let mut any_nac_root = false;
 
@@ -386,7 +386,7 @@ where
     fn invalidate_dom_descendants_of(
         &mut self,
         parent: E::ConcreteNode,
-        invalidations: &InvalidationVector,
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         let mut any_descendant = false;
 
@@ -420,7 +420,7 @@ where
     /// descendants, and invalidate style on them.
     fn invalidate_descendants(
         &mut self,
-        invalidations: &InvalidationVector,
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         if invalidations.is_empty() {
             return false;
@@ -485,8 +485,8 @@ where
     /// Returns whether invalidated the current element's style.
     fn process_sibling_invalidations(
         &mut self,
-        descendant_invalidations: &mut InvalidationVector,
-        sibling_invalidations: &mut InvalidationVector,
+        descendant_invalidations: &mut InvalidationVector<'b>,
+        sibling_invalidations: &mut InvalidationVector<'b>,
     ) -> bool {
         let mut i = 0;
         let mut new_sibling_invalidations = InvalidationVector::new();
@@ -520,9 +520,9 @@ where
     /// Returns whether our style was invalidated as a result.
     fn process_descendant_invalidations(
         &mut self,
-        invalidations: &InvalidationVector,
-        descendant_invalidations: &mut InvalidationVector,
-        sibling_invalidations: &mut InvalidationVector,
+        invalidations: &InvalidationVector<'b>,
+        descendant_invalidations: &mut InvalidationVector<'b>,
+        sibling_invalidations: &mut InvalidationVector<'b>,
     ) -> bool {
         let mut invalidated = false;
 
@@ -553,9 +553,9 @@ where
     /// down in the tree.
     fn process_invalidation(
         &mut self,
-        invalidation: &Invalidation,
-        descendant_invalidations: &mut InvalidationVector,
-        sibling_invalidations: &mut InvalidationVector,
+        invalidation: &Invalidation<'b>,
+        descendant_invalidations: &mut InvalidationVector<'b>,
+        sibling_invalidations: &mut InvalidationVector<'b>,
         invalidation_kind: InvalidationKind,
     ) -> SingleInvalidationResult {
         debug!("TreeStyleInvalidator::process_invalidation({:?}, {:?}, {:?})",
@@ -627,7 +627,7 @@ where
 
 
                 let next_invalidation = Invalidation {
-                    selector: invalidation.selector.clone(),
+                    selector: invalidation.selector,
                     offset: next_combinator_offset + 1,
                     matched_by_any_previous: false,
                 };
