@@ -186,6 +186,30 @@ impl DOMString {
     pub fn bytes(&self) -> Bytes {
         self.0.bytes()
     }
+
+    /// Removes newline characters according to <https://infra.spec.whatwg.org/#strip-newlines>.
+    pub fn strip_newlines(&mut self) {
+        self.0.retain(|c| c != '\r' && c != '\n');
+    }
+
+    /// Removes leading and trailing ASCII whitespaces according to
+    /// <https://infra.spec.whatwg.org/#strip-leading-and-trailing-ascii-whitespace>.
+    pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
+        while let Some(ch) = self.0.pop() {
+            if !ch.is_whitespace() {
+                self.0.push(ch);
+                break;
+            }
+        }
+
+        let mut seen_non_whitespace = false;
+        self.0.retain(|c| seen_non_whitespace ||
+            (!c.is_whitespace() && {
+                seen_non_whitespace = true;
+                true
+            })
+        );
+    }
 }
 
 impl Borrow<str> for DOMString {

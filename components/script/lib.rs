@@ -9,6 +9,7 @@
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(proc_macro)]
+#![feature(string_retain)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
