@@ -37,7 +37,7 @@ use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, SubLevel, TopLevel};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
+use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
@@ -586,14 +586,13 @@ impl HTMLMediaElement {
                 // Step 4.remote.2.
                 // FIXME(nox): Handle CORS setting from crossorigin attribute.
                 let document = document_from_node(self);
-                let type_ = match self.media_type_id() {
-                    HTMLMediaElementTypeId::HTMLAudioElement => RequestType::Audio,
-                    HTMLMediaElementTypeId::HTMLVideoElement => RequestType::Video,
+                let destination = match self.media_type_id() {
+                    HTMLMediaElementTypeId::HTMLAudioElement => Destination::Audio,
+                    HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
                 };
                 let request = RequestInit {
                     url,
-                    type_,
-                    destination: Destination::Media,
+                    destination,
                     credentials_mode: CredentialsMode::Include,
                     use_url_credentials: true,
                     origin: document.origin().immutable().clone(),

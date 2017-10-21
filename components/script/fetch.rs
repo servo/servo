@@ -49,7 +49,6 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         headers: request.headers.clone(),
         unsafe_request: request.unsafe_request,
         body: request.body.clone(),
-        type_: request.type_,
         destination: request.destination,
         synchronous: request.synchronous,
         mode: request.mode,

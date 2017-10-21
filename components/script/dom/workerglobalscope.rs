@@ -30,7 +30,7 @@ use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use net_traits::{IpcSend, load_whole_resource};
-use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
+use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, get_reports, Runtime};
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
@@ -199,7 +199,6 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit {
                 url: url.clone(),
-                type_: RequestType::Script,
                 destination: Destination::Script,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
