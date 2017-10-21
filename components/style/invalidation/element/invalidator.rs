@@ -34,6 +34,7 @@ where
         element: E,
         nth_index_cache: Option<&mut NthIndexCache>,
         quirks_mode: QuirksMode,
+        self_invalidations: &mut InvalidationVector,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool;
@@ -226,20 +227,29 @@ where
     pub fn invalidate(mut self) -> InvalidationResult {
         debug!("StyleTreeInvalidator::invalidate({:?})", self.element);
 
+        let mut self_invalidations = InvalidationVector::new();
         let mut descendant_invalidations = InvalidationVector::new();
         let mut sibling_invalidations = InvalidationVector::new();
 
-        let invalidated_self = self.processor.collect_invalidations(
+        let mut invalidated_self = self.processor.collect_invalidations(
             self.element,
             self.nth_index_cache.as_mut().map(|c| &mut **c),
             self.quirks_mode,
+            &mut self_invalidations,
             &mut descendant_invalidations,
             &mut sibling_invalidations,
         );
 
         debug!("Collected invalidations (self: {}): ", invalidated_self);
+        debug!(" > self: {:?}", descendant_invalidations);
         debug!(" > descendants: {:?}", descendant_invalidations);
         debug!(" > siblings: {:?}", sibling_invalidations);
+
+        invalidated_self |= self.process_descendant_invalidations(
+            &self_invalidations,
+            &mut descendant_invalidations,
+            &mut sibling_invalidations,
+        );
 
         let invalidated_descendants = self.invalidate_descendants(&descendant_invalidations);
         let invalidated_siblings = self.invalidate_siblings(&mut sibling_invalidations);

@@ -82,6 +82,7 @@ where
         element: E,
         nth_index_cache: Option<&mut NthIndexCache>,
         quirks_mode: QuirksMode,
+        _self_invalidations: &mut InvalidationVector,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool {
