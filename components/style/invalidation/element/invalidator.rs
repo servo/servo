@@ -8,16 +8,14 @@
 use context::StackLimitChecker;
 use dom::{TElement, TNode};
 use selector_parser::SelectorImpl;
-use selectors::NthIndexCache;
-use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, VisitedHandlingMode};
-use selectors::matching::CompoundSelectorMatchingResult;
+use selectors::matching::{CompoundSelectorMatchingResult, MatchingContext};
 use selectors::matching::matches_compound_selector;
 use selectors::parser::{Combinator, Component, Selector};
 use smallvec::SmallVec;
 use std::fmt;
 
 /// A trait to abstract the collection of invalidations for a given pass.
-pub trait InvalidationProcessor<E>
+pub trait InvalidationProcessor<'a, E>
 where
     E: TElement,
 {
@@ -26,14 +24,15 @@ where
     /// that would originate it.
     fn invalidates_on_eager_pseudo_element(&self) -> bool { false }
 
+    /// The matching context that should be used to process invalidations.
+    fn matching_context(&mut self) -> &mut MatchingContext<'a, E::Impl>;
+
     /// Collect invalidations for a given element's descendants and siblings.
     ///
     /// Returns whether the element itself was invalidated.
     fn collect_invalidations(
         &mut self,
         element: E,
-        nth_index_cache: Option<&mut NthIndexCache>,
-        quirks_mode: QuirksMode,
         self_invalidations: &mut InvalidationVector,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
@@ -56,16 +55,16 @@ where
 
 /// The struct that takes care of encapsulating all the logic on where and how
 /// element styles need to be invalidated.
-pub struct TreeStyleInvalidator<'a, E, P: 'a>
+pub struct TreeStyleInvalidator<'a, 'b, E, P: 'a>
 where
+    'b: 'a,
     E: TElement,
-    P: InvalidationProcessor<E>
+    P: InvalidationProcessor<'b, E>,
 {
     element: E,
-    quirks_mode: QuirksMode,
     stack_limit_checker: Option<&'a StackLimitChecker>,
-    nth_index_cache: Option<&'a mut NthIndexCache>,
     processor: &'a mut P,
+    _marker: ::std::marker::PhantomData<&'b ()>
 }
 
 /// A vector of invalidations, optimized for small invalidation sets.
@@ -201,25 +200,23 @@ impl InvalidationResult {
     }
 }
 
-impl<'a, E, P: 'a> TreeStyleInvalidator<'a, E, P>
+impl<'a, 'b, E, P: 'a> TreeStyleInvalidator<'a, 'b, E, P>
 where
+    'b: 'a,
     E: TElement,
-    P: InvalidationProcessor<E>,
+    P: InvalidationProcessor<'b, E>,
 {
     /// Trivially constructs a new `TreeStyleInvalidator`.
     pub fn new(
         element: E,
-        quirks_mode: QuirksMode,
         stack_limit_checker: Option<&'a StackLimitChecker>,
-        nth_index_cache: Option<&'a mut NthIndexCache>,
         processor: &'a mut P,
     ) -> Self {
         Self {
             element,
-            quirks_mode,
             stack_limit_checker,
-            nth_index_cache,
             processor,
+            _marker: ::std::marker::PhantomData,
         }
     }
 
@@ -233,8 +230,6 @@ where
 
         let mut invalidated_self = self.processor.collect_invalidations(
             self.element,
-            self.nth_index_cache.as_mut().map(|c| &mut **c),
-            self.quirks_mode,
             &mut self_invalidations,
             &mut descendant_invalidations,
             &mut sibling_invalidations,
@@ -276,9 +271,7 @@ where
         while let Some(sibling) = current {
             let mut sibling_invalidator = TreeStyleInvalidator::new(
                 sibling,
-                self.quirks_mode,
                 self.stack_limit_checker,
-                self.nth_index_cache.as_mut().map(|c| &mut **c),
                 self.processor,
             );
 
@@ -341,9 +334,7 @@ where
         let invalidated_descendants = {
             let mut child_invalidator = TreeStyleInvalidator::new(
                 child,
-                self.quirks_mode,
                 self.stack_limit_checker,
-                self.nth_index_cache.as_mut().map(|c| &mut **c),
                 self.processor,
             );
 
@@ -570,22 +561,12 @@ where
         debug!("TreeStyleInvalidator::process_invalidation({:?}, {:?}, {:?})",
                self.element, invalidation, invalidation_kind);
 
-        let matching_result = {
-            let mut context = MatchingContext::new_for_visited(
-                MatchingMode::Normal,
-                None,
-                self.nth_index_cache.as_mut().map(|c| &mut **c),
-                VisitedHandlingMode::AllLinksVisitedAndUnvisited,
-                self.quirks_mode,
-            );
-
-            matches_compound_selector(
-                &invalidation.selector,
-                invalidation.offset,
-                &mut context,
-                &self.element
-            )
-        };
+        let matching_result = matches_compound_selector(
+            &invalidation.selector,
+            invalidation.offset,
+            self.processor.matching_context(),
+            &self.element
+        );
 
         let mut invalidated_self = false;
         let mut matched = false;

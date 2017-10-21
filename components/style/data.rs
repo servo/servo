@@ -263,13 +263,12 @@ impl ElementData {
             shared_context,
             element,
             self,
+            nth_index_cache,
         );
 
         let invalidator = TreeStyleInvalidator::new(
             element,
-            shared_context.quirks_mode(),
             stack_limit_checker,
-            nth_index_cache,
             &mut processor,
         );
 

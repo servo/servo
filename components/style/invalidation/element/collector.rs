@@ -51,24 +51,34 @@ where
 
 /// An invalidation processor for style changes due to state and attribute
 /// changes.
-pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E> {
+pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
     element: E,
     data: &'a mut ElementData,
+    matching_context: MatchingContext<'a, E::Impl>,
 }
 
-impl<'a, 'b: 'a, E> StateAndAttrInvalidationProcessor<'a, 'b, E> {
+impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
         element: E,
         data: &'a mut ElementData,
+        nth_index_cache: Option<&'a mut NthIndexCache>,
     ) -> Self {
-        Self { shared_context, element, data }
+        let matching_context = MatchingContext::new_for_visited(
+            MatchingMode::Normal,
+            None,
+            nth_index_cache,
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited,
+            shared_context.quirks_mode(),
+        );
+
+        Self { shared_context, element, data, matching_context }
     }
 }
 
-impl<'a, 'b: 'a, E> InvalidationProcessor<E> for StateAndAttrInvalidationProcessor<'a, 'b, E>
+impl<'a, 'b: 'a, E> InvalidationProcessor<'a, E> for StateAndAttrInvalidationProcessor<'a, 'b, E>
 where
     E: TElement,
 {
@@ -77,17 +87,18 @@ where
     /// content being generated.
     fn invalidates_on_eager_pseudo_element(&self) -> bool { true }
 
+    fn matching_context(&mut self) -> &mut MatchingContext<'a, E::Impl> {
+        &mut self.matching_context
+    }
+
     fn collect_invalidations(
         &mut self,
         element: E,
-        nth_index_cache: Option<&mut NthIndexCache>,
-        quirks_mode: QuirksMode,
         _self_invalidations: &mut InvalidationVector,
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
     ) -> bool {
         debug_assert!(element.has_snapshot(), "Why bothering?");
-        debug_assert_eq!(quirks_mode, self.shared_context.quirks_mode(), "How exactly?");
 
         let wrapper =
             ElementWrapper::new(element, &*self.shared_context.snapshot_map);
@@ -150,11 +161,11 @@ where
             let mut collector = Collector {
                 wrapper,
                 lookup_element,
-                nth_index_cache,
                 state_changes,
                 element,
                 snapshot: &snapshot,
                 quirks_mode: self.shared_context.quirks_mode(),
+                nth_index_cache: self.matching_context.nth_index_cache.as_mut().map(|c| &mut **c),
                 removed_id: id_removed.as_ref(),
                 added_id: id_added.as_ref(),
                 classes_removed: &classes_removed,
