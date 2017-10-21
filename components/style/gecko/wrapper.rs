@@ -104,6 +104,12 @@ use stylist::Stylist;
 #[derive(Clone, Copy)]
 pub struct GeckoNode<'ln>(pub &'ln RawGeckoNode);
 
+impl<'ln> PartialEq for GeckoNode<'ln> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 as *const _ == other.0 as *const _
+    }
+}
+
 impl<'ln> fmt::Debug for GeckoNode<'ln> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(el) = self.as_element() {
