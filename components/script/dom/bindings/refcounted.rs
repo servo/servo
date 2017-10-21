@@ -35,7 +35,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::os;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
 use task::TaskOnce;
@@ -267,8 +266,7 @@ fn remove_nulls<K: Eq + Hash + Clone, V> (table: &mut HashMap<K, Weak<V>>) {
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
 #[allow(unrooted_must_root)]
-pub unsafe extern "C" fn trace_refcounted_objects(tracer: *mut JSTracer,
-                                                  _data: *mut os::raw::c_void) {
+pub unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
     info!("tracing live refcounted references");
     LIVE_REFERENCES.with(|ref r| {
         let r = r.borrow();
