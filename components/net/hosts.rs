@@ -16,22 +16,13 @@ lazy_static! {
 }
 
 fn create_host_table() -> Option<HashMap<String, IpAddr>> {
-    // TODO: handle bad file path
-    let path = match env::var("HOST_FILE") {
-        Ok(host_file_path) => host_file_path,
-        Err(_) => return None,
-    };
+    let path = env::var_os("HOST_FILE")?;
 
-    let mut file = match File::open(&path) {
-        Ok(f) => BufReader::new(f),
-        Err(_) => return None,
-    };
+    let file = File::open(&path).ok()?;
+    let mut reader = BufReader::new(file);
 
     let mut lines = String::new();
-    match file.read_to_string(&mut lines) {
-        Ok(_) => (),
-        Err(_) => return None,
-    };
+    reader.read_to_string(&mut lines).ok()?;
 
     Some(parse_hostsfile(&lines))
 }

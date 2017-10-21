@@ -395,13 +395,9 @@ impl TreeWalker {
             None => {
                 let mut candidate = DomRoot::from_ref(node);
                 while !self.is_root_node(&candidate) && candidate.GetNextSibling().is_none() {
-                    match candidate.GetParentNode() {
-                        None =>
-                            // This can happen if the user set the current node to somewhere
-                            // outside of the tree rooted at the original root.
-                            return None,
-                        Some(n) => candidate = n
-                    }
+                    // This can return None if the user set the current node to somewhere
+                    // outside of the tree rooted at the original root.
+                    candidate = candidate.GetParentNode()?;
                 }
                 if self.is_root_node(&candidate) {
                     None

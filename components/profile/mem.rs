@@ -515,16 +515,11 @@ mod system_reporter {
         use std::fs::File;
         use std::io::Read;
 
-        // Like std::macros::try!, but for Option<>.
-        macro_rules! option_try(
-            ($e:expr) => (match $e { Some(e) => e, None => return None })
-        );
-
-        let mut f = option_try!(File::open("/proc/self/statm").ok());
+        let mut f = File::open("/proc/self/statm").ok()?;
         let mut contents = String::new();
-        option_try!(f.read_to_string(&mut contents).ok());
-        let s = option_try!(contents.split_whitespace().nth(field));
-        let npages = option_try!(s.parse::<usize>().ok());
+        f.read_to_string(&mut contents).ok()?;
+        let s = contents.split_whitespace().nth(field)?;
+        let npages = s.parse::<usize>().ok()?;
         Some(npages * page_size())
     }
 

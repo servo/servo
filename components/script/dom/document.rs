@@ -2089,10 +2089,9 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, ori
         };
 
         // Step 4.2
-        let (prefix, suffix) = match original_host.len().checked_sub(host.len()) {
-            Some(index) => original_host.split_at(index),
-            None => return None,
-        };
+        let index = original_host.len().checked_sub(host.len())?;
+        let (prefix, suffix) = original_host.split_at(index);
+
         if !prefix.ends_with(".") {
             return None;
         }
@@ -2336,11 +2335,7 @@ impl Document {
     ///
     /// Also, shouldn't return an option, I'm quite sure.
     pub fn device(&self) -> Option<Device> {
-        let window_size = match self.window().window_size() {
-            Some(ws) => ws,
-            None => return None,
-        };
-
+        let window_size = self.window().window_size()?;
         let viewport_size = window_size.initial_viewport;
         let device_pixel_ratio = window_size.device_pixel_ratio;
         Some(Device::new(MediaType::screen(), viewport_size, device_pixel_ratio))
@@ -4034,12 +4029,9 @@ impl PendingInOrderScriptVec {
 
     fn take_next_ready_to_be_executed(&self) -> Option<(DomRoot<HTMLScriptElement>, ScriptResult)> {
         let mut scripts = self.scripts.borrow_mut();
-        let pair = scripts.front_mut().and_then(PendingScript::take_result);
-        if pair.is_none() {
-            return None;
-        }
+        let pair = scripts.front_mut()?.take_result()?;
         scripts.pop_front();
-        pair
+        Some(pair)
     }
 
     fn clear(&self) {

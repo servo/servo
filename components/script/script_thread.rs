@@ -1945,10 +1945,7 @@ impl ScriptThread {
                            pipeline_id: PipelineId)
                            -> Option<DomRoot<WindowProxy>>
     {
-        let browsing_context_id = match self.ask_constellation_for_browsing_context_id(pipeline_id) {
-            Some(browsing_context_id) => browsing_context_id,
-            None => return None,
-        };
+        let browsing_context_id = self.ask_constellation_for_browsing_context_id(pipeline_id)?;
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
