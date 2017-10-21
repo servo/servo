@@ -64,7 +64,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 nonzero = {path = "../nonzero"}
 num-traits = "0.1.32"
-offscreen_gl_context = { version = "0.11", features = ["serde"] }
+offscreen_gl_context = { version = "0.12", features = ["serde"] }
 open = "1.1.1"
 parking_lot = "0.4"
 phf = "0.7.18"
