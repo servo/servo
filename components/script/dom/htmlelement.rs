@@ -31,6 +31,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::ascii::AsciiExt;
+use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use style::attr::AttrValue;
@@ -275,6 +276,38 @@ impl HTMLElementMethods for HTMLElement {
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("scroll", listener)
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#attr-itemtype
+    fn Itemtypes(&self) -> Option<Vec<DOMString>> {
+        let atoms = self.element.get_tokenlist_attribute(&local_name!("itemtype"), );
+
+        if atoms.is_empty() {
+            return None;
+        }
+
+        let mut item_attr_values = HashSet::new();
+        for attr_value in &atoms {
+            item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));
+        }
+
+        Some(item_attr_values.into_iter().collect())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute
+    fn PropertyNames(&self) -> Option<Vec<DOMString>> {
+        let atoms = self.element.get_tokenlist_attribute(&local_name!("itemprop"), );
+
+        if atoms.is_empty() {
+            return None;
+        }
+
+        let mut item_attr_values = HashSet::new();
+        for attr_value in &atoms {
+            item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));
+        }
+
+        Some(item_attr_values.into_iter().collect())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
@@ -576,5 +609,18 @@ impl VirtualMethods for HTMLElement {
             s.bind_to_tree(tree_in_doc);
         }
         self.update_sequentially_focusable_status();
+    }
+
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match name {
+            &local_name!("itemprop") => AttrValue::from_serialized_tokenlist(value.into()),
+            &local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),
+            _ => {
+                self.super_type().unwrap().parse_plain_attribute(
+                    name,
+                    value,
+                )
+            },
+        }
     }
 }
