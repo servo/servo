@@ -112,6 +112,10 @@ impl Invalidation {
     /// Whether this invalidation is effective for the next sibling or
     /// descendant after us.
     fn effective_for_next(&self) -> bool {
+        if self.offset == 0 {
+            return true;
+        }
+
         // TODO(emilio): For pseudo-elements this should be mostly false, except
         // for the weird pseudos in <input type="number">.
         //
@@ -124,6 +128,10 @@ impl Invalidation {
     }
 
     fn kind(&self) -> InvalidationKind {
+        if self.offset == 0 {
+            return InvalidationKind::Descendant;
+        }
+
         if self.selector.combinator_at_parse_order(self.offset - 1).is_ancestor() {
             InvalidationKind::Descendant
         } else {
