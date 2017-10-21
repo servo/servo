@@ -189,19 +189,100 @@ where
     fn invalidated_descendants(&mut self, _e: E, _child: E) {}
 }
 
+fn collect_all_elements<E, Q, F>(
+    root: E::ConcreteNode,
+    results: &mut Q::Output,
+    mut filter: F,
+)
+where
+    E: TElement,
+    Q: SelectorQuery<E>,
+    F: FnMut(E) -> bool,
+{
+    for node in root.dom_descendants() {
+        let element = match node.as_element() {
+            Some(e) => e,
+            None => continue,
+        };
+
+        if !filter(element) {
+            continue;
+        }
+
+        Q::append_element(results, element);
+        if Q::should_stop_after_first_match() {
+            return;
+        }
+    }
+}
+
 /// Fast paths for a given selector query.
+///
+/// FIXME(emilio, nbp): This may very well be a good candidate for code to be
+/// replaced by HolyJit :)
 fn query_selector_fast<E, Q>(
-    _root: E::ConcreteNode,
-    _selector_list: &SelectorList<E::Impl>,
-    _results: &mut Q::Output,
-    _quirks_mode: QuirksMode,
+    root: E::ConcreteNode,
+    selector_list: &SelectorList<E::Impl>,
+    results: &mut Q::Output,
+    quirks_mode: QuirksMode,
 ) -> Result<(), ()>
 where
     E: TElement,
     Q: SelectorQuery<E>,
 {
-    // FIXME(emilio): Implement :-)
-    Err(())
+    use selectors::parser::{Component, LocalName};
+    use std::borrow::Borrow;
+
+    // We need to return elements in document order, and reordering them
+    // afterwards is kinda silly.
+    if selector_list.0.len() > 1 {
+        return Err(());
+    }
+
+    let selector = &selector_list.0[0];
+
+    // Let's just care about the easy cases for now.
+    //
+    // FIXME(emilio): Blink has a fast path for classes in ancestor combinators
+    // that may be worth stealing.
+    if selector.len() > 1 {
+        return Err(());
+    }
+
+    let component = selector.iter().next().unwrap();
+    match *component {
+        Component::ExplicitUniversalType => {
+            collect_all_elements::<E, Q, _>(root, results, |_| true)
+        }
+        Component::ID(ref id) => {
+            // TODO(emilio): We may want to reuse Gecko's document ID table.
+            let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
+            collect_all_elements::<E, Q, _>(root, results, |element| {
+                element.has_id(id, case_sensitivity)
+            })
+        }
+        Component::Class(ref class) => {
+            let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
+            collect_all_elements::<E, Q, _>(root, results, |element| {
+                element.has_class(class, case_sensitivity)
+            })
+        }
+        Component::LocalName(LocalName { ref name, ref lower_name }) => {
+            collect_all_elements::<E, Q, _>(root, results, |element| {
+                if element.is_html_element_in_html_document() {
+                    element.get_local_name() == lower_name.borrow()
+                } else {
+                    element.get_local_name() == name.borrow()
+                }
+            })
+        }
+        // TODO(emilio): More fast paths?
+        _ => {
+            return Err(())
+        }
+    }
+
+    Ok(())
 }
 
 // Slow path for a given selector query.
@@ -215,21 +296,9 @@ where
     E: TElement,
     Q: SelectorQuery<E>,
 {
-    for node in root.dom_descendants() {
-        let element = match node.as_element() {
-            Some(e) => e,
-            None => continue,
-        };
-
-        if !matching::matches_selector_list(selector_list, &element, matching_context) {
-            continue;
-        }
-
-        Q::append_element(results, element);
-        if Q::should_stop_after_first_match() {
-            return;
-        }
-    }
+    collect_all_elements::<E, Q, _>(root, results, |element| {
+        matching::matches_selector_list(selector_list, &element, matching_context)
+    });
 }
 
 /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
