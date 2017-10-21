@@ -148,6 +148,12 @@ impl<'ln> GeckoNode<'ln> {
         (self.0).mBoolFlags
     }
 
+    /// Owner document quirks mode getter.
+    #[inline]
+    pub fn owner_document_quirks_mode(&self) -> QuirksMode {
+        self.owner_doc().mCompatMode.into()
+    }
+
     #[inline]
     fn get_bool_flag(&self, flag: nsINode_BooleanFlag) -> bool {
         self.bool_flags() & (1u32 << flag as u32) != 0
@@ -625,8 +631,9 @@ impl<'le> GeckoElement<'le> {
     }
 
     /// Owner document quirks mode getter.
+    #[inline]
     pub fn owner_document_quirks_mode(&self) -> QuirksMode {
-        self.as_node().owner_doc().mCompatMode.into()
+        self.as_node().owner_document_quirks_mode()
     }
 
     /// Only safe to call on the main thread, with exclusive access to the element and

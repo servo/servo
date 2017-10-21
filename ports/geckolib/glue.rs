@@ -29,9 +29,9 @@ use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
-use style::gecko::wrapper::GeckoElement;
+use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings;
-use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull};
+use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
@@ -1612,6 +1612,29 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
         &selectors,
         element.owner_document_quirks_mode(),
     )
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
+    node: RawGeckoNodeBorrowed,
+    selectors: RawServoSelectorListBorrowed,
+) -> *const structs::RawGeckoElement {
+    use std::borrow::Borrow;
+    use style::dom_apis::{self, QuerySelectorResult, QuerySelectorKind};
+
+    let node = GeckoNode(node);
+    let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
+    let mut result = QuerySelectorResult::new();
+    dom_apis::query_selector::<GeckoElement>(
+        node,
+        &selectors,
+        &mut result,
+        QuerySelectorKind::First,
+        node.owner_document_quirks_mode(),
+    );
+
+    result.first()
+        .map_or(ptr::null(), |e| e.0)
 }
 
 #[no_mangle]
