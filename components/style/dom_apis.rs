@@ -61,37 +61,86 @@ where
     return None;
 }
 
-/// The result of a querySelector call.
-pub type QuerySelectorResult<E> = SmallVec<[E; 128]>;
+/// A selector query abstraction, in order to be generic over QuerySelector and
+/// QuerySelectorAll.
+pub trait SelectorQuery<E: TElement> {
+    /// The output of the query.
+    type Output;
 
-/// The query kind we're doing (either only the first descendant that matches or
-/// all of them).
-pub enum QuerySelectorKind {
-    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
-    All,
-    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-    First,
+    /// Whether the query should stop after the first element has been matched.
+    fn should_stop_after_first_match() -> bool;
+
+    /// Append an element matching after the first query.
+    fn append_element(output: &mut Self::Output, element: E);
+
+    /// Returns true if the output is empty.
+    fn is_empty(output: &Self::Output) -> bool;
 }
 
-struct QuerySelectorProcessor<'a, E: TElement + 'a> {
-    kind: QuerySelectorKind,
-    results: &'a mut QuerySelectorResult<E>,
+/// The result of a querySelectorAll call.
+pub type QuerySelectorAllResult<E> = SmallVec<[E; 128]>;
+
+/// A query for all the elements in a subtree.
+pub struct QueryAll;
+
+impl<E: TElement> SelectorQuery<E> for QueryAll {
+    type Output = QuerySelectorAllResult<E>;
+
+    fn should_stop_after_first_match() -> bool { false }
+
+    fn append_element(output: &mut Self::Output, element: E) {
+        output.push(element);
+    }
+
+    fn is_empty(output: &Self::Output) -> bool {
+        output.is_empty()
+    }
+}
+
+/// A query for the first in-tree match of all the elements in a subtree.
+pub struct QueryFirst;
+
+impl<E: TElement> SelectorQuery<E> for QueryFirst {
+    type Output = Option<E>;
+
+    fn should_stop_after_first_match() -> bool { true }
+
+    fn append_element(output: &mut Self::Output, element: E) {
+        if output.is_none() {
+            *output = Some(element)
+        }
+    }
+
+    fn is_empty(output: &Self::Output) -> bool {
+        output.is_none()
+    }
+}
+
+struct QuerySelectorProcessor<'a, E, Q>
+where
+    E: TElement + 'a,
+    Q: SelectorQuery<E>,
+    Q::Output: 'a,
+{
+    results: &'a mut Q::Output,
     matching_context: MatchingContext<'a, E::Impl>,
     selector_list: &'a SelectorList<E::Impl>,
 }
 
-impl<'a, E> InvalidationProcessor<'a, E> for QuerySelectorProcessor<'a, E>
+impl<'a, E, Q> InvalidationProcessor<'a, E> for QuerySelectorProcessor<'a, E, Q>
 where
     E: TElement + 'a,
+    Q: SelectorQuery<E>,
+    Q::Output: 'a,
 {
     fn collect_invalidations(
         &mut self,
-        _element: E,
+        element: E,
         self_invalidations: &mut InvalidationVector<'a>,
         descendant_invalidations: &mut InvalidationVector<'a>,
         _sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool {
-        // FIXME(emilio): If the element is not a root element, and
+        // TODO(emilio): If the element is not a root element, and
         // selector_list has any descendant combinator, we need to do extra work
         // in order to handle properly things like:
         //
@@ -103,6 +152,9 @@ where
         //
         // b.querySelector('#a div'); // Should return "c".
         //
+        // For now, assert it's a root element.
+        debug_assert!(element.parent_element().is_none());
+
         let target_vector =
             if self.matching_context.scope_element.is_some() {
                 descendant_invalidations
@@ -122,30 +174,92 @@ where
     }
 
     fn should_process_descendants(&mut self, _: E) -> bool {
-        match self.kind {
-            QuerySelectorKind::All => true,
-            QuerySelectorKind::First => self.results.is_empty(),
+        if Q::should_stop_after_first_match() {
+            return Q::is_empty(&self.results)
         }
+
+        true
     }
 
     fn invalidated_self(&mut self, e: E) {
-        self.results.push(e);
+        Q::append_element(self.results, e);
     }
 
     fn recursion_limit_exceeded(&mut self, _e: E) {}
     fn invalidated_descendants(&mut self, _e: E, _child: E) {}
 }
 
-/// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
-pub fn query_selector<E: TElement>(
+/// Fast paths for a given selector query.
+fn query_selector_fast<E, Q>(
+    _root: E::ConcreteNode,
+    _selector_list: &SelectorList<E::Impl>,
+    _results: &mut Q::Output,
+    _quirks_mode: QuirksMode,
+) -> Result<(), ()>
+where
+    E: TElement,
+    Q: SelectorQuery<E>,
+{
+    // FIXME(emilio): Implement :-)
+    Err(())
+}
+
+// Slow path for a given selector query.
+fn query_selector_slow<E, Q>(
     root: E::ConcreteNode,
     selector_list: &SelectorList<E::Impl>,
-    results: &mut QuerySelectorResult<E>,
-    kind: QuerySelectorKind,
+    results: &mut Q::Output,
+    matching_context: &mut MatchingContext<E::Impl>,
+)
+where
+    E: TElement,
+    Q: SelectorQuery<E>,
+{
+    for node in root.dom_descendants() {
+        let element = match node.as_element() {
+            Some(e) => e,
+            None => continue,
+        };
+
+        if !matching::matches_selector_list(selector_list, &element, matching_context) {
+            continue;
+        }
+
+        Q::append_element(results, element);
+        if Q::should_stop_after_first_match() {
+            return;
+        }
+    }
+}
+
+/// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
+pub fn query_selector<E, Q>(
+    root: E::ConcreteNode,
+    selector_list: &SelectorList<E::Impl>,
+    results: &mut Q::Output,
     quirks_mode: QuirksMode,
-) {
+)
+where
+    E: TElement,
+    Q: SelectorQuery<E>,
+{
     use invalidation::element::invalidator::TreeStyleInvalidator;
 
+    let fast_result = query_selector_fast::<E, Q>(
+        root,
+        selector_list,
+        results,
+        quirks_mode,
+    );
+
+    if fast_result.is_ok() {
+        return;
+    }
+
+    // Slow path: Use the invalidation machinery if we're a root, and tree
+    // traversal otherwise.
+    //
+    // See the comment in collect_invalidations to see why only if we're a root.
     let mut nth_index_cache = NthIndexCache::default();
     let mut matching_context = MatchingContext::new(
         MatchingMode::Normal,
@@ -157,30 +271,27 @@ pub fn query_selector<E: TElement>(
     let root_element = root.as_element();
     matching_context.scope_element = root_element.map(|e| e.opaque());
 
-    let mut processor = QuerySelectorProcessor {
-        kind,
-        results,
-        matching_context,
-        selector_list,
-    };
+    if root_element.is_some() {
+        query_selector_slow::<E, Q>(
+            root,
+            selector_list,
+            results,
+            &mut matching_context,
+        );
+    } else {
+        let mut processor = QuerySelectorProcessor::<E, Q> {
+            results,
+            matching_context,
+            selector_list,
+        };
 
-    match root_element {
-        Some(e) => {
-            TreeStyleInvalidator::new(
-                e,
-                /* stack_limit_checker = */ None,
-                &mut processor,
-            ).invalidate();
-        }
-        None => {
-            for node in root.dom_children() {
-                if let Some(e) = node.as_element() {
-                    TreeStyleInvalidator::new(
-                        e,
-                        /* stack_limit_checker = */ None,
-                        &mut processor,
-                    ).invalidate();
-                }
+        for node in root.dom_children() {
+            if let Some(e) = node.as_element() {
+                TreeStyleInvalidator::new(
+                    e,
+                    /* stack_limit_checker = */ None,
+                    &mut processor,
+                ).invalidate();
             }
         }
     }

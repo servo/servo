@@ -1620,21 +1620,19 @@ pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
     selectors: RawServoSelectorListBorrowed,
 ) -> *const structs::RawGeckoElement {
     use std::borrow::Borrow;
-    use style::dom_apis::{self, QuerySelectorResult, QuerySelectorKind};
+    use style::dom_apis::{self, QueryFirst};
 
     let node = GeckoNode(node);
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
-    let mut result = QuerySelectorResult::new();
-    dom_apis::query_selector::<GeckoElement>(
+    let mut result = None;
+    dom_apis::query_selector::<GeckoElement, QueryFirst>(
         node,
         &selectors,
         &mut result,
-        QuerySelectorKind::First,
         node.owner_document_quirks_mode(),
     );
 
-    result.first()
-        .map_or(ptr::null(), |e| e.0)
+    result.map_or(ptr::null(), |e| e.0)
 }
 
 #[no_mangle]
