@@ -10,7 +10,7 @@ use std::io::{BufReader, BufRead};
 use std::path::Path;
 
 fn main() {
-    let static_atoms = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("static_atoms.txt");
+    let static_atoms = Path::new(&env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("static_atoms.txt");
     let static_atoms = BufReader::new(File::open(&static_atoms).unwrap());
     let mut atom_type = string_cache_codegen::AtomType::new("Atom", "atom!");
 
@@ -27,6 +27,6 @@ fn main() {
 
     atom_type
         .atoms(static_atoms.lines().map(Result::unwrap))
-        .write_to_file(&Path::new(&env::var("OUT_DIR").unwrap()).join("atom.rs"))
+        .write_to_file(&Path::new(&env::var_os("OUT_DIR").unwrap()).join("atom.rs"))
         .unwrap();
 }
