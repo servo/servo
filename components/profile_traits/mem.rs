@@ -79,7 +79,7 @@ impl ProfilerChan {
 #[derive(Deserialize, Serialize)]
 pub enum ReportKind {
     /// A size measurement for an explicit allocation on the jemalloc heap. This should be used
-    /// for any measurements done via the `HeapSizeOf` trait.
+    /// for any measurements done via the `MallocSizeOf` trait.
     ExplicitJemallocHeapSize,
 
     /// A size measurement for an explicit allocation on the system heap. Only likely to be used

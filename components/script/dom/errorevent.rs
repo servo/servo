@@ -27,7 +27,7 @@ pub struct ErrorEvent {
     filename: DomRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
+    #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     error: Heap<JSVal>,
 }
 

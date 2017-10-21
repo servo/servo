@@ -13,7 +13,6 @@ extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
-extern crate heapsize;
 #[macro_use]
 extern crate html5ever;
 extern crate ipc_channel;
@@ -25,6 +24,7 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate malloc_size_of;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
@@ -39,6 +39,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
+extern crate servo_allocator;
 extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_config;
@@ -60,7 +61,6 @@ use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{Epoch, node_id_from_clip_id};
-use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
@@ -68,7 +68,7 @@ use layout::construct::ConstructionResult;
 use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
-use layout::context::heap_size_of_persistent_local_context;
+use layout::context::malloc_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
@@ -85,6 +85,7 @@ use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -773,6 +774,9 @@ impl LayoutThread {
                                reports_chan: ReportsChan,
                                possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut reports = vec![];
+        // Servo uses vanilla jemalloc, which doesn't have a
+        // malloc_enclosing_size_of function.
+        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
@@ -781,20 +785,20 @@ impl LayoutThread {
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
+            size: display_list.map_or(0, |sc| sc.size_of(&mut ops)),
         });
 
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.stylist.heap_size_of_children(),
+            size: self.stylist.size_of(&mut ops),
         });
 
         // The LayoutThread has data in Persistent TLS...
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "local-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: heap_size_of_persistent_local_context(),
+            size: malloc_size_of_persistent_local_context(&mut ops),
         });
 
         reports_chan.send(reports);
@@ -891,11 +895,7 @@ impl LayoutThread {
     }
 
     fn try_get_layout_root<N: LayoutNode>(&self, node: N) -> Option<FlowRef> {
-        let mut data = match node.mutate_layout_data() {
-            Some(x) => x,
-            None => return None,
-        };
-        let result = data.flow_construction_result.get();
+        let result = node.mutate_layout_data()?.flow_construction_result.get();
 
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {
@@ -1358,18 +1358,19 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
             },
-            ReflowGoal::TextIndexQuery(node, mouse_x, mouse_y) => {
+            ReflowGoal::TextIndexQuery(node, point_in_node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 let opaque_node = node.opaque();
-                let client_point = Point2D::new(Au::from_px(mouse_x),
-                                                Au::from_px(mouse_y));
-                rw_data.text_index_response =
-                    TextIndexResponse(rw_data.display_list
-                                      .as_ref()
-                                      .expect("Tried to hit test with no display list")
-                                      .text_index(opaque_node,
-                                                  &client_point,
-                                                  &rw_data.scroll_offsets));
+                let point_in_node = Point2D::new(
+                    Au::from_f32_px(point_in_node.x),
+                    Au::from_f32_px(point_in_node.y)
+                );
+                rw_data.text_index_response = TextIndexResponse(
+                    rw_data.display_list
+                    .as_ref()
+                    .expect("Tried to hit test with no display list")
+                    .text_index(opaque_node, &point_in_node)
+                );
             },
             ReflowGoal::NodeGeometryQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };

@@ -2888,10 +2888,7 @@ impl Fragment {
     /// Returns the 4D matrix representing this fragment's transform.
     pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Transform3D<f32>> {
         let list = &self.style.get_box().transform;
-        let transform = match list.to_transform_3d_matrix(Some(stacking_relative_border_box)) {
-            Some(transform) => transform,
-            None => return None,
-        };
+        let transform = list.to_transform_3d_matrix(Some(stacking_relative_border_box))?;
 
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x =
@@ -3032,10 +3029,7 @@ impl<'a> Iterator for InlineStyleIterator<'a> {
             self.primary_style_yielded = true;
             return Some(&*self.fragment.style)
         }
-        let inline_context = match self.fragment.inline_context {
-            None => return None,
-            Some(ref inline_context) => inline_context,
-        };
+        let inline_context = self.fragment.inline_context.as_ref()?;
         let inline_style_index = self.inline_style_index;
         if inline_style_index == inline_context.nodes.len() {
             return None

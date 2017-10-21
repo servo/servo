@@ -702,19 +702,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => return,
         };
 
-        let point = result.point_in_viewport.to_untyped();
-        let node_address = Some(UntrustedNodeAddress(result.tag.0 as *const c_void));
-        let event_to_send = match mouse_window_event {
-            MouseWindowEvent::Click(button, _) => {
-                MouseButtonEvent(MouseEventType::Click, button, point, node_address)
-            }
-            MouseWindowEvent::MouseDown(button, _) => {
-                MouseButtonEvent(MouseEventType::MouseDown, button, point, node_address)
-            }
-            MouseWindowEvent::MouseUp(button, _) => {
-                MouseButtonEvent(MouseEventType::MouseUp, button, point, node_address)
-            }
+        let (button, event_type) = match mouse_window_event {
+            MouseWindowEvent::Click(button, _) => (button, MouseEventType::Click),
+            MouseWindowEvent::MouseDown(button, _) => (button, MouseEventType::MouseDown),
+            MouseWindowEvent::MouseUp(button, _) => (button, MouseEventType::MouseUp),
         };
+
+        let event_to_send = MouseButtonEvent(
+            event_type,
+            button,
+            result.point_in_viewport.to_untyped(),
+            Some(UntrustedNodeAddress(result.tag.0 as *const c_void)),
+            Some(result.point_relative_to_item.to_untyped()),
+        );
 
         let pipeline_id = PipelineId::from_webrender(result.pipeline);
         let msg = ConstellationMsg::ForwardEvent(pipeline_id, event_to_send);

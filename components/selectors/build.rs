@@ -10,7 +10,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 
 fn main() {
-    let path = Path::new(&env::var("OUT_DIR").unwrap())
+    let path = Path::new(&env::var_os("OUT_DIR").unwrap())
         .join("ascii_case_insensitive_html_attributes.rs");
     let mut file = BufWriter::new(File::create(&path).unwrap());
 

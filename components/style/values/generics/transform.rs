@@ -10,9 +10,7 @@ use values::CSSFloat;
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 #[css(comma, function)]
 pub struct Matrix<T, U = T> {
     pub a: T,
@@ -24,10 +22,8 @@ pub struct Matrix<T, U = T> {
 }
 
 /// A generic transform origin.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(MallocSizeOf, PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct TransformOrigin<H, V, Depth> {
     /// The horizontal origin.
     pub horizontal: H,
@@ -40,9 +36,7 @@ pub struct TransformOrigin<H, V, Depth> {
 /// A generic timing function.
 ///
 /// <https://drafts.csswg.org/css-timing-1/#single-timing-function-production>
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 pub enum TimingFunction<Integer, Number> {
     /// `linear | ease | ease-in | ease-out | ease-in-out`
     Keyword(TimingKeyword),

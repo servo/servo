@@ -1257,6 +1257,10 @@ impl<K, V, S> HashMap<K, V, S>
             debug_assert!(elems_left == 0 || bucket.index() != start_index);
         }
     }
+
+    pub fn diagnostic_count_hashes(&self) -> usize {
+        self.table.diagnostic_count_hashes()
+    }
 }
 
 impl<K, V, S> PartialEq for HashMap<K, V, S>
@@ -1336,6 +1340,12 @@ impl<'a, K: Debug, V: Debug> fmt::Debug for Iter<'a, K, V> {
         f.debug_list()
             .entries(self.clone())
             .finish()
+    }
+}
+
+impl<'a, K: 'a, V: 'a>  Iter<'a, K, V> {
+    pub fn next_with_hash(&mut self) -> Option<(usize, &'a K, &'a V)> {
+        self.inner.next_with_hash()
     }
 }
 

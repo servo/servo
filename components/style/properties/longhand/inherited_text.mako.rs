@@ -285,9 +285,7 @@ ${helpers.predefined_type("word-spacing",
     use std::fmt;
     use style_traits::ToCss;
 
-    #[derive(Clone, Copy, Debug, Default, PartialEq)]
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
     pub struct SpecifiedValue {
         pub underline: bool,
         pub overline: bool,
@@ -408,36 +406,29 @@ ${helpers.predefined_type(
 
 
     pub mod computed_value {
-        #[derive(Clone, Debug, PartialEq, ToCss)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf, ToComputedValue))]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+        #[cfg_attr(feature = "servo", derive(ToComputedValue))]
         pub enum T {
             Keyword(KeywordValue),
             None,
             String(String),
         }
 
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         pub struct KeywordValue {
             pub fill: bool,
             pub shape: super::ShapeKeyword,
         }
     }
 
-    #[derive(Clone, Debug, PartialEq, ToCss)]
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Keyword(KeywordValue),
         None,
         String(String),
     }
 
-    #[derive(Clone, Debug, PartialEq)]
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
     pub enum KeywordValue {
         Fill(bool),
         Shape(ShapeKeyword),
@@ -604,9 +595,7 @@ ${helpers.predefined_type(
                              "left" => Left);
     add_impls_for_keyword_enum!(HorizontalWritingModeValue);
 
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
+    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
     pub struct SpecifiedValue(pub HorizontalWritingModeValue, pub VerticalWritingModeValue);
 
     pub mod computed_value {

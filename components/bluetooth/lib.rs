@@ -321,10 +321,7 @@ impl BluetoothManager {
             self.adapter = BluetoothAdapter::init().ok();
         }
 
-        let adapter = match self.adapter.as_ref() {
-            Some(adapter) => adapter,
-            None => return None,
-        };
+        let adapter = self.adapter.as_ref()?;
 
         if is_mock_adapter(adapter) && !adapter.is_present().unwrap_or(false) {
             return None;
@@ -422,14 +419,8 @@ impl BluetoothManager {
     }
 
     fn device_from_service_id(&self, service_id: &str) -> Option<BluetoothDevice> {
-        let device_id = match self.service_to_device.get(service_id) {
-            Some(id) => id,
-            None => return None,
-        };
-        match self.cached_devices.get(device_id) {
-            Some(d) => Some(d.clone()),
-            None => None,
-        }
+        let device_id = self.service_to_device.get(service_id)?;
+        self.cached_devices.get(device_id).cloned()
     }
 
     fn device_is_cached(&self, device_id: &str) -> bool {
@@ -471,10 +462,7 @@ impl BluetoothManager {
 
     fn get_gatt_service(&mut self, adapter: &mut BluetoothAdapter, service_id: &str) -> Option<&BluetoothGATTService> {
         return_if_cached!(self.cached_services, service_id);
-        let device_id = match self.service_to_device.get(service_id) {
-            Some(d) => d.clone(),
-            None => return None,
-        };
+        let device_id = self.service_to_device.get(service_id)?.clone();
         self.get_and_cache_gatt_services(adapter, &device_id);
         return_if_cached!(self.cached_services, service_id);
         None
@@ -508,10 +496,7 @@ impl BluetoothManager {
                                characteristic_id: &str)
                                -> Option<&BluetoothGATTCharacteristic> {
         return_if_cached!(self.cached_characteristics, characteristic_id);
-        let service_id = match self.characteristic_to_service.get(characteristic_id) {
-            Some(s) => s.clone(),
-            None => return None,
-        };
+        let service_id = self.characteristic_to_service.get(characteristic_id)?.clone();
         self.get_and_cache_gatt_characteristics(adapter, &service_id);
         return_if_cached!(self.cached_characteristics, characteristic_id);
         None
@@ -566,10 +551,7 @@ impl BluetoothManager {
                            descriptor_id: &str)
                            -> Option<&BluetoothGATTDescriptor> {
         return_if_cached!(self.cached_descriptors, descriptor_id);
-        let characteristic_id = match self.descriptor_to_characteristic.get(descriptor_id) {
-            Some(c) => c.clone(),
-            None => return None,
-        };
+        let characteristic_id = self.descriptor_to_characteristic.get(descriptor_id)?.clone();
         self.get_and_cache_gatt_descriptors(adapter, &characteristic_id);
         return_if_cached!(self.cached_descriptors, descriptor_id);
         None

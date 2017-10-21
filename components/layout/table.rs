@@ -11,7 +11,7 @@ use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
+use display_list_builder::{DisplayListBuildState, NEVER_CREATES_STACKING_CONTEXT};
 use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use flow;
@@ -504,8 +504,8 @@ impl Flow for TableFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
-        self.block_flow.collect_stacking_contexts_for_block(state,
-                                                            StackingContextCollectionFlags::empty());
+        // Stacking contexts are collected by the table wrapper.
+        self.block_flow.collect_stacking_contexts_for_block(state, NEVER_CREATES_STACKING_CONTEXT);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

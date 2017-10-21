@@ -10,5 +10,5 @@ openssl-${OPENSSL_VERSION}/libssl.so: openssl-${OPENSSL_VERSION}/Configure
 	./openssl.sh ${ANDROID_NDK} ${OPENSSL_VERSION}
 
 openssl-${OPENSSL_VERSION}/Configure:
-	URL=https://s3.amazonaws.com/rust-lang-ci/rust-ci-mirror/openssl-${OPENSSL_VERSION}.tar.gz; \
+	URL=https://s3.amazonaws.com/servo-deps/android-deps/openssl-${OPENSSL_VERSION}.tar.gz; \
 	curl $$URL | tar xzf -

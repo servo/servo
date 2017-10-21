@@ -28,11 +28,10 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JS_SetInterruptCallback};
 use js::jsapi::{JSAutoCompartment, JSContext, NullHandleValue};
 use js::jsval::UndefinedValue;
-use js::rust::Runtime;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx, Runtime};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
@@ -80,15 +79,15 @@ enum MixedMessage {
 #[dom_struct]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
-    #[ignore_heap_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
+    #[ignore_malloc_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
-    #[ignore_heap_size_of = "Can't measure trait objects"]
+    #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan + Send>,
 }

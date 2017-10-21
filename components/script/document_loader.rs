@@ -14,7 +14,7 @@ use net_traits::request::RequestInit;
 use servo_url::ServoUrl;
 use std::thread;
 
-#[derive(Clone, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum LoadType {
     Image(ServoUrl),
     Script(ServoUrl),
@@ -40,7 +40,7 @@ impl LoadType {
 /// Canary value ensuring that manually added blocking loads (ie. ones that weren't
 /// created via DocumentLoader::fetch_async) are always removed by the time
 /// that the owner is destroyed.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct LoadBlocker {
     /// The document whose load event is blocked by this object existing.
@@ -81,7 +81,7 @@ impl Drop for LoadBlocker {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct DocumentLoader {
     resource_threads: ResourceThreads,
     blocking_loads: Vec<LoadType>,

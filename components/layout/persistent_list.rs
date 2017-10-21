@@ -78,10 +78,7 @@ impl<'a, T> Iterator for PersistentListIterator<'a, T> where T: Send + Sync + 's
 
     #[inline]
     fn next(&mut self) -> Option<&'a T> {
-        let entry = match self.entry {
-            None => return None,
-            Some(entry) => entry,
-        };
+        let entry = self.entry?;
         let value = &entry.value;
         self.entry = match entry.next {
             None => None,

@@ -22,7 +22,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct CustomEvent {
     event: Event,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
+    #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     detail: Heap<JSVal>,
 }
 

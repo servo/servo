@@ -21,7 +21,7 @@ unsafe_no_jsmanaged_fields!(ServoRng);
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in rand"]
+    #[ignore_malloc_size_of = "Defined in rand"]
     rng: DomRefCell<ServoRng>,
 }
 

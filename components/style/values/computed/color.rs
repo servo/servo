@@ -14,9 +14,7 @@ use values::animated::color::{Color as AnimatedColor, RGBA as AnimatedRGBA};
 /// the current foreground color (currentcolor keyword).
 /// Conceptually, the formula is "color * (1 - p) + currentcolor * p"
 /// where p is foreground_ratio.
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct Color {
     /// RGBA color.
     pub color: RGBA,

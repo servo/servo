@@ -81,15 +81,11 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 
         pub mod computed_value {
             use cssparser::RGBA;
-            #[derive(Clone, Debug, PartialEq)]
-            #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
             pub struct T(pub Option<Vec<RGBA>>);
         }
 
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         pub enum SpecifiedValue {
             None,
             Colors(Vec<RGBAColor>),
@@ -232,15 +228,11 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     pub mod computed_value {
         pub use super::RepeatKeyword;
 
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Debug, PartialEq, ToCss)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
         pub struct T(pub RepeatKeyword, pub RepeatKeyword);
     }
 
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Debug, PartialEq, ToCss)]
+    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
     pub struct SpecifiedValue(pub RepeatKeyword,
                               pub Option<RepeatKeyword>);
 

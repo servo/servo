@@ -38,7 +38,7 @@ servo-websocket = "0.19"
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
-url = {version = "1.2", features = ["heap_size"]}
+url = "1.2"
 uuid = {version = "0.5", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 

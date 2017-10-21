@@ -384,10 +384,7 @@ impl LineBreaker {
                                  -> Option<Fragment>
         where I: Iterator<Item=Fragment>,
     {
-        let mut result = match self.next_fragment(old_fragment_iter) {
-            None => return None,
-            Some(fragment) => fragment,
-        };
+        let mut result = self.next_fragment(old_fragment_iter)?;
 
         loop {
             let candidate = match self.next_fragment(old_fragment_iter) {

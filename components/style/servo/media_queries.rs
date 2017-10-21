@@ -27,7 +27,7 @@ use values::specified;
 /// is displayed in.
 ///
 /// This is the struct against which media queries are evaluated.
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct Device {
     /// The current media type used by de device.
     media_type: MediaType,
@@ -44,14 +44,14 @@ pub struct Device {
     /// other style being computed at the same time, given we need the style of
     /// the parent to compute everything else. So it is correct to just use
     /// a relaxed atomic here.
-    #[ignore_heap_size_of = "Pure stack type"]
+    #[ignore_malloc_size_of = "Pure stack type"]
     root_font_size: AtomicIsize,
     /// Whether any styles computed in the document relied on the root font-size
     /// by using rem units.
-    #[ignore_heap_size_of = "Pure stack type"]
+    #[ignore_malloc_size_of = "Pure stack type"]
     used_root_font_size: AtomicBool,
     /// Whether any styles computed in the document relied on the viewport size.
-    #[ignore_heap_size_of = "Pure stack type"]
+    #[ignore_malloc_size_of = "Pure stack type"]
     used_viewport_units: AtomicBool,
 }
 
@@ -153,7 +153,7 @@ impl Device {
 ///
 /// Only `pub` for unit testing, please don't use it directly!
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum ExpressionKind {
     /// <http://dev.w3.org/csswg/mediaqueries-3/#width>
     Width(Range<specified::Length>),
@@ -163,7 +163,7 @@ pub enum ExpressionKind {
 ///
 /// <http://dev.w3.org/csswg/mediaqueries-3/#media1>
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct Expression(pub ExpressionKind);
 
 impl Expression {
@@ -240,7 +240,7 @@ impl ToCss for Expression {
 /// Only public for testing, implementation details of `Expression` may change
 /// for Stylo.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum Range<T> {
     /// At least the inner value.
     Min(T),

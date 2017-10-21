@@ -69,7 +69,7 @@ fn generate_properties() {
         }
     }
 
-    let script = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap())
+    let script = Path::new(&env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("properties").join("build.py");
     let product = if cfg!(feature = "gecko") { "gecko" } else { "servo" };
     let status = Command::new(&*PYTHON)

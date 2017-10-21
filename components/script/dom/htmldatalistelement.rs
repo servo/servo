@@ -43,7 +43,7 @@ impl HTMLDataListElement {
 impl HTMLDataListElementMethods for HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
     fn Options(&self) -> DomRoot<HTMLCollection> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {

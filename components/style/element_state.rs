@@ -14,8 +14,7 @@ bitflags! {
     ///
     /// TODO(emilio): We really really want to use the NS_EVENT_STATE bindings
     /// for this.
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(MallocSizeOf)]
     pub flags ElementState: u64 {
         /// The mouse is down on this element.
         /// <https://html.spec.whatwg.org/multipage/#selector-active>
@@ -145,6 +144,7 @@ bitflags! {
     ///
     /// NB: Is important for this to remain in sync with Gecko's
     /// dom/base/nsIDocument.h.
+    #[derive(MallocSizeOf)]
     pub flags DocumentState: u64 {
         /// RTL locale: specific to the XUL localedir attribute
         const NS_DOCUMENT_STATE_RTL_LOCALE = 1 << 0,

@@ -4175,6 +4175,7 @@ pub mod root {
         pub struct ShortcutKeyCandidate {
             _unused: [u8; 0],
         }
+        pub type AtomArray = root::nsTArray<root::RefPtr<root::nsAtom>>;
         /// EventStates is the class used to represent the event states of nsIContent
         /// instances. These states are calculated by IntrinsicState() and
         /// ContentStatesChanged() has to be called when one of them changes thus
@@ -22385,8 +22386,6 @@ pub mod root {
     pub struct nsAttrValue {
         pub mBits: usize,
     }
-    pub type nsAttrValue_AtomArray =
-        root::nsTArray<root::RefPtr<root::nsAtom>>;
     pub const nsAttrValue_ValueType_eSVGTypesBegin:
               root::nsAttrValue_ValueType =
         nsAttrValue_ValueType::eSVGAngle;

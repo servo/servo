@@ -896,6 +896,10 @@ impl<K, V> RawTable<K, V> {
         }
     }
 
+    pub fn diagnostic_count_hashes(&self) -> usize {
+        (0..self.capacity()).filter(|&i| unsafe { *self.raw_bucket_at(i).hash() != EMPTY_BUCKET }).count()
+    }
+
     pub fn iter(&self) -> Iter<K, V> {
         Iter {
             iter: self.raw_buckets(),
@@ -1127,6 +1131,15 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {
     fn len(&self) -> usize {
         self.iter.len()
+    }
+}
+
+impl<'a, K, V> Iter<'a, K, V> {
+    pub fn next_with_hash(&mut self) -> Option<(usize, &'a K, &'a V)> {
+        self.iter.next().map(|raw| unsafe {
+            let (hash_ptr, pair_ptr) = raw.hash_pair();
+            (*hash_ptr, &(*pair_ptr).0, &(*pair_ptr).1)
+        })
     }
 }
 

@@ -27,22 +27,23 @@ extern crate fnv;
 #[cfg(target_os = "linux")]
 extern crate fontconfig;
 extern crate fontsan;
-#[cfg(any(target_os = "linux", target_os = "android"))]
-extern crate freetype;
+#[cfg(any(target_os = "linux", target_os = "android"))] extern crate freetype;
+#[cfg(any(target_os = "linux", target_os = "android"))] extern crate servo_allocator;
 extern crate gfx_traits;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.
 extern crate harfbuzz_sys as harfbuzz;
 
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[cfg_attr(target_os = "windows", macro_use)]
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;

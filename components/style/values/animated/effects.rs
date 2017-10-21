@@ -28,7 +28,7 @@ pub type TextShadowList = ShadowList<SimpleShadow>;
 /// An animated value for shadow lists.
 ///
 /// <https://drafts.csswg.org/css-transitions/#animtype-shadow-list>
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShadowList<Shadow>(Vec<Shadow>);
 
@@ -36,7 +36,7 @@ pub struct ShadowList<Shadow>(Vec<Shadow>);
 pub type BoxShadow = GenericBoxShadow<Option<RGBA>, Length, NonNegativeLength, Length>;
 
 /// An animated value for the `filter` property.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterList(pub Vec<Filter>);
 

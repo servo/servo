@@ -85,7 +85,7 @@ pub struct Descriptor {
     pub den: Option<f64>,
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 enum State {
     Unavailable,
@@ -100,19 +100,19 @@ pub struct Size {
     pub length: Length,
 }
 
-#[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum ImageRequestPhase {
     Pending,
     Current
 }
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct ImageRequest {
     state: State,
     parsed_url: Option<ServoUrl>,
     source_url: Option<DOMString>,
     blocker: Option<LoadBlocker>,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
     final_url: Option<ServoUrl>,
@@ -661,10 +661,7 @@ impl HTMLImageElement {
     }
     pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
-        let usemap_attr = match elem.get_attribute(&ns!(), &local_name!("usemap")) {
-            Some(attr) => attr,
-            None => return None,
-        };
+        let usemap_attr = elem.get_attribute(&ns!(), &local_name!("usemap"))?;
 
         let value = usemap_attr.value();
 
@@ -695,7 +692,7 @@ impl HTMLImageElement {
 
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum ImageElementMicrotask {
     StableStateUpdateImageDataTask {
         elem: DomRoot<HTMLImageElement>,

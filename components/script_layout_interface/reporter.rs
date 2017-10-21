@@ -11,13 +11,13 @@ use servo_url::ServoUrl;
 use std::sync::{Mutex, Arc};
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub struct CSSErrorReporter {
     pub pipelineid: PipelineId,
     // Arc+Mutex combo is necessary to make this struct Sync,
     // which is necessary to fulfill the bounds required by the
     // uses of the ParseErrorReporter trait.
-    #[ignore_heap_size_of = "Arc is defined in libstd"]
+    #[ignore_malloc_size_of = "Arc is defined in libstd"]
     pub script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
 }
 

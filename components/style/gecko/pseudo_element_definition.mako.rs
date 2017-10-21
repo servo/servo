@@ -8,7 +8,7 @@ pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
         % if pseudo.is_tree_pseudo_element():
-        ${pseudo.capitalized()}(Box<[String]>),
+        ${pseudo.capitalized()}(Box<[Atom]>),
         % else:
         ${pseudo.capitalized()},
         % endif
@@ -26,6 +26,12 @@ pub const EAGER_PSEUDO_COUNT: usize = ${len(EAGER_PSEUDOS)};
 
 /// The number of non-functional pseudo-elements.
 pub const SIMPLE_PSEUDO_COUNT: usize = ${len(SIMPLE_PSEUDOS)};
+
+/// The number of tree pseudo-elements.
+pub const TREE_PSEUDO_COUNT: usize = ${len(TREE_PSEUDOS)};
+
+/// The number of all pseudo-elements.
+pub const PSEUDO_COUNT: usize = ${len(PSEUDOS)};
 
 /// The list of eager pseudos.
 pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
@@ -49,24 +55,22 @@ impl PseudoElement {
         }
     }
 
-    /// Returns an index if the pseudo-element is a simple (non-functional)
-    /// pseudo.
+    /// Returns an index of the pseudo-element.
     #[inline]
-    pub fn simple_index(&self) -> Option<usize> {
+    pub fn index(&self) -> usize {
         match *self {
-            % for i, pseudo in enumerate(SIMPLE_PSEUDOS):
-            ${pseudo_element_variant(pseudo)} => Some(${i}),
+            % for i, pseudo in enumerate(PSEUDOS):
+            ${pseudo_element_variant(pseudo)} => ${i},
             % endfor
-            _ => None,
         }
     }
 
     /// Returns an array of `None` values.
     ///
     /// FIXME(emilio): Integer generics can't come soon enough.
-    pub fn simple_pseudo_none_array<T>() -> [Option<T>; SIMPLE_PSEUDO_COUNT] {
+    pub fn pseudo_none_array<T>() -> [Option<T>; PSEUDO_COUNT] {
         [
-            ${",\n".join(["None" for pseudo in SIMPLE_PSEUDOS])}
+            ${",\n            ".join(["None" for pseudo in PSEUDOS])}
         ]
     }
 
@@ -88,6 +92,17 @@ impl PseudoElement {
     pub fn is_eager(&self) -> bool {
         matches!(*self,
                  ${" | ".join(map(lambda name: "PseudoElement::{}".format(name), EAGER_PSEUDOS))})
+    }
+
+    /// Whether this pseudo-element is tree pseudo-element.
+    #[inline]
+    pub fn is_tree_pseudo_element(&self) -> bool {
+        match *self {
+            % for pseudo in TREE_PSEUDOS:
+            ${pseudo_element_variant(pseudo)} => true,
+            % endfor
+            _ => false,
+        }
     }
 
     /// Gets the flags associated to this pseudo-element, or 0 if it's an
@@ -132,7 +147,7 @@ impl PseudoElement {
                 % if not pseudo.is_anon_box():
                     PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType::${pseudo.original_ident},
                 % elif pseudo.is_tree_pseudo_element():
-                    PseudoElement::${pseudo.capitalized()}(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::${pseudo.capitalized()}(..) => CSSPseudoElementType::XULTree,
                 % elif pseudo.is_inheriting_anon_box():
                     PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType_InheritingAnonBox,
                 % else:
@@ -145,6 +160,17 @@ impl PseudoElement {
     /// Get a PseudoInfo for a pseudo
     pub fn pseudo_info(&self) -> (*mut structs::nsAtom, CSSPseudoElementType) {
         (self.atom().as_ptr(), self.pseudo_type())
+    }
+
+    /// Get the argument list of a tree pseudo-element.
+    #[inline]
+    pub fn tree_pseudo_args(&self) -> Option<<&[Atom]> {
+        match *self {
+            % for pseudo in TREE_PSEUDOS:
+            PseudoElement::${pseudo.capitalized()}(ref args) => Some(args),
+            % endfor
+            _ => None,
+        }
     }
 
     /// Construct a pseudo-element from an `Atom`.
@@ -171,6 +197,19 @@ impl PseudoElement {
             % elif pseudo.is_anon_box():
                 if atom == &atom!("${pseudo.value}") {
                     return Some(${pseudo_element_variant(pseudo)});
+                }
+            % endif
+        % endfor
+        None
+    }
+
+    /// Construct a tree pseudo-element from atom and args.
+    #[inline]
+    pub fn from_tree_pseudo_atom(atom: &Atom, args: Box<[Atom]>) -> Option<Self> {
+        % for pseudo in PSEUDOS:
+            % if pseudo.is_tree_pseudo_element():
+                if atom == &atom!("${pseudo.value}") {
+                    return Some(PseudoElement::${pseudo.capitalized()}(args));
                 }
             % endif
         % endfor
@@ -207,7 +246,7 @@ impl PseudoElement {
     ///
     /// Returns `None` if the pseudo-element is not recognized.
     #[inline]
-    pub fn tree_pseudo_element(name: &str, args: Box<[String]>) -> Option<Self> {
+    pub fn tree_pseudo_element(name: &str, args: Box<[Atom]>) -> Option<Self> {
         use std::ascii::AsciiExt;
         debug_assert!(name.starts_with("-moz-tree-"));
         let tree_part = &name[10..];
@@ -228,21 +267,20 @@ impl ToCss for PseudoElement {
                 ${pseudo_element_variant(pseudo)} => dest.write_str("${pseudo.value}")?,
             % endfor
         }
-        match *self {
-            ${" |\n            ".join("PseudoElement::{}(ref args)".format(pseudo.capitalized())
-                                      for pseudo in TREE_PSEUDOS)} => {
+        if let Some(args) = self.tree_pseudo_args() {
+            if !args.is_empty() {
                 dest.write_char('(')?;
                 let mut iter = args.iter();
                 if let Some(first) = iter.next() {
-                    serialize_identifier(first, dest)?;
+                    serialize_identifier(&first.to_string(), dest)?;
                     for item in iter {
                         dest.write_str(", ")?;
-                        serialize_identifier(item, dest)?;
+                        serialize_identifier(&item.to_string(), dest)?;
                     }
                 }
-                dest.write_char(')')
+                dest.write_char(')')?;
             }
-            _ => Ok(()),
         }
+        Ok(())
     }
 }

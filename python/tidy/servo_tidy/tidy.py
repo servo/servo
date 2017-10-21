@@ -626,6 +626,10 @@ def check_rust(file_name, lines):
                       + decl_found.format(crate_name))
             prev_crate[indent] = crate_name
 
+        if line == "}":
+            for i in [i for i in prev_crate.keys() if i > indent]:
+                del prev_crate[i]
+
         # check alphabetical order of feature attributes in lib.rs files
         if is_lib_rs_file:
             match = re.search(r"#!\[feature\((.*)\)\]", line)
