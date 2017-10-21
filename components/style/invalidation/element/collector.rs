@@ -6,6 +6,7 @@
 //! changes.
 
 use Atom;
+use atomic_refcell::AtomicRef;
 use context::{QuirksMode, SharedStyleContext};
 use data::ElementData;
 use dom::TElement;
@@ -21,6 +22,7 @@ use selectors::attr::CaseSensitivity;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
 use smallvec::SmallVec;
+use stylist::Stylist;
 
 #[derive(Debug, PartialEq)]
 enum VisitedDependent {
@@ -29,7 +31,7 @@ enum VisitedDependent {
 }
 
 /// The collector implementation.
-struct Collector<'a, 'b: 'a, E>
+struct Collector<'a, 'b: 'a, 'selectors: 'a, E>
 where
     E: TElement,
 {
@@ -44,8 +46,8 @@ where
     classes_removed: &'a SmallVec<[Atom; 8]>,
     classes_added: &'a SmallVec<[Atom; 8]>,
     state_changes: ElementState,
-    descendant_invalidations: &'a mut InvalidationVector,
-    sibling_invalidations: &'a mut InvalidationVector,
+    descendant_invalidations: &'a mut InvalidationVector<'selectors>,
+    sibling_invalidations: &'a mut InvalidationVector<'selectors>,
     invalidates_self: bool,
 }
 
@@ -53,6 +55,8 @@ where
 /// changes.
 pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
+    xbl_stylists: &'a [AtomicRef<'b, Stylist>],
+    cut_off_inheritance: bool,
     element: E,
     data: &'a mut ElementData,
     matching_context: MatchingContext<'a, E::Impl>,
@@ -62,6 +66,8 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
+        xbl_stylists: &'a [AtomicRef<'b, Stylist>],
+        cut_off_inheritance: bool,
         element: E,
         data: &'a mut ElementData,
         nth_index_cache: Option<&'a mut NthIndexCache>,
@@ -74,11 +80,18 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
             shared_context.quirks_mode(),
         );
 
-        Self { shared_context, element, data, matching_context }
+        Self {
+            shared_context,
+            xbl_stylists,
+            cut_off_inheritance,
+            element,
+            data,
+            matching_context,
+        }
     }
 }
 
-impl<'a, 'b: 'a, E> InvalidationProcessor<'a, E> for StateAndAttrInvalidationProcessor<'a, 'b, E>
+impl<'a, 'b: 'a, E: 'a> InvalidationProcessor<'a, E> for StateAndAttrInvalidationProcessor<'a, 'b, E>
 where
     E: TElement,
 {
@@ -94,9 +107,9 @@ where
     fn collect_invalidations(
         &mut self,
         element: E,
-        _self_invalidations: &mut InvalidationVector,
-        descendant_invalidations: &mut InvalidationVector,
-        sibling_invalidations: &mut InvalidationVector,
+        _self_invalidations: &mut InvalidationVector<'a>,
+        descendant_invalidations: &mut InvalidationVector<'a>,
+        sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool {
         debug_assert!(element.has_snapshot(), "Why bothering?");
 
@@ -175,24 +188,21 @@ where
                 invalidates_self: false,
             };
 
+            // TODO(emilio): We could use the cut_off_inheritance from XBL to
+            // skip user and author stuff in here if it's true.
             self.shared_context.stylist.each_invalidation_map(|invalidation_map| {
                 collector.collect_dependencies_in_invalidation_map(invalidation_map);
             });
 
-            // TODO(emilio): Consider storing dependencies from the UA sheet in
-            // a different map. If we do that, we can skip the stuff on the
-            // shared stylist iff cut_off_inheritance is true, and we can look
-            // just at that map.
-            let _cut_off_inheritance =
-                element.each_xbl_stylist(|stylist| {
-                    // FIXME(emilio): Replace with assert / remove when we
-                    // figure out what to do with the quirks mode mismatches
-                    // (that is, when bug 1406875 is properly fixed).
-                    collector.quirks_mode = stylist.quirks_mode();
-                    stylist.each_invalidation_map(|invalidation_map| {
-                        collector.collect_dependencies_in_invalidation_map(invalidation_map);
-                    });
-                });
+            for stylist in self.xbl_stylists {
+                // FIXME(emilio): Replace with assert / remove when we
+                // figure out what to do with the quirks mode mismatches
+                // (that is, when bug 1406875 is properly fixed).
+                collector.quirks_mode = stylist.quirks_mode();
+                stylist.each_invalidation_map(|invalidation_map| {
+                    collector.collect_dependencies_in_invalidation_map(invalidation_map);
+                })
+            }
 
             collector.invalidates_self
         };
@@ -259,13 +269,14 @@ where
     }
 }
 
-impl<'a, 'b, E> Collector<'a, 'b, E>
+impl<'a, 'b, 'selectors, E> Collector<'a, 'b, 'selectors, E>
 where
     E: TElement,
+    'selectors: 'a,
 {
     fn collect_dependencies_in_invalidation_map(
         &mut self,
-        map: &InvalidationMap,
+        map: &'selectors InvalidationMap,
     ) {
         let quirks_mode = self.quirks_mode;
         let removed_id = self.removed_id;
@@ -316,7 +327,7 @@ where
 
     fn collect_dependencies_in_map(
         &mut self,
-        map: &SelectorMap<Dependency>,
+        map: &'selectors SelectorMap<Dependency>,
     ) {
         map.lookup_with_additional(
             self.lookup_element,
@@ -332,7 +343,7 @@ where
 
     fn collect_state_dependencies(
         &mut self,
-        map: &SelectorMap<StateDependency>,
+        map: &'selectors SelectorMap<StateDependency>,
         state_changes: ElementState,
     ) {
         map.lookup_with_additional(
@@ -416,7 +427,7 @@ where
 
     fn scan_dependency(
         &mut self,
-        dependency: &Dependency,
+        dependency: &'selectors Dependency,
         is_visited_dependent: VisitedDependent,
     ) {
         debug!("TreeStyleInvalidator::scan_dependency({:?}, {:?}, {:?})",
@@ -469,7 +480,7 @@ where
         }
     }
 
-    fn note_dependency(&mut self, dependency: &Dependency) {
+    fn note_dependency(&mut self, dependency: &'selectors Dependency) {
         if dependency.affects_self() {
             self.invalidates_self = true;
         }
@@ -479,14 +490,14 @@ where
             debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
             debug_assert!(!dependency.affects_later_siblings());
             self.descendant_invalidations.push(Invalidation::new(
-                dependency.selector.clone(),
+                &dependency.selector,
                 dependency.selector.len() - dependency.selector_offset + 1,
             ));
         } else if dependency.affects_later_siblings() {
             debug_assert_ne!(dependency.selector_offset, 0);
             debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
             self.sibling_invalidations.push(Invalidation::new(
-                dependency.selector.clone(),
+                &dependency.selector,
                 dependency.selector.len() - dependency.selector_offset + 1,
             ));
         }
