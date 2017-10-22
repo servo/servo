@@ -340,7 +340,14 @@ where
     let root_element = root.as_element();
     matching_context.scope_element = root_element.map(|e| e.opaque());
 
-    if root_element.is_some() {
+    // The invalidation mechanism is only useful in presence of combinators.
+    //
+    // We could do that check properly here, though checking the length of the
+    // selectors is a good heuristic.
+    let invalidation_may_be_useful =
+        selector_list.0.iter().any(|s| s.len() > 1);
+
+    if root_element.is_some() || !invalidation_may_be_useful {
         query_selector_slow::<E, Q>(
             root,
             selector_list,
