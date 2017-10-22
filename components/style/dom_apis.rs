@@ -133,6 +133,8 @@ where
     Q: SelectorQuery<E>,
     Q::Output: 'a,
 {
+    fn light_tree_only(&self) -> bool { true }
+
     fn collect_invalidations(
         &mut self,
         element: E,

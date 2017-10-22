@@ -24,6 +24,11 @@ where
     /// that would originate it.
     fn invalidates_on_eager_pseudo_element(&self) -> bool { false }
 
+    /// Whether the invalidation processor only cares about light-tree
+    /// descendants of a given element, that is, doesn't invalidate
+    /// pseudo-elements, NAC, or XBL anon content.
+    fn light_tree_only(&self) -> bool { false }
+
     /// The matching context that should be used to process invalidations.
     fn matching_context(&mut self) -> &mut MatchingContext<'a, E::Impl>;
 
@@ -458,6 +463,11 @@ where
                 self.processor.recursion_limit_exceeded(self.element);
                 return true;
             }
+        }
+
+        if self.processor.light_tree_only() {
+            let node = self.element.as_node();
+            return self.invalidate_dom_descendants_of(node, invalidations);
         }
 
         let mut any_descendant = false;
