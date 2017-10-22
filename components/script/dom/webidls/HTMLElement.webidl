@@ -17,9 +17,9 @@ interface HTMLElement : Element {
   readonly attribute DOMStringMap dataset;
 
   // microdata
-  [CEReactions]
+  [Pref="dom.microdata.enabled", CEReactions]
              attribute boolean itemScope;
-  [CEReactions]
+  [Pref="dom.microdata.enabled", CEReactions]
              attribute DOMString itemProp;
   //         attribute DOMString itemId;
   //readonly attribute HTMLPropertiesCollection properties;
