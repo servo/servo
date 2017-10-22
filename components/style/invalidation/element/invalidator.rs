@@ -240,11 +240,17 @@ where
         debug!(" > descendants: {:?}", descendant_invalidations);
         debug!(" > siblings: {:?}", sibling_invalidations);
 
+        let invalidated_self_from_collection = invalidated_self;
+
         invalidated_self |= self.process_descendant_invalidations(
             &self_invalidations,
             &mut descendant_invalidations,
             &mut sibling_invalidations,
         );
+
+        if invalidated_self && !invalidated_self_from_collection {
+            self.processor.invalidated_self(self.element);
+        }
 
         let invalidated_descendants = self.invalidate_descendants(&descendant_invalidations);
         let invalidated_siblings = self.invalidate_siblings(&mut sibling_invalidations);
@@ -276,11 +282,17 @@ where
             );
 
             let mut invalidations_for_descendants = InvalidationVector::new();
-            any_invalidated |=
+            let invalidated_sibling =
                 sibling_invalidator.process_sibling_invalidations(
                     &mut invalidations_for_descendants,
                     sibling_invalidations,
                 );
+
+            if invalidated_sibling {
+                sibling_invalidator.processor.invalidated_self(sibling);
+            }
+
+            any_invalidated |= invalidated_sibling;
 
             any_invalidated |=
                 sibling_invalidator.invalidate_descendants(
@@ -350,6 +362,10 @@ where
                     &mut invalidations_for_descendants,
                     sibling_invalidations,
                 );
+
+            if invalidated_child {
+                child_invalidator.processor.invalidated_self(child);
+            }
 
             child_invalidator.invalidate_descendants(&invalidations_for_descendants)
         };
@@ -716,10 +732,6 @@ where
                 }
             }
             CompoundSelectorMatchingResult::NotMatched => {}
-        }
-
-        if invalidated_self {
-            self.processor.invalidated_self(self.element);
         }
 
         SingleInvalidationResult { invalidated_self, matched, }
