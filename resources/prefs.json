@@ -1,4 +1,5 @@
 {
+  "dom.microdata.enabled": false,
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
   "dom.canvas-text.enabled": false,

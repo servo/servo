@@ -147,6 +147,26 @@ impl HTMLElementMethods for HTMLElement {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }
 
+    // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemscope
+    fn SetItemScope(&self, value: bool) {
+
+    }
+
+    // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemscope
+    fn ItemScope(&self) -> bool {
+        true
+    }
+
+    // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
+    fn SetItemProp(&self, value: bool) {
+
+    }
+    
+    // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
+    fn ItemProp(&self) -> bool {
+        true
+    }
+
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
