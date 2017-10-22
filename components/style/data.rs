@@ -17,6 +17,7 @@ use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use selectors::NthIndexCache;
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
+use smallvec::SmallVec;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -259,17 +260,22 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
+        let mut xbl_stylists = SmallVec::<[_; 3]>::new();
+        let cut_off_inheritance =
+            element.each_xbl_stylist(|s| xbl_stylists.push(s));
+
         let mut processor = StateAndAttrInvalidationProcessor::new(
             shared_context,
+            &xbl_stylists,
+            cut_off_inheritance,
             element,
             self,
+            nth_index_cache,
         );
 
         let invalidator = TreeStyleInvalidator::new(
             element,
-            shared_context.quirks_mode(),
             stack_limit_checker,
-            nth_index_cache,
             &mut processor,
         );
 

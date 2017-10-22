@@ -338,8 +338,7 @@ pub fn matches_compound_selector<E>(
 where
     E: Element
 {
-    debug_assert_ne!(from_offset, 0);
-    if cfg!(debug_assertions) {
+    if cfg!(debug_assertions) && from_offset != 0 {
         selector.combinator_at_parse_order(from_offset - 1); // This asserts.
     }
 

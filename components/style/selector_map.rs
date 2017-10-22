@@ -306,9 +306,10 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     /// FIXME(bholley) This overlaps with SelectorMap<Rule>::get_all_matching_rules,
     /// but that function is extremely hot and I'd rather not rearrange it.
     #[inline]
-    pub fn lookup<E, F>(&self, element: E, quirks_mode: QuirksMode, f: &mut F) -> bool
-        where E: TElement,
-              F: FnMut(&T) -> bool
+    pub fn lookup<'a, E, F>(&'a self, element: E, quirks_mode: QuirksMode, f: &mut F) -> bool
+    where
+        E: TElement,
+        F: FnMut(&'a T) -> bool
     {
         // Id.
         if let Some(id) = element.get_id() {
@@ -366,15 +367,17 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     ///
     /// Returns false if the callback ever returns false.
     #[inline]
-    pub fn lookup_with_additional<E, F>(&self,
-                                        element: E,
-                                        quirks_mode: QuirksMode,
-                                        additional_id: Option<&Atom>,
-                                        additional_classes: &[Atom],
-                                        f: &mut F)
-                                        -> bool
-        where E: TElement,
-              F: FnMut(&T) -> bool
+    pub fn lookup_with_additional<'a, E, F>(
+        &'a self,
+        element: E,
+        quirks_mode: QuirksMode,
+        additional_id: Option<&Atom>,
+        additional_classes: &[Atom],
+        f: &mut F,
+    ) -> bool
+    where
+        E: TElement,
+        F: FnMut(&'a T) -> bool
     {
         // Do the normal lookup.
         if !self.lookup(element, quirks_mode, f) {

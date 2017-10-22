@@ -484,11 +484,12 @@ impl Stylist {
     /// NOTE(heycam) This might be better as an `iter_invalidation_maps`, once
     /// we have `impl trait` and can return that easily without bothering to
     /// create a whole new iterator type.
-    pub fn each_invalidation_map<F>(&self, mut f: F)
-        where F: FnMut(&InvalidationMap)
+    pub fn each_invalidation_map<'a, F>(&'a self, mut f: F)
+    where
+        F: FnMut(&'a InvalidationMap, Origin)
     {
-        for (data, _) in self.cascade_data.iter_origins() {
-            f(&data.invalidation_map)
+        for (data, origin) in self.cascade_data.iter_origins() {
+            f(&data.invalidation_map, origin)
         }
     }
 

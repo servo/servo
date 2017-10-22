@@ -686,9 +686,10 @@ pub trait TElement
     /// Implements Gecko's `nsBindingManager::WalkRules`.
     ///
     /// Returns whether to cut off the inheritance.
-    fn each_xbl_stylist<F>(&self, _: F) -> bool
+    fn each_xbl_stylist<'a, F>(&self, _: F) -> bool
     where
-        F: FnMut(&Stylist),
+        Self: 'a,
+        F: FnMut(AtomicRef<'a, Stylist>),
     {
         false
     }
