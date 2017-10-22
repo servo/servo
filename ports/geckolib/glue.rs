@@ -1636,6 +1636,38 @@ pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_QueryAll(
+    node: RawGeckoNodeBorrowed,
+    selectors: RawServoSelectorListBorrowed,
+    content_list: *mut structs::nsSimpleContentList,
+) {
+    use smallvec::SmallVec;
+    use std::borrow::Borrow;
+    use style::dom_apis::{self, QueryAll};
+
+    let node = GeckoNode(node);
+    let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
+    let mut result = SmallVec::new();
+
+    dom_apis::query_selector::<GeckoElement, QueryAll>(
+        node,
+        &selectors,
+        &mut result,
+        node.owner_document_quirks_mode(),
+    );
+
+    if !result.is_empty() {
+        // NOTE(emilio): This relies on a slice of GeckoElement having the same
+        // memory representation than a slice of element pointers.
+        bindings::Gecko_ContentList_AppendAll(
+            content_list,
+            result.as_ptr() as *mut *const _,
+            result.len(),
+        )
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, result: *mut nsAString) {
     read_locked_arc(rule, |rule: &ImportRule| {
         write!(unsafe { &mut *result }, "{}", rule.url.as_str()).unwrap();
