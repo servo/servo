@@ -148,24 +148,16 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemscope
-    fn SetItemScope(&self, value: bool) {
-
-    }
+    make_bool_getter!(ItemScope, "itemscope");
 
     // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemscope
-    fn ItemScope(&self) -> bool {
-        true
-    }
+    make_bool_setter!(SetItemScope, "itemscope");
 
     // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
-    fn SetItemProp(&self, value: bool) {
-
-    }
+    make_getter!(ItemProp, "itemprop");
     
     // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
-    fn ItemProp(&self) -> bool {
-        true
-    }
+    make_setter!(SetItemProp, "itemprop");
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
