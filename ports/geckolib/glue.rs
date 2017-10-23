@@ -29,9 +29,9 @@ use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
-use style::gecko::wrapper::GeckoElement;
+use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings;
-use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull};
+use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
@@ -1612,6 +1612,59 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
         &selectors,
         element.owner_document_quirks_mode(),
     )
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
+    node: RawGeckoNodeBorrowed,
+    selectors: RawServoSelectorListBorrowed,
+) -> *const structs::RawGeckoElement {
+    use std::borrow::Borrow;
+    use style::dom_apis::{self, QueryFirst};
+
+    let node = GeckoNode(node);
+    let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
+    let mut result = None;
+    dom_apis::query_selector::<GeckoElement, QueryFirst>(
+        node,
+        &selectors,
+        &mut result,
+        node.owner_document_quirks_mode(),
+    );
+
+    result.map_or(ptr::null(), |e| e.0)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_QueryAll(
+    node: RawGeckoNodeBorrowed,
+    selectors: RawServoSelectorListBorrowed,
+    content_list: *mut structs::nsSimpleContentList,
+) {
+    use smallvec::SmallVec;
+    use std::borrow::Borrow;
+    use style::dom_apis::{self, QueryAll};
+
+    let node = GeckoNode(node);
+    let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
+    let mut result = SmallVec::new();
+
+    dom_apis::query_selector::<GeckoElement, QueryAll>(
+        node,
+        &selectors,
+        &mut result,
+        node.owner_document_quirks_mode(),
+    );
+
+    if !result.is_empty() {
+        // NOTE(emilio): This relies on a slice of GeckoElement having the same
+        // memory representation than a slice of element pointers.
+        bindings::Gecko_ContentList_AppendAll(
+            content_list,
+            result.as_ptr() as *mut *const _,
+            result.len(),
+        )
+    }
 }
 
 #[no_mangle]

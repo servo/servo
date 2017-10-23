@@ -23,6 +23,7 @@ use gecko_bindings::structs::ServoRawOffsetArc;
 use gecko_bindings::structs::nsIContent;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::structs::nsIDocument_DocumentTheme;
+use gecko_bindings::structs::nsSimpleContentList;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
 use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
@@ -75,6 +76,7 @@ use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsCSSPropertyIDSet;
+use gecko_bindings::structs::nsCSSRect;
 use gecko_bindings::structs::nsCSSShadowArray;
 use gecko_bindings::structs::nsCSSUnit;
 use gecko_bindings::structs::nsCSSValue;
@@ -2130,6 +2132,17 @@ extern "C" {
      -> *const RawGeckoElement;
 }
 extern "C" {
+    pub fn Servo_SelectorList_QueryFirst(arg1: RawGeckoNodeBorrowed,
+                                         arg2: RawServoSelectorListBorrowed)
+     -> *const RawGeckoElement;
+}
+extern "C" {
+    pub fn Servo_SelectorList_QueryAll(arg1: RawGeckoNodeBorrowed,
+                                       arg2: RawServoSelectorListBorrowed,
+                                       content_list:
+                                           *mut nsSimpleContentList);
+}
+extern "C" {
     pub fn Servo_StyleSet_AddSizeOfExcludingThis(malloc_size_of: MallocSizeOf,
                                                  malloc_enclosing_size_of:
                                                      MallocSizeOf,
@@ -2733,7 +2746,8 @@ extern "C" {
     pub fn Servo_DeclarationBlock_RemovePropertyById(declarations:
                                                          RawServoDeclarationBlockBorrowed,
                                                      property:
-                                                         nsCSSPropertyID) -> bool;
+                                                         nsCSSPropertyID)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_HasCSSWideKeyword(declarations:
@@ -3076,6 +3090,19 @@ extern "C" {
      -> ServoRawOffsetArc<RustString>;
 }
 extern "C" {
+    pub fn Servo_IsValidCSSColor(value: *const nsAString) -> bool;
+}
+extern "C" {
+    pub fn Servo_ComputeColor(set: RawServoStyleSetBorrowedOrNull,
+                              current_color: nscolor, value: *const nsAString,
+                              result_color: *mut nscolor) -> bool;
+}
+extern "C" {
+    pub fn Servo_ParseIntersectionObserverRootMargin(value: *const nsAString,
+                                                     result: *mut nsCSSRect)
+     -> bool;
+}
+extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(sheet: *mut ServoStyleSheet,
                                         loader: *mut Loader, uri: *mut nsIURI)
      -> *mut ErrorReporter;
@@ -3101,4 +3128,9 @@ extern "C" {
                                               *const ::std::os::raw::c_char,
                                           sourceLen: u32, lineNumber: u32,
                                           colNumber: u32);
+}
+extern "C" {
+    pub fn Gecko_ContentList_AppendAll(aContentList: *mut nsSimpleContentList,
+                                       aElements: *mut *const RawGeckoElement,
+                                       aLength: usize);
 }

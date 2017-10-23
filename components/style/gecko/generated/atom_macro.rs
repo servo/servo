@@ -4368,8 +4368,6 @@ cfg_if! {
             pub static nsGkAtoms_forcemessagemanager: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms16isPreloadBrowserE"]
             pub static nsGkAtoms_isPreloadBrowser: *mut nsAtom;
-            #[link_name = "_ZN9nsGkAtoms22color_picker_availableE"]
-            pub static nsGkAtoms_color_picker_available: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms24scrollbar_start_backwardE"]
             pub static nsGkAtoms_scrollbar_start_backward: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms23scrollbar_start_forwardE"]
@@ -4400,8 +4398,6 @@ cfg_if! {
             pub static nsGkAtoms_menubar_drag: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms23swipe_animation_enabledE"]
             pub static nsGkAtoms_swipe_animation_enabled: *mut nsAtom;
-            #[link_name = "_ZN9nsGkAtoms20physical_home_buttonE"]
-            pub static nsGkAtoms_physical_home_button: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms15windows_classicE"]
             pub static nsGkAtoms_windows_classic: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms18windows_theme_aeroE"]
@@ -4420,8 +4416,6 @@ cfg_if! {
             pub static nsGkAtoms_windows_theme_zune: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms21windows_theme_genericE"]
             pub static nsGkAtoms_windows_theme_generic: *mut nsAtom;
-            #[link_name = "_ZN9nsGkAtoms27_moz_color_picker_availableE"]
-            pub static nsGkAtoms__moz_color_picker_available: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms29_moz_scrollbar_start_backwardE"]
             pub static nsGkAtoms__moz_scrollbar_start_backward: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms28_moz_scrollbar_start_forwardE"]
@@ -4464,8 +4458,6 @@ cfg_if! {
             pub static nsGkAtoms__moz_is_resource_document: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms28_moz_swipe_animation_enabledE"]
             pub static nsGkAtoms__moz_swipe_animation_enabled: *mut nsAtom;
-            #[link_name = "_ZN9nsGkAtoms25_moz_physical_home_buttonE"]
-            pub static nsGkAtoms__moz_physical_home_button: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms4BackE"]
             pub static nsGkAtoms_Back: *mut nsAtom;
             #[link_name = "_ZN9nsGkAtoms7ForwardE"]
@@ -9539,8 +9531,6 @@ cfg_if! {
             pub static nsGkAtoms_forcemessagemanager: *mut nsAtom;
             #[link_name = "?isPreloadBrowser@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_isPreloadBrowser: *mut nsAtom;
-            #[link_name = "?color_picker_available@nsGkAtoms@@2PEAVnsAtom@@EA"]
-            pub static nsGkAtoms_color_picker_available: *mut nsAtom;
             #[link_name = "?scrollbar_start_backward@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_scrollbar_start_backward: *mut nsAtom;
             #[link_name = "?scrollbar_start_forward@nsGkAtoms@@2PEAVnsAtom@@EA"]
@@ -9571,8 +9561,6 @@ cfg_if! {
             pub static nsGkAtoms_menubar_drag: *mut nsAtom;
             #[link_name = "?swipe_animation_enabled@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_swipe_animation_enabled: *mut nsAtom;
-            #[link_name = "?physical_home_button@nsGkAtoms@@2PEAVnsAtom@@EA"]
-            pub static nsGkAtoms_physical_home_button: *mut nsAtom;
             #[link_name = "?windows_classic@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_windows_classic: *mut nsAtom;
             #[link_name = "?windows_theme_aero@nsGkAtoms@@2PEAVnsAtom@@EA"]
@@ -9591,8 +9579,6 @@ cfg_if! {
             pub static nsGkAtoms_windows_theme_zune: *mut nsAtom;
             #[link_name = "?windows_theme_generic@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_windows_theme_generic: *mut nsAtom;
-            #[link_name = "?_moz_color_picker_available@nsGkAtoms@@2PEAVnsAtom@@EA"]
-            pub static nsGkAtoms__moz_color_picker_available: *mut nsAtom;
             #[link_name = "?_moz_scrollbar_start_backward@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms__moz_scrollbar_start_backward: *mut nsAtom;
             #[link_name = "?_moz_scrollbar_start_forward@nsGkAtoms@@2PEAVnsAtom@@EA"]
@@ -9635,8 +9621,6 @@ cfg_if! {
             pub static nsGkAtoms__moz_is_resource_document: *mut nsAtom;
             #[link_name = "?_moz_swipe_animation_enabled@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms__moz_swipe_animation_enabled: *mut nsAtom;
-            #[link_name = "?_moz_physical_home_button@nsGkAtoms@@2PEAVnsAtom@@EA"]
-            pub static nsGkAtoms__moz_physical_home_button: *mut nsAtom;
             #[link_name = "?Back@nsGkAtoms@@2PEAVnsAtom@@EA"]
             pub static nsGkAtoms_Back: *mut nsAtom;
             #[link_name = "?Forward@nsGkAtoms@@2PEAVnsAtom@@EA"]
@@ -14710,8 +14694,6 @@ cfg_if! {
             pub static nsGkAtoms_forcemessagemanager: *mut nsAtom;
             #[link_name = "\x01?isPreloadBrowser@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_isPreloadBrowser: *mut nsAtom;
-            #[link_name = "\x01?color_picker_available@nsGkAtoms@@2PAVnsAtom@@A"]
-            pub static nsGkAtoms_color_picker_available: *mut nsAtom;
             #[link_name = "\x01?scrollbar_start_backward@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_scrollbar_start_backward: *mut nsAtom;
             #[link_name = "\x01?scrollbar_start_forward@nsGkAtoms@@2PAVnsAtom@@A"]
@@ -14742,8 +14724,6 @@ cfg_if! {
             pub static nsGkAtoms_menubar_drag: *mut nsAtom;
             #[link_name = "\x01?swipe_animation_enabled@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_swipe_animation_enabled: *mut nsAtom;
-            #[link_name = "\x01?physical_home_button@nsGkAtoms@@2PAVnsAtom@@A"]
-            pub static nsGkAtoms_physical_home_button: *mut nsAtom;
             #[link_name = "\x01?windows_classic@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_windows_classic: *mut nsAtom;
             #[link_name = "\x01?windows_theme_aero@nsGkAtoms@@2PAVnsAtom@@A"]
@@ -14762,8 +14742,6 @@ cfg_if! {
             pub static nsGkAtoms_windows_theme_zune: *mut nsAtom;
             #[link_name = "\x01?windows_theme_generic@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_windows_theme_generic: *mut nsAtom;
-            #[link_name = "\x01?_moz_color_picker_available@nsGkAtoms@@2PAVnsAtom@@A"]
-            pub static nsGkAtoms__moz_color_picker_available: *mut nsAtom;
             #[link_name = "\x01?_moz_scrollbar_start_backward@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms__moz_scrollbar_start_backward: *mut nsAtom;
             #[link_name = "\x01?_moz_scrollbar_start_forward@nsGkAtoms@@2PAVnsAtom@@A"]
@@ -14806,8 +14784,6 @@ cfg_if! {
             pub static nsGkAtoms__moz_is_resource_document: *mut nsAtom;
             #[link_name = "\x01?_moz_swipe_animation_enabled@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms__moz_swipe_animation_enabled: *mut nsAtom;
-            #[link_name = "\x01?_moz_physical_home_button@nsGkAtoms@@2PAVnsAtom@@A"]
-            pub static nsGkAtoms__moz_physical_home_button: *mut nsAtom;
             #[link_name = "\x01?Back@nsGkAtoms@@2PAVnsAtom@@A"]
             pub static nsGkAtoms_Back: *mut nsAtom;
             #[link_name = "\x01?Forward@nsGkAtoms@@2PAVnsAtom@@A"]
@@ -19884,8 +19860,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forcemessagemanager as *mut _) } };
 ("isPreloadBrowser") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_isPreloadBrowser as *mut _) } };
-("color-picker-available") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_color_picker_available as *mut _) } };
 ("scrollbar-start-backward") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_start_backward as *mut _) } };
 ("scrollbar-start-forward") =>
@@ -19916,8 +19890,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubar_drag as *mut _) } };
 ("swipe-animation-enabled") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_swipe_animation_enabled as *mut _) } };
-("physical-home-button") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_physical_home_button as *mut _) } };
 ("windows-classic") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_classic as *mut _) } };
 ("windows-theme-aero") =>
@@ -19936,8 +19908,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_zune as *mut _) } };
 ("windows-theme-generic") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_generic as *mut _) } };
-("-moz-color-picker-available") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_color_picker_available as *mut _) } };
 ("-moz-scrollbar-start-backward") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_start_backward as *mut _) } };
 ("-moz-scrollbar-start-forward") =>
@@ -19980,8 +19950,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_is_resource_document as *mut _) } };
 ("-moz-swipe-animation-enabled") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_swipe_animation_enabled as *mut _) } };
-("-moz-physical-home-button") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_physical_home_button as *mut _) } };
 ("Back") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Back as *mut _) } };
 ("Forward") =>
