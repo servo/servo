@@ -185,7 +185,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             let mut debug_flags = webrender::DebugFlags::empty();
             debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
 
-            let render_notifier = RenderNotifier::new(compositor_proxy.clone());
+            let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
 
             webrender::Renderer::new(window.gl(), render_notifier, webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,

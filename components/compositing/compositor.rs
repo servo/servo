@@ -325,6 +325,10 @@ impl RenderNotifier {
 }
 
 impl webrender_api::RenderNotifier for RenderNotifier {
+    fn clone(&self) -> Box<webrender_api::RenderNotifier> {
+        Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
+    }
+
     fn new_frame_ready(&self) {
         self.compositor_proxy.recomposite(CompositingReason::NewWebRenderFrame);
     }
