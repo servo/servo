@@ -5,9 +5,9 @@
 
 extern crate gfx;
 extern crate gfx_traits;
-extern crate heapsize;
+extern crate malloc_size_of;
 #[macro_use]
-extern crate heapsize_derive;
+extern crate malloc_size_of_derive;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
@@ -97,20 +97,20 @@ pub fn set_metric<U: ProgressiveWebMetric>(
 }
 
 // https://github.com/GoogleChrome/lighthouse/issues/27
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct InteractiveMetrics {
     navigation_start: Cell<Option<f64>>,
     dom_content_loaded: Cell<Option<f64>>,
     main_thread_available: Cell<Option<f64>>,
     time_to_interactive: Cell<Option<f64>>,
-    #[ignore_heap_size_of = "can't measure channels"]
+    #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
 }
 
-#[derive(Clone, Copy, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct InteractiveWindow {
     start: u64,
-    #[ignore_heap_size_of = "don't need to measure rn"] //FIXME
+    #[ignore_malloc_size_of = "don't need to measure rn"] //FIXME
     instant: Instant,
     all_interactive: bool,
 }

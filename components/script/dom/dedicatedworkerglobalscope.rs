@@ -360,6 +360,7 @@ impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
+        let pipeline_id = worker.clone().root().global().pipeline_id();
         let task = Box::new(task!(forward_error_to_worker_object: move || {
             let worker = worker.root();
             let global = worker.global();
@@ -385,8 +386,7 @@ impl DedicatedWorkerGlobalScope {
             }
         }));
         // TODO: Should use the DOM manipulation task source.
-        let pipeline_id = Some(worker.root().global().pipeline_id());
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, pipeline_id)).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
     }
 }
 
@@ -407,10 +407,10 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
+        let pipeline_id = worker.clone().root().global().pipeline_id();
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
         }));
-        let pipeline_id = worker.root().global().pipeline_id();
         self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
         Ok(())
     }

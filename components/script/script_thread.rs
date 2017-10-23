@@ -1187,6 +1187,7 @@ impl ScriptThread {
                 match *inner_msg {
                     MainThreadScriptMsg::Common(CommonScriptMsg::Task(_,_, pipeline_id)) =>
                         pipeline_id,
+                    MainThreadScriptMsg::Common(_) => None, //TODO double check
                     MainThreadScriptMsg::ExitWindow(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
