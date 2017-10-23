@@ -60,19 +60,17 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
 
     fn verify(&self) {
         let mut position = 0;
-        let mut count = 0;
-        let mut bad_canary = None;
+        let mut bad_canary: Option<(usize, *const usize)> = None;
         for (_,v) in self.map.iter() {
             let canary_ref = &v.0;
-            position += 1;
             if *canary_ref == CANARY {
+                position += 1;
                 continue;
             }
-            count += 1;
-            bad_canary = Some((*canary_ref, canary_ref, position));
+            bad_canary = Some((*canary_ref, canary_ref));
         }
         if let Some(c) = bad_canary {
-            self.report_corruption(c.0, c.1, c.2, count);
+            self.report_corruption(c.0, c.1, position);
         }
     }
 
@@ -160,8 +158,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
         &self,
         canary: usize,
         canary_addr: *const usize,
-        position: usize,
-        count: usize,
+        position: usize
     ) {
         use ::std::ffi::CString;
         let key = b"HashMapJournal\0";
@@ -173,13 +170,11 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
             );
         }
         panic!(
-            concat!("HashMap Corruption (sz={}, cap={}, pairsz={}, cnry={:#x}, count={}, ",
-                    "last_pos={}, base_addr={:?}, cnry_addr={:?}, jrnl_len={})"),
+            "HashMap Corruption (sz={}, cap={}, pairsz={}, cnry={:#x}, pos={}, base_addr={:?}, cnry_addr={:?}, jrnl_len={})",
             self.map.len(),
             self.map.raw_capacity(),
             ::std::mem::size_of::<(K, (usize, V))>(),
             canary,
-            count,
             position,
             self.map.raw_buffer(),
             canary_addr,
