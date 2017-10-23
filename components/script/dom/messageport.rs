@@ -11,17 +11,24 @@ use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
+use dom::bindings::transferable::Transferable;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
-use js::jsapi::{JSContext, JSObject, JSTracer};
+use js::jsapi::{JSContext, JSStructuredCloneReader, JSObject, JSTracer, MutableHandleObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
+use std::os::raw;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use task_source::TaskSource;
+
+// FIXME: This is wrong, we need to figure out a better way of collecting message port objects per transfer
+thread_local! {
+    pub static TRANSFERRED_MESSAGE_PORTS: RefCell<Vec<DomRoot<MessagePort>>> = RefCell::new(Vec::new())
+}
 
 struct PortMessageTask {
     data: Vec<u8>,
@@ -107,6 +114,14 @@ impl MessagePort {
         }
     }
 
+    fn new_transferred(message_port_internal: Arc<Mutex<MessagePortInternal>>) -> MessagePort {
+        MessagePort {
+            eventtarget: EventTarget::new_inherited(),
+            detached: Cell::new(false),
+            message_port_internal,
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
         let message_port = reflect_dom_object(Box::new(MessagePort::new_inherited()), owner, Wrap);
@@ -133,6 +148,86 @@ impl MessagePort {
         if self.detached.get() { return; }
         let mut internal = self.message_port_internal.lock().unwrap();
         internal.process_pending_port_messages();
+    }
+}
+
+impl Transferable for MessagePort {
+    /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
+    #[allow(unsafe_code)]
+    fn transfer(
+        &self,
+        _closure: *mut raw::c_void,
+        content: *mut *mut raw::c_void,
+        extra_data: *mut u64
+    ) -> bool {
+        {
+            let mut internal = self.message_port_internal.lock().unwrap();
+            // Step 1
+            internal.has_been_shipped = true;
+
+            // Step 3
+            if let Some(ref other_port) = internal.entangled_port {
+                let mut entangled_internal = other_port.lock().unwrap();
+                // Substep 1
+                entangled_internal.has_been_shipped = true;
+            }
+        }
+
+        unsafe {
+            // Steps 2, 3.2 and 4
+            *content = Arc::into_raw(self.message_port_internal.clone()) as *mut raw::c_void;
+
+            *extra_data = 0;
+        }
+
+        true
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps
+    #[allow(unrooted_must_root, unsafe_code)]
+    fn transfer_receive(
+        cx: *mut JSContext,
+        _r: *mut JSStructuredCloneReader,
+        _closure: *mut raw::c_void,
+        content: *mut raw::c_void,
+        _extra_data: u64,
+        return_object: MutableHandleObject
+    ) -> bool {
+        let internal = unsafe { Arc::from_raw(content as *const Mutex<MessagePortInternal>) };
+        let value = MessagePort::new_transferred(internal);
+
+        // Step 2
+        let owner = unsafe { GlobalScope::from_context(cx) };
+        let message_port = reflect_dom_object(Box::new(value), &*owner, Wrap);
+
+        {
+            let mut internal = message_port.message_port_internal.lock().unwrap();
+
+            // Step 1
+            internal.has_been_shipped = true;
+
+            let dom_port = Trusted::new(&*message_port);
+            internal.enabled = false;
+            internal.dom_port = Some(dom_port);
+        }
+        return_object.set(message_port.reflector().rootable().get());
+        TRANSFERRED_MESSAGE_PORTS.with(|list| {
+            list.borrow_mut().push(Dom::from_ref(&*message_port));
+        });
+
+        true
+    }
+
+    fn detached(&self) -> Option<bool> {
+        Some(self.detached.get())
+    }
+
+    fn set_detached(&self, value: bool) {
+        self.detached.set(value);
+    }
+
+    fn transferable(&self) -> bool {
+        !self.detached.get()
     }
 }
 
