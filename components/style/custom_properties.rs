@@ -168,11 +168,7 @@ where
             return;
         }
         self.index.retain(|key| !set.contains(key));
-        // XXX It may be better to use retain when we back to use a
-        // normal hashmap rather than DiagnosticHashMap.
-        for key in set.iter() {
-            self.values.remove(key);
-        }
+        self.values.retain(|key, _| !set.contains(key));
         debug_assert_eq!(self.values.len(), self.index.len());
     }
 }
