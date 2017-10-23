@@ -168,8 +168,8 @@ impl FireMouseEventType {
     pub fn as_str(&self) -> &str {
         match self {
             &FireMouseEventType::Move => "mousemove",
-            &FireMouseEventType::Over => "mouseout",
-            &FireMouseEventType::Out => "mouseover",
+            &FireMouseEventType::Over => "mouseover",
+            &FireMouseEventType::Out => "mouseout",
         }
     }
 }
