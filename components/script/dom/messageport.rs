@@ -4,7 +4,8 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::MessagePortBinding::{MessagePortMethods, Wrap};
-use dom::bindings::error::ErrorResult;
+use dom::bindings::conversions::{is_array_like, iter_array_object, root_from_handlevalue};
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -80,6 +81,19 @@ impl MessagePortInternal {
                 message_clone.handle()
             );
         }
+    }
+
+    fn queue_port_message(&self) {
+        let target_port = self.dom_port.as_ref().unwrap().clone();
+        let global = target_port.root().global();
+
+        let _ = global.port_message_queue().queue(
+            task!(process_pending_port_messages: move || {
+                let this = target_port.root();
+                this.process_pending_port_messages();
+            }),
+            &global
+        );
     }
 }
 
@@ -220,6 +234,63 @@ impl MessagePortMethods for MessagePort {
         message: HandleValue,
         transfer: HandleValue
     ) -> ErrorResult {
+        let internal = self.message_port_internal.lock().unwrap();
+        // Step 1
+        let target_port = &internal.entangled_port;
+
+        // Step 3
+        let mut doomed = false;
+
+        if !transfer.is_undefined() {
+            if !is_array_like(cx, transfer) {
+                return Err(Error::Type(
+                    "Argument 2 of MessagePort.postMessage can't be converted to a sequence".to_owned()
+                ));
+            }
+
+            iter_array_object(cx, transfer, |value| {
+                let port = match root_from_handlevalue::<MessagePort>(value) {
+                    Ok(object) => object,
+                    Err(_) => return Ok(()),
+                };
+
+                // Step 2
+                if Arc::ptr_eq(&port.message_port_internal, &self.message_port_internal) {
+                    return Err(Error::DataClone);
+                }
+
+                // Step 4
+                if let Some(target) = target_port.as_ref() {
+                    if Arc::ptr_eq(&port.message_port_internal, target) {
+                        doomed = true;
+                    }
+                }
+
+                Ok(())
+            })?;
+        }
+
+        // Step 5
+       let data = StructuredCloneData::write(cx, message, transfer)?.move_to_arraybuffer();
+
+        // Step 6
+        if target_port.is_none() || doomed { return Ok(()); }
+
+        // Step 7
+        let task = PortMessageTask {
+            data,
+        };
+
+        {
+            let target_port = target_port.as_ref().unwrap();
+            let mut target_internal = target_port.lock().unwrap();
+            target_internal.pending_port_messages.push_back(task);
+
+            if target_internal.enabled {
+                target_internal.queue_port_message();
+            }
+        }
+
         Ok(())
     }
 

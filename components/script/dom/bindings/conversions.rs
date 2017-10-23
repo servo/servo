@@ -32,7 +32,7 @@
 //! | sequences               | `Vec<T>`        |                |
 //! | union types             | `T`             |                |
 
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::num::Finite;
@@ -49,10 +49,11 @@ use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
+use js::jsapi::{ForOfIterator, ForOfIterator_NonIterableBehavior};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JSContext, JSObject, JSString};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetProperty, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject, JS_IsExceptionPending};
-use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars, MutableHandleValue};
+use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars, MutableHandleValue, RootedObject};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, maybe_wrap_object_value};
 use libc;
@@ -512,4 +513,73 @@ pub unsafe fn get_property<T>(cx: *mut JSContext,
         Ok(ConversionResult::Failure(_)) => Ok(None),
         Err(()) => Err(Error::JSFailed),
     }
+}
+
+struct ForOfIteratorGuard<'a> {
+    root: &'a mut ForOfIterator
+}
+
+impl<'a> ForOfIteratorGuard<'a> {
+    fn new(cx: *mut JSContext, root: &'a mut ForOfIterator) -> Self {
+        unsafe {
+            root.iterator.add_to_root_stack(cx);
+        }
+        ForOfIteratorGuard {
+            root: root
+        }
+    }
+}
+
+impl<'a> Drop for ForOfIteratorGuard<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            self.root.iterator.remove_from_root_stack();
+        }
+    }
+}
+
+/// Iterates through a JS array object, yielding the elements as HandleValues to the input function F.
+pub unsafe fn iter_array_object<F>(
+    cx: *mut JSContext,
+    obj: HandleValue,
+    mut f: F
+) -> ErrorResult
+where
+    F: FnMut(HandleValue) -> ErrorResult,
+{
+    let mut iterator = ForOfIterator {
+        cx_: cx,
+        iterator: RootedObject::new_unrooted(),
+        index: ::std::u32::MAX, // NOT_ARRAY
+    };
+    let iterator = ForOfIteratorGuard::new(cx, &mut iterator);
+    let iterator = &mut *iterator.root;
+
+    if !iterator.init(obj, ForOfIterator_NonIterableBehavior::AllowNonIterable) {
+        return Err(Error::Type(
+            "Argument 2 of MessagePort.postMessage can't be converted to a sequence".to_owned()
+        ));
+    }
+
+    if iterator.iterator.ptr.is_null() {
+        return Err(Error::Type("Value is not iterable".to_owned()));
+    }
+
+    let mut done = false;
+    loop {
+        rooted!(in(cx) let mut val = UndefinedValue());
+        if !iterator.next(val.handle_mut(), &mut done) {
+            return Err(Error::Type(
+                "Argument 2 of MessagePort.postMessage can't be converted to a sequence".to_owned()
+            ));
+        }
+
+        if done {
+            break;
+        }
+
+        f(val.handle())?
+    }
+
+    Ok(())
 }
