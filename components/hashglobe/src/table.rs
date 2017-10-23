@@ -896,10 +896,6 @@ impl<K, V> RawTable<K, V> {
         }
     }
 
-    pub fn diagnostic_count_hashes(&self) -> usize {
-        (0..self.capacity()).filter(|&i| unsafe { *self.raw_bucket_at(i).hash() != EMPTY_BUCKET }).count()
-    }
-
     pub fn iter(&self) -> Iter<K, V> {
         Iter {
             iter: self.raw_buckets(),

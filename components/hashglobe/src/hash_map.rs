@@ -1257,10 +1257,6 @@ impl<K, V, S> HashMap<K, V, S>
             debug_assert!(elems_left == 0 || bucket.index() != start_index);
         }
     }
-
-    pub fn diagnostic_count_hashes(&self) -> usize {
-        self.table.diagnostic_count_hashes()
-    }
 }
 
 impl<K, V, S> PartialEq for HashMap<K, V, S>
