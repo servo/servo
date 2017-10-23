@@ -1872,6 +1872,10 @@ impl Window {
             WindowBinding::Wrap(runtime.cx(), win)
         }
     }
+
+    pub fn pipeline_id(&self) -> Option<PipelineId> {
+        Some(self.upcast::<GlobalScope>().pipeline_id())
+    }
 }
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
@@ -1980,7 +1984,7 @@ impl Window {
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
             Box::new(self.task_canceller().wrap_task(task)),
-            self.upcast::<GlobalScope>().pipeline_id()
+            self.pipeline_id()
         ));
     }
 }

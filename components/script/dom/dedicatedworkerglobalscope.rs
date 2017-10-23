@@ -360,9 +360,10 @@ impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let worker = worker.root();
-        let global = worker.global();
         let task = Box::new(task!(forward_error_to_worker_object: move || {
+            let worker = worker.root();
+            let global = worker.global();
+
             // Step 1.
             let event = ErrorEvent::new(
                 &global,
@@ -384,8 +385,7 @@ impl DedicatedWorkerGlobalScope {
             }
         }));
         // TODO: Should use the DOM manipulation task source.
-        let pipeline_id = Some(global.pipeline_id());
-        //self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
+        let pipeline_id = Some(worker.root().global().pipeline_id());
         self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, pipeline_id)).unwrap();
     }
 }

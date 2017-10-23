@@ -1133,7 +1133,7 @@ impl ScriptThread {
             MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, _)) => {
+                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, ..)) => {
                         category
                     },
                     MainThreadScriptMsg::RegisterPaintWorklet { .. } => {
@@ -1182,11 +1182,11 @@ impl ScriptThread {
                     InteractiveMetric(..) => None,
                 }
             },
-            MixedMessage::FromDevtools(ref inner_msg) => inner_msg.pipeline(),
+            MixedMessage::FromDevtools(ref inner_msg) => None,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
                     MainThreadScriptMsg::Common(CommonScriptMsg::Task(_,_, pipeline_id)) =>
-                        Some(pipeline_id),
+                        pipeline_id,
                     MainThreadScriptMsg::ExitWindow(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
@@ -1345,7 +1345,7 @@ impl ScriptThread {
             MainThreadScriptMsg::ExitWindow(id) => {
                 self.handle_exit_window_msg(id)
             },
-            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task)) => {
+            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _)) => {
                 task.run_box()
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {

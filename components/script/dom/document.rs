@@ -2606,11 +2606,13 @@ impl Document {
             self.send_to_constellation(event);
         }
 
+        let pipeline_id = self.window().pipeline_id();
+
         // Step 7
         let trusted_pending = Trusted::new(pending);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenEnter::new(trusted_pending, trusted_promise, error);
-        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler);
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler, pipeline_id);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -2642,7 +2644,8 @@ impl Document {
         let trusted_element = Trusted::new(element.r());
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler);
+        let pipeline_id = Some(global.pipeline_id());
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler, pipeline_id);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
