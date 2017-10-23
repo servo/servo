@@ -10,14 +10,16 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::bindings::transferable::Transferable;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::{HandleValue, JSContext, JSStructuredCloneReader, MutableHandleObject};
 use js::jsval::UndefinedValue;
 use std::cell::Cell;
 use std::collections::VecDeque;
+use std::os::raw;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use task_source::TaskSource;
@@ -89,12 +91,95 @@ pub struct MessagePort {
     message_port_internal: Arc<Mutex<MessagePortInternal>>,
 }
 
+impl Transferable for MessagePort {
+    /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
+    #[allow(unsafe_code)]
+    fn transfer(
+        &self,
+        _closure: *mut raw::c_void,
+        content: *mut *mut raw::c_void,
+        extra_data: *mut u64
+    ) -> bool {
+        {
+            let mut internal = self.message_port_internal.lock().unwrap();
+            // Step 1
+            internal.has_been_shipped = true;
+
+            // Step 3
+            if let Some(ref other_port) = internal.entangled_port {
+                let mut entangled_internal = other_port.lock().unwrap();
+                // Substep 1
+                entangled_internal.has_been_shipped = true;
+            }
+        }
+
+        unsafe {
+            // Steps 2, 3.2 and 4
+            *content = Arc::into_raw(self.message_port_internal.clone()) as *mut raw::c_void;
+
+            *extra_data = 0;
+        }
+
+        true
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps
+    #[allow(unrooted_must_root, unsafe_code)]
+    fn transfer_receive(
+        cx: *mut JSContext,
+        _r: *mut JSStructuredCloneReader,
+        _closure: *mut raw::c_void,
+        content: *mut raw::c_void,
+        _extra_data: u64,
+        return_object: MutableHandleObject
+    ) -> bool {
+        let internal = unsafe { Arc::from_raw(content as *const Mutex<MessagePortInternal>) };
+        let value = MessagePort::new_transferred(internal);
+
+        // Step 2
+        let owner = unsafe { GlobalScope::from_context(cx) };
+        let message_port = reflect_dom_object(Box::new(value), &*owner, Wrap);
+
+        {
+            let mut internal = message_port.message_port_internal.lock().unwrap();
+
+            // Step 1
+            internal.has_been_shipped = true;
+
+            let owner = Trusted::new(&*message_port);
+            internal.dom_port = Some(owner);
+        }
+        return_object.set(message_port.reflector().rootable().get());
+        true
+    }
+
+    fn detached(&self) -> Option<bool> {
+        Some(self.detached.get())
+    }
+
+    fn set_detached(&self, value: bool) {
+        self.detached.set(value);
+    }
+
+    fn transferable(&self) -> bool {
+        !self.detached.get()
+    }
+}
+
 impl MessagePort {
     fn new_inherited() -> MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
             message_port_internal: Arc::new(Mutex::new(MessagePortInternal::new())),
+        }
+    }
+
+    fn new_transferred(message_port_internal: Arc<Mutex<MessagePortInternal>>) -> MessagePort {
+        MessagePort {
+            eventtarget: EventTarget::new_inherited(),
+            detached: Cell::new(false),
+            message_port_internal,
         }
     }
 
