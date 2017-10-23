@@ -1309,7 +1309,7 @@ impl Stylist {
                     &mut matching_context,
                     stylist.quirks_mode,
                     flags_setter,
-                    CascadeLevel::XBL,
+                    CascadeLevel::AuthorNormal,
                 );
             }
         });
