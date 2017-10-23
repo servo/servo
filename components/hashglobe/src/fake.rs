@@ -76,24 +76,10 @@ impl<K, V, S> HashMap<K, V, S>
         Ok(self.entry(key))
     }
 
-    #[inline(always)]
-    pub fn try_get_or_insert_with<F: FnOnce() -> V>(
-        &mut self,
-        key: K,
-        default: F
-    ) -> Result<&mut V, FailedAllocationError> {
-        Ok(self.entry(key).or_insert_with(default))
-    }
-
     #[inline]
     pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, FailedAllocationError> {
         Ok(self.insert(k, v))
     }
-
-    #[inline(always)]
-    pub fn begin_mutation(&mut self) {}
-    #[inline(always)]
-    pub fn end_mutation(&mut self) {}
 }
 
 #[derive(Clone)]

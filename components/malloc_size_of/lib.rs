@@ -499,25 +499,6 @@ impl<K, V, S> MallocSizeOf for hashglobe::hash_map::HashMap<K, V, S>
     }
 }
 
-impl<K, V, S> MallocShallowSizeOf for hashglobe::diagnostic::DiagnosticHashMap<K, V, S>
-    where K: Eq + Hash,
-          S: BuildHasher
-{
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.inner().shallow_size_of(ops)
-    }
-}
-
-impl<K, V, S> MallocSizeOf for hashglobe::diagnostic::DiagnosticHashMap<K, V, S>
-    where K: Eq + Hash + MallocSizeOf,
-          V: MallocSizeOf,
-          S: BuildHasher,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.inner().size_of(ops)
-    }
-}
-
 impl<K, V, S> MallocShallowSizeOf for hashglobe::fake::HashMap<K, V, S>
     where K: Eq + Hash,
           S: BuildHasher,

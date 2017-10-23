@@ -9,7 +9,6 @@
 // except according to those terms.
 
 pub mod alloc;
-pub mod diagnostic;
 pub mod hash_map;
 pub mod hash_set;
 mod shim;
