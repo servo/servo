@@ -173,11 +173,37 @@ pub mod shorthands {
 
     // We don't defined the 'all' shorthand using the regular helpers:shorthand
     // mechanism, since it causes some very large types to be generated.
-    <% data.declare_shorthand("all",
-                              [p.name for p in data.longhands
-                                if p.name not in ['direction', 'unicode-bidi']
-                                      and not p.internal],
-                              spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand") %>
+    //
+    // Also, make sure logical properties appear before its physical
+    // counter-parts, in order to prevent bugs like:
+    //
+    //   https://bugzilla.mozilla.org/show_bug.cgi?id=1410028
+    //
+    // FIXME(emilio): Adopt the resolution from:
+    //
+    //   https://github.com/w3c/csswg-drafts/issues/1898
+    //
+    // when there is one, whatever that is.
+    <%
+        logical_longhands = []
+        other_longhands = []
+
+        for p in data.longhands:
+            if p.name in ['direction', 'unicode-bidi']:
+                continue;
+            if p.internal:
+                continue;
+            if p.logical:
+                logical_longhands.append(p.name)
+            else:
+                other_longhands.append(p.name)
+
+        data.declare_shorthand(
+            "all",
+            logical_longhands + other_longhands,
+            spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand"
+        )
+    %>
 }
 
 /// A module with all the code related to animated properties.
