@@ -1,7 +1,6 @@
 use hash_map::HashMap;
 use std::borrow::Borrow;
 use std::hash::{BuildHasher, Hash};
-use std::ptr;
 
 use FailedAllocationError;
 
@@ -9,11 +8,6 @@ use FailedAllocationError;
 const CANARY: usize = 0x42cafe99;
 #[cfg(target_pointer_width = "64")]
 const CANARY: usize = 0x42cafe9942cafe99;
-
-#[cfg(target_pointer_width = "32")]
-const POISON: usize = 0xdeadbeef;
-#[cfg(target_pointer_width = "64")]
-const POISON: usize = 0xdeadbeefdeadbeef;
 
 #[derive(Clone, Debug)]
 enum JournalEntry {
@@ -136,9 +130,6 @@ impl<K: Hash + Eq, V, S: BuildHasher> DiagnosticHashMap<K, V, S>
     {
         assert!(!self.readonly);
         self.journal.push(JournalEntry::Remove(self.map.make_hash(k).inspect()));
-        if let Some(v) = self.map.get_mut(k) {
-            unsafe { ptr::write_volatile(&mut v.0, POISON); }
-        }
         self.map.remove(k).map(|x| x.1)
     }
 
