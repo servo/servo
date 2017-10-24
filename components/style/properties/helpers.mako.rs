@@ -439,7 +439,7 @@
             use cssparser::Parser;
             use parser::{Parse, ParserContext};
 
-            use style_traits::{ToCss, ParseError};
+            use style_traits::ParseError;
             define_css_keyword_enum! { T:
                 % for value in keyword.values_for(product):
                     "${value}" => ${to_rust_ident(value)},
@@ -614,7 +614,6 @@
 
     <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False)">
         % if extra_specified or keyword.aliases_for(product):
-            use style_traits::ToCss;
             define_css_keyword_enum! { SpecifiedValue:
                 values {
                     % for value in keyword.values_for(product) + (extra_specified or "").split():
@@ -631,7 +630,6 @@
             pub use self::computed_value::T as SpecifiedValue;
         % endif
         pub mod computed_value {
-            use style_traits::ToCss;
             define_css_keyword_enum! { T:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):
                     "${value}" => ${to_rust_ident(value)},

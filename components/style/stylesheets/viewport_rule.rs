@@ -10,7 +10,7 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
-use cssparser::{CowRcStr, ToCss as ParserToCss};
+use cssparser::CowRcStr;
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use euclid::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
