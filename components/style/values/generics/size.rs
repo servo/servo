@@ -52,12 +52,6 @@ impl<L> Size<L> {
     }
 }
 
-impl<L: Clone> From<L> for Size<L> {
-    fn from(size: L) -> Self {
-        Self::new(size.clone(), size)
-    }
-}
-
 impl<L> ToCss for Size<L>
 where L:
     ToCss + PartialEq,
