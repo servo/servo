@@ -551,7 +551,7 @@ ${helpers.predefined_type(
     animation_value_type="none",
     extra_prefixes="moz webkit",
     allowed_in_keyframe_block=False,
-    spec="https://drafts.csswg.org/css-transitions/#propdef-animation-iteration-count",
+    spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
 )}
 
 <% animation_direction_custom_consts = { "alternate-reverse": "Alternate_reverse" } %>
