@@ -71,7 +71,7 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
-use compositing::{IOCompositor, ShutdownState};
+use compositing::{IOCompositor, ShutdownState, RenderNotifier};
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
 use compositing::windowing::WindowEvent;
@@ -185,7 +185,9 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             let mut debug_flags = webrender::DebugFlags::empty();
             debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
 
-            webrender::Renderer::new(window.gl(), webrender::RendererOptions {
+            let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
+
+            webrender::Renderer::new(window.gl(), render_notifier, webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,

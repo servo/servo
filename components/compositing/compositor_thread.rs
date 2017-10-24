@@ -107,12 +107,8 @@ impl CompositorReceiver {
     }
 }
 
-pub trait RenderListener {
-    fn recomposite(&mut self, reason: CompositingReason);
-}
-
-impl RenderListener for CompositorProxy {
-    fn recomposite(&mut self, reason: CompositingReason) {
+impl CompositorProxy {
+    pub fn recomposite(&self, reason: CompositingReason) {
         self.send(Msg::Recomposite(reason));
     }
 }

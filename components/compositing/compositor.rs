@@ -5,7 +5,7 @@
 use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
-use compositor_thread::{InitialCompositorState, Msg, RenderListener};
+use compositor_thread::{InitialCompositorState, Msg};
 use euclid::{TypedPoint2D, TypedVector2D, ScaleFactor};
 use gfx_traits::Epoch;
 use gleam::gl;
@@ -128,8 +128,6 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The device pixel ratio for this window.
     scale_factor: ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>,
-
-    channel_to_self: CompositorProxy,
 
     /// The type of composition to perform
     composite_target: CompositeTarget,
@@ -313,13 +311,13 @@ fn initialize_png(gl: &gl::Gl, width: usize, height: usize) -> RenderTargetInfo 
     }
 }
 
-struct RenderNotifier {
+#[derive(Clone)]
+pub struct RenderNotifier {
     compositor_proxy: CompositorProxy,
 }
 
 impl RenderNotifier {
-    fn new(compositor_proxy: CompositorProxy,
-           _: Sender<ConstellationMsg>) -> RenderNotifier {
+    pub fn new(compositor_proxy: CompositorProxy) -> RenderNotifier {
         RenderNotifier {
             compositor_proxy: compositor_proxy,
         }
@@ -327,11 +325,15 @@ impl RenderNotifier {
 }
 
 impl webrender_api::RenderNotifier for RenderNotifier {
-    fn new_frame_ready(&mut self) {
+    fn clone(&self) -> Box<webrender_api::RenderNotifier> {
+        Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
+    }
+
+    fn new_frame_ready(&self) {
         self.compositor_proxy.recomposite(CompositingReason::NewWebRenderFrame);
     }
 
-    fn new_scroll_frame_ready(&mut self, composite_needed: bool) {
+    fn new_scroll_frame_ready(&self, composite_needed: bool) {
         self.compositor_proxy.send(Msg::NewScrollFrameReady(composite_needed));
     }
 }
@@ -357,7 +359,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             window_rect: window_rect,
             scale: ScaleFactor::new(1.0),
             scale_factor: scale_factor,
-            channel_to_self: state.sender.clone(),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
@@ -386,12 +387,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn create(window: Rc<Window>, state: InitialCompositorState) -> IOCompositor<Window> {
         let mut compositor = IOCompositor::new(window, state);
-
-        let compositor_proxy_for_webrender = compositor.channel_to_self
-                                                       .clone();
-        let render_notifier = RenderNotifier::new(compositor_proxy_for_webrender,
-                                                  compositor.constellation_chan.clone());
-        compositor.webrender.set_render_notifier(Box::new(render_notifier));
 
         // Set the size of the root layer.
         compositor.update_zoom_transform();
