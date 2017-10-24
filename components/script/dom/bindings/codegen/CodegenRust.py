@@ -1198,12 +1198,12 @@ def convertConstIDLValueToJSVal(value):
     if tag == IDLType.Tags.uint32:
         return "ConstantVal::UintVal(%s)" % (value.value)
     if tag in [IDLType.Tags.int64, IDLType.Tags.uint64]:
-        return "ConstantVal::DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s as f64)" % (value.value)
     if tag == IDLType.Tags.bool:
         return "ConstantVal::BoolVal(true)" if value.value else "ConstantVal::BoolVal(false)"
     if tag in [IDLType.Tags.unrestricted_float, IDLType.Tags.float,
                IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
-        return "ConstantVal::DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s as f64)" % (value.value)
     raise TypeError("Const value of unhandled type: " + value.type)
 
 
@@ -4077,7 +4077,17 @@ class CGConstant(CGThing):
     def define(self):
         name = self.constant.identifier.name
         value = convertConstIDLValueToRust(self.constant.value)
-        return "pub const %s: %s = %s;\n" % (name, builtinNames[self.constant.value.type.tag()], value)
+
+        tag = self.constant.value.type.tag()
+        const_type = builtinNames[self.constant.value.type.tag()]
+        # Finite<f32> or Finite<f64> cannot be used un a constant declaration.
+        # Remote the Finite type from restricted float and double tag declarations.
+        if tag == IDLType.Tags.float:
+            const_type = "f32"
+        elif tag == IDLType.Tags.double:
+            const_type = "f64"
+
+        return "pub const %s: %s = %s;\n" % (name, const_type, value)
 
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
