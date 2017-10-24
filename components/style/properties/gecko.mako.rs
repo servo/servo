@@ -3659,7 +3659,7 @@ fn static_assert() {
     %>
 
     <%self:simple_image_array_property name="repeat" shorthand="${shorthand}" field_name="mRepeat">
-        use properties::longhands::${shorthand}_repeat::single_value::computed_value::RepeatKeyword;
+        use values::specified::background::RepeatKeyword;
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         use gecko_bindings::structs::StyleImageLayerRepeat;
 
@@ -3682,7 +3682,7 @@ fn static_assert() {
 
     pub fn clone_${shorthand}_repeat(&self) -> longhands::${shorthand}_repeat::computed_value::T {
         use properties::longhands::${shorthand}_repeat::single_value::computed_value::T;
-        use properties::longhands::${shorthand}_repeat::single_value::computed_value::RepeatKeyword;
+        use values::specified::background::RepeatKeyword;
         use gecko_bindings::structs::StyleImageLayerRepeat;
 
         fn to_servo(repeat: StyleImageLayerRepeat) -> RepeatKeyword {
