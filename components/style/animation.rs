@@ -13,7 +13,6 @@ use font_metrics::FontMetricsProvider;
 use properties::{self, CascadeFlags, ComputedValues, LonghandId};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
-use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
@@ -22,6 +21,7 @@ use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
 use values::computed::transform::TimingFunction;
+use values::generics::box_::AnimationIterationCount;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
 
 /// This structure represents a keyframes animation current iteration state.

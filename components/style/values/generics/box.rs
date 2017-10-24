@@ -46,3 +46,12 @@ impl<L> ToAnimatedZero for VerticalAlign<L> {
         Err(())
     }
 }
+
+/// https://drafts.csswg.org/css-animations/#animation-iteration-count
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub enum AnimationIterationCount<Number> {
+    /// A `<number>` value.
+    Number(Number),
+    /// The `infinite` keyword.
+    Infinite,
+}
