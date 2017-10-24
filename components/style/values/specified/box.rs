@@ -7,8 +7,9 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
+use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use values::specified::AllowQuirks;
+use values::specified::{AllowQuirks, Number};
 use values::specified::length::LengthOrPercentage;
 
 /// A specified value for the `vertical-align` property.
@@ -37,5 +38,30 @@ impl Parse for VerticalAlign {
                 Ok(GenericVerticalAlign::MozMiddleWithBaseline)
             },
         }
+    }
+}
+
+/// https://drafts.csswg.org/css-animations/#animation-iteration-count
+pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;
+
+impl Parse for AnimationIterationCount {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut ::cssparser::Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
+            return Ok(GenericAnimationIterationCount::Infinite)
+        }
+
+        let number = Number::parse_non_negative(context, input)?;
+        Ok(GenericAnimationIterationCount::Number(number))
+    }
+}
+
+impl AnimationIterationCount {
+    /// Returns the value `1.0`.
+    #[inline]
+    pub fn one() -> Self {
+        GenericAnimationIterationCount::Number(Number::new(1.0))
     }
 }
