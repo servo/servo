@@ -146,6 +146,7 @@ windows-msvc-dev:
   - mach.bat test-unit
   - mach.bat package --dev
   - mach.bat build-geckolib
+  - mach.bat test-stylo
 
 windows-msvc-nightly:
   - mach.bat clean-nightlies --keep 3 --force
