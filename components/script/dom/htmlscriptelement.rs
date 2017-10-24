@@ -30,7 +30,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -238,7 +238,6 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     // Step 1, 2.
     let request = RequestInit {
         url: url.clone(),
-        type_: RequestType::Script,
         destination: Destination::Script,
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1

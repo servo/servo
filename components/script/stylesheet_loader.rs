@@ -21,7 +21,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use servo_arc::Arc;
@@ -247,7 +247,6 @@ impl<'a> StylesheetLoader<'a> {
 
         let request = RequestInit {
             url: url.clone(),
-            type_: RequestType::Style,
             destination: Destination::Style,
             // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
             // Step 1

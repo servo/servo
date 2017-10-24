@@ -13,7 +13,7 @@ interface Request {
   readonly attribute ByteString method;
   readonly attribute USVString url;
   [SameObject] readonly attribute Headers headers;
-  readonly attribute RequestType type;
+
   readonly attribute RequestDestination destination;
   readonly attribute USVString referrer;
   readonly attribute ReferrerPolicy referrerPolicy;
@@ -22,6 +22,7 @@ interface Request {
   readonly attribute RequestCache cache;
   readonly attribute RequestRedirect redirect;
   readonly attribute DOMString integrity;
+
   [NewObject, Throws] Request clone();
 };
 
@@ -41,31 +42,21 @@ dictionary RequestInit {
   any window; // can only be set to null
 };
 
-enum RequestType {
-  "",
-  "audio",
-  "font",
-  "image",
-  "script",
-  "style",
-  "track",
-  "video"
-};
-
 enum RequestDestination {
   "",
+  "audio",
   "document",
   "embed",
   "font",
   "image",
   "manifest",
-  "media",
   "object",
   "report",
   "script",
-  "serviceworker",
   "sharedworker",
   "style",
+  "track",
+  "video",
   "worker",
   "xslt"
 };

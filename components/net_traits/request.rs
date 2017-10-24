@@ -19,37 +19,37 @@ pub enum Initiator {
     XSLT,
 }
 
-/// A request [type](https://fetch.spec.whatwg.org/#concept-request-type)
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum Type {
-    None,
-    Audio,
-    Font,
-    Image,
-    Script,
-    Style,
-    Track,
-    Video,
-}
-
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
 #[derive(Clone, Copy, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Destination {
     None,
+    Audio,
     Document,
     Embed,
     Font,
     Image,
     Manifest,
-    Media,
     Object,
     Report,
     Script,
     ServiceWorker,
     SharedWorker,
     Style,
+    Track,
+    Video,
     Worker,
-    XSLT,
+    Xslt,
+}
+
+impl Destination {
+    /// https://fetch.spec.whatwg.org/#request-destination-script-like
+    #[inline]
+    pub fn is_script_like(&self) -> bool {
+        *self == Destination::Script ||
+        *self == Destination::ServiceWorker ||
+        *self == Destination::SharedWorker ||
+        *self == Destination::Worker
+    }
 }
 
 /// A request [origin](https://fetch.spec.whatwg.org/#concept-request-origin)
@@ -150,7 +150,6 @@ pub struct RequestInit {
     pub body: Option<Vec<u8>>,
     pub service_workers_mode: ServiceWorkersMode,
     // TODO: client object
-    pub type_: Type,
     pub destination: Destination,
     pub synchronous: bool,
     pub mode: RequestMode,
@@ -178,7 +177,6 @@ impl Default for RequestInit {
             unsafe_request: false,
             body: None,
             service_workers_mode: ServiceWorkersMode::All,
-            type_: Type::None,
             destination: Destination::None,
             synchronous: false,
             mode: RequestMode::NoCors,
@@ -224,8 +222,6 @@ pub struct Request {
     pub service_workers_mode: ServiceWorkersMode,
     /// <https://fetch.spec.whatwg.org/#concept-request-initiator>
     pub initiator: Initiator,
-    /// <https://fetch.spec.whatwg.org/#concept-request-type>
-    pub type_: Type,
     /// <https://fetch.spec.whatwg.org/#concept-request-destination>
     pub destination: Destination,
     // TODO: priority object
@@ -278,7 +274,6 @@ impl Request {
             keep_alive: false,
             service_workers_mode: ServiceWorkersMode::All,
             initiator: Initiator::None,
-            type_: Type::None,
             destination: Destination::None,
             origin: origin.unwrap_or(Origin::Client),
             referrer: Referrer::Client,
@@ -307,7 +302,6 @@ impl Request {
         req.unsafe_request = init.unsafe_request;
         req.body = init.body;
         req.service_workers_mode = init.service_workers_mode;
-        req.type_ = init.type_;
         req.destination = init.destination;
         req.synchronous = init.synchronous;
         req.mode = init.mode;
@@ -356,8 +350,9 @@ impl Request {
     /// <https://fetch.spec.whatwg.org/#subresource-request>
     pub fn is_subresource_request(&self) -> bool {
         match self.destination {
-            Destination::Font | Destination::Image | Destination::Manifest | Destination::Media |
-            Destination::Script | Destination::Style | Destination::XSLT | Destination::None => true,
+            Destination::Audio | Destination::Font | Destination::Image | Destination::Manifest |
+            Destination::Script | Destination::Style | Destination::Track | Destination::Video |
+            Destination::Xslt | Destination::None => true,
             _ => false,
         }
     }

@@ -23,7 +23,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
+use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
 use servo_config::prefs::PREFS;
@@ -161,7 +161,6 @@ impl ServiceWorkerGlobalScope {
 
             let request = RequestInit {
                 url: script_url.clone(),
-                type_: RequestType::Script,
                 destination: Destination::ServiceWorker,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,

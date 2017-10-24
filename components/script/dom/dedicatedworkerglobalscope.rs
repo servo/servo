@@ -30,7 +30,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, NullHandleValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
+use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx, Runtime};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
@@ -179,7 +179,6 @@ impl DedicatedWorkerGlobalScope {
 
             let request = RequestInit {
                 url: worker_url.clone(),
-                type_: RequestType::Script,
                 destination: Destination::Worker,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,

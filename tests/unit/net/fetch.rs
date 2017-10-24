@@ -32,7 +32,7 @@ use net::test::HttpState;
 use net_traits::IncludeSubdomains;
 use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
-use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode, Type};
+use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use servo_config::resource_files::resources_dir_path;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -610,7 +610,7 @@ fn test_fetch_with_sri_sucess() {
 #[test]
 fn test_fetch_blocked_nosniff() {
     #[inline]
-    fn test_nosniff_request(request_type: Type,
+    fn test_nosniff_request(destination: Destination,
                             mime: Mime,
                             should_error: bool) {
         const MESSAGE: &'static [u8] = b"";
@@ -631,7 +631,7 @@ fn test_fetch_blocked_nosniff() {
 
         let origin = Origin::Origin(url.origin());
         let mut request = Request::new(url, Some(origin), None);
-        request.type_ = request_type;
+        request.destination = destination;
         let fetch_response = fetch(&mut request, None);
         let _ = server.close();
 
@@ -639,14 +639,14 @@ fn test_fetch_blocked_nosniff() {
     }
 
     let tests = vec![
-        (Type::Script, Mime(TopLevel::Text, SubLevel::Javascript, vec![]), false),
-        (Type::Script, Mime(TopLevel::Text, SubLevel::Css, vec![]), true),
-        (Type::Style,  Mime(TopLevel::Text, SubLevel::Css, vec![]), false),
+        (Destination::Script, Mime(TopLevel::Text, SubLevel::Javascript, vec![]), false),
+        (Destination::Script, Mime(TopLevel::Text, SubLevel::Css, vec![]), true),
+        (Destination::Style,  Mime(TopLevel::Text, SubLevel::Css, vec![]), false),
     ];
 
     for test in tests {
-        let (type_, mime, should_error) = test;
-        test_nosniff_request(type_, mime, should_error);
+        let (destination, mime, should_error) = test;
+        test_nosniff_request(destination, mime, should_error);
     }
 }
 
