@@ -1839,7 +1839,7 @@ impl Document {
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
 
         // html parsing has finished - set dom content loaded
-        self.interactive_time.borrow().maybe_set_tti(self, None, InteractiveFlag::DCL);
+        self.interactive_time.borrow().maybe_set_tti(self, InteractiveFlag::DOMContentLoaded);
 
         // Step 4.2.
         // TODO: client message queue.
@@ -1927,7 +1927,7 @@ impl Document {
         self.interactive_time.borrow()
     }
 
-    pub fn is_interactive(&self) -> bool {
+    pub fn has_recorded_tti_metric(&self) -> bool {
         self.get_interactive_metrics().get_tti().is_some()
     }
 
@@ -1958,13 +1958,12 @@ impl Document {
     /// check tti for this document
     /// if it's been 10s since this doc encountered a task over 50ms, then we consider the
     /// main thread available and try to set tti
-    pub fn check_tti(&self) {
-        if self.is_interactive() { return; }
+    pub fn record_tti_if_necessary(&self) {
+        if self.has_recorded_tti_metric() { return; }
 
         if self.tti_window.borrow().needs_check() {
             self.get_interactive_metrics().maybe_set_tti(self,
-                Some(self.tti_window.borrow().get_start() as f64),
-                InteractiveFlag::TTI);
+                InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start() as f64));
         }
     }
 
@@ -2177,8 +2176,7 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
-        let mut interactive_time = InteractiveMetrics::new(window.time_profiler_chan().clone());
-        interactive_time.set_navigation_start(window.get_navigation_start());
+        let interactive_time = InteractiveMetrics::new(window.time_profiler_chan().clone());
 
         Document {
             node: Node::new_document_node(),

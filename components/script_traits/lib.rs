@@ -233,7 +233,7 @@ pub enum DocumentActivity {
 
 /// Type of recorded progressive web metric
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum PWMType {
+pub enum ProgressiveWebMetricType {
     /// Time to first Paint
     FirstPaint,
     /// Time to first contentful paint
@@ -324,9 +324,7 @@ pub enum ConstellationControlMsg {
     /// Notifies the script thread of WebVR events.
     WebVREvents(PipelineId, Vec<WebVREvent>),
     /// Notifies the script thread about a new recorded paint metric.
-    PaintMetric(PipelineId, PWMType, f64),
-    /// Notifies the script thread of interactive time
-    InteractiveMetric(PipelineId, f64),
+    PaintMetric(PipelineId, ProgressiveWebMetricType, f64),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -361,7 +359,6 @@ impl fmt::Debug for ConstellationControlMsg {
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
-            InteractiveMetric(..) => "InteractiveMetric"
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

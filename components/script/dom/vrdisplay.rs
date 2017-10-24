@@ -494,6 +494,7 @@ impl VRDisplay {
         let address = Trusted::new(&*self);
         let near_init = self.depth_near.get();
         let far_init = self.depth_far.get();
+        let pipeline_id = self.global().pipeline_id();
 
         // The render loop at native headset frame rate is implemented using a dedicated thread.
         // Every loop iteration syncs pose data with the HMD, submits the pixels to the display and waits for Vsync.
@@ -505,7 +506,6 @@ impl VRDisplay {
             let (raf_sender, raf_receiver) = mpsc::channel();
             let mut near = near_init;
             let mut far = far_init;
-            // let pipeline_id = self.global().pipeline_id().clone(); TODO
 
             // Initialize compositor
             api_sender.send_vr(WebVRCommand::Create(display_id)).unwrap();
