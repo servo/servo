@@ -359,7 +359,7 @@ impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let pipeline_id = worker.clone().root().global().pipeline_id();
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(forward_error_to_worker_object: move || {
             let worker = worker.root();
             let global = worker.global();
@@ -406,7 +406,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        let pipeline_id = worker.clone().root().global().pipeline_id();
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
         }));

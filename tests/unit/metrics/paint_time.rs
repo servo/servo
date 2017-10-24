@@ -100,7 +100,7 @@ fn test_first_paint_setter() {
         clip_scroll_nodes: Vec::new(),
     };
     let epoch = Epoch(0);
-    let mut paint_time_metrics = test_common(&empty_display_list, epoch);
+    let paint_time_metrics = test_common(&empty_display_list, epoch);
     let now = time::precise_time_ns() as f64;
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(
@@ -134,7 +134,7 @@ fn test_first_contentful_paint_setter() {
         clip_scroll_nodes: Vec::new(),
     };
     let epoch = Epoch(0);
-    let mut paint_time_metrics = test_common(&display_list, epoch);
+    let paint_time_metrics = test_common(&display_list, epoch);
     let now = time::precise_time_ns() as f64;
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(

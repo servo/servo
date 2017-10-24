@@ -34,12 +34,12 @@ fn test_set_dcl() {
     let profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     let interactive = test_interactive();
-    interactive.maybe_set_tti(&profiler_metadata_factory, None, InteractiveFlag::DCL);
+    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 
     //try to overwrite
-    interactive.maybe_set_tti(&profiler_metadata_factory, None, InteractiveFlag::DCL);
+    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
     assert_eq!(interactive.get_dom_content_loaded(), dcl);
     assert_eq!(interactive.get_tti(), None);
 }
@@ -52,8 +52,7 @@ fn test_set_mta() {
     let t = time::precise_time_ns();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        Some(t as f64),
-        InteractiveFlag::TTI,
+        InteractiveFlag::TimeToInteractive(t as f64),
     );
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());
@@ -62,8 +61,7 @@ fn test_set_mta() {
     //try to overwrite
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        Some(time::precise_time_ns() as f64),
-        InteractiveFlag::TTI,
+        InteractiveFlag::TimeToInteractive(time::precise_time_ns() as f64),
     );
     assert_eq!(interactive.get_main_thread_available(), mta);
     assert_eq!(interactive.get_tti(), None);
@@ -77,13 +75,12 @@ fn test_set_tti_dcl() {
     let t = time::precise_time_ns();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        Some(t as f64),
-        InteractiveFlag::TTI,
+        InteractiveFlag::TimeToInteractive(t as f64),
     );
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());
 
-    interactive.maybe_set_tti(&profiler_metadata_factory, None, InteractiveFlag::DCL);
+    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 
@@ -96,15 +93,14 @@ fn test_set_tti_mta() {
     let profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     let interactive = test_interactive();
-    interactive.maybe_set_tti(&profiler_metadata_factory, None, InteractiveFlag::DCL);
+    interactive.maybe_set_tti(&profiler_metadata_factory, InteractiveFlag::DOMContentLoaded);
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 
     let t = time::precise_time_ns();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        Some(t as f64),
-        InteractiveFlag::TTI,
+        InteractiveFlag::TimeToInteractive(t as f64),
     );
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());

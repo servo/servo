@@ -15,4 +15,5 @@ extern crate time;
 
 #[cfg(test)]
 mod interactive_time;
+#[cfg(test)]
 mod paint_time;
