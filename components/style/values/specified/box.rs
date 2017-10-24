@@ -4,11 +4,15 @@
 
 //! Specified types for box properties.
 
+use Atom;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use style_traits::ParseError;
+use std::fmt;
+use style_traits::{ParseError, ToCss};
+use values::KeyframesName;
+use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
-use values::specified::AllowQuirks;
+use values::specified::{AllowQuirks, Number};
 use values::specified::length::LengthOrPercentage;
 
 /// A specified value for the `vertical-align` property.
@@ -37,5 +41,72 @@ impl Parse for VerticalAlign {
                 Ok(GenericVerticalAlign::MozMiddleWithBaseline)
             },
         }
+    }
+}
+
+/// https://drafts.csswg.org/css-animations/#animation-iteration-count
+pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;
+
+impl Parse for AnimationIterationCount {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut ::cssparser::Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
+            return Ok(GenericAnimationIterationCount::Infinite)
+        }
+
+        let number = Number::parse_non_negative(context, input)?;
+        Ok(GenericAnimationIterationCount::Number(number))
+    }
+}
+
+impl AnimationIterationCount {
+    /// Returns the value `1.0`.
+    #[inline]
+    pub fn one() -> Self {
+        GenericAnimationIterationCount::Number(Number::new(1.0))
+    }
+}
+
+/// A value for the `animation-name` property.
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+pub struct AnimationName(pub Option<KeyframesName>);
+
+impl AnimationName {
+    /// Get the name of the animation as an `Atom`.
+    pub fn as_atom(&self) -> Option<&Atom> {
+        self.0.as_ref().map(|n| n.as_atom())
+    }
+
+    /// Returns the `none` value.
+    pub fn none() -> Self {
+        AnimationName(None)
+    }
+}
+
+impl ToCss for AnimationName {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match self.0 {
+            Some(ref name) => name.to_css(dest),
+            None => dest.write_str("none"),
+        }
+    }
+}
+
+impl Parse for AnimationName {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
+            return Ok(AnimationName(Some(name)));
+        }
+
+        input.expect_ident_matching("none")?;
+        Ok(AnimationName(None))
     }
 }

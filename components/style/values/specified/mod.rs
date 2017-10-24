@@ -30,7 +30,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
-pub use self::box_::VerticalAlign;
+pub use self::box_::{AnimationIterationCount, AnimationName, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -176,8 +176,10 @@ impl BorderStyle {
     }
 }
 
+/// A CSS `<number>` specified value.
+///
+/// https://drafts.csswg.org/css-values-3/#number-value
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd)]
-#[allow(missing_docs)]
 pub struct Number {
     /// The numeric value itself.
     value: CSSFloat,

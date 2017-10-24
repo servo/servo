@@ -444,78 +444,19 @@ ${helpers.predefined_type("transition-delay",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay")}
 
-<%helpers:vector_longhand name="animation-name"
-                          need_index="True"
-                          animation_value_type="none",
-                          extra_prefixes="moz webkit"
-                          allowed_in_keyframe_block="False"
-                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
-    use Atom;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::KeyframesName;
 
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
-    pub struct SpecifiedValue(pub Option<KeyframesName>);
-
-    impl SpecifiedValue {
-        /// As an Atom
-        pub fn as_atom(&self) -> Option< &Atom> {
-            self.0.as_ref().map(|n| n.as_atom())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        get_initial_specified_value()
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(None)
-    }
-
-    impl fmt::Display for SpecifiedValue {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            self.to_css(f)
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if let Some(ref name) = self.0 {
-                name.to_css(dest)
-            } else {
-                dest.write_str("none")
-            }
-        }
-    }
-
-    impl Parse for SpecifiedValue {
-        fn parse<'i, 't>(
-            context: &ParserContext,
-            input: &mut ::cssparser::Parser<'i, 't>
-        ) -> Result<Self, ParseError<'i>> {
-            if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
-                Ok(SpecifiedValue(Some(name)))
-            } else {
-                input.expect_ident_matching("none").map(|_| SpecifiedValue(None)).map_err(|e| e.into())
-            }
-        }
-    }
-
-    pub fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<SpecifiedValue,ParseError<'i>> {
-        SpecifiedValue::parse(context, input)
-    }
-
-</%helpers:vector_longhand>
+${helpers.predefined_type(
+    "animation-name",
+    "AnimationName",
+    "computed::AnimationName::none()",
+    initial_specified_value="specified::AnimationName::none()",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes="moz webkit",
+    allowed_in_keyframe_block=False,
+    spec="https://drafts.csswg.org/css-animations/#propdef-animation-name",
+)}
 
 ${helpers.predefined_type("animation-duration",
                           "Time",
@@ -541,58 +482,18 @@ ${helpers.predefined_type("animation-timing-function",
                           allowed_in_keyframe_block=True,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function")}
 
-<%helpers:vector_longhand name="animation-iteration-count"
-                          need_index="True"
-                          animation_value_type="none",
-                          extra_prefixes="moz webkit"
-                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
-                          allowed_in_keyframe_block="False">
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    // https://drafts.csswg.org/css-animations/#animation-iteration-count
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToComputedValue)]
-    pub enum SpecifiedValue {
-        Number(f32),
-        Infinite,
-    }
-
-    impl Parse for SpecifiedValue {
-        fn parse<'i, 't>(_context: &ParserContext, input: &mut ::cssparser::Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
-            if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
-                return Ok(SpecifiedValue::Infinite)
-            }
-
-            let number = input.expect_number()?;
-            if number < 0.0 {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            }
-
-            Ok(SpecifiedValue::Number(number))
-        }
-    }
-
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        get_initial_specified_value()
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Number(1.0)
-    }
-
-    #[inline]
-    pub fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<SpecifiedValue, ParseError<'i>> {
-        SpecifiedValue::parse(context, input)
-    }
-</%helpers:vector_longhand>
+${helpers.predefined_type(
+    "animation-iteration-count",
+    "AnimationIterationCount",
+    "computed::AnimationIterationCount::one()",
+    initial_specified_value="specified::AnimationIterationCount::one()",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes="moz webkit",
+    allowed_in_keyframe_block=False,
+    spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
+)}
 
 <% animation_direction_custom_consts = { "alternate-reverse": "Alternate_reverse" } %>
 ${helpers.single_keyword("animation-direction",
