@@ -10,7 +10,7 @@ use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use precomputed_hash::PrecomputedHash;
 use properties::{CSSWideKeyword, DeclaredValue};
-use selector_map::{PrecomputedHashSet, PrecomputedHashMap, PrecomputedDiagnosticHashMap};
+use selector_map::{PrecomputedHashSet, PrecomputedHashMap};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
@@ -88,7 +88,7 @@ where
     /// Key index.
     index: Vec<K>,
     /// Key-value map.
-    values: PrecomputedDiagnosticHashMap<K, V>,
+    values: PrecomputedHashMap<K, V>,
 }
 
 impl<K, V> OrderedMap<K, V>
@@ -99,7 +99,7 @@ where
     pub fn new() -> Self {
         OrderedMap {
             index: Vec::new(),
-            values: PrecomputedDiagnosticHashMap::default(),
+            values: PrecomputedHashMap::default(),
         }
     }
 
@@ -108,9 +108,7 @@ where
         if !self.values.contains_key(&key) {
             self.index.push(key.clone());
         }
-        self.values.begin_mutation();
-        self.values.try_insert(key, value).unwrap();
-        self.values.end_mutation();
+        self.values.insert(key, value);
     }
 
     /// Get a value given its key.
@@ -160,10 +158,7 @@ where
             None => return None,
         };
         self.index.remove(index);
-        self.values.begin_mutation();
-        let result = self.values.remove(key);
-        self.values.end_mutation();
-        result
+        self.values.remove(key)
     }
 
     fn remove_set<S>(&mut self, set: &::hash::HashSet<K, S>)
@@ -173,13 +168,7 @@ where
             return;
         }
         self.index.retain(|key| !set.contains(key));
-        self.values.begin_mutation();
-        // XXX It may be better to use retain when we back to use a
-        // normal hashmap rather than DiagnosticHashMap.
-        for key in set.iter() {
-            self.values.remove(key);
-        }
-        self.values.end_mutation();
+        self.values.retain(|key, _| !set.contains(key));
         debug_assert_eq!(self.values.len(), self.index.len());
     }
 }
@@ -211,7 +200,7 @@ where
         };
 
         self.pos += 1;
-        let value = &self.inner.values.get(key).unwrap();
+        let value = &self.inner.values[key];
 
         Some((key, value))
     }
