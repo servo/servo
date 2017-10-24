@@ -46,8 +46,6 @@ pub enum Color {
 
 #[cfg(feature = "gecko")]
 mod gecko {
-    use style_traits::ToCss;
-
     define_css_keyword_enum! { SpecialColorKeyword:
         "-moz-default-color" => MozDefaultColor,
         "-moz-default-background-color" => MozDefaultBackgroundColor,

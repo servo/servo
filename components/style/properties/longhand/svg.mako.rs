@@ -81,23 +81,17 @@ ${helpers.single_keyword("mask-mode",
                          animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
-<%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="discrete" extra_prefixes="webkit"
-                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat">
-    pub use properties::longhands::background_repeat::single_value::parse;
-    pub use properties::longhands::background_repeat::single_value::SpecifiedValue;
-    pub use properties::longhands::background_repeat::single_value::computed_value;
-    pub use properties::longhands::background_repeat::single_value::RepeatKeyword;
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(RepeatKeyword::Repeat, RepeatKeyword::Repeat)
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Other(RepeatKeyword::Repeat, None)
-    }
-</%helpers:vector_longhand>
+${helpers.predefined_type(
+    "mask-repeat",
+    "BackgroundRepeat",
+    "computed::BackgroundRepeat::repeat()",
+    initial_specified_value="specified::BackgroundRepeat::repeat()",
+    products="gecko",
+    extra_prefixes="webkit",
+    animation_value_type="discrete",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat",
+    vector=True,
+)}
 
 % for (axis, direction) in [("x", "Horizontal"), ("y", "Vertical")]:
     ${helpers.predefined_type(

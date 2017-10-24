@@ -33,7 +33,7 @@ pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::angle::Angle;
-pub use self::background::BackgroundSize;
+pub use self::background::{BackgroundSize, BackgroundRepeat};
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
 pub use self::box_::VerticalAlign;

@@ -48,7 +48,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
-use style::computed_values::{background_repeat, border_style, cursor};
+use style::computed_values::{border_style, cursor};
 use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
@@ -66,6 +66,7 @@ use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndi
 use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
 use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
+use style::values::specified::background::RepeatKeyword as BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::ToCss;
@@ -1186,17 +1187,17 @@ impl FragmentDisplayListBuilding for Fragment {
         // Adjust origin and size based on background-repeat
         let background_repeat = get_cyclic(&background.background_repeat.0, index);
         match background_repeat.0 {
-            background_repeat::single_value::RepeatKeyword::NoRepeat => {
+            BackgroundRepeatKeyword::NoRepeat => {
                 bounds.origin.x = anchor_origin_x;
                 bounds.size.width = image_size.width;
             }
-            background_repeat::single_value::RepeatKeyword::Repeat => {
+            BackgroundRepeatKeyword::Repeat => {
                 ImageFragmentInfo::tile_image(&mut bounds.origin.x,
                                               &mut bounds.size.width,
                                               anchor_origin_x,
                                               image_size.width);
             }
-            background_repeat::single_value::RepeatKeyword::Space => {
+            BackgroundRepeatKeyword::Space => {
                 ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.x,
                                                      &mut bounds.size.width,
                                                      &mut tile_spacing.width,
@@ -1204,7 +1205,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                      image_size.width);
 
             }
-            background_repeat::single_value::RepeatKeyword::Round => {
+            BackgroundRepeatKeyword::Round => {
                 ImageFragmentInfo::tile_image_round(&mut bounds.origin.x,
                                                     &mut bounds.size.width,
                                                     anchor_origin_x,
@@ -1212,17 +1213,17 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
         match background_repeat.1 {
-            background_repeat::single_value::RepeatKeyword::NoRepeat => {
+            BackgroundRepeatKeyword::NoRepeat => {
                 bounds.origin.y = anchor_origin_y;
                 bounds.size.height = image_size.height;
             }
-            background_repeat::single_value::RepeatKeyword::Repeat => {
+            BackgroundRepeatKeyword::Repeat => {
                 ImageFragmentInfo::tile_image(&mut bounds.origin.y,
                                               &mut bounds.size.height,
                                               anchor_origin_y,
                                               image_size.height);
             }
-            background_repeat::single_value::RepeatKeyword::Space => {
+            BackgroundRepeatKeyword::Space => {
                 ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.y,
                                                      &mut bounds.size.height,
                                                      &mut tile_spacing.height,
@@ -1230,7 +1231,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                      image_size.height);
 
             }
-            background_repeat::single_value::RepeatKeyword::Round => {
+            BackgroundRepeatKeyword::Round => {
                 ImageFragmentInfo::tile_image_round(&mut bounds.origin.y,
                                                     &mut bounds.size.height,
                                                     anchor_origin_y,
