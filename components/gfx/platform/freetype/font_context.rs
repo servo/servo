@@ -51,13 +51,13 @@ extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     }
 }
 
-extern fn ft_realloc(mem: FT_Memory, old_size: c_long, new_req_size: c_long,
+extern fn ft_realloc(mem: FT_Memory, _old_size: c_long, new_req_size: c_long,
                      old_ptr: *mut c_void) -> *mut c_void {
     let old_actual_size;
     let mut vec;
     unsafe {
         old_actual_size = usable_size(old_ptr as *const _);
-        let old_size = old_size as usize;
+        let old_size = old_actual_size as usize;
         vec = Vec::<u8>::from_raw_parts(old_ptr as *mut u8, old_size, old_size);
     };
 
