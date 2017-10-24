@@ -1,13 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#![feature(custom_attribute)]
 
 extern crate gfx;
 extern crate gfx_traits;
 extern crate ipc_channel;
-#[macro_use]
-extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate malloc_size_of;
@@ -25,12 +22,11 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use profile_traits::time::{ProfilerChan, ProfilerCategory, send_profile_data};
 use profile_traits::time::TimerMetadata;
-use script_traits::{ConstellationControlMsg, LayoutMsg, PWMType};
+use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
 use servo_config::opts;
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::time::{Instant, Duration};
 use time::precise_time_ns;
 
 pub trait ProfilerMetadataFactory {
@@ -41,25 +37,23 @@ pub trait ProgressiveWebMetric {
     fn get_navigation_start(&self) -> Option<f64>;
     fn set_navigation_start(&mut self, time: f64);
     fn get_time_profiler_chan(&self) -> &ProfilerChan;
-    fn send_queued_constellation_msg(&self, name: PWMType, time: f64);
+    fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: f64);
 }
 
-lazy_static!{
-    static ref TEN_SECONDS: Duration = Duration::new(10, 0);
-    pub static ref MAX_TASK_TIME: u64 = 50000000;
-}
+/// maximum task time is 50ms (in ns)
+pub const MAX_TASK_NS: u64 = 50000000;
+/// 10 second window (in ns)
+const INTERACTIVE_WINDOW_SECONDS_IN_NS: u64 = 10000000000;
 
 
-// there should be some requirements on self
-// can i have self<U> ?
-pub fn set_metric<U: ProgressiveWebMetric>(
+fn set_metric<U: ProgressiveWebMetric>(
     pwm: &U,
     metadata: Option<TimerMetadata>,
-    metric_type: PWMType,
+    metric_type: ProgressiveWebMetricType,
     category: ProfilerCategory,
     attr: &Cell<Option<f64>>,
-    metric_time: Option<f64>,
-) {
+    metric_time: Option<f64>)
+{
     let navigation_start = match pwm.get_navigation_start() {
         Some(time) => time,
         None => {
@@ -67,7 +61,6 @@ pub fn set_metric<U: ProgressiveWebMetric>(
             return;
         }
     };
-
     let now = match metric_time {
         Some(time) => time,
         None => precise_time_ns() as f64,
@@ -97,11 +90,19 @@ pub fn set_metric<U: ProgressiveWebMetric>(
 }
 
 // https://github.com/GoogleChrome/lighthouse/issues/27
+// we can look at three different metrics here:
+// navigation start -> visually ready (dom content loaded)
+// navigation start -> thread ready (main thread available)
+// visually ready -> thread ready
 #[derive(MallocSizeOf)]
 pub struct InteractiveMetrics {
-    navigation_start: Cell<Option<f64>>,
+    /// when we navigated to the page
+    navigation_start: Option<f64>,
+    /// indicates if the page is visually ready
     dom_content_loaded: Cell<Option<f64>>,
+    /// main thread is available -- there's been a 10s window with no tasks longer than 50ms
     main_thread_available: Cell<Option<f64>>,
+    // max(main_thread_available, dom_content_loaded)
     time_to_interactive: Cell<Option<f64>>,
     #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
@@ -110,73 +111,44 @@ pub struct InteractiveMetrics {
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct InteractiveWindow {
     start: u64,
-    #[ignore_malloc_size_of = "don't need to measure rn"] //FIXME
-    instant: Instant,
-    all_interactive: bool,
 }
 
 
-//TODO i don't think all interactive is needed anymore
 impl InteractiveWindow {
     pub fn new() -> InteractiveWindow {
         InteractiveWindow {
             start: precise_time_ns(),
-            instant: Instant::now(),
-            all_interactive: false,
         }
     }
 
     // We need to either start or restart the 10s window
     //   start: we've added a new document
-    //   restart: there was a task > 50s
+    //   restart: there was a task > 50ms
     //   not all documents are interactive
     pub fn start_window(&mut self) {
         self.start = precise_time_ns();
-        self.instant = Instant::now();
-        self.unset_all_interactive();
     }
 
+    /// check if 10s has elapsed since start
     pub fn needs_check(&self) -> bool {
-        self.instant.elapsed() > *TEN_SECONDS
-    }
-
-    pub fn check_interactive(&self) -> bool {
-        self.all_interactive
-    }
-
-    pub fn set_all_interactive(&mut self) {
-        self.all_interactive = true;
-    }
-
-    pub fn unset_all_interactive(&mut self) {
-        self.all_interactive = false;
+        precise_time_ns() - self.start >= INTERACTIVE_WINDOW_SECONDS_IN_NS
     }
 
     pub fn get_start(&self) -> u64 {
         self.start
     }
-
-    pub fn elapsed_since_start(&self) -> u64 {
-        self.instant.elapsed().as_secs()
-    }
-
-    // ^^^^^^^^^^^^^ expected u64, found struct `MAX_TASK_TIME`
-
-    pub fn max_task_time() -> u64 {
-        50000000
-    }
 }
 
 #[derive(Debug)]
 pub enum InteractiveFlag {
-    DCL,
-    TTI,
+    DOMContentLoaded,
+    TimeToInteractive(f64),
 }
 
 impl InteractiveMetrics {
     pub fn new(time_profiler_chan: ProfilerChan) -> InteractiveMetrics {
         InteractiveMetrics {
-            navigation_start: Cell::new(None),
+            navigation_start: None,
             dom_content_loaded: Cell::new(None),
             main_thread_available: Cell::new(None),
             time_to_interactive: Cell::new(None),
@@ -190,9 +162,9 @@ impl InteractiveMetrics {
         }
     }
 
-    pub fn set_main_thread_available(&self, time: Option<f64>) {
-        if self.main_thread_available.get().is_none() && time.is_some() {
-            self.main_thread_available.set(time);
+    pub fn set_main_thread_available(&self, time: f64) {
+        if self.main_thread_available.get().is_none() {
+            self.main_thread_available.set(Some(time));
         }
     }
 
@@ -209,7 +181,6 @@ impl InteractiveMetrics {
     pub fn maybe_set_tti<T>(
         &self,
         profiler_metadata_factory: &T,
-        time: Option<f64>,
         metric: InteractiveFlag,
     ) where
         T: ProfilerMetadataFactory,
@@ -218,32 +189,28 @@ impl InteractiveMetrics {
             return;
         }
         match metric {
-            InteractiveFlag::DCL => self.set_dom_content_loaded(),
-            InteractiveFlag::TTI => self.set_main_thread_available(time),
+            InteractiveFlag::DOMContentLoaded => self.set_dom_content_loaded(),
+            InteractiveFlag::TimeToInteractive(time) => self.set_main_thread_available(time),
         }
 
         let dcl = self.dom_content_loaded.get();
         let mta = self.main_thread_available.get();
-        if dcl.is_some() && mta.is_some() {
-            let metric_time = match dcl.unwrap().partial_cmp(&mta.unwrap()) {
-                Some(order) => {
-                    match order {
-                        Ordering::Less => mta,
-                        _ => dcl,
-                    }
-                }
-                None => panic!("no ordering possible. something bad happened"),
-            };
-            set_metric(
-                self,
-                profiler_metadata_factory.new_metadata(),
-                PWMType::TimeToInteractive,
-                ProfilerCategory::TimeToInteractive,
-                &self.time_to_interactive,
-                metric_time,
-            );
-
-        }
+        let (dcl, mta) = match (dcl, mta) {
+        (Some(dcl), Some(mta)) => (dcl, mta),
+            _ => return,
+        };
+        let metric_time = match dcl.partial_cmp(&mta) {
+            Some(Ordering::Less) => mta,
+            Some(_) => dcl,
+            None => panic!("no ordering possible. something bad happened"),
+        };
+        set_metric(
+            self,
+            profiler_metadata_factory.new_metadata(),
+            ProgressiveWebMetricType::TimeToInteractive,
+            ProfilerCategory::TimeToInteractive,
+            &self.time_to_interactive,
+            Some(metric_time));
     }
 
     pub fn get_tti(&self) -> Option<f64> {
@@ -251,19 +218,16 @@ impl InteractiveMetrics {
     }
 }
 
-// TODO don't impl on ref
 impl ProgressiveWebMetric for InteractiveMetrics {
     fn get_navigation_start(&self) -> Option<f64> {
-        self.navigation_start.get()
+        self.navigation_start
     }
 
     fn set_navigation_start(&mut self, time: f64) {
-        self.navigation_start.set(Some(time));
+        self.navigation_start = Some(time);
     }
 
-    fn send_queued_constellation_msg(&self, name: PWMType, time: f64) {
-        // TODO
-    }
+    fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: f64) { }
 
     fn get_time_profiler_chan(&self) -> &ProfilerChan {
         &self.time_profiler_chan
@@ -272,7 +236,7 @@ impl ProgressiveWebMetric for InteractiveMetrics {
 
 pub struct PaintTimeMetrics {
     pending_metrics: RefCell<HashMap<Epoch, (Option<TimerMetadata>, bool)>>,
-    navigation_start: Cell<Option<f64>>,
+    navigation_start: Option<f64>,
     first_paint: Cell<Option<f64>>,
     first_contentful_paint: Cell<Option<f64>>,
     pipeline_id: PipelineId,
@@ -286,11 +250,11 @@ impl PaintTimeMetrics {
         pipeline_id: PipelineId,
         time_profiler_chan: ProfilerChan,
         constellation_chan: IpcSender<LayoutMsg>,
-        script_chan: IpcSender<ConstellationControlMsg>,
-    ) -> PaintTimeMetrics {
+        script_chan: IpcSender<ConstellationControlMsg>)
+            -> PaintTimeMetrics {
         PaintTimeMetrics {
             pending_metrics: RefCell::new(HashMap::new()),
-            navigation_start: Cell::new(None),
+            navigation_start: None,
             first_paint: Cell::new(None),
             first_contentful_paint: Cell::new(None),
             pipeline_id,
@@ -304,16 +268,14 @@ impl PaintTimeMetrics {
     where
         T: ProfilerMetadataFactory,
     {
-        {
-            if self.first_paint.get().is_some() {
-                return;
-            }
+        if self.first_paint.get().is_some() {
+            return;
         }
 
         set_metric(
             self,
             profiler_metadata_factory.new_metadata(),
-            PWMType::FirstPaint,
+            ProgressiveWebMetricType::FirstPaint,
             ProfilerCategory::TimeToFirstPaint,
             &self.first_paint,
             None,
@@ -324,10 +286,8 @@ impl PaintTimeMetrics {
         &self,
         profiler_metadata_factory: &T,
         epoch: Epoch,
-        display_list: &DisplayList,
-    ) where
-        T: ProfilerMetadataFactory,
-    {
+        display_list: &DisplayList)
+    where T: ProfilerMetadataFactory {
         if self.first_paint.get().is_some() && self.first_contentful_paint.get().is_some() {
             // If we already set all paint metrics, we just bail out.
             return;
@@ -363,9 +323,8 @@ impl PaintTimeMetrics {
     }
 
     pub fn maybe_set_metric(&self, epoch: Epoch, paint_time: f64) {
-        if (self.first_paint.get().is_some() && self.first_contentful_paint.get().is_some()) ||
-            self.get_navigation_start().is_none()
-        {
+        if self.first_paint.get().is_some() && self.first_contentful_paint.get().is_some() ||
+            self.navigation_start.is_none() {
             // If we already set all paint metrics or we have not set navigation start yet,
             // we just bail out.
             return;
@@ -376,7 +335,7 @@ impl PaintTimeMetrics {
             set_metric(
                 self,
                 profiler_metadata.clone(),
-                PWMType::FirstPaint,
+                ProgressiveWebMetricType::FirstPaint,
                 ProfilerCategory::TimeToFirstPaint,
                 &self.first_paint,
                 Some(paint_time),
@@ -386,7 +345,7 @@ impl PaintTimeMetrics {
                 set_metric(
                     self,
                     profiler_metadata,
-                    PWMType::FirstContentfulPaint,
+                    ProgressiveWebMetricType::FirstContentfulPaint,
                     ProfilerCategory::TimeToFirstContentfulPaint,
                     &self.first_contentful_paint,
                     Some(paint_time),
@@ -404,17 +363,16 @@ impl PaintTimeMetrics {
     }
 }
 
-// TODO don't impl on ref
 impl ProgressiveWebMetric for PaintTimeMetrics {
     fn get_navigation_start(&self) -> Option<f64> {
-        self.navigation_start.get()
+        self.navigation_start
     }
 
     fn set_navigation_start(&mut self, time: f64) {
-        self.navigation_start.set(Some(time));
+        self.navigation_start = Some(time);
     }
 
-    fn send_queued_constellation_msg(&self, name: PWMType, time: f64) {
+    fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: f64) {
         let msg = ConstellationControlMsg::PaintMetric(self.pipeline_id, name, time);
         if let Err(e) = self.script_chan.send(msg) {
             warn!("Sending metric to script thread failed ({}).", e);
