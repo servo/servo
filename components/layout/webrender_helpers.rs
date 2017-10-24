@@ -9,14 +9,15 @@
 
 use app_units::Au;
 use euclid::{Point2D, Vector2D, Rect, SideOffsets2D, Size2D};
-use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClipScrollNodeType};
-use gfx::display_list::{ClippingRegion, DisplayItem, DisplayList, StackingContextType};
+use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClipScrollNode};
+use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingRegion, DisplayItem};
+use gfx::display_list::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
-use webrender_api::{self, ClipAndScrollInfo, ComplexClipRegion, DisplayListBuilder};
-use webrender_api::{ClipMode, ExtendMode, LayoutTransform};
+use webrender_api::{self, ClipAndScrollInfo, ClipId, ClipMode, ComplexClipRegion};
+use webrender_api::{DisplayListBuilder, ExtendMode, LayoutTransform};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -24,9 +25,13 @@ pub trait WebRenderDisplayListConverter {
 
 trait WebRenderDisplayItemConverter {
     fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo;
-    fn convert_to_webrender(&self,
-                            builder: &mut DisplayListBuilder,
-                            current_clip_and_scroll_info: &mut ClipAndScrollInfo);
+    fn convert_to_webrender(
+        &self,
+        builder: &mut DisplayListBuilder,
+        clip_scroll_nodes: &[ClipScrollNode],
+        clip_ids: &mut Vec<Option<ClipId>>,
+        current_clip_and_scroll_info: &mut ClipAndScrollInfo
+    );
 }
 
 trait ToBorderStyle {
@@ -227,8 +232,17 @@ impl WebRenderDisplayListConverter for DisplayList {
         let mut current_clip_and_scroll_info = pipeline_id.root_clip_and_scroll_info();
         builder.push_clip_and_scroll_info(current_clip_and_scroll_info);
 
+        let mut clip_ids = Vec::with_capacity(self.clip_scroll_nodes.len());
+        clip_ids.resize(self.clip_scroll_nodes.len(), None);
+        clip_ids[0] = Some(ClipId::root_scroll_node(pipeline_id.to_webrender()));
+
         for item in &self.list {
-            item.convert_to_webrender(&mut builder, &mut current_clip_and_scroll_info);
+            item.convert_to_webrender(
+                &mut builder,
+                &self.clip_scroll_nodes,
+                &mut clip_ids,
+                &mut current_clip_and_scroll_info
+            );
         }
         builder
     }
@@ -249,10 +263,27 @@ impl WebRenderDisplayItemConverter for DisplayItem {
         }
     }
 
-    fn convert_to_webrender(&self,
-                            builder: &mut DisplayListBuilder,
-                            current_clip_and_scroll_info: &mut ClipAndScrollInfo) {
-        let clip_and_scroll_info = self.base().clip_and_scroll_info;
+    fn convert_to_webrender(
+        &self,
+        builder: &mut DisplayListBuilder,
+        clip_scroll_nodes: &[ClipScrollNode],
+        clip_ids: &mut Vec<Option<ClipId>>,
+        current_clip_and_scroll_info: &mut ClipAndScrollInfo
+    ) {
+        let get_id = |clip_ids: &[Option<ClipId>], index: ClipScrollNodeIndex| -> ClipId {
+            match clip_ids[index.0] {
+                Some(id) => id,
+                None => unreachable!("Tried to use WebRender ClipId before it was defined."),
+            }
+        };
+
+        let clip_and_scroll_indices = self.base().clipping_and_scrolling;
+        let scrolling_id = get_id(clip_ids, clip_and_scroll_indices.scrolling);
+        let clip_and_scroll_info = match clip_and_scroll_indices.clipping {
+            None => ClipAndScrollInfo::simple(scrolling_id),
+            Some(index) => ClipAndScrollInfo::new(scrolling_id, get_id(clip_ids, index)),
+        };
+
         if clip_and_scroll_info != *current_clip_and_scroll_info {
             builder.pop_clip_id();
             builder.push_clip_and_scroll_info(clip_and_scroll_info);
@@ -487,32 +518,42 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::DefineClipScrollNode(ref item) => {
-                builder.push_clip_id(item.node.parent_id);
+                let node = &clip_scroll_nodes[item.node_index.0];
+                let parent_id = get_id(clip_ids, node.parent_index);
+                let item_rect = node.clip.main.to_rectf();
 
-                let our_id = item.node.id;
-                let item_rect = item.node.clip.main.to_rectf();
-                let webrender_id = match item.node.node_type {
+                let webrender_id = match node.node_type {
                    ClipScrollNodeType::Clip => {
-                        builder.define_clip(Some(our_id),
-                                            item_rect,
-                                            item.node.clip.get_complex_clips(),
-                                            None)
+                        builder.define_clip_with_parent(
+                            node.id,
+                            parent_id,
+                            item_rect,
+                            node.clip.get_complex_clips(),
+                            None
+                        )
                     }
                     ClipScrollNodeType::ScrollFrame(scroll_sensitivity) => {
-                        builder.define_scroll_frame(Some(our_id),
-                                                    item.node.content_rect.to_rectf(),
-                                                    item.node.clip.main.to_rectf(),
-                                                    item.node.clip.get_complex_clips(),
-                                                    None,
-                                                    scroll_sensitivity)
+                        builder.define_scroll_frame_with_parent(
+                            node.id,
+                            parent_id,
+                            node.content_rect.to_rectf(),
+                            node.clip.main.to_rectf(),
+                            node.clip.get_complex_clips(),
+                            None,
+                            scroll_sensitivity
+                        )
                     }
                     ClipScrollNodeType::StickyFrame(sticky_frame_info) => {
-                        builder.define_sticky_frame(Some(our_id), item_rect, sticky_frame_info)
+                        // TODO: Add define_sticky_frame_with_parent to WebRender.
+                        builder.push_clip_id(parent_id);
+                        let id = builder.define_sticky_frame(node.id, item_rect, sticky_frame_info);
+                        builder.pop_clip_id();
+                        id
                     }
                 };
-                debug_assert!(our_id == webrender_id);
 
-                builder.pop_clip_id();
+                debug_assert!(node.id.is_none() || node.id == Some(webrender_id));
+                clip_ids[item.node_index.0] = Some(webrender_id);
             }
         }
     }

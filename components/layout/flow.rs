@@ -35,11 +35,11 @@ use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use gfx::display_list::ClippingAndScrolling;
 use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
-use msg::constellation_msg::PipelineId;
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
@@ -63,7 +63,6 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use webrender_api::ClipAndScrollInfo;
 
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
 /// is of type `BaseFlow` or some type that also implements this trait.
@@ -444,13 +443,10 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     /// children of this flow.
     fn print_extra_flow_children(&self, _: &mut PrintTree) { }
 
-    fn clip_and_scroll_info(&self, pipeline_id: PipelineId) -> ClipAndScrollInfo {
-        match base(self).clip_and_scroll_info {
+    fn clipping_and_scrolling(&self) -> ClippingAndScrolling {
+        match base(self).clipping_and_scrolling {
             Some(info) => info,
-            None => {
-                debug_assert!(false, "Tried to access scroll root id on Flow before assignment");
-                pipeline_id.root_clip_and_scroll_info()
-            }
+            None => unreachable!("Tried to access scroll root id on Flow before assignment"),
         }
     }
 }
@@ -920,7 +916,9 @@ pub struct BaseFlow {
     /// list construction.
     pub stacking_context_id: StackingContextId,
 
-    pub clip_and_scroll_info: Option<ClipAndScrollInfo>,
+    /// The indices of this Flow's ClipScrollNode. This is used to place the node's
+    /// display items into scrolling frames and clipping nodes.
+    pub clipping_and_scrolling: Option<ClippingAndScrolling>,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -1062,7 +1060,7 @@ impl BaseFlow {
             writing_mode: writing_mode,
             thread_id: 0,
             stacking_context_id: StackingContextId::root(),
-            clip_and_scroll_info: None,
+            clipping_and_scrolling: None,
         }
     }
 
