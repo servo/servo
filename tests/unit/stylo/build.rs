@@ -63,4 +63,8 @@ fn main() {
         .write_all(format!("include!(concat!({:?}, \"/gecko/structs.rs\"));",
                            style_out_dir).as_bytes())
         .unwrap();
+
+    if env::var_os("MOZ_SRC").is_some() {
+        println!("cargo:rustc-cfg=linking_with_gecko")
+    }
 }
