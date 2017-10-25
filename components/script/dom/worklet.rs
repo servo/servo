@@ -644,7 +644,7 @@ impl WorkletThread {
     where
         T: TaskBox + 'static,
     {
-        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, Box::new(task));
+        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, Box::new(task), None);
         let msg = MainThreadScriptMsg::Common(msg);
         self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
     }

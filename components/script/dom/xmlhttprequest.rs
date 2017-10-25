@@ -1286,7 +1286,7 @@ impl XMLHttpRequest {
 
         let (task_source, script_port) = if self.sync.get() {
             let (tx, rx) = global.new_script_pair();
-            (NetworkingTaskSource(tx), Some(rx))
+            (NetworkingTaskSource(tx, global.pipeline_id()), Some(rx))
         } else {
             (global.networking_task_source(), None)
         };

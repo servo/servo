@@ -99,6 +99,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::JS_GetRuntime;
+use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
@@ -108,6 +109,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
+use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
@@ -360,6 +362,8 @@ pub struct Document {
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
     form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
+    interactive_time: DomRefCell<InteractiveMetrics>,
+    tti_window: DomRefCell<InteractiveWindow>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1834,6 +1838,9 @@ impl Document {
         window.reflow(ReflowGoal::Full, ReflowReason::DOMContentLoaded);
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
 
+        // html parsing has finished - set dom content loaded
+        self.interactive_time.borrow().maybe_set_tti(self, InteractiveFlag::DOMContentLoaded);
+
         // Step 4.2.
         // TODO: client message queue.
     }
@@ -1916,6 +1923,14 @@ impl Document {
         self.dom_interactive.get()
     }
 
+    pub fn get_interactive_metrics(&self) -> Ref<InteractiveMetrics> {
+        self.interactive_time.borrow()
+    }
+
+    pub fn has_recorded_tti_metric(&self) -> bool {
+        self.get_interactive_metrics().get_tti().is_some()
+    }
+
     pub fn get_dom_content_loaded_event_start(&self) -> u64 {
         self.dom_content_loaded_event_start.get()
     }
@@ -1934,6 +1949,22 @@ impl Document {
 
     pub fn get_load_event_end(&self) -> u64 {
         self.load_event_end.get()
+    }
+
+    pub fn start_tti(&self) {
+        self.tti_window.borrow_mut().start_window();
+    }
+
+    /// check tti for this document
+    /// if it's been 10s since this doc encountered a task over 50ms, then we consider the
+    /// main thread available and try to set tti
+    pub fn record_tti_if_necessary(&self) {
+        if self.has_recorded_tti_metric() { return; }
+
+        if self.tti_window.borrow().needs_check() {
+            self.get_interactive_metrics().maybe_set_tti(self,
+                InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start() as f64));
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
@@ -2145,6 +2176,8 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
+        let interactive_time = InteractiveMetrics::new(window.time_profiler_chan().clone());
+
         Document {
             node: Node::new_document_node(),
             window: Dom::from_ref(window),
@@ -2236,6 +2269,8 @@ impl Document {
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
+            interactive_time: DomRefCell::new(interactive_time),
+            tti_window: DomRefCell::new(InteractiveWindow::new()),
         }
     }
 
@@ -2579,11 +2614,13 @@ impl Document {
             self.send_to_constellation(event);
         }
 
+        let pipeline_id = self.window().pipeline_id();
+
         // Step 7
         let trusted_pending = Trusted::new(pending);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenEnter::new(trusted_pending, trusted_promise, error);
-        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler);
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler, pipeline_id);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -2615,7 +2652,8 @@ impl Document {
         let trusted_element = Trusted::new(element.r());
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler);
+        let pipeline_id = Some(global.pipeline_id());
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler, pipeline_id);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -2670,6 +2708,16 @@ impl Element {
                 if self.disabled_state() => true,
             _ => false,
         }
+    }
+}
+
+impl ProfilerMetadataFactory for Document {
+    fn new_metadata(&self) -> Option<TimerMetadata> {
+        Some(TimerMetadata {
+            url: String::from(self.url().as_str()),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::Incremental,
+        })
     }
 }
 

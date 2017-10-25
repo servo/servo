@@ -7,6 +7,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
+use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
@@ -17,7 +18,7 @@ use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(Clone, JSTraceable)]
-pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
 
 impl fmt::Debug for DOMManipulationTaskSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -37,6 +38,7 @@ impl TaskSource for DOMManipulationTaskSource {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::ScriptEvent,
             Box::new(canceller.wrap_task(task)),
+            Some(self.1)
         ));
         self.0.send(msg).map_err(|_| ())
     }

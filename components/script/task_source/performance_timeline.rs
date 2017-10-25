@@ -8,6 +8,7 @@
 
 use dom::bindings::refcounted::Trusted;
 use dom::globalscope::GlobalScope;
+use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use std::fmt;
 use std::result::Result;
@@ -15,11 +16,11 @@ use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
-pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>);
+pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
 
 impl Clone for PerformanceTimelineTaskSource {
     fn clone(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.0.clone())
+        PerformanceTimelineTaskSource(self.0.clone(), self.1.clone())
     }
 }
 
@@ -40,7 +41,8 @@ impl TaskSource for PerformanceTimelineTaskSource {
     {
         let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::PerformanceTimelineTask,
-            Box::new(canceller.wrap_task(task))
+            Box::new(canceller.wrap_task(task)),
+            Some(self.1)
         );
         self.0.send(msg).map_err(|_| ())
     }
