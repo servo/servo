@@ -460,14 +460,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                              webrender_api::LayoutSize::zero());
             }
             DisplayItem::Line(ref item) => {
-                let box_bounds = item.base.bounds.to_rectf();
                 builder.push_line(&self.prim_info(),
-                                  box_bounds.origin.y + box_bounds.size.height,
-                                  box_bounds.origin.x,
-                                  box_bounds.origin.x + box_bounds.size.width,
+                                  // TODO(gw): Use a better estimate for wavy line thickness.
+                                  (0.33 * item.base.bounds.size.height.to_f32_px()).ceil(),
                                   webrender_api::LineOrientation::Horizontal,
-                                  box_bounds.size.height,
-                                  item.color,
+                                  &item.color,
                                   item.style);
             }
             DisplayItem::BoxShadow(ref item) => {
