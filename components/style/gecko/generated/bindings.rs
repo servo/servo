@@ -14,6 +14,7 @@ use gecko_bindings::structs::mozilla::css::ErrorReporter;
 use gecko_bindings::structs::mozilla::css::ImageValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::css::URLValueData;
+use gecko_bindings::structs::mozilla::dom::CallerType;
 use gecko_bindings::structs::mozilla::AnonymousCounterStyle;
 use gecko_bindings::structs::mozilla::AtomArray;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
@@ -2868,7 +2869,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed,
-                                   text: *const nsACString);
+                                   text: *const nsACString,
+                                   aCallerType: CallerType);
 }
 extern "C" {
     pub fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> u32;
