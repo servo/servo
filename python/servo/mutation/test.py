@@ -11,36 +11,39 @@ import fileinput
 import re
 import subprocess
 import sys
+import os
+DEVNULL = open(os.devnull, 'wb')
 
 
 def mutate_line(file_name, line_number):
     for line in fileinput.input(file_name, inplace=True):
-        if(fileinput.lineno() == line_number):
+        if fileinput.lineno() == line_number:
             line = re.sub(r'\s&&\s', ' || ', line)
         print line.rstrip()
 
 
 def mutation_test(file_name, tests):
-    lineNumbers = []
+    line_numbers = []
     for line in fileinput.input(file_name):
         if re.search(r'\s&&\s', line):
-            lineNumbers.append(fileinput.lineno())
+            line_numbers.append(fileinput.lineno())
 
-    for lineToMutate in lineNumbers:
-        print "Mutating {0} at line {1}".format(file_name, lineToMutate)
-        mutate_line(file_name, lineToMutate)
-        print "compling mutant {0}-{1}".format(file_name, lineToMutate)
+    for line_to_mutate in line_numbers:
+        print "Mutating {0} at line {1}".format(file_name, line_to_mutate)
+        mutate_line(file_name, line_to_mutate)
+        print "compling mutant {0}:{1}".format(file_name, line_to_mutate)
         sys.stdout.flush()
-        subprocess.call('python mach build --release', shell=True)
-        print "running tests for mutant {0}-{1}".format(file_name, lineToMutate)
+        subprocess.call('python mach build --release', shell=True, stdout=DEVNULL)
+        print "running tests for mutant {0}:{1}".format(file_name, line_to_mutate)
         sys.stdout.flush()
         for test in tests:
-            testStatus = subprocess.call("python mach test-wpt {0} --release".format(test.encode('utf-8')), shell=True)
-            if testStatus != 0:
-                print('Failed in while running `python mach test-wpt {0} --release`'.format(test.encode('utf-8')))
+            test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
+            test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
+            if test_status != 0:
+                print("Failed in while running `{0}`".format(test_command))
                 print "mutated file {0} diff".format(file_name)
                 sys.stdout.flush()
                 subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
-        print "reverting mutant {0}-{1}".format(file_name, lineToMutate)
+        print "reverting mutant {0}:{1}".format(file_name, line_to_mutate)
         sys.stdout.flush()
         subprocess.call('git checkout {0}'.format(file_name), shell=True)
