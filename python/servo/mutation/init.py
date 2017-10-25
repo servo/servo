@@ -17,21 +17,21 @@ import test
 def get_folders_list(path):
     folder_list = []
     for filename in listdir(path):
-        if (isdir(join(path, filename))):
+        if isdir(join(path, filename)):
             folder_name = join(path, filename)
             folder_list.append(folder_name)
-        return(folder_list)
+        return folder_list
 
 
 def mutation_test_for(mutation_path):
-    test_mapping_file = join(mutation_path, 'Test_mapping.json')
-    if(isfile(test_mapping_file)):
+    test_mapping_file = join(mutation_path, 'test_mapping.json')
+    if isfile(test_mapping_file):
         json_data = open(test_mapping_file).read()
         test_mapping = json.loads(json_data)
-
+        # Run mutation test for all source files in mapping file.
         for src_file in test_mapping.keys():
             test.mutation_test(join(mutation_path, src_file.encode('utf-8')), test_mapping[src_file])
-
+        # Run mutation test in all folder in the path.
         for folder in get_folders_list(mutation_path):
             mutation_test_for(folder)
     else:
