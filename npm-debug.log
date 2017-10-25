@@ -1,0 +1,62 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'C:\\Program Files\\nodejs\\node.exe',
+1 verbose cli   'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'install',
+1 verbose cli   'mach' ]
+2 info using npm@3.10.10
+3 info using node@v6.11.2
+4 verbose config Skipping project config: C:\Users\saravanan/.npmrc. (matches userconfig)
+5 silly loadCurrentTree Starting
+6 silly install loadCurrentTree
+7 silly install readLocalPackageData
+8 silly fetchPackageMetaData mach
+9 silly fetchOtherPackageData mach
+10 silly cache add args [ 'mach', null ]
+11 verbose cache add spec mach
+12 silly cache add parsed spec Result {
+12 silly cache add   raw: 'mach',
+12 silly cache add   scope: null,
+12 silly cache add   escapedName: 'mach',
+12 silly cache add   name: null,
+12 silly cache add   rawSpec: 'mach',
+12 silly cache add   spec: 'C:\\Users\\saravanan\\Desktop\\Fall17\\OODD\\OSS\\servo_repo\\servo\\mach',
+12 silly cache add   type: 'local' }
+13 silly addLocalTarball shasum (computed) 3ba6e083424bc39d8beaf906b50713c294fedaaf
+14 verbose addTmpTarball C:\Users\saravanan\Desktop\Fall17\OODD\OSS\servo_repo\servo\mach not in flight; adding
+15 verbose correctMkdir C:\Users\saravanan\AppData\Roaming\npm-cache correctMkdir not in flight; initializing
+16 verbose addTmpTarball validating metadata from C:\Users\saravanan\Desktop\Fall17\OODD\OSS\servo_repo\servo\mach
+17 verbose tar unpack C:\Users\saravanan\Desktop\Fall17\OODD\OSS\servo_repo\servo\mach
+18 verbose tar unpacking to C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7
+19 silly gentlyRm C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7 is being purged
+20 verbose gentlyRm don't care about contents; nuking C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7
+21 silly gunzTarPerm modes [ '777', '666' ]
+22 error not a package C:\Users\saravanan\Desktop\Fall17\OODD\OSS\servo_repo\servo\mach
+23 error addLocal Could not install C:\Users\saravanan\Desktop\Fall17\OODD\OSS\servo_repo\servo\mach
+24 silly fetchPackageMetaData Error: ENOENT: no such file or directory, open 'C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7\package.json'
+24 silly fetchPackageMetaData     at Error (native)
+24 silly fetchPackageMetaData  error for mach { Error: ENOENT: no such file or directory, open 'C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7\package.json'
+24 silly fetchPackageMetaData     at Error (native)
+24 silly fetchPackageMetaData   errno: -4058,
+24 silly fetchPackageMetaData   code: 'ENOENT',
+24 silly fetchPackageMetaData   syscall: 'open',
+24 silly fetchPackageMetaData   path: 'C:\\Users\\SARAVA~1\\AppData\\Local\\Temp\\npm-1232-ec7016d8\\unpack-f35befc7\\package.json' }
+25 silly rollbackFailedOptional Starting
+26 silly rollbackFailedOptional Finishing
+27 silly runTopLevelLifecycles Finishing
+28 silly install printInstalled
+29 verbose stack Error: ENOENT: no such file or directory, open 'C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7\package.json'
+29 verbose stack     at Error (native)
+30 verbose cwd C:\Users\saravanan\Desktop\Fall17\OODD\OSS\servo_repo\servo
+31 error Windows_NT 6.1.7601
+32 error argv "C:\\Program Files\\nodejs\\node.exe" "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "install" "mach"
+33 error node v6.11.2
+34 error npm  v3.10.10
+35 error path C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7\package.json
+36 error code ENOENT
+37 error errno -4058
+38 error syscall open
+39 error enoent ENOENT: no such file or directory, open 'C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7\package.json'
+40 error enoent ENOENT: no such file or directory, open 'C:\Users\SARAVA~1\AppData\Local\Temp\npm-1232-ec7016d8\unpack-f35befc7\package.json'
+40 error enoent This is most likely not a problem with npm itself
+40 error enoent and is related to npm not being able to find a file.
+41 verbose exit [ -4058, true ]
