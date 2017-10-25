@@ -68,6 +68,7 @@ linux-rel-nogate:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach build --release
   - python ./etc/ci/chaos_monkey_test.py
+  - python ./etc/ci/mutation_test.py
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
