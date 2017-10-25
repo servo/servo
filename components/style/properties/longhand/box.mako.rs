@@ -1451,20 +1451,17 @@ ${helpers.single_keyword("scroll-behavior",
                          spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
                          animation_value_type="discrete")}
 
-${helpers.single_keyword("scroll-snap-type-x",
-                         "none mandatory proximity",
-                         products="gecko",
-                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
-                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
-                         animation_value_type="discrete")}
-
-<%helpers:longhand products="gecko" name="scroll-snap-type-y" animation_value_type="discrete"
-                   spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)">
-    pub use super::scroll_snap_type_x::SpecifiedValue;
-    pub use super::scroll_snap_type_x::computed_value;
-    pub use super::scroll_snap_type_x::get_initial_value;
-    pub use super::scroll_snap_type_x::parse;
-</%helpers:longhand>
+% for axis in ["x", "y"]:
+    ${helpers.predefined_type(
+        "scroll-snap-type-" + axis,
+        "ScrollSnapType",
+        "computed::ScrollSnapType::None",
+        products="gecko",
+        needs_context=False,
+        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
+        animation_value_type="discrete"
+    )}
+% endfor
 
 // Compositing and Blending Level 1
 // http://www.w3.org/TR/compositing-1/

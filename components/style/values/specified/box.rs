@@ -110,3 +110,10 @@ impl Parse for AnimationName {
         Ok(AnimationName(None))
     }
 }
+
+define_css_keyword_enum! { ScrollSnapType:
+    "none" => None,
+    "mandatory" => Mandatory,
+    "proximity" => Proximity,
+}
+add_impls_for_keyword_enum!(ScrollSnapType);
