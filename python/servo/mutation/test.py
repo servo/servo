@@ -14,11 +14,10 @@ import sys
 
 
 def mutate_line(file_name, line_number):
-    lines = open(file_name, 'r').readlines()
-    lines[line_number - 1] = re.sub(r'\s&&\s', ' || ', lines[line_number - 1])
-    out = open(file_name, 'w')
-    out.writelines(lines)
-    out.close()
+    for line in fileinput.input(file_name, inplace=True):
+        if(fileinput.lineno() == line_number):
+            line = re.sub(r'\s&&\s', ' || ', line)
+        print line.rstrip()
 
 
 def mutation_test(file_name, tests):
