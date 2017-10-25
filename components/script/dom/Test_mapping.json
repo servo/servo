@@ -1,10 +1,8 @@
 {
-  "xmlhttprequest.rs":
-  [
-       "XMLHttpRequest"
+  "xmlhttprequest.rs": [
+    "XMLHttpRequest"
   ],
-  "range.rs":
-  [
-         "dom/ranges"
+  "range.rs": [
+    "dom/ranges"
   ]
 }
