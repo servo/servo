@@ -4395,11 +4395,23 @@ pub extern "C" fn Servo_ProcessInvalidations(
 pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrowed) -> bool {
     let mut element = Some(GeckoElement(element));
     while let Some(e) = element {
+        if e.has_animations() {
+            return true;
+        }
+
+        // If the element needs a frame, it means that we haven't styled it yet
+        // after it got inserted in the document, and thus we may need to do
+        // that for transitions and animations to trigger.
+        if e.needs_frame() {
+            return true;
+        }
+
         if let Some(data) = e.borrow_data() {
             if !data.hint.is_empty() {
                 return true;
             }
         }
+
         element = e.traversal_parent();
     }
     false
