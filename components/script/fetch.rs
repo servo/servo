@@ -21,7 +21,7 @@ use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
-use net_traits::{FetchResponseListener, NetworkError};
+use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
 use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
@@ -51,7 +51,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         body: request.body.clone(),
         destination: request.destination,
         synchronous: request.synchronous,
-        mode: request.mode,
+        mode: request.mode.clone(),
         use_cors_preflight: request.use_cors_preflight,
         credentials_mode: request.credentials_mode,
         use_url_credentials: request.use_url_credentials,
@@ -107,7 +107,8 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
     ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
         listener.notify_fetch(message.to().unwrap());
     }));
-    core_resource_thread.send(NetTraitsFetch(request_init, action_sender)).unwrap();
+    core_resource_thread.send(
+        NetTraitsFetch(request_init, FetchChannels::ResponseMsg(action_sender))).unwrap();
 
     promise
 }

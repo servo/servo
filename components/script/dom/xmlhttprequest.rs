@@ -52,7 +52,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JSContext, JS_ParseJSON};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use net_traits::{FetchMetadata, FilteredMetadata};
+use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
@@ -266,7 +266,8 @@ impl XMLHttpRequest {
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
         }));
-        global.core_resource_thread().send(Fetch(init, action_sender)).unwrap();
+        global.core_resource_thread().send(
+            Fetch(init, FetchChannels::ResponseMsg(action_sender))).unwrap();
     }
 }
 

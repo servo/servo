@@ -9,7 +9,8 @@
 use dom::bindings::root::Dom;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
-use net_traits::{CoreResourceMsg, FetchResponseMsg, ResourceThreads, IpcSend};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
+use net_traits::{ResourceThreads, IpcSend};
 use net_traits::request::RequestInit;
 use servo_url::ServoUrl;
 use std::thread;
@@ -124,7 +125,8 @@ impl DocumentLoader {
     pub fn fetch_async_background(&self,
                                   request: RequestInit,
                                   fetch_target: IpcSender<FetchResponseMsg>) {
-        self.resource_threads.sender().send(CoreResourceMsg::Fetch(request, fetch_target)).unwrap();
+        self.resource_threads.sender().send(
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target))).unwrap();
     }
 
     /// Mark an in-progress network request complete.
