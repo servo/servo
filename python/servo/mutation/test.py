@@ -10,7 +10,7 @@ def mutate_line(file_name, line_number):
     out.writelines(lines)
     out.close()
 
-def mutation_test(file_name):
+def mutation_test(file_name, tests):
     lineNumbers = []
     for line in fileinput.input(file_name):
         if re.search(r'\s&&\s', line):
@@ -21,17 +21,16 @@ def mutation_test(file_name):
         mutate_line(file_name, lineToMutate)
         print "compling mutant {0}-{1}".format(file_name, lineToMutate)
         sys.stdout.flush()
-        subprocess.call('python mach build --release', shell=True)
+        #subprocess.call('python mach build --release', shell=True)
         print "running tests for mutant {0}-{1}".format(file_name, lineToMutate)
         sys.stdout.flush()
-        testStatus = subprocess.call('python mach test-wpt XMLHttpRequest --release', shell=True)
-        if testStatus != 0:
-            print('Failed in while running `python mach test-wpt XMLHttpRequest --release`')
-            print "mutated file {0} diff".format(file_name)
-            sys.stdout.flush()
-            subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
+        for test in tests:
+            testStatus = subprocess.call("python mach test-wpt {0} --release".format(test.encode('utf-8')), shell=True)
+            if testStatus != 0:
+                print('Failed in while running `python mach test-wpt {0} --release`'.format(test.encode('utf-8')))
+                print "mutated file {0} diff".format(file_name)
+                sys.stdout.flush()
+                subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
         print "reverting mutant {0}-{1}".format(file_name, lineToMutate)
         sys.stdout.flush()
         subprocess.call('git checkout {0}'.format(file_name), shell=True)
-
-mutation_test('components/script/dom/xmlhttprequest.rs')
