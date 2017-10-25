@@ -2698,7 +2698,7 @@ fn static_assert() {
                           transition-timing-function transition-property
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
-                          scroll-snap-type-y scroll-snap-coordinate
+                          scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin transform-origin -moz-binding will-change
                           shape-outside contain touch-action""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
@@ -3301,9 +3301,9 @@ fn static_assert() {
 
     ${impl_animation_timing_function()}
 
-    <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
-
+    <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "None Mandatory Proximity") %>
     ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword)}
+    ${impl_keyword('scroll_snap_type_x', 'mScrollSnapTypeX', scroll_snap_type_keyword)}
 
     pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
         self.gecko.mPerspectiveOrigin[0].set(v.horizontal);
