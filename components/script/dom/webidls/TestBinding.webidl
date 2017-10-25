@@ -151,6 +151,13 @@ interface TestBinding {
   [BinaryName="BinaryRenamedAttribute2"] attribute DOMString attr-to-binary-rename;
   attribute DOMString attr-to-automatically-rename;
 
+  const long long constantInt64 = -1;
+  const unsigned long long constantUint64 = 1;
+  const float constantFloat32 = 1.0;
+  const double constantFloat64 = 1.0;
+  const unrestricted float constantUnrestrictedFloat32 = 1.0;
+  const unrestricted double constantUnrestrictedFloat64 = 1.0;
+
   [PutForwards=booleanAttribute]
   readonly attribute TestBinding forwardedAttribute;
 
