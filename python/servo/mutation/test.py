@@ -21,7 +21,7 @@ def mutation_test(file_name, tests):
         mutate_line(file_name, lineToMutate)
         print "compling mutant {0}-{1}".format(file_name, lineToMutate)
         sys.stdout.flush()
-        #subprocess.call('python mach build --release', shell=True)
+        subprocess.call('python mach build --release', shell=True)
         print "running tests for mutant {0}-{1}".format(file_name, lineToMutate)
         sys.stdout.flush()
         for test in tests:
