@@ -187,6 +187,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         }
     }
 
+    fn owner_doc(&self) -> Self::ConcreteDocument {
+        ServoLayoutDocument::from_layout_js(unsafe { self.node.owner_doc_for_layout() })
+    }
+
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'ln>> {
         self.parent_element()
     }
@@ -778,7 +782,11 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     fn is_html_element_in_html_document(&self) -> bool {
         unsafe {
-            self.element.html_element_in_html_document_for_layout()
+            if !self.element.is_html_element() {
+                return false;
+            }
+
+            self.as_node().node.owner_doc_for_layout().is_html_document_for_layout()
         }
     }
 }

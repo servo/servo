@@ -175,17 +175,12 @@ impl<'ln> GeckoNode<'ln> {
     /// Owner document quirks mode getter.
     #[inline]
     pub fn owner_document_quirks_mode(&self) -> QuirksMode {
-        self.owner_doc().mCompatMode.into()
+        self.owner_doc().0.mCompatMode.into()
     }
 
     #[inline]
     fn get_bool_flag(&self, flag: nsINode_BooleanFlag) -> bool {
         self.bool_flags() & (1u32 << flag as u32) != 0
-    }
-
-    fn owner_doc(&self) -> &'ln structs::nsIDocument {
-        debug_assert!(!self.node_info().mDocument.is_null());
-        unsafe { &*self.node_info().mDocument }
     }
 
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
@@ -269,6 +264,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
     }
 
+    #[inline]
+    fn owner_doc(&self) -> Self::ConcreteDocument {
+        debug_assert!(!self.node_info().mDocument.is_null());
+        GeckoDocument(unsafe { &*self.node_info().mDocument })
+    }
+
     fn traversal_parent(&self) -> Option<GeckoElement<'ln>> {
         self.flattened_tree_parent().and_then(|n| n.as_element())
     }
@@ -294,7 +295,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     #[inline]
     fn as_document(&self) -> Option<Self::ConcreteDocument> {
         if self.is_document() {
-            Some(GeckoDocument(self.owner_doc()))
+            Some(self.owner_doc())
         } else {
             None
         }
@@ -625,7 +626,7 @@ impl<'le> GeckoElement<'le> {
     fn document_state(&self) -> DocumentState {
         let node = self.as_node();
         unsafe {
-            let states = Gecko_DocumentState(node.owner_doc());
+            let states = Gecko_DocumentState(node.owner_doc().0);
             DocumentState::from_bits_truncate(states)
         }
     }
@@ -661,7 +662,7 @@ impl<'le> GeckoElement<'le> {
     #[inline]
     fn get_document_theme(&self) -> DocumentTheme {
         let node = self.as_node();
-        unsafe { Gecko_GetDocumentLWTheme(node.owner_doc()) }
+        unsafe { Gecko_GetDocumentLWTheme(node.owner_doc().0) }
     }
 
     /// Owner document quirks mode getter.
@@ -978,7 +979,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
-        self.as_node().owner_doc() as *const structs::nsIDocument ==
+        self.as_node().owner_doc().0 as *const structs::nsIDocument ==
             device.pres_context().mDocument.raw::<structs::nsIDocument>()
     }
 
@@ -1613,7 +1614,7 @@ impl<'le> TElement for GeckoElement<'le> {
             if self.get_local_name().as_ptr() == atom!("th").as_ptr() {
                 hints.push(TH_RULE.clone());
             } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
-                      self.as_node().owner_doc().mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
+                      self.as_node().owner_doc().0.mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
                 hints.push(TABLE_COLOR_RULE.clone());
             }
         }
@@ -2060,7 +2061,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn is_html_element_in_html_document(&self) -> bool {
         self.is_html_element() &&
-        self.as_node().owner_doc().mType == structs::root::nsIDocument_Type::eHTML
+        self.as_node().owner_doc().0.mType == structs::root::nsIDocument_Type::eHTML
     }
 
     fn ignores_nth_child_selectors(&self) -> bool {

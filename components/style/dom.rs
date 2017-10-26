@@ -166,6 +166,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// Get this node's next sibling.
     fn next_sibling(&self) -> Option<Self>;
 
+    /// Get the owner document of this node.
+    fn owner_doc(&self) -> Self::ConcreteDocument;
+
     /// Iterate over the DOM children of a node.
     fn dom_children(&self) -> DomChildren<Self> {
         DomChildren(self.first_child())
