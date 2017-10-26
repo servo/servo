@@ -154,8 +154,27 @@ impl FontHandleMethods for FontHandle {
         }
     }
     fn stretchiness(&self) -> font_stretch::T {
-        // TODO(pcwalton): Implement this.
-        font_stretch::T::normal
+        let default_stretch = font_stretch::T::normal;
+        unsafe {
+            let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
+            let valid = !os2.is_null() && (*os2).version != 0xffff;
+            if valid {
+                match (*os2).usWidthClass {
+                    1 => font_stretch::T::ultra_condensed,
+                    2 => font_stretch::T::extra_condensed,
+                    3 => font_stretch::T::condensed,
+                    4 => font_stretch::T::semi_condensed,
+                    5 => font_stretch::T::normal, // called medium in TrueType spec
+                    6 => font_stretch::T::semi_expanded,
+                    7 => font_stretch::T::expanded,
+                    8 => font_stretch::T::extra_expanded,
+                    9 => font_stretch::T::ultra_expanded,
+                    _ => default_stretch,
+                }
+            } else {
+                default_stretch
+            }
+        }
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
