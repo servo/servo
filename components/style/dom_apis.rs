@@ -6,7 +6,7 @@
 //! and Gecko.
 
 use context::QuirksMode;
-use dom::{TElement, TNode};
+use dom::{TDocument, TElement, TNode};
 use invalidation::element::invalidator::{Invalidation, InvalidationProcessor, InvalidationVector};
 use selectors::{Element, NthIndexCache, SelectorList};
 use selectors::matching::{self, MatchingContext, MatchingMode};
@@ -308,7 +308,6 @@ pub fn query_selector<E, Q>(
     root: E::ConcreteNode,
     selector_list: &SelectorList<E::Impl>,
     results: &mut Q::Output,
-    quirks_mode: QuirksMode,
 )
 where
     E: TElement,
@@ -316,6 +315,7 @@ where
 {
     use invalidation::element::invalidator::TreeStyleInvalidator;
 
+    let quirks_mode = root.owner_doc().quirks_mode();
     let fast_result = query_selector_fast::<E, Q>(
         root,
         selector_list,

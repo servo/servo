@@ -446,7 +446,7 @@ pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_rowspan(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
+    unsafe fn is_html_element(&self) -> bool;
     fn id_attribute(&self) -> *const Option<Atom>;
     fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
@@ -781,11 +781,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
-        if (*self.unsafe_get()).namespace != ns!(html) {
-            return false;
-        }
-        self.upcast::<Node>().owner_doc_for_layout().is_html_document_for_layout()
+    unsafe fn is_html_element(&self) -> bool {
+        (*self.unsafe_get()).namespace == ns!(html)
     }
 
     #[allow(unsafe_code)]
