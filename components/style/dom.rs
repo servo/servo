@@ -133,11 +133,23 @@ where
     }
 }
 
+/// The `TDocument` trait, to represent a document node.
+pub trait TDocument : Sized + Copy + Clone {
+    /// The concrete `TNode` type.
+    type ConcreteNode: TNode<ConcreteDocument = Self>;
+
+    /// Get this document as a `TNode`.
+    fn as_node(&self) -> Self::ConcreteNode;
+}
+
 /// The `TNode` trait. This is the main generic trait over which the style
 /// system can be implemented.
 pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// The concrete `TElement` type.
     type ConcreteElement: TElement<ConcreteNode = Self>;
+
+    /// The concrete `TDocument` type.
+    type ConcreteDocument: TDocument<ConcreteNode = Self>;
 
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
@@ -210,6 +222,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Get this node as an element, if it's one.
     fn as_element(&self) -> Option<Self::ConcreteElement>;
+
+    /// Get this node as a document, if it's one.
+    fn as_document(&self) -> Option<Self::ConcreteDocument>;
 
     /// Whether this node can be fragmented. This is used for multicol, and only
     /// for Servo.

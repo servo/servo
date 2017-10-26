@@ -69,7 +69,7 @@ use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{TElement, TNode};
+use style::dom::{TDocument, TElement, TNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -139,10 +139,6 @@ impl<'ln> ServoLayoutNode<'ln> {
             self.node.type_id_for_layout()
         }
     }
-
-    pub fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
-        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
-    }
 }
 
 impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
@@ -158,6 +154,7 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
+    type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteElement = ServoLayoutElement<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
@@ -204,6 +201,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
         as_element(self.node)
+    }
+
+    fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
+        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
     }
 
     fn can_be_fragmented(&self) -> bool {
@@ -287,11 +288,15 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> ServoLayoutDocument<'ld> {
-    fn as_node(&self) -> ServoLayoutNode<'ld> {
+impl<'ld> TDocument for ServoLayoutDocument<'ld> {
+    type ConcreteNode = ServoLayoutNode<'ld>;
+
+    fn as_node(&self) -> Self::ConcreteNode {
         ServoLayoutNode::from_layout_js(self.document.upcast())
     }
+}
 
+impl<'ld> ServoLayoutDocument<'ld> {
     pub fn root_element(&self) -> Option<ServoLayoutElement<'ld>> {
         self.as_node().dom_children().flat_map(|n| n.as_element()).next()
     }

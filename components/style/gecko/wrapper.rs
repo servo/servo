@@ -20,7 +20,7 @@ use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::ElementData;
-use dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TNode};
+use dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TDocument, TNode};
 use element_state::{ElementState, DocumentState, NS_DOCUMENT_STATE_WINDOW_INACTIVE};
 use error_reporting::ParseErrorReporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
@@ -92,6 +92,18 @@ use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylesheets::UrlExtraData;
 use stylist::Stylist;
 
+/// A simple wrapper over `nsIDocument`.
+#[derive(Clone, Copy)]
+pub struct GeckoDocument<'ld>(pub &'ld structs::nsIDocument);
+
+impl<'ld> TDocument for GeckoDocument<'ld> {
+    type ConcreteNode = GeckoNode<'ld>;
+
+    fn as_node(&self) -> Self::ConcreteNode {
+        GeckoNode(&self.0._base)
+    }
+}
+
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
 ///
 /// Important: We don't currently refcount the DOM, because the wrapper lifetime
@@ -124,6 +136,13 @@ impl<'ln> fmt::Debug for GeckoNode<'ln> {
 }
 
 impl<'ln> GeckoNode<'ln> {
+    #[inline]
+    fn is_document(&self) -> bool {
+        // This is a DOM constant that isn't going to change.
+        const DOCUMENT_NODE: u16 = 9;
+        self.node_info().mInner.mNodeType == DOCUMENT_NODE
+    }
+
     #[inline]
     fn from_content(content: &'ln nsIContent) -> Self {
         GeckoNode(&content._base)
@@ -164,7 +183,7 @@ impl<'ln> GeckoNode<'ln> {
         self.bool_flags() & (1u32 << flag as u32) != 0
     }
 
-    fn owner_doc(&self) -> &structs::nsIDocument {
+    fn owner_doc(&self) -> &'ln structs::nsIDocument {
         debug_assert!(!self.node_info().mDocument.is_null());
         unsafe { &*self.node_info().mDocument }
     }
@@ -223,6 +242,7 @@ impl<'ln> NodeInfo for GeckoNode<'ln> {
 }
 
 impl<'ln> TNode for GeckoNode<'ln> {
+    type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
@@ -266,6 +286,15 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn as_element(&self) -> Option<GeckoElement<'ln>> {
         if self.is_element() {
             unsafe { Some(GeckoElement(&*(self.0 as *const _ as *const RawGeckoElement))) }
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn as_document(&self) -> Option<Self::ConcreteDocument> {
+        if self.is_document() {
+            Some(GeckoDocument(self.owner_doc()))
         } else {
             None
         }
