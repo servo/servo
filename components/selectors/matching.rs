@@ -550,8 +550,7 @@ where
     };
 
     let combinator = selector_iter.next_sequence();
-    let siblings = combinator.map_or(false, |c| c.is_sibling());
-    if siblings {
+    if combinator.map_or(false, |c| c.is_sibling()) {
         flags_setter(element, HAS_SLOW_SELECTOR_LATER_SIBLINGS);
     }
 
