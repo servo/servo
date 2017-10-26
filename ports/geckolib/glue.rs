@@ -19,7 +19,7 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
 use style::data::{ElementStyles, self};
-use style::dom::{ShowSubtreeData, TElement, TNode};
+use style::dom::{ShowSubtreeData, TDocument, TElement, TNode};
 use style::driver;
 use style::element_state::{DocumentState, ElementState};
 use style::error_reporting::{NullReporter, ParseErrorReporter};
@@ -1577,7 +1577,9 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
         };
 
         let element = GeckoElement(element);
-        let mut ctx = MatchingContext::new(matching_mode, None, None, element.owner_document_quirks_mode());
+        let quirks_mode = element.as_node().owner_doc().quirks_mode();
+        let mut ctx =
+            MatchingContext::new(matching_mode, None, None, quirks_mode);
         matches_selector(selector, 0, None, &element, &mut ctx, &mut |_, _| {})
     })
 }
@@ -1591,9 +1593,10 @@ pub unsafe extern "C" fn Servo_SelectorList_Closest(
     use style::dom_apis;
 
     let element = GeckoElement(element);
+    let quirks_mode = element.as_node().owner_doc().quirks_mode();
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
 
-    dom_apis::element_closest(element, &selectors, element.owner_document_quirks_mode())
+    dom_apis::element_closest(element, &selectors, quirks_mode)
         .map_or(ptr::null(), |e| e.0)
 }
 
@@ -1606,11 +1609,12 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
     use style::dom_apis;
 
     let element = GeckoElement(element);
+    let quirks_mode = element.as_node().owner_doc().quirks_mode();
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
     dom_apis::element_matches(
         &element,
         &selectors,
-        element.owner_document_quirks_mode(),
+        quirks_mode,
     )
 }
 
@@ -1629,7 +1633,6 @@ pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
         node,
         &selectors,
         &mut result,
-        node.owner_document_quirks_mode(),
     );
 
     result.map_or(ptr::null(), |e| e.0)
@@ -1653,7 +1656,6 @@ pub unsafe extern "C" fn Servo_SelectorList_QueryAll(
         node,
         &selectors,
         &mut result,
-        node.owner_document_quirks_mode(),
     );
 
     if !result.is_empty() {

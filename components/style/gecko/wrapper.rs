@@ -102,6 +102,14 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
     fn as_node(&self) -> Self::ConcreteNode {
         GeckoNode(&self.0._base)
     }
+
+    fn is_html_document(&self) -> bool {
+        self.0.mType == structs::root::nsIDocument_Type::eHTML
+    }
+
+    fn quirks_mode(&self) -> QuirksMode {
+        self.0.mCompatMode.into()
+    }
 }
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
@@ -170,12 +178,6 @@ impl<'ln> GeckoNode<'ln> {
     #[inline]
     fn bool_flags(&self) -> u32 {
         (self.0).mBoolFlags
-    }
-
-    /// Owner document quirks mode getter.
-    #[inline]
-    pub fn owner_document_quirks_mode(&self) -> QuirksMode {
-        self.owner_doc().0.mCompatMode.into()
     }
 
     #[inline]
@@ -663,12 +665,6 @@ impl<'le> GeckoElement<'le> {
     fn get_document_theme(&self) -> DocumentTheme {
         let node = self.as_node();
         unsafe { Gecko_GetDocumentLWTheme(node.owner_doc().0) }
-    }
-
-    /// Owner document quirks mode getter.
-    #[inline]
-    pub fn owner_document_quirks_mode(&self) -> QuirksMode {
-        self.as_node().owner_document_quirks_mode()
     }
 
     /// Only safe to call on the main thread, with exclusive access to the element and
@@ -1614,7 +1610,7 @@ impl<'le> TElement for GeckoElement<'le> {
             if self.get_local_name().as_ptr() == atom!("th").as_ptr() {
                 hints.push(TH_RULE.clone());
             } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
-                      self.as_node().owner_doc().0.mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
+                      self.as_node().owner_doc().quirks_mode() == QuirksMode::Quirks {
                 hints.push(TABLE_COLOR_RULE.clone());
             }
         }
@@ -2061,7 +2057,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn is_html_element_in_html_document(&self) -> bool {
         self.is_html_element() &&
-        self.as_node().owner_doc().0.mType == structs::root::nsIDocument_Type::eHTML
+        self.as_node().owner_doc().is_html_document()
     }
 
     fn ignores_nth_child_selectors(&self) -> bool {

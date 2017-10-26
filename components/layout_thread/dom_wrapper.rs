@@ -51,7 +51,7 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, QuirksMode, RelevantLinkStatus};
 use selectors::matching::VisitedHandlingMode;
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
@@ -297,6 +297,14 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
 
     fn as_node(&self) -> Self::ConcreteNode {
         ServoLayoutNode::from_layout_js(self.document.upcast())
+    }
+
+    fn quirks_mode(&self) -> QuirksMode {
+        unsafe { self.document.quirks_mode() }
+    }
+
+    fn is_html_document(&self) -> bool {
+        unsafe { self.document.is_html_document_for_layout() }
     }
 }
 
@@ -785,9 +793,9 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             if !self.element.is_html_element() {
                 return false;
             }
-
-            self.as_node().node.owner_doc_for_layout().is_html_document_for_layout()
         }
+
+        self.as_node().owner_doc().is_html_document()
     }
 }
 

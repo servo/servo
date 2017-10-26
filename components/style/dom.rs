@@ -22,7 +22,7 @@ use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use rule_tree::CascadeLevel;
 use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
 use selectors::Element as SelectorsElement;
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
@@ -140,6 +140,12 @@ pub trait TDocument : Sized + Copy + Clone {
 
     /// Get this document as a `TNode`.
     fn as_node(&self) -> Self::ConcreteNode;
+
+    /// Returns whether this document is an HTML document.
+    fn is_html_document(&self) -> bool;
+
+    /// Returns the quirks mode of this document.
+    fn quirks_mode(&self) -> QuirksMode;
 }
 
 /// The `TNode` trait. This is the main generic trait over which the style
