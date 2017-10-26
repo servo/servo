@@ -311,16 +311,6 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     Ok(())
 }
 
-/// A trait used to synthesize presentational hints for HTML element attributes.
-pub trait PresentationalHintsSynthesizer {
-    /// Generate the proper applicable declarations due to presentational hints,
-    /// and insert them into `hints`.
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
-                                                                visited_handling: VisitedHandlingMode,
-                                                                hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock>;
-}
-
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement
     : Eq
@@ -331,7 +321,6 @@ pub trait TElement
     + Copy
     + Clone
     + SelectorsElement<Impl = SelectorImpl>
-    + PresentationalHintsSynthesizer
 {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
@@ -808,6 +797,16 @@ pub trait TElement
     /// Returns whether this element is the main body element of the HTML
     /// document it is on.
     fn is_html_document_body_element(&self) -> bool;
+
+    /// Generate the proper applicable declarations due to presentational hints,
+    /// and insert them into `hints`.
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(
+        &self,
+        visited_handling: VisitedHandlingMode,
+        hints: &mut V,
+    )
+    where
+        V: Push<ApplicableDeclarationBlock>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

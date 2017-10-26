@@ -20,7 +20,7 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthesizer, TNode};
+use style::dom::{LayoutIterator, NodeInfo, TNode};
 use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ComputedValues};
@@ -290,10 +290,14 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
-pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
-                                   ::selectors::Element<Impl=SelectorImpl> +
-                                   GetLayoutData +
-                                   PresentationalHintsSynthesizer {
+pub trait ThreadSafeLayoutElement
+    : Clone
+    + Copy
+    + Sized
+    + Debug
+    + ::selectors::Element<Impl=SelectorImpl>
+    + GetLayoutData
+{
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
     fn as_node(&self) -> Self::ConcreteThreadSafeLayoutNode;
