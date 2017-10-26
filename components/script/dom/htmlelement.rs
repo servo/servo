@@ -141,17 +141,7 @@ impl HTMLElementMethods for HTMLElement {
     make_bool_getter!(Hidden, "hidden");
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
-
-    // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemscope
-    make_bool_getter!(ItemScope, "itemscope");
-    // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemscope
-    make_bool_setter!(SetItemScope, "itemscope");
-
-    // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
-    make_getter!(ItemProp, "itemprop");
-    // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
-    make_setter!(SetItemProp, "itemprop");
-
+    
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
