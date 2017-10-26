@@ -25,7 +25,8 @@ pub use ::webgl_channel::WebGLChan;
 #[derive(Clone, Deserialize, Serialize)]
 pub enum WebGLMsg {
     /// Creates a new WebGLContext.
-    CreateContext(Size2D<i32>, GLContextAttributes, WebGLSender<Result<(WebGLCreateContextResult), String>>),
+    CreateContext(WebGLVersion, Size2D<i32>, GLContextAttributes,
+                  WebGLSender<Result<(WebGLCreateContextResult), String>>),
     /// Resizes a WebGLContext.
     ResizeContext(WebGLContextId, Size2D<i32>, WebGLSender<Result<(), String>>),
     /// Drops a WebGLContext.
@@ -70,6 +71,17 @@ pub enum WebGLContextShareMode {
     SharedTexture,
     /// Slow: glReadPixels is used to send pixels to WebRender each frame.
     Readback,
+}
+
+/// Defines the WebGL version
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
+pub enum WebGLVersion {
+    /// https://www.khronos.org/registry/webgl/specs/1.0.2/
+    /// Conforms closely to the OpenGL ES 2.0 API
+    WebGL1,
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/
+    /// Conforms closely to the OpenGL ES 3.0 API
+    WebGL2,
 }
 
 /// Helper struct to send WebGLCommands to a specific WebGLContext.
