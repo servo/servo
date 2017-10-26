@@ -486,6 +486,32 @@ enum Rightmost {
     No,
 }
 
+#[inline(always)]
+fn next_element_for_combinator<E>(
+    element: &E,
+    combinator: Combinator,
+) -> Option<E>
+where
+    E: Element,
+{
+    match combinator {
+        Combinator::NextSibling |
+        Combinator::LaterSibling => {
+            element.prev_sibling_element()
+        }
+        Combinator::Child |
+        Combinator::Descendant => {
+            if element.blocks_ancestor_combinators() {
+                return None;
+            }
+            element.parent_element()
+        }
+        Combinator::PseudoElement => {
+            element.pseudo_element_originating_element()
+        }
+    }
+}
+
 fn matches_complex_selector_internal<E, F>(
     mut selector_iter: SelectorIter<E::Impl>,
     element: &E,
@@ -538,27 +564,22 @@ where
         Some(c) => c,
     };
 
-    let (mut next_element, candidate_not_found) = match combinator {
-        Combinator::NextSibling | Combinator::LaterSibling => {
+    let candidate_not_found = match combinator {
+        Combinator::NextSibling |
+        Combinator::LaterSibling => {
             // Only ancestor combinators are allowed while looking for
             // relevant links, so switch to not looking.
             *relevant_link = RelevantLinkStatus::NotLooking;
-            (element.prev_sibling_element(),
-             SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant)
+             SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant
         }
-        Combinator::Child | Combinator::Descendant => {
-            if element.blocks_ancestor_combinators() {
-                (None, SelectorMatchingResult::NotMatchedGlobally)
-            } else {
-                (element.parent_element(),
-                 SelectorMatchingResult::NotMatchedGlobally)
-            }
-        }
+        Combinator::Child |
+        Combinator::Descendant |
         Combinator::PseudoElement => {
-            (element.pseudo_element_originating_element(),
-             SelectorMatchingResult::NotMatchedGlobally)
+             SelectorMatchingResult::NotMatchedGlobally
         }
     };
+
+    let mut next_element = next_element_for_combinator(element, combinator);
 
     loop {
         let element = match next_element {
@@ -606,11 +627,7 @@ where
             _ => {},
         }
 
-        next_element = if siblings {
-            element.prev_sibling_element()
-        } else {
-            element.parent_element()
-        };
+        next_element = next_element_for_combinator(&element, combinator);
     }
 }
 
