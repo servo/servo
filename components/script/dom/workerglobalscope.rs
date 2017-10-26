@@ -29,8 +29,9 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
+use msg::constellation_msg::PipelineId;
 use net_traits::{IpcSend, load_whole_resource};
-use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
+use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, get_reports, Runtime};
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
@@ -165,6 +166,10 @@ impl WorkerGlobalScope {
             cancelled: self.closing.clone(),
         }
     }
+
+    pub fn pipeline_id(&self) -> PipelineId {
+        self.globalscope.pipeline_id()
+    }
 }
 
 impl WorkerGlobalScopeMethods for WorkerGlobalScope {
@@ -199,7 +204,6 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit {
                 url: url.clone(),
-                type_: RequestType::Script,
                 destination: Destination::Script,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
@@ -364,15 +368,15 @@ impl WorkerGlobalScope {
     }
 
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.script_chan())
+        FileReadingTaskSource(self.script_chan(), self.pipeline_id())
     }
 
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.script_chan())
+        NetworkingTaskSource(self.script_chan(), self.pipeline_id())
     }
 
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.script_chan())
+        PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id())
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
@@ -386,7 +390,7 @@ impl WorkerGlobalScope {
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
         match msg {
-            CommonScriptMsg::Task(_, task) => {
+            CommonScriptMsg::Task(_, task, _) => {
                 task.run_box()
             },
             CommonScriptMsg::CollectReports(reports_chan) => {

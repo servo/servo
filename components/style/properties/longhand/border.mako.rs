@@ -222,9 +222,6 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
 <%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
                    flags="APPLIES_TO_FIRST_LETTER"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
-    use style_traits::ToCss;
-
-
     pub mod computed_value {
         pub use super::RepeatKeyword;
 

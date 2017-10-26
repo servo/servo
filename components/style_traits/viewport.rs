@@ -4,8 +4,8 @@
 
 //! Helper types for the `@viewport` rule.
 
-use {CSSPixel, PinchZoomFactor, ParseError};
-use cssparser::{Parser, ToCss};
+use {CSSPixel, PinchZoomFactor, ParseError, ToCss};
+use cssparser::Parser;
 use euclid::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;

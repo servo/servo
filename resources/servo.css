@@ -189,6 +189,11 @@ svg > * {
     position: static;
     margin: 0;
     counter-increment: none;
+
+    /* We don't want anonymous table parts to inherit hidden overflow, because
+     * they will create extra unnecessary ClipScrollNodes which also throws
+     * off assignment of contained flows. */
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-table {
@@ -197,6 +202,7 @@ svg > * {
     border: none;
     padding: 0;
     counter-increment: none;
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-table-row {
@@ -204,6 +210,7 @@ svg > * {
     position: static;
     border: none;
     counter-increment: none;
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-table-cell {
@@ -211,6 +218,7 @@ svg > * {
     position: static;
     border: none;
     counter-increment: none;
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-block {

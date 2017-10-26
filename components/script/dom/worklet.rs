@@ -43,7 +43,6 @@ use net_traits::load_whole_resource;
 use net_traits::request::Destination;
 use net_traits::request::RequestInit;
 use net_traits::request::RequestMode;
-use net_traits::request::Type as RequestType;
 use script_runtime::CommonScriptMsg;
 use script_runtime::Runtime;
 use script_runtime::ScriptThreadEventCategory;
@@ -573,7 +572,6 @@ impl WorkletThread {
         let resource_fetcher = self.global_init.resource_threads.sender();
         let request = RequestInit {
             url: script_url,
-            type_: RequestType::Script,
             destination: Destination::Script,
             mode: RequestMode::CorsMode,
             credentials_mode: credentials.into(),
@@ -646,7 +644,7 @@ impl WorkletThread {
     where
         T: TaskBox + 'static,
     {
-        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, Box::new(task));
+        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, Box::new(task), None);
         let msg = MainThreadScriptMsg::Common(msg);
         self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
     }

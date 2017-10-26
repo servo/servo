@@ -534,7 +534,7 @@ impl<K, V, S> HashMap<K, V, S>
     where K: Eq + Hash,
           S: BuildHasher
 {
-    pub fn make_hash<X: ?Sized>(&self, x: &X) -> SafeHash
+    fn make_hash<X: ?Sized>(&self, x: &X) -> SafeHash
         where X: Hash
     {
         table::make_hash(&self.hash_builder, x)
@@ -683,21 +683,8 @@ impl<K, V, S> HashMap<K, V, S>
 
     /// Returns the hash map's raw capacity.
     #[inline]
-    pub fn raw_capacity(&self) -> usize {
+    fn raw_capacity(&self) -> usize {
         self.table.capacity()
-    }
-
-    /// Returns a raw pointer to the table's buffer.
-    #[inline]
-    pub fn raw_buffer(&self) -> *const u8 {
-        assert!(self.len() != 0);
-        self.table.raw_buffer()
-    }
-
-    /// Verify that the table metadata is internally consistent.
-    #[inline]
-    pub fn verify(&self) {
-        self.table.verify();
     }
 
     /// Reserves capacity for at least `additional` more elements to be inserted
@@ -1257,10 +1244,6 @@ impl<K, V, S> HashMap<K, V, S>
             debug_assert!(elems_left == 0 || bucket.index() != start_index);
         }
     }
-
-    pub fn diagnostic_count_hashes(&self) -> usize {
-        self.table.diagnostic_count_hashes()
-    }
 }
 
 impl<K, V, S> PartialEq for HashMap<K, V, S>
@@ -1340,12 +1323,6 @@ impl<'a, K: Debug, V: Debug> fmt::Debug for Iter<'a, K, V> {
         f.debug_list()
             .entries(self.clone())
             .finish()
-    }
-}
-
-impl<'a, K: 'a, V: 'a>  Iter<'a, K, V> {
-    pub fn next_with_hash(&mut self) -> Option<(usize, &'a K, &'a V)> {
-        self.inner.next_with_hash()
     }
 }
 

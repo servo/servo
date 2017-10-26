@@ -29,9 +29,9 @@ use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
-use style::gecko::wrapper::GeckoElement;
+use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings;
-use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull};
+use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
@@ -78,7 +78,7 @@ use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
-use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
+use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsAtom, nsCSSPropertyID};
@@ -1615,6 +1615,59 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
+    node: RawGeckoNodeBorrowed,
+    selectors: RawServoSelectorListBorrowed,
+) -> *const structs::RawGeckoElement {
+    use std::borrow::Borrow;
+    use style::dom_apis::{self, QueryFirst};
+
+    let node = GeckoNode(node);
+    let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
+    let mut result = None;
+    dom_apis::query_selector::<GeckoElement, QueryFirst>(
+        node,
+        &selectors,
+        &mut result,
+        node.owner_document_quirks_mode(),
+    );
+
+    result.map_or(ptr::null(), |e| e.0)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SelectorList_QueryAll(
+    node: RawGeckoNodeBorrowed,
+    selectors: RawServoSelectorListBorrowed,
+    content_list: *mut structs::nsSimpleContentList,
+) {
+    use smallvec::SmallVec;
+    use std::borrow::Borrow;
+    use style::dom_apis::{self, QueryAll};
+
+    let node = GeckoNode(node);
+    let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
+    let mut result = SmallVec::new();
+
+    dom_apis::query_selector::<GeckoElement, QueryAll>(
+        node,
+        &selectors,
+        &mut result,
+        node.owner_document_quirks_mode(),
+    );
+
+    if !result.is_empty() {
+        // NOTE(emilio): This relies on a slice of GeckoElement having the same
+        // memory representation than a slice of element pointers.
+        bindings::Gecko_ContentList_AppendAll(
+            content_list,
+            result.as_ptr() as *mut *const _,
+            result.len(),
+        )
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, result: *mut nsAString) {
     read_locked_arc(rule, |rule: &ImportRule| {
         write!(unsafe { &mut *result }, "{}", rule.url.as_str()).unwrap();
@@ -2740,16 +2793,41 @@ pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, resul
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
-    let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
+pub unsafe extern "C" fn Servo_MediaList_SetText(
+    list: RawServoMediaListBorrowed,
+    text: *const nsACString,
+    caller_type: CallerType,
+) {
+    let text = (*text).as_str_unchecked();
+
     let mut input = ParserInput::new(&text);
     let mut parser = Parser::new(&mut input);
-    let url_data = unsafe { dummy_url_data() };
-    let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
-                                               QuirksMode::NoQuirks);
-     write_locked_arc(list, |list: &mut MediaList| {
-        *list = parse_media_query_list(&context, &mut parser, &NullReporter);
+    let url_data = dummy_url_data();
+
+    // TODO(emilio): If the need for `CallerType` appears in more places,
+    // consider adding an explicit member in `ParserContext` instead of doing
+    // this (or adding a dummy "chrome://" url data).
+    //
+    // For media query parsing it's effectively the same, so for now...
+    let origin = match caller_type {
+        CallerType::System => Origin::UserAgent,
+        CallerType::NonSystem => Origin::Author,
+    };
+
+    let context = ParserContext::new(
+        origin,
+        url_data,
+        Some(CssRuleType::Media),
+        PARSING_MODE_DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    write_locked_arc(list, |list: &mut MediaList| {
+        *list = parse_media_query_list(
+            &context,
+            &mut parser,
+            &NullReporter,
+        );
     })
 }
 
@@ -4317,11 +4395,23 @@ pub extern "C" fn Servo_ProcessInvalidations(
 pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrowed) -> bool {
     let mut element = Some(GeckoElement(element));
     while let Some(e) = element {
+        if e.has_animations() {
+            return true;
+        }
+
+        // If the element needs a frame, it means that we haven't styled it yet
+        // after it got inserted in the document, and thus we may need to do
+        // that for transitions and animations to trigger.
+        if e.needs_frame() {
+            return true;
+        }
+
         if let Some(data) = e.borrow_data() {
             if !data.hint.is_empty() {
                 return true;
             }
         }
+
         element = e.traversal_parent();
     }
     false

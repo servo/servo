@@ -494,6 +494,7 @@ impl VRDisplay {
         let address = Trusted::new(&*self);
         let near_init = self.depth_near.get();
         let far_init = self.depth_far.get();
+        let pipeline_id = self.global().pipeline_id();
 
         // The render loop at native headset frame rate is implemented using a dedicated thread.
         // Every loop iteration syncs pose data with the HMD, submits the pixels to the display and waits for Vsync.
@@ -515,7 +516,7 @@ impl VRDisplay {
                 let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
-                js_sender.send(CommonScriptMsg::Task(WebVREvent, task)).unwrap();
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, Some(pipeline_id))).unwrap();
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());

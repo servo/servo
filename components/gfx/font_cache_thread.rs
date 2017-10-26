@@ -7,7 +7,7 @@ use font_template::{FontTemplate, FontTemplateDescriptor};
 use fontsan;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::{CoreResourceThread, FetchResponseMsg, fetch_async};
-use net_traits::request::{Destination, RequestInit, Type as RequestType};
+use net_traits::request::{Destination, RequestInit};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -237,7 +237,6 @@ impl FontCache {
 
                 let request = RequestInit {
                     url: url.clone(),
-                    type_: RequestType::Font,
                     destination: Destination::Font,
                     // TODO: Add a proper origin - Can't import GlobalScope from gfx
                     // We can leave origin to be set by default

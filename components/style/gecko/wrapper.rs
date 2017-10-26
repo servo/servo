@@ -17,7 +17,7 @@
 use CaseSensitivityExt;
 use app_units::Au;
 use applicable_declarations::ApplicableDeclarationBlock;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, TElement, TNode};
@@ -104,6 +104,12 @@ use stylist::Stylist;
 #[derive(Clone, Copy)]
 pub struct GeckoNode<'ln>(pub &'ln RawGeckoNode);
 
+impl<'ln> PartialEq for GeckoNode<'ln> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 as *const _ == other.0 as *const _
+    }
+}
+
 impl<'ln> fmt::Debug for GeckoNode<'ln> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(el) = self.as_element() {
@@ -146,6 +152,12 @@ impl<'ln> GeckoNode<'ln> {
     #[inline]
     fn bool_flags(&self) -> u32 {
         (self.0).mBoolFlags
+    }
+
+    /// Owner document quirks mode getter.
+    #[inline]
+    pub fn owner_document_quirks_mode(&self) -> QuirksMode {
+        self.owner_doc().mCompatMode.into()
     }
 
     #[inline]
@@ -355,9 +367,9 @@ impl<'lb> GeckoXBLBinding<'lb> {
         }
     }
 
-    fn each_xbl_stylist<F>(self, f: &mut F)
+    fn each_xbl_stylist<F>(&self, f: &mut F)
     where
-        F: FnMut(&Stylist),
+        F: FnMut(AtomicRef<'lb, Stylist>),
     {
         if let Some(base) = self.base_binding() {
             base.each_xbl_stylist(f);
@@ -369,7 +381,7 @@ impl<'lb> GeckoXBLBinding<'lb> {
 
         if let Some(raw_data) = raw_data {
             let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
-            f(&data.stylist);
+            f(AtomicRef::map(data, |d| &d.stylist));
         }
     }
 }
@@ -476,7 +488,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_xbl_binding(&self) -> Option<GeckoXBLBinding> {
+    fn get_xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
         if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
             return None;
         }
@@ -485,7 +497,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_xbl_binding_with_content(&self) -> Option<GeckoXBLBinding> {
+    fn get_xbl_binding_with_content(&self) -> Option<GeckoXBLBinding<'le>> {
         self.get_xbl_binding()
             .and_then(|b| b.get_binding_with_content())
     }
@@ -625,8 +637,9 @@ impl<'le> GeckoElement<'le> {
     }
 
     /// Owner document quirks mode getter.
+    #[inline]
     pub fn owner_document_quirks_mode(&self) -> QuirksMode {
-        self.as_node().owner_doc().mCompatMode.into()
+        self.as_node().owner_document_quirks_mode()
     }
 
     /// Only safe to call on the main thread, with exclusive access to the element and
@@ -1246,9 +1259,10 @@ impl<'le> TElement for GeckoElement<'le> {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 
-    fn each_xbl_stylist<F>(&self, mut f: F) -> bool
+    fn each_xbl_stylist<'a, F>(&self, mut f: F) -> bool
     where
-        F: FnMut(&Stylist),
+        'le: 'a,
+        F: FnMut(AtomicRef<'a, Stylist>),
     {
         // Walk the binding scope chain, starting with the binding attached to
         // our content, up till we run out of scopes or we get cut off.

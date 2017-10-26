@@ -488,8 +488,6 @@ pub enum CascadeLevel {
     PresHints,
     /// User normal rules.
     UserNormal,
-    /// XBL <stylesheet> rules.
-    XBL,
     /// Author normal rules.
     AuthorNormal,
     /// Style attribute normal rules.
@@ -1258,7 +1256,6 @@ impl StrongRuleNode {
                     }
                     // Author rules:
                     CascadeLevel::PresHints |
-                    CascadeLevel::XBL |
                     CascadeLevel::AuthorNormal |
                     CascadeLevel::StyleAttributeNormal |
                     CascadeLevel::SMILOverride |

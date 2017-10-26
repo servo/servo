@@ -112,7 +112,6 @@ ${helpers.single_keyword("text-align-last",
                    flags="APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-text/#propdef-text-align">
     pub mod computed_value {
-        use style_traits::ToCss;
         macro_rules! define_text_align {
             ( $( $name: ident ( $string: expr ) => $discriminant: expr, )+ ) => {
                 define_css_keyword_enum! { T:
@@ -584,8 +583,6 @@ ${helpers.predefined_type(
 
 <%helpers:longhand name="text-emphasis-position" animation_value_type="discrete" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
-    use style_traits::ToCss;
-
     define_css_keyword_enum!(HorizontalWritingModeValue:
                              "over" => Over,
                              "under" => Under);

@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
-pub struct NetworkingTaskSource(pub Box<ScriptChan + Send + 'static>);
+pub struct NetworkingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
 
 impl Clone for NetworkingTaskSource {
     fn clone(&self) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.0.clone())
+        NetworkingTaskSource(self.0.clone(), self.1.clone())
     }
 }
 
@@ -27,6 +28,7 @@ impl TaskSource for NetworkingTaskSource {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(canceller.wrap_task(task)),
+            Some(self.1),
         ))
     }
 }
@@ -41,6 +43,7 @@ impl NetworkingTaskSource {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(task),
+            Some(self.1),
         ))
     }
 }

@@ -313,9 +313,8 @@ impl<'a> BuildDisplayList<'a> {
         let parent_stacking_context_id = self.state.current_stacking_context_id;
         self.state.current_stacking_context_id = flow::base(flow).stacking_context_id;
 
-        let parent_clip_and_scroll_info = self.state.current_clip_and_scroll_info;
-        self.state.current_clip_and_scroll_info =
-            flow.clip_and_scroll_info(self.state.layout_context.id);
+        let parent_clipping_and_scrolling = self.state.current_clipping_and_scrolling;
+        self.state.current_clipping_and_scrolling = flow.clipping_and_scrolling();
 
         flow.build_display_list(&mut self.state);
         flow::mut_base(flow).restyle_damage.remove(REPAINT);
@@ -325,6 +324,6 @@ impl<'a> BuildDisplayList<'a> {
         }
 
         self.state.current_stacking_context_id = parent_stacking_context_id;
-        self.state.current_clip_and_scroll_info = parent_clip_and_scroll_info;
+        self.state.current_clipping_and_scrolling = parent_clipping_and_scrolling;
     }
 }

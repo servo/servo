@@ -157,6 +157,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptPerformanceEvent => "Script Performance Event",
             ProfilerCategory::TimeToFirstPaint => "Time To First Paint",
             ProfilerCategory::TimeToFirstContentfulPaint => "Time To First Contentful Paint",
+            ProfilerCategory::TimeToInteractive => "Time to Interactive",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)

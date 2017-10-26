@@ -61,6 +61,7 @@ use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
+use metrics::{InteractiveMetrics, InteractiveWindow};
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, TopLevelBrowsingContextId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
@@ -283,7 +284,7 @@ unsafe impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
 unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
     where K: Hash + Eq + JSTraceable,
           V: JSTraceable,
-          S: BuildHasher
+          S: BuildHasher,
 {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
@@ -296,7 +297,7 @@ unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
 
 unsafe impl<T, S> JSTraceable for HashSet<T, S>
     where T: Hash + Eq + JSTraceable,
-          S: BuildHasher
+          S: BuildHasher,
 {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
@@ -413,6 +414,8 @@ unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
+unsafe_no_jsmanaged_fields!(InteractiveMetrics);
+unsafe_no_jsmanaged_fields!(InteractiveWindow);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

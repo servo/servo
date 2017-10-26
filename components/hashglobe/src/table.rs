@@ -43,7 +43,7 @@ struct TaggedHashUintPtr(Unique<HashUint>);
 impl TaggedHashUintPtr {
     #[inline]
     unsafe fn new(ptr: *mut HashUint) -> Self {
-        assert!(ptr as usize & 1 == 0 || ptr as usize == EMPTY as usize);
+        debug_assert!(ptr as usize & 1 == 0 || ptr as usize == EMPTY as usize);
         TaggedHashUintPtr(Unique::new_unchecked(ptr))
     }
 
@@ -117,7 +117,6 @@ pub struct RawTable<K, V> {
     capacity_mask: usize,
     size: usize,
     hashes: TaggedHashUintPtr,
-    bytes_allocated: usize,
 
     // Because K/V do not appear directly in any of the types in the struct,
     // inform rustc that in fact instances of K and V are reachable from here.
@@ -183,7 +182,7 @@ pub struct GapThenFull<K, V, M> {
 
 /// A hash that is not zero, since we use a hash of zero to represent empty
 /// buckets.
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone)]
 pub struct SafeHash {
     hash: HashUint,
 }
@@ -245,23 +244,6 @@ impl<K, V> RawBucket<K, V> {
     }
     unsafe fn hash_pair(&self) -> (*mut HashUint, *mut (K, V)) {
         (self.hash(), self.pair())
-    }
-
-    fn assert_bounds(&self, bytes_allocated: usize, size: Option<usize>) {
-        let base = self.hash_start as *mut u8;
-        let (h, p) = unsafe { self.hash_pair() };
-        assert!((h as *mut u8) < (p as *mut u8), "HashMap Corruption - hash offset not below pair offset");
-        let end = unsafe { p.offset(1) } as *mut u8;
-        assert!(end > base, "HashMap Corruption - end={:?}, base={:?}, idx={}, alloc={}, size={:?}", end, base, self.idx, bytes_allocated, size);
-        assert!(
-            end <= unsafe { base.offset(bytes_allocated as isize) },
-            "HashMap Corruption - end={:?}, base={:?}, idx={}, alloc={}, size={:?}",
-            end,
-            base,
-            self.idx,
-            bytes_allocated,
-            size,
-        );
     }
 }
 
@@ -366,7 +348,8 @@ impl<K, V, M: Deref<Target = RawTable<K, V>>> Bucket<K, V, M> {
     pub fn at_index(table: M, ib_index: usize) -> Bucket<K, V, M> {
         // if capacity is 0, then the RawBucket will be populated with bogus pointers.
         // This is an uncommon case though, so avoid it in release builds.
-        assert!(table.capacity() > 0, "HashMap Corruption - Table should have capacity at this point");
+        debug_assert!(table.capacity() > 0,
+                      "Table should have capacity at this point");
         let ib_index = ib_index & table.capacity_mask;
         Bucket {
             raw: table.raw_bucket_at(ib_index),
@@ -439,13 +422,11 @@ impl<K, V, M: Deref<Target = RawTable<K, V>>> Bucket<K, V, M> {
     /// Modifies the bucket in place to make it point to the next slot.
     pub fn next(&mut self) {
         self.raw.idx = self.raw.idx.wrapping_add(1) & self.table.capacity_mask;
-        self.raw.assert_bounds(self.table.bytes_allocated, None);
     }
 
     /// Modifies the bucket in place to make it point to the previous slot.
     pub fn prev(&mut self) {
         self.raw.idx = self.raw.idx.wrapping_sub(1) & self.table.capacity_mask;
-        self.raw.assert_bounds(self.table.bytes_allocated, None);
     }
 }
 
@@ -568,7 +549,7 @@ impl<'t, K, V> FullBucket<K, V, &'t mut RawTable<K, V>> {
     /// This works similarly to `put`, building an `EmptyBucket` out of the
     /// taken bucket.
     pub fn take(self) -> (EmptyBucket<K, V, &'t mut RawTable<K, V>>, K, V) {
-        self.table.size = self.table.size.checked_sub(1).unwrap();
+        self.table.size -= 1;
 
         unsafe {
             *self.raw.hash() = EMPTY_BUCKET;
@@ -683,7 +664,7 @@ impl<K, V, M> GapThenFull<K, V, M>
 /// Panics if `target_alignment` is not a power of two.
 #[inline]
 fn round_up_to_next(unrounded: usize, target_alignment: usize) -> usize {
-    assert!(target_alignment.is_power_of_two(), "HashMap Corruption - alignment not power of two");
+    assert!(target_alignment.is_power_of_two());
     (unrounded + target_alignment - 1) & !(target_alignment - 1)
 }
 
@@ -753,11 +734,9 @@ impl<K, V> RawTable<K, V> {
                 size: 0,
                 capacity_mask: capacity.wrapping_sub(1),
                 hashes: TaggedHashUintPtr::new(EMPTY as *mut HashUint),
-                bytes_allocated: 0,
                 marker: marker::PhantomData,
             });
         }
-        assert!(capacity.is_power_of_two(), "HashMap Corruption - capacity not power of two");
 
         // No need for `checked_mul` before a more restrictive check performed
         // later in this method.
@@ -798,72 +777,40 @@ impl<K, V> RawTable<K, V> {
 
 
         // FORK NOTE: Uses alloc shim instead of Heap.alloc
-        let buffer: *mut u8 = alloc(size, alignment);
+        let buffer = alloc(size, alignment);
         
         if buffer.is_null() {
             
             return Err(FailedAllocationError { reason: "out of memory when allocating RawTable" });
         }
 
-        // FORK NOTE: poison the entire buffer rather than leaving it uninitialized.
-        ptr::write_bytes(buffer, 0xe7, size);
-
         let hashes = buffer.offset(hash_offset as isize) as *mut HashUint;
-        assert!(hashes as *mut u8 == buffer, "HashMap Corruption - Nonzero hash_offset");
 
         Ok(RawTable {
             capacity_mask: capacity.wrapping_sub(1),
             size: 0,
             hashes: TaggedHashUintPtr::new(hashes),
-            bytes_allocated: size,
             marker: marker::PhantomData,
         })
     }
 
     fn raw_bucket_at(&self, index: usize) -> RawBucket<K, V> {
-        self.verify();
         let hashes_size = self.capacity() * size_of::<HashUint>();
         let pairs_size = self.capacity() * size_of::<(K, V)>();
 
         let (pairs_offset, _, oflo) =
             calculate_offsets(hashes_size, pairs_size, align_of::<(K, V)>());
-        assert!(!oflo, "HashMap Corruption - capacity overflow");
-        assert!(pairs_offset as isize > 0, "HashMap Corruption - pairs offset={}", pairs_offset);
-        assert!(index as isize >= 0, "HashMap Corruption - index={}", index);
-        assert!(index < self.capacity(), "HashMap Corruption - index={}", index);
+        debug_assert!(!oflo, "capacity overflow");
 
         let buffer = self.hashes.ptr() as *mut u8;
-        let bucket = unsafe {
+        unsafe {
             RawBucket {
                 hash_start: buffer as *mut HashUint,
                 pair_start: buffer.offset(pairs_offset as isize) as *const (K, V),
                 idx: index,
                 _marker: marker::PhantomData,
             }
-        };
-
-        bucket.assert_bounds(self.bytes_allocated, Some(self.size));
-        bucket
-    }
-
-    /// Returns a raw pointer to the table's buffer.
-    #[inline]
-    pub fn raw_buffer(&self) -> *const u8 {
-        self.hashes.ptr() as *const u8
-    }
-
-    /// Verify that the table metadata is internally consistent.
-    #[inline]
-    pub fn verify(&self) {
-        assert!(
-            self.capacity() == 0 || self.capacity().is_power_of_two(),
-            "HashMap Corruption: mask={}, sz={}, alloc={}", self.capacity_mask, self.size, self.bytes_allocated,
-        );
-        assert_eq!(
-            self.capacity() * (size_of::<usize>() + size_of::<(K, V)>()),
-            self.bytes_allocated,
-            "HashMap Corruption: mask={}, sz={}, alloc={}", self.capacity_mask, self.size, self.bytes_allocated,
-        );
+        }
     }
 
     /// Creates a new raw table from a given capacity. All buckets are
@@ -889,15 +836,10 @@ impl<K, V> RawTable<K, V> {
 
     fn raw_buckets(&self) -> RawBuckets<K, V> {
         RawBuckets {
-            raw: if self.capacity() == 0 { None } else { Some(self.raw_bucket_at(0)) },
+            raw: self.raw_bucket_at(0),
             elems_left: self.size,
-            bytes_allocated: self.bytes_allocated,
             marker: marker::PhantomData,
         }
-    }
-
-    pub fn diagnostic_count_hashes(&self) -> usize {
-        (0..self.capacity()).filter(|&i| unsafe { *self.raw_bucket_at(i).hash() != EMPTY_BUCKET }).count()
     }
 
     pub fn iter(&self) -> Iter<K, V> {
@@ -914,13 +856,12 @@ impl<K, V> RawTable<K, V> {
     }
 
     pub fn into_iter(self) -> IntoIter<K, V> {
-        let RawBuckets { raw, elems_left, bytes_allocated, .. } = self.raw_buckets();
+        let RawBuckets { raw, elems_left, .. } = self.raw_buckets();
         // Replace the marker regardless of lifetime bounds on parameters.
         IntoIter {
             iter: RawBuckets {
                 raw,
                 elems_left,
-                bytes_allocated,
                 marker: marker::PhantomData,
             },
             table: self,
@@ -928,13 +869,12 @@ impl<K, V> RawTable<K, V> {
     }
 
     pub fn drain(&mut self) -> Drain<K, V> {
-        let RawBuckets { raw, elems_left, bytes_allocated, .. } = self.raw_buckets();
+        let RawBuckets { raw, elems_left, .. } = self.raw_buckets();
         // Replace the marker regardless of lifetime bounds on parameters.
         Drain {
             iter: RawBuckets {
                 raw,
                 elems_left,
-                bytes_allocated,
                 marker: marker::PhantomData,
             },
             table: Shared::from(self),
@@ -946,21 +886,17 @@ impl<K, V> RawTable<K, V> {
     /// state and should only be used for dropping the table's remaining
     /// entries. It's used in the implementation of Drop.
     unsafe fn rev_drop_buckets(&mut self) {
+        // initialize the raw bucket past the end of the table
+        let mut raw = self.raw_bucket_at(self.capacity());
         let mut elems_left = self.size;
-        if elems_left == 0 {
-            return;
-        }
-        let mut raw = self.raw_bucket_at(self.capacity() - 1);
-        loop {
+
+        while elems_left != 0 {
+            raw.idx -= 1;
+
             if *raw.hash() != EMPTY_BUCKET {
+                elems_left -= 1;
                 ptr::drop_in_place(raw.pair());
-                elems_left = elems_left.checked_sub(1).unwrap();
-                if elems_left == 0 {
-                    return;
-                }
             }
-            raw.idx = raw.idx.checked_sub(1).unwrap();
-            raw.assert_bounds(self.bytes_allocated, Some(self.size));
         }
     }
 
@@ -978,11 +914,8 @@ impl<K, V> RawTable<K, V> {
 /// A raw iterator. The basis for some other iterators in this module. Although
 /// this interface is safe, it's not used outside this module.
 struct RawBuckets<'a, K, V> {
-    // We use an Option here to avoid ever constructing a RawBucket for
-    // invalid memory.
-    raw: Option<RawBucket<K, V>>,
+    raw: RawBucket<K, V>,
     elems_left: usize,
-    bytes_allocated: usize,
 
     // Strictly speaking, this should be &'a (K,V), but that would
     // require that K:'a, and we often use RawBuckets<'static...> for
@@ -998,7 +931,6 @@ impl<'a, K, V> Clone for RawBuckets<'a, K, V> {
         RawBuckets {
             raw: self.raw,
             elems_left: self.elems_left,
-            bytes_allocated: self.bytes_allocated,
             marker: marker::PhantomData,
         }
     }
@@ -1015,17 +947,12 @@ impl<'a, K, V> Iterator for RawBuckets<'a, K, V> {
 
         loop {
             unsafe {
-                let item = self.raw.unwrap();
+                let item = self.raw;
+                self.raw.idx += 1;
                 if *item.hash() != EMPTY_BUCKET {
-                    self.elems_left = self.elems_left.checked_sub(1).unwrap();
-                    if self.elems_left != 0 {
-                        self.raw.as_mut().unwrap().idx += 1;
-                        self.raw.as_ref().unwrap().assert_bounds(self.bytes_allocated, None);
-                    }
+                    self.elems_left -= 1;
                     return Some(item);
                 }
-                self.raw.as_mut().unwrap().idx += 1;
-                self.raw.as_ref().unwrap().assert_bounds(self.bytes_allocated, None);
             }
         }
     }
@@ -1134,15 +1061,6 @@ impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> Iter<'a, K, V> {
-    pub fn next_with_hash(&mut self) -> Option<(usize, &'a K, &'a V)> {
-        self.iter.next().map(|raw| unsafe {
-            let (hash_ptr, pair_ptr) = raw.hash_pair();
-            (*hash_ptr, &(*pair_ptr).0, &(*pair_ptr).1)
-        })
-    }
-}
-
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
 
@@ -1169,7 +1087,7 @@ impl<K, V> Iterator for IntoIter<K, V> {
 
     fn next(&mut self) -> Option<(SafeHash, K, V)> {
         self.iter.next().map(|raw| {
-            self.table.size = self.table.size.checked_sub(1).unwrap();
+            self.table.size -= 1;
             unsafe {
                 let (k, v) = ptr::read(raw.pair());
                 (SafeHash { hash: *raw.hash() }, k, v)
@@ -1195,7 +1113,7 @@ impl<'a, K, V> Iterator for Drain<'a, K, V> {
     fn next(&mut self) -> Option<(SafeHash, K, V)> {
         self.iter.next().map(|raw| {
             unsafe {
-                self.table.as_mut().size = self.table.as_mut().size.checked_sub(1).unwrap();
+                self.table.as_mut().size -= 1;
                 let (k, v) = ptr::read(raw.pair());
                 (SafeHash { hash: ptr::replace(&mut *raw.hash(), EMPTY_BUCKET) }, k, v)
             }
@@ -1224,28 +1142,18 @@ impl<K: Clone, V: Clone> Clone for RawTable<K, V> {
         unsafe {
             let cap = self.capacity();
             let mut new_ht = RawTable::new_uninitialized(cap);
-            if cap == 0 {
-                return new_ht;
-            }
 
             let mut new_buckets = new_ht.raw_bucket_at(0);
             let mut buckets = self.raw_bucket_at(0);
-            loop {
+            while buckets.idx < cap {
                 *new_buckets.hash() = *buckets.hash();
                 if *new_buckets.hash() != EMPTY_BUCKET {
                     let pair_ptr = buckets.pair();
                     let kv = ((*pair_ptr).0.clone(), (*pair_ptr).1.clone());
                     ptr::write(new_buckets.pair(), kv);
                 }
-
-                if buckets.idx == cap - 1 {
-                    break;
-                }
-
                 buckets.idx += 1;
-                buckets.assert_bounds(self.bytes_allocated, None);
                 new_buckets.idx += 1;
-                new_buckets.assert_bounds(new_ht.bytes_allocated, None);
             }
 
             new_ht.size = self.size();
@@ -1284,7 +1192,7 @@ impl<K, V> Drop for RawTable<K, V> {
                                                           pairs_size,
                                                           align_of::<(K, V)>());
 
-        assert!(!oflo, "HashMap Corruption - should be impossible");
+        debug_assert!(!oflo, "should be impossible");
 
         unsafe {
             dealloc(self.hashes.ptr() as *mut u8, align);

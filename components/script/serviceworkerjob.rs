@@ -153,19 +153,21 @@ impl JobQueue {
     // https://w3c.github.io/ServiceWorker/#register-algorithm
     fn run_register(&self, job: &Job, scope_url: ServoUrl, script_thread: &ScriptThread) {
         debug!("running register job");
+        let global = &*job.client.global();
+        let pipeline_id = global.pipeline_id();
         // Step 1-3
         if !UrlHelper::is_origin_trustworthy(&job.script_url) {
             // Step 1.1
             reject_job_promise(job,
                                Error::Type("Invalid script ServoURL".to_owned()),
-                               script_thread.dom_manipulation_task_source());
+                               &script_thread.dom_manipulation_task_source(pipeline_id));
             // Step 1.2 (see run_job)
             return;
         } else if job.script_url.origin() != job.referrer.origin() || job.scope_url.origin() != job.referrer.origin() {
             // Step 2.1/3.1
             reject_job_promise(job,
                                Error::Security,
-                               script_thread.dom_manipulation_task_source());
+                               &script_thread.dom_manipulation_task_source(pipeline_id));
             // Step 2.2/3.2 (see run_job)
             return;
         }
@@ -180,17 +182,15 @@ impl JobQueue {
             if let Some(ref newest_worker) = reg.get_newest_worker() {
                 if (&*newest_worker).get_script_url() == job.script_url {
                     // Step 5.3.1
-                    resolve_job_promise(job, &*reg, script_thread.dom_manipulation_task_source());
+                    resolve_job_promise(job, &*reg, &script_thread.dom_manipulation_task_source(pipeline_id));
                     // Step 5.3.2 (see run_job)
                     return;
                 }
             }
         } else {
             // Step 6.1
-            let global = &*job.client.global();
-            let pipeline = global.pipeline_id();
             let new_reg = ServiceWorkerRegistration::new(&*global, &job.script_url, scope_url);
-            script_thread.handle_serviceworker_registration(&job.scope_url, &*new_reg, pipeline);
+            script_thread.handle_serviceworker_registration(&job.scope_url, &*new_reg, pipeline_id);
         }
         // Step 7
         self.update(job, script_thread)
@@ -218,13 +218,16 @@ impl JobQueue {
     // https://w3c.github.io/ServiceWorker/#update-algorithm
     fn update(&self, job: &Job, script_thread: &ScriptThread) {
         debug!("running update job");
+
+        let global = &*job.client.global();
+        let pipeline_id = global.pipeline_id();
         // Step 1
         let reg = match script_thread.handle_get_registration(&job.scope_url) {
             Some(reg) => reg,
             None => {
                 let err_type = Error::Type("No registration to update".to_owned());
                 // Step 2.1
-                reject_job_promise(job, err_type, script_thread.dom_manipulation_task_source());
+                reject_job_promise(job, err_type, &script_thread.dom_manipulation_task_source(pipeline_id));
                 // Step 2.2 (see run_job)
                 return;
             }
@@ -233,7 +236,7 @@ impl JobQueue {
         if reg.get_uninstalling() {
             let err_type = Error::Type("Update called on an uninstalling registration".to_owned());
             // Step 2.1
-            reject_job_promise(job, err_type, script_thread.dom_manipulation_task_source());
+            reject_job_promise(job, err_type, &script_thread.dom_manipulation_task_source(pipeline_id));
             // Step 2.2 (see run_job)
             return;
         }
@@ -244,7 +247,7 @@ impl JobQueue {
         if newest_worker_url.as_ref() == Some(&job.script_url)  && job.job_type == JobType::Update {
             let err_type = Error::Type("Invalid script ServoURL".to_owned());
             // Step 4.1
-            reject_job_promise(job, err_type, script_thread.dom_manipulation_task_source());
+            reject_job_promise(job, err_type, &script_thread.dom_manipulation_task_source(pipeline_id));
             // Step 4.2 (see run_job)
             return;
         }
@@ -252,7 +255,7 @@ impl JobQueue {
         if let Some(newest_worker) = newest_worker {
             job.client.set_controller(&*newest_worker);
             // Step 8.1
-            resolve_job_promise(job, &*reg, script_thread.dom_manipulation_task_source());
+            resolve_job_promise(job, &*reg, &script_thread.dom_manipulation_task_source(pipeline_id));
             // Step 8.2 present in run_job
         }
         // TODO Step 9 (create new service worker)

@@ -110,9 +110,32 @@ where
     }
 }
 
+/// An iterator over the DOM descendants of a node in pre-order.
+pub struct DomDescendants<N> {
+    previous: Option<N>,
+    scope: N,
+}
+
+impl<N> Iterator for DomDescendants<N>
+where
+    N: TNode
+{
+    type Item = N;
+
+    fn next(&mut self) -> Option<N> {
+        let prev = match self.previous.take() {
+            None => return None,
+            Some(n) => n,
+        };
+
+        self.previous = prev.next_in_preorder(Some(self.scope));
+        self.previous
+    }
+}
+
 /// The `TNode` trait. This is the main generic trait over which the style
 /// system can be implemented.
-pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
+pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// The concrete `TElement` type.
     type ConcreteElement: TElement<ConcreteNode = Self>;
 
@@ -131,9 +154,43 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// Get this node's next sibling.
     fn next_sibling(&self) -> Option<Self>;
 
-    /// Iterate over the DOM children of an element.
+    /// Iterate over the DOM children of a node.
     fn dom_children(&self) -> DomChildren<Self> {
         DomChildren(self.first_child())
+    }
+
+    /// Iterate over the DOM children of a node, in preorder.
+    fn dom_descendants(&self) -> DomDescendants<Self> {
+        DomDescendants {
+            previous: Some(*self),
+            scope: *self,
+        }
+    }
+
+    /// Returns the next children in pre-order, optionally scoped to a subtree
+    /// root.
+    fn next_in_preorder(&self, scoped_to: Option<Self>) -> Option<Self> {
+        if let Some(c) = self.first_child() {
+            return Some(c);
+        }
+
+        if Some(*self) == scoped_to {
+            return None;
+        }
+
+        let mut current = *self;
+        loop {
+            if let Some(s) = current.next_sibling() {
+                return Some(s);
+            }
+
+            let parent = current.parent_node();
+            if parent == scoped_to {
+                return None;
+            }
+
+            current = parent.expect("Not a descendant of the scope?");
+        }
     }
 
     /// Get this node's parent element from the perspective of a restyle
@@ -686,9 +743,10 @@ pub trait TElement
     /// Implements Gecko's `nsBindingManager::WalkRules`.
     ///
     /// Returns whether to cut off the inheritance.
-    fn each_xbl_stylist<F>(&self, _: F) -> bool
+    fn each_xbl_stylist<'a, F>(&self, _: F) -> bool
     where
-        F: FnMut(&Stylist),
+        Self: 'a,
+        F: FnMut(AtomicRef<'a, Stylist>),
     {
         false
     }

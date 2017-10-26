@@ -35,7 +35,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
-use net_traits::request::{ResponseTainting, ServiceWorkersMode, Type};
+use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -122,13 +122,13 @@ impl WrappedHttpResponse {
 }
 
 // Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
-pub fn set_default_accept(type_: Type, destination: Destination, headers: &mut Headers) {
+pub fn set_default_accept(destination: Destination, headers: &mut Headers) {
     if headers.has::<Accept>() {
         return;
     }
-    let value = match (type_, destination) {
+    let value = match destination {
         // Step 3.2.
-        (_, Destination::Document) => {
+        Destination::Document => {
             vec![
                 qitem(mime!(Text / Html)),
                 qitem(mime!(Application / ("xhtml+xml"))),
@@ -137,7 +137,7 @@ pub fn set_default_accept(type_: Type, destination: Destination, headers: &mut H
             ]
         },
         // Step 3.3.
-        (Type::Image, _) => {
+        Destination::Image => {
             vec![
                 qitem(mime!(Image / Png)),
                 qitem(mime!(Image / ("svg+xml") )),
@@ -146,7 +146,7 @@ pub fn set_default_accept(type_: Type, destination: Destination, headers: &mut H
             ]
         },
         // Step 3.3.
-        (Type::Style, _) => {
+        Destination::Style => {
             vec![
                 qitem(mime!(Text / Css)),
                 QualityItem::new(mime!(_ / _), q(0.1))
@@ -1201,7 +1201,6 @@ fn cors_preflight_fetch(request: &Request,
     let mut preflight = Request::new(request.current_url(), Some(request.origin.clone()), request.pipeline_id);
     preflight.method = Method::Options;
     preflight.initiator = request.initiator.clone();
-    preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
     preflight.origin = request.origin.clone();
     preflight.referrer = request.referrer.clone();

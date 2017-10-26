@@ -11,9 +11,9 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
-use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseMsg};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg};
 use net_traits::{IpcSend, NetworkError, ResourceThreads};
-use net_traits::request::{Destination, RequestInit, Type};
+use net_traits::request::{Destination, RequestInit};
 use net_traits::response::ResponseInit;
 use std::sync::mpsc::Sender;
 
@@ -59,12 +59,12 @@ impl NetworkListener {
                                    res_init_.clone(),
                                    ipc_sender),
             None => {
-                set_default_accept(Type::None, Destination::Document, &mut listener.req_init.headers);
+                set_default_accept(Destination::Document, &mut listener.req_init.headers);
                 set_default_accept_language(&mut listener.req_init.headers);
 
                 CoreResourceMsg::Fetch(
                 listener.req_init.clone(),
-                ipc_sender)
+                FetchChannels::ResponseMsg(ipc_sender))
             }
         };
 
