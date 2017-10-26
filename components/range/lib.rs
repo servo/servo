@@ -4,8 +4,8 @@
 
 #![deny(unsafe_code)]
 
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
+extern crate malloc_size_of;
+#[macro_use] extern crate malloc_size_of_derive;
 extern crate num_traits;
 #[macro_use] extern crate serde;
 
@@ -146,7 +146,7 @@ macro_rules! int_range_index {
 }
 
 /// A range of indices
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
 pub struct Range<I> {
     begin: I,
     length: I,

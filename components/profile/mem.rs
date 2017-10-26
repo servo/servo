@@ -354,7 +354,7 @@ impl ReportsForest {
 
 mod system_reporter {
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
-    use libc::{c_char, c_void, size_t};
+    use libc::{c_void, size_t};
     #[cfg(target_os = "linux")]
     use libc::c_int;
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
@@ -460,11 +460,7 @@ mod system_reporter {
     }
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
-    extern {
-        #[cfg_attr(any(target_os = "macos", target_os = "android"), link_name = "je_mallctl")]
-        fn mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
-                   newp: *mut c_void, newlen: size_t) -> ::libc::c_int;
-    }
+    use jemalloc_sys::mallctl;
 
     #[cfg(all(feature = "unstable", not(target_os = "windows")))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
@@ -519,16 +515,11 @@ mod system_reporter {
         use std::fs::File;
         use std::io::Read;
 
-        // Like std::macros::try!, but for Option<>.
-        macro_rules! option_try(
-            ($e:expr) => (match $e { Some(e) => e, None => return None })
-        );
-
-        let mut f = option_try!(File::open("/proc/self/statm").ok());
+        let mut f = File::open("/proc/self/statm").ok()?;
         let mut contents = String::new();
-        option_try!(f.read_to_string(&mut contents).ok());
-        let s = option_try!(contents.split_whitespace().nth(field));
-        let npages = option_try!(s.parse::<usize>().ok());
+        f.read_to_string(&mut contents).ok()?;
+        let s = contents.split_whitespace().nth(field)?;
+        let npages = s.parse::<usize>().ok()?;
         Some(npages * page_size())
     }
 

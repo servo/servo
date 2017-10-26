@@ -67,17 +67,18 @@ pub trait Element: Sized + Clone + Debug {
     fn match_non_ts_pseudo_class<F>(
         &self,
         pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-        context: &mut MatchingContext,
+        context: &mut MatchingContext<Self::Impl>,
         relevant_link: &RelevantLinkStatus,
         flags_setter: &mut F,
     ) -> bool
     where
         F: FnMut(&Self, ElementSelectorFlags);
 
-    fn match_pseudo_element(&self,
-                            pe: &<Self::Impl as SelectorImpl>::PseudoElement,
-                            context: &mut MatchingContext)
-                            -> bool;
+    fn match_pseudo_element(
+        &self,
+        pe: &<Self::Impl as SelectorImpl>::PseudoElement,
+        context: &mut MatchingContext<Self::Impl>,
+    ) -> bool;
 
     /// Whether this element is a `link`.
     fn is_link(&self) -> bool;

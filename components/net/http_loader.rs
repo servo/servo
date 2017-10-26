@@ -108,10 +108,7 @@ impl WrappedHttpResponse {
     }
 
     fn content_encoding(&self) -> Option<Encoding> {
-        let encodings = match self.headers().get::<ContentEncoding>() {
-            Some(&ContentEncoding(ref encodings)) => encodings,
-            None => return None,
-        };
+        let &ContentEncoding(ref encodings) = self.headers().get()?;
         if encodings.contains(&Encoding::Gzip) {
             Some(Encoding::Gzip)
         } else if encodings.contains(&Encoding::Deflate) {

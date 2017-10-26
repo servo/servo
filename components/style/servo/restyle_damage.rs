@@ -8,7 +8,6 @@
 #![deny(missing_docs)]
 
 use computed_values::display;
-use heapsize::HeapSizeOf;
 use matching::{StyleChange, StyleDifference};
 use properties::ComputedValues;
 use std::fmt;
@@ -53,9 +52,7 @@ bitflags! {
     }
 }
 
-impl HeapSizeOf for ServoRestyleDamage {
-    fn heap_size_of_children(&self) -> usize { 0 }
-}
+malloc_size_of_is_0!(ServoRestyleDamage);
 
 impl ServoRestyleDamage {
     /// Compute the `StyleDifference` (including the appropriate restyle damage)

@@ -10,7 +10,7 @@ use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr, SourceLocation};
 use dom::{OpaqueNode, TElement, TNode};
-use element_state::ElementState;
+use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
@@ -30,7 +30,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 ///
 /// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
 #[repr(usize)]
 pub enum PseudoElement {
@@ -62,9 +62,8 @@ pub enum PseudoElement {
     ServoInlineAbsolute,
 }
 
-/// The count of simple (non-functional) pseudo-elements (that is, all
-/// pseudo-elements for now).
-pub const SIMPLE_PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
+/// The count of all pseudo-elements.
+pub const PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
 
 impl ::selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
@@ -110,12 +109,12 @@ impl PseudoElement {
 
     /// An index for this pseudo-element to be indexed in an enumerated array.
     #[inline]
-    pub fn simple_index(&self) -> Option<usize> {
-        Some(self.clone() as usize)
+    pub fn index(&self) -> usize {
+        self.clone() as usize
     }
 
-    /// An array of `None`, one per simple pseudo-element.
-    pub fn simple_pseudo_none_array<T>() -> [Option<T>; SIMPLE_PSEUDO_COUNT] {
+    /// An array of `None`, one per pseudo-element.
+    pub fn pseudo_none_array<T>() -> [Option<T>; PSEUDO_COUNT] {
         Default::default()
     }
 
@@ -251,7 +250,7 @@ pub type PseudoClassStringArg = Box<str>;
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
 pub enum NonTSPseudoClass {
     Active,
@@ -353,6 +352,11 @@ impl NonTSPseudoClass {
         }
     }
 
+    /// Get the document state flag associated with a pseudo-class, if any.
+    pub fn document_state_flag(&self) -> DocumentState {
+        DocumentState::empty()
+    }
+
     /// Returns true if the given pseudoclass should trigger style sharing cache revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
         self.state_flag().is_empty()
@@ -368,7 +372,7 @@ impl NonTSPseudoClass {
 /// The abstract struct we implement the selector parser implementation on top
 /// of.
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct SelectorImpl;
 
 impl ::selectors::SelectorImpl for SelectorImpl {
@@ -561,12 +565,6 @@ impl SelectorImpl {
             fun(PseudoElement::from_eager_index(i));
         }
     }
-
-    /// Returns the pseudo-class state flag for selector matching.
-    #[inline]
-    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
-        pc.state_flag()
-    }
 }
 
 /// A map from elements to snapshots for the Servo style back-end.
@@ -601,7 +599,7 @@ impl DerefMut for SnapshotMap {
 
 /// Servo's version of an element snapshot.
 #[derive(Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct ServoElementSnapshot {
     /// The stored state of the element.
     pub state: Option<ElementState>,

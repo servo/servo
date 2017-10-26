@@ -66,9 +66,7 @@ impl ToComputedValue for specified::Length {
 }
 
 #[allow(missing_docs)]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedZero)]
 pub struct CalcLengthOrPercentage {
     #[animation(constant)]
     pub clamping_mode: AllowedNumericType,
@@ -294,10 +292,8 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq)]
 #[derive(ToAnimatedZero, ToCss)]
 #[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentage {
@@ -452,10 +448,8 @@ impl ToComputedValue for specified::LengthOrPercentage {
 
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToCss)]
 #[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentageOrAuto {
     Length(Length),
@@ -549,7 +543,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
 
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[css(derive_debug)]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
 #[distance(fallback = "Self::compute_squared_distance_fallback")]
@@ -684,9 +678,8 @@ impl NonNegativeLengthOrPercentage {
 }
 
 /// The computed `<length>` value.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd)]
 #[derive(ToAnimatedValue, ToAnimatedZero)]
 pub struct CSSPixelLength(CSSFloat);
 
@@ -850,7 +843,7 @@ pub type NonNegativeLengthOrNumber = Either<NonNegativeLength, NonNegativeNumber
 /// A value suitable for a `min-width`, `min-height`, `width` or `height` property.
 /// See values/specified/length.rs for more details.
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
 #[derive(ToAnimatedZero, ToCss)]
 pub enum MozLength {
@@ -900,7 +893,7 @@ impl ToComputedValue for specified::MozLength {
 /// A value suitable for a `max-width` or `max-height` property.
 /// See values/specified/length.rs for more details.
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
 pub enum MaxLength {
     LengthOrPercentageOrNone(LengthOrPercentageOrNone),

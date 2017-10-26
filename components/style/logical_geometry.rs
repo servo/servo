@@ -24,7 +24,7 @@ pub enum InlineBaseDirection {
 
 // TODO: improve the readability of the WritingMode serialization, refer to the Debug:fmt()
 bitflags!(
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf, Serialize))]
+    #[cfg_attr(feature = "servo", derive(MallocSizeOf, Serialize))]
     pub flags WritingMode: u8 {
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,

@@ -20,7 +20,7 @@ use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompil
 use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
 use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
 use js::panic::wrap_panic;
-use js::rust::Runtime;
+use js::rust::Runtime as RustRuntime;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::trace_thread;
@@ -29,6 +29,7 @@ use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::fmt;
 use std::io::{Write, stdout};
+use std::ops::Deref;
 use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
@@ -120,13 +121,28 @@ unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
     }), false)
 }
 
+#[derive(JSTraceable)]
+pub struct Runtime(RustRuntime);
+
+impl Drop for Runtime {
+    fn drop(&mut self) {
+        THREAD_ACTIVE.with(|t| t.set(false));
+    }
+}
+
+impl Deref for Runtime {
+    type Target = RustRuntime;
+    fn deref(&self) -> &RustRuntime {
+        &self.0
+    }
+}
+
 #[allow(unsafe_code)]
 pub unsafe fn new_rt_and_cx() -> Runtime {
     LiveDOMReferences::initialize();
-    let runtime = Runtime::new().unwrap();
+    let runtime = RustRuntime::new().unwrap();
 
     JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
-    JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_refcounted_objects), ptr::null_mut());
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {
@@ -293,7 +309,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
         }
     }
 
-    runtime
+    Runtime(runtime)
 }
 
 #[allow(unsafe_code)]
@@ -399,12 +415,20 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, 
     }
 }
 
+thread_local!(
+    static THREAD_ACTIVE: Cell<bool> = Cell::new(true);
+);
+
 #[allow(unsafe_code)]
 unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
+    if !THREAD_ACTIVE.with(|t| t.get()) {
+        return;
+    }
     debug!("starting custom root handler");
     trace_thread(tr);
     trace_traceables(tr);
     trace_roots(tr);
+    trace_refcounted_objects(tr);
     settings_stack::trace(tr);
     debug!("done custom root handler");
 }

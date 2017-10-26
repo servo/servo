@@ -72,8 +72,8 @@ use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
-use js::rust::Runtime;
-use mem::heap_size_of_self_and_children;
+use malloc_size_of::MallocSizeOfOps;
+use mem::malloc_size_of_including_self;
 use metrics::PaintTimeMetrics;
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
@@ -86,7 +86,7 @@ use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_runtime::{ScriptPort, get_reports, new_rt_and_cx};
+use script_runtime::{ScriptPort, get_reports, new_rt_and_cx, Runtime};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
@@ -1503,14 +1503,17 @@ impl ScriptThread {
         let mut path_seg = String::from("url(");
         let mut dom_tree_size = 0;
         let mut reports = vec![];
+        // Servo uses vanilla jemalloc, which doesn't have a
+        // malloc_enclosing_size_of function.
+        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
 
         for (_, document) in self.documents.borrow().iter() {
             let current_url = document.url();
 
             for child in document.upcast::<Node>().traverse_preorder() {
-                dom_tree_size += heap_size_of_self_and_children(&*child);
+                dom_tree_size += malloc_size_of_including_self(&mut ops, &*child);
             }
-            dom_tree_size += heap_size_of_self_and_children(document.window());
+            dom_tree_size += malloc_size_of_including_self(&mut ops, document.window());
 
             if reports.len() > 0 {
                 path_seg.push_str(", ");
@@ -1942,10 +1945,7 @@ impl ScriptThread {
                            pipeline_id: PipelineId)
                            -> Option<DomRoot<WindowProxy>>
     {
-        let browsing_context_id = match self.ask_constellation_for_browsing_context_id(pipeline_id) {
-            Some(browsing_context_id) => browsing_context_id,
-            None => return None,
-        };
+        let browsing_context_id = self.ask_constellation_for_browsing_context_id(pipeline_id)?;
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
@@ -2187,8 +2187,15 @@ impl ScriptThread {
                 self.handle_resize_event(pipeline_id, new_size, size_type);
             }
 
-            MouseButtonEvent(event_type, button, point, node_address) => {
-                self.handle_mouse_event(pipeline_id, event_type, button, point, node_address);
+            MouseButtonEvent(event_type, button, point, node_address, point_in_node) => {
+                self.handle_mouse_event(
+                    pipeline_id,
+                    event_type,
+                    button,
+                    point,
+                    node_address,
+                    point_in_node
+                );
             }
 
             MouseMoveEvent(point, node_address) => {
@@ -2299,7 +2306,8 @@ impl ScriptThread {
         mouse_event_type: MouseEventType,
         button: MouseButton,
         point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>
+        node_address: Option<UntrustedNodeAddress>,
+        point_in_node: Option<Point2D<f32>>
     ) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
@@ -2310,7 +2318,8 @@ impl ScriptThread {
             button,
             point,
             mouse_event_type,
-            node_address
+            node_address,
+            point_in_node
         );
     }
 

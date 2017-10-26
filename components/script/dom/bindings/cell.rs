@@ -11,7 +11,7 @@ use style::thread_state;
 ///
 /// This extends the API of `std::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
-#[derive(Clone, Debug, Default, HeapSizeOf, PartialEq)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub struct DomRefCell<T> {
     value: RefCell<T>,
 }

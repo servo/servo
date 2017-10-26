@@ -13,7 +13,7 @@ path = "lib.rs"
 
 [features]
 debugmozjs = ['js/debugmozjs']
-unstable = []
+unstable = ["servo_allocator/unstable"]
 
 [build-dependencies]
 cmake = "0.1"
@@ -44,9 +44,7 @@ euclid = "0.15"
 fnv = "1.0"
 gleam = "0.4"
 half = "1.0"
-heapsize = "0.4"
-heapsize_derive = "0.1"
-html5ever = {version = "0.20", features = ["heap_size"]}
+html5ever = "0.21"
 hyper = "0.10"
 hyper_serde = "0.7"
 image = "0.16"
@@ -56,6 +54,8 @@ jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.2.1"
@@ -64,7 +64,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 nonzero = {path = "../nonzero"}
 num-traits = "0.1.32"
-offscreen_gl_context = { version = "0.11", features = ["serde"] }
+offscreen_gl_context = { version = "0.12", features = ["serde"] }
 open = "1.1.1"
 parking_lot = "0.4"
 phf = "0.7.18"
@@ -77,6 +77,7 @@ script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
 serde = "1.0"
+servo_allocator = {path = "../allocator"}
 servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config"}
@@ -89,10 +90,10 @@ style_traits = {path = "../style_traits"}
 swapper = "0.1"
 time = "0.1.12"
 unicode-segmentation = "1.1.0"
-url = {version = "1.2", features = ["heap_size", "query_encoding"]}
+url = {version = "1.2", features = ["query_encoding"]}
 utf-8 = "0.7"
 uuid = {version = "0.5", features = ["v4"]}
-xml5ever = {version = "0.10"}
+xml5ever = {version = "0.11"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr_traits = {path = "../webvr_traits"}
 

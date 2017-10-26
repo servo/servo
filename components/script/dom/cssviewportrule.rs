@@ -17,7 +17,7 @@ use style::stylesheets::ViewportRule;
 #[dom_struct]
 pub struct CSSViewportRule {
     cssrule: CSSRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     viewportrule: Arc<Locked<ViewportRule>>,
 }
 

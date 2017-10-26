@@ -6,7 +6,8 @@ use canvas_traits::webgl::WebGLCommand;
 use compositing::compositor_thread::{CompositorProxy, self};
 use euclid::Size2D;
 use gleam::gl;
-use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher, GLLimits};
+use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher};
+use offscreen_gl_context::{GLLimits, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use std::sync::{Arc, Mutex};
@@ -50,6 +51,7 @@ impl GLContextFactory {
                                                                                    attributes,
                                                                                    ColorAttachmentType::Texture,
                                                                                    gl::GlType::default(),
+                                                                                   GLVersion::Major(2),
                                                                                    Some(handle),
                                                                                    dispatcher);
                 ctx.map(GLContextWrapper::Native)
@@ -59,6 +61,7 @@ impl GLContextFactory {
                                                                                  attributes,
                                                                                  ColorAttachmentType::Texture,
                                                                                  gl::GlType::default(),
+                                                                                 GLVersion::Major(2),
                                                                                  Some(handle),
                                                                                  None);
                 ctx.map(GLContextWrapper::OSMesa)
@@ -76,6 +79,7 @@ impl GLContextFactory {
                                                                                    attributes,
                                                                                    ColorAttachmentType::Texture,
                                                                                    gl::GlType::default(),
+                                                                                   GLVersion::Major(2),
                                                                                    None,
                                                                                    None);
                 ctx.map(GLContextWrapper::Native)
@@ -85,6 +89,7 @@ impl GLContextFactory {
                                                                                  attributes,
                                                                                  ColorAttachmentType::Texture,
                                                                                  gl::GlType::default(),
+                                                                                 GLVersion::Major(2),
                                                                                  None,
                                                                                  None);
                 ctx.map(GLContextWrapper::OSMesa)

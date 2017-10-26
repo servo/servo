@@ -9,8 +9,6 @@
 use applicable_declarations::ApplicableDeclarationList;
 #[cfg(feature = "gecko")]
 use gecko::selector_parser::PseudoElement;
-#[cfg(feature = "servo")]
-use heapsize::HeapSizeOf;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
@@ -46,7 +44,7 @@ use thread_state;
 /// logs from http://logs.glob.uno/?c=mozilla%23servo&s=3+Apr+2017&e=3+Apr+2017#c644094
 /// to se a discussion about the different memory orderings used here.
 #[derive(Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct RuleTree {
     root: StrongRuleNode,
 }
@@ -448,6 +446,25 @@ impl RuleTree {
         let rule = self.insert_ordered_rules_from(last.parent().unwrap().clone(), children.drain().rev());
         rule
     }
+
+    /// Returns new rule node by adding animation rules at transition level.
+    /// The additional rules must be appropriate for the transition
+    /// level of the cascade, which is the highest level of the cascade.
+    /// (This is the case for one current caller, the cover rule used
+    /// for CSS transitions.)
+    pub fn add_animation_rules_at_transition_level(
+        &self,
+        path: &StrongRuleNode,
+        pdb: Arc<Locked<PropertyDeclarationBlock>>,
+        guards: &StylesheetGuards,
+    ) -> StrongRuleNode {
+        let mut dummy = false;
+        self.update_rule_at_level(CascadeLevel::Transitions,
+                                  Some(pdb.borrow_arc()),
+                                  path,
+                                  guards,
+                                  &mut dummy).expect("Should return a valid rule node")
+    }
 }
 
 /// The number of RuleNodes added to the free list before we will consider
@@ -463,7 +480,7 @@ const RULE_TREE_GC_INTERVAL: usize = 300;
 /// [1]: https://drafts.csswg.org/css-cascade/#cascade-origin
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
     UANormal = 0,
@@ -827,10 +844,7 @@ pub struct StrongRuleNode {
 }
 
 #[cfg(feature = "servo")]
-impl HeapSizeOf for StrongRuleNode {
-    fn heap_size_of_children(&self) -> usize { 0 }
-}
-
+malloc_size_of_is_0!(StrongRuleNode);
 
 impl StrongRuleNode {
     fn new(n: Box<RuleNode>) -> Self {

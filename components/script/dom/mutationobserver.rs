@@ -24,7 +24,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct MutationObserver {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "can't measure Rc values"]
+    #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
     record_queue: DomRefCell<Vec<DomRoot<MutationRecord>>>,
 }
@@ -35,13 +35,13 @@ pub enum Mutation<'a> {
                 prev: Option<&'a Node>, next: Option<&'a Node> },
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct RegisteredObserver {
     observer: DomRoot<MutationObserver>,
     options: ObserverOptions,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct ObserverOptions {
     attribute_old_value: bool,
     attributes: bool,

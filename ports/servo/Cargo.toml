@@ -37,7 +37,7 @@ energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
 googlevr = ["libservo/googlevr"]
 oculusvr = ["libservo/oculusvr"]
-unstable = ["libservo/unstable"]
+unstable = ["libservo/unstable", "profile_tests/unstable"]
 
 [dependencies]
 backtrace = "0.3"

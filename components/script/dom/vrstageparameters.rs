@@ -19,7 +19,7 @@ use webvr_traits::WebVRStageParameters;
 #[dom_struct]
 pub struct VRStageParameters {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     parameters: DomRefCell<WebVRStageParameters>,
     transform: Heap<*mut JSObject>,
 }

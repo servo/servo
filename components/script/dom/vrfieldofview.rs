@@ -15,7 +15,7 @@ use webvr_traits::WebVRFieldOfView;
 #[dom_struct]
 pub struct VRFieldOfView {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in rust-webvr"]
+    #[ignore_malloc_size_of = "Defined in rust-webvr"]
     fov: DomRefCell<WebVRFieldOfView>
 }
 

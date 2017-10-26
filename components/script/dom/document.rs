@@ -158,13 +158,29 @@ pub enum TouchEventResult {
     Forwarded,
 }
 
-#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
+pub enum FireMouseEventType {
+    Move,
+    Over,
+    Out,
+}
+
+impl FireMouseEventType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            &FireMouseEventType::Move => "mousemove",
+            &FireMouseEventType::Over => "mouseout",
+            &FireMouseEventType::Out => "mouseover",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
 }
 
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub struct PendingRestyle {
     /// If this element had a state or attribute change since the last restyle, track
     /// the original condition of the element.
@@ -187,10 +203,10 @@ impl PendingRestyle {
     }
 }
 
-#[derive(Clone, HeapSizeOf, JSTraceable)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 #[must_root]
 struct StyleSheetInDocument {
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     sheet: Arc<Stylesheet>,
     owner: Dom<Element>,
 }
@@ -228,7 +244,7 @@ pub struct Document {
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
     url: DomRefCell<ServoUrl>,
-    #[ignore_heap_size_of = "defined in selectors"]
+    #[ignore_malloc_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
@@ -321,7 +337,7 @@ pub struct Document {
     /// <https://html.spec.whatwg.org/multipage/#target-element>
     target_element: MutNullableDom<Element>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
@@ -346,7 +362,7 @@ pub struct Document {
     form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -354,7 +370,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -362,7 +378,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -371,7 +387,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -379,7 +395,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -387,7 +403,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -395,7 +411,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -836,7 +852,8 @@ impl Document {
         _button: MouseButton,
         client_point: Point2D<f32>,
         mouse_event_type: MouseEventType,
-        node_address: Option<UntrustedNodeAddress>
+        node_address: Option<UntrustedNodeAddress>,
+        point_in_node: Option<Point2D<f32>>
     ) {
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
@@ -871,22 +888,25 @@ impl Document {
         let client_x = client_point.x as i32;
         let client_y = client_point.y as i32;
         let click_count = 1;
-        let event = MouseEvent::new(&self.window,
-                                    DOMString::from(mouse_event_type_string),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
-                                    Some(&self.window),
-                                    click_count,
-                                    client_x,
-                                    client_y,
-                                    client_x,
-                                    client_y, // TODO: Get real screen coordinates?
-                                    false,
-                                    false,
-                                    false,
-                                    false,
-                                    0i16,
-                                    None);
+        let event = MouseEvent::new(
+            &self.window,
+            DOMString::from(mouse_event_type_string),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(&self.window),
+            click_count,
+            client_x,
+            client_y,
+            client_x,
+            client_y, // TODO: Get real screen coordinates?
+            false,
+            false,
+            false,
+            false,
+            0i16,
+            None,
+            point_in_node,
+        );
         let event = event.upcast::<Event>();
 
         // https://w3c.github.io/uievents/#trusted-events
@@ -943,22 +963,25 @@ impl Document {
                 let client_x = click_pos.x as i32;
                 let client_y = click_pos.y as i32;
 
-                let event = MouseEvent::new(&self.window,
-                                            DOMString::from("dblclick"),
-                                            EventBubbles::Bubbles,
-                                            EventCancelable::Cancelable,
-                                            Some(&self.window),
-                                            click_count,
-                                            client_x,
-                                            client_y,
-                                            client_x,
-                                            client_y,
-                                            false,
-                                            false,
-                                            false,
-                                            false,
-                                            0i16,
-                                            None);
+                let event = MouseEvent::new(
+                    &self.window,
+                    DOMString::from("dblclick"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
+                    Some(&self.window),
+                    click_count,
+                    client_x,
+                    client_y,
+                    client_x,
+                    client_y,
+                    false,
+                    false,
+                    false,
+                    false,
+                    0i16,
+                    None,
+                    None
+                );
                 event.upcast::<Event>().fire(target.upcast());
 
                 // When a double click occurs, self.last_click_info is left as None so that a
@@ -1030,26 +1053,29 @@ impl Document {
         event.fire(target);
     }
 
-    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: String) {
+    pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: FireMouseEventType) {
         let client_x = client_point.x.to_i32().unwrap_or(0);
         let client_y = client_point.y.to_i32().unwrap_or(0);
 
-        let mouse_event = MouseEvent::new(&self.window,
-                                          DOMString::from(event_name),
-                                          EventBubbles::Bubbles,
-                                          EventCancelable::Cancelable,
-                                          Some(&self.window),
-                                          0i32,
-                                          client_x,
-                                          client_y,
-                                          client_x,
-                                          client_y,
-                                          false,
-                                          false,
-                                          false,
-                                          false,
-                                          0i16,
-                                          None);
+        let mouse_event = MouseEvent::new(
+            &self.window,
+            DOMString::from(event_name.as_str()),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(&self.window),
+            0i32,
+            client_x,
+            client_y,
+            client_x,
+            client_y,
+            false,
+            false,
+            false,
+            false,
+            0i16,
+            None,
+            None
+        );
         let event = mouse_event.upcast::<Event>();
         event.fire(target);
     }
@@ -1086,7 +1112,7 @@ impl Document {
             None => return,
         };
 
-        self.fire_mouse_event(client_point, new_target.upcast(), "mousemove".to_owned());
+        self.fire_mouse_event(client_point, new_target.upcast(), FireMouseEventType::Move);
 
         // Nothing more to do here, mousemove is sent,
         // and the element under the mouse hasn't changed.
@@ -1115,7 +1141,7 @@ impl Document {
             }
 
             // Remove hover state to old target and its parents
-            self.fire_mouse_event(client_point, old_target.upcast(), "mouseout".to_owned());
+            self.fire_mouse_event(client_point, old_target.upcast(), FireMouseEventType::Out);
 
             // TODO: Fire mouseleave here only if the old target is
             // not an ancestor of the new target.
@@ -1132,7 +1158,7 @@ impl Document {
                 element.set_hover_state(true);
             }
 
-            self.fire_mouse_event(client_point, &new_target.upcast(), "mouseover".to_owned());
+            self.fire_mouse_event(client_point, &new_target.upcast(), FireMouseEventType::Over);
 
             // TODO: Fire mouseenter here.
         }
@@ -1978,7 +2004,7 @@ impl Document {
     }
 }
 
-#[derive(HeapSizeOf, PartialEq)]
+#[derive(MallocSizeOf, PartialEq)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
@@ -2063,10 +2089,9 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, ori
         };
 
         // Step 4.2
-        let (prefix, suffix) = match original_host.len().checked_sub(host.len()) {
-            Some(index) => original_host.split_at(index),
-            None => return None,
-        };
+        let index = original_host.len().checked_sub(host.len())?;
+        let (prefix, suffix) = original_host.split_at(index);
+
         if !prefix.ends_with(".") {
             return None;
         }
@@ -2092,7 +2117,7 @@ fn url_has_network_scheme(url: &ServoUrl) -> bool {
     }
 }
 
-#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum HasBrowsingContext {
     No,
     Yes,
@@ -2310,11 +2335,7 @@ impl Document {
     ///
     /// Also, shouldn't return an option, I'm quite sure.
     pub fn device(&self) -> Option<Device> {
-        let window_size = match self.window().window_size() {
-            Some(ws) => ws,
-            None => return None,
-        };
-
+        let window_size = self.window().window_size()?;
         let viewport_size = window_size.initial_viewport;
         let device_pixel_ratio = window_size.device_pixel_ratio;
         Some(Device::new(MediaType::screen(), viewport_size, device_pixel_ratio))
@@ -3470,7 +3491,7 @@ impl DocumentMethods for Document {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNullJSObjectPtr> {
-        #[derive(HeapSizeOf, JSTraceable)]
+        #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
         }
@@ -3945,10 +3966,10 @@ pub enum FocusEventType {
 /// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
 /// without mutating the DOM), then we fall back to simple timeouts to save energy over video
 /// refresh.
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct FakeRequestAnimationFrameCallback {
     /// The document.
-    #[ignore_heap_size_of = "non-owning"]
+    #[ignore_malloc_size_of = "non-owning"]
     document: Trusted<Document>,
 }
 
@@ -3959,11 +3980,11 @@ impl FakeRequestAnimationFrameCallback {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum AnimationFrameCallback {
     DevtoolsFramerateTick { actor_name: String },
     FrameRequestCallback {
-        #[ignore_heap_size_of = "Rc is hard"]
+        #[ignore_malloc_size_of = "Rc is hard"]
         callback: Rc<FrameRequestCallback>
     },
 }
@@ -3985,7 +4006,7 @@ impl AnimationFrameCallback {
     }
 }
 
-#[derive(Default, HeapSizeOf, JSTraceable)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PendingInOrderScriptVec {
     scripts: DomRefCell<VecDeque<PendingScript>>,
@@ -4008,12 +4029,9 @@ impl PendingInOrderScriptVec {
 
     fn take_next_ready_to_be_executed(&self) -> Option<(DomRoot<HTMLScriptElement>, ScriptResult)> {
         let mut scripts = self.scripts.borrow_mut();
-        let pair = scripts.front_mut().and_then(PendingScript::take_result);
-        if pair.is_none() {
-            return None;
-        }
+        let pair = scripts.front_mut()?.take_result()?;
         scripts.pop_front();
-        pair
+        Some(pair)
     }
 
     fn clear(&self) {
@@ -4021,7 +4039,7 @@ impl PendingInOrderScriptVec {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 struct PendingScript {
     element: Dom<HTMLScriptElement>,

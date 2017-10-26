@@ -5,7 +5,7 @@ blessings == 1.6
 mach == 0.6.0
 mozdebug == 0.1
 mozinfo == 0.8
-mozlog == 3.3
+mozlog == 3.5
 setuptools == 18.5
 toml == 0.9.2
 
@@ -25,5 +25,10 @@ colorama == 0.3.7
 
 # For package uploading
 boto3 == 1.4.4
+
+# Default root CAs on Windows CI do not trust CloudFront certificates,
+# connecting to https://static.rust-lang.org would fail:
+# https://github.com/servo/servo/pull/18942
+certifi
 
 -e python/tidy
