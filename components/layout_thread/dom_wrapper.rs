@@ -69,7 +69,7 @@ use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{PresentationalHintsSynthesizer, TElement, TNode};
+use style::dom::{TElement, TNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -338,18 +338,6 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthesizer for ServoLayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
-                                                                _visited_handling: VisitedHandlingMode,
-                                                                hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock>
-    {
-        unsafe {
-            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
-        }
-    }
-}
-
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
     type TraversalChildrenIterator = DomChildren<Self::ConcreteNode>;
@@ -519,6 +507,19 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         //
         // FIXME(emilio): We should be able to give the right answer though!
         false
+    }
+
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(
+        &self,
+        _visited_handling: VisitedHandlingMode,
+        hints: &mut V,
+    )
+    where
+        V: Push<ApplicableDeclarationBlock>,
+    {
+        unsafe {
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+        }
     }
 }
 
@@ -1244,11 +1245,4 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         warn!("ServoThreadSafeLayoutElement::is_root called");
         false
     }
-}
-
-impl<'le> PresentationalHintsSynthesizer for ServoThreadSafeLayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
-                                                                _visited_handling: VisitedHandlingMode,
-                                                                _hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock> {}
 }

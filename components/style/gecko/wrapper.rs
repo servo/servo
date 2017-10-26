@@ -20,8 +20,7 @@ use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::ElementData;
-use dom::{LayoutIterator, NodeInfo, TElement, TNode};
-use dom::{OpaqueNode, PresentationalHintsSynthesizer};
+use dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TNode};
 use element_state::{ElementState, DocumentState, NS_DOCUMENT_STATE_WINDOW_INACTIVE};
 use error_reporting::ParseErrorReporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
@@ -1526,23 +1525,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
         unsafe { bindings::Gecko_IsDocumentBody(self.0) }
     }
-}
 
-impl<'le> PartialEq for GeckoElement<'le> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 as *const _ == other.0 as *const _
-    }
-}
-
-impl<'le> Eq for GeckoElement<'le> {}
-
-impl<'le> Hash for GeckoElement<'le> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        (self.0 as *const _).hash(state);
-    }
-}
-
-impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(
         &self,
         visited_handling: VisitedHandlingMode,
@@ -1687,6 +1670,20 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
                 hints.push(MATHML_LANG_RULE.clone());
             }
         }
+    }
+}
+
+impl<'le> PartialEq for GeckoElement<'le> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 as *const _ == other.0 as *const _
+    }
+}
+
+impl<'le> Eq for GeckoElement<'le> {}
+
+impl<'le> Hash for GeckoElement<'le> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.0 as *const _).hash(state);
     }
 }
 
