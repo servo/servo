@@ -289,7 +289,7 @@ dependencies = [
 [[package]]
 name = "browserhtml"
 version = "0.1.17"
-source = "git+https://github.com/browserhtml/browserhtml?branch=crate#70ad96070f86a8f76b7309ca3cf3b34b88a9da2a"
+source = "git+https://github.com/browserhtml/browserhtml?branch=crate#84913eafd817c92fbb6bdbb8a8f7480baddee3d3"
 
 [[package]]
 name = "byteorder"
