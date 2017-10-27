@@ -557,8 +557,11 @@ where
     //
     // We could do that check properly here, though checking the length of the
     // selectors is a good heuristic.
+    //
+    // A selector with a combinator needs to have a length of at least 3: A
+    // simple selector, a combinator, and another simple selector.
     let invalidation_may_be_useful =
-        selector_list.0.iter().any(|s| s.len() > 1);
+        selector_list.0.iter().any(|s| s.len() > 2);
 
     if root_element.is_some() || !invalidation_may_be_useful {
         query_selector_slow::<E, Q>(
