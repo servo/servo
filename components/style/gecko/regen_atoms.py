@@ -39,14 +39,16 @@ def msvc32_symbolify(source, ident):
 
 
 class GkAtomSource:
-    PATTERN = re.compile('^(GK_ATOM)\((.+),\s*"(.*)"\)')
+    PATTERN = re.compile('^(GK_ATOM)\(([^,]*),[^"]*"([^"]*)"\)',
+                         re.MULTILINE)
     FILE = "include/nsGkAtomList.h"
     CLASS = "nsGkAtoms"
     TYPE = "nsStaticAtom"
 
 
 class CSSPseudoElementsAtomSource:
-    PATTERN = re.compile('^(CSS_PSEUDO_ELEMENT)\((.+),\s*"(.*)",')
+    PATTERN = re.compile('^(CSS_PSEUDO_ELEMENT)\(([^,]*),[^"]*"([^"]*)",',
+                         re.MULTILINE)
     FILE = "include/nsCSSPseudoElementList.h"
     CLASS = "nsCSSPseudoElements"
     # NB: nsICSSPseudoElement is effectively the same as a nsStaticAtom, but we need
@@ -55,7 +57,8 @@ class CSSPseudoElementsAtomSource:
 
 
 class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX|CSS_WRAPPER_ANON_BOX)\((.+),\s*"(.*)"\)')
+    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX|CSS_WRAPPER_ANON_BOX)\(([^,]*),[^"]*"([^"]*)"\)',
+                         re.MULTILINE)
     FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
     TYPE = "nsICSSAnonBoxPseudo"
@@ -123,10 +126,9 @@ def collect_atoms(objdir):
         path = os.path.abspath(os.path.join(objdir, source.FILE))
         print("cargo:rerun-if-changed={}".format(path))
         with open(path) as f:
-            for line in f.readlines():
-                result = re.match(source.PATTERN, line)
-                if result:
-                    atoms.append(Atom(source, result.group(1), result.group(2), result.group(3)))
+            content = f.read()
+            for result in source.PATTERN.finditer(content):
+                atoms.append(Atom(source, result.group(1), result.group(2), result.group(3)))
     return atoms
 
 
