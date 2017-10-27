@@ -40,10 +40,13 @@ def mutation_test(file_name, tests):
             test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
             test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
             if test_status != 0:
-                print("Failed in while running `{0}`".format(test_command))
+                print("Failed: while running `{0}`".format(test_command))
                 print "mutated file {0} diff".format(file_name)
                 sys.stdout.flush()
                 subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
+            else:
+                print("Success: Mutation killed by {0}".format(test.encode('utf-8')))
+                break
         print "reverting mutant {0}:{1}".format(file_name, line_to_mutate)
         sys.stdout.flush()
         subprocess.call('git checkout {0}'.format(file_name), shell=True)
