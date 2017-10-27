@@ -2629,6 +2629,10 @@ extern "C" {
                                                  *mut RefPtr<nsCSSValueSharedList>);
 }
 extern "C" {
+    pub fn Servo_AnimationValue_Transform(list: *const nsCSSValueSharedList)
+     -> RawServoAnimationValueStrong;
+}
+extern "C" {
     pub fn Servo_AnimationValue_DeepEqual(arg1:
                                               RawServoAnimationValueBorrowed,
                                           arg2:

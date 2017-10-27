@@ -3097,18 +3097,32 @@ fn static_assert() {
         }
     }
     pub fn clone_transform(&self) -> longhands::transform::computed_value::T {
-        use properties::longhands::transform::computed_value;
-
         if self.gecko.mSpecifiedTransform.mRawPtr.is_null() {
-            return computed_value::T(None);
+            return longhands::transform::computed_value::T(None);
         }
         let list = unsafe { (*self.gecko.mSpecifiedTransform.to_safe().get()).mHead.as_ref() };
-        let result = list.map(|list| {
-            list.into_iter()
-                .map(|value| Self::clone_single_transform_function(value))
-                .collect()
-        });
-        computed_value::T(result)
+        Self::clone_transform_from_list(list)
+    }
+    pub fn clone_transform_from_list(list: Option< &structs::root::nsCSSValueList>)
+                                     -> longhands::transform::computed_value::T {
+        let result = match list {
+            Some(list) => {
+                let vec: Vec<_> = list
+                    .into_iter()
+                    .filter_map(|value| {
+                        // Handle none transform.
+                        if value.is_none() {
+                            None
+                        } else {
+                            Some(Self::clone_single_transform_function(value))
+                        }
+                    })
+                    .collect();
+                if !vec.is_empty() { Some(vec) } else { None }
+            },
+            _ => None,
+        };
+        longhands::transform::computed_value::T(result)
     }
 
     ${impl_transition_time_value('delay', 'Delay')}

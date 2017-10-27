@@ -653,9 +653,10 @@ pub extern "C" fn Servo_AnimationValue_Opacity(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValueBorrowed,
-                                                    list: *mut structs::RefPtr<nsCSSValueSharedList>)
-{
+pub extern "C" fn Servo_AnimationValue_GetTransform(
+    value: RawServoAnimationValueBorrowed,
+    list: *mut structs::RefPtr<nsCSSValueSharedList>
+) {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Transform(ref servo_list) = **value {
         let list = unsafe { &mut *list };
@@ -670,6 +671,15 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValu
     } else {
         panic!("The AnimationValue should be transform");
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_Transform(
+    list: *const nsCSSValueSharedList
+) -> RawServoAnimationValueStrong {
+    let list = unsafe { (&*list).mHead.as_ref() };
+    let transform = style_structs::Box::clone_transform_from_list(list);
+    Arc::new(AnimationValue::Transform(transform)).into_strong()
 }
 
 #[no_mangle]
