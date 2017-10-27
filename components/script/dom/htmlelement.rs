@@ -4,7 +4,6 @@
 
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
-use style::Atom;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
@@ -36,7 +35,6 @@ use std::default::Default;
 use std::rc::Rc;
 use style::attr::AttrValue;
 use style::element_state::*;
-use dom::bindings::root::Root;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -310,31 +308,25 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
-    fn PropertyNames(&self) -> Option<Vec<DOMString>>{
-        //parse_plain_attribute(self.local_name, "")
-        //self.parse_plain_attribute("itemprop", DOMString::from(String::from("hello world")));
+    fn PropertyNames(&self) -> Option<Vec<DOMString>> {
 
-        //let mut myattr : Option<Root<Dom<Attr>>> = self.upcast::<Element>().get_attribute_by_name(DOMString::from(String::from("itemprop")));
-        //self.parse_plain_attribute(&local_name!("itemprop"), DOMString::from(String::from("hello world")));
-        let tlA : AttrValue = self.parse_plain_attribute(&local_name!("itemprop"), self.upcast::<Element>().GetAttribute(DOMString::from(String::from("itemprop"))).unwrap());
-        let tl : &[Atom] = tlA.as_tokens();
-        let mut prop_strings_iter = tl.into_iter();
-        //let mut prop_strings_iter = "DO MS tr in g".split_whitespace();
-        let mut prop_domstring_vector : Vec<DOMString> = Vec::new();
-        let mut prop_domstring : DOMString = DOMString::new();
-        let mut prop : String =  String::from(prop_strings_iter.next());
+        let item_attr: AttrValue = self.parse_plain_attribute(
+            &local_name!("itemprop"),
+            self.upcast::<Element>()
+                .GetAttribute(DOMString::from(String::from("itemprop")))
+                .unwrap(),
+        );
 
-        // Loop over the iter to get each property
-        // Convert that property to DOMString and add to the Vector
-        while prop != None {
-            prop_domstring = DOMString::from(String::from(prop));
-            prop_domstring_vector.push(prop_domstring);
-            prop = String::from(prop_strings_iter.next().unwrap());
-        }
-        let opt : Option<Vec<DOMString>> = Some(prop_domstring_vector);
+        let mut item_attr_vector: Vec<DOMString> = Vec::new();
+        let vals = item_attr.split_whitespace();
+
+        vals.for_each(|f| {
+            println!("{:#?}", String::from(f));
+            item_attr_vector.push(DOMString::from(String::from(f)))
+        });
+
+        let opt: Option<Vec<DOMString>> = Some(item_attr_vector);
         return opt;
-
-        //return None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
@@ -662,8 +654,13 @@ impl VirtualMethods for HTMLElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("itemprop") => AttrValue::from_serialized_tokenlist(value.into()),
-            //&local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            &local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),
+            _ => {
+                self.super_type().unwrap().parse_plain_attribute(
+                    name,
+                    value,
+                )
+            },
         }
     }
 }
