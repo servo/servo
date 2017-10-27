@@ -316,8 +316,13 @@ impl HTMLElementMethods for HTMLElement {
             &local_name!("itemtype"),
             self.upcast::<Element>()
                 .GetAttribute(DOMString::from(String::from("itemtype")))
-                .unwrap(),
+                .unwrap_or(DOMString::from(String::from(""))),
         );
+
+        // If the HTMLElement does not have the attribute return none
+        if item_attr.is_empty() {
+            return None;
+        }
 
         let mut item_attrs = HashSet::new();
         let vals = item_attr.split_whitespace();
@@ -341,8 +346,13 @@ impl HTMLElementMethods for HTMLElement {
             &local_name!("itemprop"),
             self.upcast::<Element>()
                 .GetAttribute(DOMString::from(String::from("itemprop")))
-                .unwrap(),
+                .unwrap_or(DOMString::from(String::from(""))),
         );
+
+        // If the HTMLElement does not have the attribute return none
+        if item_attr.is_empty() {
+            return None;
+        }
 
         let mut item_attrs = HashSet::new();
         let vals = item_attr.split_whitespace();
