@@ -50,7 +50,7 @@ pub use self::percentage::Percentage;
 pub use self::position::{Position, PositionComponent};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;

@@ -128,3 +128,14 @@ impl<N, L> LineHeight<N, L> {
         LineHeight::Normal
     }
 }
+
+/// A generic value for the `text-overflow` property.
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+pub enum TextOverflowSide {
+    /// Clip inline content.
+    Clip,
+    /// Render ellipsis to represent clipped inline content.
+    Ellipsis,
+    /// Render a given string to represent clipped inline content.
+    String(Box<str>),
+}
