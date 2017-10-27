@@ -308,6 +308,27 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
+    fn Itemtypes(&self) -> Option<Vec<DOMString>> {
+
+        let item_attr: AttrValue = self.parse_plain_attribute(
+            &local_name!("itemtype"),
+            self.upcast::<Element>()
+                .GetAttribute(DOMString::from(String::from("itemtype")))
+                .unwrap(),
+        );
+
+        let mut item_attr_vector: Vec<DOMString> = Vec::new();
+        let vals = item_attr.split_whitespace();
+
+        vals.for_each(|f| {
+            println!("{:#?}", String::from(f));
+            item_attr_vector.push(DOMString::from(String::from(f)))
+        });
+
+        let opt: Option<Vec<DOMString>> = Some(item_attr_vector);
+        return opt;
+    }
+
     fn PropertyNames(&self) -> Option<Vec<DOMString>> {
 
         let item_attr: AttrValue = self.parse_plain_attribute(
