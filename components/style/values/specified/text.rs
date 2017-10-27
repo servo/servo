@@ -4,13 +4,14 @@
 
 //! Specified types for text properties.
 
-use cssparser::Parser;
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::ascii::AsciiExt;
 use style_traits::ParseError;
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
+use values::computed::text::TextOverflow as ComputedTextOverflow;
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::Spacing;
@@ -150,6 +151,93 @@ impl ToComputedValue for LineHeight {
             },
             GenericLineHeight::Length(ref length) => {
                 GenericLineHeight::Length(NoCalcLength::from_computed_value(&length.0).into())
+            }
+        }
+    }
+}
+
+/// A generic value for the `text-overflow` property.
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+pub enum TextOverflowSide {
+    /// Clip inline content.
+    Clip,
+    /// Render ellipsis to represent clipped inline content.
+    Ellipsis,
+    /// Render a given string to represent clipped inline content.
+    String(Box<str>),
+}
+
+impl Parse for TextOverflowSide {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                        -> Result<TextOverflowSide, ParseError<'i>> {
+        let location = input.current_source_location();
+        match *input.next()? {
+            Token::Ident(ref ident) => {
+                match_ignore_ascii_case! { ident,
+                    "clip" => Ok(TextOverflowSide::Clip),
+                    "ellipsis" => Ok(TextOverflowSide::Ellipsis),
+                    _ => Err(location.new_custom_error(
+                        SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                    ))
+                }
+            }
+            Token::QuotedString(ref v) => {
+                Ok(TextOverflowSide::String(v.as_ref().to_owned().into_boxed_str()))
+            }
+            ref t => Err(location.new_unexpected_token_error(t.clone())),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+/// text-overflow. Specifies rendering when inline content overflows its line box edge.
+pub struct TextOverflow {
+    /// First value. Applies to end line box edge if no second is supplied; line-left edge otherwise.
+    pub first: TextOverflowSide,
+    /// Second value. Applies to the line-right edge if supplied.
+    pub second: Option<TextOverflowSide>,
+}
+
+impl Parse for TextOverflow {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<TextOverflow, ParseError<'i>> {
+        let first = TextOverflowSide::parse(context, input)?;
+        let second = input.try(|input| TextOverflowSide::parse(context, input)).ok();
+        Ok(TextOverflow { first, second })
+    }
+}
+
+impl ToComputedValue for TextOverflow {
+    type ComputedValue = ComputedTextOverflow;
+
+    #[inline]
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        if let Some(ref second) = self.second {
+            Self::ComputedValue {
+                first: self.first.clone(),
+                second: second.clone(),
+                sides_are_logical: false,
+            }
+        } else {
+            Self::ComputedValue {
+                first: TextOverflowSide::Clip,
+                second: self.first.clone(),
+                sides_are_logical: true,
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        if computed.sides_are_logical {
+            assert!(computed.first == TextOverflowSide::Clip);
+            TextOverflow {
+                first: computed.second.clone(),
+                second: None,
+            }
+        } else {
+            TextOverflow {
+                first: computed.first.clone(),
+                second: Some(computed.second.clone()),
             }
         }
     }
