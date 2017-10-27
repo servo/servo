@@ -5,13 +5,14 @@
 //! Generic implementations of some DOM APIs so they can be shared between Servo
 //! and Gecko.
 
+use Atom;
 use context::QuirksMode;
 use dom::{TDocument, TElement, TNode};
 use invalidation::element::invalidator::{Invalidation, InvalidationProcessor, InvalidationVector};
 use selectors::{Element, NthIndexCache, SelectorList};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode};
-use selectors::parser::{Component, LocalName};
+use selectors::parser::{Combinator, Component, LocalName};
 use smallvec::SmallVec;
 use std::borrow::Borrow;
 
@@ -239,6 +240,61 @@ where
     false
 }
 
+fn find_elements_with_id<E, Q, F>(
+    root: E::ConcreteNode,
+    id: &Atom,
+    results: &mut Q::Output,
+    quirks_mode: QuirksMode,
+    mut filter: F,
+)
+where
+    E: TElement,
+    Q: SelectorQuery<E>,
+    F: FnMut(E) -> bool,
+{
+    let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
+    if case_sensitivity == CaseSensitivity::CaseSensitive &&
+       root.is_in_document()
+    {
+        let doc = root.owner_doc();
+        if let Ok(elements) = doc.elements_with_id(id) {
+            if root == doc.as_node() {
+                for element in elements {
+                    if !filter(*element) {
+                        continue;
+                    }
+
+                    Q::append_element(results, *element);
+                    if Q::should_stop_after_first_match() {
+                        break;
+                    }
+                }
+            } else {
+                for element in elements {
+                    if !element_is_descendant_of(*element, root) {
+                        continue;
+                    }
+
+                    if !filter(*element) {
+                        continue;
+                    }
+
+                    Q::append_element(results, *element);
+                    if Q::should_stop_after_first_match() {
+                        break;
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    collect_all_elements::<E, Q, _>(root, results, |element| {
+        element.has_id(id, case_sensitivity) && filter(element)
+    });
+}
+
+
 /// Fast paths for querySelector with a single simple selector.
 fn query_selector_single_query<E, Q>(
     root: E::ConcreteNode,
@@ -255,39 +311,13 @@ where
             collect_all_elements::<E, Q, _>(root, results, |_| true)
         }
         Component::ID(ref id) => {
-            let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
-
-            if case_sensitivity == CaseSensitivity::CaseSensitive &&
-               root.is_in_document()
-            {
-                let doc = root.owner_doc();
-                if let Ok(elements) = doc.elements_with_id(id) {
-                    if root == doc.as_node() {
-                        for element in elements {
-                            Q::append_element(results, *element);
-                            if Q::should_stop_after_first_match() {
-                                break;
-                            }
-                        }
-                    } else {
-                        for element in elements {
-                            if !element_is_descendant_of(*element, root) {
-                                continue;
-                            }
-
-                            Q::append_element(results, *element);
-                            if Q::should_stop_after_first_match() {
-                                break;
-                            }
-                        }
-                    }
-                    return Ok(())
-                }
-            }
-
-            collect_all_elements::<E, Q, _>(root, results, |element| {
-                element.has_id(id, case_sensitivity)
-            })
+            find_elements_with_id::<E, Q, _>(
+                root,
+                id,
+                results,
+                quirks_mode,
+                |_| true,
+            )
         }
         Component::Class(ref class) => {
             let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
@@ -321,7 +351,7 @@ fn query_selector_fast<E, Q>(
     root: E::ConcreteNode,
     selector_list: &SelectorList<E::Impl>,
     results: &mut Q::Output,
-    quirks_mode: QuirksMode,
+    matching_context: &mut MatchingContext<E::Impl>,
 ) -> Result<(), ()>
 where
     E: TElement,
@@ -334,6 +364,7 @@ where
     }
 
     let selector = &selector_list.0[0];
+    let quirks_mode = matching_context.quirks_mode();
 
     // Let's just care about the easy cases for now.
     if selector.len() == 1 {
@@ -345,9 +376,61 @@ where
         );
     }
 
-    // FIXME(emilio): Implement better optimizations for compound selectors and
-    // such.
-    Err(())
+    let mut iter = selector.iter();
+    let mut combinator: Option<Combinator> = None;
+
+    loop {
+        debug_assert!(combinator.map_or(true, |c| !c.is_sibling()));
+
+        for component in &mut iter {
+            match *component {
+                Component::ID(ref id) => {
+                    if combinator.is_none() {
+                        // In the rightmost compound, just find descendants of
+                        // root that match the selector list with that id.
+                        find_elements_with_id::<E, Q, _>(
+                            root,
+                            id,
+                            results,
+                            quirks_mode,
+                            |e| {
+                                matching::matches_selector_list(
+                                    selector_list,
+                                    &e,
+                                    matching_context,
+                                )
+                            }
+                        );
+
+                        return Ok(());
+                    }
+
+                    // TODO(emilio): Find descendants of `root` that are
+                    // descendants of an element with a given `id`.
+                }
+                _ => {},
+            }
+        }
+
+        loop {
+            let next_combinator = match iter.next_sequence() {
+                None => return Err(()),
+                Some(c) => c,
+            };
+
+            // We don't want to scan stuff affected by sibling combinators,
+            // given we scan the subtree of elements with a given id (and we
+            // don't want to care about scanning the siblings' subtrees).
+            if next_combinator.is_sibling() {
+                // Advance to the next combinator.
+                for _ in &mut iter {}
+                continue;
+            }
+
+            combinator = Some(next_combinator);
+            break;
+        }
+    }
 }
 
 // Slow path for a given selector query.
@@ -379,21 +462,7 @@ where
     use invalidation::element::invalidator::TreeStyleInvalidator;
 
     let quirks_mode = root.owner_doc().quirks_mode();
-    let fast_result = query_selector_fast::<E, Q>(
-        root,
-        selector_list,
-        results,
-        quirks_mode,
-    );
 
-    if fast_result.is_ok() {
-        return;
-    }
-
-    // Slow path: Use the invalidation machinery if we're a root, and tree
-    // traversal otherwise.
-    //
-    // See the comment in collect_invalidations to see why only if we're a root.
     let mut nth_index_cache = NthIndexCache::default();
     let mut matching_context = MatchingContext::new(
         MatchingMode::Normal,
@@ -405,6 +474,22 @@ where
     let root_element = root.as_element();
     matching_context.scope_element = root_element.map(|e| e.opaque());
 
+    let fast_result = query_selector_fast::<E, Q>(
+        root,
+        selector_list,
+        results,
+        &mut matching_context,
+    );
+
+    if fast_result.is_ok() {
+        return;
+    }
+
+    // Slow path: Use the invalidation machinery if we're a root, and tree
+    // traversal otherwise.
+    //
+    // See the comment in collect_invalidations to see why only if we're a root.
+    //
     // The invalidation mechanism is only useful in presence of combinators.
     //
     // We could do that check properly here, though checking the length of the
