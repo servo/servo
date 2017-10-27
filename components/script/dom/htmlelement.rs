@@ -31,11 +31,11 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::ascii::AsciiExt;
+use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use style::attr::AttrValue;
 use style::element_state::*;
-use std::collections::HashSet;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -309,9 +309,8 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemtype
+    //  https://html.spec.whatwg.org/multipage/#attr-itemtype
     fn Itemtypes(&self) -> Option<Vec<DOMString>> {
-
         let item_attr: AttrValue = self.parse_plain_attribute(
             &local_name!("itemtype"),
             self.upcast::<Element>()
@@ -339,9 +338,8 @@ impl HTMLElementMethods for HTMLElement {
         return opt;
     }
 
-    // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
+    //  https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute
     fn PropertyNames(&self) -> Option<Vec<DOMString>> {
-
         let item_attr: AttrValue = self.parse_plain_attribute(
             &local_name!("itemprop"),
             self.upcast::<Element>()
