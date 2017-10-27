@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<head>
+  <script src="../../../../web-platform-tests/resources/testharness.js"></script>
+  <script src="../../../../web-platform/testharnessreport.js"></script>
+  <title>Single ItemProperty and ItemType test</title>
+</head>
+
+<body id="body" itemprop="hello" itemtype="hello">
+
+  <h1 id="h1" itemprop="hello" itemtype="hello">Header H1</h1>
+  <h2 id="h2" itemprop="hello" itemtype="hello">Header H2</h2>
+
+  <p id="p" itemprop="hello" itemtype="hello">Paragraph</p>
+
+  <form id="form" itemprop="hello" itemtype="hello">
+    <input id="input" itemprop="hello" itemtype="hello">Input Field in form</input>
+  </form>
+
+  <ul id="ul" itemprop="hello" itemtype="hello">
+    <li id="li" itemprop="hello" itemtype="hello">Unordered List Item</li>
+  </ul>
+
+  <meta id="meta" itemprop="hello" itemtype="hello">Meta Tag</meta>
+
+  <table id="table" itemprop="hello" itemtype="hello">Table</table>
+
+  <div id="div" itemprop="hello" itemtype="hello">Hi</div>
+
+  <a id="anchor" itemprop="hello" itemtype="hello"></a>
+
+</body>
+
+<script>
+  test(function(){
+    // Test body element
+    var body = document.getElementById("body");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test h1 element
+    var h1 = document.getElementById("h1");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test h2 element
+    var h2 = document.getElementById("h2");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test p element
+    var p = document.getElementById("p");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test input element
+    var input = document.getElementById("input");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test form element
+    var form = document.getElementById("form");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test li element
+    var li = document.getElementById("li");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test ul element
+    var ul = document.getElementById("ul");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test meta element
+    var meta = document.getElementById("meta");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test table element
+    var table = document.getElementById("table");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test div element
+    var div = document.getElementById("div");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+    // Test anchor element
+    var anchor = document.getElementById("anchor");
+    assert_array_equals(body.propertyNames(), ["hello"], "The method should return 'hello' ");
+    assert_array_equals(body.itemtypes(), ["hello"], "The method should return 'hello' ");
+
+  });
+</script>
+
+</html>
