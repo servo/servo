@@ -1,8 +1,37 @@
 <!doctype html>
-<meta charset="utf-8">
-<title></title>
+
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script>
+<meta charset="utf-8">
+<html>
 
+<title id="tl" itemscope="title_name"> HELLO</title>
+<h1></h1>
+<h2></h2>
+<p></p>
+<input></input>
+<form></form>
+<li></li>
+<ul></ul>
+<meta></meta>
+<table></table>
+<form></form>
+
+<body id="mainBody" itemscope="http://www.google.com">
+ <div id="reg" itemscope="hello world">Hi</div>
+ <div id="dup" itemscope="hello world world">Hi</div>
+ <div id="single" itemscope="hello">Hi</div>
+ <div id="extraSpace" itemscope="hello   world">Hi</div>
+ <div id="caseSensitive" itemscope="Hello hello" </div>
+  <div id="dupNum" itemccope="34562 34562"></div>
+  <div id="blank" itemscope=""></div>
+  <a id="unicode" itemscope=""></a>
+  <button onclick="test()">TEST</button>
+</body>
+
+</html>
+<script>
+ test(function() {
+  assert_equals(document.getElementById("single").propertyNames(), "hello", "The method should return 'hello world' ");
+ }, "Simple test");
 </script>
