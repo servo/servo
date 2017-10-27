@@ -638,7 +638,7 @@ impl Expression {
                     };
 
                     let atom = Atom::from(feature_name);
-                    match find_feature(|f| atom.as_ptr() == unsafe { *f.mName }) {
+                    match find_feature(|f| atom.as_ptr() == unsafe { *f.mName as *mut _ }) {
                         Some(f) => Ok((f, range)),
                         None => Err(()),
                     }

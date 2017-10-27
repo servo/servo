@@ -2423,7 +2423,7 @@ pub mod root {
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct Element_MappedAttributeEntry {
-                pub attribute: *mut *mut root::nsAtom,
+                pub attribute: *mut *mut root::nsStaticAtom,
             }
             #[test]
             fn bindgen_test_layout_Element_MappedAttributeEntry() {
@@ -14854,6 +14854,18 @@ pub mod root {
                     "::" , stringify ! ( mStorageSize ) ));
     }
     #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsStaticAtom {
+        pub _base: root::nsAtom,
+    }
+    #[test]
+    fn bindgen_test_layout_nsStaticAtom() {
+        assert_eq!(::std::mem::size_of::<nsStaticAtom>() , 24usize , concat !
+                   ( "Size of: " , stringify ! ( nsStaticAtom ) ));
+        assert_eq! (::std::mem::align_of::<nsStaticAtom>() , 8usize , concat !
+                    ( "Alignment of " , stringify ! ( nsStaticAtom ) ));
+    }
+    #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsIPrincipal {
         pub _base: root::nsISerializable,
@@ -19305,7 +19317,7 @@ pub mod root {
     /// @param aCaseSensitive Whether to do a case-sensitive compare on the values.
     /// @return ATTR_MISSING, ATTR_VALUE_NO_MATCH or the non-negative index
     /// indicating the first value of aValues that matched
-    pub type nsIContent_AttrValuesArray = *const *const root::nsAtom;
+    pub type nsIContent_AttrValuesArray = *const *const root::nsStaticAtom;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsIContent_FlattenedParentType {
@@ -31834,7 +31846,7 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsMediaFeature {
-        pub mName: *mut *mut root::nsAtom,
+        pub mName: *mut *mut root::nsStaticAtom,
         pub mRangeType: root::nsMediaFeature_RangeType,
         pub mValueType: root::nsMediaFeature_ValueType,
         pub mReqFlags: u8,
