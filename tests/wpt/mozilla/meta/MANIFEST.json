@@ -10756,6 +10756,11 @@
      {}
     ]
    ],
+   "mozilla/.DS_Store": [
+    [
+     {}
+    ]
+   ],
    "mozilla/2x2.png": [
     [
      {}
@@ -11052,6 +11057,31 @@
     ]
    ],
    "mozilla/interfaces.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/microdata/dup_prop_type_test.html.bkp": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/microdata/extra_space_test.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/microdata/none_check.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/microdata/regular_prop_type_test.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/microdata/single_prop_type_test.html": [
     [
      {}
     ]
@@ -14807,6 +14837,12 @@
    "mozilla/media_query_list_gc.html": [
     [
      "/_mozilla/mozilla/media_query_list_gc.html",
+     {}
+    ]
+   ],
+   "mozilla/microdata/dup_prop_type_test.html": [
+    [
+     "/_mozilla/mozilla/microdata/dup_prop_type_test.html",
      {}
     ]
    ],
@@ -27255,6 +27291,10 @@
    "9ac1f9756a4cd44196242beb80621b9bc8cbe2ff",
    "testharness"
   ],
+  "mozilla/.DS_Store": [
+   "df2fbeb1400acda0909a32c1cf6bf492f1121e07",
+   "support"
+  ],
   "mozilla/2x2.png": [
    "c67d3f646e86413722833d2308a9bfc793a916bf",
    "support"
@@ -28146,6 +28186,30 @@
   "mozilla/media_query_list_gc.html": [
    "4e0b6d4c416e2e3f26de64e9364f0a8c7a6dc5cb",
    "testharness"
+  ],
+  "mozilla/microdata/dup_prop_type_test.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "testharness"
+  ],
+  "mozilla/microdata/dup_prop_type_test.html.bkp": [
+   "0c93568558d6fe384b2da225fdaff18296fb33b2",
+   "support"
+  ],
+  "mozilla/microdata/extra_space_test.html": [
+   "af39c93540a543dfba14ae45046823561eebf105",
+   "support"
+  ],
+  "mozilla/microdata/none_check.html": [
+   "712bc58dfd911ecf5222ce01175666ed86783756",
+   "support"
+  ],
+  "mozilla/microdata/regular_prop_type_test.html": [
+   "6cbb14df2d7201a5319bb64be7c46c6db9ac5941",
+   "support"
+  ],
+  "mozilla/microdata/single_prop_type_test.html": [
+   "e57445f355dce16a92e4da2b9492a1f06f40a39d",
+   "support"
   ],
   "mozilla/mime_sniffing_font_context.html": [
    "1311e72e0a0dafa6fae594ca1ce2deca164acd36",
