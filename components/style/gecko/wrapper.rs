@@ -110,6 +110,26 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
     fn quirks_mode(&self) -> QuirksMode {
         self.0.mCompatMode.into()
     }
+
+    fn elements_with_id(&self, id: &Atom) -> Result<&[GeckoElement<'ld>], ()> {
+        unsafe {
+            let array = bindings::Gecko_GetElementsWithId(self.0, id.as_ptr());
+            if array.is_null() {
+                return Ok(&[]);
+            }
+
+            let elements: &[*mut RawGeckoElement] = &**array;
+
+            // NOTE(emilio): We rely on the in-memory representation of
+            // GeckoElement<'ld> and *mut RawGeckoElement being the same.
+            #[allow(dead_code)]
+            unsafe fn static_assert() {
+                mem::transmute::<*mut RawGeckoElement, GeckoElement<'static>>(0xbadc0de as *mut _);
+            }
+
+            Ok(mem::transmute(elements))
+        }
+    }
 }
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
