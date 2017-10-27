@@ -35,6 +35,7 @@ use std::default::Default;
 use std::rc::Rc;
 use style::attr::AttrValue;
 use style::element_state::*;
+use std::collections::HashSet;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -308,6 +309,7 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/microdata.html#attr-itemtype
     fn Itemtypes(&self) -> Option<Vec<DOMString>> {
 
         let item_attr: AttrValue = self.parse_plain_attribute(
@@ -329,6 +331,7 @@ impl HTMLElementMethods for HTMLElement {
         return opt;
     }
 
+    // https://html.spec.whatwg.org/multipage/microdata.html#names:-the-itemprop-attribute
     fn PropertyNames(&self) -> Option<Vec<DOMString>> {
 
         let item_attr: AttrValue = self.parse_plain_attribute(
@@ -338,14 +341,17 @@ impl HTMLElementMethods for HTMLElement {
                 .unwrap(),
         );
 
-        let mut item_attr_vector: Vec<DOMString> = Vec::new();
+        let mut item_attrs = HashSet::new();
         let vals = item_attr.split_whitespace();
 
         vals.for_each(|f| {
-            println!("{:#?}", String::from(f));
-            item_attr_vector.push(DOMString::from(String::from(f)))
+            item_attrs.insert(DOMString::from(String::from(f)));
         });
 
+        let mut item_attr_vector: Vec<DOMString> = Vec::new();
+        for item_attr in item_attrs.drain() {
+            item_attr_vector.push(item_attr);
+        }
         let opt: Option<Vec<DOMString>> = Some(item_attr_vector);
         return opt;
     }
