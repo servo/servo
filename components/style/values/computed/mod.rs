@@ -53,6 +53,7 @@ pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPer
 pub use self::percentage::Percentage;
 pub use self::position::Position;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
+pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, TransformOrigin};
@@ -77,6 +78,7 @@ pub mod percentage;
 pub mod position;
 pub mod rect;
 pub mod svg;
+pub mod table;
 pub mod text;
 pub mod time;
 pub mod transform;
