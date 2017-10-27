@@ -309,7 +309,7 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
-    //  https://html.spec.whatwg.org/multipage/#attr-itemtype
+    // https://html.spec.whatwg.org/multipage/#attr-itemtype
     fn Itemtypes(&self) -> Option<Vec<DOMString>> {
         let item_attr: AttrValue = self.parse_plain_attribute(
             &local_name!("itemtype"),
@@ -318,7 +318,6 @@ impl HTMLElementMethods for HTMLElement {
                 .unwrap_or(DOMString::from(String::from(""))),
         );
 
-        // If the HTMLElement does not have the attribute return none
         if item_attr.is_empty() {
             return None;
         }
@@ -338,7 +337,7 @@ impl HTMLElementMethods for HTMLElement {
         return opt;
     }
 
-    //  https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute
+    // https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute
     fn PropertyNames(&self) -> Option<Vec<DOMString>> {
         let item_attr: AttrValue = self.parse_plain_attribute(
             &local_name!("itemprop"),
@@ -347,7 +346,6 @@ impl HTMLElementMethods for HTMLElement {
                 .unwrap_or(DOMString::from(String::from(""))),
         );
 
-        // If the HTMLElement does not have the attribute return none
         if item_attr.is_empty() {
             return None;
         }
