@@ -2619,10 +2619,18 @@ extern "C" {
      -> f32;
 }
 extern "C" {
+    pub fn Servo_AnimationValue_Opacity(arg1: f32)
+     -> RawServoAnimationValueStrong;
+}
+extern "C" {
     pub fn Servo_AnimationValue_GetTransform(value:
                                                  RawServoAnimationValueBorrowed,
                                              list:
                                                  *mut RefPtr<nsCSSValueSharedList>);
+}
+extern "C" {
+    pub fn Servo_AnimationValue_Transform(list: *const nsCSSValueSharedList)
+     -> RawServoAnimationValueStrong;
 }
 extern "C" {
     pub fn Servo_AnimationValue_DeepEqual(arg1:
@@ -2768,8 +2776,21 @@ extern "C" {
                                       RawGeckoAnimationPropertySegmentBorrowed,
                                   computed_timing:
                                       RawGeckoComputedTimingBorrowed,
-                                  iteration_composite:
+                                  iter_composite:
                                       IterationCompositeOperation);
+}
+extern "C" {
+    pub fn Servo_ComposeAnimationSegment(animation_segment:
+                                             RawGeckoAnimationPropertySegmentBorrowed,
+                                         underlying_value:
+                                             RawServoAnimationValueBorrowedOrNull,
+                                         last_value:
+                                             RawServoAnimationValueBorrowedOrNull,
+                                         iter_composite:
+                                             IterationCompositeOperation,
+                                         progress: f64,
+                                         current_iteration: u64)
+     -> RawServoAnimationValueStrong;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_PropertyIsSet(declarations:
