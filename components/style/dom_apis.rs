@@ -9,6 +9,7 @@ use context::QuirksMode;
 use dom::{TDocument, TElement, TNode};
 use invalidation::element::invalidator::{Invalidation, InvalidationProcessor, InvalidationVector};
 use selectors::{Element, NthIndexCache, SelectorList};
+use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode};
 use selectors::parser::{Component, LocalName};
 use smallvec::SmallVec;
@@ -220,6 +221,23 @@ where
     }
 }
 
+/// Returns whether a given element is descendant of a given `root` node.
+///
+/// NOTE(emilio): if root == element, this returns false.
+fn element_is_descendant_of<E>(element: E, root: E::ConcreteNode) -> bool
+where
+    E: TElement,
+{
+    let mut current = element.as_node().parent_node();
+    while let Some(n) = current.take() {
+        if n == root {
+            return true;
+        }
+
+        current = n.parent_node();
+    }
+    false
+}
 
 /// Fast paths for querySelector with a single simple selector.
 fn query_selector_single_query<E, Q>(
@@ -237,8 +255,36 @@ where
             collect_all_elements::<E, Q, _>(root, results, |_| true)
         }
         Component::ID(ref id) => {
-            // TODO(emilio): We may want to reuse Gecko's document ID table.
             let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
+
+            if case_sensitivity == CaseSensitivity::CaseSensitive &&
+               root.is_in_document()
+            {
+                let doc = root.owner_doc();
+                if let Ok(elements) = doc.elements_with_id(id) {
+                    if root == doc.as_node() {
+                        for element in elements {
+                            Q::append_element(results, *element);
+                            if Q::should_stop_after_first_match() {
+                                break;
+                            }
+                        }
+                    } else {
+                        for element in elements {
+                            if !element_is_descendant_of(*element, root) {
+                                continue;
+                            }
+
+                            Q::append_element(results, *element);
+                            if Q::should_stop_after_first_match() {
+                                break;
+                            }
+                        }
+                    }
+                    return Ok(())
+                }
+            }
+
             collect_all_elements::<E, Q, _>(root, results, |element| {
                 element.has_id(id, case_sensitivity)
             })
