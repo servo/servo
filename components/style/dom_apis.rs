@@ -10,7 +10,9 @@ use dom::{TDocument, TElement, TNode};
 use invalidation::element::invalidator::{Invalidation, InvalidationProcessor, InvalidationVector};
 use selectors::{Element, NthIndexCache, SelectorList};
 use selectors::matching::{self, MatchingContext, MatchingMode};
+use selectors::parser::{Component, LocalName};
 use smallvec::SmallVec;
+use std::borrow::Borrow;
 
 /// <https://dom.spec.whatwg.org/#dom-element-matches>
 pub fn element_matches<E>(
@@ -218,13 +220,11 @@ where
     }
 }
 
-/// Fast paths for a given selector query.
-///
-/// FIXME(emilio, nbp): This may very well be a good candidate for code to be
-/// replaced by HolyJit :)
-fn query_selector_fast<E, Q>(
+
+/// Fast paths for querySelector with a single simple selector.
+fn query_selector_single_query<E, Q>(
     root: E::ConcreteNode,
-    selector_list: &SelectorList<E::Impl>,
+    component: &Component<E::Impl>,
     results: &mut Q::Output,
     quirks_mode: QuirksMode,
 ) -> Result<(), ()>
@@ -232,26 +232,6 @@ where
     E: TElement,
     Q: SelectorQuery<E>,
 {
-    use selectors::parser::{Component, LocalName};
-    use std::borrow::Borrow;
-
-    // We need to return elements in document order, and reordering them
-    // afterwards is kinda silly.
-    if selector_list.0.len() > 1 {
-        return Err(());
-    }
-
-    let selector = &selector_list.0[0];
-
-    // Let's just care about the easy cases for now.
-    //
-    // FIXME(emilio): Blink has a fast path for classes in ancestor combinators
-    // that may be worth stealing.
-    if selector.len() > 1 {
-        return Err(());
-    }
-
-    let component = selector.iter().next().unwrap();
     match *component {
         Component::ExplicitUniversalType => {
             collect_all_elements::<E, Q, _>(root, results, |_| true)
@@ -285,6 +265,43 @@ where
     }
 
     Ok(())
+}
+
+/// Fast paths for a given selector query.
+///
+/// FIXME(emilio, nbp): This may very well be a good candidate for code to be
+/// replaced by HolyJit :)
+fn query_selector_fast<E, Q>(
+    root: E::ConcreteNode,
+    selector_list: &SelectorList<E::Impl>,
+    results: &mut Q::Output,
+    quirks_mode: QuirksMode,
+) -> Result<(), ()>
+where
+    E: TElement,
+    Q: SelectorQuery<E>,
+{
+    // We need to return elements in document order, and reordering them
+    // afterwards is kinda silly.
+    if selector_list.0.len() > 1 {
+        return Err(());
+    }
+
+    let selector = &selector_list.0[0];
+
+    // Let's just care about the easy cases for now.
+    if selector.len() == 1 {
+        return query_selector_single_query::<E, Q>(
+            root,
+            selector.iter().next().unwrap(),
+            results,
+            quirks_mode,
+        );
+    }
+
+    // FIXME(emilio): Implement better optimizations for compound selectors and
+    // such.
+    Err(())
 }
 
 // Slow path for a given selector query.
