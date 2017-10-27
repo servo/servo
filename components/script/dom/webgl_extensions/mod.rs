@@ -22,4 +22,5 @@ pub mod ext_constants {
 }
 
 pub use self::extension::WebGLExtension;
+pub use self::extension::WebGLExtensionSpec;
 pub use self::extensions::WebGLExtensions;

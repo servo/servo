@@ -252,7 +252,7 @@ impl WebGLRenderingContext {
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
-                extension_manager: WebGLExtensions::new()
+                extension_manager: WebGLExtensions::new(webgl_version)
             }
         })
     }

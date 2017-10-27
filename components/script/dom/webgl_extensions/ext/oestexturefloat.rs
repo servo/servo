@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use canvas_traits::webgl::WebGLVersion;
 use dom::bindings::codegen::Bindings::OESTextureFloatBinding;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
-use super::{constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensions};
+use super::{constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 #[dom_struct]
 pub struct OESTextureFloat {
@@ -28,6 +29,10 @@ impl WebGLExtension for OESTextureFloat {
         reflect_dom_object(Box::new(OESTextureFloat::new_inherited()),
                            &*ctx.global(),
                            OESTextureFloatBinding::Wrap)
+    }
+
+    fn spec() -> WebGLExtensionSpec {
+        WebGLExtensionSpec::Specific(WebGLVersion::WebGL1)
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
