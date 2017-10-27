@@ -146,6 +146,17 @@ pub trait TDocument : Sized + Copy + Clone {
 
     /// Returns the quirks mode of this document.
     fn quirks_mode(&self) -> QuirksMode;
+
+    /// Get a list of elements with a given ID in this document.
+    ///
+    /// Can return an error to signal that this list is not available, or also
+    /// return an empty slice.
+    fn elements_with_id(
+        &self,
+        _id: &Atom,
+    ) -> Result<&[<Self::ConcreteNode as TNode>::ConcreteElement], ()> {
+        Err(())
+    }
 }
 
 /// The `TNode` trait. This is the main generic trait over which the style
