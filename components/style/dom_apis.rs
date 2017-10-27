@@ -240,7 +240,63 @@ where
     false
 }
 
-fn find_elements_with_id<E, Q, F>(
+/// Execute `callback` on each element with a given `id` under `root`.
+///
+/// If `callback` returns false, iteration will stop immediately.
+fn each_element_with_id_under<E, F>(
+    root: E::ConcreteNode,
+    id: &Atom,
+    quirks_mode: QuirksMode,
+    mut callback: F,
+)
+where
+    E: TElement,
+    F: FnMut(E) -> bool,
+{
+    let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
+    if case_sensitivity == CaseSensitivity::CaseSensitive &&
+       root.is_in_document()
+    {
+        let doc = root.owner_doc();
+        if let Ok(elements) = doc.elements_with_id(id) {
+            if root == doc.as_node() {
+                for element in elements {
+                    if !callback(*element) {
+                        return;
+                    }
+                }
+            } else {
+                for element in elements {
+                    if !element_is_descendant_of(*element, root) {
+                        continue;
+                    }
+
+                    if !callback(*element) {
+                        return;
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    for node in root.dom_descendants() {
+        let element = match node.as_element() {
+            Some(e) => e,
+            None => continue,
+        };
+
+        if !element.has_id(id, case_sensitivity) {
+            continue;
+        }
+
+        if !callback(element) {
+            return;
+        }
+    }
+}
+
+fn collect_elements_with_id<E, Q, F>(
     root: E::ConcreteNode,
     id: &Atom,
     results: &mut Q::Output,
@@ -252,46 +308,14 @@ where
     Q: SelectorQuery<E>,
     F: FnMut(E) -> bool,
 {
-    let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
-    if case_sensitivity == CaseSensitivity::CaseSensitive &&
-       root.is_in_document()
-    {
-        let doc = root.owner_doc();
-        if let Ok(elements) = doc.elements_with_id(id) {
-            if root == doc.as_node() {
-                for element in elements {
-                    if !filter(*element) {
-                        continue;
-                    }
-
-                    Q::append_element(results, *element);
-                    if Q::should_stop_after_first_match() {
-                        break;
-                    }
-                }
-            } else {
-                for element in elements {
-                    if !element_is_descendant_of(*element, root) {
-                        continue;
-                    }
-
-                    if !filter(*element) {
-                        continue;
-                    }
-
-                    Q::append_element(results, *element);
-                    if Q::should_stop_after_first_match() {
-                        break;
-                    }
-                }
-            }
+    each_element_with_id_under::<E, _>(root, id, quirks_mode, |element| {
+        if !filter(element) {
+            return true;
         }
-        return;
-    }
 
-    collect_all_elements::<E, Q, _>(root, results, |element| {
-        element.has_id(id, case_sensitivity) && filter(element)
-    });
+        Q::append_element(results, element);
+        return !Q::should_stop_after_first_match()
+    })
 }
 
 
@@ -311,7 +335,7 @@ where
             collect_all_elements::<E, Q, _>(root, results, |_| true)
         }
         Component::ID(ref id) => {
-            find_elements_with_id::<E, Q, _>(
+            collect_elements_with_id::<E, Q, _>(
                 root,
                 id,
                 results,
@@ -388,7 +412,7 @@ where
                     if combinator.is_none() {
                         // In the rightmost compound, just find descendants of
                         // root that match the selector list with that id.
-                        find_elements_with_id::<E, Q, _>(
+                        collect_elements_with_id::<E, Q, _>(
                             root,
                             id,
                             results,
