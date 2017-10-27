@@ -1409,10 +1409,29 @@ impl Stylist {
     /// Given an id, returns whether there might be any rules for that id in any
     /// of our rule maps.
     #[inline]
-    pub fn may_have_rules_for_id(&self, id: &Atom) -> bool {
-        self.cascade_data
-            .iter_origins()
-            .any(|(d, _)| d.mapped_ids.might_contain_hash(id.get_hash()))
+    pub fn may_have_rules_for_id<E>(
+        &self,
+        id: &Atom,
+        element: E,
+    ) -> bool
+    where
+        E: TElement,
+    {
+        let hash = id.get_hash();
+        for (data, _) in self.cascade_data.iter_origins() {
+            if data.mapped_ids.might_contain_hash(hash) {
+                return true;
+            }
+        }
+
+        let mut xbl_rules_may_contain = false;
+
+        element.each_xbl_stylist(|stylist| {
+            xbl_rules_may_contain = xbl_rules_may_contain ||
+                stylist.cascade_data.author.mapped_ids.might_contain_hash(hash)
+        });
+
+        xbl_rules_may_contain
     }
 
     /// Returns the registered `@keyframes` animation for the specified name.
@@ -1428,7 +1447,7 @@ impl Stylist {
     /// revalidation selectors.
     pub fn match_revalidation_selectors<E, F>(
         &self,
-        element: &E,
+        element: E,
         bloom: Option<&BloomFilter>,
         nth_index_cache: &mut NthIndexCache,
         flags_setter: &mut F
@@ -1454,14 +1473,14 @@ impl Stylist {
         let mut results = SmallBitVec::new();
         for (data, _) in self.cascade_data.iter_origins() {
             data.selectors_for_cache_revalidation.lookup(
-                *element,
+                element,
                 self.quirks_mode,
                 &mut |selector_and_hashes| {
                     results.push(matches_selector(
                         &selector_and_hashes.selector,
                         selector_and_hashes.selector_offset,
                         Some(&selector_and_hashes.hashes),
-                        element,
+                        &element,
                         &mut matching_context,
                         flags_setter
                     ));
@@ -1469,6 +1488,24 @@ impl Stylist {
                 }
             );
         }
+
+        element.each_xbl_stylist(|stylist| {
+            stylist.cascade_data.author.selectors_for_cache_revalidation.lookup(
+                element,
+                stylist.quirks_mode,
+                &mut |selector_and_hashes| {
+                    results.push(matches_selector(
+                        &selector_and_hashes.selector,
+                        selector_and_hashes.selector_offset,
+                        Some(&selector_and_hashes.hashes),
+                        &element,
+                        &mut matching_context,
+                        flags_setter
+                    ));
+                    true
+                }
+            );
+        });
 
         results
     }
