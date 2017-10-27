@@ -32,7 +32,6 @@ use dom::vrstageparameters::VRStageParameters;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSContext;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
 use std::cell::Cell;
@@ -299,7 +298,7 @@ impl VRDisplayMethods for VRDisplay {
         }
 
         // Parse and validate received VRLayer
-        let layer = validate_layer(self.global().get_cx(), &layers[0]);
+        let layer = validate_layer(&layers[0]);
 
         let layer_bounds;
         let layer_ctx;
@@ -629,10 +628,8 @@ fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<()
     }
 }
 
-fn validate_layer(cx: *mut JSContext,
-                  layer: &VRLayer)
-                  -> Result<(WebVRLayer, DomRoot<WebGLRenderingContext>), &'static str> {
-    let ctx = layer.source.as_ref().map(|ref s| s.get_or_init_webgl_context(cx, None)).unwrap_or(None);
+fn validate_layer(layer: &VRLayer) -> Result<(WebVRLayer, DomRoot<WebGLRenderingContext>), &'static str> {
+    let ctx = layer.source.as_ref().map(|ref s| s.get_base_webgl_context()).unwrap_or(None);
     if let Some(ctx) = ctx {
         let mut data = WebVRLayer::default();
         parse_bounds(&layer.leftBounds, &mut data.left_bounds)?;

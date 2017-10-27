@@ -89,8 +89,8 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
     #[inline]
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
         match msg {
-            WebGLMsg::CreateContext(size, attributes, result_sender) => {
-                let result = self.create_webgl_context(size, attributes);
+            WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
+                let result = self.create_webgl_context(version, size, attributes);
                 result_sender.send(result.map(|(id, limits, share_mode)|
                     WebGLCreateContextResult {
                         sender: WebGLMsgSender::new(id, webgl_chan.clone()),
@@ -179,15 +179,16 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Creates a new WebGLContext
     fn create_webgl_context(&mut self,
+                            version: WebGLVersion,
                             size: Size2D<i32>,
                             attributes: GLContextAttributes)
                             -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
         // First try to create a shared context for the best performance.
         // Fallback to readback mode if the shared context creation fails.
-        let result = self.gl_factory.new_shared_context(size, attributes)
+        let result = self.gl_factory.new_shared_context(version, size, attributes)
                                     .map(|r| (r, WebGLContextShareMode::SharedTexture))
                                     .or_else(|_| {
-                                        let ctx = self.gl_factory.new_context(size, attributes);
+                                        let ctx = self.gl_factory.new_context(version, size, attributes);
                                         ctx.map(|r| (r, WebGLContextShareMode::Readback))
                                     });
 

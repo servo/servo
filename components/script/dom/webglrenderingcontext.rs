@@ -4,7 +4,7 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError};
+use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError, WebGLVersion};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
@@ -186,6 +186,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     share_mode: WebGLContextShareMode,
+    webgl_version: WebGLVersion,
     #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
     limits: GLLimits,
     canvas: Dom<HTMLCanvasElement>,
@@ -211,18 +212,20 @@ pub struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
-    fn new_inherited(window: &Window,
-                     canvas: &HTMLCanvasElement,
-                     size: Size2D<i32>,
-                     attrs: GLContextAttributes)
-                     -> Result<WebGLRenderingContext, String> {
+    pub fn new_inherited(
+        window: &Window,
+        canvas: &HTMLCanvasElement,
+        webgl_version: WebGLVersion,
+        size: Size2D<i32>,
+        attrs: GLContextAttributes
+    ) -> Result<WebGLRenderingContext, String> {
         if let Some(true) = PREFS.get("webgl.testing.context_creation_error").as_boolean() {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
         let webgl_chan = window.webgl_chan();
-        webgl_chan.send(WebGLMsg::CreateContext(size, attrs, sender))
+        webgl_chan.send(WebGLMsg::CreateContext(webgl_version, size, attrs, sender))
                   .unwrap();
         let result = receiver.recv().unwrap();
 
@@ -232,6 +235,7 @@ impl WebGLRenderingContext {
                 webgl_sender: ctx_data.sender,
                 webrender_image: Cell::new(None),
                 share_mode: ctx_data.share_mode,
+                webgl_version,
                 limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
@@ -254,9 +258,14 @@ impl WebGLRenderingContext {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
-               -> Option<DomRoot<WebGLRenderingContext>> {
-        match WebGLRenderingContext::new_inherited(window, canvas, size, attrs) {
+    pub fn new(
+        window: &Window,
+        canvas: &HTMLCanvasElement,
+        webgl_version: WebGLVersion,
+        size: Size2D<i32>,
+        attrs: GLContextAttributes
+    ) -> Option<DomRoot<WebGLRenderingContext>> {
+        match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
             Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
@@ -1123,7 +1132,7 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    fn layout_handle(&self) -> webrender_api::ImageKey {
+    pub fn layout_handle(&self) -> webrender_api::ImageKey {
         match self.share_mode {
             WebGLContextShareMode::SharedTexture => {
                 // WR using ExternalTexture requires a single update message.
@@ -1905,7 +1914,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
-            shader.compile(&self.extension_manager)
+            shader.compile(self.webgl_version, &self.extension_manager)
         }
     }
 

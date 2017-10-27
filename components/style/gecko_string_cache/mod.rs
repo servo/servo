@@ -10,7 +10,7 @@ use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
-use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind};
+use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
 use std::ascii::AsciiExt;
@@ -254,7 +254,7 @@ impl Atom {
     /// that way, now we have sugar for is_static, creating atoms using
     /// Atom::from should involve almost no overhead.
     #[inline]
-    unsafe fn from_static(ptr: *mut nsAtom) -> Self {
+    unsafe fn from_static(ptr: *mut nsStaticAtom) -> Self {
         let atom = Atom(ptr as *mut WeakAtom);
         debug_assert!(atom.is_static(),
                       "Called from_static for a non-static atom!");
@@ -385,6 +385,16 @@ impl From<*mut nsAtom> for Atom {
                 Gecko_AddRefAtom(ptr);
             }
             ret
+        }
+    }
+}
+
+impl From<*mut nsStaticAtom> for Atom {
+    #[inline]
+    fn from(ptr: *mut nsStaticAtom) -> Atom {
+        assert!(!ptr.is_null());
+        unsafe {
+            Atom::from_static(ptr)
         }
     }
 }
