@@ -22,7 +22,7 @@ use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use rule_tree::CascadeLevel;
 use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
 use selectors::Element as SelectorsElement;
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
@@ -133,11 +133,29 @@ where
     }
 }
 
+/// The `TDocument` trait, to represent a document node.
+pub trait TDocument : Sized + Copy + Clone {
+    /// The concrete `TNode` type.
+    type ConcreteNode: TNode<ConcreteDocument = Self>;
+
+    /// Get this document as a `TNode`.
+    fn as_node(&self) -> Self::ConcreteNode;
+
+    /// Returns whether this document is an HTML document.
+    fn is_html_document(&self) -> bool;
+
+    /// Returns the quirks mode of this document.
+    fn quirks_mode(&self) -> QuirksMode;
+}
+
 /// The `TNode` trait. This is the main generic trait over which the style
 /// system can be implemented.
 pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// The concrete `TElement` type.
     type ConcreteElement: TElement<ConcreteNode = Self>;
+
+    /// The concrete `TDocument` type.
+    type ConcreteDocument: TDocument<ConcreteNode = Self>;
 
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
@@ -153,6 +171,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Get this node's next sibling.
     fn next_sibling(&self) -> Option<Self>;
+
+    /// Get the owner document of this node.
+    fn owner_doc(&self) -> Self::ConcreteDocument;
 
     /// Iterate over the DOM children of a node.
     fn dom_children(&self) -> DomChildren<Self> {
@@ -210,6 +231,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Get this node as an element, if it's one.
     fn as_element(&self) -> Option<Self::ConcreteElement>;
+
+    /// Get this node as a document, if it's one.
+    fn as_document(&self) -> Option<Self::ConcreteDocument>;
 
     /// Whether this node can be fragmented. This is used for multicol, and only
     /// for Servo.
@@ -311,16 +335,6 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     Ok(())
 }
 
-/// A trait used to synthesize presentational hints for HTML element attributes.
-pub trait PresentationalHintsSynthesizer {
-    /// Generate the proper applicable declarations due to presentational hints,
-    /// and insert them into `hints`.
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
-                                                                visited_handling: VisitedHandlingMode,
-                                                                hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock>;
-}
-
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement
     : Eq
@@ -331,7 +345,6 @@ pub trait TElement
     + Copy
     + Clone
     + SelectorsElement<Impl = SelectorImpl>
-    + PresentationalHintsSynthesizer
 {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
@@ -808,6 +821,16 @@ pub trait TElement
     /// Returns whether this element is the main body element of the HTML
     /// document it is on.
     fn is_html_document_body_element(&self) -> bool;
+
+    /// Generate the proper applicable declarations due to presentational hints,
+    /// and insert them into `hints`.
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(
+        &self,
+        visited_handling: VisitedHandlingMode,
+        hints: &mut V,
+    )
+    where
+        V: Push<ApplicableDeclarationBlock>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

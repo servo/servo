@@ -8,9 +8,10 @@
 use Atom;
 use app_units::Au;
 use cssparser::Parser;
+use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 use std::fmt;
-use style_traits::{ToCss, ParseError};
+use style_traits::{ToCss, StyleParseErrorKind, ParseError};
 use values::computed::{font as computed, Context, NonNegativeLength, ToComputedValue};
 use values::specified::{LengthOrPercentage, NoCalcLength};
 use values::specified::length::FontBaseSize;
@@ -371,5 +372,22 @@ impl FontSize {
         } else {
             None
         }
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+/// text-zoom. Enable if true, disable if false
+pub struct XTextZoom(pub bool);
+
+impl Parse for XTextZoom {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<XTextZoom, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+}
+
+impl ToCss for XTextZoom {
+    fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+        Ok(())
     }
 }

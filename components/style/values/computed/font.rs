@@ -11,6 +11,8 @@ use values::animated::ToAnimatedValue;
 use values::computed::NonNegativeLength;
 use values::specified::font as specified;
 
+pub use values::specified::font::XTextZoom;
+
 #[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 /// The computed value of font-size
