@@ -191,6 +191,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
         DomChildren(self.first_child())
     }
 
+    /// Returns whether the node is attached to a document.
+    fn is_in_document(&self) -> bool;
+
     /// Iterate over the DOM children of a node, in preorder.
     fn dom_descendants(&self) -> DomDescendants<Self> {
         DomDescendants {
