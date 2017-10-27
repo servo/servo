@@ -2619,6 +2619,10 @@ extern "C" {
      -> f32;
 }
 extern "C" {
+    pub fn Servo_AnimationValue_Opacity(arg1: f32)
+     -> RawServoAnimationValueStrong;
+}
+extern "C" {
     pub fn Servo_AnimationValue_GetTransform(value:
                                                  RawServoAnimationValueBorrowed,
                                              list:

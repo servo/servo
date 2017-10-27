@@ -634,15 +634,22 @@ pub extern "C" fn Servo_Shorthand_AnimationValues_Serialize(shorthand_property: 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_GetOpacity(value: RawServoAnimationValueBorrowed)
-     -> f32
-{
+pub extern "C" fn Servo_AnimationValue_GetOpacity(
+    value: RawServoAnimationValueBorrowed
+) -> f32 {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Opacity(opacity) = **value {
         opacity
     } else {
         panic!("The AnimationValue should be Opacity");
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_Opacity(
+    opacity: f32
+) -> RawServoAnimationValueStrong {
+    Arc::new(AnimationValue::Opacity(opacity)).into_strong()
 }
 
 #[no_mangle]
