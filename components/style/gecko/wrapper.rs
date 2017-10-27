@@ -292,6 +292,11 @@ impl<'ln> TNode for GeckoNode<'ln> {
         GeckoDocument(unsafe { &*self.node_info().mDocument })
     }
 
+    #[inline]
+    fn is_in_document(&self) -> bool {
+        self.get_bool_flag(nsINode_BooleanFlag::IsInDocument)
+    }
+
     fn traversal_parent(&self) -> Option<GeckoElement<'ln>> {
         self.flattened_tree_parent().and_then(|n| n.as_element())
     }
