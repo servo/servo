@@ -2776,8 +2776,21 @@ extern "C" {
                                       RawGeckoAnimationPropertySegmentBorrowed,
                                   computed_timing:
                                       RawGeckoComputedTimingBorrowed,
-                                  iteration_composite:
+                                  iter_composite:
                                       IterationCompositeOperation);
+}
+extern "C" {
+    pub fn Servo_ComposeAnimationSegment(animation_segment:
+                                             RawGeckoAnimationPropertySegmentBorrowed,
+                                         underlying_value:
+                                             RawServoAnimationValueBorrowedOrNull,
+                                         last_value:
+                                             RawServoAnimationValueBorrowedOrNull,
+                                         iter_composite:
+                                             IterationCompositeOperation,
+                                         progress: f64,
+                                         current_iteration: u64)
+     -> RawServoAnimationValueStrong;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_PropertyIsSet(declarations:
