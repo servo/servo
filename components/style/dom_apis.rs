@@ -229,6 +229,10 @@ fn element_is_descendant_of<E>(element: E, root: E::ConcreteNode) -> bool
 where
     E: TElement,
 {
+    if element.as_node().is_in_document() && root == root.owner_doc().as_node() {
+        return true;
+    }
+
     let mut current = element.as_node().parent_node();
     while let Some(n) = current.take() {
         if n == root {
@@ -240,62 +244,32 @@ where
     false
 }
 
-/// Execute `callback` on each element with a given `id` under `root`.
-///
-/// If `callback` returns false, iteration will stop immediately.
-fn each_element_with_id_under<E, F>(
-    root: E::ConcreteNode,
+/// Fast path for iterating over every element with a given id in the document
+/// that `root` is connected to.
+fn fast_connected_elements_with_id<'a, D>(
+    doc: &'a D,
+    root: D::ConcreteNode,
     id: &Atom,
     quirks_mode: QuirksMode,
-    mut callback: F,
-)
+) -> Result<&'a [<D::ConcreteNode as TNode>::ConcreteElement], ()>
 where
-    E: TElement,
-    F: FnMut(E) -> bool,
+    D: TDocument,
 {
+    debug_assert_eq!(root.owner_doc().as_node(), doc.as_node());
+
     let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
-    if case_sensitivity == CaseSensitivity::CaseSensitive &&
-       root.is_in_document()
-    {
-        let doc = root.owner_doc();
-        if let Ok(elements) = doc.elements_with_id(id) {
-            if root == doc.as_node() {
-                for element in elements {
-                    if !callback(*element) {
-                        return;
-                    }
-                }
-            } else {
-                for element in elements {
-                    if !element_is_descendant_of(*element, root) {
-                        continue;
-                    }
-
-                    if !callback(*element) {
-                        return;
-                    }
-                }
-            }
-        }
-        return;
+    if case_sensitivity != CaseSensitivity::CaseSensitive {
+        return Err(());
     }
 
-    for node in root.dom_descendants() {
-        let element = match node.as_element() {
-            Some(e) => e,
-            None => continue,
-        };
-
-        if !element.has_id(id, case_sensitivity) {
-            continue;
-        }
-
-        if !callback(element) {
-            return;
-        }
+    if !root.is_in_document() {
+        return Err(());
     }
+
+    doc.elements_with_id(id)
 }
 
+/// Collects elements with a given id under `root`, that pass `filter`.
 fn collect_elements_with_id<E, Q, F>(
     root: E::ConcreteNode,
     id: &Atom,
@@ -308,16 +282,38 @@ where
     Q: SelectorQuery<E>,
     F: FnMut(E) -> bool,
 {
-    each_element_with_id_under::<E, _>(root, id, quirks_mode, |element| {
-        if !filter(element) {
-            return true;
+    let doc = root.owner_doc();
+    let elements = match fast_connected_elements_with_id(&doc, root, id, quirks_mode) {
+        Ok(elements) => elements,
+        Err(()) => {
+            let case_sensitivity =
+                quirks_mode.classes_and_ids_case_sensitivity();
+
+            collect_all_elements::<E, Q, _>(root, results, |e| {
+                e.has_id(id, case_sensitivity) && filter(e)
+            });
+
+            return;
+        }
+    };
+
+    for element in elements {
+        // If the element is not an actual descendant of the root, even though
+        // it's connected, we don't really care about it.
+        if !element_is_descendant_of(*element, root) {
+            continue;
         }
 
-        Q::append_element(results, element);
-        return !Q::should_stop_after_first_match()
-    })
-}
+        if !filter(*element) {
+            continue;
+        }
 
+        Q::append_element(results, *element);
+        if Q::should_stop_after_first_match() {
+            break;
+        }
+    }
+}
 
 /// Fast paths for querySelector with a single simple selector.
 fn query_selector_single_query<E, Q>(
@@ -341,7 +337,7 @@ where
                 results,
                 quirks_mode,
                 |_| true,
-            )
+            );
         }
         Component::Class(ref class) => {
             let case_sensitivity = quirks_mode.classes_and_ids_case_sensitivity();
@@ -406,7 +402,7 @@ where
     loop {
         debug_assert!(combinator.map_or(true, |c| !c.is_sibling()));
 
-        for component in &mut iter {
+        'component_loop: for component in &mut iter {
             match *component {
                 Component::ID(ref id) => {
                     if combinator.is_none() {
@@ -429,8 +425,51 @@ where
                         return Ok(());
                     }
 
-                    // TODO(emilio): Find descendants of `root` that are
-                    // descendants of an element with a given `id`.
+                    let doc = root.owner_doc();
+                    let elements =
+                        fast_connected_elements_with_id(&doc, root, id, quirks_mode)?;
+
+                    if elements.is_empty() {
+                        return Ok(());
+                    }
+
+                    // Results need to be in document order. Let's not bother
+                    // reordering or deduplicating nodes, which we would need to
+                    // do if one element with the given id were a descendant of
+                    // another element with that given id.
+                    if !Q::should_stop_after_first_match() && elements.len() > 1 {
+                        continue;
+                    }
+
+                    for element in elements {
+                        // If the element is not a descendant of the root, then
+                        // it may have descendants that match our selector that
+                        // _are_ descendants of the root, and other descendants
+                        // that match our selector that are _not_.
+                        //
+                        // So we can't just walk over the element's descendants
+                        // and match the selector against all of them, nor can
+                        // we skip looking at this element's descendants.
+                        //
+                        // Give up on trying to optimize based on this id and
+                        // keep walking our selector.
+                        if !element_is_descendant_of(*element, root) {
+                            continue 'component_loop;
+                        }
+
+                        query_selector_slow::<E, Q>(
+                            element.as_node(),
+                            selector_list,
+                            results,
+                            matching_context,
+                        );
+
+                        if Q::should_stop_after_first_match() && !Q::is_empty(&results) {
+                            break;
+                        }
+                    }
+
+                    return Ok(());
                 }
                 _ => {},
             }

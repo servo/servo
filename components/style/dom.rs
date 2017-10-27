@@ -147,7 +147,8 @@ pub trait TDocument : Sized + Copy + Clone {
     /// Returns the quirks mode of this document.
     fn quirks_mode(&self) -> QuirksMode;
 
-    /// Get a list of elements with a given ID in this document.
+    /// Get a list of elements with a given ID in this document, sorted by
+    /// document position.
     ///
     /// Can return an error to signal that this list is not available, or also
     /// return an empty slice.
