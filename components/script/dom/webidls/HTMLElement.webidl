@@ -17,16 +17,18 @@ interface HTMLElement : Element {
   readonly attribute DOMStringMap dataset;
 
   // microdata
-  //[Pref="dom.microdata.enabled", CEReactions]
   //           attribute boolean itemScope;
-  //[Pref="dom.microdata.enabled", CEReactions]
   //           attribute DOMString itemProp;
 
   //         attribute DOMString itemId;
   //readonly attribute HTMLPropertiesCollection properties;
   //         attribute any itemValue; // acts as DOMString on setting
+  
   [Pref="dom.microdata.enabled"]
   sequence<DOMString>? propertyNames();
+  
+  [Pref="dom.microdata.enabled"]
+  sequence<DOMString>? itemtypes();
 
   // user interaction
   [CEReactions]
