@@ -519,8 +519,13 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
+    fn may_be_in_binding_manager(&self) -> bool {
+        self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) != 0
+    }
+
+    #[inline]
     fn get_xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
-        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
+        if !self.may_be_in_binding_manager() {
             return None;
         }
 
@@ -553,9 +558,11 @@ impl<'le> GeckoElement<'le> {
         } else {
             let binding_parent = unsafe {
                 self.get_non_xul_xbl_binding_parent_raw_content().as_ref()
-            }.map(GeckoNode::from_content)
-                .and_then(|n| n.as_element());
-            debug_assert!(binding_parent == unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) });
+            }.map(GeckoNode::from_content).and_then(|n| n.as_element());
+
+            debug_assert!(binding_parent == unsafe {
+                bindings::Gecko_GetBindingParent(self.0).map(GeckoElement)
+            });
             binding_parent
         }
     }
@@ -923,6 +930,28 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn after_pseudo_element(&self) -> Option<Self> {
         self.get_before_or_after_pseudo(/* is_before = */ false)
+    }
+
+    /// Ensure this accurately represents the rules that an element may ever
+    /// match, even in the native anonymous content case.
+    fn style_scope(&self) -> Self::ConcreteNode {
+        if self.implemented_pseudo_element().is_some() {
+            return self.closest_non_native_anonymous_ancestor().unwrap().style_scope();
+        }
+
+        if self.is_in_native_anonymous_subtree() {
+            return self.as_node().owner_doc().as_node();
+        }
+
+        if self.get_xbl_binding().is_some() {
+            return self.as_node();
+        }
+
+        if let Some(parent) = self.get_xbl_binding_parent() {
+            return parent.as_node();
+        }
+
+        self.as_node().owner_doc().as_node()
     }
 
     /// Execute `f` for each anonymous content child element (apart from
