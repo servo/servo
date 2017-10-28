@@ -388,6 +388,15 @@ pub trait TElement
         depth
     }
 
+    /// The style scope of this element is a node that represents which rules
+    /// apply to the element.
+    ///
+    /// In Servo, where we don't know about Shadow DOM or XBL, the style scope
+    /// is always the document.
+    fn style_scope(&self) -> Self::ConcreteNode {
+        self.as_node().owner_doc().as_node()
+    }
+
     /// Get this node's parent element from the perspective of a restyle
     /// traversal.
     fn traversal_parent(&self) -> Option<Self> {
@@ -738,14 +747,16 @@ pub trait TElement
         None
     }
 
-    /// Returns the rule hash target given an element.
+    /// Return the element which we can use to look up rules in the selector
+    /// maps.
+    ///
+    /// This is always the element itself, except in the case where we are an
+    /// element-backed pseudo-element, in which case we return the originating
+    /// element.
     fn rule_hash_target(&self) -> Self {
         let is_implemented_pseudo =
             self.implemented_pseudo_element().is_some();
 
-        // NB: This causes use to rule has pseudo selectors based on the
-        // properties of the originating element (which is fine, given the
-        // find_first_from_right usage).
         if is_implemented_pseudo {
             self.closest_non_native_anonymous_ancestor().unwrap()
         } else {
