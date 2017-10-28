@@ -2010,7 +2010,7 @@ fn static_assert() {
                              font-variant-east-asian font-variant-ligatures
                              font-variant-numeric font-language-override
                              font-feature-settings font-variation-settings
-                             -moz-min-font-size-ratio -x-text-zoom"""
+                             -moz-min-font-size-ratio -x-text-zoom -moz-script-min-size"""
 %>
 <%self:impl_trait style_struct_name="Font"
     skip_longhands="${skip_font_longhands}">
@@ -2378,6 +2378,11 @@ fn static_assert() {
     }
 
     #[allow(non_snake_case)]
+    pub fn reset__x_lang(&mut self, other: &Self) {
+        self.copy__x_lang_from(other)
+    }
+
+    #[allow(non_snake_case)]
     pub fn set__x_text_zoom(&mut self, v: longhands::_x_text_zoom::computed_value::T) {
         self.gecko.mAllowZoom = v.0;
     }
@@ -2393,8 +2398,18 @@ fn static_assert() {
     }
 
     #[allow(non_snake_case)]
-    pub fn reset__x_lang(&mut self, other: &Self) {
-        self.copy__x_lang_from(other)
+    pub fn set__moz_script_min_size(&mut self, v: longhands::_moz_script_min_size::computed_value::T) {
+        self.gecko.mScriptMinSize = v.to_i32_au();
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy__moz_script_min_size_from(&mut self, other: &Self) {
+        self.gecko.mScriptMinSize = other.gecko.mScriptMinSize;
+    }
+
+    #[allow(non_snake_case)]
+    pub fn reset__moz_script_min_size(&mut self, other: &Self) {
+        self.copy__moz_script_min_size_from(other)
     }
 
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>

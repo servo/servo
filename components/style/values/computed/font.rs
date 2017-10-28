@@ -5,13 +5,17 @@
 //! Computed values for font properties
 
 use app_units::Au;
+use cssparser::Parser;
+use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, StyleParseErrorKind, ParseError};
 use values::animated::ToAnimatedValue;
-use values::computed::NonNegativeLength;
+use values::computed::{Context, NonNegativeLength, ToComputedValue};
 use values::specified::font as specified;
+use values::specified::length::{FontBaseSize, NoCalcLength};
 
-pub use values::specified::font::XTextZoom;
+pub use values::computed::Length as MozScriptMinSize;
+pub use values::specified::font::{XTextZoom, MozScriptMinSize as SpecifiedMozScriptMinSize };
 
 #[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -92,5 +96,38 @@ impl ToAnimatedValue for FontSize {
             size: animated.clamp(),
             keyword_info: None,
         }
+    }
+}
+
+impl ToComputedValue for SpecifiedMozScriptMinSize {
+    type ComputedValue = MozScriptMinSize;
+
+    fn to_computed_value(&self, cx: &Context) -> MozScriptMinSize {
+        // this value is used in the computation of font-size, so
+        // we use the parent size
+        let base_size = FontBaseSize::InheritedStyle;
+        match self.0 {
+            NoCalcLength::FontRelative(value) => {
+                value.to_computed_value(cx, base_size)
+            }
+            NoCalcLength::ServoCharacterWidth(value) => {
+                value.to_computed_value(base_size.resolve(cx))
+            }
+            ref l => {
+                l.to_computed_value(cx)
+            }
+        }
+    }
+
+    fn from_computed_value(other: &MozScriptMinSize) -> Self {
+        SpecifiedMozScriptMinSize(ToComputedValue::from_computed_value(other))
+    }
+}
+
+impl Parse for SpecifiedMozScriptMinSize {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedMozScriptMinSize, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }

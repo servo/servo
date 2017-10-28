@@ -36,7 +36,7 @@ pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
-pub use self::font::XTextZoom;
+pub use self::font::{XTextZoom, MozScriptMinSize};
 pub use self::box_::{AnimationIterationCount, AnimationName, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
