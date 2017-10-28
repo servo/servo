@@ -206,11 +206,10 @@ impl ValidationData {
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
         bloom_known_valid: bool,
-        flags_setter: &mut F,
+        flags_setter: &mut F
     ) -> &SmallBitVec
-    where
-        E: TElement,
-        F: FnMut(&E, ElementSelectorFlags),
+        where E: TElement,
+              F: FnMut(&E, ElementSelectorFlags),
     {
         if self.revalidation_match_results.is_none() {
             // The bloom filter may already be set up for our element.
@@ -231,12 +230,10 @@ impl ValidationData {
                 }
             };
             self.revalidation_match_results =
-                Some(stylist.match_revalidation_selectors(
-                    element,
-                    bloom_to_use,
-                    nth_index_cache,
-                    flags_setter,
-                ));
+                Some(stylist.match_revalidation_selectors(&element,
+                                                          bloom_to_use,
+                                                          nth_index_cache,
+                                                          flags_setter));
         }
 
         self.revalidation_match_results.as_ref().unwrap()
@@ -664,15 +661,6 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        // Note that in the XBL case, we should be able to assert that the
-        // scopes are different, since two elements with different XBL bindings
-        // need to necessarily have different style (and thus children of them
-        // would never pass the parent check).
-        if target.element.style_scope() != candidate.element.style_scope() {
-            trace!("Miss: Different style scopes");
-            return None;
-        }
-
         if *target.get_local_name() != *candidate.element.get_local_name() {
             trace!("Miss: Local Name");
             return None;
@@ -702,17 +690,15 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        // It's possible that there are no styles for either id.
-        let may_match_different_id_rules =
-            checks::may_match_different_id_rules(
-                shared,
-                target.element,
-                candidate.element,
-            );
-
-        if may_match_different_id_rules {
-            trace!("Miss: ID Attr");
-            return None;
+        let element_id = target.element.get_id();
+        let candidate_id = candidate.element.get_id();
+        if element_id != candidate_id {
+            // It's possible that there are no styles for either id.
+            if checks::may_have_rules_for_ids(shared, element_id.as_ref(),
+                                              candidate_id.as_ref()) {
+                trace!("Miss: ID Attr");
+                return None;
+            }
         }
 
         if !checks::have_same_style_attribute(target, candidate) {
