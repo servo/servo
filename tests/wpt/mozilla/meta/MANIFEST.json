@@ -10786,26 +10786,6 @@
      {}
     ]
    ],
-   "mozilla/bk_microdata/extra_space_test.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/bk_microdata/none_check.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/bk_microdata/regular_prop_type_test.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/bk_microdata/single_prop_type_test.html": [
-    [
-     {}
-    ]
-   ],
    "mozilla/blank.html": [
     [
      {}
@@ -11072,11 +11052,6 @@
     ]
    ],
    "mozilla/interfaces.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/microdata/none_check.html_bk": [
     [
      {}
     ]
@@ -14254,12 +14229,6 @@
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html",
-     {}
-    ]
-   ],
-   "mozilla/bk_microdata/dup_prop_type_test.html": [
-    [
-     "/_mozilla/mozilla/bk_microdata/dup_prop_type_test.html",
      {}
     ]
    ],
@@ -27384,26 +27353,6 @@
    "c79aa6d506fbabbed0f6f31d1b8600ea6ba8ff41",
    "testharness"
   ],
-  "mozilla/bk_microdata/dup_prop_type_test.html": [
-   "807dfff872dc27f41aab84662a075d2e50c8f163",
-   "testharness"
-  ],
-  "mozilla/bk_microdata/extra_space_test.html": [
-   "af39c93540a543dfba14ae45046823561eebf105",
-   "support"
-  ],
-  "mozilla/bk_microdata/none_check.html": [
-   "712bc58dfd911ecf5222ce01175666ed86783756",
-   "support"
-  ],
-  "mozilla/bk_microdata/regular_prop_type_test.html": [
-   "6cbb14df2d7201a5319bb64be7c46c6db9ac5941",
-   "support"
-  ],
-  "mozilla/bk_microdata/single_prop_type_test.html": [
-   "e57445f355dce16a92e4da2b9492a1f06f40a39d",
-   "support"
-  ],
   "mozilla/blank.html": [
    "92a0f1008d008fd8f90adb3b2f209dfeacf322b5",
    "support"
@@ -28237,12 +28186,8 @@
    "testharness"
   ],
   "mozilla/microdata/none_check.html": [
-   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "b7c2bf9f85196ea60d84f883065ce40bee4cd66d",
    "testharness"
-  ],
-  "mozilla/microdata/none_check.html_bk": [
-   "712bc58dfd911ecf5222ce01175666ed86783756",
-   "support"
   ],
   "mozilla/microdata/regular_prop_type_test.html": [
    "e34ac1b6f72bc0cfb081f37dcc9a32dbca7e1e6f",
