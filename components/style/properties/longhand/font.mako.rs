@@ -2187,57 +2187,14 @@ ${helpers.single_keyword("-moz-math-variant",
                          animation_value_type="none",
                          needs_conversion=True)}
 
-<%helpers:longhand name="-moz-script-min-size" products="gecko" animation_value_type="none"
-                   predefined_type="Length" gecko_ffi_name="mScriptMinSize"
-                   spec="Internal (not web-exposed)"
-                   internal="True">
-    use gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT;
-    use values::computed::Length;
-    use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize, NoCalcLength};
-
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(Clone, Debug, PartialEq, ToCss)]
-    pub struct SpecifiedValue(pub NoCalcLength);
-
-    pub mod computed_value {
-        pub type T = ::values::computed::Length;
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        fn to_computed_value(&self, cx: &Context) -> Length {
-            // this value is used in the computation of font-size, so
-            // we use the parent size
-            let base_size = FontBaseSize::InheritedStyle;
-            match self.0 {
-                NoCalcLength::FontRelative(value) => {
-                    value.to_computed_value(cx, base_size)
-                }
-                NoCalcLength::ServoCharacterWidth(value) => {
-                    value.to_computed_value(base_size.resolve(cx))
-                }
-                ref l => {
-                    l.to_computed_value(cx)
-                }
-            }
-        }
-        fn from_computed_value(other: &computed_value::T) -> Self {
-            SpecifiedValue(ToComputedValue::from_computed_value(other))
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        Length::new(NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT as f32 * (AU_PER_PT / AU_PER_PX))
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-    }
-</%helpers:longhand>
+${helpers.predefined_type("-moz-script-min-size",
+                          "MozScriptMinSize",
+                          "specified::MozScriptMinSize::get_initial_value()",
+                          animation_value_type="none",
+                          products="gecko",
+                          internal=True,
+                          gecko_ffi_name="mScriptMinSize",
+                          spec="Internal (not web-exposed)")}
 
 ${helpers.predefined_type("-x-text-zoom",
                           "XTextZoom",
