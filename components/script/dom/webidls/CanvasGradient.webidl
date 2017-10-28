@@ -9,5 +9,3 @@ interface CanvasGradient {
   [Throws]
   void addColorStop(double offset, DOMString color);
 };
-
-

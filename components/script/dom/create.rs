@@ -79,6 +79,7 @@ use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use dom::svgsvgelement::SVGSVGElement;
+use dom::offscreencanvas::OffscreenCanvas;
 use html5ever::{LocalName, Prefix, QualName};
 use js::jsapi::JSAutoCompartment;
 use script_thread::ScriptThread;
