@@ -14,9 +14,9 @@ dictionary ImageEncodeOptions {
 
 //enum OffscreenRenderingContextType { "2d", "webgl" };
 
-[Pref="dom.offscreen_canvas.enabled", Constructor([EnforceRange] unsigned long width, [EnforceRange] unsigned long height), Exposed=(Window,Worker)]
+[Pref="dom.offscreen_canvas.enabled", Constructor([EnforceRange] unsigned long long width, [EnforceRange] unsigned long long height), Exposed=(Window,Worker)]
 interface OffscreenCanvas : EventTarget {
-  attribute unsigned long width;
-  attribute unsigned long height;
+  attribute unsigned long long width;
+  attribute unsigned long long height;
 };
 //  OffscreenRenderingContext? getContext(OffscreenRenderingContextType contextType, any... arguments);

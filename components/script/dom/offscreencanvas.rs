@@ -10,6 +10,7 @@ use dom::offscreencanvasrenderingcontext2d::{OffscreenCanvasRenderingContext2D, 
 use dom::htmlelement::HTMLElement;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::inheritance::Castable;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
@@ -34,57 +35,56 @@ pub enum CanvasContext {
 
 pub trait LayoutOffscreenCanvasHelpers {
     fn data(&self) -> HTMLCanvasData;
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
-    fn get_height(&self) -> LengthOrPercentageOrAuto;
-}
+//	    fn get_width(&self) -> LengthOrPercentageOrAuto;
+//	    fn get_height(&self) -> LengthOrPercentageOrAuto;
 
-#[dom_struct]
-pub struct OffscreenCanvas {
-    htmlelement: HTMLElement,
-    context: DomRefCell<Option<CanvasContext>>,
-}
+	}
 
-impl OffscreenCanvas {
+	#[dom_struct]
+	pub struct OffscreenCanvas {
+	    htmlelement: HTMLElement,
+	    context: DomRefCell<Option<CanvasContext>>,
+	}
 
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<Prefix>,
-                     document: &Document) -> OffscreenCanvas {
-        OffscreenCanvas {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            context: DomRefCell::new(None),
-        }
+	impl OffscreenCanvas {
+
+	    fn new_inherited(local_name: LocalName,
+			     prefix: Option<Prefix>,
+			     document: &Document) -> OffscreenCanvas {
+		OffscreenCanvas {
+		    htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+		    context: DomRefCell::new(None),
+		}
     }
 
-    #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<OffscreenCanvas> {
-        Node::reflect_node(Box::new(OffscreenCanvas::new_inherited(local_name, prefix, document)),
-                           document,
-                           OffscreenCanvasBinding::Wrap)
-    }
 
-    pub fn Constructor(width: u64,
+    pub fn Constructor( width: u64,
                         height: u64) -> DomRoot<OffscreenCanvas> {
-      //  let document = window.Document();
-	//  let instance = canvas.Canvas();
-        //OffscreenCanvas::new();
-    }
+
+        //Ok(OffscreenCanvas::new())
+
+          }
 
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    make_uint_getter!(Width, "width", DEFAULT_WIDTH);
-
+     fn Width(&self) -> u64 {
+         let width: u64 = 300;
+    	  width
+     }
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    make_uint_setter!(SetWidth, "width", DEFAULT_WIDTH);
+    fn SetHeight(&self, height : u64) -> (){
 
+    }
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
+    fn SetWidth(&self, width : u64) -> () {
 
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
+    }
+    fn Height(&self) -> u64 {
+        let height: u64 = 300;
+         height
+    }
 
    // #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext
@@ -125,33 +125,33 @@ impl LayoutOffscreenCanvasHelpers for LayoutDom<OffscreenCanvas> {
                 }
             };
 
-            let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("width"));
-            let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("height"));
+        //    let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("width"));
+        //    let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("height"));
             HTMLCanvasData {
                 source: source,
-                width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
-                height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
+                width: DEFAULT_WIDTH,
+                height: DEFAULT_HEIGHT,
             }
         }
         }
 
-    #[allow(unsafe_code)]
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("width"))
-                .map(AttrValue::as_uint_px_dimension)
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
-    }
-
-    #[allow(unsafe_code)]
-    fn get_height(&self) -> LengthOrPercentageOrAuto {
-        unsafe {
-            (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("height"))
-                .map(AttrValue::as_uint_px_dimension)
-                .unwrap_or(LengthOrPercentageOrAuto::Auto)
-        }
-    }
-}
+//  #[allow(unsafe_code)]
+  /*fn get_width(&self) -> LengthOrPercentageOrAuto {
+      unsafe {
+           (&*self.upcast::<Element>().unsafe_get())
+               .get_attr_for_layout(&ns!(), &local_name!("width"))
+               .map(AttrValue::as_uint_px_dimension)
+               .unwrap_or(LengthOrPercentageOrAuto::Auto)
+       }
+   }*/
+/*
+   #[allow(unsafe_code)]
+   fn get_height(&self) -> LengthOrPercentageOrAuto {
+       unsafe {
+           (&*self.upcast::<Element>().unsafe_get())
+               .get_attr_for_layout(&ns!(), &local_name!("height"))
+               .map(AttrValue::as_uint_px_dimension)
+               .unwrap_or(LengthOrPercentageOrAuto::Auto)
+       }
+   } */
+ }
