@@ -201,17 +201,22 @@ pub enum StructuredCloneData {
 
 impl StructuredCloneData {
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
-    pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
+    pub fn write(
+        cx: *mut JSContext,
+        message: HandleValue,
+        transfer: HandleValue
+    ) -> Fallible<StructuredCloneData> {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
         let result = unsafe {
-            JS_WriteStructuredClone(cx,
-                                    message,
-                                    &mut data,
-                                    &mut nbytes,
-                                    &STRUCTURED_CLONE_CALLBACKS,
-                                    ptr::null_mut(),
-                                    HandleValue::undefined())
+            JS_WriteStructuredClone(
+                cx,
+                message,
+                &mut data,
+                &mut nbytes,
+                &STRUCTURED_CLONE_CALLBACKS,
+                ptr::null_mut(),
+                transfer)
         };
         if !result {
             unsafe {
