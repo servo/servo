@@ -39,11 +39,14 @@ use net_traits::image_cache::ImageCache;
 use euclid::{Transform2D, Point2D, Rect, Size2D};
 use script_traits::ScriptMsg;
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use std::sync::Arc;
+use std::str::FromStr;
 use dom::globalscope::GlobalScope;
 use dom::node::{document_from_node, window_from_node};
 
-
+const DEFAULT_WIDTH: u32 = 300;
+const DEFAULT_HEIGHT: u32 = 150;
 
 
 
@@ -150,7 +153,7 @@ pub fn new_inherited(global: &GlobalScope,
         }
     }
 
-    pub fn new(global: &GlobalScope,
+/*    pub fn new(global: &GlobalScope,
                canvas: &OffscreenCanvas,
                size: Size2D<i32>)
                -> DomRoot<OffscreenCanvasRenderingContext2D> {
@@ -161,7 +164,7 @@ pub fn new_inherited(global: &GlobalScope,
             global, Some(canvas), image_cache, base_url, size
         ));
         reflect_dom_object(boxed, global, OffscreenCanvasRenderingContext2DBinding::Wrap)
-    }
+    } */
     fn draw_image(&self,
                   image: CanvasImageSource,
                   sx: f64,
@@ -174,15 +177,23 @@ pub fn new_inherited(global: &GlobalScope,
                   dh: Option<f64>)
                   -> ErrorResult {
         let result = match image {
-            CanvasImageSource::OffscreenCanvas(ref canvas) => {
-                self.draw_html_canvas_element(&canvas,
-                                              sx, sy, sw, sh,
-                                              dx, dy, dw, dh)
+            CanvasImageSource::HTMLImageElement(ref image) => {
+                // https://html.spec.whatwg.org/multipage/#img-error
+                // If the image argument is an HTMLImageElement object that is in the broken state,
+                // then throw an InvalidStateError exception
+                let url = image.get_url().ok_or(Error::InvalidState)?;
+                self.fetch_and_draw_image_data(url,
+                                               sx, sy, sw, sh,
+                                               dx, dy, dw, dh)
             }
-            CanvasImageSource::OffscreenCanvasRenderingContext2D(ref image) => {
-                self.draw_html_canvas_element(&image.Canvas(),
-                                              sx, sy, sw, sh,
-                                              dx, dy, dw, dh)
+            CanvasImageSource::HTMLImageElement(ref image) => {
+                // https://html.spec.whatwg.org/multipage/#img-error
+                // If the image argument is an HTMLImageElement object that is in the broken state,
+                // then throw an InvalidStateError exception
+                let url = image.get_url().ok_or(Error::InvalidState)?;
+                self.fetch_and_draw_image_data(url,
+                                               sx, sy, sw, sh,
+                                               dx, dy, dw, dh)
             }
             CanvasImageSource::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#img-error
@@ -206,6 +217,7 @@ pub fn new_inherited(global: &GlobalScope,
         }
         result
     }
+
     fn set_origin_unclean(&self) {
         self.origin_clean.set(false)
     }
@@ -236,23 +248,7 @@ pub fn new_inherited(global: &GlobalScope,
     fn is_origin_clean(&self,
                        image: CanvasImageSource)
                            -> bool {
-        match image {
-            CanvasImageSource::OffscreenCanvas(canvas) => {
-                canvas.origin_is_clean()
-            }
-            CanvasImageSource::CanvasRenderingContext2D(image) =>
-                image.origin_is_clean(),
-            CanvasImageSource::HTMLImageElement(image) => {
-                let canvas = match self.canvas {
-                    Some(ref canvas) => canvas,
-                    None => return false,
-                };
-                let image_origin = image.get_origin().expect("Image's origin is missing");
-                let document = document_from_node(&**canvas);
-                document.url().clone().origin() == image_origin
-            }
-            CanvasImageSource::CSSStyleValue(_) => true,
-        }
+        true
     }
 
     fn fetch_and_draw_image_data(&self,
@@ -266,7 +262,7 @@ pub fn new_inherited(global: &GlobalScope,
                                  dw: Option<f64>,
                                  dh: Option<f64>)
                                  -> ErrorResult {
-        debug!("Fetching image {}.", url);
+    /*    debug!("Fetching image {}.", url);
         // https://html.spec.whatwg.org/multipage/#img-error
         // If the image argument is an HTMLImageElement object that is in the broken state,
         // then throw an InvalidStateError exception
@@ -288,6 +284,7 @@ pub fn new_inherited(global: &GlobalScope,
                              image_size,
                              sx, sy, sw, sh,
                              dx, dy, dw, dh)
+    */    Ok(())
     }
 
     fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<i32>)> {
@@ -322,7 +319,7 @@ pub fn new_inherited(global: &GlobalScope,
                                 dh: Option<f64>)
                                 -> ErrorResult {
         // 1. Check the usability of the image argument
-        if !canvas.is_valid() {
+    /*    if !canvas.is_valid() {
             return Err(Error::InvalidState);
         }
 
@@ -374,8 +371,8 @@ pub fn new_inherited(global: &GlobalScope,
             receiver.recv().unwrap();
         };
 
-        self.mark_as_dirty();
-        Ok(())
+    //    self.mark_as_dirty();
+    */    Ok(())
     }
 }
 
@@ -594,7 +591,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
-    fn CreatePattern(&self,
+   fn CreatePattern(&self,
                      image: CanvasImageSource,
                      mut repetition: DOMString)
                      -> Fallible<DomRoot<CanvasPattern>> {
@@ -607,16 +604,21 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                     .and_then(|url| self.fetch_image_data(url))
                     .ok_or(Error::InvalidState)?
             },
-            CanvasImageSource::OffscreenCanvas(ref canvas) => {
-                let _ = canvas.get_or_init_2d_context();
-
-                canvas.fetch_all_data().ok_or(Error::InvalidState)?
+            CanvasImageSource::HTMLImageElement(ref image) => {
+                // https://html.spec.whatwg.org/multipage/#img-error
+                // If the image argument is an HTMLImageElement object that is in the broken state,
+                // then throw an InvalidStateError exception
+                image.get_url()
+                    .and_then(|url| self.fetch_image_data(url))
+                    .ok_or(Error::InvalidState)?
             },
-            CanvasImageSource::CanvasRenderingContext2D(ref context) => {
-                let canvas = context.Canvas();
-                let _ = canvas.get_or_init_2d_context();
-
-                canvas.fetch_all_data().ok_or(Error::InvalidState)?
+            CanvasImageSource::HTMLImageElement(ref image) => {
+                // https://html.spec.whatwg.org/multipage/#img-error
+                // If the image argument is an HTMLImageElement object that is in the broken state,
+                // then throw an InvalidStateError exception
+                image.get_url()
+                    .and_then(|url| self.fetch_image_data(url))
+                    .ok_or(Error::InvalidState)?
             }
             CanvasImageSource::CSSStyleValue(ref value) => {
                 value.get_url(self.base_url.clone())
@@ -645,7 +647,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
             return Err(Error::IndexSize);
         }
 
-        ImageData::new(&self.global(), sw, sh, None)
+        ImageData::new(&self.global(), DEFAULT_WIDTH, DEFAULT_HEIGHT, None)
     }
 
 
@@ -677,7 +679,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
         let mut data = receiver.recv().unwrap();
-        ImageData::new(&self.global(), sw, sh, Some(data))
+        ImageData::new(&self.global(), DEFAULT_WIDTH, DEFAULT_HEIGHT, Some(data))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
