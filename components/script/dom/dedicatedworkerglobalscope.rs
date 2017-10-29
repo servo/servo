@@ -562,7 +562,8 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     fn PostMessage(&self, cx: SafeJSContext, message: HandleValue) -> ErrorResult {
-        let data = StructuredCloneData::write(*cx, message)?;
+        rooted!(in(*cx) let transfer = UndefinedValue());
+        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(post_worker_message: move || {

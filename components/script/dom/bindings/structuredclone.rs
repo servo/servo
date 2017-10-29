@@ -256,7 +256,11 @@ pub enum StructuredCloneData {
 impl StructuredCloneData {
     // TODO: should this be unsafe?
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
-    pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
+    pub fn write(
+        cx: *mut JSContext,
+        message: HandleValue,
+        transfer: HandleValue,
+    ) -> Fallible<StructuredCloneData> {
         unsafe {
             let scbuf = NewJSAutoStructuredCloneBuffer(
                 StructuredCloneScope::DifferentProcess,
@@ -275,7 +279,7 @@ impl StructuredCloneData {
                 policy,
                 &STRUCTURED_CLONE_CALLBACKS,
                 ptr::null_mut(),
-                HandleValue::undefined(),
+                transfer,
             );
             if !result {
                 JS_ClearPendingException(cx);

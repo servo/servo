@@ -161,7 +161,8 @@ impl Worker {
 impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
     fn PostMessage(&self, cx: JSContext, message: HandleValue) -> ErrorResult {
-        let data = StructuredCloneData::write(*cx, message)?;
+        rooted!(in(*cx) let transfer = UndefinedValue());
+        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage

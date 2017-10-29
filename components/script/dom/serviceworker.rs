@@ -19,6 +19,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
+use js::jsapi::JSContext;
+use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
@@ -97,7 +99,8 @@ impl ServiceWorkerMethods for ServiceWorker {
             return Err(Error::InvalidState);
         }
         // Step 7
-        let data = StructuredCloneData::write(*cx, message)?;
+        rooted!(in(*cx) let transfer = UndefinedValue());
+        let data = StructuredCloneData::write(*cx, message, transfer.handle())?;
         let msg_vec = DOMMessage(data.move_to_arraybuffer());
         let _ = self
             .global()
