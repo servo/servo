@@ -2899,18 +2899,22 @@ fn static_assert() {
                                          + ["lon"] + ["number"]),
         ("Matrix", "matrix", ["number"] * 6),
         ("PrefixedMatrix", "matrix", ["number"] * 4 + ["lopon"] * 2),
+        ("Translate", "translate", ["lop", "optional_lop"]),
         ("Translate3D", "translate3d", ["lop", "lop", "length"]),
         ("TranslateX", "translatex", ["lop"]),
         ("TranslateY", "translatey", ["lop"]),
         ("TranslateZ", "translatez", ["length"]),
         ("Scale3D", "scale3d", ["number"] * 3),
+        ("Scale", "scale", ["number", "optional_number"]),
         ("ScaleX", "scalex", ["number"]),
         ("ScaleY", "scaley", ["number"]),
         ("ScaleZ", "scalez", ["number"]),
+        ("Rotate", "rotate", ["angle"]),
         ("Rotate3D", "rotate3d", ["number"] * 3 + ["angle"]),
         ("RotateX", "rotatex", ["angle"]),
         ("RotateY", "rotatey", ["angle"]),
         ("RotateZ", "rotatez", ["angle"]),
+        ("Skew", "skew", ["angle", "optional_angle"]),
         ("SkewX", "skewx", ["angle"]),
         ("SkewY", "skewy", ["angle"]),
         ("Perspective", "perspective", ["length"]),
@@ -2920,6 +2924,7 @@ fn static_assert() {
     %>
     <%def name="transform_function_arm(name, keyword, items)">
         <%
+            has_optional = items[-1].startswith("optional_")
             pattern = None
             if keyword == "matrix3d":
                 # m11: number1, m12: number2, ..
@@ -2959,19 +2964,36 @@ fn static_assert() {
             }
         %>
         ::values::generics::transform::TransformOperation::${name}${pattern} => {
-            bindings::Gecko_CSSValue_SetFunction(gecko_value, ${len(items) + 1});
+            % if has_optional:
+                let optional_present = ${items[-1] + str(len(items))}.is_some();
+                let len = if optional_present {
+                    ${len(items) + 1}
+                } else {
+                    ${len(items)}
+                };
+            % else:
+                let len = ${len(items) + 1};
+            % endif
+            bindings::Gecko_CSSValue_SetFunction(gecko_value, len);
             bindings::Gecko_CSSValue_SetKeyword(
                 bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
                 structs::nsCSSKeyword::eCSSKeyword_${keyword}
             );
             % for index, item in enumerate(items):
+                <% replaced_item = item.replace("optional_", "") %>
+                % if item.startswith("optional"):
+                    if let Some(${replaced_item + str(index + 1)}) = ${item + str(index + 1)} {
+                % endif
                 % if item == "list":
                     debug_assert!(!${item}${index + 1}.0.is_empty());
                 % endif
-                ${css_value_setters[item] % (
+                ${css_value_setters[replaced_item] % (
                     "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
-                    item + str(index + 1)
+                    replaced_item + str(index + 1)
                 )};
+                % if item.startswith("optional"):
+                    }
+                % endif
             % endfor
         }
     </%def>
@@ -3008,7 +3030,6 @@ fn static_assert() {
                 % for servo, gecko, format in transform_functions:
                     ${transform_function_arm(servo, gecko, format)}
                 % endfor
-                _ => unimplemented!()
             }
         }
     }
@@ -3101,9 +3122,21 @@ fn static_assert() {
                 % elif keyword == "interpolatematrix" or keyword == "accumulatematrix":
                     ${field_names[index]}:
                 % endif
-                ${css_value_getters[item] % (
-                    "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
-                )},
+                <%
+                    getter = css_value_getters[item.replace("optional_", "")] % (
+                        "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
+                    )
+                %>
+                % if item.startswith("optional_"):
+                    if (**gecko_value.mValue.mArray.as_ref()).mCount == ${index + 1} {
+                        None
+                    } else {
+                        Some(${getter})
+                    }
+                % else:
+                    ${getter}
+                % endif
+,
             % endfor
             ${post_symbols}
         },
