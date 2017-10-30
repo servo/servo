@@ -393,6 +393,8 @@ pub mod navigatorinfo;
 pub mod node;
 pub mod nodeiterator;
 pub mod nodelist;
+pub mod offscreencanvas;
+pub mod offscreencanvasrenderingcontext2d;
 pub mod pagetransitionevent;
 pub mod paintrenderingcontext2d;
 pub mod paintsize;
