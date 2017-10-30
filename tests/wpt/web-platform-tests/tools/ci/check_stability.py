@@ -9,7 +9,8 @@ from ConfigParser import SafeConfigParser
 
 import requests
 
-wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+here = os.path.dirname(__file__)
+wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 sys.path.insert(0, wpt_root)
 
 from tools.wpt import testfiles
@@ -26,6 +27,8 @@ wptrunner = None
 
 def setup_logging():
     """Set up basic debug logger."""
+    global logger
+    logger = logging.getLogger(here)
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(logging.BASIC_FORMAT, None)
     handler.setFormatter(formatter)
@@ -241,6 +244,25 @@ def post_results(results, pr_number, iterations, product, url, status):
     requests.post(url, json=payload)
 
 
+def get_changed_files(manifest_path, rev, ignore_changes, skip_tests):
+    if not rev:
+        branch_point = testfiles.branch_point()
+        revish = "%s..HEAD" % branch_point
+    else:
+        revish = rev
+
+    files_changed, files_ignored = testfiles.files_changed(revish, ignore_changes)
+
+    if files_ignored:
+        logger.info("Ignoring %s changed files:\n%s" %
+                    (len(files_ignored), "".join(" * %s\n" % item for item in files_ignored)))
+
+    tests_changed, files_affected = testfiles.affected_testfiles(files_changed, skip_tests,
+                                                                 manifest_path=manifest_path)
+
+    return tests_changed, files_affected
+
+
 def main():
     """Perform check_stability functionality and return exit code."""
 
@@ -280,8 +302,6 @@ def run(venv, wpt_args, **kwargs):
     except OSError:
         pass
 
-    logger = logging.getLogger(os.path.splitext(__file__)[0])
-
     setup_logging()
 
     browser_name = wpt_args.product.split(":")[0]
@@ -304,29 +324,25 @@ def run(venv, wpt_args, **kwargs):
         head_sha1 = get_sha1()
         logger.info("Testing web-platform-tests at revision %s" % head_sha1)
 
-        if not kwargs["rev"]:
-            branch_point = testfiles.branch_point()
-            revish = "%s..HEAD" % branch_point
-        else:
-            revish = kwargs["rev"]
-
-        files_changed, files_ignored = testfiles.files_changed(revish, ignore_changes)
-
-        if files_ignored:
-            logger.info("Ignoring %s changed files:\n%s" % (len(files_ignored),
-                                                            "".join(" * %s\n" % item for item in files_ignored)))
-
-        tests_changed, files_affected = testfiles.affected_testfiles(files_changed, skip_tests,
-                                                                     manifest_path=os.path.join(
-                                                                         wpt_args.metadata_root,
-                                                                         "MANIFEST.json"))
-
-        if not (tests_changed or files_affected):
-            logger.info("No tests changed")
-            return 0
-
         wpt_kwargs = Kwargs(vars(wpt_args))
-        wpt_kwargs["test_list"] = list(tests_changed | files_affected)
+
+        if not wpt_kwargs["test_list"]:
+            manifest_path = os.path.join(wpt_kwargs["metadata_root"], "MANIFEST.json")
+            tests_changed, files_affected = get_changed_files(manifest_path, kwargs["rev"],
+                                                              ignore_changes, skip_tests)
+
+            if not (tests_changed or files_affected):
+                logger.info("No tests changed")
+                return 0
+
+            if tests_changed:
+                logger.debug("Tests changed:\n%s" % "".join(" * %s\n" % item for item in tests_changed))
+
+            if files_affected:
+                logger.debug("Affected tests:\n%s" % "".join(" * %s\n" % item for item in files_affected))
+
+            wpt_kwargs["test_list"] = list(tests_changed | files_affected)
+
         set_default_args(wpt_kwargs)
 
         do_delayed_imports()
@@ -339,12 +355,6 @@ def run(venv, wpt_args, **kwargs):
         wpt_kwargs = setup_wptrunner(venv, **wpt_kwargs)
 
         logger.info("Using binary %s" % wpt_kwargs["binary"])
-
-        if tests_changed:
-            logger.debug("Tests changed:\n%s" % "".join(" * %s\n" % item for item in tests_changed))
-
-        if files_affected:
-            logger.debug("Affected tests:\n%s" % "".join(" * %s\n" % item for item in files_affected))
 
 
     with TravisFold("running_tests"):
@@ -377,7 +387,7 @@ def run(venv, wpt_args, **kwargs):
 if __name__ == "__main__":
     try:
         retcode = main()
-    except:
+    except Exception:
         import traceback
         traceback.print_exc()
         sys.exit(1)

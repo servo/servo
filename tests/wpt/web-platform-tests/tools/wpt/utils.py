@@ -10,11 +10,17 @@ logger = logging.getLogger(__name__)
 
 
 class Kwargs(dict):
-    def set_if_none(self, name, value, err_fn=None, desc=None, extra_cond=None):
+    def set_if_none(self,
+                    name,            # type: str
+                    value,           # type: Any
+                    err_fn=None,     # type: (Kwargs, str) -> Any
+                    desc=None,       # type: str
+                    extra_cond=None  # type: (Kwargs) -> bool
+                    ):
         if desc is None:
             desc = name
 
-        if self[name] is None:
+        if name not in self or self[name] is None:
             if extra_cond is not None and not extra_cond(self):
                 return
             if callable(value):

@@ -24,6 +24,7 @@ interface EventHandler {
 [SecureContext, Exposed=Window]
 interface Sensor : EventTarget {
   readonly attribute boolean activated;
+  readonly attribute boolean hasReading;
   readonly attribute DOMHighResTimeStamp? timestamp;
   void start();
   void stop();

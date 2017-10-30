@@ -279,7 +279,7 @@ def setup_logger(level):
     import logging
     global logger
     logger = logging.getLogger("web-platform-tests")
-    logging.basicConfig(level=getattr(logging, level.upper()))
+    logger.setLevel(getattr(logging, level.upper()))
     set_logger(logger)
 
 
@@ -397,7 +397,7 @@ class ServerProc(object):
         except socket.error:
             print("Socket error on port %s" % port, file=sys.stderr)
             raise
-        except:
+        except Exception:
             print(traceback.format_exc(), file=sys.stderr)
             raise
 
@@ -408,7 +408,7 @@ class ServerProc(object):
                     self.stop.wait()
                 except KeyboardInterrupt:
                     pass
-            except:
+            except Exception:
                 print(traceback.format_exc(), file=sys.stderr)
                 raise
 

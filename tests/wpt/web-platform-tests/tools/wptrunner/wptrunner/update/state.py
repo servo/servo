@@ -44,6 +44,8 @@ class State(object):
     def load(cls, logger):
         """Load saved state from a file"""
         try:
+            if not os.path.isfile(cls.filename):
+                return None
             with open(cls.filename) as f:
                 try:
                     rv = pickle.load(f)

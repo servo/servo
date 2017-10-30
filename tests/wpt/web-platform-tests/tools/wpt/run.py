@@ -64,6 +64,7 @@ def args_general(kwargs):
     kwargs.set_if_none("tests_root", wpt_root)
     kwargs.set_if_none("metadata_root", wpt_root)
     kwargs.set_if_none("manifest_update", True)
+    kwargs.set_if_none("manifest_download", True)
 
     if kwargs["ssl_type"] in (None, "pregenerated"):
         cert_root = os.path.join(wpt_root, "tools", "certs")
@@ -109,8 +110,8 @@ def check_environ(product):
             for line in f:
                 line = line.split("#", 1)[0].strip()
                 parts = line.split()
-                if len(parts) == 2:
-                    host = parts[1]
+                hosts = parts[1:]
+                for host in hosts:
                     missing_hosts.discard(host)
             if missing_hosts:
                 raise WptrunError("""Missing hosts file configuration. Expected entries like:
@@ -415,5 +416,5 @@ if __name__ == "__main__":
     from tools import localpaths
     try:
         main()
-    except:
+    except Exception:
         pdb.post_mortem()

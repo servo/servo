@@ -231,10 +231,8 @@
     ],
     "subresource": {
       "blockable": [
-        "iframe-tag",
         "script-tag",
         "link-css-tag",
-        "form-tag",
         "xhr-request",
         "worker-request",
         "fetch-request",

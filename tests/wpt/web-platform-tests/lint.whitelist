@@ -146,6 +146,7 @@ PARSE-FAILED:content-security-policy/svg/including.sub.svg
 #Helper files that aren't valid XML
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xml
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
+PARSE-FAILED:acid/acid3/empty.xml
 
 # The patches may have trailing whitespace
 TRAILING WHITESPACE:webgl/tools/*.patch
@@ -337,6 +338,9 @@ GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/w
 
 # Intentional use of setTimeout
 SET TIMEOUT: html/webappapis/timers/*
+
+# setTimeout use in reftests
+SET TIMEOUT: acid/acid3/test.html
 
 # CI scripts
 PRINT STATEMENT:check_stability.py

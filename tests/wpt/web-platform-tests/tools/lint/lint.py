@@ -361,6 +361,13 @@ class LayoutTestsRegexp(Regexp):
     file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
     description = "eventSender/testRunner/window.internals used; these are LayoutTests-specific APIs (WebKit/Blink)"
 
+class SpecialPowersRegexp(Regexp):
+    pattern = b"SpecialPowers"
+    error = "SPECIALPOWERS API"
+    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
+    description = "SpecialPowers used; this is gecko-specific and not supported in wpt"
+
+
 regexps = [item() for item in
            [TrailingWhitespaceRegexp,
             TabsRegexp,
@@ -371,7 +378,8 @@ regexps = [item() for item in
             ConsoleRegexp,
             GenerateTestsRegexp,
             PrintRegexp,
-            LayoutTestsRegexp]]
+            LayoutTestsRegexp,
+            SpecialPowersRegexp]]
 
 def check_regexp_line(repo_root, path, f, css_mode):
     errors = []

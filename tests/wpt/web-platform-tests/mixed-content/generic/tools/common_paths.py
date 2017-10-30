@@ -13,13 +13,14 @@ test_root_directory = os.path.abspath(os.path.join(script_directory,
 spec_filename = os.path.join(spec_directory, "spec.src.json")
 generated_spec_json_filename = os.path.join(spec_directory, "spec_json.js")
 
-selection_pattern = '%(opt_in_method)s/' + \
+selection_pattern = '%(subresource)s/' + \
+                    '%(opt_in_method)s/' + \
                     '%(origin)s/' + \
-                    '%(subresource)s/' + \
                     '%(context_nesting)s/' + \
                     '%(redirection)s/'
 
-test_file_path_pattern = '%(spec_name)s/' + selection_pattern + \
+test_file_path_pattern = selection_pattern + \
+                         '%(spec_name)s/' + \
                          '%(name)s.%(source_scheme)s.html'
 
 

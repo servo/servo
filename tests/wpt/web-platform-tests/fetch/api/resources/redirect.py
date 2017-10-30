@@ -1,5 +1,6 @@
 from urllib import urlencode
 from urlparse import urlparse
+import time
 
 def main(request, response):
     stashed_data = {'count': 0, 'preflight': "0"}
@@ -47,6 +48,9 @@ def main(request, response):
 
     if "redirect_referrerpolicy" in request.GET:
         headers.append(("Referrer-Policy", request.GET['redirect_referrerpolicy']))
+
+    if "delay" in request.GET:
+        time.sleep(float(request.GET.first("delay", 0)) / 1E3)
 
     if token:
         request.server.stash.put(request.GET.first("token"), stashed_data)

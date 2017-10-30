@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'sha256-LS8v1E1Ff0Hc8FobgWKNKY3sbW4rljPlZNQHyyutfKU=' 'nonce-nonceynonce'; connect-src 'self';">
+    <title>scriptnonce-and-scripthash</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script nonce="nonceynonce">
+        function log(msg) {
+            test(function() {
+                assert_unreached(msg)
+            });
+        }
+    </script>
+    <script nonce="nonceynonce">
+        window.addEventListener('securitypolicyviolation', function(e) {
+            alert_assert("violated-directive=" + e.violatedDirective);
+        });
+    
+        var t_alert = async_test('Expecting alerts: ["PASS (1/3)","PASS (2/3)","PASS (3/3)"]');
+        var expected_alerts = ["PASS (1/3)", "PASS (2/3)", "PASS (3/3)", "violated-directive=script-src", "violated-directive=script-src"];
+
+        function alert_assert(msg) {
+            t_alert.step(function() {
+                if (msg.match(/^FAIL/i)) {
+                    assert_unreached(msg);
+                    t_alert.done();
+                }
+                for (var i = 0; i < expected_alerts.length; i++) {
+                    if (expected_alerts[i] == msg) {
+                        assert_true(expected_alerts[i] == msg);
+                        expected_alerts.splice(i, 1);
+                        if (expected_alerts.length == 0) {
+                            t_alert.done();
+                        }
+                        return;
+                    }
+                }
+                assert_unreached('unexpected alert: ' + msg);
+                t_log.done();
+            });
+        }
+
+    </script>
+    <!-- enforcing policy:
+script-src 'self' 'sha256-LS8v1E1Ff0Hc8FobgWKNKY3sbW4rljPlZNQHyyutfKU=' 'nonce-nonceynonce'; connect-src 'self';
+-->
+    <script nonce="nonceynonce">
+        alert_assert('PASS (1/3)');
+
+    </script>
+    <script>
+        alert_assert('PASS (2/3)');
+
+    </script>
+    <script nonce="nonceynonce">
+        alert_assert('PASS (3/3)');
+
+    </script>
+    <script>
+        alert_assert('FAIL (1/2)');
+
+    </script>
+    <script nonce="notanonce">
+        alert_assert('FAIL (2/2)');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests the combined use of script hash and script nonce. It passes if a CSP violation is generated and the three alerts show PASS.
+    </p>
+    <div id="log"></div>
+</body>
+
+</html>

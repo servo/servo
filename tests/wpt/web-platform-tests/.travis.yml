@@ -26,6 +26,15 @@ matrix:
   include:
     - os: linux
       python: "2.7"
+      env: JOB=manifest_upload SCRIPT=tools/ci/ci_manifest.sh
+      deploy:
+        provider: releases
+        api_key:
+          secure: "EljDx50oNpDLs7rzwIv+z1PxIgB5KMnx1W0OQkpNvltR0rBW9g/aQaE+Z/c8M/sPqN1bkvKPybKzGKjb6j9Dw3/EJhah4SskH78r3yMAe2DU/ngxqqjjfXcCc2t5MKxzHAILTAxqScPj2z+lG1jeK1Z+K5hTbSP9lk+AvS0D16w="
+        file: $WPT_MANIFEST_FILE.gz
+        skip_cleanup: true
+    - os: linux
+      python: "2.7"
       env: JOB=lint SCRIPT=tools/ci/ci_lint.sh
     - os: linux
       python: "2.7"

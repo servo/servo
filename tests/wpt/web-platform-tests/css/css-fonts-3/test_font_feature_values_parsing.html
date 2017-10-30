@@ -69,7 +69,6 @@ var testrules = [
   { rule: makeRule("bongo", "@styleset { abc 1 2 3 }"), serializationNoValueDefn: true },
   { rule: makeRule("bongo", "@styleset { abc:, 1 2 3 }"), serializationNoValueDefn: true },
   { rule: makeRule("bongo", "@styleset { abc:; 1 2 3 }"), serializationNoValueDefn: true },
-  { rule: makeRule("bongo", "@styleset { abc:; 1 2 3 }"), serializationNoValueDefn: true },
   { rule: makeRule("bongo", "@styleset { abc: 1 2 3a }"), serializationNoValueDefn: true },
   { rule: makeRule("bongo", "@styleset { abc: 1 2 3, def: 1; }"), serializationNoValueDefn: true },
   { rule: makeRule("bongo", "@blah @styleset { abc: 1 2 3; }"), serializationNoValueDefn: true },
@@ -335,10 +334,6 @@ function testOneRule(testrule) {
 }
 
 function testFontFeatureValuesRuleParsing() {
-  // Gecko-specific check - if pref not set, skip these tests
-  if (window.SpecialPowers && !window.SpecialPowers.getBoolPref("layout.css.font-features.enabled")) {
-    return;
-  }
   var i;
   for (i = 0; i < testrules.length; i++) {
     var testrule = testrules[i];

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Referrer Policy: iframes correctly inherit the ancestor's referrer</title>
+    <link rel="author" title="Jochen Eisinger" href="mailto:jochen@chromium.org">
+    <link rel="help" href="https://www.w3.org/TR/referrer-policy/#referrer-policy-delivery-nested">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/referrer-policy/generic/common.js"></script>
+    <meta name="referrer" content="origin">
+  </head>
+  <body onload="runTest()">
+    <h1>Referrer Policy: iframes correctly inherit the ancestor's referrer</h1>
+    <script>
+      var test = async_test("iframes correctly inherit the ancestor's referrer");
+      window.addEventListener("message", test.step_func((msg) => {
+        assert_equals(msg.data.referrer, document.location.origin + "/");
+        test.done();
+      }));
+
+      function runTest() {
+        var iframe = document.createElement("iframe");
+        iframe.src = "about:blank";
+        document.body.appendChild(iframe);
+        iframe.contentDocument.write(`
+            <script src = "/referrer-policy/generic/common.js"></` + `script>
+            <script>
+              var urlPath = "/referrer-policy/generic/subresource/xhr.py";
+              var url = "${location.protocol}//www1.${location.hostname}:${location.port}" + urlPath;
+              queryXhr(url, (msg) => {
+                  parent.postMessage({referrer: msg.referrer}, "*")});
+            </` + "script>");
+        }
+      </script>
+
+    <div id="log"></div>
+  </body>
+</html>

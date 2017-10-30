@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Request keepalive</title>
+<meta name="help" href="https://fetch.spec.whatwg.org/#request">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+test(() => {
+  assert_false(new Request('/').keepalive, 'default');
+  assert_true(new Request('/', {keepalive: true}).keepalive, 'true');
+  assert_false(new Request('/', {keepalive: false}).keepalive, 'false');
+  assert_true(new Request('/', {keepalive: 1}).keepalive, 'truish');
+  assert_false(new Request('/', {keepalive: 0}).keepalive, 'falsy');
+}, 'keepalive flag');
+
+test(() => {
+  const init = {method: 'POST', keepalive: true, body: new ReadableStream()};
+  assert_throws('TypeError', () => {new Request('/', init)});
+}, 'keepalive flag with stream body');
+</script>
+</body>
+</html>

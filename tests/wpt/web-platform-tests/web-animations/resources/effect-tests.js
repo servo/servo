@@ -17,6 +17,11 @@
 //   }
 //
 function assert_computed_timing_for_each_phase(animation, property, values) {
+  // Some computed timing properties (e.g. 'progress') require floating-point
+  // comparison, whilst exact equality suffices for others.
+  const assert_property_equals =
+      (property === 'progress') ? assert_times_equal : assert_equals;
+
   const effect = animation.effect;
   const timing = effect.getComputedTiming();
 
@@ -33,8 +38,8 @@ function assert_computed_timing_for_each_phase(animation, property, values) {
   } else {
     animation.currentTime = beforeActive;
   }
-  assert_equals(effect.getComputedTiming()[property], values.before,
-                `Value of ${property} in the before phase`);
+  assert_property_equals(effect.getComputedTiming()[property], values.before,
+                         `Value of ${property} in the before phase`);
 
   // Active phase
   if (effect.getComputedTiming().activeDuration > 0) {
@@ -43,8 +48,8 @@ function assert_computed_timing_for_each_phase(animation, property, values) {
     } else {
       animation.currentTime = activeAfter;
     }
-    assert_equals(effect.getComputedTiming()[property], values.activeBoundary,
-                  `Value of ${property} at the boundary of the active phase`);
+    assert_property_equals(effect.getComputedTiming()[property], values.activeBoundary,
+                           `Value of ${property} at the boundary of the active phase`);
   } else {
     assert_equals(values.activeBoundary, undefined,
                   'Test specifies a value to check during the active phase but'
@@ -58,8 +63,8 @@ function assert_computed_timing_for_each_phase(animation, property, values) {
     } else {
       animation.currentTime = activeAfter + 1;
     }
-    assert_equals(effect.getComputedTiming()[property], values.after,
-                  `Value of ${property} in the after phase`);
+    assert_property_equals(effect.getComputedTiming()[property], values.after,
+                           `Value of ${property} in the after phase`);
   } else {
     assert_equals(values.after, undefined,
                   'Test specifies a value to check during the after phase but'

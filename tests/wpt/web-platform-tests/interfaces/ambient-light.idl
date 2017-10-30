@@ -1,0 +1,4 @@
+[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+interface AmbientLightSensor : Sensor {
+  readonly attribute double? illuminance;
+};

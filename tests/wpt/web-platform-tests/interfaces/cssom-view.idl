@@ -89,15 +89,14 @@ interface CaretPosition {
 
 enum ScrollLogicalPosition { "start", "center", "end", "nearest" };
 dictionary ScrollIntoViewOptions : ScrollOptions {
-  ScrollLogicalPosition block = "center";
-  ScrollLogicalPosition inline = "center";
+  ScrollLogicalPosition block = "start";
+  ScrollLogicalPosition inline = "nearest";
 };
 
 partial interface Element {
   DOMRectList getClientRects();
   [NewObject] DOMRect getBoundingClientRect();
-  void scrollIntoView();
-  void scrollIntoView((boolean or object) arg);
+  void scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg);
   void scroll(optional ScrollToOptions options);
   void scroll(unrestricted double x, unrestricted double y);
   void scrollTo(optional ScrollToOptions options);

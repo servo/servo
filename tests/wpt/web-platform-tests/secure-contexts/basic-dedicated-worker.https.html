@@ -17,13 +17,19 @@
       var t5 = async_test("HTTP worker from HTTPS subframe");
       var t6 = async_test("HTTPS worker from HTTPS subframe");
 
-      var w1 = new Worker(http_dir + "support/dedicated-worker-script.js");
-      w1.onmessage = t1.step_func_done(function(e) {
-        assert_unreached("cross-origin workers should not be loaded");
-      });
-      w1.onerror = t1.step_func_done(function(e) {
-        e.preventDefault();
-      });
+      try {
+        var w1 = new Worker(http_dir + "support/dedicated-worker-script.js");
+        w1.onmessage = t1.step_func_done(function(e) {
+          assert_unreached("cross-origin workers should not be loaded");
+        });
+        w1.onerror = t1.step_func_done(function(e) {
+          e.preventDefault();
+        });
+      } catch (e) {
+        // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+        // but isn't actually relevant to what we're testing here.
+        t1.done();
+      }
 
       var w2 = new Worker(https_dir + "support/dedicated-worker-script.js");
       w2.onmessage = t2.step_func_done(function(e) {
@@ -33,13 +39,19 @@
         assert_unreached("isSecureContext should be supported");
       });
 
-      var w3 = new Worker(http_dir + "support/parent-dedicated-worker-script.js");
-      w3.onmessage = t3.step_func_done(function(e) {
-        assert_unreached("cross-origin workers should not be loaded");
-      });
-      w3.onerror = t3.step_func_done(function(e) {
-        e.preventDefault();
-      });
+      try {
+        var w3 = new Worker(http_dir + "support/parent-dedicated-worker-script.js");
+        w3.onmessage = t3.step_func_done(function(e) {
+          assert_unreached("cross-origin workers should not be loaded");
+        });
+        w3.onerror = t3.step_func_done(function(e) {
+          e.preventDefault();
+        });
+      } catch (e) {
+        // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+        // but isn't actually relevant to what we're testing here.
+        t3.done();
+      }
 
       var w4 = new Worker(https_dir + "support/parent-dedicated-worker-script.js");
       w4.onmessage = t4.step_func_done(function(e) {
