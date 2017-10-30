@@ -4772,13 +4772,13 @@ fn static_assert() {
 
     pub fn set_text_overflow(&mut self, v: longhands::text_overflow::computed_value::T) {
         use gecko_bindings::structs::nsStyleTextOverflowSide;
-        use properties::longhands::text_overflow::Side;
+        use values::specified::text::TextOverflowSide;
 
-        fn set(side: &mut nsStyleTextOverflowSide, value: &Side) {
+        fn set(side: &mut nsStyleTextOverflowSide, value: &TextOverflowSide) {
             let ty = match *value {
-                Side::Clip => structs::NS_STYLE_TEXT_OVERFLOW_CLIP,
-                Side::Ellipsis => structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS,
-                Side::String(ref s) => {
+                TextOverflowSide::Clip => structs::NS_STYLE_TEXT_OVERFLOW_CLIP,
+                TextOverflowSide::Ellipsis => structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS,
+                TextOverflowSide::String(ref s) => {
                     side.mString.assign_utf8(s);
                     structs::NS_STYLE_TEXT_OVERFLOW_STRING
                 }
@@ -4813,13 +4813,14 @@ fn static_assert() {
 
     pub fn clone_text_overflow(&self) -> longhands::text_overflow::computed_value::T {
         use gecko_bindings::structs::nsStyleTextOverflowSide;
-        use properties::longhands::text_overflow::Side;
+        use values::specified::text::TextOverflowSide;
 
-        fn to_servo(side: &nsStyleTextOverflowSide) -> Side {
+        fn to_servo(side: &nsStyleTextOverflowSide) -> TextOverflowSide {
             match side.mType as u32 {
-                structs::NS_STYLE_TEXT_OVERFLOW_CLIP => Side::Clip,
-                structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS => Side::Ellipsis,
-                structs::NS_STYLE_TEXT_OVERFLOW_STRING => Side::String(side.mString.to_string().into_boxed_str()),
+                structs::NS_STYLE_TEXT_OVERFLOW_CLIP => TextOverflowSide::Clip,
+                structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS => TextOverflowSide::Ellipsis,
+                structs::NS_STYLE_TEXT_OVERFLOW_STRING =>
+                    TextOverflowSide::String(side.mString.to_string().into_boxed_str()),
                 x => panic!("Found unexpected value in style struct for text_overflow property: {:?}", x),
             }
         }

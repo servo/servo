@@ -33,9 +33,10 @@ use std::sync::Arc;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{longhands, ComputedValues};
+use style::properties::ComputedValues;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use style::values::generics::box_::VerticalAlign;
+use style::values::specified::text::TextOverflowSide;
 use text;
 use traversal::PreorderFlowTraversal;
 use unicode_bidi as bidi;
@@ -714,15 +715,15 @@ impl LineBreaker {
 
         let ellipsis = match (&fragment.style().get_text().text_overflow.second,
             fragment.style().get_box().overflow_x) {
-            (&longhands::text_overflow::Side::Clip, _) | (_, overflow_x::T::visible) => None,
-            (&longhands::text_overflow::Side::Ellipsis, _) => {
+            (&TextOverflowSide::Clip, _) | (_, overflow_x::T::visible) => None,
+            (&TextOverflowSide::Ellipsis, _) => {
                 if fragment.margin_box_inline_size() > available_inline_size {
                     Some("…".to_string())
                 } else {
                     None
                 }
             },
-            (&longhands::text_overflow::Side::String(ref string), _) => {
+            (&TextOverflowSide::String(ref string), _) => {
                 if fragment.margin_box_inline_size() > available_inline_size {
                     Some(string.to_string())
                 } else {
