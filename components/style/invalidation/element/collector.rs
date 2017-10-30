@@ -341,7 +341,7 @@ where
             self.quirks_mode,
             self.removed_id,
             self.classes_removed,
-            &mut |dependency| {
+            |dependency| {
                 self.scan_dependency(dependency, VisitedDependent::No);
                 true
             },
@@ -358,7 +358,7 @@ where
             self.quirks_mode,
             self.removed_id,
             self.classes_removed,
-            &mut |dependency| {
+            |dependency| {
                 if !dependency.state.intersects(state_changes) {
                     return true;
                 }

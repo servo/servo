@@ -1475,7 +1475,7 @@ impl Stylist {
             data.selectors_for_cache_revalidation.lookup(
                 element,
                 self.quirks_mode,
-                &mut |selector_and_hashes| {
+                |selector_and_hashes| {
                     results.push(matches_selector(
                         &selector_and_hashes.selector,
                         selector_and_hashes.selector_offset,
@@ -1493,7 +1493,7 @@ impl Stylist {
             stylist.cascade_data.author.selectors_for_cache_revalidation.lookup(
                 element,
                 stylist.quirks_mode,
-                &mut |selector_and_hashes| {
+                |selector_and_hashes| {
                     results.push(matches_selector(
                         &selector_and_hashes.selector,
                         selector_and_hashes.selector_offset,
