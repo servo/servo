@@ -15,7 +15,7 @@ use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
-pub use values::specified::font::{XTextZoom, MozScriptMinSize as SpecifiedMozScriptMinSize };
+pub use values::specified::font::XTextZoom;
 
 #[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -99,7 +99,7 @@ impl ToAnimatedValue for FontSize {
     }
 }
 
-impl ToComputedValue for SpecifiedMozScriptMinSize {
+impl ToComputedValue for specified::MozScriptMinSize {
     type ComputedValue = MozScriptMinSize;
 
     fn to_computed_value(&self, cx: &Context) -> MozScriptMinSize {
@@ -120,13 +120,13 @@ impl ToComputedValue for SpecifiedMozScriptMinSize {
     }
 
     fn from_computed_value(other: &MozScriptMinSize) -> Self {
-        SpecifiedMozScriptMinSize(ToComputedValue::from_computed_value(other))
+        specified::MozScriptMinSize(ToComputedValue::from_computed_value(other))
     }
 }
 
-impl Parse for SpecifiedMozScriptMinSize {
+impl Parse for specified::MozScriptMinSize {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedMozScriptMinSize, ParseError<'i>> {
+                         -> Result<specified::MozScriptMinSize, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
