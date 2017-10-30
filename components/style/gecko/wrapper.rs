@@ -262,6 +262,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
 
+    #[inline]
     fn parent_node(&self) -> Option<Self> {
         unsafe { self.0.mParent.as_ref().map(GeckoNode) }
     }
@@ -1767,10 +1768,12 @@ impl<'le> Hash for GeckoElement<'le> {
 impl<'le> ::selectors::Element for GeckoElement<'le> {
     type Impl = SelectorImpl;
 
+    #[inline]
     fn opaque(&self) -> OpaqueElement {
         OpaqueElement::new(self.0)
     }
 
+    #[inline]
     fn parent_element(&self) -> Option<Self> {
         // FIXME(emilio): This will need to jump across if the parent node is a
         // shadow root to get the shadow host.
@@ -1783,6 +1786,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         self.closest_non_native_anonymous_ancestor()
     }
 
+    #[inline]
     fn first_child_element(&self) -> Option<Self> {
         let mut child = self.as_node().first_child();
         while let Some(child_node) = child {
@@ -1794,6 +1798,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
+    #[inline]
     fn last_child_element(&self) -> Option<Self> {
         let mut child = self.as_node().last_child();
         while let Some(child_node) = child {
@@ -1805,6 +1810,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
+    #[inline]
     fn prev_sibling_element(&self) -> Option<Self> {
         let mut sibling = self.as_node().prev_sibling();
         while let Some(sibling_node) = sibling {
@@ -1816,6 +1822,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
+    #[inline]
     fn next_sibling_element(&self) -> Option<Self> {
         let mut sibling = self.as_node().next_sibling();
         while let Some(sibling_node) = sibling {
@@ -1907,12 +1914,14 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         })
     }
 
+    #[inline]
     fn get_local_name(&self) -> &WeakAtom {
         unsafe {
             WeakAtom::new(self.as_node().node_info().mInner.mName)
         }
     }
 
+    #[inline]
     fn get_namespace(&self) -> &WeakNamespace {
         unsafe {
             WeakNamespace::new(Gecko_Namespace(self.0))
@@ -2079,6 +2088,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         self.get_state().intersects(NonTSPseudoClass::AnyLink.state_flag())
     }
 
+    #[inline]
     fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.has_id() {
             return false
@@ -2095,6 +2105,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
+    #[inline]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.may_have_class() {
             return false;
@@ -2106,15 +2117,18 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                                     Gecko_ClassOrClassList)
     }
 
+    #[inline]
     fn is_html_element_in_html_document(&self) -> bool {
         self.is_html_element() &&
         self.as_node().owner_doc().is_html_document()
     }
 
+    #[inline]
     fn ignores_nth_child_selectors(&self) -> bool {
         self.is_root_of_anonymous_subtree()
     }
 
+    #[inline]
     fn blocks_ancestor_combinators(&self) -> bool {
         if !self.is_root_of_anonymous_subtree() {
             return false
