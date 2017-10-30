@@ -122,6 +122,7 @@ where
 {
     type Item = N;
 
+    #[inline]
     fn next(&mut self) -> Option<N> {
         let prev = match self.previous.take() {
             None => return None,
@@ -205,6 +206,7 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Returns the next children in pre-order, optionally scoped to a subtree
     /// root.
+    #[inline]
     fn next_in_preorder(&self, scoped_to: Option<Self>) -> Option<Self> {
         if let Some(c) = self.first_child() {
             return Some(c);
