@@ -70,6 +70,7 @@ directories = [
   "./tests/wpt/update",
   "./tests/wpt/web-platform-tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
+  "./tests/wpt/mozilla/tests/webgl",
   "./tests/wpt/sync",
   "./tests/wpt/sync_css",
   "./python/tidy/servo_tidy_tests",
