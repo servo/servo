@@ -4,10 +4,12 @@
 
 
 use dom::bindings::codegen::Bindings::OffscreenCanvasBinding;
+use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::codegen::Bindings::OffscreenCanvasBinding::OffscreenCanvasMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom::offscreencanvasrenderingcontext2d::{OffscreenCanvasRenderingContext2D, LayoutOffscreenCanvasRenderingContext2DHelpers};
 use dom::htmlelement::HTMLElement;
+use dom::globalscope::GlobalScope;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -58,10 +60,10 @@ pub trait LayoutOffscreenCanvasHelpers {
     }
 
 
-    pub fn Constructor( width: u64,
-                        height: u64) -> DomRoot<OffscreenCanvas> {
+    pub fn Constructor(global : &GlobalScope, width: u64,
+                        height: u64) -> Result<DomRoot<OffscreenCanvas>, Error> {
 
-        //Ok(OffscreenCanvas::new())
+        unimplemented!()
 
           }
 

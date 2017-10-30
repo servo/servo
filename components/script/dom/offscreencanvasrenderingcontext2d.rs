@@ -176,46 +176,46 @@ pub fn new_inherited(global: &GlobalScope,
                   dw: Option<f64>,
                   dh: Option<f64>)
                   -> ErrorResult {
-        let result = match image {
-            CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                let url = image.get_url().ok_or(Error::InvalidState)?;
-                self.fetch_and_draw_image_data(url,
-                                               sx, sy, sw, sh,
-                                               dx, dy, dw, dh)
-            }
-            CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                let url = image.get_url().ok_or(Error::InvalidState)?;
-                self.fetch_and_draw_image_data(url,
-                                               sx, sy, sw, sh,
-                                               dx, dy, dw, dh)
-            }
-            CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                let url = image.get_url().ok_or(Error::InvalidState)?;
-                self.fetch_and_draw_image_data(url,
-                                               sx, sy, sw, sh,
-                                               dx, dy, dw, dh)
-            }
-            CanvasImageSource::CSSStyleValue(ref value) => {
-                let url = value.get_url(self.base_url.clone()).ok_or(Error::InvalidState)?;
-                self.fetch_and_draw_image_data(url,
-                                               sx, sy, sw, sh,
-                                               dx, dy, dw, dh)
-            }
-        };
-
-        if result.is_ok() && !self.is_origin_clean(image) {
-            self.set_origin_unclean()
-        }
-        result
+        //let result = match image {
+        //    CanvasImageSource::HTMLImageElement(ref image) => {
+        //        // https://html.spec.whatwg.org/multipage/#img-error
+        //        // If the image argument is an HTMLImageElement object that is in the broken state,
+        //        // then throw an InvalidStateError exception
+        //        let url = image.get_url().ok_or(Error::InvalidState)?;
+        //        self.fetch_and_draw_image_data(url,
+        //                                       sx, sy, sw, sh,
+        //                                       dx, dy, dw, dh)
+        //    }
+        //    CanvasImageSource::HTMLImageElement(ref image) => {
+        //        // https://html.spec.whatwg.org/multipage/#img-error
+        //        // If the image argument is an HTMLImageElement object that is in the broken state,
+        //        // then throw an InvalidStateError exception
+        //        let url = image.get_url().ok_or(Error::InvalidState)?;
+        //        self.fetch_and_draw_image_data(url,
+        //                                       sx, sy, sw, sh,
+        //                                       dx, dy, dw, dh)
+        //    }
+        //    CanvasImageSource::HTMLImageElement(ref image) => {
+        //        // https://html.spec.whatwg.org/multipage/#img-error
+        //        // If the image argument is an HTMLImageElement object that is in the broken state,
+        //        // then throw an InvalidStateError exception
+        //        let url = image.get_url().ok_or(Error::InvalidState)?;
+        //        self.fetch_and_draw_image_data(url,
+        //                                       sx, sy, sw, sh,
+        //                                       dx, dy, dw, dh)
+        //    }
+        //    CanvasImageSource::CSSStyleValue(ref value) => {
+        //        let url = value.get_url(self.base_url.clone()).ok_or(Error::InvalidState)?;
+        //        self.fetch_and_draw_image_data(url,
+        //                                       sx, sy, sw, sh,
+        //                                       dx, dy, dw, dh)
+        //    }
+        //};
+        //
+        //if result.is_ok() && !self.is_origin_clean(image) {
+        //    self.set_origin_unclean()
+        //}
+        unimplemented!()
     }
 
     fn set_origin_unclean(&self) {
@@ -595,51 +595,52 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                      image: CanvasImageSource,
                      mut repetition: DOMString)
                      -> Fallible<DomRoot<CanvasPattern>> {
-        let (image_data, image_size) = match image {
-            CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                image.get_url()
-                    .and_then(|url| self.fetch_image_data(url))
-                    .ok_or(Error::InvalidState)?
-            },
-            CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                image.get_url()
-                    .and_then(|url| self.fetch_image_data(url))
-                    .ok_or(Error::InvalidState)?
-            },
-            CanvasImageSource::HTMLImageElement(ref image) => {
-                // https://html.spec.whatwg.org/multipage/#img-error
-                // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an InvalidStateError exception
-                image.get_url()
-                    .and_then(|url| self.fetch_image_data(url))
-                    .ok_or(Error::InvalidState)?
-            }
-            CanvasImageSource::CSSStyleValue(ref value) => {
-                value.get_url(self.base_url.clone())
-                    .and_then(|url| self.fetch_image_data(url))
-                    .ok_or(Error::InvalidState)?
-            }
-        };
-
-        if repetition.is_empty() {
-            repetition.push_str("repeat");
-        }
-
-        if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-            Ok(CanvasPattern::new(&self.global(),
-                                  image_data,
-                                  image_size,
-                                  rep,
-                                  self.is_origin_clean(image)))
-        } else {
-            Err(Error::Syntax)
-        }
+        //let (image_data, image_size) = match image {
+        //    CanvasImageSource::HTMLImageElement(ref image) => {
+        //        // https://html.spec.whatwg.org/multipage/#img-error
+        //        // If the image argument is an HTMLImageElement object that is in the broken state,
+        //        // then throw an InvalidStateError exception
+        //        image.get_url()
+        //            .and_then(|url| self.fetch_image_data(url))
+        //            .ok_or(Error::InvalidState)?
+        //    },
+        //    CanvasImageSource::HTMLImageElement(ref image) => {
+        //        // https://html.spec.whatwg.org/multipage/#img-error
+        //        // If the image argument is an HTMLImageElement object that is in the broken state,
+        //        // then throw an InvalidStateError exception
+        //        image.get_url()
+        //            .and_then(|url| self.fetch_image_data(url))
+        //            .ok_or(Error::InvalidState)?
+        //    },
+        //    CanvasImageSource::HTMLImageElement(ref image) => {
+        //        // https://html.spec.whatwg.org/multipage/#img-error
+        //        // If the image argument is an HTMLImageElement object that is in the broken state,
+        //        // then throw an InvalidStateError exception
+        //        image.get_url()
+        //            .and_then(|url| self.fetch_image_data(url))
+        //            .ok_or(Error::InvalidState)?
+        //    }
+        //    CanvasImageSource::CSSStyleValue(ref value) => {
+        //        value.get_url(self.base_url.clone())
+        //            .and_then(|url| self.fetch_image_data(url))
+        //            .ok_or(Error::InvalidState)?
+        //    }
+        //};
+        //
+        //if repetition.is_empty() {
+        //    repetition.push_str("repeat");
+        //}
+        //
+        //if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
+        //    Ok(CanvasPattern::new(&self.global(),
+        //                          image_data,
+        //                          image_size,
+        //                          rep,
+        //                          self.is_origin_clean(image)))
+        //} else {
+        //    Err(Error::Syntax)
+        //}
+        unimplemented!()
     }
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData(&self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<DomRoot<ImageData>> {
