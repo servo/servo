@@ -512,11 +512,21 @@ where
     });
 }
 
+/// Whether the invalidation machinery should be used for this query.
+#[derive(PartialEq)]
+pub enum MayUseInvalidation {
+    /// We may use it if we deem it useful.
+    Yes,
+    /// Don't use it.
+    No,
+}
+
 /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
 pub fn query_selector<E, Q>(
     root: E::ConcreteNode,
     selector_list: &SelectorList<E::Impl>,
     results: &mut Q::Output,
+    may_use_invalidation: MayUseInvalidation,
 )
 where
     E: TElement,
@@ -561,6 +571,7 @@ where
     // A selector with a combinator needs to have a length of at least 3: A
     // simple selector, a combinator, and another simple selector.
     let invalidation_may_be_useful =
+        may_use_invalidation == MayUseInvalidation::Yes &&
         selector_list.0.iter().any(|s| s.len() > 2);
 
     if root_element.is_some() || !invalidation_may_be_useful {
