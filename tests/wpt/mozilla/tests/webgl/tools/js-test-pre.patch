@@ -1,6 +1,8 @@
---- js-test-pre.orig.js	2016-04-08 22:35:15.629226767 +0200
-+++ js-test-pre.js	2016-04-08 22:43:11.906092062 +0200
-@@ -71,11 +71,25 @@
+diff --git a/conformance-suites/1.0.3/resources/js-test-pre.js b/conformance-suites/1.0.3/resources/js-test-pre.js
+index 2a03001..c4bb653 100644
+--- a/conformance-suites/1.0.3/resources/js-test-pre.js
++++ b/conformance-suites/1.0.3/resources/js-test-pre.js
+@@ -71,11 +71,25 @@ function nonKhronosFrameworkNotifyDone() {
    }
  }
  
@@ -30,10 +32,10 @@
  
  function notifyFinishedToHarness() {
    if (window.parent.webglTestHarness) {
-@@ -100,2 +100,2 @@ function notifyFinishedToHarness() {
+@@ -86,13 +100,19 @@ function notifyFinishedToHarness() {
    }
  }
-
+ 
 +(function() {
 +  var oldNotify = notifyFinishedToHarness;
 +  var t = async_test("Overall test");
@@ -43,7 +45,6 @@
  function _logToConsole(msg)
  {
      if (window.console)
-@@ -92,7 +106,7 @@
        window.console.log(msg);
  }
  
@@ -52,7 +53,7 @@
  
  function enableJSTestPreVerboseLogging()
  {
-@@ -105,31 +119,18 @@
+@@ -105,31 +125,18 @@ function description(msg)
      if (msg === undefined) {
        msg = document.title;
      }
@@ -82,16 +83,16 @@
      _addSpan(msg);
      if (_jsTestPreVerboseLogging) {
 -	_logToConsole(msg);
-+        _logToConsole(msg);
++      _logToConsole(msg);
      }
  }
  
-@@ -143,7 +144,7 @@
+@@ -143,7 +150,7 @@ function testPassed(msg)
      reportTestResultsToHarness(true, msg);
      _addSpan('<span><span class="pass">PASS</span> ' + escapeHTML(msg) + '</span>');
      if (_jsTestPreVerboseLogging) {
 -	_logToConsole('PASS ' + msg);
-+        _logToConsole('PASS ' + msg);
++      _logToConsole('PASS ' + msg);
      }
  }
  

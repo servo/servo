@@ -1,6 +1,8 @@
---- conformance/more/unit.js	2015-06-18 23:26:41.085626000 +0200
-+++ ../conformance-1.0.3/conformance/more/unit.js	2015-12-30 19:46:34.570636491 +0100
-@@ -892,9 +892,14 @@
+diff --git a/conformance-suites/1.0.3/conformance/more/unit.js b/conformance-suites/1.0.3/conformance/more/unit.js
+index 89f4e87..742f8d7 100644
+--- a/conformance-suites/1.0.3/conformance/more/unit.js
++++ b/conformance-suites/1.0.3/conformance/more/unit.js
+@@ -892,9 +892,14 @@ GLConstants = [
  0x809D
  ];
  
