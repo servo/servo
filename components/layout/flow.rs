@@ -54,7 +54,7 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
+use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -252,7 +252,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         if might_have_floats_in_or_out {
             mut_base(self).thread_id = parent_thread_id;
             self.assign_block_size(layout_context);
-            mut_base(self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+            mut_base(self).restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
         }
         might_have_floats_in_or_out
     }
@@ -402,7 +402,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
 
     fn contains_positioned_fragments(&self) -> bool {
         self.contains_relatively_positioned_fragments() ||
-            base(self).flags.contains(IS_ABSOLUTELY_POSITIONED)
+            base(self).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
     }
 
     fn contains_relatively_positioned_fragments(&self) -> bool {
@@ -591,52 +591,52 @@ impl FlowClass {
 
 bitflags! {
     #[doc = "Flags used in flows."]
-    pub flags FlowFlags: u32 {
+    pub struct FlowFlags: u32 {
         // text align flags
         #[doc = "Whether this flow is absolutely positioned. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0000_0000_0100_0000,
+        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0000_0000_0100_0000;
         #[doc = "Whether this flow clears to the left. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const CLEARS_LEFT = 0b0000_0000_0000_0000_1000_0000,
+        const CLEARS_LEFT = 0b0000_0000_0000_0000_1000_0000;
         #[doc = "Whether this flow clears to the right. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const CLEARS_RIGHT = 0b0000_0000_0000_0001_0000_0000,
+        const CLEARS_RIGHT = 0b0000_0000_0000_0001_0000_0000;
         #[doc = "Whether this flow is left-floated. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const FLOATS_LEFT = 0b0000_0000_0000_0010_0000_0000,
+        const FLOATS_LEFT = 0b0000_0000_0000_0010_0000_0000;
         #[doc = "Whether this flow is right-floated. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const FLOATS_RIGHT = 0b0000_0000_0000_0100_0000_0000,
+        const FLOATS_RIGHT = 0b0000_0000_0000_0100_0000_0000;
         #[doc = "Text alignment. \
 
                  NB: If you update this, update `TEXT_ALIGN_SHIFT` below."]
-        const TEXT_ALIGN = 0b0000_0000_0111_1000_0000_0000,
+        const TEXT_ALIGN = 0b0000_0000_0111_1000_0000_0000;
         #[doc = "Whether this flow has a fragment with `counter-reset` or `counter-increment` \
                  styles."]
-        const AFFECTS_COUNTERS = 0b0000_0000_1000_0000_0000_0000,
+        const AFFECTS_COUNTERS = 0b0000_0000_1000_0000_0000_0000;
         #[doc = "Whether this flow's descendants have fragments that affect `counter-reset` or \
                  `counter-increment` styles."]
-        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0000_0001_0000_0000_0000_0000,
+        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0000_0001_0000_0000_0000_0000;
         #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
                  of positioning in the inline direction. This is set for flows with `position: \
                  static` and `position: relative` as well as absolutely-positioned flows with \
                  unconstrained positions in the inline direction."]
-        const INLINE_POSITION_IS_STATIC = 0b0000_0010_0000_0000_0000_0000,
+        const INLINE_POSITION_IS_STATIC = 0b0000_0010_0000_0000_0000_0000;
         #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
                  of positioning in the block direction. This is set for flows with `position: \
                  static` and `position: relative` as well as absolutely-positioned flows with \
                  unconstrained positions in the block direction."]
-        const BLOCK_POSITION_IS_STATIC = 0b0000_0100_0000_0000_0000_0000,
+        const BLOCK_POSITION_IS_STATIC = 0b0000_0100_0000_0000_0000_0000;
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 0b0000_1000_0000_0000_0000_0000,
+        const CAN_BE_FRAGMENTED = 0b0000_1000_0000_0000_0000_0000;
 
         /// Whether this flow contains any text and/or replaced fragments.
-        const CONTAINS_TEXT_OR_REPLACED_FRAGMENTS = 0b0001_0000_0000_0000_0000_0000,
+        const CONTAINS_TEXT_OR_REPLACED_FRAGMENTS = 0b0001_0000_0000_0000_0000_0000;
 
         /// Whether margins are prohibited from collapsing with this flow.
-        const MARGINS_CANNOT_COLLAPSE = 0b0010_0000_0000_0000_0000_0000,
+        const MARGINS_CANNOT_COLLAPSE = 0b0010_0000_0000_0000_0000_0000;
     }
 }
 
@@ -648,20 +648,20 @@ static TEXT_ALIGN_SHIFT: usize = 11;
 impl FlowFlags {
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        text_align::T::from_u32((self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
+        text_align::T::from_u32((self & FlowFlags::TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
-        *self = (*self & !TEXT_ALIGN) |
+        *self = (*self & !FlowFlags::TEXT_ALIGN) |
                 FlowFlags::from_bits(value.to_u32() << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
     pub fn float_kind(&self) -> float::T {
-        if self.contains(FLOATS_LEFT) {
+        if self.contains(FlowFlags::FLOATS_LEFT) {
             float::T::left
-        } else if self.contains(FLOATS_RIGHT) {
+        } else if self.contains(FlowFlags::FLOATS_RIGHT) {
             float::T::right
         } else {
             float::T::none
@@ -670,12 +670,12 @@ impl FlowFlags {
 
     #[inline]
     pub fn is_float(&self) -> bool {
-        self.contains(FLOATS_LEFT) || self.contains(FLOATS_RIGHT)
+        self.contains(FlowFlags::FLOATS_LEFT) || self.contains(FlowFlags::FLOATS_RIGHT)
     }
 
     #[inline]
     pub fn clears_floats(&self) -> bool {
-        self.contains(CLEARS_LEFT) || self.contains(CLEARS_RIGHT)
+        self.contains(FlowFlags::CLEARS_LEFT) || self.contains(FlowFlags::CLEARS_RIGHT)
     }
 }
 
@@ -947,8 +947,8 @@ impl fmt::Debug for BaseFlow {
                 overflow={:?}{}{}{}",
                self.stacking_context_id,
                self.position,
-               if self.flags.contains(FLOATS_LEFT) { "FL" } else { "" },
-               if self.flags.contains(FLOATS_RIGHT) { "FR" } else { "" },
+               if self.flags.contains(FlowFlags::FLOATS_LEFT) { "FL" } else { "" },
+               if self.flags.contains(FlowFlags::FLOATS_RIGHT) { "FR" } else { "" },
                self.speculated_float_placement_in,
                self.speculated_float_placement_out,
                self.overflow,
@@ -991,50 +991,50 @@ impl BaseFlow {
             Some(style) => {
                 match style.get_box().position {
                     position::T::absolute | position::T::fixed => {
-                        flags.insert(IS_ABSOLUTELY_POSITIONED);
+                        flags.insert(FlowFlags::IS_ABSOLUTELY_POSITIONED);
 
                         let logical_position = style.logical_position();
                         if logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
                                 logical_position.inline_end == LengthOrPercentageOrAuto::Auto {
-                            flags.insert(INLINE_POSITION_IS_STATIC);
+                            flags.insert(FlowFlags::INLINE_POSITION_IS_STATIC);
                         }
                         if logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
                                 logical_position.block_end == LengthOrPercentageOrAuto::Auto {
-                            flags.insert(BLOCK_POSITION_IS_STATIC);
+                            flags.insert(FlowFlags::BLOCK_POSITION_IS_STATIC);
                         }
                     }
-                    _ => flags.insert(BLOCK_POSITION_IS_STATIC | INLINE_POSITION_IS_STATIC),
+                    _ => flags.insert(FlowFlags::BLOCK_POSITION_IS_STATIC | FlowFlags::INLINE_POSITION_IS_STATIC),
                 }
 
                 if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
                     match style.get_box().float {
                         float::T::none => {}
-                        float::T::left => flags.insert(FLOATS_LEFT),
-                        float::T::right => flags.insert(FLOATS_RIGHT),
+                        float::T::left => flags.insert(FlowFlags::FLOATS_LEFT),
+                        float::T::right => flags.insert(FlowFlags::FLOATS_RIGHT),
                     }
                 }
 
                 match style.get_box().clear {
                     clear::T::none => {}
-                    clear::T::left => flags.insert(CLEARS_LEFT),
-                    clear::T::right => flags.insert(CLEARS_RIGHT),
+                    clear::T::left => flags.insert(FlowFlags::CLEARS_LEFT),
+                    clear::T::right => flags.insert(FlowFlags::CLEARS_RIGHT),
                     clear::T::both => {
-                        flags.insert(CLEARS_LEFT);
-                        flags.insert(CLEARS_RIGHT);
+                        flags.insert(FlowFlags::CLEARS_LEFT);
+                        flags.insert(FlowFlags::CLEARS_RIGHT);
                     }
                 }
 
                 if !style.get_counters().counter_reset.0.is_empty() ||
                         !style.get_counters().counter_increment.0.is_empty() {
-                    flags.insert(AFFECTS_COUNTERS)
+                    flags.insert(FlowFlags::AFFECTS_COUNTERS)
                 }
             }
-            None => flags.insert(BLOCK_POSITION_IS_STATIC | INLINE_POSITION_IS_STATIC),
+            None => flags.insert(FlowFlags::BLOCK_POSITION_IS_STATIC | FlowFlags::INLINE_POSITION_IS_STATIC),
         }
 
         // New flows start out as fully damaged.
         let mut damage = RestyleDamage::rebuild_and_reflow();
-        damage.remove(RECONSTRUCT_FLOW);
+        damage.remove(ServoRestyleDamage::RECONSTRUCT_FLOW);
 
         BaseFlow {
             restyle_damage: damage,
@@ -1071,15 +1071,15 @@ impl BaseFlow {
     pub fn update_flags_if_needed(&mut self, style: &ComputedValues) {
         // For absolutely-positioned flows, changes to top/bottom/left/right can cause these flags
         // to get out of date:
-        if self.restyle_damage.contains(REFLOW_OUT_OF_FLOW) {
+        if self.restyle_damage.contains(ServoRestyleDamage::REFLOW_OUT_OF_FLOW) {
             // Note: We don't need to check whether IS_ABSOLUTELY_POSITIONED has changed, because
             // changes to the 'position' property trigger flow reconstruction.
-            if self.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            if self.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 let logical_position = style.logical_position();
-                self.flags.set(INLINE_POSITION_IS_STATIC,
+                self.flags.set(FlowFlags::INLINE_POSITION_IS_STATIC,
                     logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
                     logical_position.inline_end == LengthOrPercentageOrAuto::Auto);
-                self.flags.set(BLOCK_POSITION_IS_STATIC,
+                self.flags.set(FlowFlags::BLOCK_POSITION_IS_STATIC,
                     logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
                     logical_position.block_end == LengthOrPercentageOrAuto::Auto);
             }
@@ -1090,7 +1090,8 @@ impl BaseFlow {
     pub fn clone_with_children(&self, children: FlowList) -> BaseFlow {
         BaseFlow {
             children: children,
-            restyle_damage: self.restyle_damage | REPAINT | REFLOW_OUT_OF_FLOW | REFLOW,
+            restyle_damage: self.restyle_damage | ServoRestyleDamage::REPAINT |
+                            ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW,
             parallel: FlowParallelInfo::new(),
             floats: self.floats.clone(),
             abs_descendants: self.abs_descendants.clone(),
@@ -1288,7 +1289,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     return Some(base(kid).position.start.b + baseline_offset)
                 }
             }
-            if kid.is_block_like() && !base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            if kid.is_block_like() && !base(kid).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 if let Some(baseline_offset) = kid.baseline_offset_of_last_line_box_in_flow() {
                     return Some(base(kid).position.start.b + baseline_offset)
                 }

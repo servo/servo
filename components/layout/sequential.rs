@@ -9,12 +9,12 @@ use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
 use floats::SpeculatedFloatPlacement;
-use flow::{self, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
+use flow::{self, Flow, ImmutableFlowUtils, FlowFlags};
 use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
 use generated_content::ResolveGeneratedContent;
 use incremental::RelayoutMode;
 use servo_config::opts;
-use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, STORE_OVERFLOW};
+use style::servo::restyle_damage::ServoRestyleDamage;
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
 
@@ -33,7 +33,7 @@ pub fn reflow(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: Re
         if relayout_mode == RelayoutMode::Force {
             flow::mut_base(flow)
                 .restyle_damage
-                .insert(REFLOW_OUT_OF_FLOW | REFLOW);
+                .insert(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
         }
 
         if assign_inline_sizes.should_process(flow) {
@@ -112,7 +112,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
 }
 
 pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
-    if !flow::base(flow).restyle_damage.contains(STORE_OVERFLOW) {
+    if !flow::base(flow).restyle_damage.contains(ServoRestyleDamage::STORE_OVERFLOW) {
         return;
     }
 
@@ -124,20 +124,20 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
 
     flow::mut_base(flow)
         .restyle_damage
-        .remove(STORE_OVERFLOW);
+        .remove(ServoRestyleDamage::STORE_OVERFLOW);
 }
 
 /// Guesses how much inline size will be taken up by floats on the left and right sides of the
 /// given flow. This is needed to speculatively calculate the inline sizes of block formatting
 /// contexts. The speculation typically succeeds, but if it doesn't we have to lay it out again.
 pub fn guess_float_placement(flow: &mut Flow) {
-    if !flow::base(flow).restyle_damage.intersects(REFLOW) {
+    if !flow::base(flow).restyle_damage.intersects(ServoRestyleDamage::REFLOW) {
         return;
     }
 
     let mut floats_in = SpeculatedFloatPlacement::compute_floats_in_for_first_child(flow);
     for kid in flow::mut_base(flow).child_iter_mut() {
-        if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
+        if flow::base(kid).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
             // Do not propagate floats in or out, but do propogate between kids.
             guess_float_placement(kid);
         } else {

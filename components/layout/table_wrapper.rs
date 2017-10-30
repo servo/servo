@@ -17,12 +17,11 @@ use app_units::Au;
 use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list_builder::{NEVER_CREATES_CLIP_SCROLL_NODE, NEVER_CREATES_CONTAINING_BLOCK};
+use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState, StackingContextCollectionFlags};
 use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use floats::FloatKind;
-use flow::{Flow, FlowClass, ImmutableFlowUtils, INLINE_POSITION_IS_STATIC, OpaqueFlow};
+use flow::{Flow, FlowClass, ImmutableFlowUtils, FlowFlags, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use model::MaybeAuto;
@@ -256,7 +255,7 @@ impl TableWrapperFlow {
             return
         }
 
-        if !self.block_flow.base.flags.contains(INLINE_POSITION_IS_STATIC) {
+        if !self.block_flow.base.flags.contains(FlowFlags::INLINE_POSITION_IS_STATIC) {
             let inline_size_computer = AbsoluteTable {
                 minimum_width_of_all_columns: minimum_width_of_all_columns,
                 preferred_width_of_all_columns: preferred_width_of_all_columns,
@@ -464,7 +463,9 @@ impl Flow for TableWrapperFlow {
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.block_flow.collect_stacking_contexts_for_block(
-            state, NEVER_CREATES_CONTAINING_BLOCK | NEVER_CREATES_CLIP_SCROLL_NODE);
+            state,
+            StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK |
+            StackingContextCollectionFlags::NEVER_CREATES_CLIP_SCROLL_NODE);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

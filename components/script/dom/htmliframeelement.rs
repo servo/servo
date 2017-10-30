@@ -57,14 +57,14 @@ use task_source::TaskSource;
 
 bitflags! {
     #[derive(JSTraceable, MallocSizeOf)]
-    flags SandboxAllowance: u8 {
-        const ALLOW_NOTHING = 0x00,
-        const ALLOW_SAME_ORIGIN = 0x01,
-        const ALLOW_TOP_NAVIGATION = 0x02,
-        const ALLOW_FORMS = 0x04,
-        const ALLOW_SCRIPTS = 0x08,
-        const ALLOW_POINTER_LOCK = 0x10,
-        const ALLOW_POPUPS = 0x20
+    struct SandboxAllowance: u8 {
+        const ALLOW_NOTHING = 0x00;
+        const ALLOW_SAME_ORIGIN = 0x01;
+        const ALLOW_TOP_NAVIGATION = 0x02;
+        const ALLOW_FORMS = 0x04;
+        const ALLOW_SCRIPTS = 0x08;
+        const ALLOW_POINTER_LOCK = 0x10;
+        const ALLOW_POPUPS = 0x20;
     }
 }
 
@@ -722,16 +722,16 @@ impl VirtualMethods for HTMLIFrameElement {
         match attr.local_name() {
             &local_name!("sandbox") => {
                 self.sandbox_allowance.set(mutation.new_value(attr).map(|value| {
-                    let mut modes = ALLOW_NOTHING;
+                    let mut modes = SandboxAllowance::ALLOW_NOTHING;
                     for token in value.as_tokens() {
                         modes |= match &*token.to_ascii_lowercase() {
-                            "allow-same-origin" => ALLOW_SAME_ORIGIN,
-                            "allow-forms" => ALLOW_FORMS,
-                            "allow-pointer-lock" => ALLOW_POINTER_LOCK,
-                            "allow-popups" => ALLOW_POPUPS,
-                            "allow-scripts" => ALLOW_SCRIPTS,
-                            "allow-top-navigation" => ALLOW_TOP_NAVIGATION,
-                            _ => ALLOW_NOTHING
+                            "allow-same-origin" => SandboxAllowance::ALLOW_SAME_ORIGIN,
+                            "allow-forms" => SandboxAllowance::ALLOW_FORMS,
+                            "allow-pointer-lock" => SandboxAllowance::ALLOW_POINTER_LOCK,
+                            "allow-popups" => SandboxAllowance::ALLOW_POPUPS,
+                            "allow-scripts" => SandboxAllowance::ALLOW_SCRIPTS,
+                            "allow-top-navigation" => SandboxAllowance::ALLOW_TOP_NAVIGATION,
+                            _ => SandboxAllowance::ALLOW_NOTHING
                         };
                     }
                     modes

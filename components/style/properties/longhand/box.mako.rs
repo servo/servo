@@ -1570,12 +1570,12 @@ ${helpers.predefined_type("transform-origin",
 
     bitflags! {
         #[derive(MallocSizeOf, ToComputedValue)]
-        pub flags SpecifiedValue: u8 {
-            const LAYOUT = 0x01,
-            const STYLE = 0x02,
-            const PAINT = 0x04,
-            const STRICT = 0x8,
-            const STRICT_BITS = LAYOUT.bits | STYLE.bits | PAINT.bits,
+        pub struct SpecifiedValue: u8 {
+            const LAYOUT = 0x01;
+            const STYLE = 0x02;
+            const PAINT = 0x04;
+            const STRICT = 0x8;
+            const STRICT_BITS = SpecifiedValue::LAYOUT.bits | SpecifiedValue::STYLE.bits | SpecifiedValue::PAINT.bits;
         }
     }
 
@@ -1584,13 +1584,13 @@ ${helpers.predefined_type("transform-origin",
             if self.is_empty() {
                 return dest.write_str("none")
             }
-            if self.contains(STRICT) {
+            if self.contains(SpecifiedValue::STRICT) {
                 return dest.write_str("strict")
             }
 
             let mut has_any = false;
             macro_rules! maybe_write_value {
-                ($ident:ident => $str:expr) => {
+                ($ident:path => $str:expr) => {
                     if self.contains($ident) {
                         if has_any {
                             dest.write_str(" ")?;
@@ -1600,9 +1600,9 @@ ${helpers.predefined_type("transform-origin",
                     }
                 }
             }
-            maybe_write_value!(LAYOUT => "layout");
-            maybe_write_value!(STYLE => "style");
-            maybe_write_value!(PAINT => "paint");
+            maybe_write_value!(SpecifiedValue::LAYOUT => "layout");
+            maybe_write_value!(SpecifiedValue::STYLE => "style");
+            maybe_write_value!(SpecifiedValue::PAINT => "paint");
 
             debug_assert!(has_any);
             Ok(())
@@ -1623,15 +1623,15 @@ ${helpers.predefined_type("transform-origin",
             return Ok(result)
         }
         if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
-            result.insert(STRICT | STRICT_BITS);
+            result.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
             return Ok(result)
         }
 
         while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
-                "layout" => Some(LAYOUT),
-                "style" => Some(STYLE),
-                "paint" => Some(PAINT),
+                "layout" => Some(SpecifiedValue::LAYOUT),
+                "style" => Some(SpecifiedValue::STYLE),
+                "paint" => Some(SpecifiedValue::PAINT),
                 _ => None
             };
             let flag = match flag {
@@ -1782,28 +1782,28 @@ ${helpers.predefined_type(
         /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[derive(ToComputedValue)]
-        pub flags SpecifiedValue: u8 {
-            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8,
-            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8,
-            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8,
-            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8,
-            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8,
+        pub struct SpecifiedValue: u8 {
+            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8;
+            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8;
+            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8;
+            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8;
+            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8;
         }
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                TOUCH_ACTION_NONE => dest.write_str("none"),
-                TOUCH_ACTION_AUTO => dest.write_str("auto"),
-                TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-                _ if self.contains(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y) => {
+                SpecifiedValue::TOUCH_ACTION_NONE => dest.write_str("none"),
+                SpecifiedValue::TOUCH_ACTION_AUTO => dest.write_str("auto"),
+                SpecifiedValue::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
+                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
                     dest.write_str("pan-x pan-y")
                 },
-                _ if self.contains(TOUCH_ACTION_PAN_X) => {
+                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X) => {
                     dest.write_str("pan-x")
                 },
-                _ if self.contains(TOUCH_ACTION_PAN_Y) => {
+                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
                     dest.write_str("pan-y")
                 },
                 _ => panic!("invalid touch-action value"),
@@ -1813,28 +1813,28 @@ ${helpers.predefined_type(
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        TOUCH_ACTION_AUTO
+        SpecifiedValue::TOUCH_ACTION_AUTO
     }
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         // FIXME: remove clone() when lifetimes are non-lexical
         try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(TOUCH_ACTION_AUTO),
-            "none" => Ok(TOUCH_ACTION_NONE),
-            "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),
+            "auto" => Ok(SpecifiedValue::TOUCH_ACTION_AUTO),
+            "none" => Ok(SpecifiedValue::TOUCH_ACTION_NONE),
+            "manipulation" => Ok(SpecifiedValue::TOUCH_ACTION_MANIPULATION),
             "pan-x" => {
                 if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
+                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
                 } else {
-                    Ok(TOUCH_ACTION_PAN_X)
+                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X)
                 }
             },
             "pan-y" => {
                 if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(TOUCH_ACTION_PAN_X | TOUCH_ACTION_PAN_Y)
+                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
                 } else {
-                    Ok(TOUCH_ACTION_PAN_Y)
+                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_Y)
                 }
             },
         }

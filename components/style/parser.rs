@@ -8,8 +8,6 @@ use context::QuirksMode;
 use cssparser::{Parser, SourceLocation, UnicodeRange};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
-#[cfg(feature = "gecko")]
-use style_traits::{PARSING_MODE_DEFAULT, PARSING_MODE_ALLOW_UNITLESS_LENGTH, PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES};
 use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
 
 /// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
@@ -19,7 +17,7 @@ pub fn assert_parsing_mode_match() {
     use gecko_bindings::structs;
 
     macro_rules! check_parsing_modes {
-        ( $( $a:ident => $b:ident ),*, ) => {
+        ( $( $a:ident => $b:path ),*, ) => {
             if cfg!(debug_assertions) {
                 let mut modes = ParsingMode::all();
                 $(
@@ -32,9 +30,9 @@ pub fn assert_parsing_mode_match() {
     }
 
     check_parsing_modes! {
-        ParsingMode_Default => PARSING_MODE_DEFAULT,
-        ParsingMode_AllowUnitlessLength => PARSING_MODE_ALLOW_UNITLESS_LENGTH,
-        ParsingMode_AllowAllNumericValues => PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES,
+        ParsingMode_Default => ParsingMode::DEFAULT,
+        ParsingMode_AllowUnitlessLength => ParsingMode::ALLOW_UNITLESS_LENGTH,
+        ParsingMode_AllowAllNumericValues => ParsingMode::ALLOW_ALL_NUMERIC_VALUES,
     }
 }
 
