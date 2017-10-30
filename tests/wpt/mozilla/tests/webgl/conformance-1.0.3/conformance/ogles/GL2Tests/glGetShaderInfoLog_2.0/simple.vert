@@ -30,6 +30,6 @@ varying vec3 tc;
 
 void main(void)
 {
-	tc = triangleColor;
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    tc = triangleColor;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

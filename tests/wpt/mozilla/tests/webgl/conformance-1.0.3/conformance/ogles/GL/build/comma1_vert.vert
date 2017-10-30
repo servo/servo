@@ -23,7 +23,7 @@
 */
 
 
-void main() 
+void main()
 {
     int i, j, k;
     float f;

@@ -122,8 +122,8 @@ function isKnownColor(r, g, b) {
     return true;
   for (var ii = 0; ii < knownColors.length; ii += 4) {
     if (withinEpsilon(r / 255.0, knownColors[ii + 0]) &&
-	withinEpsilon(g / 255.0, knownColors[ii + 1]) &&
-	withinEpsilon(b / 255.0, knownColors[ii + 2]))
+        withinEpsilon(g / 255.0, knownColors[ii + 1]) &&
+        withinEpsilon(b / 255.0, knownColors[ii + 2]))
       return true;
   }
   return false;
@@ -141,22 +141,22 @@ function runOneIteration() {
       gl.uniform1f(lineWidthLoc, lineWidth);
       gl.uniform1i(elemMultLoc, elemMult);
       gl.drawArrays(gl.POINTS, 0, gridRes * gridRes);
-      
+
       // Read back
       gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 
       // Verify
       for (var y = 0; y < height; ++y) {
         for (var x = 0; x < width; ++x) {
-	  if (!isKnownColor(pixels[4 * (width * y + x) + 0],
-			    pixels[4 * (width * y + x) + 1],
-			    pixels[4 * (width * y + x) + 2])) {
+          if (!isKnownColor(pixels[4 * (width * y + x) + 0],
+                            pixels[4 * (width * y + x) + 1],
+                            pixels[4 * (width * y + x) + 2])) {
             ok = false;
             if (firstFailingPixel == null) {
-	      firstFailingPixel = [x, y];
-	      firstFailingValue = [pixels[4 * (width * y + x) + 0],
-				   pixels[4 * (width * y + x) + 1],
-				   pixels[4 * (width * y + x) + 2]];
+              firstFailingPixel = [x, y];
+              firstFailingValue = [pixels[4 * (width * y + x) + 0],
+                                   pixels[4 * (width * y + x) + 1],
+                                   pixels[4 * (width * y + x) + 2]];
             }
           }
         }
@@ -166,14 +166,14 @@ function runOneIteration() {
     lineWidth -= 2540;
     if (ok) {
       testPassed("Good rendering results for lineWidths " +
-		 startingLineWidth + "..." + endingLineWidth +
-		 " at elemMult=" + elemMult);
+                 startingLineWidth + "..." + endingLineWidth +
+                 " at elemMult=" + elemMult);
     } else {
       testFailed("for lineWidth=" + lineWidth + ", elemMult=" + elemMult +
                  ": first failing pixel (" + firstFailingPixel[0] + ", " + firstFailingPixel[1] + ") was (" +
-		 firstFailingValue[0] + ", " +
-		 firstFailingValue[1] + ", " +
-		 firstFailingValue[2] + "), should be (0, 0, 0) or one of known colors");
+                 firstFailingValue[0] + ", " +
+                 firstFailingValue[1] + ", " +
+                 firstFailingValue[2] + "), should be (0, 0, 0) or one of known colors");
     }
     elemMult += 73;
     setTimeout(runOneIteration, 0);

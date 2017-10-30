@@ -30,6 +30,6 @@ uniform vec2 color;
 varying vec2 col;
 void main (void)
 {
-	col = color;
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    col = color;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

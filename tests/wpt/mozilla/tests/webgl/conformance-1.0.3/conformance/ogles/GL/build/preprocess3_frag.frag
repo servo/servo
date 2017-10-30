@@ -54,7 +54,7 @@ void main(void)
  sum = 8+58+sum;
  sum = sum +test;
  sum = (t1+t2);
- sum = test4(test3(),test2(test3())); 
+ sum = test4(test3(),test2(test3()));
  sum = test4(3,8,5);
  sum = test4();
 }

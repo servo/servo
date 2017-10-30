@@ -27,10 +27,10 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-/* #version can only be followed by number 100. The only statements before 
+/* #version can only be followed by number 100. The only statements before
    #version can be comment or white spaces */
 
 void main()
 {
-   gl_FragColor = vec4(1);    
+   gl_FragColor = vec4(1);
 }

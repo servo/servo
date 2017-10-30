@@ -42,7 +42,7 @@
 precision mediump float;
 uniform struct S { $(type) field;} s;
 void main() {
-    // All uniforms are required to be zero initialized. Add the color green 
+    // All uniforms are required to be zero initialized. Add the color green
     // to make the rendering test pass.
     gl_FragColor = $(asVec4) + vec4(0.0, 1.0, 0.0, 1.0);
 }

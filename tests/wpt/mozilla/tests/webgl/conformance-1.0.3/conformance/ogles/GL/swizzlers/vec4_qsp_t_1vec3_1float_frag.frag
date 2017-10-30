@@ -29,9 +29,9 @@ precision mediump float;
 varying vec4 color;
 void main (void)
 {
-	vec4 al = color;
-	vec3 m = al.qsp;
-	float t = al.t;
-	vec4 a = vec4(m.t, t, m.p, m.s);
-	gl_FragColor = a;	
+    vec4 al = color;
+    vec3 m = al.qsp;
+    float t = al.t;
+    vec4 a = vec4(m.t, t, m.p, m.s);
+    gl_FragColor = a;
 }

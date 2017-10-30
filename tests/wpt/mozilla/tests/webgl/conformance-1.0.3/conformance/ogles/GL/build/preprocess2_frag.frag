@@ -38,14 +38,14 @@ precision mediump float;
 #
 #
 #line 8
-#line "" 
+#line ""
 #line 3 3
 
 #linekfj
-#line c c 
+#line c c
 #line t1 t2
 #line 77 89
-#line 65.4 
+#line 65.4
 #line message to the user
 #line
 #line345
@@ -73,5 +73,5 @@ void main(void)
 
 }
 
- 
+
 

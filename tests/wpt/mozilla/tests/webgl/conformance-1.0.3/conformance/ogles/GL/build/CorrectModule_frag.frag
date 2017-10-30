@@ -55,7 +55,7 @@ void main()
     vec4 v2 = test_function1(f2);
     vec4 v3 = test_function2(f2);
     vec4 v4 = test_function3(f2);
-    
+
     if (f1 > f2) {
         gl_FragColor = v1 + v2 + v3 + v4;
     } else
@@ -65,8 +65,8 @@ void main()
 float f4 = 5.5;
 vec4 test_function3(float ff)
 {
-    if (ff > f4) 
-	return vec4(ff);
+    if (ff > f4)
+        return vec4(ff);
     else
         return vec4(f4);
 }

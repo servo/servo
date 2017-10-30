@@ -51,6 +51,7 @@ gl.useProgram(program);
 var vertexObject = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
 gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
 wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup should succeed");
 
 debug("");

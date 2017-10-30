@@ -120,15 +120,15 @@ uniform mat4 gtf_ModelViewProjectionMatrix;
 void test_function(const in int in_int, inout int out_int);
 int test_function1(in int in_int1, inout int in_out_int);
 
-uniform float array_float[2]; 
+uniform float array_float[2];
 
 struct nested
 {
    int a;
-   float f; 
+   float f;
 };
 
-struct light1 
+struct light1
 {
    float intensity;
    vec3 position;
@@ -161,10 +161,10 @@ struct light5 {
 
 uniform light3 uniformLight3;
 
-struct light6 {  
+struct light6 {
     float i;
 };
-uniform light6 uniformLight6; 
+uniform light6 uniformLight6;
 
 struct slight10{
      float f;
@@ -180,37 +180,37 @@ struct light7 {
 } ;
 
 
-light3 struct_var = light3(5.0); 
+light3 struct_var = light3(5.0);
 
 // Attribtue variables can only be Global
 attribute float flt_attrib;
 attribute vec2 vec2_attrib;
 attribute vec3 vec3_attrib;
-attribute vec4 vec4_attrib; 
-attribute mat2 mat2_attrib; 
-attribute mat3 mat3_attrib; 
-attribute mat4 mat4_attrib; 
+attribute vec4 vec4_attrib;
+attribute mat2 mat2_attrib;
+attribute mat3 mat3_attrib;
+attribute mat4 mat4_attrib;
 
-uniform float flt_uniform; 
-uniform vec3 uniform_vec3; 
-uniform mat3 uniform_mat3; 
+uniform float flt_uniform;
+uniform vec3 uniform_vec3;
+uniform mat3 uniform_mat3;
 
-uniform sampler2D samp[3];  
-uniform sampler2D samp1;  
+uniform sampler2D samp[3];
+uniform sampler2D samp1;
 
-const struct light12 { 
+const struct light12 {
     int a;
 } uniform_struct = light12(2);
 
-varying vec3 varying_vec3; 
-varying vec2 varying_vec2;  
-varying vec4 varying_vec4;  
-varying mat4 varying_mat4;  
-varying mat2 varying_mat2;  
-varying mat3 varying_mat3;  
-varying float varying_flt;  
+varying vec3 varying_vec3;
+varying vec2 varying_vec2;
+varying vec4 varying_vec4;
+varying mat4 varying_mat4;
+varying mat2 varying_mat2;
+varying mat3 varying_mat3;
+varying float varying_flt;
 
-float frequencies[2]; 
+float frequencies[2];
 
 void test_function2(int func_int)
 {
@@ -222,43 +222,43 @@ void test_function5(light1);
 light6 test_function6(int a);
 
 const float FloatConst1 = 3.0 * 8.0, floatConst2 = 4.0;
-const bool BoolConst1 = true && true || false; 
-const bool BoolConst2 = false || !false && false; 
+const bool BoolConst1 = true && true || false;
+const bool BoolConst2 = false || !false && false;
 
 void main(void)
 {
 
-    int test_int1 = 2; 
-    const int const_test_int1 = 2; 
+    int test_int1 = 2;
+    const int const_test_int1 = 2;
 
     struct structMain {
         float i;
     } testStruct;
 
-    struct {    
+    struct {
         structMain a;
     } aStruct;
 
-    testStruct.i = 5.0 ; 
-    struct_var.i = 5.0;  
+    testStruct.i = 5.0 ;
+    struct_var.i = 5.0;
 
     structMain newStruct, newStruct1;
-    testStruct = newStruct; 
-    newStruct = newStruct1;  
+    testStruct = newStruct;
+    newStruct = newStruct1;
 
-    lightVar.light2.f = 1.1; 
+    lightVar.light2.f = 1.1;
 
-    light1 ll1; 
-    ll1.light2.a = 1;  
+    light1 ll1;
+    ll1.light2.a = 1;
 
      const struct const_struct {
         float i;
-    } const_struct_inst = const_struct(1.0); 
+    } const_struct_inst = const_struct(1.0);
 
-    //ll1 = ll2; 
-    Assign (ll1, ll2); 
-    ll1.light2 = ll2.light2; 
-    ll1.light2 = ll1.light2; 
+    //ll1 = ll2;
+    Assign (ll1, ll2);
+    ll1.light2 = ll2.light2;
+    ll1.light2 = ll1.light2;
     ll1.light2.f = ll2.light2.f;
     ll1.light2.f = ll1.light2.f;
 
@@ -271,236 +271,236 @@ void main(void)
 
     light7 ll7[4];
     structMain newStruct2[2];
-    newStruct2[0].i = 1.1; 
-    
+    newStruct2[0].i = 1.1;
+
     ll7[0].light8.light9.light10.f = 1.1;
 
 
-    bool test_bool4 = false ; 
+    bool test_bool4 = false ;
 
-    bool test_bool5 = 1.2 > 3.0 ; 
+    bool test_bool5 = 1.2 > 3.0 ;
 
-    int test_int2 =  047; 
+    int test_int2 =  047;
     int test_int4 =  0xa8;  // testing for hexadecimal numbers
 
-    float test_float1 = 1.5; 
-    float test_float2 = .01;  
-    float test_float3 = 10.; 
-    float test_float4 = 10.01; 
-    float test_float5 = 23e+2; 
-    float test_float6 = 23E-3; 
-    float test_float8 = 23E2; 
-    bool test_bool6 = BoolConst1 && ! (test_int1 != 0) && ! BoolConst1  && ! (FloatConst1 != 0.0) && (FloatConst1 != 0.0) && (test_float1 != 0.0); 
+    float test_float1 = 1.5;
+    float test_float2 = .01;
+    float test_float3 = 10.;
+    float test_float4 = 10.01;
+    float test_float5 = 23e+2;
+    float test_float6 = 23E-3;
+    float test_float8 = 23E2;
+    bool test_bool6 = BoolConst1 && ! (test_int1 != 0) && ! BoolConst1  && ! (FloatConst1 != 0.0) && (FloatConst1 != 0.0) && (test_float1 != 0.0);
 
-    vec4 color = vec4(0.0, 1.0, 0.0, 1.0); 
-    vec4 color2 = vec4(0.0); 
+    vec4 color = vec4(0.0, 1.0, 0.0, 1.0);
+    vec4 color2 = vec4(0.0);
 
-    vec3 color4 = vec3(test_float8); 
+    vec3 color4 = vec3(test_float8);
 
-    ivec4 test_int_vect1 = ivec4(1.0,1.0,1.0,1.0);  
-    ivec3 test_int_vec3 = ivec3(1, 1, 1) ; 
+    ivec4 test_int_vect1 = ivec4(1.0,1.0,1.0,1.0);
+    ivec3 test_int_vec3 = ivec3(1, 1, 1) ;
 
-    bvec4 test_bool_vect1 = bvec4(1., 1., 1. , 1. ); 
+    bvec4 test_bool_vect1 = bvec4(1., 1., 1. , 1. );
 
-    vec2 test_vec2 = vec2(1., 1.); 
-    vec2 test_vec3 = vec2(1., 1);  
-    vec4 test_vec4 = vec4(test_int_vect1); 
+    vec2 test_vec2 = vec2(1., 1.);
+    vec2 test_vec3 = vec2(1., 1);
+    vec4 test_vec4 = vec4(test_int_vect1);
 
     vec2 test_vec5 = vec2(color4);
-    vec3 test_vec7 = vec3(color);   
+    vec3 test_vec7 = vec3(color);
     vec3 test_vec8 = vec3(test_vec2, test_float4);
     vec3 test_vec9 = vec3(test_float4, test_vec2);
 
-    vec4 test_vec10 = vec4(test_vec9, 0.01); 
-    vec4 test_vec11 = vec4(0.01, test_vec9); 
+    vec4 test_vec10 = vec4(test_vec9, 0.01);
+    vec4 test_vec11 = vec4(0.01, test_vec9);
 
-    vec4 test_vec12 = vec4(test_vec2, test_vec2); 
+    vec4 test_vec12 = vec4(test_vec2, test_vec2);
 
-    mat2 test_mat2 = mat2(test_float3); 
-    mat3 test_mat3 = mat3(test_float3); 
-    mat4 test_mat4 = mat4(test_float3); 
+    mat2 test_mat2 = mat2(test_float3);
+    mat3 test_mat3 = mat3(test_float3);
+    mat4 test_mat4 = mat4(test_float3);
 
-    mat2 test_mat7 = mat2(test_vec2, test_vec2); 
-    mat2 test_mat8 = mat2(01.01, 2.01, 3.01, 4.01); 
+    mat2 test_mat7 = mat2(test_vec2, test_vec2);
+    mat2 test_mat8 = mat2(01.01, 2.01, 3.01, 4.01);
 
-    mat3 test_mat9 = mat3(test_vec7, test_vec7, test_vec7); 
-    mat4 test_mat10 = mat4(test_vec10, test_vec10, test_vec10, test_vec10); 
-    test_mat10[1] = test_vec10; 
-    
+    mat3 test_mat9 = mat3(test_vec7, test_vec7, test_vec7);
+    mat4 test_mat10 = mat4(test_vec10, test_vec10, test_vec10, test_vec10);
+    test_mat10[1] = test_vec10;
 
-    mat2 test_mat12 = mat2(test_vec2, 0.01, 0.01); 
-    mat2 test_mat13 = mat2(0.01, 5., test_vec2); 
-    mat2 test_mat15 = mat2(0.1, 5., test_vec2 ); 
 
-    //mat2 test_mat16 = mat2(test_mat9); 
-    //mat2 test_mat17 = mat2(test_mat10); 
+    mat2 test_mat12 = mat2(test_vec2, 0.01, 0.01);
+    mat2 test_mat13 = mat2(0.01, 5., test_vec2);
+    mat2 test_mat15 = mat2(0.1, 5., test_vec2 );
 
-    float freq1[2]; 
-    float freq2[25]; 
+    //mat2 test_mat16 = mat2(test_mat9);
+    //mat2 test_mat17 = mat2(test_mat10);
+
+    float freq1[2];
+    float freq2[25];
 
     for (int i=0; i<100; i++)
     {
       if (test_float1 < 1.0)
       {
-        
+
       }
       else
       {
         break;
       }
     }
-    
-    freq2[1] = 1.9 ; 
+
+    freq2[1] = 1.9 ;
     const int array_index = 2;
     freq2[const_test_int1] = 1.9 ;
     freq2[array_index] = 1.8;
-    
-    const int const_int = 5; 
-   
-    test_float1 = varying_flt; 
+
+    const int const_int = 5;
+
+    test_float1 = varying_flt;
 
     int out_int;
     int intArray[6];
-    test_function(test_int1, test_int1); 
-    test_function(test_int1, intArray[2]); 
+    test_function(test_int1, test_int1);
+    test_function(test_int1, intArray[2]);
 
-    vec3 vv = vec3(test_function1(test_int1, out_int));  
+    vec3 vv = vec3(test_function1(test_int1, out_int));
     bool bool_var = true;
-    int test_int6 = int(bool_var); 
-    test_float1 = float(bool_var); 
-    test_float1 = float(test_int6); 
-    test_int6 = int(test_float1); 
-    bool_var = bool(test_int6); 
-    bool_var = bool(test_float1); 
-    test_float1 = float(test_vec9); 
-    
-    test_vec2.x = 1.2; 
-    test_vec2.y = 1.4; 
-    test_vec2.xy; 
+    int test_int6 = int(bool_var);
+    test_float1 = float(bool_var);
+    test_float1 = float(test_int6);
+    test_int6 = int(test_float1);
+    bool_var = bool(test_int6);
+    bool_var = bool(test_float1);
+    test_float1 = float(test_vec9);
+
+    test_vec2.x = 1.2;
+    test_vec2.y = 1.4;
+    test_vec2.xy;
 
 
-    color.zy = test_vec2; 
+    color.zy = test_vec2;
 
-   test_vec2[1] = 1.1;  
-    
-     test_mat2[0][0] = 1.1; 
+   test_vec2[1] = 1.1;
 
-    test_float1 += 1.0; 
+     test_mat2[0][0] = 1.1;
+
+    test_float1 += 1.0;
     test_float1 -= 1.0;
     test_float1 *= 1.0;
     test_float1 /= 1.0;
 
-    test_mat12 *= test_mat13 ; 
+    test_mat12 *= test_mat13 ;
     test_mat12  *= test_float1;
-    test_vec2 *= test_float1; 
-    test_vec2 *= test_mat12; 
-    test_float1++; 
-    test_float1--; 
-    --test_float1; 
-    ++test_float1; 
-    test_float1; 
-    test_int1++; 
-    test_int1--; 
+    test_vec2 *= test_float1;
+    test_vec2 *= test_mat12;
+    test_float1++;
+    test_float1--;
+    --test_float1;
+    ++test_float1;
+    test_float1;
+    test_int1++;
+    test_int1--;
 
-    test_vec2 = test_vec2 + test_float1;   
-    test_vec2 = test_float1 + test_vec2;   
+    test_vec2 = test_vec2 + test_float1;
+    test_vec2 = test_float1 + test_vec2;
 
-    test_mat12 = test_mat12 * test_mat13; 
-    test_vec2 = test_vec2 * test_vec5; 
- 
-    test_vec2++; 
+    test_mat12 = test_mat12 * test_mat13;
+    test_vec2 = test_vec2 * test_vec5;
+
+    test_vec2++;
     test_mat2++;
 
-    bool test_bool2 = test_float2 > test_float3;  
+    bool test_bool2 = test_float2 > test_float3;
 
-    bool test_bool3 = test_int1 > test_int6 ; 
+    bool test_bool3 = test_int1 > test_int6 ;
 
-    test_bool3 = test_vec2 == test_vec5; 
+    test_bool3 = test_vec2 == test_vec5;
 
-    test_bool2 = test_bool3 && test_bool4; 
-    test_bool2 = test_bool3 || test_bool4; 
-    test_bool2 = test_bool3 ^^ test_bool4; 
+    test_bool2 = test_bool3 && test_bool4;
+    test_bool2 = test_bool3 || test_bool4;
+    test_bool2 = test_bool3 ^^ test_bool4;
 
-    test_bool2 = !test_bool3;  
+    test_bool2 = !test_bool3;
 
-    test_bool3 = !(test_int1 > test_int6) ; 
+    test_bool3 = !(test_int1 > test_int6) ;
 
-    test_float1 = test_int1 > test_int6 ? test_float2 : test_float3;  
-    test_vec2 = test_int1 > test_int6 ? test_vec2 : test_vec5;  
-    if(test_bool2)  
+    test_float1 = test_int1 > test_int6 ? test_float2 : test_float3;
+    test_vec2 = test_int1 > test_int6 ? test_vec2 : test_vec5;
+    if(test_bool2)
         test_float1++;
     else
-	test_float1--;
+        test_float1--;
 
-    if(test_float1 > test_float2)  
+    if(test_float1 > test_float2)
         test_float1++;
 
-    if( test_bool2 )  
+    if( test_bool2 )
     {
-        int if_int; 
+        int if_int;
         test_float1++;
     }
 
-    if(test_bool2) 
+    if(test_bool2)
        if(test_bool3)
            if(test_bool3)
-	      test_float1++;
+               test_float1++;
 
-   for(int for_int=0; for_int < 5; for_int++) 
+   for(int for_int=0; for_int < 5; for_int++)
    {
        // do nothing as such
    }
 
 
-   for(int x1=0; x1 < 10; x1++) 
+   for(int x1=0; x1 < 10; x1++)
    {
      if (!test_bool2)
        break;
-       
+
      int for_int;
    }
 
-   for(int x2=-10; x2 < 100; x2++) 
+   for(int x2=-10; x2 < 100; x2++)
    {
      test_bool2 = (test_float1 > test_float2);
      if (!test_bool2)
        break;
    }
 
-   for(int for_int1 = 0; for_int1 < 100; for_int1++) 
+   for(int for_int1 = 0; for_int1 < 100; for_int1++)
    {
      if (!test_bool2)
        break;
-       
+
      int for_int;
    }
 
-   for(int for_int1 = 0; for_int1 < 100; for_int1++) 
+   for(int for_int1 = 0; for_int1 < 100; for_int1++)
    {
      if (!test_bool2)
        continue;
-       
+
      int for_int;
    }
 
 
-   for(int i=0; i<100; i++) 
+   for(int i=0; i<100; i++)
    {
      if (!(test_float1 > test_float2))
      {
        break;
      }
-     
+
      break;
-     continue;  
+     continue;
    }
 
-   for(int i=0; i<100; i++)  
+   for(int i=0; i<100; i++)
    {
      if (!test_bool2)
        break;
-       
-     break;  
+
+     break;
    }
 
    for (int i=0; i<100; i++)
@@ -519,10 +519,10 @@ void main(void)
     // VERTEX SHADER BUILT-IN ATTRIBUTES
 
     vec4 builtInV4 = gtf_Color + gtf_SecondaryColor + gtf_Vertex + gtf_MultiTexCoord0 + gtf_MultiTexCoord1 + gtf_MultiTexCoord2 +  gtf_MultiTexCoord3;
-    
+
 
     int builtInI = gtf_MaxLights + gtf_MaxClipPlanes + gtf_MaxTextureUnits + gtf_MaxTextureCoords + gtf_MaxVertexAttribs + gtf_MaxVertexUniformComponents + gtf_MaxVaryingFloats + gtf_MaxVertexTextureImageUnits + gtf_MaxCombinedTextureImageUnits + gtf_MaxTextureImageUnits + gtf_MaxFragmentUniformComponents + gtf_MaxDrawBuffers ;
-    
+
 
     mat4 builtInM4 = gtf_ModelViewMatrix + gtf_ModelViewProjectionMatrix + gtf_ProjectionMatrix;
 
@@ -533,62 +533,62 @@ void main(void)
 
     gtf_DepthRange.near ;
 
-    test_float1 = gtf_DepthRange.near; 
-    test_float1 = gtf_DepthRange.far; 
+    test_float1 = gtf_DepthRange.near;
+    test_float1 = gtf_DepthRange.far;
     test_float1 = gtf_DepthRange.diff;
 
-    gtf_Point.size; 
+    gtf_Point.size;
     gtf_Point.sizeMin;
-    gtf_Point.sizeMax; 
+    gtf_Point.sizeMax;
     gtf_Point.fadeThresholdSize ;
     gtf_Point.distanceConstantAttenuation;
     gtf_Point.distanceLinearAttenuation ;
     gtf_Point.distanceQuadraticAttenuation;
 
-    gtf_MaterialParameters test; 
+    gtf_MaterialParameters test;
     gtf_FrontMaterial.emission;
 
-    color = gtf_FrontMaterial.emission; 
-    color = gtf_FrontMaterial.ambient; 
+    color = gtf_FrontMaterial.emission;
+    color = gtf_FrontMaterial.ambient;
     color = gtf_FrontMaterial.diffuse;
     color = gtf_FrontMaterial.specular;
-    test_float1 = gtf_FrontMaterial.shininess; 
+    test_float1 = gtf_FrontMaterial.shininess;
 
     gtf_LightSourceParameters lightSource;
 
     float builtInFloat1 = gtf_LightSource[0].spotExponent;
-    color = gtf_LightSource[0].ambient; 
-    color = lightSource.ambient; 
-    color = lightSource.diffuse; 
-    color = lightSource.specular; 
-    color = lightSource.position; 
-    color = lightSource.halfVector; 
-    color4 = lightSource.spotDirection; 
-    test_float1 = lightSource.spotExponent; 
-    test_float1 = lightSource.spotCutoff; 
-    test_float1 = lightSource.spotCosCutoff; 
-    test_float1 = lightSource.constantAttenuation; 
-    test_float1 = lightSource.linearAttenuation; 
-    test_float1 = lightSource.quadraticAttenuation; 
+    color = gtf_LightSource[0].ambient;
+    color = lightSource.ambient;
+    color = lightSource.diffuse;
+    color = lightSource.specular;
+    color = lightSource.position;
+    color = lightSource.halfVector;
+    color4 = lightSource.spotDirection;
+    test_float1 = lightSource.spotExponent;
+    test_float1 = lightSource.spotCutoff;
+    test_float1 = lightSource.spotCosCutoff;
+    test_float1 = lightSource.constantAttenuation;
+    test_float1 = lightSource.linearAttenuation;
+    test_float1 = lightSource.quadraticAttenuation;
 
     color = gtf_LightModel.ambient;
 
-    gtf_LightModelParameters lightModel; 
-    color = gtf_LightModel.ambient; 
-    color = lightModel.ambient; 
+    gtf_LightModelParameters lightModel;
+    color = gtf_LightModel.ambient;
+    color = lightModel.ambient;
 
     color = gtf_FrontLightModelProduct.sceneColor ;
 
-    gtf_LightModelProducts lightModelProd; 
+    gtf_LightModelProducts lightModelProd;
 
-    color = lightModelProd.sceneColor; 
-    color = gtf_FrontLightModelProduct.sceneColor; 
+    color = lightModelProd.sceneColor;
+    color = gtf_FrontLightModelProduct.sceneColor;
 
-    color = gtf_FrontLightProduct[0].ambient; 
-    color = gtf_FrontLightProduct[0].ambient; 
+    color = gtf_FrontLightProduct[0].ambient;
+    color = gtf_FrontLightProduct[0].ambient;
     gtf_LightProducts lightProd;
 
-    color =  lightProd.ambient; 
+    color =  lightProd.ambient;
     color =  lightProd.diffuse;
     color =  lightProd.specular;
 
@@ -599,21 +599,21 @@ void main(void)
     test_float1 = gtf_Fog.scale ;
     color = gtf_Fog.color ;
 
-    gtf_FrontColor =  vec4(1.0, 1.0, 1.0, 1.0); 
-    gtf_BackColor =  vec4(1.0, 1.0, 1.0, 1.0);  
-    gtf_FrontSecondaryColor =  vec4(1.0, 1.0, 1.0, 1.0); 
-    gtf_BackSecondaryColor =  vec4(1.0, 1.0, 1.0, 1.0); 
+    gtf_FrontColor =  vec4(1.0, 1.0, 1.0, 1.0);
+    gtf_BackColor =  vec4(1.0, 1.0, 1.0, 1.0);
+    gtf_FrontSecondaryColor =  vec4(1.0, 1.0, 1.0, 1.0);
+    gtf_BackSecondaryColor =  vec4(1.0, 1.0, 1.0, 1.0);
 
 
     // VARYING VARIABLES AVAILABLE IN FRAGMENT AND VERTEX SHADERS BOTH
-    gtf_TexCoord[0] =  vec4(1.0, 1.0, 1.0, 1.0);  
-    gtf_FogFragCoord =  vec4(1.0, 1.0, 1.0, 1.0);  
+    gtf_TexCoord[0] =  vec4(1.0, 1.0, 1.0, 1.0);
+    gtf_FogFragCoord =  vec4(1.0, 1.0, 1.0, 1.0);
 
 }
 
 void test_function(const in int in_int, inout int out_int)
 {
-    out_int = 5; 
+    out_int = 5;
     int i = 5;
     return ;
 }
@@ -621,48 +621,48 @@ void test_function(const in int in_int, inout int out_int)
 int test_function1(in int in_int1, inout int in_out_int)
 {
    float ff;
-   in_int1 = 5;  
+   in_int1 = 5;
    return in_int1;
 }
 
 void test_function3(light3 ll)
 {
-    ll.i = 5.0;  
+    ll.i = 5.0;
     varying_flt = 1.2;
 }
 
 void test_function4(light5 ll20)
 {
-    ll20.i = 10.0; 
+    ll20.i = 10.0;
 }
 
 void test_function5(light1 struct_light1)
 {
-    struct_light1.light2.a = 1; 
+    struct_light1.light2.a = 1;
     light5 ll5;
     struct_light1.light2.f = ll5.i;
     struct_light1.light2.f++;
     struct_light1.light2.a++;
 }
 
-light6 test_function6(int a)  
+light6 test_function6(int a)
 {
     int x;
     light6 funcStruct;
     light7 funcStruct1;
     -x;
-    x = x - x ; 
+    x = x - x ;
     mat2 m;
     m++;
-    -m; 
-    (m)++; 
-    return funcStruct; 
+    -m;
+    (m)++;
+    return funcStruct;
 }
 
-float test_function7(light1 ll1, int light1 )  
+float test_function7(light1 ll1, int light1 )
 {
     float f;
-    
+
     struct ss1 {
         int a;
     };

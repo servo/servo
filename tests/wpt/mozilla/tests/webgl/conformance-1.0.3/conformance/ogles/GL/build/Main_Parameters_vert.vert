@@ -25,5 +25,5 @@
 
 void main(vec4 position : POSITION)
 {
-	gl_Position = position;
+    gl_Position = position;
 }

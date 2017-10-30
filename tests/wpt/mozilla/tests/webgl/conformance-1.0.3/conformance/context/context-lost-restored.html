@@ -159,7 +159,7 @@ function testLosingAndRestoringContext()
       // restore the context after this event has exited.
       setTimeout(function() {
         shouldGenerateGLError(gl, gl.NO_ERROR, "WEBGL_lose_context.restoreContext()");
-        // The context should still be lost. It will not get restored until the 
+        // The context should still be lost. It will not get restored until the
         // webglrestorecontext event is fired.
         shouldBeTrue("gl.isContextLost()");
         shouldBe("gl.getError()", "gl.NO_ERROR");

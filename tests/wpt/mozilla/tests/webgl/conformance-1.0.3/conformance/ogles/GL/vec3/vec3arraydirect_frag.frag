@@ -27,8 +27,8 @@
 precision mediump float;
 #endif
 //
-// vec3arraydirect_frag.frag: Fragment shader solid color 
-// 
+// vec3arraydirect_frag.frag: Fragment shader solid color
+//
 //
 //
 

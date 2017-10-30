@@ -35,57 +35,57 @@ void set_all(out bvec4 par, const in bool value);
 
 void main (void)
 {
-	bvec4 par = bvec4(true, true, true, true);
-	bvec4 ret = bvec4(false, false, false, false);
+    bvec4 par = bvec4(true, true, true, true);
+    bvec4 ret = bvec4(false, false, false, false);
 
-	float gray = 0.0;
+    float gray = 0.0;
 
-	ret = function(par);
+    ret = function(par);
 
-	// The parameter should remain unchanged by the function and the function should return true.
-	if(is_all(par, true) && is_all(ret, true))
-	{
-		gray = 1.0;
-	}
+    // The parameter should remain unchanged by the function and the function should return true.
+    if(is_all(par, true) && is_all(ret, true))
+    {
+        gray = 1.0;
+    }
 
-	gl_FragColor = vec4(gray, gray, gray, 1.0);
+    gl_FragColor = vec4(gray, gray, gray, 1.0);
 }
 
 // Function definition.
 bvec4 function(in bvec4 par)
 {
-	// Return the value of the parameter.
-	if(is_all(par, true))
-	{
-		// Test parameter qualifier (default is "in").
-		set_all(par, false);
+    // Return the value of the parameter.
+    if(is_all(par, true))
+    {
+        // Test parameter qualifier (default is "in").
+        set_all(par, false);
 
-		return bvec4(true, true, true, true);
-	}
-	else
-		return bvec4(false, false, false, false);
+        return bvec4(true, true, true, true);
+    }
+    else
+        return bvec4(false, false, false, false);
 }
 
 bool is_all(const in bvec4 par, const in bool value)
 {
-	bool ret = true;
+    bool ret = true;
 
-	if(par[0] != value)
-		ret = false;
-	if(par[1] != value)
-		ret = false;
-	if(par[2] != value)
-		ret = false;
-	if(par[3] != value)
-		ret = false;
+    if(par[0] != value)
+        ret = false;
+    if(par[1] != value)
+        ret = false;
+    if(par[2] != value)
+        ret = false;
+    if(par[3] != value)
+        ret = false;
 
-	return ret;
+    return ret;
 }
 
 void set_all(out bvec4 par, const in bool value)
 {
-	par[0] = value;
-	par[1] = value;
-	par[2] = value;
-	par[3] = value;
+    par[0] = value;
+    par[1] = value;
+    par[2] = value;
+    par[3] = value;
 }

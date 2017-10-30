@@ -44,6 +44,6 @@ void main(void){
     test = t3-t4;
     tes  = t5 * t6;
     test2 = t7;
-    
+
     gl_FragColor = vec4(test, tes, test1, test2);
 }

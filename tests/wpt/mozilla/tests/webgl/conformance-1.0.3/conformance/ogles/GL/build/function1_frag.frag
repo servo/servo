@@ -26,7 +26,7 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-void function(int i) 
+void function(int i)
 {
     return i;  // void function cannot return a value
 }

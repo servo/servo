@@ -34,52 +34,52 @@ void set_all(out ivec4 par, const in int value);
 
 void main (void)
 {
-	ivec4 par = ivec4(1, 1, 1, 1);
-	ivec4 ret = ivec4(0, 0, 0, 0);
+    ivec4 par = ivec4(1, 1, 1, 1);
+    ivec4 ret = ivec4(0, 0, 0, 0);
 
-	float gray = 0.0;
+    float gray = 0.0;
 
-	ret = function(par);
+    ret = function(par);
 
-	// The parameter should be changed by the function and the function should return 1.
-	if(is_all(par, 0) && is_all(ret, 1))
-	{
-		gray = 1.0;
-	}
+    // The parameter should be changed by the function and the function should return 1.
+    if(is_all(par, 0) && is_all(ret, 1))
+    {
+        gray = 1.0;
+    }
 
-	color = vec4(gray, gray, gray, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(gray, gray, gray, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }
 
 // Function definition.
 ivec4 function(out ivec4 par)
 {
-	// Test parameter qualifier (default is "in").
-	set_all(par, 0);
+    // Test parameter qualifier (default is "in").
+    set_all(par, 0);
 
-	return ivec4(1, 1, 1, 1);
+    return ivec4(1, 1, 1, 1);
 }
 
 bool is_all(const in ivec4 par, const in int value)
 {
-	bool ret = true;
+    bool ret = true;
 
-	if(par[0] != value)
-		ret = false;
-	if(par[1] != value)
-		ret = false;
-	if(par[2] != value)
-		ret = false;
-	if(par[3] != value)
-		ret = false;
+    if(par[0] != value)
+        ret = false;
+    if(par[1] != value)
+        ret = false;
+    if(par[2] != value)
+        ret = false;
+    if(par[3] != value)
+        ret = false;
 
-	return ret;
+    return ret;
 }
 
 void set_all(out ivec4 par, const in int value)
 {
-	par[0] = value;
-	par[1] = value;
-	par[2] = value;
-	par[3] = value;
+    par[0] = value;
+    par[1] = value;
+    par[2] = value;
+    par[3] = value;
 }

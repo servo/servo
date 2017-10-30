@@ -641,21 +641,27 @@ function testConstructionWithNullBuffer(type, name) {
     var array;
     try {
         array = new type(null);
-        testFailed("Construction of " + name + " with null buffer should throw exception");
+        assertEq("Length of " + name + " constructed with null", 0, array.length);
+        testPassed("Construction of " + name + " with null produced a " + name + " of length 0");
     } catch (e) {
-        testPassed("Construction of " + name + " with null buffer threw exception");
+        // This used to be correct, but TC39 has changed the behavior of these constructors.
+        testPassed("Construction of " + name + " with null threw exception");
+    }
+    try {
+        array = new type(null, 0);
+        assertEq("Length of " + name + " constructed with null", 0, array.length);
+        testPassed("Construction of " + name + " with null produced a " + name + " of length 0");
+    } catch (e) {
+        // This used to be correct, but TC39 has changed the behavior of these constructors.
+        testPassed("Construction of " + name + " with (null, 0) threw exception");
     }
     try {
         array = new type(null, 0, 0);
-        testFailed("Construction of " + name + " with (null buffer, 0) should throw exception");
+        assertEq("Length of " + name + " constructed with null", 0, array.length);
+        testPassed("Construction of " + name + " with null produced a " + name + " of length 0");
     } catch (e) {
-        testPassed("Construction of " + name + " with (null buffer, 0) threw exception");
-    }
-    try {
-        array = new type(null, 0, 0);
-        testFailed("Construction of " + name + " with (null buffer, 0, 0) should throw exception");
-    } catch (e) {
-        testPassed("Construction of " + name + " with (null buffer, 0, 0) threw exception");
+        // This used to be correct, but TC39 has changed the behavior of these constructors.
+        testPassed("Construction of " + name + " with (null, 0, 0) threw exception");
     }
 }
 

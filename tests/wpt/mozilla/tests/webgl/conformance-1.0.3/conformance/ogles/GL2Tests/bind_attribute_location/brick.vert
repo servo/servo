@@ -46,8 +46,8 @@ void main(void) {
     vec3 reflectVec = reflect(lightVec, tnorm);
     vec3 viewVec    = normalize(vec3(pos));
 
-	//float spec = clamp(dot(reflectVec, viewVec), 0.0, 1.0);
-	float spec = clamp(dot(reflectVec, viewVec), myAttribute1, myAttribute2[1]);
+    //float spec = clamp(dot(reflectVec, viewVec), 0.0, 1.0);
+    float spec = clamp(dot(reflectVec, viewVec), myAttribute1, myAttribute2[1]);
     spec = spec * spec;
     spec = spec * spec;
     spec = spec * spec;
@@ -55,6 +55,6 @@ void main(void) {
 
     lightIntensity = diffuseContribution * dot(lightVec, tnorm) +
                      specularContribution * spec;
-    
+
     gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

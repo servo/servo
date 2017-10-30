@@ -48,53 +48,53 @@ OpenGLESTestRunner.run({
   "tests": [
     {
       "referenceProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "fragmentShader": "gl_FragCoord_xy_frag_ref.frag"
-      }, 
-      "model": null, 
+      },
+      "model": null,
       "testProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "fragmentShader": "gl_FragCoord_xy_frag.frag"
-      }, 
-      "name": "gl_FragCoord_xy_frag.test.html", 
+      },
+      "name": "gl_FragCoord_xy_frag.test.html",
       "pattern": "compare"
-    }, 
+    },
     {
       "referenceProgram": {
-        "vertexShader": "gl_FragCoord_z_frag_ref.vert", 
+        "vertexShader": "gl_FragCoord_z_frag_ref.vert",
         "fragmentShader": "gl_FragCoord_z_frag_ref.frag"
-      }, 
-      "model": null, 
+      },
+      "model": null,
       "testProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "fragmentShader": "gl_FragCoord_z_frag.frag"
-      }, 
-      "name": "gl_FragCoord_z_frag.test.html", 
+      },
+      "name": "gl_FragCoord_z_frag.test.html",
       "pattern": "compare"
-    }, 
+    },
     {
       "referenceProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "uniforms": {
           "result": {
-            "count": 1, 
-            "type": "uniform4fv", 
+            "count": 1,
+            "type": "uniform4fv",
             "value": [
-              0.5, 
-              0.5, 
-              0.5, 
+              0.5,
+              0.5,
+              0.5,
               1.0
             ]
           }
-        }, 
+        },
         "fragmentShader": "../default/expected.frag"
-      }, 
-      "model": null, 
+      },
+      "model": null,
       "testProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "fragmentShader": "gl_FragCoord_w_frag.frag"
-      }, 
-      "name": "gl_FragCoord_w_frag.test.html", 
+      },
+      "name": "gl_FragCoord_w_frag.test.html",
       "pattern": "compare"
     }
   ]

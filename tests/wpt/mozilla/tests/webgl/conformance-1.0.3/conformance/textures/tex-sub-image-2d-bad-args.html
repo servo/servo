@@ -50,7 +50,7 @@ var gl = wtu.create3DContext("testbed");
 var tex = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, tex);
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
-wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup should succeed"); 
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup should succeed");
 
 gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 1, gl.RGBA, gl.UNSIGNED_BYTE, c);
 wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "y + height > texture height");

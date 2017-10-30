@@ -30,22 +30,22 @@ varying vec4 color;
 
 void main (void)
 {
-	float x = 31.0 * gtf_Color.r + 1.0;
-	float y = 0.0;
-	float z;   // x-1 / x+1
-	int n = 50;
+    float x = 31.0 * gtf_Color.r + 1.0;
+    float y = 0.0;
+    float z;   // x-1 / x+1
+    int n = 50;
 
-	// ln(x) = 2[x-1 + 1 (x-1)^3 + 1 (x-1)^5 + ...] for x > 0
-	//          [x+1   3 (x+1)     5 (x+1)        ]
-	z = (x - 1.0) / (x + 1.0);
-	float p = z;
-	for(int i = 1; i <= 101; i += 2)
-	{
-		y += p / float(i);
-		p *= z * z;
-	}
-	y *= 2.0;
+    // ln(x) = 2[x-1 + 1 (x-1)^3 + 1 (x-1)^5 + ...] for x > 0
+    //          [x+1   3 (x+1)     5 (x+1)        ]
+    z = (x - 1.0) / (x + 1.0);
+    float p = z;
+    for(int i = 1; i <= 101; i += 2)
+    {
+        y += p / float(i);
+        p *= z * z;
+    }
+    y *= 2.0;
 
-	color = vec4(y / 3.466, 0.0, 0.0, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(y / 3.466, 0.0, 0.0, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

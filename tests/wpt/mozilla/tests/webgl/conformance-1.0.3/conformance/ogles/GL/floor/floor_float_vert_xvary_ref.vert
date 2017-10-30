@@ -30,16 +30,16 @@ varying vec4 color;
 
 float floor_ref(float x)
 {
-	if(x >= 0.0)
-		x = float(int(x));
-	else
-		x = float(int(x) - 1);
-	return x;
+    if(x >= 0.0)
+        x = float(int(x));
+    else
+        x = float(int(x) - 1);
+    return x;
 }
 
 void main (void)
 {
-	float c = 10.0 * 2.0 * (gtf_Color.r - 0.5);
-	color = vec4((floor_ref(c) + 10.0) / 20.0, 0.0, 0.0, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    float c = 10.0 * 2.0 * (gtf_Color.r - 0.5);
+    color = vec4((floor_ref(c) + 10.0) / 20.0, 0.0, 0.0, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

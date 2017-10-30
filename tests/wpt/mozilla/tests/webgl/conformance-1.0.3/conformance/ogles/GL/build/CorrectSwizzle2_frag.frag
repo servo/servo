@@ -31,7 +31,7 @@ void main()
     float f, f1, f2;
     f = f1 = f2;
     f += f1 += f2;
-    
+
     vec4 v, v1, v2;
     v = v1 = v2;
     v += v1 += v2;

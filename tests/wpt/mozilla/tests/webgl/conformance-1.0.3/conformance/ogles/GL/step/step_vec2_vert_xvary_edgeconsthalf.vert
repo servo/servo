@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	const vec2 edge = vec2(0.5, 0.5);
-	color = vec4(step(edge, gtf_Color.rg), 0.0, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    const vec2 edge = vec2(0.5, 0.5);
+    color = vec4(step(edge, gtf_Color.rg), 0.0, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

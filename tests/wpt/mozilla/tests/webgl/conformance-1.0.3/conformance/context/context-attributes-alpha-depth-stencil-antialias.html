@@ -64,8 +64,7 @@ void main()
 var wtu = WebGLTestUtils;
 var gl;
 var contextAttribs = null;
-var pixel_1 = [0, 0, 0, 1];
-var pixel_2 = [0, 0, 0, 1];
+var redChannels = [0, 0, 0];
 var correctColor = null;
 var framebuffer;
 var fbHasColor;
@@ -304,10 +303,13 @@ function testStencilAndDepth(stencil, depth)
 function testAntialias(antialias)
 {
     debug("Testing antialias = " + antialias);
+    // Both the width and height of canvas are N.
+    // Note that "N = 2" doesn't work for some post processing AA per the discussion at https://github.com/KhronosGroup/WebGL/pull/1977.
+    var N = 3;
     if (antialias)
-        shouldBeNonNull("gl = getWebGL(2, 2, { depth: false, stencil: false, alpha: false, antialias: true }, [ 0, 0, 0, 1 ], 1, 0)");
+        shouldBeNonNull("gl = getWebGL(" + N + ", " + N + ", { depth: false, stencil: false, alpha: false, antialias: true }, [ 0, 0, 0, 1 ], 1, 0)");
     else
-        shouldBeNonNull("gl = getWebGL(2, 2, { depth: false, stencil: false, alpha: false, antialias: false }, [ 0, 0, 0, 1 ], 1, 0)");
+        shouldBeNonNull("gl = getWebGL(" + N + ", " + N + ", { depth: false, stencil: false, alpha: false, antialias: false }, [ 0, 0, 0, 1 ], 1, 0)");
     shouldBeNonNull("contextAttribs = gl.getContextAttributes()");
 
     var vertices = new Float32Array([
@@ -319,17 +321,13 @@ function testAntialias(antialias)
         255, 0, 0, 255,
         255, 0, 0, 255]);
     drawAndReadPixel(gl, vertices, colors, 0, 0);
-    var buf_1 = new Uint8Array(1 * 1 * 4);
-    var buf_2 = new Uint8Array(1 * 1 * 4);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf_1);
-    gl.readPixels(0, 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf_2);
-    pixel_1[0] = buf_1[0];
-    pixel_2[0] = buf_2[0];
-    // For some anti-alias algorithms, effects may be not on diagonal line pixels, so that either:
-    //    - The red channel of the pixel at (0, 0) is not 0 and not 255, or,
-    //    - If it is 0, expect that the red channel of the pixel at (0, 1) is not 0 and not 255.
-    shouldBe("pixel_1[0] != 255 && pixel_1[0] != 0 || pixel_1[0] == 0 && pixel_2[0] != 255 && pixel_2[0] != 0",
-        "contextAttribs.antialias");
+    var buf = new Uint8Array(N * N * 4);
+    gl.readPixels(0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    redChannels[0] = buf[4 * (N + 1)]; // (1, 1)
+    redChannels[1] = buf[4 * N * (N - 1)]; // left top
+    redChannels[2] = buf[4 * (N - 1)]; // right bottom
+    shouldBeTrue("redChannels[1] == 255 && redChannels[2] == 0");
+    shouldBe("redChannels[0] != 255 && redChannels[0] != 0", "contextAttribs.antialias");
 }
 
 function runTest()

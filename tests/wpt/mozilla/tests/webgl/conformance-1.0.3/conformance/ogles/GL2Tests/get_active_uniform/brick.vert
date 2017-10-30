@@ -49,12 +49,12 @@ uniform mat3 myAttrib3m;                     //< 17
 uniform mat4 myAttrib4m;                     //< 18
 uniform float myUniformfv[5];                //< 19
                                              // Used in the fragment shader.
-uniform vec3	brickColor;                  //< 20
-uniform vec3	mortarColor;                 //< 21
-uniform float	brickMortarWidth;            //< 22
-uniform float	brickMortarHeight;           //< 23
-uniform float	mwf;                         //< 24
-uniform float	mhf;                         //< 25
+uniform vec3    brickColor;                  //< 20
+uniform vec3    mortarColor;                 //< 21
+uniform float    brickMortarWidth;            //< 22
+uniform float    brickMortarHeight;           //< 23
+uniform float    mwf;                         //< 24
+uniform float    mhf;                         //< 25
 
 
 const float specularContribution = 0.7;
@@ -68,14 +68,14 @@ void main(void) {
     vec3 reflectVec = reflect(lightVec, tnorm);
     vec3 viewVec    = normalize(vec3(pos));
 
-	float f = myAttrib1f + myAttrib2f[0] + myAttrib4f[0] 
-			  + float(myAttrib1i) + float(myAttrib2i[0]) + float(myAttrib3i[0]) + float(myAttrib4i[0])
-			  + float(myAttrib1b) + float(myAttrib2b[0]) + float(myAttrib3b[0]) + float(myAttrib4b[0])		  
-			  + myAttrib2m[0][0] + myAttrib3m[0][0] + myAttrib4m[0][0]
-			  + myUniformfv[0] + myUniformfv[1] + myUniformfv[2] + myUniformfv[3] + myUniformfv[4];
+    float f = myAttrib1f + myAttrib2f[0] + myAttrib4f[0]
+              + float(myAttrib1i) + float(myAttrib2i[0]) + float(myAttrib3i[0]) + float(myAttrib4i[0])
+              + float(myAttrib1b) + float(myAttrib2b[0]) + float(myAttrib3b[0]) + float(myAttrib4b[0])
+              + myAttrib2m[0][0] + myAttrib3m[0][0] + myAttrib4m[0][0]
+              + myUniformfv[0] + myUniformfv[1] + myUniformfv[2] + myUniformfv[3] + myUniformfv[4];
 
-	//float spec = clamp(dot(reflectVec, viewVec), 0.0, 1.0);
-	float spec = clamp(dot(reflectVec, viewVec), f, 1.0);
+    //float spec = clamp(dot(reflectVec, viewVec), 0.0, 1.0);
+    float spec = clamp(dot(reflectVec, viewVec), f, 1.0);
     spec = spec * spec;
     spec = spec * spec;
     spec = spec * spec;
@@ -83,6 +83,6 @@ void main(void) {
 
     lightIntensity = diffuseContribution * dot(lightVec, tnorm) +
                      specularContribution * spec;
-    
+
     gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

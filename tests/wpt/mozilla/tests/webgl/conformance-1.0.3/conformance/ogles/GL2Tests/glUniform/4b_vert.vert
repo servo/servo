@@ -30,6 +30,6 @@ uniform bvec4 color;
 varying vec4 col;
 void main (void)
 {
-	col = vec4(color);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    col = vec4(color);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

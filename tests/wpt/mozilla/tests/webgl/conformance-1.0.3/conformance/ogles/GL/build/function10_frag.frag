@@ -26,16 +26,16 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-void function(in int i);  
+void function(in int i);
 
 void main()
 {
     float f;
     // overloaded function not present
-    function(f);  
+    function(f);
 }
 
-void function(in int i)  
-{  
+void function(in int i)
+{
    i = 3;
 }

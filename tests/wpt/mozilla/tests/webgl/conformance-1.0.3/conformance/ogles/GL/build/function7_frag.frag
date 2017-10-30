@@ -26,14 +26,14 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-void function(uniform int i)  
+void function(uniform int i)
 {  // uniform qualifier cannot be used with function parameters
 }
 
 void main()
 {
     int i;
-    function(i);  
+    function(i);
 }
 
 

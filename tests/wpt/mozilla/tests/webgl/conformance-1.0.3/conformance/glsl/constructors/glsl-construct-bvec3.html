@@ -44,15 +44,15 @@
 <div id="console"></div>
 <script>
 "use strict";
-var targetType = "bvec3"; 
+var targetType = "bvec3";
 description("Test " + targetType + " constructor expressions.");
 
 var testSet = GLSLConstructorTestsGenerator.getDefaultTestSet(targetType);
 
 // Generate tests
 var testCases = GLSLConstructorTestsGenerator.getConstructorTests(targetType, testSet);
- 
-// Run the tests 
+
+// Run the tests
 GLSLConformanceTester.runTests(testCases);
 
 debug("");

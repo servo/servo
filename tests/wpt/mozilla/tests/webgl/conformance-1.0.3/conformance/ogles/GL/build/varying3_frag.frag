@@ -30,5 +30,5 @@ varying vec4 v = vec4(1,1,1,1);//gl_TexCoord[0]; // varyings cannot be initializ
 
 void main()
 {
-  
+
 }

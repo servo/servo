@@ -30,7 +30,7 @@ uniform float GrainSize;
 uniform vec3  DarkColor;
 uniform vec3  colorSpread;
 
-varying float lightIntensity; 
+varying float lightIntensity;
 varying vec3 Position;
 
 void main (void)
@@ -55,12 +55,12 @@ void main (void)
     // grain effects as function of distance
     //
     float brightness = fract(grain);
-    if (brightness > 0.5) 
+    if (brightness > 0.5)
         brightness = (1.0 - brightness);
     vec3 color = DarkColor + 0.5 * brightness * (colorSpread);
-    
-    brightness = fract(grain*7.0);    
-    if (brightness > 0.5) 
+
+    brightness = fract(grain*7.0);
+    if (brightness > 0.5)
         brightness = 1.0 - brightness;
     color -= 0.5 * brightness * colorSpread;
 
@@ -77,7 +77,7 @@ void main (void)
     // apply lighting effects from vertex processor
     //
     color *= lightIntensity;
-    color = clamp(color, 0.0, 1.0); 
+    color = clamp(color, 0.0, 1.0);
 
     gl_FragColor = vec4(color, 0.1)
 }

@@ -29,7 +29,7 @@ varying vec4  color;
 
 void main(void)
 {
-	color = vec4(gl_DepthRange.near, gl_DepthRange.far, gl_DepthRange.diff, 1.0);
+    color = vec4(gl_DepthRange.near, gl_DepthRange.far, gl_DepthRange.diff, 1.0);
 
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

@@ -119,13 +119,13 @@ else {
     // WebGL 1.0.2 - 5.14.3 types / ES 2.0.25 - 6.2 State tables - 6.18 page 152
     shouldBeType('context.getParameter(context.SUBPIXEL_BITS)', 'Number');
     shouldBeGreaterThanOrEqual('context.getParameter(context.SUBPIXEL_BITS)', '4');
-    
+
     shouldBeType('context.getParameter(context.SAMPLE_BUFFERS)', 'Number');
     shouldBeGreaterThanOrEqual('context.getParameter(context.SAMPLE_BUFFERS)', '0');
-    
+
     shouldBeType('context.getParameter(context.SAMPLES)', 'Number');
     shouldBeGreaterThanOrEqual('context.getParameter(context.SAMPLES)', '0');
-    
+
     shouldBeType('context.getParameter(context.DEPTH_BITS)', 'Number');
     shouldBeGreaterThanOrEqual('context.getParameter(context.DEPTH_BITS)', '0');
     shouldBeType('context.getParameter(context.RED_BITS)', 'Number');
@@ -137,7 +137,7 @@ else {
     shouldBeType('context.getParameter(context.ALPHA_BITS)', 'Number');
     shouldBeGreaterThanOrEqual('context.getParameter(context.ALPHA_BITS)', '0');
     shouldBeType('context.getParameter(context.STENCIL_BITS)', 'Number');
-    
+
     var stencilBits = context.getParameter(context.STENCIL_BITS);
     minimumRequiredStencilMask = (1 << stencilBits) - 1;
 

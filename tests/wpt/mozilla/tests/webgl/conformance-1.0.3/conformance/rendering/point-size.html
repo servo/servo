@@ -107,7 +107,7 @@
 
         gl.uniform1f(locPointSize, 1.0);
         gl.drawArrays(gl.POINTS, 0, vertices.length / 3);
-        
+
         shouldBe('gl.getError()', 'gl.NO_ERROR');
 
         for (var y = 0; y < 2; ++y) {
@@ -135,7 +135,7 @@
     shouldBe('gl.getError()', 'gl.NO_ERROR');
     test(program1);
 
-    // Under some versions of ANGLE point sprite shader programs were 
+    // Under some versions of ANGLE point sprite shader programs were
     // incorrectly reloaded from cache. Rebuilding the shader program and
     // repeating the test simulates the conditions that caused it to fail
     debug('');

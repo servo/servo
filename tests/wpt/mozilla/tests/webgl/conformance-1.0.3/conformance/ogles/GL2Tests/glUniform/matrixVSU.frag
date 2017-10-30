@@ -30,5 +30,5 @@ varying vec4 color;
 
 void main (void)
 {
-	gl_FragColor = color; // Apply it on a per vertex level
+    gl_FragColor = color; // Apply it on a per vertex level
 }

@@ -127,10 +127,10 @@ function runSupportedTest(extensionEnabled) {
 function runBindingTestDisabled() {
     debug("");
     debug("Testing binding enum with extension disabled");
-    
+
     // Use the constant directly as we don't have the extension
     var VERTEX_ARRAY_BINDING_OES = 0x85B5;
-    
+
     gl.getParameter(VERTEX_ARRAY_BINDING_OES);
     wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "VERTEX_ARRAY_BINDING_OES should not be queryable if extension is disabled");
 }
@@ -138,12 +138,12 @@ function runBindingTestDisabled() {
 function runBindingTestEnabled() {
     debug("");
     debug("Testing binding enum with extension enabled");
-    
+
     shouldBe("ext.VERTEX_ARRAY_BINDING_OES", "0x85B5");
-    
+
     gl.getParameter(ext.VERTEX_ARRAY_BINDING_OES);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "VERTEX_ARRAY_BINDING_OES query should succeed if extension is enabled");
-    
+
     // Default value is null
     if (gl.getParameter(ext.VERTEX_ARRAY_BINDING_OES) === null) {
         testPassed("Default value of VERTEX_ARRAY_BINDING_OES is null");
@@ -180,20 +180,20 @@ function runBindingTestEnabled() {
 function runObjectTest() {
     debug("");
     debug("Testing object creation");
-    
+
     vao = ext.createVertexArrayOES();
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "createVertexArrayOES should not set an error");
     shouldBeNonNull("vao");
-    
+
     // Expect false if never bound
     shouldBeFalse("ext.isVertexArrayOES(vao)");
     ext.bindVertexArrayOES(vao);
     shouldBeTrue("ext.isVertexArrayOES(vao)");
     ext.bindVertexArrayOES(null);
     shouldBeTrue("ext.isVertexArrayOES(vao)");
-    
+
     shouldBeFalse("ext.isVertexArrayOES(null)");
-    
+
     ext.deleteVertexArrayOES(vao);
     vao = null;
 }
@@ -201,57 +201,57 @@ function runObjectTest() {
 function runAttributeTests() {
     debug("");
     debug("Testing attributes work across bindings");
-    
+
     var states = [];
-    
+
     var attrCount = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
     for (var n = 0; n < attrCount; n++) {
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-        
+
         var state = {};
         states.push(state);
-        
+
         var vao = state.vao = ext.createVertexArrayOES();
         ext.bindVertexArrayOES(vao);
-        
+
         var enableArray = (n % 2 == 0);
         if (enableArray) {
             gl.enableVertexAttribArray(n);
         } else {
             gl.disableVertexAttribArray(n);
         }
-        
+
         if (enableArray) {
             var buffer = state.buffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
             gl.bufferData(gl.ARRAY_BUFFER, 1024, gl.STATIC_DRAW);
-            
+
             gl.vertexAttribPointer(n, 1 + n % 4, gl.FLOAT, true, n * 4, n * 4);
         }
-        
+
         if (enableArray) {
             var elbuffer = state.elbuffer = gl.createBuffer();
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elbuffer);
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, 1024, gl.STATIC_DRAW);
         }
-        
+
         ext.bindVertexArrayOES(null);
     }
-    
+
     var anyMismatch = false;
     for (var n = 0; n < attrCount; n++) {
         var state = states[n];
-        
+
         ext.bindVertexArrayOES(state.vao);
-        
+
         var shouldBeEnabled = (n % 2 == 0);
         var isEnabled = gl.getVertexAttrib(n, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
         if (shouldBeEnabled != isEnabled) {
             testFailed("VERTEX_ATTRIB_ARRAY_ENABLED not preserved");
             anyMismatch = true;
         }
-        
+
         var buffer = gl.getVertexAttrib(n, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
         if (shouldBeEnabled) {
             if (buffer == state.buffer) {
@@ -277,7 +277,7 @@ function runAttributeTests() {
                 anyMismatch = true;
             }
         }
-        
+
         var elbuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
         if (shouldBeEnabled) {
             if (elbuffer == state.elbuffer) {
@@ -299,7 +299,7 @@ function runAttributeTests() {
     if (!anyMismatch) {
         testPassed("All attributes preserved across bindings");
     }
-    
+
     for (var n = 0; n < attrCount; n++) {
         var state = states[n];
         ext.deleteVertexArrayOES(state.vao);
@@ -309,41 +309,41 @@ function runAttributeTests() {
 function runAttributeValueTests() {
     debug("");
     debug("Testing that attribute values are not attached to bindings");
-    
+
     var v;
     var vao0 = ext.createVertexArrayOES();
     var anyFailed = false;
-    
+
     ext.bindVertexArrayOES(null);
     gl.vertexAttrib4f(0, 0, 1, 2, 3);
-    
+
     v = gl.getVertexAttrib(0, gl.CURRENT_VERTEX_ATTRIB);
     if (!(v[0] == 0 && v[1] == 1 && v[2] == 2 && v[3] == 3)) {
         testFailed("Vertex attrib value not round-tripped?");
         anyFailed = true;
     }
-    
+
     ext.bindVertexArrayOES(vao0);
-    
+
     v = gl.getVertexAttrib(0, gl.CURRENT_VERTEX_ATTRIB);
     if (!(v[0] == 0 && v[1] == 1 && v[2] == 2 && v[3] == 3)) {
         testFailed("Vertex attrib value reset across bindings");
         anyFailed = true;
     }
-    
+
     gl.vertexAttrib4f(0, 4, 5, 6, 7);
     ext.bindVertexArrayOES(null);
-    
+
     v = gl.getVertexAttrib(0, gl.CURRENT_VERTEX_ATTRIB);
     if (!(v[0] == 4 && v[1] == 5 && v[2] == 6 && v[3] == 7)) {
         testFailed("Vertex attrib value bound to buffer");
         anyFailed = true;
     }
-    
+
     if (!anyFailed) {
         testPassed("Vertex attribute values are not attached to bindings")
     }
-    
+
     ext.bindVertexArrayOES(null);
     ext.deleteVertexArrayOES(vao0);
 }
@@ -351,19 +351,19 @@ function runAttributeValueTests() {
 function runDrawTests() {
     debug("");
     debug("Testing draws with various VAO bindings");
-    
+
     canvas.width = 50; canvas.height = 50;
     gl.viewport(0, 0, canvas.width, canvas.height);
-    
+
     var vao0 = ext.createVertexArrayOES();
     var vao1 = ext.createVertexArrayOES();
     var vao2 = ext.createVertexArrayOES();
 
     var positionLocation = 0;
     var colorLocation = 1;
-    
+
     var program = wtu.setupSimpleVertexColorProgram(gl, positionLocation, colorLocation);
-    
+
     function setupQuad(s, colorsInArray) {
         var vertexObject = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
@@ -394,7 +394,7 @@ function runDrawTests() {
             gl.disableVertexAttribArray(colorLocation);
         }
     };
-    
+
     function verifyDiagonalPixels(s, expectedInside, drawDescription) {
         // Tests pixels along a diagonal running from the center of the canvas to the (0, 0) corner.
         // Values on the points list indicate relative position along this diagonal.
@@ -412,7 +412,7 @@ function runDrawTests() {
         var expectedInside = colorsInArray ? 0 : 128;
         verifyDiagonalPixels(s, expectedInside, drawDescription);
     };
-    
+
     // Setup all bindings
     setupQuad(1, true);
     ext.bindVertexArrayOES(vao0);
@@ -423,7 +423,7 @@ function runDrawTests() {
     setupQuad(0.75, false);
 
     gl.vertexAttrib4f(colorLocation, 0.5, 0.5, 0.5, 1);
-    
+
     // Verify drawing
     ext.bindVertexArrayOES(null);
     verifyDraw("with the default VAO", 1, true);

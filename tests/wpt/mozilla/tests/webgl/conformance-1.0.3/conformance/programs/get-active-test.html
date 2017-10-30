@@ -59,8 +59,7 @@ shouldBeNull("context.getActiveUniform(program, 1)");
 wtu.glErrorShouldBe(context, context.INVALID_VALUE);
 shouldBeNull("context.getActiveUniform(program, -1)");
 wtu.glErrorShouldBe(context, context.INVALID_VALUE);
-shouldBeNull("context.getActiveUniform(null, 0)");
-wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+wtu.shouldThrowOrGenerateGLError(context, context.INVALID_VALUE, "context.getActiveUniform(null, 0)");
 
 // we don't know the order the attribs will appear.
 var info = [
@@ -116,8 +115,7 @@ shouldBeNull("context.getActiveAttrib(program, 2)");
 wtu.glErrorShouldBe(context, context.INVALID_VALUE);
 shouldBeNull("context.getActiveAttrib(program, -1)");
 wtu.glErrorShouldBe(context, context.INVALID_VALUE);
-shouldBeNull("context.getActiveAttrib(null, 0)");
-wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+wtu.shouldThrowOrGenerateGLError(context, context.INVALID_VALUE, "context.getActiveAttrib(null, 0)");
 
 wtu.glErrorShouldBe(context2, context.NO_ERROR);
 

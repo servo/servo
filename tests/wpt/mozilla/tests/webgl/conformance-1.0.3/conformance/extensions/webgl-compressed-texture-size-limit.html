@@ -127,8 +127,9 @@ function getSharedArrayBufferSize() {
         sharedArrayBufferSize = bufferSizeNeeded;
       }
       bufferSizeNeeded = test.func(t.maxSize + test.sizeStep, t.maxSize + test.sizeStep);
-      // ArrayBuffers can be at most 4GB (minus 1 byte)
-      if (bufferSizeNeeded > sharedArrayBufferSize && bufferSizeNeeded <= 4294967295) {
+      // ArrayBuffers can be at most 4GB (minus 1 byte), but any allocations larger than 1 GB are unreliable in practice. So limit allocations to 1 GB.
+      // Textures that are wide in just one dimension can still be used to test max TEXTURE_2D size limit even if we don't allocate space for huge square textures.
+      if (bufferSizeNeeded > sharedArrayBufferSize && bufferSizeNeeded <= Math.pow(2, 30)) {
         sharedArrayBufferSize = bufferSizeNeeded;
       }
     }
@@ -195,7 +196,7 @@ function testFormatType(t, test) {
     for (var j = 0; j < t.targets.length; ++j) {
       var target = t.targets[j];
       debug("");
-      debug(wtu.glEnumToString(gl, target));
+      debug(wtu.glEnumToString(gl, target) + " " + wtu.glEnumToString(ext, test.format));
 
       // positive test
       var size = positiveTestSize;
@@ -219,11 +220,25 @@ function testFormatType(t, test) {
       var dataSize = test.func(t.maxSize + test.sizeStep, t.maxSize + test.sizeStep);
       // this check assumes that each element is 1 byte
       if (dataSize > sharedArrayBuffer.byteLength) {
-        testPassed("Unable to test texture larger than maximum size due to ArrayBuffer size limitations -- this is legal");
+        if (t.target == gl.TEXTURE_CUBE_MAP) {
+          testPassed("Unable to test texture larger than maximum size due to ArrayBuffer size limitations -- this is legal");
+        } else {
+          var wideAndShortDataSize = test.func(t.maxSize + test.sizeStep, test.sizeStep);
+          var pixelsNegativeTest1 = new test.dataType(sharedArrayBuffer, 0, wideAndShortDataSize);
+          gl.compressedTexImage2D(target, 0, test.format, t.maxSize + test.sizeStep, test.sizeStep, 0, pixelsNegativeTest1);
+          wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "width out of bounds: should generate INVALID_VALUE."
+              + " level is 0, size is " + (t.maxSize + test.sizeStep) + "x" + (test.sizeStep));
+
+          var narrowAndTallDataSize = test.func(test.sizeStep, t.maxSize + test.sizeStep);
+          var pixelsNegativeTest1 = new test.dataType(sharedArrayBuffer, 0, narrowAndTallDataSize);
+          gl.compressedTexImage2D(target, 0, test.format, test.sizeStep, t.maxSize + test.sizeStep, 0, pixelsNegativeTest1);
+          wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "height out of bounds: should generate INVALID_VALUE."
+              + " level is 0, size is " + (test.sizeStep) + "x" + (t.maxSize + test.sizeStep));
+        }
       } else {
         var pixelsNegativeTest1 = new test.dataType(sharedArrayBuffer, 0, dataSize);
         gl.compressedTexImage2D(target, 0, test.format, t.maxSize + test.sizeStep, t.maxSize + test.sizeStep, 0, pixelsNegativeTest1);
-        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "width or height out of bounds: should generate INVALID_VALUE."
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "width and height out of bounds: should generate INVALID_VALUE."
             + " level is 0, size is " + (t.maxSize + test.sizeStep) + "x" + (t.maxSize + test.sizeStep));
       }
       // level out of bounds

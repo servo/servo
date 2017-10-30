@@ -32,34 +32,34 @@ float function(in float par);
 
 void main (void)
 {
-	float par = 1.0;
-	float ret = 0.0;
+    float par = 1.0;
+    float ret = 0.0;
 
-	float gray = 0.0;
+    float gray = 0.0;
 
-	ret = function(par);
+    ret = function(par);
 
-	// The parameter should remain unchanged by the function and the function should return 1.0.
-	if((par == 1.0) && (ret == 1.0))
-	{
-		gray = 1.0;
-	}
+    // The parameter should remain unchanged by the function and the function should return 1.0.
+    if((par == 1.0) && (ret == 1.0))
+    {
+        gray = 1.0;
+    }
 
-	color = vec4(gray, gray, gray, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(gray, gray, gray, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }
 
 // Function definition.
 float function(in float par)
 {
-	// Return the value of the parameter.
-	if(par == 1.0)
-	{
-		// Test parameter qualifier (default is "in").
-		par = 0.0;
+    // Return the value of the parameter.
+    if(par == 1.0)
+    {
+        // Test parameter qualifier (default is "in").
+        par = 0.0;
 
-		return 1.0;
-	}
-	else
-		return 0.0;
+        return 1.0;
+    }
+    else
+        return 0.0;
 }

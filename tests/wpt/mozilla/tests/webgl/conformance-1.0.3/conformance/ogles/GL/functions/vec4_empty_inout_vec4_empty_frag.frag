@@ -35,57 +35,57 @@ void set_all(out vec4 par, const in float value);
 
 void main (void)
 {
-	vec4 par = vec4(1.0, 1.0, 1.0, 1.0);
-	vec4 ret = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 par = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 ret = vec4(0.0, 0.0, 0.0, 0.0);
 
-	float gray = 0.0;
+    float gray = 0.0;
 
-	ret = function(par);
+    ret = function(par);
 
-	// The parameter should be changed by the function and the function should return 1.0.
-	if(is_all(par, 0.0) && is_all(ret, 1.0))
-	{
-		gray = 1.0;
-	}
+    // The parameter should be changed by the function and the function should return 1.0.
+    if(is_all(par, 0.0) && is_all(ret, 1.0))
+    {
+        gray = 1.0;
+    }
 
-	gl_FragColor = vec4(gray, gray, gray, 1.0);
+    gl_FragColor = vec4(gray, gray, gray, 1.0);
 }
 
 // Function definition.
 vec4 function(inout vec4 par)
 {
-	// Return the value of the parameter.
-	if(is_all(par, 1.0))
-	{
-		// Test parameter qualifier (default is "in").
-		set_all(par, 0.0);
+    // Return the value of the parameter.
+    if(is_all(par, 1.0))
+    {
+        // Test parameter qualifier (default is "in").
+        set_all(par, 0.0);
 
-		return vec4(1.0, 1.0, 1.0, 1.0);
-	}
-	else
-		return vec4(0.0, 0.0, 0.0, 0.0);
+        return vec4(1.0, 1.0, 1.0, 1.0);
+    }
+    else
+        return vec4(0.0, 0.0, 0.0, 0.0);
 }
 
 bool is_all(const in vec4 par, const in float value)
 {
-	bool ret = true;
+    bool ret = true;
 
-	if(par[0] != value)
-		ret = false;
-	if(par[1] != value)
-		ret = false;
-	if(par[2] != value)
-		ret = false;
-	if(par[3] != value)
-		ret = false;
+    if(par[0] != value)
+        ret = false;
+    if(par[1] != value)
+        ret = false;
+    if(par[2] != value)
+        ret = false;
+    if(par[3] != value)
+        ret = false;
 
-	return ret;
+    return ret;
 }
 
 void set_all(out vec4 par, const in float value)
 {
-	par[0] = value;
-	par[1] = value;
-	par[2] = value;
-	par[3] = value;
+    par[0] = value;
+    par[1] = value;
+    par[2] = value;
+    par[3] = value;
 }

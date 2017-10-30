@@ -33,33 +33,33 @@ bool function(bool par);
 
 void main (void)
 {
-	bool par = true;
-	bool ret = false;
+    bool par = true;
+    bool ret = false;
 
-	float gray = 0.0;
+    float gray = 0.0;
 
-	ret = function(par);
+    ret = function(par);
 
-	// The parameter should remain unchanged by the function and the function should return true.
-	if(par && ret)
-	{
-		gray = 1.0;
-	}
+    // The parameter should remain unchanged by the function and the function should return true.
+    if(par && ret)
+    {
+        gray = 1.0;
+    }
 
-	gl_FragColor = vec4(gray, gray, gray, 1.0);
+    gl_FragColor = vec4(gray, gray, gray, 1.0);
 }
 
 // Function definition.
 bool function(bool par)
 {
-	// Return the value of the parameter.
-	if(par)
-	{
-		// Test parameter qualifier (default is "in").
-		par = false;
+    // Return the value of the parameter.
+    if(par)
+    {
+        // Test parameter qualifier (default is "in").
+        par = false;
 
-		return true;
-	}
-	else
-		return false;
+        return true;
+    }
+    else
+        return false;
 }

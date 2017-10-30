@@ -30,13 +30,13 @@ varying highp vec4 color;
 
 void main (void)
 {
-	mediump int x = 5;
-	lowp int y = 3;
-	mediump float x2 = 5.0;
-	lowp float y2 = 1.0;
-	
-	color = vec4(x + y, x2 * y2, x, 1.0);
-	
-	color = gtf_Color;
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    mediump int x = 5;
+    lowp int y = 3;
+    mediump float x2 = 5.0;
+    lowp float y2 = 1.0;
+
+    color = vec4(x + y, x2 * y2, x, 1.0);
+
+    color = gtf_Color;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

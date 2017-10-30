@@ -30,6 +30,6 @@ varying vec4 color;
 
 void main (void)
 {
-	vec3 c = 2.0 * (color.rgb - 0.5);
-	gl_FragColor = vec4(abs(c), 1.0);
+    vec3 c = 2.0 * (color.rgb - 0.5);
+    gl_FragColor = vec4(abs(c), 1.0);
 }

@@ -30,11 +30,11 @@ varying vec4 color;
 
 void main (void)
 {
-	mat2 m1 = mat2(gtf_Color.r, gtf_Color.g, gtf_Color.b, gtf_Color.a);
-	mat2 m2 = mat2(1.0, 0.5, 0.5, 1.0);
-	mat2 m3 = mat2(0.0);
+    mat2 m1 = mat2(gtf_Color.r, gtf_Color.g, gtf_Color.b, gtf_Color.a);
+    mat2 m2 = mat2(1.0, 0.5, 0.5, 1.0);
+    mat2 m3 = mat2(0.0);
 
-	m3 = matrixCompMult(m1, m2);
-	color = vec4(m3[0][0], m3[1][0], m3[0][1], m3[1][1]);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    m3 = matrixCompMult(m1, m2);
+    color = vec4(m3[0][0], m3[1][0], m3[0][1], m3[1][1]);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	const vec3 min_c = vec3(0.5, 0.5, 0.5);
-	vec3 c = color.rgb;
-	gl_FragColor = vec4(min(c, min_c), 1.0);
+    const vec3 min_c = vec3(0.5, 0.5, 0.5);
+    vec3 c = color.rgb;
+    gl_FragColor = vec4(min(c, min_c), 1.0);
 }

@@ -26,7 +26,7 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-void function(const int i)  
+void function(const int i)
 {
     i = 3;  // const value cant be modified
 }

@@ -35,49 +35,49 @@ precision mediump float;
 
 void main (void)
 {
-	float x;
-	// Declare a 3 by 3 matrix with unique elements.
-	mat3 a = mat3( 1.0, 2.0, 3.0,  
-	               4.0, 5.0, 6.0,  
-	               7.0, 8.0, 9.0); 
+    float x;
+    // Declare a 3 by 3 matrix with unique elements.
+    mat3 a = mat3( 1.0, 2.0, 3.0,
+                   4.0, 5.0, 6.0,
+                   7.0, 8.0, 9.0);
 
-	// Copy the matrix to another non-const matrix.
-	mat3 b = a;
+    // Copy the matrix to another non-const matrix.
+    mat3 b = a;
 
-	// Check each element of the copy.
-	bool elms = true;
-	if(b[0][0] != 1.0) elms = false;
-	if(b[0][1] != 2.0) elms = false;
-	if(b[0][2] != 3.0) elms = false;
-	if(b[1][0] != 4.0) elms = false;
-	if(b[1][1] != 5.0) elms = false;
-	if(b[1][2] != 6.0) elms = false;
-	if(b[2][0] != 7.0) elms = false;
-	if(b[2][1] != 8.0) elms = false;
-	if(b[2][2] != 9.0) elms = false;
+    // Check each element of the copy.
+    bool elms = true;
+    if(b[0][0] != 1.0) elms = false;
+    if(b[0][1] != 2.0) elms = false;
+    if(b[0][2] != 3.0) elms = false;
+    if(b[1][0] != 4.0) elms = false;
+    if(b[1][1] != 5.0) elms = false;
+    if(b[1][2] != 6.0) elms = false;
+    if(b[2][0] != 7.0) elms = false;
+    if(b[2][1] != 8.0) elms = false;
+    if(b[2][2] != 9.0) elms = false;
 
-	// Add up each row of the copy.
-	bool rows = true;
-	x = b[0][0] + b[1][0] + b[2][0];
-	if( x < 12.0-ERROR_EPSILON || x > 12.0+ERROR_EPSILON ) rows = false;
-	x = b[0][1] + b[1][1] + b[2][1]; 
-	if(x < 15.0-ERROR_EPSILON || x > 15.0+ERROR_EPSILON ) rows = false;
-	x = b[0][2] + b[1][2] + b[2][2];
-	if(x < 18.0-ERROR_EPSILON || x > 18.0+ERROR_EPSILON ) rows = false;
+    // Add up each row of the copy.
+    bool rows = true;
+    x = b[0][0] + b[1][0] + b[2][0];
+    if( x < 12.0-ERROR_EPSILON || x > 12.0+ERROR_EPSILON ) rows = false;
+    x = b[0][1] + b[1][1] + b[2][1];
+    if(x < 15.0-ERROR_EPSILON || x > 15.0+ERROR_EPSILON ) rows = false;
+    x = b[0][2] + b[1][2] + b[2][2];
+    if(x < 18.0-ERROR_EPSILON || x > 18.0+ERROR_EPSILON ) rows = false;
 
-	// Add up each column of the copy.
-	bool cols = true;
-	x = b[0][0] + b[0][1] + b[0][2];
-	if( x < 6.0-ERROR_EPSILON || x > 6.0+ERROR_EPSILON ) cols = false;
-	x = b[1][0] + b[1][1] + b[1][2];
-	if(x < 15.0-ERROR_EPSILON || x > 15.0+ERROR_EPSILON) cols = false;
-	x = b[2][0] + b[2][1] + b[2][2];
-	if(x < 24.0-ERROR_EPSILON || x > 24.0+ERROR_EPSILON) cols = false;
+    // Add up each column of the copy.
+    bool cols = true;
+    x = b[0][0] + b[0][1] + b[0][2];
+    if( x < 6.0-ERROR_EPSILON || x > 6.0+ERROR_EPSILON ) cols = false;
+    x = b[1][0] + b[1][1] + b[1][2];
+    if(x < 15.0-ERROR_EPSILON || x > 15.0+ERROR_EPSILON) cols = false;
+    x = b[2][0] + b[2][1] + b[2][2];
+    if(x < 24.0-ERROR_EPSILON || x > 24.0+ERROR_EPSILON) cols = false;
 
-	// Check if all of the operations were successful.
-	float gray = elms && rows && cols ? 1.0 : 0.0;
+    // Check if all of the operations were successful.
+    float gray = elms && rows && cols ? 1.0 : 0.0;
 
-	// Assign the fragment color.
-	gl_FragColor = vec4(gray, gray, gray, 1.0);
+    // Assign the fragment color.
+    gl_FragColor = vec4(gray, gray, gray, 1.0);
 }
 

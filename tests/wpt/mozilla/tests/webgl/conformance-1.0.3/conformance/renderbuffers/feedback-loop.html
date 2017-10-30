@@ -55,7 +55,7 @@
     varying vec2 v_texCoord;
     uniform sampler2D u_texture;
     void main() {
-        // Shader swizzles color channels so we can tell if the draw succeeded. 
+        // Shader swizzles color channels so we can tell if the draw succeeded.
         gl_FragColor = texture2D(u_texture, v_texCoord).gbra;
     }
     </script>
@@ -83,7 +83,7 @@
     assertMsg(gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE,
         "framebuffer should be FRAMEBUFFER_COMPLETE.");
 
-    var program = wtu.setupProgram(gl, ["vs", "fs"], ["vPosition", "vTexCoord"]);
+    var program = wtu.setupProgram(gl, ["vs", "fs"], ["a_position", "a_texCoord"]);
     gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
     gl.disable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);

@@ -101,6 +101,88 @@ function checkSet(func, index, value, littleEndian)
         shouldThrow(expr);
 }
 
+function checkGetWithoutArgument(func, expected)
+{
+    var threw = false;
+    var value;
+    try {
+        value = view["get" + func]();
+    } catch (e) {
+        threw = true;
+    }
+
+    if (threw) {
+        // This used to be correct, but TC39 has changed the behavior of these methods.
+        testPassed("view.get" + func + " with no arguments throws.");
+    } else {
+        if (value === expected) {
+            testPassed("view.get" + func + " treats missing argument as 0.");
+        } else {
+            testFailed("view.get" + func + " accepts a missing argument but does not cast it to 0.");
+        }
+    }
+}
+
+function checkSetWithoutSecondArgument(func, index, isFloat)
+{
+    var expected = isFloat ? NaN : 0;
+    var threw = false;
+    var value;
+    try {
+        value = view["set" + func](index);
+    } catch (e) {
+        threw = true;
+    }
+
+    if (threw) {
+        // This used to be correct, but TC39 has changed the behavior of these methods.
+        testPassed("view.set" + func + " with missing second argument throws.");
+    } else {
+        var stored = view["get" + func](index);
+        if (value === undefined && isFloat ? isNaN(stored) : stored === expected) {
+            testPassed("view.set" + func + " treats missing second argument as " + expected + ".");
+        } else {
+            testFailed("view.set" + func + " accepts a missing second argument but does not cast it to " + expected + ".");
+        }
+    }
+}
+
+function checkSetWithoutArguments(func, isFloat)
+{
+    var expected = isFloat ? NaN : 0;
+    var threw = false;
+    var value;
+    try {
+        value = view["set" + func]();
+    } catch (e) {
+        threw = true;
+    }
+
+    if (threw) {
+        // This used to be correct, but TC39 has changed the behavior of these methods.
+        testPassed("view.set" + func + " with no arguments throws.");
+    } else {
+        var stored = view["get" + func](0);
+        if (value === undefined && isFloat ? isNaN(stored) : stored === expected) {
+            testPassed("view.set" + func + " treats missing first argument as 0.");
+        } else {
+            testFailed("view.set" + func + " accepts a missing first argument but does not cast it to 0.");
+        }
+    }
+}
+
+function testMissingArguments(func, constructor, isFloat)
+{
+    view = new DataView((new constructor(3)).buffer);
+    view["set" + func](0, 1);
+    view["set" + func](getElementSize(func), 2);
+    checkGetWithoutArgument(func, 1);
+    checkSetWithoutSecondArgument(func, getElementSize(func), isFloat);
+    view = new DataView((new constructor(3)).buffer);
+    view["set" + func](0, 1);
+    checkSetWithoutArguments(func, isFloat);
+}
+
 function test(isTestingGet, func, index, value, littleEndian)
 {
     if (isTestingGet)
@@ -198,7 +280,7 @@ function testFloat(isTestingGet, func, array, start, expected)
     test(isTestingGet, func, 7, expected, true);
     createDataView(array, 10, true, start);
     test(isTestingGet, func, 10, expected, true);
-    
+
     // Big endian.
     createDataView(array, 0, false);
     test(isTestingGet, func, 0, expected, false);
@@ -306,18 +388,6 @@ function runGetTests()
     debug("");
     debug("Test for get methods that read from negative index");
     runNegativeIndexTests(true);
-
-    debug("");
-    debug("Test for wrong arguments passed to get methods");
-    view = new DataView((new Uint8Array([1, 2])).buffer);
-    shouldThrow("view.getInt8()");
-    shouldThrow("view.getUint8()");
-    shouldThrow("view.getInt16()");
-    shouldThrow("view.getUint16()");
-    shouldThrow("view.getInt32()");
-    shouldThrow("view.getUint32()");
-    shouldThrow("view.getFloat32()");
-    shouldThrow("view.getFloat64()");
 }
 
 function runSetTests()
@@ -335,26 +405,20 @@ function runSetTests()
     debug("");
     debug("Test for set methods that write to negative index");
     runNegativeIndexTests(false);
+}
 
+function runMissingArgumentTests()
+{
     debug("");
-    debug("Test for wrong arguments passed to set methods");
-    view = new DataView((new Uint8Array([1, 2])).buffer);
-    shouldThrow("view.setInt8()");
-    shouldThrow("view.setUint8()");
-    shouldThrow("view.setInt16()");
-    shouldThrow("view.setUint16()");
-    shouldThrow("view.setInt32()");
-    shouldThrow("view.setUint32()");
-    shouldThrow("view.setFloat32()");
-    shouldThrow("view.setFloat64()");
-    shouldThrow("view.setInt8(1)");
-    shouldThrow("view.setUint8(1)");
-    shouldThrow("view.setInt16(1)");
-    shouldThrow("view.setUint16(1)");
-    shouldThrow("view.setInt32(1)");
-    shouldThrow("view.setUint32(1)");
-    shouldThrow("view.setFloat32(1)");
-    shouldThrow("view.setFloat64(1)");
+    debug("Test for get and set methods missing arguments");
+    testMissingArguments("Int8", Int8Array);
+    testMissingArguments("Uint8", Uint8Array);
+    testMissingArguments("Int16", Int16Array);
+    testMissingArguments("Uint16", Uint16Array);
+    testMissingArguments("Int32", Int32Array);
+    testMissingArguments("Uint32", Uint32Array);
+    testMissingArguments("Float32", Float32Array, true);
+    testMissingArguments("Float64", Float64Array, true);
 }
 
 function runIndexingTests()
@@ -370,6 +434,7 @@ function runIndexingTests()
 runConstructorTests();
 runGetTests();
 runSetTests();
+runMissingArgumentTests();
 runIndexingTests();
 var successfullyParsed = true;
 </script>

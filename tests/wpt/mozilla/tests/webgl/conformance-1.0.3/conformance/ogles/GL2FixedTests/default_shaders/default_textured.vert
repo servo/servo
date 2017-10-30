@@ -32,8 +32,8 @@ varying vec4 color;
 
 void main (void)
 {
-	color = gtf_Color;
-	gtf_TexCoord[0] = gtf_MultiTexCoord0;
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
-	gl_PointSize = 1.0;
+    color = gtf_Color;
+    gtf_TexCoord[0] = gtf_MultiTexCoord0;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    gl_PointSize = 1.0;
 }

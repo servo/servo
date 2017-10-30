@@ -40,7 +40,7 @@ precision mediump float;
  #elif(t2==c)
   #define t5 5
  #endif
- 
+
  #ifndef t1
    #define t7 7
  #elif (t2==d)
@@ -60,9 +60,9 @@ precision mediump float;
  void main(void)
   {
    int sum =0,a=9;
-   
+
    sum = half + sum;
    sum = asm + a;
-   
+
   }
- 
+

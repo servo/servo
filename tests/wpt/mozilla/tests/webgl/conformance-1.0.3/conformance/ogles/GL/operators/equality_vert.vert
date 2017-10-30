@@ -29,15 +29,15 @@ varying vec4 color;
 
 void main (void)
 {
-	int m = 102;
-	int k = 12;
-	bool equalto = (m == 102);
-	bool notequalto = (k != 102);
+    int m = 102;
+    int k = 12;
+    bool equalto = (m == 102);
+    bool notequalto = (k != 102);
 
-	float gray;
-	if( equalto && notequalto )
-	gray=1.0;
-	else gray=0.0;
-	color = vec4(gray, gray, gray, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    float gray;
+    if( equalto && notequalto )
+    gray=1.0;
+    else gray=0.0;
+    color = vec4(gray, gray, gray, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

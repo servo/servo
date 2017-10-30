@@ -30,7 +30,7 @@ precision mediump float;
 
 
 #define t1 1
- 
+
 #if(t1==1)
   #define t2 2
 #endif
@@ -45,7 +45,7 @@ precision mediump float;
  #define t4 4
 #elif (t3==3)
  #define t4 44
-#else 
+#else
   #define t4 0
 #endif
 
@@ -63,11 +63,11 @@ precision mediump float;
  #define t7 7
 #endif
 
-#ifndef t8 
+#ifndef t8
  #define t8 8
 #endif
 
-#if defined t8 
+#if defined t8
  #define t9
  #ifdef t9
   #define  t10 10
@@ -103,7 +103,7 @@ precision mediump float;
             #define t15 15
             #define t24 24
          #endif
-      #endif   
+      #endif
    #endif
 #else
    #ifdef t21
@@ -124,9 +124,9 @@ precision mediump float;
 void main(void)
 {
  int sum =0;
- sum = t1+t2+t3+t4+t5; 
+ sum = t1+t2+t3+t4+t5;
  sum = t6+t7+t8+t9+t10;
  sum = t11+t12+t13+t14+t15;
  sum = t16+t20+t22+t23+t25+t24;
-}         
+}
 

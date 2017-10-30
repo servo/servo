@@ -30,5 +30,5 @@ varying vec4 color;
 
 void main (void)
 {
-	gl_FragColor = vec4(vec3(distance(color.rg, vec2(0.5))), 1.0);
+    gl_FragColor = vec4(vec3(distance(color.rg, vec2(0.5))), 1.0);
 }

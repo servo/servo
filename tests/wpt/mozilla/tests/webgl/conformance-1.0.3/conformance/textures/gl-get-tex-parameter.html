@@ -76,7 +76,7 @@ function applyStates(fn) {
   for (var ss = 0; ss < states.length; ++ss) {
     var stateInfo = states[ss];
     for (var ii = 0; ii < targets.length; ++ii) {
-	  var target = targets[ii];
+          var target = targets[ii];
       gl.activeTexture(gl.TEXTURE0 + ii);
       fn(target, stateInfo);
     }

@@ -43,49 +43,49 @@
 
 <script id="shader-vs" type="x-shader/x-vertex">
 // Inputs
-attribute vec4 a_position; 
-attribute vec2 a_tex_coords; 
+attribute vec4 a_position;
+attribute vec2 a_tex_coords;
 
 // Output
-varying vec2   v_tex_coords; 
-    
-void main(void) { 
-    v_tex_coords = a_tex_coords; 
+varying vec2   v_tex_coords;
+
+void main(void) {
+    v_tex_coords = a_tex_coords;
     gl_Position  = a_position;
-} 
+}
 </script>
 
 <script id="shader-fs" type="x-shader/x-fragment">
-precision mediump float; 
+precision mediump float;
 
 // Constants
-const float TEXEL_COUNT_V = 256.0; 
-const float TEXEL_HEIGHT  = 1.0 / TEXEL_COUNT_V; 
+const float TEXEL_COUNT_V = 256.0;
+const float TEXEL_HEIGHT  = 1.0 / TEXEL_COUNT_V;
 const float SEP_IX        = TEXEL_COUNT_V / 2.0;
 
-const vec4 GREEN = vec4(0.0, 1.0, 0.0, 1.0); 
-const vec4 BLUE  = vec4(0.0, 0.0, 1.0, 1.0); 
+const vec4 GREEN = vec4(0.0, 1.0, 0.0, 1.0);
+const vec4 BLUE  = vec4(0.0, 0.0, 1.0, 1.0);
 
 // Input
-varying vec2 v_tex_coords; 
+varying vec2 v_tex_coords;
 
-uniform sampler2D u_data; 
+uniform sampler2D u_data;
 
 // Without this function or directly returning the data, the issue does not occur
 mediump vec4 UnpackData(in vec4 inData) {
      float s = inData.x;
-     // Note s is always 0 
-     // mod(0, 1) = 0 
-     // So return value = (0, 0, -1, 0) 
+     // Note s is always 0
+     // mod(0, 1) = 0
+     // So return value = (0, 0, -1, 0)
     return vec4(0.0, 0.0, mod(s, 1.0) - 1.0, 0.0);
-    
+
     // Comment out the line above and uncomment the line below and the test succeeds on angle-dx11
     // return vec4(0.0, 0.0, -1.0, 0.0);
-} 
+}
 
 void main(void) {
-     // Set initial color 
-    gl_FragColor = BLUE; 
+     // Set initial color
+    gl_FragColor = BLUE;
 
     if (gl_FragCoord.y <= SEP_IX) {
         mediump vec2 addr = vec2(v_tex_coords.x, TEXEL_HEIGHT);
@@ -94,8 +94,8 @@ void main(void) {
             vec4 entry = texture2D(u_data, addr);
             mediump vec4 unpack = UnpackData(entry);
 
-            // Buffer is filled with 0, unpack is always (0, 0, -1, 0) 
-            // So discard is always triggered  
+            // Buffer is filled with 0, unpack is always (0, 0, -1, 0)
+            // So discard is always triggered
             if (unpack.z == -1.0) {
                 discard;
             }
@@ -126,7 +126,7 @@ if (!gl) {
   testFailed("context does not exist");
 } else {
 
-  // Create texture filled with zero's  
+  // Create texture filled with zero's
   var tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, 	 gl.CLAMP_TO_EDGE);
@@ -135,14 +135,14 @@ if (!gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   wtu.fillTexture(gl, tex, 256, 256, [0, 0, 0, 0]);
 
-  // Clear complete viewport to red    
+  // Clear complete viewport to red
   gl.clearColor(1.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  
+
   var attribBuffers = wtu.setupUnitQuad(gl, 0, 1);
   var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], ["a_position", "a_tex_coords"], [0, 1]);
 
-  // Bind texture  
+  // Bind texture
   var uniformMap = wtu.getUniformMap(gl, program);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -150,7 +150,7 @@ if (!gl) {
 
   // Draw
   wtu.drawUnitQuad(gl);
-  
+
   // Verify output
   wtu.checkCanvasRect(gl, 0,   0, 256, 128, [ 255,   0,   0, 255 ], "should be red",    1);
   wtu.checkCanvasRect(gl, 0, 128, 256, 128, [   0, 255,   0, 255 ], "should be green",  1);

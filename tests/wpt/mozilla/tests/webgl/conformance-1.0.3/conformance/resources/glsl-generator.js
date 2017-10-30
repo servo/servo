@@ -1103,13 +1103,13 @@ return {
    *    float, vec2, vec3, vec4 in that order.
    *
    * tolerance: (optional)
-   *    Allow some tolerance in the comparisons. The tolerance is applied to 
-   *    both vertex and fragment shaders. The default tolerance is 0, meaning 
+   *    Allow some tolerance in the comparisons. The tolerance is applied to
+   *    both vertex and fragment shaders. The default tolerance is 0, meaning
    *    the values have to be identical.
    *
    * fragmentTolerance: (optional)
-   *    Specify a tolerance which only applies to fragment shaders. The 
-   *    fragment-only tolerance will override the shared tolerance for 
+   *    Specify a tolerance which only applies to fragment shaders. The
+   *    fragment-only tolerance will override the shared tolerance for
    *    fragment shaders if both are specified. Fragment shaders usually
    *    use mediump float precision so they sometimes require higher tolerance
    *    than vertex shaders which use highp by default.
@@ -1229,15 +1229,15 @@ return {
    *
    * extra: (optional)
    *    Extra GLSL code inserted at the top of each test's shader.
-   * 
+   *
    * tolerance: (optional)
-   *    Allow some tolerance in the comparisons. The tolerance is applied to 
-   *    both vertex and fragment shaders. The default tolerance is 0, meaning 
+   *    Allow some tolerance in the comparisons. The tolerance is applied to
+   *    both vertex and fragment shaders. The default tolerance is 0, meaning
    *    the values have to be identical.
    *
    * fragmentTolerance: (optional)
-   *    Specify a tolerance which only applies to fragment shaders. The 
-   *    fragment-only tolerance will override the shared tolerance for 
+   *    Specify a tolerance which only applies to fragment shaders. The
+   *    fragment-only tolerance will override the shared tolerance for
    *    fragment shaders if both are specified. Fragment shaders usually
    *    use mediump float precision so they sometimes require higher tolerance
    *    than vertex shaders which use highp.

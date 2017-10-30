@@ -32,5 +32,5 @@ varying vec4 gtf_TexCoord[1];
 
 void main (void)
 {
-	gl_FragColor = texture2D(gtf_Texture0, gtf_TexCoord[0].xy);
+    gl_FragColor = texture2D(gtf_Texture0, gtf_TexCoord[0].xy);
 }

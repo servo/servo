@@ -35,15 +35,15 @@ void function(void);
 
 void main (void)
 {
-	gray = 0.0;
+    gray = 0.0;
 
-	function();
+    function();
 
-	gl_FragColor = vec4(gray, gray, gray, 1.0);
+    gl_FragColor = vec4(gray, gray, gray, 1.0);
 }
 
 // Function definition.
 void function(void)
 {
-	gray = 1.0;
+    gray = 1.0;
 }

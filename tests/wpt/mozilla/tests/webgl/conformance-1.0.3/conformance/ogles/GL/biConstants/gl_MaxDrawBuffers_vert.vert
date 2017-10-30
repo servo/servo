@@ -29,10 +29,10 @@ varying vec4 color;
 
 void main (void)
 {
-	// This test verifies that gl_MaxDrawBuffers is set and that its
-	// value is greater than or equal to the minimum value.
-	// Values greater than 1.0 will get clamped to 1.0 or white.
-	color = vec4(float(gl_MaxDrawBuffers) / 1.0);
+    // This test verifies that gl_MaxDrawBuffers is set and that its
+    // value is greater than or equal to the minimum value.
+    // Values greater than 1.0 will get clamped to 1.0 or white.
+    color = vec4(float(gl_MaxDrawBuffers) / 1.0);
 
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

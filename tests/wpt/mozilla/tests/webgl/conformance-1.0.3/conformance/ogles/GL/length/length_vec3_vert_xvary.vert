@@ -30,6 +30,6 @@ varying vec4 color;
 
 void main (void)
 {
-	color = vec4(vec3(length(gtf_Color.rgb) / 3.0), 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(vec3(length(gtf_Color.rgb) / 3.0), 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

@@ -27,11 +27,11 @@
 precision mediump float;
 #endif
 // tests for macro redifinition (t2) and the #if and #else nestings.
-// takes care of elif also. 
+// takes care of elif also.
 
-#define t1 (1+2) 
+#define t1 (1+2)
 #define t2 2
-#define t2 3 
+#define t2 3
 
 // testing the if depth
 #if (t1==3)
@@ -65,11 +65,11 @@ precision mediump float;
 #endif
 
 
-#define t8 8 
-#define t9 9 
+#define t8 8
+#define t9 9
 #define t10 10
 
-void main(void) 
+void main(void)
 {
  int sum=1 ;
  sum = t1+t2;
@@ -77,5 +77,5 @@ void main(void)
  sum = t5+t6;
  sum = t7+t8;
  sum = t9+t10;
-}    
-              
+}
+

@@ -100,7 +100,7 @@ shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHME
 shouldGenerateGLError(gl, gl.INVALID_ENUM, "gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)");
 shouldBeFalse("gl.isTexture(tex)");
 shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, tex)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindTexture(gl.TEXTURE_2D, tex)");
 shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
 
 var texCubeMap = gl.createTexture();
@@ -110,7 +110,7 @@ shouldBe("gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP)", "texCubeMap");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(texCubeMap)");
 shouldBeFalse("gl.isTexture(texCubeMap)");
 shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_CUBE_MAP, texCubeMap)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindTexture(gl.TEXTURE_CUBE_MAP, texCubeMap)");
 shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP)");
 
 var t = gl.createTexture();
@@ -118,7 +118,7 @@ shouldBeNonNull("t");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, t)");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTexture(t)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTexture(gl.TEXTURE_2D, t)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindTexture(gl.TEXTURE_2D, t)");
 shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)");
 
 var t2 = gl.createTexture();
@@ -152,7 +152,7 @@ shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHME
 shouldGenerateGLError(gl, gl.INVALID_ENUM, "gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)");
 shouldBeFalse("gl.isRenderbuffer(rbo)");
 shouldBeNull("gl.getParameter(gl.RENDERBUFFER_BINDING)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo)");
 shouldBeNull("gl.getParameter(gl.RENDERBUFFER_BINDING)");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo2)");
 shouldBe("gl.getParameter(gl.RENDERBUFFER_BINDING)", "rbo2");
@@ -337,7 +337,7 @@ shouldBe("gl.getParameter(gl.ARRAY_BUFFER_BINDING)", "buffer");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(buffer)");
 shouldBeFalse("gl.isBuffer(buffer)");
 shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, buffer)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindBuffer(gl.ARRAY_BUFFER, buffer)");
 shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
 
 var buffer2 = gl.createBuffer();
@@ -348,7 +348,7 @@ shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, null)");
 shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(buffer2)");
 shouldBeFalse("gl.isBuffer(buffer2)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, buffer2)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindBuffer(gl.ARRAY_BUFFER, buffer2)");
 shouldBeNull("gl.getParameter(gl.ARRAY_BUFFER_BINDING)");
 
 var bufferElement = gl.createBuffer();
@@ -358,7 +358,7 @@ shouldBe("gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING)", "bufferElement");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(bufferElement)");
 shouldBeFalse("gl.isBuffer(bufferElement)");
 shouldBeNull("gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufferElement)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufferElement)");
 shouldBeNull("gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING)");
 
 var b = gl.createBuffer();
@@ -366,7 +366,7 @@ shouldBeNonNull("b");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, b)");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bufferData(gl.ARRAY_BUFFER, 1, gl.STATIC_DRAW)");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(b)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBuffer(gl.ARRAY_BUFFER, b)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindBuffer(gl.ARRAY_BUFFER, b)");
 shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bufferData(gl.ARRAY_BUFFER, 1, gl.STATIC_DRAW)");
 
 var b1 = gl.createBuffer();
@@ -399,7 +399,7 @@ shouldBe("gl.getParameter(gl.FRAMEBUFFER_BINDING)", "fbo");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteFramebuffer(fbo)");
 shouldBeFalse("gl.isFramebuffer(fbo)");
 shouldBeNull("gl.getParameter(gl.FRAMEBUFFER_BINDING)");
-shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
+shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)");
 shouldBeNull("gl.getParameter(gl.FRAMEBUFFER_BINDING)");
 shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindFramebuffer(gl.FRAMEBUFFER, fbo2)");
 shouldBe("gl.getParameter(gl.FRAMEBUFFER_BINDING)", "fbo2");

@@ -30,6 +30,6 @@ varying vec4 color;
 
 void main (void)
 {
-	const vec3 edge = vec3(0.5, 0.5, 0.5);
-	gl_FragColor = vec4(step(edge, color.rgb), 1.0);
+    const vec3 edge = vec3(0.5, 0.5, 0.5);
+    gl_FragColor = vec4(step(edge, color.rgb), 1.0);
 }

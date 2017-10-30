@@ -432,14 +432,14 @@ function testUniformOptimizationIssues(testIndex) {
 
   // Ensure that requesting an array uniform past MaxInt32PlusOne returns no uniform
   var nameMaxInt32PlusOne = test.arrayName + "[" + (test.usedUniformVector + MaxInt32PlusOne) + "]";
-  assertMsg(gl.getUniformLocation(program, nameMaxInt32PlusOne) === null, 
+  assertMsg(gl.getUniformLocation(program, nameMaxInt32PlusOne) === null,
     "Requesting " + nameMaxInt32PlusOne + " uniform should return a null uniform location");
 
   // Set just the used uniform
   var name = test.arrayName + "[" + test.usedUniformVector + "]";
   var uniformLocation = gl.getUniformLocation(program, name);
   gl.uniform4fv(uniformLocation, test.color);
-  wtu.setupIndexedQuad(gl, 1, positionLoc);
+  wtu.setupIndexedQuad(gl, 1);
   wtu.clearAndDrawIndexedQuad(gl, 1);
   wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
 

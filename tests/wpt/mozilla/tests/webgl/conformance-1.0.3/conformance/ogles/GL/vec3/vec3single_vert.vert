@@ -26,7 +26,7 @@
 attribute vec4 gtf_Vertex;
 uniform mat4 gtf_ModelViewProjectionMatrix;
 //
-// vec3Matrix_vert.vert: Vertex shader solid color 
+// vec3Matrix_vert.vert: Vertex shader solid color
 //
 //
 //
@@ -40,6 +40,6 @@ void main(void)
      color              = vec4(lightPosition, 0.0);
 
      gl_Position     = gtf_ModelViewProjectionMatrix * gtf_Vertex;
-   
-  
+
+
 }

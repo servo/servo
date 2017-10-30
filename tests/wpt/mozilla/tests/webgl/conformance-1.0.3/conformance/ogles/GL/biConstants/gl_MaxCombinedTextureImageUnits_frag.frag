@@ -30,8 +30,8 @@ varying vec4 color;
 
 void main (void)
 {
-	// This test verifies that gl_MaxCombinedTextureImageUnits is set and that its
-	// value is greater than or equal to the minimum value.
-	// Values greater than 8.0 will get clamped to 1.0 or white.
-	gl_FragColor = vec4(float(gl_MaxCombinedTextureImageUnits) / 8.0);
+    // This test verifies that gl_MaxCombinedTextureImageUnits is set and that its
+    // value is greater than or equal to the minimum value.
+    // Values greater than 8.0 will get clamped to 1.0 or white.
+    gl_FragColor = vec4(float(gl_MaxCombinedTextureImageUnits) / 8.0);
 }

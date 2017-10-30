@@ -30,17 +30,17 @@ varying vec4 color;
 
 bool _any(in bvec2 a)
 {
-	bool temp = false;
-	
-	if(a[0]) temp = true;
-	if(a[1]) temp = true;
+    bool temp = false;
 
-	return temp;
+    if(a[0]) temp = true;
+    if(a[1]) temp = true;
+
+    return temp;
 }
 
 void main (void)
 {
-	vec2 c = floor(1.5 * gtf_Color.rg);   // 1/3 true, 2/3 false
-	color = vec4(vec3(_any(bvec2(c))), 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    vec2 c = floor(1.5 * gtf_Color.rg);   // 1/3 true, 2/3 false
+    color = vec4(vec3(_any(bvec2(c))), 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

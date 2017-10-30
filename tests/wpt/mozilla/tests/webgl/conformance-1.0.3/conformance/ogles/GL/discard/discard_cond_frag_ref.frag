@@ -30,15 +30,15 @@ varying vec4 color;
 
 void main (void)
 {
-	if(color.r > 0.75 || color.g > 0.75 || color.b > 0.75)
-	{
-		/* The background color is black by default.
-		 * Setting the fragment color to it simulates a discarded fragment.
-		 */
-		gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-	}
-	else
-	{
-		gl_FragColor = color;
-	}
+    if(color.r > 0.75 || color.g > 0.75 || color.b > 0.75)
+    {
+        /* The background color is black by default.
+         * Setting the fragment color to it simulates a discarded fragment.
+         */
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    }
+    else
+    {
+        gl_FragColor = color;
+    }
 }

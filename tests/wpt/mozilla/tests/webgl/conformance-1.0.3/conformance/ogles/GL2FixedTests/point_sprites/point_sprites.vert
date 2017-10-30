@@ -29,6 +29,6 @@ uniform mat4 gtf_ModelViewProjectionMatrix;
 
 void main (void)
 {
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
-	gl_PointSize = gtf_PointSize;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    gl_PointSize = gtf_PointSize;
 }

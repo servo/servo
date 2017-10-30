@@ -30,27 +30,27 @@ varying vec4 color;
 
 void main (void)
 {
-	const float M_PI = 3.14159265358979323846;
-	vec3 x = 2.0 * (gtf_Color.ggg - 0.5);
-	vec3 y = 2.0 * (gtf_Color.bbb - 0.5);
-	const float epsilon = 1.0e-4;
-	color = vec4(0.0, 0.0, 0.0, 1.0);
-	
-	// Avoid evaluating atan(0, x) for x < epsilon because it's implementation-dependent
-	if(x[0] > epsilon || abs(y[0]) > epsilon)
-	{
-		color[0] = atan(y[0], x[0]) / (2.0 * M_PI) + 0.5;
-	}
+    const float M_PI = 3.14159265358979323846;
+    vec3 x = 2.0 * (gtf_Color.ggg - 0.5);
+    vec3 y = 2.0 * (gtf_Color.bbb - 0.5);
+    const float epsilon = 1.0e-4;
+    color = vec4(0.0, 0.0, 0.0, 1.0);
 
-	if(x[1] > epsilon || abs(y[1]) > epsilon)
-	{
-		color[1] = atan(y[1], x[1]) / (2.0 * M_PI) + 0.5;
-	}
+    // Avoid evaluating atan(0, x) for x < epsilon because it's implementation-dependent
+    if(x[0] > epsilon || abs(y[0]) > epsilon)
+    {
+        color[0] = atan(y[0], x[0]) / (2.0 * M_PI) + 0.5;
+    }
 
-	if(x[2] > epsilon || abs(y[2]) > epsilon)
-	{
-		color[2] = atan(y[2], x[2]) / (2.0 * M_PI) + 0.5;
-	}
-	
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    if(x[1] > epsilon || abs(y[1]) > epsilon)
+    {
+        color[1] = atan(y[1], x[1]) / (2.0 * M_PI) + 0.5;
+    }
+
+    if(x[2] > epsilon || abs(y[2]) > epsilon)
+    {
+        color[2] = atan(y[2], x[2]) / (2.0 * M_PI) + 0.5;
+    }
+
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

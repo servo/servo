@@ -31,7 +31,7 @@ varying vec4 tc;
 
 void main (void)
 {
-	tc = vec4(gtf_Color, 0.0, 0.0, 1.0);
+    tc = vec4(gtf_Color, 0.0, 0.0, 1.0);
 
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

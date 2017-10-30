@@ -72,7 +72,7 @@ typeInfo.forEach(function(typeInfo1) {
         var strVertexShader = wtu.replaceParams(wtu.getScript('vertexShader'), replaceParams);
         var glVertexShader = wtu.loadShader(gl, strVertexShader, gl.VERTEX_SHADER);
         assertMsg(glVertexShader != null, "Vertex shader compiled successfully.");
-        // Bind both a_1 and a_2 to the same position and verify the link fails.  
+        // Bind both a_1 and a_2 to the same position and verify the link fails.
         // Do so for all valid positions available.
         for (var l = 0; l < maxAttributes; l++) {
             var glProgram = gl.createProgram();

@@ -36,12 +36,12 @@ void  main(void){
  #if (x==8)
    #undef x
  #endif
- 
+
  #if 1
    #undef x
  #endif
 
- #if 1 
+ #if 1
    #define t4 4
  #endif
 
@@ -56,13 +56,13 @@ void  main(void){
        #if 1
          #undef test
        #endif
-       #if 0 
+       #if 0
         #undef test
        #else
           #if 0
              #undef test
           #else
-             #if 1 
+             #if 1
                 #undef test
              #else
                #undef test
@@ -75,6 +75,6 @@ void  main(void){
     #endif
    #endif
   #endif
- #endif 
-            
+ #endif
+
 }

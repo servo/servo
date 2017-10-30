@@ -29,7 +29,7 @@ precision mediump int;
 
 int radians(int f)
 {
-    return f; 
+    return f;
 }
 
 void main()

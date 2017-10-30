@@ -29,50 +29,50 @@ varying vec4 color;
 
 void main (void)
 {
-	int m = 12;
-	int n = 102;
-	bool result = true;
-	int r = m;	
+    int m = 12;
+    int n = 102;
+    bool result = true;
+    int r = m;
 
-	if( r==12 ) 
-		result = result && true;
-	else 
-		result = result && false;
-	
-	r += m;
+    if( r==12 )
+        result = result && true;
+    else
+        result = result && false;
 
-	if( r == 24 )
-		result = result && true;
-	else 
-		result = result && false;
+    r += m;
 
-	r-= m;
+    if( r == 24 )
+        result = result && true;
+    else
+        result = result && false;
 
-	if( r == 12 )
-		result = result && true;
-	else 
-		result = result && false;
+    r-= m;
 
-	r*= m;
+    if( r == 12 )
+        result = result && true;
+    else
+        result = result && false;
 
-	if ( r == 144 )
-		result = result && true;
-	else
-		result = result && false;
+    r*= m;
 
-	r/= m;
-	
-	// Integer divide can be implemented via float reciprocal,
-	// so the result need not be exact
-	if( r >= 11 && r <= 13 )
-		result = result && true;
-	else 
-		result = result && false;
+    if ( r == 144 )
+        result = result && true;
+    else
+        result = result && false;
 
-	float gray;
-	if( result )
-	gray=1.0;
-	else gray=0.0;
-	color = vec4(gray, gray, gray, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    r/= m;
+
+    // Integer divide can be implemented via float reciprocal,
+    // so the result need not be exact
+    if( r >= 11 && r <= 13 )
+        result = result && true;
+    else
+        result = result && false;
+
+    float gray;
+    if( result )
+    gray=1.0;
+    else gray=0.0;
+    color = vec4(gray, gray, gray, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

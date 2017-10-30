@@ -41,7 +41,7 @@ float bar(int i)
 void main (void)
 {
     const int x = 3;
-    mat4 a[4]; 
+    mat4 a[4];
     vec4 v;
 
     for (float f = 0.0; f != 3.0; ++f)
@@ -54,7 +54,7 @@ void main (void)
 
     vec3 v3_1 = v3[x];
 
-    float f1 = a[x][2].z * float(x);  
+    float f1 = a[x][2].z * float(x);
     f1 = a[x][2][2] * float(x);
     f1 = v[2] * v[1];
 

@@ -27,5 +27,5 @@ uniform sampler2D gtf_Texture0;
 
 void main (void)
 {
-	gl_FragColor = texture2D(gtf_Texture0, gl_PointCoord.st);
+    gl_FragColor = texture2D(gtf_Texture0, gl_PointCoord.st);
 }

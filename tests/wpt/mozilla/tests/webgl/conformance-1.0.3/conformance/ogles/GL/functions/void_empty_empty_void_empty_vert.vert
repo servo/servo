@@ -34,16 +34,16 @@ void function(void);
 
 void main (void)
 {
-	gray = 0.0;
+    gray = 0.0;
 
-	function();
+    function();
 
-	color = vec4(gray, gray, gray, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(gray, gray, gray, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }
 
 // Function definition.
 void function(void)
 {
-	gray = 1.0;
+    gray = 1.0;
 }

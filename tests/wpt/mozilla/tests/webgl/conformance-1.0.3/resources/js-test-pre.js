@@ -136,7 +136,7 @@ function debug(msg)
 {
     _addSpan(msg);
     if (_jsTestPreVerboseLogging) {
-        _logToConsole(msg);
+      _logToConsole(msg);
     }
 }
 
@@ -150,7 +150,7 @@ function testPassed(msg)
     reportTestResultsToHarness(true, msg);
     _addSpan('<span><span class="pass">PASS</span> ' + escapeHTML(msg) + '</span>');
     if (_jsTestPreVerboseLogging) {
-        _logToConsole('PASS ' + msg);
+      _logToConsole('PASS ' + msg);
     }
 }
 

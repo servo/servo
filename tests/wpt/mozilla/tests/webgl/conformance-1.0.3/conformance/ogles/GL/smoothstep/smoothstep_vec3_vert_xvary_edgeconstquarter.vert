@@ -30,8 +30,8 @@ varying vec4 color;
 
 void main (void)
 {
-	const vec3 edge0 = vec3(0.25, 0.25, 0.25);
-	const vec3 edge1 = vec3(0.75, 0.75, 0.75);
-	color = vec4(smoothstep(edge0, edge1, gtf_Color.rgb), 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    const vec3 edge0 = vec3(0.25, 0.25, 0.25);
+    const vec3 edge1 = vec3(0.75, 0.75, 0.75);
+    color = vec4(smoothstep(edge0, edge1, gtf_Color.rgb), 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

@@ -32,7 +32,7 @@ varying vec4 color;
 void main(void)
 {
   color = gtf_Color; // color is per vertex and matches glColor used
-  
+
    gl_Position = gtf_ModelViewProjectionMatrix* transforms * gtf_Vertex;
- 
+
 }

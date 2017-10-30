@@ -28,5 +28,5 @@ precision mediump float;
 #endif
 void main()
 {
-	float f = 2; // Should be 2.0
+    float f = 2; // Should be 2.0
 }

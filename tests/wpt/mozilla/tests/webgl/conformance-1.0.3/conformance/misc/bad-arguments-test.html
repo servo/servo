@@ -47,7 +47,10 @@ description("Tests calling WebGL APIs with wrong argument types");
 var context = wtu.create3DContext();
 var program = wtu.loadStandardProgram(context);
 var shader = wtu.loadStandardVertexShader(context);
-var shouldGenerateGLError = wtu.shouldGenerateGLError;
+
+function mayThrow(expression) {
+  wtu.shouldThrowOrGenerateGLError(context, [context.NO_ERROR, context.INVALID_VALUE, context.INVALID_OPERATION, context.INVALID_ENUM], expression);
+}
 
 assertMsg(program != null, "Program Compiled");
 assertMsg(shader != null, "Shader Compiled");
@@ -57,29 +60,25 @@ assertMsg(loc != null, "getUniformLocation succeeded");
 
 var testArguments = [
   { value: "foo",
-    throws: true },
+    throws: "yes" },
   { value: 0,
-    throws: true },
+    throws: "yes" },
   { value: null,
-    throws: false },
+    throws: "maybe" },
   { value: undefined,
-    throws: false }
+    throws: "maybe" }
 ];
 
 var argument;
 
-function shouldBeEmptyString(command) {
-  shouldBe(command, "''");
-}
-
 for (var i = 0; i < testArguments.length; ++i) {
   var func, func2;
-  if (testArguments[i].throws) {
+  if (testArguments[i].throws == "yes") {
     func = shouldThrow;
     func2 = shouldThrow;
   } else {
-    func = shouldBeUndefined;
-    func2 = shouldBeNull;
+    func = mayThrow;
+    func2 = shouldBeUndefined;
   }
   argument = testArguments[i].value;
   func("context.compileShader(argument)");
@@ -88,28 +87,27 @@ for (var i = 0; i < testArguments.length; ++i) {
   func("context.attachShader(argument, shader)");
   func("context.detachShader(program, argument)");
   func("context.detachShader(argument, shader)");
-  func("context.useProgram(argument)");
   func("context.shaderSource(argument, 'foo')");
   func("context.bindAttribLocation(argument, 0, 'foo')");
-  func("context.bindBuffer(context.ARRAY_BUFFER, argument)");
-  func("context.bindFramebuffer(context.FRAMEBUFFER, argument)");
-  func("context.bindRenderbuffer(context.RENDERBUFFER, argument)");
-  func("context.bindTexture(context.TEXTURE_2D, argument)");
-  func("context.framebufferRenderbuffer(context.FRAMEBUFFER, context.DEPTH_ATTACHMENT, context.RENDERBUFFER, argument)");
-  func("context.framebufferTexture2D(context.FRAMEBUFFER, context.COLOR_ATTACHMENT0, context.TEXTURE_2D, argument, 0)");
-  func("context.uniform2fv(argument, new Float32Array([0.0, 0.0]))");
-  func("context.uniform2iv(argument, new Int32Array([0, 0]))");
-  func("context.uniformMatrix2fv(argument, false, new Float32Array([0.0, 0.0, 0.0, 0.0]))");
+  func("context.getProgramInfoLog(argument)");
+  func("context.getProgramParameter(argument, 0)");
+  func("context.getShaderInfoLog(argument)");
+  func("context.getShaderParameter(argument, 0)");
+  func("context.getShaderSource(argument)");
+  func("context.getUniform(argument, loc)");
+  func("context.getUniform(program, argument)");
+  func("context.getUniformLocation(argument, 'u_modelViewProjMatrix')");
 
-  func2("context.getProgramInfoLog(argument)");
-  func2("context.getProgramParameter(argument, 0)");
-  func2("context.getShaderInfoLog(argument)");
-  func2("context.getShaderParameter(argument, 0)");
-  func2("context.getShaderSource(argument)");
-  func2("context.getUniform(argument, loc)");
-  func2("context.getUniform(program, argument)");
-  func2("context.getUniformLocation(argument, 'u_modelViewProjMatrix')");
-
+  func2("context.useProgram(argument)");
+  func2("context.bindBuffer(context.ARRAY_BUFFER, argument)");
+  func2("context.bindFramebuffer(context.FRAMEBUFFER, argument)");
+  func2("context.bindRenderbuffer(context.RENDERBUFFER, argument)");
+  func2("context.bindTexture(context.TEXTURE_2D, argument)");
+  func2("context.framebufferRenderbuffer(context.FRAMEBUFFER, context.DEPTH_ATTACHMENT, context.RENDERBUFFER, argument)");
+  func2("context.framebufferTexture2D(context.FRAMEBUFFER, context.COLOR_ATTACHMENT0, context.TEXTURE_2D, argument, 0)");
+  func2("context.uniform2fv(argument, new Float32Array([0.0, 0.0]))");
+  func2("context.uniform2iv(argument, new Int32Array([0, 0]))");
+  func2("context.uniformMatrix2fv(argument, false, new Float32Array([0.0, 0.0, 0.0, 0.0]))");
 }
 
 var successfullyParsed = true;

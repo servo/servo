@@ -87,6 +87,9 @@ function init()
 
     canvas.addEventListener("webglcontextlost", testLostContext, false);
 
+    // We need to initialize |uniformLocation| before losing context.
+    // Otherwise gl.getUniform() when context is lost will throw.
+    uniformLocation = gl.getUniformLocation(program, "tex");
     loseContext();
 }
 

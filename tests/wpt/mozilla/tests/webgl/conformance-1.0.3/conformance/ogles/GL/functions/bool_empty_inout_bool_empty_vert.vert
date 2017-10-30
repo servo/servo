@@ -32,34 +32,34 @@ bool function(inout bool par);
 
 void main (void)
 {
-	bool par = true;
-	bool ret = false;
+    bool par = true;
+    bool ret = false;
 
-	float gray = 0.0;
+    float gray = 0.0;
 
-	ret = function(par);
+    ret = function(par);
 
-	// The parameter should be changed by the function and the function should return true.
-	if(!par && ret)
-	{
-		gray = 1.0;
-	}
+    // The parameter should be changed by the function and the function should return true.
+    if(!par && ret)
+    {
+        gray = 1.0;
+    }
 
-	color = vec4(gray, gray, gray, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(gray, gray, gray, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }
 
 // Function definition.
 bool function(inout bool par)
 {
-	// Return the value of the parameter.
-	if(par)
-	{
-		// Test parameter qualifier (default is "in").
-		par = false;
+    // Return the value of the parameter.
+    if(par)
+    {
+        // Test parameter qualifier (default is "in").
+        par = false;
 
-		return true;
-	}
-	else
-		return false;
+        return true;
+    }
+    else
+        return false;
 }

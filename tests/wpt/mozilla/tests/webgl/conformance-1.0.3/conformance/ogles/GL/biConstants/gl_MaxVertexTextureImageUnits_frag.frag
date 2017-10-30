@@ -30,10 +30,10 @@ varying vec4 color;
 
 void main (void)
 {
-	// This test verifies that gl_MaxVertexTextureImageUnits is set and that its
-	// value is greater than or equal to the minimum value.
-	if(gl_MaxVertexTextureImageUnits >= 0)
-		gl_FragColor = vec4(1.0);
-	else
-		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    // This test verifies that gl_MaxVertexTextureImageUnits is set and that its
+    // value is greater than or equal to the minimum value.
+    if(gl_MaxVertexTextureImageUnits >= 0)
+        gl_FragColor = vec4(1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }

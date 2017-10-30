@@ -45,7 +45,7 @@ uniform float u_array[4];
 varying vec3 v_normal;
 
 void main()
-{ 
+{
     v_normal = a_normal;
     gl_Position = u_modelViewProjMatrix * a_vertex +
         vec4(u_struct.x, u_struct.y, 0, 1) +

@@ -48,7 +48,7 @@ void main()
 
     mat3 m1 = mat3(v,v,v);
     mat2 m2 = mat2(v, v6.x);
-    
+
     gl_Position = vec4(1.0);
 }
 

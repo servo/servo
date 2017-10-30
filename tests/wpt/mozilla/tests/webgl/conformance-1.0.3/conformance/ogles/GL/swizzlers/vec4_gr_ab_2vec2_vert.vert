@@ -30,10 +30,10 @@ varying vec4 color;
 
 void main (void)
 {
-	vec4 lightloc = gtf_Vertex;
-	vec2 m = lightloc.gr;
-	vec2 n = lightloc.ab;
-	vec4 a = vec4(m.g, m.r, n.g, n.r);
-	color = gtf_Color;
-	gl_Position = gtf_ModelViewProjectionMatrix * a;
+    vec4 lightloc = gtf_Vertex;
+    vec2 m = lightloc.gr;
+    vec2 n = lightloc.ab;
+    vec4 a = vec4(m.g, m.r, n.g, n.r);
+    color = gtf_Color;
+    gl_Position = gtf_ModelViewProjectionMatrix * a;
 }

@@ -42,7 +42,7 @@ void main(void)
  #error c
  #error "message to the user "
  #error message to the user
- #error 
+ #error
  #error
  #define t1 1
  sum = t1*t1;
@@ -71,7 +71,7 @@ int foo(int test)
 #prgma bind(off)
 #pragma bind
 #pragma (on)
-#pragma on (on) 
+#pragma on (on)
 #pragma optmize(on
 
- 
+

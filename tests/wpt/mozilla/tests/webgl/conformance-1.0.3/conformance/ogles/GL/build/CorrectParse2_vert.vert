@@ -33,7 +33,7 @@ void main (void)
     int int_1 = int(FloatConst1);
     vec4 vec4_1;
     vec3 vec3_1 = vec3(1, 1, 1);
-	vec3 vec3_2 = vec3(0, 0, 0);
+    vec3 vec3_2 = vec3(0, 0, 0);
 //  unsigned int unsigned_int_1;
     bool bool4, bool5;
 
@@ -48,11 +48,11 @@ void main (void)
     float1 = float(bool4);
     float1 = float(int_1);
     int_1 = int(float1);
-    int_1 = int(bool4); 
+    int_1 = int(bool4);
 
     {
         int a, b, c;
-        
+
         a = b;
         b = c;
         {
@@ -62,7 +62,7 @@ void main (void)
             c = d;
             {
                 int a, d, e;
-                
+
                 a = d;
                 d = e;
             }
@@ -120,7 +120,7 @@ void main (void)
         --int_1;
 
     bool4 = BoolConst1 && ! (int_1 != 0) && ! BoolConst1  && ! (FloatConst1 != 0.0) && (FloatConst1 != 0.0) && (float1 != 0.0);
-    
+
     float1 = 5 != 0 ? float1 : float(int_1);
     float1 = BoolConst1 ? float1 : float(int_1);
 

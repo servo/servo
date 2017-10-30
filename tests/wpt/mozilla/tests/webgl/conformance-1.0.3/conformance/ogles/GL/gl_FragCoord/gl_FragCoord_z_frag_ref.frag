@@ -30,13 +30,13 @@ varying vec4 position;
 
 void main(void)
 {
-	// Normalized device coordinates
-	float z = position.z / position.w;
-	float f = gl_DepthRange.far;
-	float n = gl_DepthRange.near;
+    // Normalized device coordinates
+    float z = position.z / position.w;
+    float f = gl_DepthRange.far;
+    float n = gl_DepthRange.near;
 
-	// Window coordinates
-	z = ((f - n) / 2.0) * z + (f + n) / 2.0;
+    // Window coordinates
+    z = ((f - n) / 2.0) * z + (f + n) / 2.0;
 
-	gl_FragColor = vec4(vec3(z), 1.0);
+    gl_FragColor = vec4(vec3(z), 1.0);
 }

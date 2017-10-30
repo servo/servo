@@ -30,10 +30,10 @@ varying vec4 color;
 
 void main (void)
 {
-	const float edge0 = 0.25;
-	const float edge1 = 0.75;
-	float c = clamp((gtf_Color.r - edge0) / (edge1 - edge0), 0.0, 1.0);
+    const float edge0 = 0.25;
+    const float edge1 = 0.75;
+    float c = clamp((gtf_Color.r - edge0) / (edge1 - edge0), 0.0, 1.0);
 
-	color = vec4(c * c * (3.0 - 2.0 * c), 0.0, 0.0, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(c * c * (3.0 - 2.0 * c), 0.0, 0.0, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

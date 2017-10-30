@@ -37,17 +37,17 @@ varying vec4  color;
 
 void main(void)
 {
-	vec3 result = vec3(0.0, 0.0, 0.0);
-  
+    vec3 result = vec3(0.0, 0.0, 0.0);
+
   /*
-	// No indirect indexing in fragment shaders
-	for(int j = 0; j < 3; j++)
-	{
-		result += testmat3[1][j];
-	}
+    // No indirect indexing in fragment shaders
+    for(int j = 0; j < 3; j++)
+    {
+        result += testmat3[1][j];
+    }
 */
-	result += testmat3[1][0];
-	result += testmat3[1][1];
-	result += testmat3[1][2];
-	gl_FragColor = vec4(result/2.0, 0.5);
+    result += testmat3[1][0];
+    result += testmat3[1][1];
+    result += testmat3[1][2];
+    gl_FragColor = vec4(result/2.0, 0.5);
 }

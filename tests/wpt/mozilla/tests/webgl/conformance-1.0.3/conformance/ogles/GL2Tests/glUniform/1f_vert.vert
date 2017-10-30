@@ -30,6 +30,6 @@ uniform float color;
 varying float col;
 void main (void)
 {
-	col = color;
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    col = color;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

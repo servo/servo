@@ -29,12 +29,12 @@ varying vec4 color;
 
 void main (void)
 {
-	// This test verifies that gl_MaxVertexTextureImageUnits is set and that its
-	// value is greater than or equal to the minimum value.
-	if(gl_MaxVertexTextureImageUnits >= 0)
-		color = vec4(1.0);
-	else
-		color = vec4(0.0, 0.0, 0.0, 1.0);
+    // This test verifies that gl_MaxVertexTextureImageUnits is set and that its
+    // value is greater than or equal to the minimum value.
+    if(gl_MaxVertexTextureImageUnits >= 0)
+        color = vec4(1.0);
+    else
+        color = vec4(0.0, 0.0, 0.0, 1.0);
 
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

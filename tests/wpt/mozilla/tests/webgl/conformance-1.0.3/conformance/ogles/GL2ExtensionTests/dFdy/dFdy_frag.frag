@@ -32,14 +32,14 @@ precision mediump float;
 // of the arithmetic used.
 #define SAFETY_BOUND 500.0
 
-// Macro to scale/bias the range of output.  If input is [-1.0, 1.0], maps to [0.5, 1.0]..  
+// Macro to scale/bias the range of output.  If input is [-1.0, 1.0], maps to [0.5, 1.0]..
 // Accounts for precision errors magnified by derivative operation.
 #define REDUCE_RANGE(A) ((A) + 3.0) / 4.0
 
 // This fragment shader computes an image representation of the derivative of
 // sine.  The derivative of sine is cosine.  This shader's output is compared to
 // the reference shader that computes an image representation of cosine
-// directly.  
+// directly.
 
 uniform float viewportwidth;
 uniform float viewportheight;
@@ -48,21 +48,21 @@ varying vec2 vertXY;
 
 void main (void)
 {
-	const float M_PI = 3.14159265358979323846;
-	float sine;
-	float cosine;
+    const float M_PI = 3.14159265358979323846;
+    float sine;
+    float cosine;
 
 #ifdef GL_OES_standard_derivatives
-	sine = sin(fract(gl_FragCoord.y / 128.0) * (2.0 * M_PI));
-	cosine = REDUCE_RANGE((128.0 / (2.0 * M_PI)) * dFdy(sine));
+    sine = sin(fract(gl_FragCoord.y / 128.0) * (2.0 * M_PI));
+    cosine = REDUCE_RANGE((128.0 / (2.0 * M_PI)) * dFdy(sine));
 #else
         cosine = 0.5;
 #endif
 
-	if( gl_FragCoord.y < SAFETY_BOUND )
-	{
-		gl_FragColor = vec4(cosine, cosine, cosine, 1.0);
-	}
-	else discard;
+    if( gl_FragCoord.y < SAFETY_BOUND )
+    {
+        gl_FragColor = vec4(cosine, cosine, cosine, 1.0);
+    }
+    else discard;
 }
 

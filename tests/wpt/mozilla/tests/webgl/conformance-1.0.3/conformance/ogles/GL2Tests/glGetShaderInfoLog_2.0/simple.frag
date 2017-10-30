@@ -30,6 +30,6 @@ varying vec3 tc;
 
 void main (void)
 {
-	vec3 foo = tc;
-	gl_FragColor = vec4 (foo, 1.0);
+    vec3 foo = tc;
+    gl_FragColor = vec4 (foo, 1.0);
 }

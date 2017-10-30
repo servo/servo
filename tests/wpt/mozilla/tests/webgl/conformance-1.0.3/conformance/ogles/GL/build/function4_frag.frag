@@ -28,9 +28,9 @@ precision mediump float;
 #endif
 uniform int uniformInt;
 
-void function(out int i)  
+void function(out int i)
 {
-    i = 1; 
+    i = 1;
 }
 
 void main()

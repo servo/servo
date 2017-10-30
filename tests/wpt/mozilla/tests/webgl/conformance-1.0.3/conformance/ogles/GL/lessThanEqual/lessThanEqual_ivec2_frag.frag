@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	vec2 c = floor(10.0 * color.rg - 4.5);   // round to the nearest integer
-	vec2 result = vec2(lessThanEqual(ivec2(c), ivec2(0))); 
-	gl_FragColor = vec4(result, 0.0, 1.0);
+    vec2 c = floor(10.0 * color.rg - 4.5);   // round to the nearest integer
+    vec2 result = vec2(lessThanEqual(ivec2(c), ivec2(0)));
+    gl_FragColor = vec4(result, 0.0, 1.0);
 }

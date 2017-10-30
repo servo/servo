@@ -27,25 +27,25 @@
 precision mediump float;
 #endif
 
-uniform float	mortarThickness;
-uniform vec3	brickColor;
-uniform vec3	mortarColor;
+uniform float    mortarThickness;
+uniform vec3    brickColor;
+uniform vec3    mortarColor;
 
-uniform float	brickMortarWidth;
-uniform float	brickMortarHeight;
-uniform float	mwf;
-uniform float	mhf;
+uniform float    brickMortarWidth;
+uniform float    brickMortarHeight;
+uniform float    mwf;
+uniform float    mhf;
 
 varying vec3  Position;
 varying float lightIntensity;
 
 void main (void)
 {
-    vec3	ct;
-    float	ss, tt, w, h;
+    vec3    ct;
+    float    ss, tt, w, h;
 
     vec3 pos = Position;
-    
+
     ss = pos.x / brickMortarWidth;
     tt = pos.z / brickMortarHeight;
 

@@ -38,16 +38,16 @@ varying vec4  color;
 void main(void)
 {
      vec3 result = vec3(0.0, 0.0, 0.0);
-  
+
      for(int j = 0; j < 3; j++)
      {
-	result += testmat3[1][j];
+    result += testmat3[1][j];
      }
-     
-    
+
+
      color = vec4(result/2.0, 0.5);
 
      gl_Position     = gtf_ModelViewProjectionMatrix * gtf_Vertex;
-   
-  
+
+
 }

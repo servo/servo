@@ -27,7 +27,6 @@ functions/deleteBufferBadArgs.html
 functions/drawArrays.html
 functions/drawArraysOutOfBounds.html
 functions/drawElements.html
-functions/drawElementsBadArgs.html
 functions/isTests.html
 --min-version 1.0.2 functions/isTestsBadArgs.html
 functions/readPixels.html

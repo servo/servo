@@ -44,14 +44,14 @@
   <script id="vshader" type="x-shader/x-vertex">
     // Inputs
     attribute vec4 aPosInfo;
-	
+
     // Outputs
     varying   vec2 vTargetPixelCoord;
-     
+
     void main()
-    { 
+    {
       vTargetPixelCoord = aPosInfo.zw;
-      
+
       gl_PointSize = 1.0;
       gl_Position  = vec4(aPosInfo.xy, 0.0, 1.0);
     }
@@ -61,20 +61,20 @@
     precision mediump float;
 
     // Inputs
-    varying vec2 vTargetPixelCoord; 
+    varying vec2 vTargetPixelCoord;
 
-    // Colors used to signal correctness  
+    // Colors used to signal correctness
     const vec4 red   = vec4(1.0, 0.0, 0.0, 1.0);
     const vec4 green = vec4(0.0, 1.0, 0.0, 1.0);
-    
+
     void main()
     {
       // Check pixel index
       bool pixelIxValid   = (floor(gl_FragCoord.xy) == vTargetPixelCoord);
-      
+
       // Check fractional part of coordinates
       bool fracCoordValid = all(lessThan(abs(fract(gl_FragCoord.xy) - vec2(0.5)), vec2(0.0001)));
-       
+
       gl_FragColor = (pixelIxValid && fracCoordValid) ? green : red;
     }
   </script>
@@ -88,33 +88,33 @@
     precision mediump float;
 
     // Inputs
-    varying vec2 vTargetPixelCoord; 
+    varying vec2 vTargetPixelCoord;
 
     const vec2 pixSize = vec2(2.0/32.0, 2.0/32.0);
-    
+
     void main()
     {
       // Coordinates within a framebuffer pixel [0, 1>
       vec2 inPixelCoord = fract(vTargetPixelCoord / pixSize);
 
       // Create different color dependent on the position inside the framebuffer pixel
-      float r = (inPixelCoord.x < 0.4) ? 0.2 : (inPixelCoord.x > 0.6) ? 0.8 : 0.5;  
-      float g = (inPixelCoord.y < 0.4) ? 0.2 : (inPixelCoord.y > 0.6) ? 0.8 : 0.5;  
-             
+      float r = (inPixelCoord.x < 0.4) ? 0.2 : (inPixelCoord.x > 0.6) ? 0.8 : 0.5;
+      float g = (inPixelCoord.y < 0.4) ? 0.2 : (inPixelCoord.y > 0.6) ? 0.8 : 0.5;
+
       gl_FragColor = vec4(r, g, 0.0, 1.0);
     }
   </script>
 
   <script>
     "use strict";
-    
+
     // Test if gl_FragCoord.xy values are always of the form :
     // (first framebuffer pixel index + 0.5, second framebuffer pixel index + 0.5)
     // (if no multisampling)
-    
-    // This is done by rendering a set of points which targets either the center of the 
+
+    // This is done by rendering a set of points which targets either the center of the
     // output pixel or the center of one of the quadrants
-     
+
     // Constants
     var floatsPerAttribute = 4;
 
@@ -125,48 +125,48 @@
     var vxBuffer;
 
     // Set data for one attribute (framebuffer.xy, pixel_index.xy)
-    function setPixelData(data, dIx, xx, yy, xSize, ySize, xOffset, yOffset) 
+    function setPixelData(data, dIx, xx, yy, xSize, ySize, xOffset, yOffset)
     {
       // Frame buffer first coordinate [-1, 1]
-      data[dIx++] = (xx + 0.5) * xSize + xOffset - 1; 
+      data[dIx++] = (xx + 0.5) * xSize + xOffset - 1;
 
       // Frame buffer second coordinate [-1, 1]
       data[dIx++] = (yy + 0.5) * ySize + yOffset - 1;
-      
+
       // Frame buffer pixel first index
-      data[dIx++] = xx; 
+      data[dIx++] = xx;
 
       // Frame buffer pixel second index
-      data[dIx++] = yy; 
+      data[dIx++] = yy;
 
-      return dIx; 
+      return dIx;
     }
 
     // Create attribute data
-    function createAttributeData(xOffset, yOffset) 
+    function createAttributeData(xOffset, yOffset)
     {
       // Retrieve realised dimensions of viewport
       var widthPx    = gl.drawingBufferWidth;
       var heightPx   = gl.drawingBufferHeight;
-      var pixelCount = widthPx * heightPx;      
+      var pixelCount = widthPx * heightPx;
 
       // Pixel size in framebuffer coordinates
       var pWidth  = 2 / widthPx;
-      var pHeight = 2 / heightPx; 
+      var pHeight = 2 / heightPx;
       var data = new Float32Array(pixelCount * floatsPerAttribute);
       var dIx = 0;
-      for (var yy = 0; yy < heightPx; ++yy) 
-        for (var xx = 0; xx < widthPx; ++xx) 
+      for (var yy = 0; yy < heightPx; ++yy)
+        for (var xx = 0; xx < widthPx; ++xx)
           dIx = setPixelData(data, dIx, xx, yy, pWidth, pHeight,  xOffset * pWidth,  yOffset * pHeight);
-        
+
       if (dIx !== data.length)
         wtu.error("gl-fragcoord-xy-values.html, createAttributeData(), index not correct at end");
 
-      return data;    
+      return data;
     }
-        
-    // Initialize test        
-    function init() 
+
+    // Initialize test
+    function init()
     {
       description("tests gl_FragCoord.xy values");
 
@@ -174,13 +174,13 @@
       gl       = wtu.create3DContext("canvas", { antialias: false });
       program  = wtu.setupProgram(gl, ["vshader", "fshader"], ["aPosInfo"]);
       vxBuffer = gl.createBuffer();
-      
+
       gl.bindBuffer(gl.ARRAY_BUFFER, vxBuffer);
       gl.enableVertexAttribArray(0);
       gl.vertexAttribPointer(0, floatsPerAttribute, gl.FLOAT, false, 0, 0);
     }
-        
-    // Render data        
+
+    // Render data
     function render(xOffset, yOffset, passMsg)
     {
       // Set attribute data
@@ -194,7 +194,7 @@
       wtu.checkCanvas(gl, green, passMsg);
     }
 
-    // Run tests    
+    // Run tests
     init();
     render( 0,     0,    "green : sampling at center of output pixel is correct");
     render( 0.25,  0.25, "green : sampling in top right quadrant of output pixel is correct");

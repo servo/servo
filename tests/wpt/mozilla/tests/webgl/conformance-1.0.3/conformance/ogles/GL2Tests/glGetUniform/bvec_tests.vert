@@ -33,7 +33,7 @@ varying vec4 color;
 
 void main (void)
 {
-	if(vuni1 || vuni2[0] && vuni2[1] && vuni3[0] && vuni3[1] && vuni3[2] || vuni4[0] && vuni4[1] && vuni4[2] && vuni4[3])
-	color = vec4(1.0, 0.0, 0.5, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    if(vuni1 || vuni2[0] && vuni2[1] && vuni3[0] && vuni3[1] && vuni3[2] || vuni4[0] && vuni4[1] && vuni4[2] && vuni4[3])
+    color = vec4(1.0, 0.0, 0.5, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

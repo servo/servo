@@ -30,11 +30,11 @@ varying vec4 color;
 
 void main (void)
 {
-	const float M_PI = 3.14159265358979323846;
+    const float M_PI = 3.14159265358979323846;
 
-	// Both are unit vectors
-	float v1 = (color.g * 2.0) - 1.0;
-	float v2 = (color.b * 2.0) - 1.0;
+    // Both are unit vectors
+    float v1 = (color.g * 2.0) - 1.0;
+    float v2 = (color.b * 2.0) - 1.0;
 
-	gl_FragColor = vec4((faceforward(v1, v2, v1) + 1.0) / 2.0, 0.0, 0.0, 1.0);
+    gl_FragColor = vec4((faceforward(v1, v2, v1) + 1.0) / 2.0, 0.0, 0.0, 1.0);
 }

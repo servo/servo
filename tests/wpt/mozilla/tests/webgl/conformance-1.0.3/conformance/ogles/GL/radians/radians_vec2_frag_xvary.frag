@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	const float M_PI = 3.14159265358979323846;
-	vec2 c = 360.0 * 2.0 * (color.rg - 0.5);
-	gl_FragColor = vec4(radians(c) / (4.0 * M_PI) + 0.5, 0.0, 1.0);
+    const float M_PI = 3.14159265358979323846;
+    vec2 c = 360.0 * 2.0 * (color.rg - 0.5);
+    gl_FragColor = vec4(radians(c) / (4.0 * M_PI) + 0.5, 0.0, 1.0);
 }

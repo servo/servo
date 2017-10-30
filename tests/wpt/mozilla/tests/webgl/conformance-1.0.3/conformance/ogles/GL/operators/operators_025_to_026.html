@@ -48,52 +48,52 @@ OpenGLESTestRunner.run({
   "tests": [
     {
       "referenceProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "uniforms": {
           "result": {
-            "count": 1, 
-            "type": "uniform4fv", 
+            "count": 1,
+            "type": "uniform4fv",
             "value": [
-              1.0, 
-              1.0, 
-              1.0, 
+              1.0,
+              1.0,
+              1.0,
               1.0
             ]
           }
-        }, 
+        },
         "fragmentShader": "../default/expected.frag"
-      }, 
-      "model": null, 
+      },
+      "model": null,
       "testProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "fragmentShader": "assignments_frag.frag"
-      }, 
-      "name": "assignments_frag.test.html", 
+      },
+      "name": "assignments_frag.test.html",
       "pattern": "compare"
-    }, 
+    },
     {
       "referenceProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "uniforms": {
           "result": {
-            "count": 1, 
-            "type": "uniform4fv", 
+            "count": 1,
+            "type": "uniform4fv",
             "value": [
-              1.0, 
-              1.0, 
-              1.0, 
+              1.0,
+              1.0,
+              1.0,
               1.0
             ]
           }
-        }, 
+        },
         "fragmentShader": "../default/expected.frag"
-      }, 
-      "model": null, 
+      },
+      "model": null,
       "testProgram": {
-        "vertexShader": "assignments_vert.vert", 
+        "vertexShader": "assignments_vert.vert",
         "fragmentShader": "../default/default.frag"
-      }, 
-      "name": "assignments_vert.test.html", 
+      },
+      "name": "assignments_vert.test.html",
       "pattern": "compare"
     }
   ]

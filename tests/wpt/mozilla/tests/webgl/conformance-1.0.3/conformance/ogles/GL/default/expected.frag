@@ -30,5 +30,5 @@ uniform vec4 result;
 
 void main (void)
 {
-	gl_FragColor = result;
+    gl_FragColor = result;
 }

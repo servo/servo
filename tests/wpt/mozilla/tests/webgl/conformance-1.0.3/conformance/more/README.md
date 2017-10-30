@@ -22,7 +22,7 @@ Want to contribute?
 
   1. Fork this repo
   2. Run <code>gen_tests.rb</code>
-  3. Look into templates/ to see which functions lack tests (also see <a href="../raw/master/methods.txt">methods.txt</a> and <a href="http://dxr.mozilla.org/mozilla-central/source/dom/interfaces/canvas/nsICanvasRenderingContextWebGL.idl">nsICanvasRenderingContextWebGL.idl</a>):
+  3. Look into templates/ to see which functions lack tests (also see <a href="../raw/master/methods.txt">methods.txt</a> and <a href="http://mxr.mozilla.org/mozilla-central/source/dom/interfaces/canvas/nsICanvasRenderingContextWebGL.idl">nsICanvasRenderingContextWebGL.idl</a>):
     1. copy methodName.html to functions/methodName.html and write tests that test the results of valid inputs.
     2. copy methodNameBadArgs.html to functions/methodNameBadArgs.html and write tests to assert that invalid inputs throw exceptions.
     3. If your test causes a segfault, add the following to the top of the script tag: <code>Tests.autorun = false; Tests.message = "Caution: this may crash your browser";</code>

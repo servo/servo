@@ -30,8 +30,8 @@ varying vec2 vertXY;
 
 void main (void)
 {
-	vertXY = gtf_Vertex.xy;
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    vertXY = gtf_Vertex.xy;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }
 
 

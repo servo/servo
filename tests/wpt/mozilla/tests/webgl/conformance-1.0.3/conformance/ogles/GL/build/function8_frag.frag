@@ -26,7 +26,7 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-void function(const inout int i)  
+void function(const inout int i)
 {  // inout parameters cannot be const
    i = 3;
 }
@@ -34,7 +34,7 @@ void function(const inout int i)
 void main()
 {
     int i;
-    function(i);  
+    function(i);
 }
 
 

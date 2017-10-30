@@ -30,5 +30,5 @@ uniform bvec4 color;
 
 void main (void)
 {
-	gl_FragColor = vec4 (float(color[1]), float(color[2]), float(color[3]), 1.0);
+    gl_FragColor = vec4 (float(color[1]), float(color[2]), float(color[3]), 1.0);
 }

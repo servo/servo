@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	vec3 c = floor(4.0 * gtf_Color.rgb);   // 3/4 true, 1/4 false
-	color = vec4(vec3(all(bvec3(c))), 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    vec3 c = floor(4.0 * gtf_Color.rgb);   // 3/4 true, 1/4 false
+    color = vec4(vec3(all(bvec3(c))), 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

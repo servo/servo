@@ -32,7 +32,7 @@ precision mediump float;
 // of the arithmetic used.
 #define SAFETY_BOUND 500.0
 
-// Macro to scale/bias the range of output.  If input is [-1.0, 1.0], maps to [0.5, 1.0]..  
+// Macro to scale/bias the range of output.  If input is [-1.0, 1.0], maps to [0.5, 1.0]..
 // Accounts for precision errors magnified by derivative operation.
 #define REDUCE_RANGE(A) ((A) + 3.0) / 4.0
 
@@ -44,21 +44,21 @@ varying vec2 vertXY;
 
 void main (void)
 {
-	const float M_PI = 3.14159265358979323846;
-	float func;
+    const float M_PI = 3.14159265358979323846;
+    float func;
 
-	if( (gl_FragCoord.x < SAFETY_BOUND) && (gl_FragCoord.y < SAFETY_BOUND) )
-	{
-		// average of horizontal and vertical abs cosine waves with periods of 128 pixels
+    if( (gl_FragCoord.x < SAFETY_BOUND) && (gl_FragCoord.y < SAFETY_BOUND) )
+    {
+        // average of horizontal and vertical abs cosine waves with periods of 128 pixels
 
 #ifdef GL_OES_standard_derivatives
-		func = REDUCE_RANGE(0.5 * (abs(cos(fract(gl_FragCoord.x / 128.0) * (2.0 * M_PI))) + abs(cos(fract(gl_FragCoord.y / 128.0) * (2.0 * M_PI)))));
+        func = REDUCE_RANGE(0.5 * (abs(cos(fract(gl_FragCoord.x / 128.0) * (2.0 * M_PI))) + abs(cos(fract(gl_FragCoord.y / 128.0) * (2.0 * M_PI)))));
 #else
     func = 0.5;
 #endif
 
-		gl_FragColor = vec4(func, func, func, 1.0);
-	}
-	else discard;
+        gl_FragColor = vec4(func, func, func, 1.0);
+    }
+    else discard;
 }
 

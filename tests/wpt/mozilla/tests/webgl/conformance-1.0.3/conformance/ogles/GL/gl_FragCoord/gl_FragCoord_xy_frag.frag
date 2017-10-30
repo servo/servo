@@ -31,6 +31,6 @@ uniform float viewportheight;
 
 void main(void)
 {
-	// The image width is 500 so scale the position to 0...1 for color
-	gl_FragColor = vec4(gl_FragCoord.x /viewportwidth , gl_FragCoord.y/viewportheight, 0.0, 1.0);
+    // The image width is 500 so scale the position to 0...1 for color
+    gl_FragColor = vec4(gl_FragCoord.x /viewportwidth , gl_FragCoord.y/viewportheight, 0.0, 1.0);
 }

@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	const float max_c = 0.5;
-	float c = color.r;
-	gl_FragColor = vec4(max(c, max_c), 0.0, 0.0, 1.0);
+    const float max_c = 0.5;
+    float c = color.r;
+    gl_FragColor = vec4(max(c, max_c), 0.0, 0.0, 1.0);
 }

@@ -30,6 +30,6 @@ varying vec4 color;
 
 void main (void)
 {
-	vec3 c = floor(4.0 * color.rgb);   // 3/4 true, 1/4 false
-	gl_FragColor = vec4(vec3(all(bvec3(c))), 1.0);
+    vec3 c = floor(4.0 * color.rgb);   // 3/4 true, 1/4 false
+    gl_FragColor = vec4(vec3(all(bvec3(c))), 1.0);
 }

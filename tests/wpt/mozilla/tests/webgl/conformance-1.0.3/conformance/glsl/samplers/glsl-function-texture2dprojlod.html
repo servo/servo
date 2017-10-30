@@ -107,7 +107,7 @@ function runTest() {
     var program = wtu.setupProgram(
         gl, ['vshader2d' + ss, 'fshader2d'], ['vPosition', 'texCoord0'], [0, 1]);
     wtu.setupUnitQuad(gl, 0, 1);
-    
+
     var tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(
@@ -129,7 +129,7 @@ function runTest() {
       ctx.fillRect(0, 0, size, size);
       ctx.fillStyle = "rgb(" + color.color[0] + "," + color.color[1] + "," + color.color[2] + ")";
       ctx.fillRect(size / 2, 0, size / 2, size / 2);
-      
+
       gl.texImage2D(gl.TEXTURE_2D, ii, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
     }
 

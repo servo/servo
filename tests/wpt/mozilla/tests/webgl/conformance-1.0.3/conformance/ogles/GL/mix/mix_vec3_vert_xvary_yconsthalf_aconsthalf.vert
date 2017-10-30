@@ -30,8 +30,8 @@ varying vec4 color;
 
 void main (void)
 {
-	const vec3 y = vec3(0.5, 0.5, 0.5);
-	const vec3 a = vec3(0.5, 0.5, 0.5);
-	color = vec4(mix(gtf_Color.rgb, y, a), 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    const vec3 y = vec3(0.5, 0.5, 0.5);
+    const vec3 a = vec3(0.5, 0.5, 0.5);
+    color = vec4(mix(gtf_Color.rgb, y, a), 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

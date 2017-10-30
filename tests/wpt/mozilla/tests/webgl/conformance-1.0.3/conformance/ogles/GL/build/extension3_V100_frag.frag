@@ -26,7 +26,7 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-#extension foo : require  // error extension not supported 
+#extension foo : require  // error extension not supported
 
 void main()
 {

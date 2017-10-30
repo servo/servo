@@ -30,21 +30,21 @@ void main()
     };
     const struct s {
         int i;
-    	float j;
+        float j;
       s5 s55;
     } ss = s(4,1.0, s5(1.0));
 
 
-   const struct s2 { 
+   const struct s2 {
        int i;
-       vec3 v3; 
+       vec3 v3;
        bvec4 bv4;
    } s22  = s2(8, vec3(9, 10, 11), bvec4(true, false, true, false));
 
   struct s4 {
           int ii;
           vec4 v4;
-      };  
+      };
 
    const struct s1 {
       s2 ss;
@@ -60,7 +60,7 @@ void main()
        mat3 m3;
    } s77 = s7(12, mat3(15));
 
-  vec2       v21 = vec2(1);  // Not a constant 
+  vec2       v21 = vec2(1);  // Not a constant
   const vec2 v22 = vec2(11); // 11.0, 11.0
   const vec4 v41 = vec4(2);  // 2.0, 2.0, 2.0, 2.0
   const vec4 v43 = vec4(4,4,4,4); // 4.0, 4.0, 4.0, 4.0
@@ -69,18 +69,18 @@ void main()
   const vec4 v46 = vec4(vec2(20, 21), vec2(22, 23));  // 20.0, 21.0, 22.0, 23.0
 
   const vec3 v31 = vec3(s22.v3);  // 9.0, 10.0, 11.0
-  const vec3 v32 = vec3(s77.m3);  // 15.0, 0, 0 
+  const vec3 v32 = vec3(s77.m3);  // 15.0, 0, 0
   const vec3 v33 = vec3(s77.m3[2]); // 0, 0, 15.0
   const vec3 v34 = vec3(s77.m3[2][0]);  // 0,0,0
 
-  
+
   const mat4 m41 = mat4(1);  // 1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1
   const mat4 m42 = mat4(v44, v44, v44, v44);  // all 5s
   const mat4 m43 = mat4( v43.x);  // 4,0,0,0,0,4,0,0,0,0,0,4,0,0,0,0,0,4
 
   const vec4 v47 = vec4(m41[0][0]);  // 1.0,1.0,1.0,1.0
 
-  const mat4 m45 = mat4(s22.v3, v44, v45, v32, 50, 52);  //9,10,11,5,5,5,5,11,11,11,11,15.0, 0,0, 50.0, 52.0 
+  const mat4 m45 = mat4(s22.v3, v44, v45, v32, 50, 52);  //9,10,11,5,5,5,5,11,11,11,11,15.0, 0,0, 50.0, 52.0
   //const mat3 m31 = mat3(1, mat2(1), 2.0, vec3(1));  // 1.0, 1,0,0,1,2,1,1,1
   const vec4 v48 = vec4(v31[0], v22[1], v41[0], v43[3]);  //9, 11, 2, 4
   const vec4 v49 = vec4(s22.v3.xy, s22.v3.zx); // 9,10,11,9
@@ -90,18 +90,18 @@ void main()
   const vec4 v412 = vec4(m43[2]);  // 0,0,4,0
 
   const vec2 v23 = vec2(m41);  // 1,0
-  
+
   const vec2 v24 = vec2(33, s11.i);  // 33, 2
 
-  const vec4 v413 = vec4(vec2(1.0,2.0),ivec2(3.0,4.0));  // 1,2,3,4 
+  const vec4 v413 = vec4(vec2(1.0,2.0),ivec2(3.0,4.0));  // 1,2,3,4
   const ivec4 i41 = ivec4(1.0, 2.0, 3.0, 4.0);  // 1,2,3,4
-  
+
   const ivec4 i42 = ivec4(6);  // 6,6,6,6
   const ivec4 i43 = ivec4(v45);  //11,11,11,11
 
   const ivec4 i44 = ivec4(v44[0]);  // 5,5,5,5
   const ivec4 i45 = ivec4(vec2(20, 21), vec2(22, 23));  // 20, 21, 22, 23
-  const vec4 v414 = vec4(ivec2(29, 30), ivec2(31, 32)); // 29.0, 30.0, 31.0, 32.0 
+  const vec4 v414 = vec4(ivec2(29, 30), ivec2(31, 32)); // 29.0, 30.0, 31.0, 32.0
   const ivec4 i46 = ivec4(ivec2(2.0,3.0), ivec3(4.0,5.0,6.0));
   const ivec4 i47 = ivec4(i46);  // 2,3,4,5
   const ivec4 i48 = ivec4(v414.x);  // 29,29,29,29
@@ -113,10 +113,10 @@ void main()
   const ivec4 i412 = ivec4(s77.i); // 12, 12, 12, 12
   const ivec4 i416 = ivec4(s22.v3.zyx, 12);  // 11, 10, 9, 12
 
-  const vec4 v415 = vec4(ivec2(35), ivec2(36)); // 35.0, 35.0 ,36.0 , 36.0 
+  const vec4 v415 = vec4(ivec2(35), ivec2(36)); // 35.0, 35.0 ,36.0 , 36.0
 
   const bvec4 b41 = bvec4(1.0, 2.0, 3.0, 4.0);  // true,true,true,true
-  
+
   const bvec4 b42 = bvec4(6);  // true,true,true,true
   const bvec4 b43 = bvec4(v45);  //true,true,true,true
 
@@ -141,7 +141,7 @@ void main()
   struct s9 {
        float f;
       s10 s101;
-   }; 
+   };
   const struct s8 {
       int i;
       s9 s99;
@@ -159,7 +159,7 @@ void main()
    struct st2 {
        float f;
        st3 st33;
-  }; 
+  };
   const struct st1 {
       int i;
       st2 st22;
@@ -184,29 +184,29 @@ void main()
   } struct11 = struct1(struct2(2));
 
   const vec4 v420 = v417;  // 7.0, 8.0, 9.0 , 5.0
-  
+
   vec4 v421 = vec4(s11.m);  // 5, 0, 0, 0
   vec4 v422 = v420;  // 7.0, 8.0, 9.0 , 5.0
 
   vec4 v423 = s11.s44.v4;   // 7, 8, 9, 10
-  
+
   int int1 = ss.i * ss.i;  // 16
   int int2 = ss.i * 2;  // 8
 
   const vec4 v425 = v420 * v420;  // 49, 64, 81, 25
   const vec4 v426 = s11.m * s11.s44.v4; // 35, 40, 45, 50
   const vec4 v427 = s11.s44.v4 * s11.m; // 35, 40, 45, 50
-  
-  float ff = 2.0; 
+
+  float ff = 2.0;
   const float ffConst = 2.0;
-  
+
   vec4 v428 = ff + v425;  // ordinary assignment with binary node
   vec3 v39 = vec3(5);
 
   vec3 v310 = s22.v3 + v39;  //14, 15, 16
 
   const vec4 v429 = v420 + v420; // 14, 16, 18, 10
-  const vec4 v430 = v420 + ffConst;  // 9, 10, 11,7 
+  const vec4 v430 = v420 + ffConst;  // 9, 10, 11,7
   const vec4 v432 =  v429 + s11.f;  // 18, 20, 22, 14
 
   const vec4 v433 = vec4(s11.f + s11.f);  // all 8s
@@ -216,16 +216,16 @@ void main()
   const mat4 m410 = m48 + s11.f;  // diagonal 11, others - 6s
 
   const mat4 m413 = m48 + m48 ; // diagonal 14, others 4
-  const mat4 m414 = m413 + ffConst ; // diagonal 16, others 6 
+  const mat4 m414 = m413 + ffConst ; // diagonal 16, others 6
 
-  const vec4 v435 = ffConst + v420;  // 9, 10, 11,7 
+  const vec4 v435 = ffConst + v420;  // 9, 10, 11,7
   const vec4 v436 =  s11.f + v429;  // 18, 20, 22, 14
   const mat4 m415 = ffConst + s11.m;  // diagonal 7s and others 2s
   const mat4 m416 = s11.f + m48 ;  // diagonal 11, others - 6s
-  const mat4 m417 = ffConst + m413 ; // diagonal 16, others 6 
+  const mat4 m417 = ffConst + m413 ; // diagonal 16, others 6
 
   const vec4 v437 = v420 - v420; // 0, 0, 0, 0
-  const vec4 v438 = v420 - ffConst;  // 5, 6, 7,3 
+  const vec4 v438 = v420 - ffConst;  // 5, 6, 7,3
   const vec4 v440 =  v429 - s11.f;  // 10, 12, 14, 6
 
   const vec4 v441 = vec4(s11.f - s11.f);  // all 0s
@@ -235,16 +235,16 @@ void main()
   const mat4 m420 = m48 - s11.f;  // diagonal 3, others -> -2
 
   const mat4 m423 = m48 - m48 ; // All 0s
-  const mat4 m424 = m413 - ffConst ; // diagonal 12, others 2 
+  const mat4 m424 = m413 - ffConst ; // diagonal 12, others 2
 
-  const vec4 v443 = ffConst - v420;  // -5, -6, -7,-3 
+  const vec4 v443 = ffConst - v420;  // -5, -6, -7,-3
   const vec4 v444 =  s11.f - v429;  // -10, -12, -14, -6
   const mat4 m425 = ffConst - s11.m;  // diagonal -3s and others 2s
   const mat4 m426 = s11.f - m48 ;  // diagonal -3, others  2s
-  const mat4 m427 = ffConst - m413 ; // diagonal -12, others -2 
+  const mat4 m427 = ffConst - m413 ; // diagonal -12, others -2
 
   const vec4 v445 = v420 * v420; // 49, 64, 81, 25
-  const vec4 v446 = v420 * ffConst;  // 14, 16, 18,10 
+  const vec4 v446 = v420 * ffConst;  // 14, 16, 18,10
   const vec4 v448 =  v429 * s11.f;  // 56, 46, 72, 40
 
   const vec4 v449 = vec4(s11.f * s11.f);  // all 16
@@ -254,25 +254,25 @@ void main()
   const mat4 m430 = m48 * s11.f;  // diagonal 28, others 8
 
   const mat4 m433 = m48 * m48 ; // diagonal 61, others 36
-  const mat4 m434 = m413 * ffConst ; // diagonal 28, others 8 
+  const mat4 m434 = m413 * ffConst ; // diagonal 28, others 8
 
-  const vec4 v451 = ffConst * v420;  // 14, 16, 18,10 
+  const vec4 v451 = ffConst * v420;  // 14, 16, 18,10
   const vec4 v452 =  s11.f * v429;  // 56, 64, 72, 40
   const mat4 m435 = ffConst * s11.m;  //  diagonal 10 and others 0s
   const mat4 m436 = s11.f * m48 ;  // diagonal 28, others - 8s
   const mat4 m437 = ffConst * m413 ; // diagonal 28, others 8
 
   const vec4 v453 = v420 / v420; // 1, 1, 1, 1
-  const vec4 v454 = v420 / ffConst;  // 3.5, 4, 4.5,2.5 
+  const vec4 v454 = v420 / ffConst;  // 3.5, 4, 4.5,2.5
 
   const vec4 v457 = vec4(s11.f / s11.f);  // all 1s
   const vec4 v458 = v432 / vec4(3);  // 6, 6.6666, 7.333, 4.6666
   const mat4 m438 = s11.m / ffConst;  // diagonal 2.5 and others 0s
   const mat4 m439 = mat4(ffConst / s11.f);  // diagonal 0.5s
-  const mat4 m440 = m48 / s11.f;  // diagonal 1.75, others 0.5s 
+  const mat4 m440 = m48 / s11.f;  // diagonal 1.75, others 0.5s
 
   const mat4 m443 = m48 / m48 ; // All 1s
-  const mat4 m444 = m413 / ffConst ; // diagonal 7, others 2 
+  const mat4 m444 = m413 / ffConst ; // diagonal 7, others 2
 
   const vec4 v459 = ffConst / v420;  // .2857 , .25, .22, .4
   const vec4 v460 =  s11.f / v429;  // .2857, .25, .22, .4
@@ -285,46 +285,46 @@ void main()
   const vec4 v463 = m428 * v451; // 140, 160, 180, 100
   const vec4 v464 = m437 * v451; // 744, 784, 824, 664
 
-  int ii = 2; 
+  int ii = 2;
   const int iiConst = 2;
 
   const ivec4 i420 = ivec4( 7,8,9,5);  // 7, 8, 9, 5
 
   const ivec4 i429 = i420 + i420; // 14, 16, 18, 10
-  const ivec4 i430 = i420 + iiConst;  // 9, 10, 11,7 
+  const ivec4 i430 = i420 + iiConst;  // 9, 10, 11,7
   const ivec4 i432 =  i429 + ss.i;  // 18, 20, 22, 14
 
   const ivec4 i433 = ivec4(ss.i + ss.i);  // all 8s
 
-  const ivec4 i435 = iiConst + i420;  // 9, 10, 11,7 
+  const ivec4 i435 = iiConst + i420;  // 9, 10, 11,7
   const ivec4 i436 =  ss.i + i429;  // 18, 20, 22, 14
 
   const ivec4 i437 = i420 - i420; // 0, 0, 0, 0
-  const ivec4 i438 = i420 - iiConst;  // 5, 6, 7,3 
+  const ivec4 i438 = i420 - iiConst;  // 5, 6, 7,3
   const ivec4 i440 =  i429 - ss.i;  // 10, 12, 14, 6
 
   const ivec4 i441 = ivec4(ss.i - ss.i);  // all 0s
 
-  const ivec4 i443 = iiConst - i420;  // -5, -6, -7,-3 
+  const ivec4 i443 = iiConst - i420;  // -5, -6, -7,-3
   const ivec4 i444 =  ss.i - i429;  // -10, -12, -14, -6
 
   const ivec4 i445 = i420 * i420; // 49, 64, 81, 25
-  const ivec4 i446 = i420 * iiConst;  // 14, 16, 18,10 
+  const ivec4 i446 = i420 * iiConst;  // 14, 16, 18,10
   const ivec4 i448 =  i429 * ss.i;  // 56, 64, 72, 40
 
   const ivec4 i449 = ivec4(ss.i * ss.i);  // all 16
 
-  const ivec4 i451 = iiConst * i420;  // 14, 16, 18,10 
+  const ivec4 i451 = iiConst * i420;  // 14, 16, 18,10
   const ivec4 i452 =  ss.i * i429;  // 56, 64, 72, 40
 
   const ivec4 i453 = i420 / i420; // 1, 1, 1, 1
-  const ivec4 i454 = i420 / iiConst;  // 3, 4, 4,2 
+  const ivec4 i454 = i420 / iiConst;  // 3, 4, 4,2
   const ivec4 i456 =  i429 / ss.i;  // 3, 4, 4, 2
 
   const ivec4 i457 = ivec4(ss.i / ss.i);  // all 1s
 
-  const ivec4 i459 = iiConst / i420;  // 0 , 0, 0,0 
-  const ivec4 i460 =  ss.i / i429;  // 0, 0, 0,0 
+  const ivec4 i459 = iiConst / i420;  // 0 , 0, 0,0
+  const ivec4 i460 =  ss.i / i429;  // 0, 0, 0,0
 
   const bvec4 b424 = bvec4(s22.bv4);
 
@@ -336,7 +336,7 @@ void main()
 
   const vec4 v465 = -v420; // -7, -8, -9, -5
   const mat4 m448 = -m447 ; // diagonal -.1428, others -0.5
-  const ivec4 i465 = -i456 ;  // -3, -4, -4,-2 
+  const ivec4 i465 = -i456 ;  // -3, -4, -4,-2
 
   const bool b7 = s22 == s22;
 
@@ -387,7 +387,7 @@ void main()
 
 
   const int int13 = -ss.i;
-  
+
   const vec4 v474 = -vec4(0.5);
 
   int int14 = ii++;
@@ -398,8 +398,8 @@ void main()
 
   const vec4 v479 = iiConst > 1 ? v466 : v478; // 21, 24, 27, 20
 
-  const struct st7 { 
-       int i; 
+  const struct st7 {
+       int i;
        bool b;
   } st77 = st7(ss.i, true);
 
@@ -416,7 +416,7 @@ void main()
 
   const vec3 v312 = st99.ss.v3;   // 9, 10, 11
   const vec4 v482 = mat4(1)[0];  // 1, 0, 0 , 0
-  
+
   const mat4 m450 = mat4(ss.i);  // mat4(4)
   const mat4 m451 = mat4(b20);   // mat4(1)
   const mat4 m452 = mat4(st77.b); // mat4(1)

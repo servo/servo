@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	const float exp3 = 20.0855;
-	float c = color.r;
-	gl_FragColor = vec4(exp(3.0 * c) / exp3, 0.0, 0.0, 1.0);
+    const float exp3 = 20.0855;
+    float c = color.r;
+    gl_FragColor = vec4(exp(3.0 * c) / exp3, 0.0, 0.0, 1.0);
 }

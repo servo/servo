@@ -30,7 +30,7 @@ varying vec4 color;
 
 void main (void)
 {
-	const float M_PI = 3.14159265358979323846;
-	color = vec4(0.5 * cos(2.0 * M_PI * gtf_Color.rgb) + 0.5, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    const float M_PI = 3.14159265358979323846;
+    color = vec4(0.5 * cos(2.0 * M_PI * gtf_Color.rgb) + 0.5, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

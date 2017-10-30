@@ -31,20 +31,20 @@ const int array_size = 2;
 
 void main (void)
 {
-	const mat2 a = mat2(1.0, 2.0, 3.0, 4.0);
-	const mat2 b = mat2(5.0, 6.0, 7.0, 8.0);
-	mat2 array[array_size];
-	float gray;
+    const mat2 a = mat2(1.0, 2.0, 3.0, 4.0);
+    const mat2 b = mat2(5.0, 6.0, 7.0, 8.0);
+    mat2 array[array_size];
+    float gray;
 
-	array[0] = a;
-	array[1] = b;
+    array[0] = a;
+    array[1] = b;
 
-	if((array[0] == a) && (array[1] == b))
-		gray = 1.0;
-	else
-		gray = 0.0;
+    if((array[0] == a) && (array[1] == b))
+        gray = 1.0;
+    else
+        gray = 0.0;
 
-	color = vec4(gray, gray, gray, 1.0);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(gray, gray, gray, 1.0);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }
 

@@ -326,7 +326,7 @@ function runFramebufferTextureConversionTest(format) {
   wtu.glErrorShouldBe(gl, gl.NO_ERROR);
 
   shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT)', 'ext.SRGB_EXT');
-  
+
   if (validFormat) {
     shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
 

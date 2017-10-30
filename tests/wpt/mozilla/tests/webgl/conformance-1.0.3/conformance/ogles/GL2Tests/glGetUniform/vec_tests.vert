@@ -33,6 +33,6 @@ varying vec4 color;
 
 void main (void)
 {
-	color = vec4(vuni1, vuni2[0] + vuni2[1], vuni3[0] + vuni3[1] + vuni3[2], vuni4[0] + vuni4[1] + vuni4[2] + vuni4[3]);
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    color = vec4(vuni1, vuni2[0] + vuni2[1], vuni3[0] + vuni3[1] + vuni3[2], vuni4[0] + vuni4[1] + vuni4[2] + vuni4[3]);
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

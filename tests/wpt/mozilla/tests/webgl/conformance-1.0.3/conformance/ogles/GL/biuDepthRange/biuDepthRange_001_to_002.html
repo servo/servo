@@ -48,64 +48,64 @@ OpenGLESTestRunner.run({
   "tests": [
     {
       "referenceProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "uniforms": {
           "result": {
-            "count": 1, 
-            "type": "uniform4fv", 
+            "count": 1,
+            "type": "uniform4fv",
             "value": [
-              0.25, 
-              0.75, 
-              0.5, 
+              0.25,
+              0.75,
+              0.5,
               1.0
             ]
           }
-        }, 
+        },
         "fragmentShader": "../default/expected.frag"
-      }, 
-      "name": "DepthRange_frag.test.html", 
-      "pattern": "compare", 
+      },
+      "name": "DepthRange_frag.test.html",
+      "pattern": "compare",
       "testProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "fragmentShader": "DepthRange_frag.frag"
-      }, 
+      },
       "state": {
         "depthrange": {
-          "far": "0.75", 
+          "far": "0.75",
           "near": "0.25"
         }
-      }, 
+      },
       "model": null
-    }, 
+    },
     {
       "referenceProgram": {
-        "vertexShader": "../default/default.vert", 
+        "vertexShader": "../default/default.vert",
         "uniforms": {
           "result": {
-            "count": 1, 
-            "type": "uniform4fv", 
+            "count": 1,
+            "type": "uniform4fv",
             "value": [
-              0.25, 
-              0.75, 
-              0.5, 
+              0.25,
+              0.75,
+              0.5,
               1.0
             ]
           }
-        }, 
+        },
         "fragmentShader": "../default/expected.frag"
-      }, 
-      "name": "DepthRange_vert.test.html", 
-      "pattern": "compare", 
+      },
+      "name": "DepthRange_vert.test.html",
+      "pattern": "compare",
       "testProgram": {
-        "vertexShader": "DepthRange_vert.vert", 
+        "vertexShader": "DepthRange_vert.vert",
         "fragmentShader": "../default/default.frag"
-      }, 
+      },
       "state": {
         "depthrange": {
-          "far": "0.75", 
+          "far": "0.75",
           "near": "0.25"
         }
-      }, 
+      },
       "model": "grid"
     }
   ]

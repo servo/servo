@@ -98,12 +98,12 @@ void pointLight(in int i, in vec3 normal, in vec3 eye, in vec3 ecPosition3)
 
 vec3 fnormal(void)
 {
-    //Compute the normal 
+    //Compute the normal
     vec3 normal = gtf_Normal * gtf_NormalMatrix;
     normal = normalize(normal);
-	
-	// This should change to "return normal" but for this test, we force a normal pointing towards the light
-	// return normal
+
+    // This should change to "return normal" but for this test, we force a normal pointing towards the light
+    // return normal
     return vec3(0.0, 0.0, 1.0);
 }
 
@@ -119,8 +119,8 @@ void flight(in vec3 normal, in vec4 ecPosition, float alphaFade)
     Ambient  = vec4 (0.0);
     Diffuse  = vec4 (0.0);
     Specular = vec4 (0.0);
-	
-	lightDiffuse = gtf_Color;
+
+    lightDiffuse = gtf_Color;
 
     pointLight(0, normal, eye, ecPosition3);
 

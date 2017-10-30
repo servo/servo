@@ -60,9 +60,9 @@ var indexObject = context.createBuffer();
 debug("Test out of range indices")
 context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, indexObject);
 context.bufferData(context.ELEMENT_ARRAY_BUFFER, new Uint16Array([ 10000, 0, 1, 2, 3, 10000 ]), context.STATIC_DRAW);
+var indexValidationError = wtu.shouldGenerateGLError(context, [context.INVALID_OPERATION, context.NO_ERROR], "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 0)");
 wtu.shouldGenerateGLError(context, context.NO_ERROR, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 2)");
-wtu.shouldGenerateGLError(context, context.INVALID_OPERATION, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 0)");
-wtu.shouldGenerateGLError(context, context.INVALID_OPERATION, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 4)");
+wtu.shouldGenerateGLError(context, indexValidationError, "context.drawElements(context.TRIANGLE_STRIP, 4, context.UNSIGNED_SHORT, 4)");
 
 debug("")
 var successfullyParsed = true;

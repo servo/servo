@@ -53,9 +53,7 @@ var program = wtu.loadStandardProgram(context);
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 
 debug("Testing getActiveAttrib");
-// Synthetic OpenGL error
-shouldBeNull("context.getActiveAttrib(null, 2)");
-wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+wtu.shouldThrowOrGenerateGLError(context, context.INVALID_VALUE, "context.getActiveAttrib(null, 2)");
 // Error state should be clear by this point
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 // Real OpenGL error
@@ -65,9 +63,7 @@ wtu.glErrorShouldBe(context, context.INVALID_VALUE);
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 
 debug("Testing getActiveUniform");
-// Synthetic OpenGL error
-shouldBeNull("context.getActiveUniform(null, 0)");
-wtu.glErrorShouldBe(context, context.INVALID_VALUE);
+wtu.shouldThrowOrGenerateGLError(context, context.INVALID_VALUE, "context.getActiveUniform(null, 0)");
 // Error state should be clear by this point
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 // Real OpenGL error

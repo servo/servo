@@ -29,8 +29,8 @@ varying vec4 position;
 
 void main(void)
 {
-	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 
-	// Vertex's clip coordinates
-	position = gl_Position;
+    // Vertex's clip coordinates
+    position = gl_Position;
 }
