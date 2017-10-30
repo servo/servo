@@ -1033,6 +1033,7 @@ impl Animate for ComputedTransformOperation {
                     this.animate(other, procedure)?,
                 ))
             },
+            // XXXManishearth handle 2D matrix
             (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
@@ -1040,6 +1041,22 @@ impl Animate for ComputedTransformOperation {
                 Ok(TransformOperation::Skew(
                     fx.animate(tx, procedure)?,
                     fy.animate(ty, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::SkewX(ref f),
+                &TransformOperation::SkewX(ref t),
+            ) => {
+                Ok(TransformOperation::SkewX(
+                    f.animate(t, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::SkewY(ref f),
+                &TransformOperation::SkewY(ref t),
+            ) => {
+                Ok(TransformOperation::SkewY(
+                    f.animate(t, procedure)?,
                 ))
             },
             (
@@ -1053,6 +1070,39 @@ impl Animate for ComputedTransformOperation {
                 ))
             },
             (
+                &TransformOperation::Translate(ref fx, ref fy),
+                &TransformOperation::Translate(ref tx, ref ty),
+            ) => {
+                Ok(TransformOperation::Translate(
+                    fx.animate(tx, procedure)?,
+                    fy.animate(ty, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::TranslateX(ref f),
+                &TransformOperation::TranslateX(ref t),
+            ) => {
+                Ok(TransformOperation::TranslateX(
+                    f.animate(t, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::TranslateY(ref f),
+                &TransformOperation::TranslateY(ref t),
+            ) => {
+                Ok(TransformOperation::TranslateY(
+                    f.animate(t, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::TranslateZ(ref f),
+                &TransformOperation::TranslateZ(ref t),
+            ) => {
+                Ok(TransformOperation::TranslateZ(
+                    f.animate(t, procedure)?
+                ))
+            },
+            (
                 &TransformOperation::Scale3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Scale3D(ref tx, ref ty, ref tz),
             ) => {
@@ -1060,6 +1110,30 @@ impl Animate for ComputedTransformOperation {
                     animate_multiplicative_factor(*fx, *tx, procedure)?,
                     animate_multiplicative_factor(*fy, *ty, procedure)?,
                     animate_multiplicative_factor(*fz, *tz, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::ScaleX(ref f),
+                &TransformOperation::ScaleX(ref t),
+            ) => {
+                Ok(TransformOperation::ScaleX(
+                    animate_multiplicative_factor(*f, *t, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::ScaleY(ref f),
+                &TransformOperation::ScaleY(ref t),
+            ) => {
+                Ok(TransformOperation::ScaleY(
+                    animate_multiplicative_factor(*f, *t, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::ScaleZ(ref f),
+                &TransformOperation::ScaleZ(ref t),
+            ) => {
+                Ok(TransformOperation::ScaleZ(
+                    animate_multiplicative_factor(*f, *t, procedure)?
                 ))
             },
             (
@@ -1082,6 +1156,54 @@ impl Animate for ComputedTransformOperation {
                 }
             },
             (
+                &TransformOperation::RotateX(fa),
+                &TransformOperation::RotateX(ta),
+            ) => {
+                Ok(TransformOperation::RotateX(
+                    fa.animate(&ta, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::RotateY(fa),
+                &TransformOperation::RotateY(ta),
+            ) => {
+                Ok(TransformOperation::RotateY(
+                    fa.animate(&ta, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::RotateZ(fa),
+                &TransformOperation::RotateZ(ta),
+            ) => {
+                Ok(TransformOperation::RotateZ(
+                    fa.animate(&ta, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::Rotate(fa),
+                &TransformOperation::Rotate(ta),
+            ) => {
+                Ok(TransformOperation::Rotate(
+                    fa.animate(&ta, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::Rotate(fa),
+                &TransformOperation::RotateZ(ta),
+            ) => {
+                Ok(TransformOperation::Rotate(
+                    fa.animate(&ta, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::RotateZ(fa),
+                &TransformOperation::Rotate(ta),
+            ) => {
+                Ok(TransformOperation::Rotate(
+                    fa.animate(&ta, procedure)?
+                ))
+            },
+            (
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => {
@@ -1097,6 +1219,7 @@ impl Animate for ComputedTransformOperation {
                     fd_matrix.animate(&td_matrix, procedure)?,
                 ))
             },
+            // XXXManishearth handle crossover between translate and scale functions
             _ => Err(()),
         }
     }
@@ -1106,18 +1229,29 @@ fn is_matched_operation(first: &ComputedTransformOperation, second: &ComputedTra
     match (first, second) {
         (&TransformOperation::Matrix(..),
          &TransformOperation::Matrix(..)) |
-        (&TransformOperation::PrefixedMatrix(..),
-         &TransformOperation::PrefixedMatrix(..)) |
+        (&TransformOperation::Matrix3D(..),
+         &TransformOperation::Matrix3D(..)) |
         (&TransformOperation::Skew(..),
          &TransformOperation::Skew(..)) |
-        (&TransformOperation::Translate(..),
-         &TransformOperation::Translate(..)) |
-        (&TransformOperation::Scale(..),
-         &TransformOperation::Scale(..)) |
+        (&TransformOperation::SkewX(..),
+         &TransformOperation::SkewX(..)) |
+        (&TransformOperation::SkewY(..),
+         &TransformOperation::SkewY(..)) |
         (&TransformOperation::Rotate(..),
          &TransformOperation::Rotate(..)) |
+        (&TransformOperation::Rotate3D(..),
+         &TransformOperation::Rotate3D(..)) |
+        (&TransformOperation::RotateX(..),
+         &TransformOperation::RotateX(..)) |
+        (&TransformOperation::RotateY(..),
+         &TransformOperation::RotateY(..)) |
+        (&TransformOperation::RotateZ(..),
+         &TransformOperation::RotateZ(..)) |
         (&TransformOperation::Perspective(..),
          &TransformOperation::Perspective(..)) => true,
+        // we animate scale and translate operations against each other
+        (a, b) if a.is_translate() && b.is_translate() => true,
+        (a, b) if a.is_scale() && b.is_scale() => true,
         // InterpolateMatrix and AccumulateMatrix are for mismatched transform.
         _ => false
     }
