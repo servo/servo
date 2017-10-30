@@ -139,6 +139,42 @@ impl From<Matrix> for Transform3D<CSSFloat> {
     }
 }
 
+impl TransformOperation {
+    /// Convert to a Translate3D.
+    ///
+    /// Must be called on a Translate function
+    pub fn to_translate_3d(&self) -> Self {
+        match *self {
+            GenericTransformOperation::Translate3D(..) => self.clone(),
+            GenericTransformOperation::TranslateX(ref x) |
+            GenericTransformOperation::Translate(ref x, None) =>
+                GenericTransformOperation::Translate3D(x.clone(), LengthOrPercentage::zero(), Length::zero()),
+            GenericTransformOperation::Translate(ref x, Some(ref y)) =>
+                GenericTransformOperation::Translate3D(x.clone(), y.clone(), Length::zero()),
+            GenericTransformOperation::TranslateY(ref y) =>
+                GenericTransformOperation::Translate3D(LengthOrPercentage::zero(), y.clone(), Length::zero()),
+            GenericTransformOperation::TranslateZ(ref z) =>
+                GenericTransformOperation::Translate3D(LengthOrPercentage::zero(),
+                                                       LengthOrPercentage::zero(), z.clone()),
+            _ => unreachable!()
+        }
+    }
+    /// Convert to a Scale3D.
+    ///
+    /// Must be called on a Scale function
+    pub fn to_scale_3d(&self) -> Self {
+        match *self {
+            GenericTransformOperation::Scale3D(..) => self.clone(),
+            GenericTransformOperation::Scale(s, None) => GenericTransformOperation::Scale3D(s, s, 1.),
+            GenericTransformOperation::Scale(x, Some(y)) => GenericTransformOperation::Scale3D(x, y, 1.),
+            GenericTransformOperation::ScaleX(x) => GenericTransformOperation::Scale3D(x, 1., 1.),
+            GenericTransformOperation::ScaleY(y) => GenericTransformOperation::Scale3D(1., y, 1.),
+            GenericTransformOperation::ScaleZ(z) => GenericTransformOperation::Scale3D(1., 1., z),
+            _ => unreachable!()
+        }
+    }
+}
+
 /// Build an equivalent 'identity transform function list' based
 /// on an existing transform list.
 /// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
