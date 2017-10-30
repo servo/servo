@@ -71,7 +71,6 @@ pub mod style_structs {
 /// FIXME(emilio): This is completely duplicated with the other properties code.
 pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedData;
 
-#[derive(Debug)]
 #[repr(C)]
 pub struct ComputedValues(::gecko_bindings::structs::mozilla::ServoStyleContext);
 
