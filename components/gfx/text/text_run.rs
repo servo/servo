@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, KEEP_ALL_FLAG};
+use font::{Font, FontHandleMethods, FontMetrics, ShapingFlags};
 use font::{RunMetrics, ShapingOptions};
 use platform::font_template::FontTemplateData;
 use range::Range;
@@ -210,7 +210,7 @@ impl<'a> TextRun {
                 .take_while(|&(_, c)| char_is_whitespace(c)).last() {
                     whitespace.start = slice.start + i;
                     slice.end = whitespace.start;
-                } else if idx != text.len() && options.flags.contains(KEEP_ALL_FLAG) {
+                } else if idx != text.len() && options.flags.contains(ShapingFlags::KEEP_ALL_FLAG) {
                     // If there's no whitespace and word-break is set to
                     // keep-all, try increasing the slice.
                     continue;
@@ -224,7 +224,7 @@ impl<'a> TextRun {
             }
             if whitespace.len() > 0 {
                 let mut options = options.clone();
-                options.flags.insert(IS_WHITESPACE_SHAPING_FLAG);
+                options.flags.insert(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG);
                 glyphs.push(GlyphRun {
                     glyph_store: font.shape_text(&text[whitespace.clone()], &options),
                     range: Range::new(ByteIndex(whitespace.start as isize),

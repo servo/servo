@@ -4,7 +4,7 @@
 
 use app_units::{Au, MAX_AU};
 use block::FormattingContextType;
-use flow::{self, CLEARS_LEFT, CLEARS_RIGHT, Flow, ImmutableFlowUtils};
+use flow::{self, Flow, FlowFlags, ImmutableFlowUtils};
 use persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::fmt;
@@ -459,10 +459,10 @@ impl SpeculatedFloatPlacement {
     /// flow, computes the speculated inline size of the floats flowing in.
     pub fn compute_floats_in(&mut self, flow: &mut Flow) {
         let base_flow = flow::base(flow);
-        if base_flow.flags.contains(CLEARS_LEFT) {
+        if base_flow.flags.contains(FlowFlags::CLEARS_LEFT) {
             self.left = Au(0)
         }
-        if base_flow.flags.contains(CLEARS_RIGHT) {
+        if base_flow.flags.contains(FlowFlags::CLEARS_RIGHT) {
             self.right = Au(0)
         }
     }

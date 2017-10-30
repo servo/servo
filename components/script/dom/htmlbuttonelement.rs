@@ -27,7 +27,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
 use std::default::Default;
-use style::element_state::*;
+use style::element_state::ElementState;
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[derive(MallocSizeOf)]
@@ -51,7 +51,7 @@ impl HTMLButtonElement {
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
                                                       local_name, prefix, document),
             button_type: Cell::new(ButtonType::Submit),
             form_owner: Default::default(),

@@ -7,7 +7,7 @@ use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::parser::{ParserContext, ParserErrorContext};
 use style::stylesheets::{CssRuleType, Origin};
-use style_traits::{PARSING_MODE_DEFAULT, ParseError};
+use style_traits::{ParsingMode, ParseError};
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
     where F: for<'t> Fn(&ParserContext,
@@ -25,7 +25,7 @@ fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result
 {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Style),
-                                     PARSING_MODE_DEFAULT,
+                                     ParsingMode::DEFAULT,
                                      QuirksMode::NoQuirks);
     let reporter = CSSErrorReporterTest;
     let error_context = ParserErrorContext { error_reporter: &reporter };

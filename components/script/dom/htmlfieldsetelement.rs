@@ -19,7 +19,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::default::Default;
-use style::element_state::*;
+use style::element_state::ElementState;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
@@ -33,7 +33,7 @@ impl HTMLFieldSetElement {
                      document: &Document) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE,
                                                       local_name, prefix, document),
             form_owner: Default::default(),
         }

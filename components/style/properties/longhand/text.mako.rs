@@ -35,12 +35,12 @@ ${helpers.single_keyword("unicode-bidi",
 
     bitflags! {
         #[derive(MallocSizeOf, ToComputedValue)]
-        pub flags SpecifiedValue: u8 {
-            const NONE = 0,
-            const UNDERLINE = 0x01,
-            const OVERLINE = 0x02,
-            const LINE_THROUGH = 0x04,
-            const BLINK = 0x08,
+        pub struct SpecifiedValue: u8 {
+            const NONE = 0;
+            const UNDERLINE = 0x01;
+            const OVERLINE = 0x02;
+            const LINE_THROUGH = 0x04;
+            const BLINK = 0x08;
         % if product == "gecko":
             /// Only set by presentation attributes
             ///
@@ -49,7 +49,7 @@ ${helpers.single_keyword("unicode-bidi",
             ///
             /// For example, this gives <a href=foo><font color="red">text</font></a>
             /// a red text decoration
-            const COLOR_OVERRIDE = 0x10,
+            const COLOR_OVERRIDE = 0x10;
         % endif
         }
     }
@@ -59,7 +59,7 @@ ${helpers.single_keyword("unicode-bidi",
             let mut has_any = false;
 
             macro_rules! write_value {
-                ($line:ident => $css:expr) => {
+                ($line:path => $css:expr) => {
                     if self.contains($line) {
                         if has_any {
                             dest.write_str(" ")?;
@@ -69,10 +69,10 @@ ${helpers.single_keyword("unicode-bidi",
                     }
                 }
             }
-            write_value!(UNDERLINE => "underline");
-            write_value!(OVERLINE => "overline");
-            write_value!(LINE_THROUGH => "line-through");
-            write_value!(BLINK => "blink");
+            write_value!(SpecifiedValue::UNDERLINE => "underline");
+            write_value!(SpecifiedValue::OVERLINE => "overline");
+            write_value!(SpecifiedValue::LINE_THROUGH => "line-through");
+            write_value!(SpecifiedValue::BLINK => "blink");
             if !has_any {
                 dest.write_str("none")?;
             }
@@ -109,14 +109,17 @@ ${helpers.single_keyword("unicode-bidi",
                 match input.expect_ident() {
                     Ok(ident) => {
                         (match_ignore_ascii_case! { &ident,
-                            "underline" => if result.contains(UNDERLINE) { Err(()) }
-                                           else { empty = false; result.insert(UNDERLINE); Ok(()) },
-                            "overline" => if result.contains(OVERLINE) { Err(()) }
-                                          else { empty = false; result.insert(OVERLINE); Ok(()) },
-                            "line-through" => if result.contains(LINE_THROUGH) { Err(()) }
-                                              else { empty = false; result.insert(LINE_THROUGH); Ok(()) },
-                            "blink" => if result.contains(BLINK) { Err(()) }
-                                       else { empty = false; result.insert(BLINK); Ok(()) },
+                            "underline" => if result.contains(SpecifiedValue::UNDERLINE) { Err(()) }
+                                           else { empty = false; result.insert(SpecifiedValue::UNDERLINE); Ok(()) },
+                            "overline" => if result.contains(SpecifiedValue::OVERLINE) { Err(()) }
+                                          else { empty = false; result.insert(SpecifiedValue::OVERLINE); Ok(()) },
+                            "line-through" => if result.contains(SpecifiedValue::LINE_THROUGH) { Err(()) }
+                                              else {
+                                                  empty = false;
+                                                  result.insert(SpecifiedValue::LINE_THROUGH); Ok(())
+                                              },
+                            "blink" => if result.contains(SpecifiedValue::BLINK) { Err(()) }
+                                       else { empty = false; result.insert(SpecifiedValue::BLINK); Ok(()) },
                             _ => Err(())
                         }).map_err(|()| {
                             location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
