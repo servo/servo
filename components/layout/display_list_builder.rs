@@ -24,13 +24,14 @@ use fragment::SpecificFragmentInfo;
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClipScrollNode};
-use gfx::display_list::{ClipScrollNodeIndex, ClippingAndScrolling, ClipScrollNodeType};
+use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use gfx::display_list::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{DisplayListSection, GradientDisplayItem, IframeDisplayItem, ImageBorder};
 use gfx::display_list::{ImageDisplayItem, LineDisplayItem, NormalBorder, OpaqueNode};
 use gfx::display_list::{PopAllTextShadowsDisplayItem, PushTextShadowDisplayItem};
 use gfx::display_list::{RadialGradientDisplayItem, SolidColorDisplayItem, StackingContext};
-use gfx::display_list::{StackingContextType, TextDisplayItem, TextOrientation, WebRenderImageInfo};
+use gfx::display_list::{StackingContextType, StickyFrameData, TextDisplayItem, TextOrientation};
+use gfx::display_list::WebRenderImageInfo;
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
@@ -73,8 +74,7 @@ use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{ClipId, ClipMode, ColorF, ComplexClipRegion, GradientStop, LineStyle};
-use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, StickyFrameInfo};
-use webrender_api::StickySideConstraint;
+use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, StickyOffsetBounds};
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
 
 trait ResolvePercentage {
@@ -2734,27 +2734,32 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         // positioned items: just the parent block.
         let constraint_rect = state.parent_stacking_relative_content_box;
 
-        let to_max_offset = |constraint_edge: Au, moving_edge: Au| -> f32 {
+        let to_offset_bound = |constraint_edge: Au, moving_edge: Au| -> f32 {
             (constraint_edge - moving_edge).to_f32_px()
         };
 
-        let to_sticky_info = |margin: MaybeAuto, max_offset: f32| -> Option<StickySideConstraint> {
-            match margin {
-                MaybeAuto::Auto => None,
-                MaybeAuto::Specified(value) =>
-                    Some(StickySideConstraint { margin: value.to_f32_px(), max_offset }),
-            }
-        };
+        // This is the minimum negative offset and then the maximum positive offset. We just
+        // specify every edge, but if the corresponding margin is None, that offset has no effect.
+        let vertical_offset_bounds = StickyOffsetBounds::new(
+            to_offset_bound(constraint_rect.min_y(), border_box_in_parent.min_y() - margins.top),
+            to_offset_bound(constraint_rect.max_y(), border_box_in_parent.max_y()),
+        );
+        let horizontal_offset_bounds = StickyOffsetBounds::new(
+            to_offset_bound(constraint_rect.min_x(), border_box_in_parent.min_x() - margins.left),
+            to_offset_bound(constraint_rect.max_x(), border_box_in_parent.max_x()),
+        );
 
-        let sticky_frame_info = StickyFrameInfo::new(
-             to_sticky_info(sticky_position.top,
-                            to_max_offset(constraint_rect.max_y(), border_box_in_parent.max_y())),
-             to_sticky_info(sticky_position.right,
-                            to_max_offset(constraint_rect.min_x(), border_box_in_parent.min_x() - margins.left)),
-             to_sticky_info(sticky_position.bottom,
-                            to_max_offset(constraint_rect.min_y(), border_box_in_parent.min_y() - margins.top)),
-             to_sticky_info(sticky_position.left,
-                            to_max_offset(constraint_rect.max_x(), border_box_in_parent.max_x())));
+        // The margins control which edges have sticky behavior.
+        let sticky_frame_data = StickyFrameData {
+            margins: SideOffsets2D::new(
+                sticky_position.top.to_option().map(|v| v.to_f32_px()),
+                sticky_position.right.to_option().map(|v| v.to_f32_px()),
+                sticky_position.bottom.to_option().map(|v| v.to_f32_px()),
+                sticky_position.left.to_option().map(|v| v.to_f32_px()),
+            ),
+            vertical_offset_bounds,
+            horizontal_offset_bounds
+        };
 
         let new_clip_scroll_index = state.add_clip_scroll_node(
             ClipScrollNode {
@@ -2762,7 +2767,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 parent_index: self.clipping_and_scrolling().scrolling,
                 clip: ClippingRegion::from_rect(border_box),
                 content_rect: Rect::zero(),
-                node_type: ClipScrollNodeType::StickyFrame(sticky_frame_info),
+                node_type: ClipScrollNodeType::StickyFrame(sticky_frame_data),
             },
         );
 

@@ -425,6 +425,14 @@ impl MaybeAuto {
     }
 
     #[inline]
+    pub fn to_option(&self) -> Option<Au> {
+        match *self {
+            MaybeAuto::Specified(value) => Some(value),
+            MaybeAuto::Auto => None,
+        }
+    }
+
+    #[inline]
     pub fn specified_or_default(&self, default: Au) -> Au {
         match *self {
             MaybeAuto::Auto => default,

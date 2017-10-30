@@ -1031,7 +1031,7 @@ dependencies = [
 
 [[package]]
 name = "gamma-lut"
-version = "0.2.1"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3625,7 +3625,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.53.1"
-source = "git+https://github.com/servo/webrender#9110e7498fbe9e9d58c480c6ccae0f1461e3dbfb"
+source = "git+https://github.com/servo/webrender#f80760ffc8d073f90c7b2b29ded28a6f8879e63f"
 dependencies = [
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3638,7 +3638,7 @@ dependencies = [
  "euclid 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fxhash 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "gamma-lut 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gamma-lut 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3653,7 +3653,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.53.1"
-source = "git+https://github.com/servo/webrender#9110e7498fbe9e9d58c480c6ccae0f1461e3dbfb"
+source = "git+https://github.com/servo/webrender#f80760ffc8d073f90c7b2b29ded28a6f8879e63f"
 dependencies = [
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3881,7 +3881,7 @@ dependencies = [
 "checksum futf 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "51f93f3de6ba1794dcd5810b3546d004600a59a98266487c8407bc4b24e398f3"
 "checksum futures 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = "55f0008e13fc853f79ea8fc86e931486860d4c4c156cdffb59fa5f7fa833660a"
 "checksum fxhash 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
-"checksum gamma-lut 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "dd65074503368cef99b98844012adfed8d7f99ff3e1e6d05e9055232f2d59dc9"
+"checksum gamma-lut 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "250cfe9e6ad3057a290c2107a60c1c6c74ac57b5095e46b8a5c0bc5626d72857"
 "checksum gaol 0.0.1 (git+https://github.com/servo/gaol)" = "<none>"
 "checksum gcc 0.3.47 (registry+https://github.com/rust-lang/crates.io-index)" = "5773372df827453bc38d4fd8efe425c7f28b1f54468816183fc8716cfb90bd30"
 "checksum gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0912515a8ff24ba900422ecda800b52f4016a56251922d397c576bf92c690518"

@@ -34,7 +34,7 @@ use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
 use webrender_api::{self, ClipId, ColorF, GradientStop, LocalClip, MixBlendMode, ScrollPolicy};
-use webrender_api::{ScrollSensitivity, StickyFrameInfo, TransformStyle};
+use webrender_api::{ScrollSensitivity, StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
 
@@ -322,9 +322,16 @@ impl fmt::Debug for StackingContext {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct StickyFrameData {
+    pub margins: SideOffsets2D<Option<f32>>,
+    pub vertical_offset_bounds: StickyOffsetBounds,
+    pub horizontal_offset_bounds: StickyOffsetBounds,
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ClipScrollNodeType {
     ScrollFrame(ScrollSensitivity),
-    StickyFrame(StickyFrameInfo),
+    StickyFrame(StickyFrameData),
     Clip,
 }
 
