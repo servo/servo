@@ -14,6 +14,10 @@ PATCHES = [
     ("unit.patch", "conformance/more/unit.js")
 ]
 
+# Fix for 'UnicodeDecodeError: 'ascii' codec can't decode byte'
+reload(sys)  
+sys.setdefaultencoding('utf8')
+
 def usage():
     print("Usage: {} version destination [existing_webgl_repo]".format(sys.argv[0]))
     sys.exit(1)
@@ -63,20 +67,11 @@ def process_test(test):
 
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("version", help="WebGL test suite version (e.g.: 1.0.3)")
-    parser.add_argument("destination", help="Test suite destination")
-    parser.add_argument("-e", "--existing-repo", help="Path to an existing clone of the khronos WebGL repository")
-    args = parser.parse_args()
-
-    version = args.version
-    destination = args.destination
-
+def update_conformance(version, destination, existing_repo, patches_dir):
     print("Trying to import WebGL conformance test suite {} into {}".format(version, destination))
 
-    if args.existing_repo:
-        directory = args.existing_repo
+    if existing_repo:
+        directory = existing_repo
         print("Using existing WebGL repository: {}".format(directory))
     else:
         directory = tempfile.mkdtemp()
@@ -127,15 +122,24 @@ def main():
         process_test(test)
 
     # Try to apply the patches to the required files
-
-    this_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    if not patches_dir:
+        patches_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
     for patch, file_name in PATCHES:
         try:
-            patch = os.path.join(this_dir, patch)
+            patch = os.path.join(patches_dir, patch)
             subprocess.check_call(["patch", "-d", destination, file_name, patch])
         except subprocess.CalledProcessError:
             print("Automatic patch failed for {}".format(file_name))
             print("Please review the WPT integration and update {} accordingly".format(os.path.basename(patch)))
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("version", help="WebGL test suite version (e.g.: 1.0.3)")
+    parser.add_argument("destination", help="Test suite destination")
+    parser.add_argument("-e", "--existing-repo", help="Path to an existing clone of the khronos WebGL repository")
+    args = parser.parse_args()
+
+    update_conformance(args.version, args.destination, args.existing_repo, None)
 
 if __name__ == '__main__':
     main()
