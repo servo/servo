@@ -16,7 +16,7 @@ use values::computed::{font as computed, Context, Length, NonNegativeLength, ToC
 use values::specified::{LengthOrPercentage, NoCalcLength};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
-const DEFAULT_SCRIPT_MIN_SIZE_PT: ::std::os::raw::c_uint = 8;
+const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 /// A specified font-size value
