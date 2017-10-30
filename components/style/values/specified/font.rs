@@ -12,9 +12,11 @@ use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 use std::fmt;
 use style_traits::{ToCss, StyleParseErrorKind, ParseError};
-use values::computed::{font as computed, Context, NonNegativeLength, ToComputedValue};
+use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::specified::{LengthOrPercentage, NoCalcLength};
-use values::specified::length::FontBaseSize;
+use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
+
+const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 /// A specified font-size value
@@ -389,5 +391,26 @@ impl Parse for XTextZoom {
 impl ToCss for XTextZoom {
     fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
         Ok(())
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+/// Specifies the minimum font size allowed due to changes in scriptlevel.
+/// Ref: https://wiki.mozilla.org/MathML:mstyle
+pub struct MozScriptMinSize(pub NoCalcLength);
+
+impl MozScriptMinSize {
+    #[inline]
+    /// Calculate initial value of -moz-script-min-size.
+    pub fn get_initial_value() -> Length {
+        Length::new(DEFAULT_SCRIPT_MIN_SIZE_PT as f32 * (AU_PER_PT / AU_PER_PX))
+    }
+}
+
+impl Parse for MozScriptMinSize {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<MozScriptMinSize, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }

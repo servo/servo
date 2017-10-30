@@ -8,9 +8,11 @@ use app_units::Au;
 use std::fmt;
 use style_traits::ToCss;
 use values::animated::ToAnimatedValue;
-use values::computed::NonNegativeLength;
+use values::computed::{Context, NonNegativeLength, ToComputedValue};
 use values::specified::font as specified;
+use values::specified::length::{FontBaseSize, NoCalcLength};
 
+pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::XTextZoom;
 
 #[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
@@ -92,5 +94,30 @@ impl ToAnimatedValue for FontSize {
             size: animated.clamp(),
             keyword_info: None,
         }
+    }
+}
+
+impl ToComputedValue for specified::MozScriptMinSize {
+    type ComputedValue = MozScriptMinSize;
+
+    fn to_computed_value(&self, cx: &Context) -> MozScriptMinSize {
+        // this value is used in the computation of font-size, so
+        // we use the parent size
+        let base_size = FontBaseSize::InheritedStyle;
+        match self.0 {
+            NoCalcLength::FontRelative(value) => {
+                value.to_computed_value(cx, base_size)
+            }
+            NoCalcLength::ServoCharacterWidth(value) => {
+                value.to_computed_value(base_size.resolve(cx))
+            }
+            ref l => {
+                l.to_computed_value(cx)
+            }
+        }
+    }
+
+    fn from_computed_value(other: &MozScriptMinSize) -> Self {
+        specified::MozScriptMinSize(ToComputedValue::from_computed_value(other))
     }
 }
