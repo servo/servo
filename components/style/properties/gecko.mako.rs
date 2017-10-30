@@ -2897,6 +2897,8 @@ fn static_assert() {
         ("Matrix3D", "matrix3d", ["number"] * 16),
         ("PrefixedMatrix3D", "matrix3d", ["number"] * 12 + ["lopon"] * 2
                                          + ["lon"] + ["number"]),
+        ("Matrix", "matrix", ["number"] * 6),
+        ("PrefixedMatrix", "matrix", ["number"] * 4 + ["lopon"] * 2),
         ("Translate3D", "translate3d", ["lop", "lop", "length"]),
         ("TranslateX", "translatex", ["lop"]),
         ("TranslateY", "translatey", ["lop"]),
@@ -2923,10 +2925,12 @@ fn static_assert() {
                 # m11: number1, m12: number2, ..
                 single_patterns = ["m%s: %s" % (str(a / 4 + 1) + str(a % 4 + 1), b + str(a + 1)) for (a, b)
                                    in enumerate(items)]
-                if name == "Matrix":
-                    pattern = "(Matrix3D { %s })" % ", ".join(single_patterns)
-                else:
-                    pattern = "(Matrix3D { %s })" % ", ".join(single_patterns)
+                pattern = "(Matrix3D { %s })" % ", ".join(single_patterns)
+            elif keyword == "matrix":
+                # a: number1, b: number2, ..
+                single_patterns = ["%s: %s" % (chr(ord('a') + a), b + str(a + 1)) for (a, b)
+                                   in enumerate(items)]
+                pattern = "(Matrix { %s })" % ", ".join(single_patterns)
             elif keyword == "interpolatematrix":
                 pattern = " { from_list: ref list1, to_list: ref list2, progress: percentage3 }"
             elif keyword == "accumulatematrix":
@@ -2975,7 +2979,7 @@ fn static_assert() {
                                      gecko_value: &mut structs::nsCSSValue /* output */) {
         use properties::longhands::transform::computed_value::ComputedOperation;
         use values::computed::{Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
-        use values::generics::transform::Matrix3D;
+        use values::generics::transform::{Matrix, Matrix3D};
 
         let convert_to_ns_css_value = |item: &ComputedOperation| -> structs::nsCSSValue {
             let mut value = structs::nsCSSValue::null();
@@ -3068,6 +3072,9 @@ fn static_assert() {
             elif keyword == "matrix3d":
                 pre_symbols = "(Matrix3D {"
                 post_symbols = "})"
+            elif keyword == "matrix":
+                pre_symbols = "(Matrix {"
+                post_symbols = "})"
             field_names = None
             if keyword == "interpolatematrix":
                 field_names = ["from_list", "to_list", "progress"]
@@ -3078,9 +3085,9 @@ fn static_assert() {
         <%
 
             guard = ""
-            if name == "Matrix3D":
+            if name == "Matrix3D" or name == "Matrix":
                 guard = "if !needs_prefix "
-            elif name == "PrefixedMatrix3D":
+            elif name == "PrefixedMatrix3D" or name == "PrefixedMatrix":
                 guard = "if needs_prefix "
 
         %>
@@ -3089,6 +3096,8 @@ fn static_assert() {
             % for index, item in enumerate(items):
                 % if keyword == "matrix3d":
                     m${index / 4 + 1}${index % 4 + 1}:
+                % elif keyword == "matrix":
+                    ${chr(ord('a') + index)}:
                 % elif keyword == "interpolatematrix" or keyword == "accumulatematrix":
                     ${field_names[index]}:
                 % endif
@@ -3103,7 +3112,7 @@ fn static_assert() {
                                        -> longhands::transform::computed_value::ComputedOperation {
         use properties::longhands::transform::computed_value::ComputedOperation;
         use values::computed::{Length, Percentage};
-        use values::generics::transform::Matrix3D;
+        use values::generics::transform::{Matrix, Matrix3D};
         use values::generics::transform::Transform;
 
         let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
