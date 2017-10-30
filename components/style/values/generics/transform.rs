@@ -247,6 +247,27 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
 /// A value of the `transform` property
 pub struct Transform<T>(pub Vec<T>);
 
+impl<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber>
+    TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+
+    /// Check if it is any translate function
+    pub fn is_translate(&self) -> bool {
+        use self::TransformOperation::*;
+        match *self {
+            Translate(..) | Translate3D(..) | TranslateX(..) | TranslateY(..) | TranslateZ(..) => true,
+            _ => false
+        }
+    }
+
+    /// Check if it is any scale function
+    pub fn is_scale(&self) -> bool {
+        use self::TransformOperation::*;
+        match *self {
+            Scale(..) | Scale3D(..) | ScaleX(..) | ScaleY(..) | ScaleZ(..) => true,
+            _ => false
+        }
+    }
+}
 
 impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
      Integer: ToCss + Copy, LengthOrNumber: ToCss, LengthOrPercentage: ToCss, LoPoNumber: ToCss>
