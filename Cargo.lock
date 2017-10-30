@@ -1447,7 +1447,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "jemalloc-sys"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cc 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1456,10 +1456,10 @@ dependencies = [
 
 [[package]]
 name = "jemallocator"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2391,7 +2391,7 @@ dependencies = [
  "heartbeats-simple 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "influent 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
@@ -2956,8 +2956,9 @@ dependencies = [
 name = "servo_allocator"
 version = "0.0.1"
 dependencies = [
- "jemallocator 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jemallocator 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3912,8 +3913,8 @@ dependencies = [
 "checksum ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c10ed089b1921b01ef342c736a37ee0788eeb9a5f373bb2df1ba88d01125064f"
 "checksum itertools 0.5.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4833d6978da405305126af4ac88569b5d71ff758581ce5a987dbfa3755f694fc"
 "checksum itoa 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "eb2f404fbc66fd9aac13e998248505e7ecb2ad8e44ab6388684c5fb11c6c251c"
-"checksum jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "94fb624d7e8345e5c42caab8d1db6ec925fdadff3fd0cb7dd781b41be8442828"
-"checksum jemallocator 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "1850725977c344d63af66e8fd00857646e3ec936c490cd63667860b7b03ab5c1"
+"checksum jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "479294d130502fada93c7a957e8d059b632b03d6204aca37af557dee947f30a9"
+"checksum jemallocator 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "28b211ca65c440322b6d4d9b5b850b01e8e298393b7ebcb8205b7cbb14ea6329"
 "checksum jpeg-decoder 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = "2805ccb10ffe4d10e06ef68a158ff94c255211ecbae848fbde2146b098f93ce7"
 "checksum js 0.1.6 (git+https://github.com/servo/rust-mozjs)" = "<none>"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
