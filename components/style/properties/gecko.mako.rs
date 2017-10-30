@@ -1119,6 +1119,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "LengthOrNormal": impl_style_coord,
         "MaxLength": impl_style_coord,
         "MozLength": impl_style_coord,
+        "MozScriptMinSize": impl_absolute_length,
         "NonNegativeLengthOrPercentage": impl_style_coord,
         "NonNegativeNumber": impl_simple,
         "Number": impl_simple,
@@ -2395,21 +2396,6 @@ fn static_assert() {
     #[allow(non_snake_case)]
     pub fn reset__x_text_zoom(&mut self, other: &Self) {
         self.copy__x_text_zoom_from(other)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn set__moz_script_min_size(&mut self, v: longhands::_moz_script_min_size::computed_value::T) {
-        self.gecko.mScriptMinSize = v.to_i32_au();
-    }
-
-    #[allow(non_snake_case)]
-    pub fn copy__moz_script_min_size_from(&mut self, other: &Self) {
-        self.gecko.mScriptMinSize = other.gecko.mScriptMinSize;
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset__moz_script_min_size(&mut self, other: &Self) {
-        self.copy__moz_script_min_size_from(other)
     }
 
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
