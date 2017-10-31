@@ -249,7 +249,6 @@ pub struct Transform<T>(pub Vec<T>);
 
 impl<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber>
     TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
-
     /// Check if it is any translate function
     pub fn is_translate(&self) -> bool {
         use self::TransformOperation::*;
