@@ -44,7 +44,7 @@ use values::computed::{LengthOrPercentageOrNone, MaxLength};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::computed::ToComputedValue;
-use values::computed::transform::{DirectionVector, Matrix3D};
+use values::computed::transform::{DirectionVector, Matrix, Matrix3D};
 use values::generics::transform::{Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
@@ -1033,7 +1033,14 @@ impl Animate for ComputedTransformOperation {
                     this.animate(other, procedure)?,
                 ))
             },
-            // XXXManishearth handle 2D matrix
+            (
+                &TransformOperation::Matrix(ref this),
+                &TransformOperation::Matrix(ref other),
+            ) => {
+                Ok(TransformOperation::Matrix(
+                    this.animate(other, procedure)?,
+                ))
+            },
             (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
@@ -1435,6 +1442,32 @@ impl Animate for Matrix3D {
         match (from, to) {
             (Ok(from), Ok(to)) => {
                 Ok(Matrix3D::from(from.animate(&to, procedure)?))
+            },
+            // Matrices can be undecomposable due to couple reasons, e.g.,
+            // non-invertible matrices. In this case, we should report Err here,
+            // and let the caller do the fallback procedure.
+            _ => Err(())
+        }
+    }
+}
+
+impl Animate for Matrix {
+    #[cfg(feature = "servo")]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        let this = Matrix3D::from(*self);
+        let other = Matrix3D::from(*other);
+        let this = MatrixDecomposed2D::from(this);
+        let other = MatrixDecomposed2D::from(other);
+        Ok(Matrix3D::from(this.animate(&other, procedure)?).into_2d()?)
+    }
+
+    #[cfg(feature = "gecko")]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        let from = decompose_2d_matrix(&(*self).into());
+        let to = decompose_2d_matrix(&(*other).into());
+        match (from, to) {
+            (Ok(from), Ok(to)) => {
+                Matrix3D::from(from.animate(&to, procedure)?).into_2d()
             },
             // Matrices can be undecomposable due to couple reasons, e.g.,
             // non-invertible matrices. In this case, we should report Err here,
