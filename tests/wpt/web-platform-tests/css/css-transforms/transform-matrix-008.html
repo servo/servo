@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): matrix() with non-numeric args</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-matrix">
+    <meta name="assert" content='This tests that providing length or percentage
+    values as arguments to matrix() is a syntax error.'>
+    <link rel="match" href="transform-matrix-008-ref.html">
+    <link rel="mismatch" href="transform-matrix-008-notref.html">
+    <style>
+      div {
+        height: 100px;
+        width: 100px;
+      }
+      body > div {
+        transform: matrix(1, 0, 0, 1, 50px, 0);
+      }
+      body > div > div {
+        transform: matrix(1, 0, 0, 1, 50%, 0);
+      }
+      body > div > div > div {
+        background: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div>
+        <div></div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: One named flow multi-column container with monolithic content
+                     flowing into first region of smaller width than the second region</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#multi-column-regions"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-multicol/#columns"/>
+    <link rel="match" href="reference/regions-multicol-028-ref.html"/>
+    <meta name="assert" content="This test checks that monolithic content flows
+                                 through a region with a smaller width than the multi-column named flow and the
+                                 second region and that it overflows the first region visibly as a
+                                 multi-column container before flowing into the second region."/>
+    <style type="text/css">
+        #named-flow-multicol {
+            width: 130px;
+            height: 120px;
+            columns: 2;
+            column-gap: 10px;
+            flow-into: multicol;
+        }
+        .green, .blue {
+            width: 60px;
+            height: 240px;
+        }
+        .green {
+            background-color: green;
+        }
+        .blue {
+            background-color: blue;
+        }
+        #region-1, #region-2 {
+            position: absolute;
+            height: 120px;
+            flow-from: multicol;
+        }
+        #region-1 {
+            top: 70px;
+            left: 20px;
+            width: 60px;
+        }
+        #region-2 {
+            top: 70px;
+            left: 160px;
+            width: 130px;
+        }
+        .failure {
+           position: absolute;
+           top: 70px;
+           width: 60px;
+           height: 120px;
+           background-color: red;
+           z-index: -10;
+        }
+        #block-1 {
+            left: 20px;
+        }
+        #block-2 {
+            left: 90px;
+        }
+        #block-3 {
+            left: 190px;
+        }
+        #block-4 {
+            left: 260px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there are two green vertical rectangles on the left of two blue vertical rectangles.
+        There should be no red.</p>
+    <div id="named-flow-multicol">
+       <div class="green named-flow-block"></div>
+       <div class="blue named-flow-block"></div>
+    </div>
+    <div id="region-1"></div>
+    <div id="region-2"></div>
+    <div class="failure" id="block-1"></div>
+    <div class="failure" id="block-2"></div>
+    <div class="failure" id="block-3"></div>
+    <div class="failure" id="block-4"></div>
+</body>
+</html>

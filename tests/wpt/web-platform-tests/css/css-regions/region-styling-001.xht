@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Region Styling</title>
+    <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com"/>
+    <link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from"/>
+    <link rel="match" href="region-styling-001-ref.xht"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="Styling set in an @region rule overrides named flow element styling."/>
+    <style type="text/css">
+      .content{
+        color: red;
+        flow-into: redContent;
+      }
+      .region{
+        flow-from: redContent;
+      }
+      @region .region{
+        div { color: green; }
+      }
+      .error{
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">GREEN</div>
+    <p>This test passes if the word below is &ldquo;GREEN&rdquo; and is displayed in green.</p>
+    <div class="region">
+      <div class="error">FAIL</div>
+    </div>
+  </body>
+</html>

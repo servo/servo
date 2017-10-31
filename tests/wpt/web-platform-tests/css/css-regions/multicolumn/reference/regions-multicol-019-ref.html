@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test reference</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <style type="text/css">
+        .bar {
+            position: absolute;
+            top: 50px;
+            width: 50px;
+            height: 200px;
+        }
+        .green {
+            background-color: green;
+        }
+        .blue {
+            background-color: blue;
+        }
+        #bar-1 {
+            left: 20px;
+        }
+        #bar-2 {
+            left: 70px;
+        }
+        #bar-3 {
+            left: 120px;
+        }
+        #bar-4 {
+            left: 170px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a square with four vertical
+       stripes alternating green and blue, and no red.</p>
+    <div class="green bar" id="bar-1"></div>
+    <div class="blue bar" id="bar-2"></div>
+    <div class="green bar" id="bar-3"></div>
+    <div class="blue bar" id="bar-4"></div>
+</body>
+</html>

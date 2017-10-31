@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang=en class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid item absolute positioning dynamic</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="This test checks that a grid item which becomes an absolutelly positioned children of a grid.">
+<style>
+#wrapper {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  background: red;
+}
+
+#grid {
+  display: grid;
+  grid: 100px / 100px;
+}
+
+#item {
+  background: green;
+  width: 100%;
+  height: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="wrapper">
+  <div id="grid">
+    <div id="item"></div>
+  </div>
+</div>
+
+<script>
+  window.requestAnimationFrame(() => {
+    document.getElementById("item").style.position = "absolute";
+    document.body.offsetLeft;
+    document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+
+</html>

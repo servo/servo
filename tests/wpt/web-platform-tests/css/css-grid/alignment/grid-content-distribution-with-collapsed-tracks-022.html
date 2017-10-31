@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Content Distribution 'stretch' and gaps with collapsed tracks on 3x3 grid</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-align">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#collapsed-track">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="Content Distribution alignment ignore collapsed grid tracks and render correctly with a value of 'stretch'.">
+<style>
+.block {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 200px;
+  height: 200px;
+}
+.block > div {
+  position: absolute;
+  background: red;
+  width: 60px;
+  height: 60px;
+}
+.grid {
+  z-index: 1;
+  display: grid;
+  width: 200px;
+  height: 200px;
+  grid-template-columns: repeat(auto-fit, minmax(25px, auto));
+  grid-template-rows: repeat(auto-fit, minmax(25px, auto));
+  grid-row-gap: 10px;
+  grid-column-gap: 10px;
+  align-content: stretch;
+  justify-content: stretch;
+}
+.grid > div { background: green; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="block">
+    <div style="top: 0px; left: 70px;"></div>
+    <div style="top: 0px; left: 140px;"></div>
+    <div style="top: 70px; left: 0px;"></div>
+    <div style="top: 140px; left: 0px;"></div>
+</div>
+<div class="grid">
+    <div class="item" style="grid-row: 1; grid-column: 3;"></div>
+    <div class="item" style="grid-row: 1; grid-column: 4;"></div>
+    <div class="item" style="grid-row: 3; grid-column: 1;"></div>
+    <div class="item" style="grid-row: 4; grid-column: 1;"></div>
+</div>

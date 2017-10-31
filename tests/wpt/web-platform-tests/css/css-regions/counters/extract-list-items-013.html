@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into on individual list items preserves other list styling properties (list-style-*) even when CSS styling contradicts default CSS styling for those HTML elements</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<meta name="flags" content="">
+		<meta name="assert" content="Test checks that list styling properties are honored even for list items extracted in named flows when the CSS-specified list type is in opposition with the list type from the markup (ol/ul).">
+		<link rel="match" href="reference/extract-list-items-009-ref.html">
+		<style>
+		ul, ol {
+			margin: 0;
+		}
+		.ordered {
+			list-style-type: lower-latin;
+		}
+		.unordered {
+			list-style-type: circle;
+		}
+		.extract {
+			color: blue;
+			flow-into: f1;
+		}
+		.container {
+			color: #006400;
+			background-color: lightgreen;
+			margin: 2em;
+			float: left;
+			width: 15em;
+		}
+		.region {
+			margin: 2em;
+			background-color: lightblue;
+			float: left;
+			width: 15em;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if you see two rectangles, one green and one blue, as described below.</p>
+		<p>The green rectangle should contain a list with items numbered/marked as such: the <strong>first two items</strong> should be numbered with small latin letters, starting with d. The <strong>next three items</strong> should be bulleted with a circle. The numbers/bullets should all be <em>inside</em> the green rectangle.</p>
+		<p>The blue rectangle should contain a list with items numbered/marked as such: the <strong>first three items</strong> should be numbered with small latin letters, starting with a. The <strong>next two items</strong> should be bulleted with a circle. The numbers/bullets should all be <em>outside</em> the blue rectangle.</p>
+
+		<div class="container">
+			<ul class="ordered">
+				<li class="extract">Ordered list, item a</li>
+				<li class="extract">Ordered list, item b</li>
+				<li class="extract">Ordered list, item c</li>
+				<li>Ordered list, item d</li>
+				<li>Ordered list, item e</li>
+			</ul>
+			<ol class="unordered">
+				<li>Unordered list, item 1</li>
+				<li>Unordered list, item 2</li>
+				<li>Unordered list, item 3</li>
+				<li class="extract">Unordered list, item 4</li>
+				<li class="extract">Unordered list, item 5</li>
+			</ol>
+		</div>
+		<div class="region" id="r1"></div>
+	</body>
+</html>

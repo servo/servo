@@ -1,0 +1,44 @@
+<csstest def="Dynamic handling of attribute selectors" module="W3C Selectors" modulename="css3-modsel" number="d3" rev="1.3" date="24-february-2005" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<dynamic/>
+
+<cssrules>
+   [test] { background: red; display: block; padding: 1em; }
+   stub ~ [|attribute^=start]:not([|attribute~=mid])[|attribute*=dle][|attribute$=end] ~ t { background: lime; }
+</cssrules>
+
+<code>
+
+ <div xmlns="http://www.w3.org/1999/xhtml">
+
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      document.getElementsByTagNameNS('', 't')[1].setAttributeNS('', 'attribute', 'start middle end');
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+
+  <p> The following block should be green. </p>
+
+  <!-- root of selector -->
+  <stub xmlns=""/>
+
+  <!-- middle part of selector does not match this -->
+  <t xmlns="" attribute="fake"/>
+
+  <!-- middle part of selector matches this once attribute is fixed -->
+  <t xmlns="" attribute="start mid dle end"/>
+
+  <!-- subject of selector -->
+  <t xmlns="" test="test"/>
+
+ </div>
+
+</code>
+</csstest>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Reference File</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    </head>
+    <style>
+    body {
+        margin: 0;
+    }
+    .line {
+        position: absolute;
+        top: 60px;
+        width: 2px;
+        height: 200px;
+        border-left: 2px solid blue;
+    }
+    .right {
+        left: 220px;
+    }
+    .left {
+        left: 60px;
+    }
+    .top {
+        top: 90px;
+        left: 180px;
+    }
+    .bottom {
+        top: 170px;
+        left: 60px;
+    }
+    .square {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background-color: green;
+    }
+    </style>
+    <body>
+    <p>The test passes if there there are two green squares between the blue lines. There should be no red.</p>
+    <div class="bottom square"></div>
+    <div class="top square"></div>
+    <div class="left line"></div>
+    <div class="right line"></div>
+    </body>
+</html>

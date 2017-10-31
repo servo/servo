@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Reference File</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <style type="text/css">
+        body {
+            margin-left: 0;
+        }
+        #container {
+            position: absolute;
+            top: 60px;
+            text-align: center;
+            font-family: Ahem;
+            font-size: 20px;
+            color: green;
+            line-height: 1em;
+        }
+        #level-1 {
+          width: 400px;
+          height: 80px;
+        }
+        #level-2 {
+          width: 200px;
+          height: 40px;
+          margin-left: 100px;
+        }
+        #level-3 {
+          width: 100px;
+          height: 40px;
+          margin-left: 150px;
+        }
+        #level-4 {
+          width: 50px;
+          height: 20px;
+          margin-left: 175px;
+        }
+        #level5 {
+            width: 400px;
+            height: 20px;
+        }
+        #left-triangle, #right-triangle {
+            position: absolute;
+            top: 60px;
+            width: 200px;
+            height: 200px;
+            background-color: lightblue;
+        }
+        #left-triangle {
+            clip-path: polygon(0 0, 200px 200px, 0 200px);
+        }
+        #right-triangle {
+            left: 200px;
+            clip-path: polygon(200px 0, 200px 200px, 0 200px);
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if the green shape does not intersect either of the triangles and
+        there is one green horizontal bar beneath the triangles. There should be no red.
+    </p>
+    <div id="container">
+        <div id="level-1">
+           XXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXX XXXXXXXXXXXXX XXXXXXXXXXX
+        </div>
+        <div id="level-2">
+           XXXXXXXXX XXXXXXX
+        </div>
+        <div id="level-3">
+          XXXXX XXX
+        </div>
+        <div id="level-4">
+          X
+        </div>
+        <br>
+        <div id="level-5">
+          XXXXXXXXXXXXXXXXX
+        </div>
+    </div>
+    <div id="left-triangle"></div>
+    <div id="right-triangle"></div>
+ </body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>position:sticky constraints are independent of writing mode</title>
+<link rel="match" href="position-sticky-writing-modes-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that position:sticky constraints are independent of the writing mode" />
+
+<style>
+.group {
+  display: inline-block;
+  position: relative;
+  width: 180px;
+  height: 250px;
+}
+
+.scroller {
+  position: relative;
+  width: 130px;
+  height: 200px;
+  overflow: scroll;
+  font: 25px/1 Ahem;
+}
+
+.contents {
+  height: 500px;
+  width: 200px;
+}
+
+.indicator {
+  position: absolute;
+  color: red;
+}
+
+.sticky {
+  display: inline;
+  color: green;
+  position: sticky;
+  top: 50px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 50;
+  document.getElementById('scroller1').scrollLeft = 20;
+  document.getElementById('scroller2').scrollTop = 50;
+  document.getElementById('scroller2').scrollLeft = 60;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller" style="writing-mode: vertical-lr;">
+    <div class="indicator" style="left: 40px; top: 100px;">XXX</div>
+    <div class="contents">
+      <div class="sticky" style="left: 20px;">XXX</div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller" style="writing-mode: vertical-rl;">
+    <div class="contents">
+      <div class="indicator" style="left: 45px; top: 100px;">XXX</div>
+      <div class="sticky" style="right: 20px;">XXX</div>
+    </div>
+  </div>
+</div>
+
+<div>You should see two green blocks above. No red should be visible.</div>

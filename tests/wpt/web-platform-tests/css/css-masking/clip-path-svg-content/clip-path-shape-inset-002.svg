@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: Basic shape inset() on SVG rectangle with absolute values</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path"/>
+	<html:link rel="match" href="reference/clip-path-shape-inset-001-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">A basic shape function inset() applied to an SVG
+	rectangle. The inset used per side is specified by the first 20px argument.
+	The second 20px specify the border radius. You should see a green square
+	with rounded corners.</desc>
+</g>
+<rect width="200" height="200" fill="green" style="clip-path: inset(20px round 20px)"/>
+</svg>

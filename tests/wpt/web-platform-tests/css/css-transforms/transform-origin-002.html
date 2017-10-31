@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Default transform-origin not center right</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <meta name="assert" content='A transform-origin of 100% 50% must not result
+    in the same rendering as the default of 50% 50%, if a 45-degree rotation is
+    applied.'>
+    <link rel="mismatch" href="transform-origin-ref-1.html">
+    <style>
+      div {
+        width: 200px;
+        height: 100px;
+        border: 1px solid black;
+        transform: rotate(45deg);
+        transform-origin: 100% 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      Some text!
+    </div>
+  </body>
+</html>

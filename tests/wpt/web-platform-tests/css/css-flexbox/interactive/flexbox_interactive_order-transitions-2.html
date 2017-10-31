@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>flexbox | transitioned order</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-property">
+<meta name="flags" content="interact">
+<style>
+div {
+	display: flex;
+}
+span {
+	background: yellow;
+	width: 1em;
+	height: 2em;
+}
+.test {
+	background: #3366cc;
+	order: 0;
+}
+div:hover .test {
+	transition: order 10s;
+	order: -1;
+}
+p~div {
+	margin: 1em;
+	float: left;
+	display: block;
+}
+p~div span {
+	float: left;
+}
+</style>
+
+<div>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span class="test">x</span>
+	<span>x</span>
+</div>
+
+<p>Verify that the box above looks exactly like the first of the boxes
+below. Then hover the box above and leave the mouse there for 1+
+seconds. After the specified time, the box above should look exactly
+like the second of the boxes below.</p>
+
+<div>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span class="test">x</span>
+	<span>x</span>
+</div>
+
+<div>
+	<span class="test">x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+	<span>x</span>
+</div>

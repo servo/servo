@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>CSS Snap Size: snap-width</title>
+<% if (!isReference) {
+%><link rel="help" href="https://drafts.csswg.org/css-snap-size/#snap-width">
+<link rel="match" href="reference/snap-width-<%= contentType %>-001.html">
+<meta name="assert" content="This test asserts the snap-width property rounds down the box width.">
+<meta name="flags" content="ahem">
+<% } %><link rel="author" title="Koji Ishii" href="kojiishi@gmail.com">
+<%
+var styles = "";
+if (!isReference) {
+  switch (widthType) {
+  case "available":
+    styles = `
+.container { width: 20.5em; }
+.container.border, .container.padding { width: 21.3em; }
+.container.border.padding { width: 22.1em; }
+.test {
+  snap-width: 1em;
+  text-align: right;
+}`;
+    break;
+  case "fixed":
+    styles = `
+.test {
+  snap-width: 1em;
+  text-align: right;
+  width: 20.5em;
+}`;
+    break;
+  case "max":
+    styles = `
+.test {
+  snap-width: 1em;
+  text-align: right;
+  max-width: 20.5em;
+}`;
+    break;
+  default:
+    console.assert(false, "Unknown widthType:", widthType);
+  }
+}
+
+var contentHTML = "XXXXXXXXXX XXXXXXXXX";
+for (var contentType of contentTypes) {
+  switch (contentType) {
+  case "block":
+    contentHTML= `<div>${contentHTML}</div>`;
+    break;
+  case "table":
+    contentHTML= `<table width="100%"><tr><td>${contentHTML}</td></tr></table>`;
+    styles += `
+table { border-spacing: 0; }
+td { padding: 0; }`;
+    break;
+  case "inline":
+    break;
+  default:
+    console.assert(false, "Unknown contentType:", contentType);
+  }
+}
+%><style>
+.container {
+  font-family: Ahem;
+  font-size: 32px;
+  line-height: 1;
+}
+.container > div {
+  margin: .5em 0;
+}
+.border > div {
+  border-left: .4em transparent solid;
+  border-right: .4em transparent solid;
+}
+.padding > div {
+  padding: 0 .4em;
+}
+<%= styles %>
+.ref {
+  white-space: pre; /* make sure the line does not wrap */
+  width: 20em;
+}
+</style>
+<body>
+<p class="instructions">Test passes if each pair of boxes are the same,
+  including how they look, widths, and horizontal positions.
+<% [[], ["border"], ["padding"], ["border", "padding"]].forEach(function (containerClassList) {
+    containerClassList.push("container");
+%>
+<div class="<%= containerClassList.join(" ") %>">
+<% [isReference ? "ref" : "test", "ref"].forEach(function (testClass) {
+%>  <div class="<%=testClass%>"><%- contentHTML %></div>
+<% });
+%></div>
+<% });
+%></body>

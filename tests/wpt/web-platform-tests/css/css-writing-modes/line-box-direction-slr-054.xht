@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: inline-block and 'sideways-lr' - ordering direction of line boxes</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="block-flow-direction-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that lines boxes of descendant block boxes of inline-blocks with 'writing-mode' set to 'sideways-lr' are ordered from left to right." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
+
+  div.inline-block
+    {
+      background-color: blue;
+      border-bottom: blue solid 1em;
+      border-left: blue solid 1em;
+      display: inline-block;
+      height: 8em;
+      vertical-align: top;
+  /*
+  Why 'vertical-align: top' ?
+  See
+  http://lists.w3.org/Archives/Public/public-css-testsuite/2014Dec/0013.html
+  for explanations
+  */
+      writing-mode: sideways-lr;
+    }
+
+  span
+    {
+      display: block;
+    }
+
+  span#right-border
+    {
+      border-right: blue solid 1em;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <div>
+
+    <div class="inline-block">
+
+<!-- The 1st left-most line of "P" --> <span>AAAAAAA</span>
+
+<!-- The 2nd left-most line of "P" --> <span>&nbsp;&nbsp;&nbsp;B &nbsp;C</span>
+
+<!-- The 3rd left-most line of "P" --> <span>&nbsp;&nbsp;&nbsp;D &nbsp;E</span>
+
+<!-- The 4th left-most line of "P" --> <span>&nbsp;&nbsp;&nbsp;FFFF</span>
+
+    </div><div class="inline-block">
+
+<!-- The left-most line of "A" --> <span>GGGGGGG</span>
+
+<!-- The 2nd left-most line of "A" --> <span>&nbsp;&nbsp;&nbsp;H &nbsp;J</span>
+
+<!-- The 3rd left-most line of "A" --> <span>&nbsp;&nbsp;&nbsp;K &nbsp;L</span>
+
+<!-- The 4th left-most line of "A" --> <span>MMMMMMM</span>
+
+    </div><div class="inline-block">
+
+<!-- The 1st left-most line of left-most "S" --> <span>N&nbsp; QQQQ</span>
+
+<!-- The 2nd left-most line of left-most "S" --> <span>R&nbsp; S&nbsp; T</span>
+
+<!-- The 3rd left-most line of left-most "S" --> <span>U&nbsp; V&nbsp; W</span>
+
+<!-- The 4th left-most line of left-most "S" --> <span>XXXX &nbsp;Y</span>
+
+    </div><div class="inline-block">
+
+<!-- The left-most line of right-most "S" --> <span>a&nbsp; bbbb</span>
+
+<!-- The 2nd left-most line of right-most "S" --> <span>c&nbsp; d&nbsp; e</span>
+
+<!-- The 3rd left-most line of right-most "S" --> <span>f&nbsp; g&nbsp; h</span>
+
+<!-- The 4th left-most line of right-most "S" --> <span id="right-border">jjjj &nbsp;k</span>
+
+    </div>
+
+  </div>
+
+ </body>
+</html>

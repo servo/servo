@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-radius' is not inherited by default</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="'Border-radius' is not inherited by default." />
+        <style type="text/css">
+            div
+            {
+                height: 100px;
+                width: 100px;
+            }
+            #parent
+            {
+                border: 1px solid transparent;
+                border-radius: 100px;
+            }
+            #child
+            {
+                border: medium solid black;
+            }
+            #reference
+            {
+                margin-top: 10px;
+                border: medium solid black;
+                border-radius: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a square and a circle below.</p>
+        <div id="parent">
+            <div id="child"></div>
+        </div>
+        <div id="reference"></div>
+    </body>
+</html>

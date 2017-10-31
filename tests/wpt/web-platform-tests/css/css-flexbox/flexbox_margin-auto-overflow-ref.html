@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>flexbox | margin: auto in overflow</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+div {
+	background: blue;
+	margin: 1em 0;
+	border: 1px solid black;
+	height: 8em;
+	width: 32em;
+	position: relative;
+}
+span {
+	background: white;
+	margin: 0;
+	width: 30em;
+	height: 6em;
+	position: absolute;
+	left: 0;
+	top: 1em;
+	display: inline-block;
+}
+span+span {
+	background: yellow;
+	left: 30em;
+}
+</style>
+
+<div>
+	<span>one</span>
+	<span>two</span>
+</div>

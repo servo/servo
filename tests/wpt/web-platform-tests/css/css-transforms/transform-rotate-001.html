@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): rotate(45deg) rotate(360deg)</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-rotate">
+    <meta name="assert" content="This is part of a series of tests that check
+    that various combinations of rotate() with different units are equivalent
+    to rotate(45deg).">
+    <link rel="match" href="transform-rotate-001-ref.html">
+    <link rel="mismatch" href="transform-rotate-001-notref.html">
+    <style>
+      div {
+        transform: rotate(45deg) rotate(360deg);
+        width: 100px;
+        height: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>Test Text</div>
+  </body>
+</html>

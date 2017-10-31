@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSS Transitions Test: display:none causes transitioncancel</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+    <link rel="help" href="https://drafts.csswg.org/css-transitions-2/#dom-transitionevent-transitioncancel">
+    <link rel="help" href="https://lists.w3.org/Archives/Public/www-style/2015Apr/0405.html" title="[CSSWG] Minutes Telecon 2015-04-29" data-section-title="AnimationEnd events and display: none">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="Making an element display:none; while it has a transition in progress should fire a transitioncancel event.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+#a {
+    height: 100px;
+    width: 100px;
+    transition: background-color 2s;
+}
+.red {
+    background-color: red;
+}
+.blue {
+    background-color: blue;
+}
+.hidden {
+    display: none !important;
+}
+    </style>
+    <script>
+async_test(function (t) {
+    window.addEventListener('load', function () {
+        var div = document.getElementById('a');
+        var canceled = false;
+        var after = false;
+        div.addEventListener('transitioncancel', function () {
+            canceled = true;
+            t.step(function () {
+                assert_true(true, "transitioncancel event did fire");
+            });
+        }, false);
+
+        div.className = 'blue';// initiate transition
+        window.setTimeout(function () {
+            t.step(function () {
+                assert_false(canceled, "transitioncancel did not fire before hiding callback ran");
+                assert_false(after, "hiding callback ran before the end of the test");
+            });
+            div.className += ' hidden';// force display:none during the transition
+        }, 1000);// halfway into the transition
+        window.setTimeout(function () {
+            after = true;
+            t.step(function () {
+                assert_true(canceled, "transitioncancel event did fire");
+                t.done();
+            });
+        }, 2100);// after the transition would have ended
+    }, false);
+}, "transitioncancel should be fired if the element is made display:none during the transition");
+    </script>
+</head>
+<body>
+    <div id="a" class="red"></div>
+</body>
+</html>

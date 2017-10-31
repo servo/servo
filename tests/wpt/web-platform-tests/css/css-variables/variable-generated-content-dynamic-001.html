@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Dynamic attribute change handling in generated content</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#using-variables">
+<link rel="match" href="variable-generated-content-dynamic-001-ref.html">
+<style>
+:root {
+  --my-attr: attr(data-foo);
+}
+div::before {
+  content: var(--my-attr);
+}
+</style>
+<div data-foo="FAIL"></div>
+<script>
+document.body.offsetTop;
+document.querySelector('div').setAttribute('data-foo', "PASS");
+</script>

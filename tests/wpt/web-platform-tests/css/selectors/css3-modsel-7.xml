@@ -1,0 +1,20 @@
+<csstest def="Attribute multivalue selector" module="W3C Selectors" modulename="css3-modsel" number="7" rev="1.0" date="11-july-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>p { background-color : red }
+p[class~="b"] { background-color : lime }
+address { background-color : red }
+address[title~="foo"] { background-color : lime }
+span[class~="b"] { background-color : red }</cssrules>
+
+<code>
+<p class="a b c" xmlns="http://www.w3.org/1999/xhtml">This paragraph should have green background because CLASS
+  contains "b"</p>
+<address title="tot foo bar" xmlns="http://www.w3.org/1999/xhtml">
+<span class="a c">This address should also</span>
+  <span class="a bb c">have green background because the selector in the last
+    rule does not apply to the inner SPANs.</span>
+</address>
+</code>
+
+</csstest>

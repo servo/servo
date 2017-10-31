@@ -8,60 +8,32 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
-<div id="log"></div>
-
-<script id="idl" type="text/plain">
-interface EventTarget {
-};
-
-interface EventHandler {
-};
-</script>
-
-<script id="accelerometer-idl" type="text/plain">
-// The interface of Sensor is defined in
-// https://www.w3.org/TR/generic-sensor/#idl-index
-[SecureContext, Exposed=Window]
-interface Sensor : EventTarget {
-  readonly attribute boolean activated;
-  readonly attribute boolean hasReading;
-  readonly attribute DOMHighResTimeStamp? timestamp;
-  void start();
-  void stop();
-  attribute EventHandler onreading;
-  attribute EventHandler onactivate;
-  attribute EventHandler onerror;
-};
-
-[Constructor(optional SensorOptions options), Exposed=Window]
-interface Accelerometer : Sensor {
-  readonly attribute double? x;
-  readonly attribute double? y;
-  readonly attribute double? z;
-};
-
-[Constructor(optional SensorOptions options), Exposed=Window]
-interface LinearAccelerationSensor : Accelerometer {
-};
-
-[Constructor(optional SensorOptions options), Exposed=Window]
-interface GravitySensor : Accelerometer {
-};
-</script>
-
 <script>
-(() => {
-  "use strict";
-  let idl_array = new IdlArray();
-  idl_array.add_untested_idls(document.getElementById('idl').textContent);
-  idl_array.add_idls(document.getElementById('accelerometer-idl').textContent);
+"use strict";
 
+function doTest([dom, generic_sensor, accelerometer]) {
+  const idl_array = new IdlArray();
+  idl_array.add_untested_idls(dom);
+  idl_array.add_untested_idls('interface EventHandler {};');
+  idl_array.add_idls(generic_sensor, { only: ['Sensor'] });
+  idl_array.add_idls(accelerometer);
   idl_array.add_objects({
     Accelerometer: ['new Accelerometer();'],
     LinearAccelerationSensor: ['new LinearAccelerationSensor();'],
     GravitySensor: ['new GravitySensor();']
   });
-
   idl_array.test();
-})();
+}
+
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+  return Promise.all([
+    "/interfaces/dom.idl",
+    "/interfaces/generic-sensor.idl",
+    "/interfaces/accelerometer.idl",
+  ].map(fetchText)).then(doTest);
+}, "Test IDL implementation of Accelerometer Sensor");
 </script>

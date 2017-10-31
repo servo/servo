@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: border-spacing - second value is specified and non-zero in 'vertical-lr' table</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping" title="7.2 Dimension Mapping" />
+  <link rel="help" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/tables.html#separated-borders" title="17.6.1 The separated borders model" />
+  <link rel="match" href="border-spacing-vrl-002-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that second value of 'border-spacing' represents, from left to right, a) spacing between logical table top padding (physical table left padding) and topmost cells and b) inter-row spacing and c) spacing between bottommost cells and logical table bottom padding (physical table right padding)." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table
+    {
+      border-spacing: 0em 0.5em; /* computes to logical vertical border-spacing: 10px */
+      font: 20px/1 Ahem; /* computes to 20px/20px */
+      padding: 0em 1.25em; /* computes to padding-left: 25px and padding-right: 25px */
+      writing-mode: vertical-lr;
+    }
+
+  td
+    {
+      height: 1em;
+      padding: 0em;
+      width: 0.5em;
+    }
+
+  /*
+
+  0px             25px     35px     45px     55px     65px     75px            100px
+  | padding-left   |  left  |  2nd   | middle |  1st   |  right | padding-right|
+  |   of table     |  vert. |  row   |  vert. |  right |  vert. |   of table   |
+  |                | border |        | border |  most  | border |              |
+  |                | spacing|        | spacing|  row   | spacing|              |
+20|                |        |        |        |        |        |              |
+px|                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+40|                |        |        |        |        |        |              |
+px|                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+60|                |        |        |        |        |        |              |
+px|                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+80|                |        |        |        |        |        |              |
+px|                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+  |                |        |        |        |        |        |              |
+00|                |        |        |        |        |        |              |
+px|                |        |        |        |        |        |              |
+
+  */
+
+  div#reference-overlapping-green
+    {
+      background-color: green;
+      height: 6.25em;
+      position: absolute;
+      width: 6.25em;
+    }
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      height: 6.25em;
+      position: absolute;
+      width: 6.25em;
+      z-index: -1;
+    }
+
+  table#test-overlapped-red
+    {
+      background-color: red;
+    }
+
+  table#test-overlapping-green
+    {
+      background-color: green;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+
+  <div id="reference-overlapping-green"></div>
+
+  <table id="test-overlapped-red">
+
+    <tr><td></td><td></td><td></td><td></td><td></td></tr>
+
+    <tr><td></td><td></td><td></td><td></td><td></td></tr>
+
+  </table>
+
+  <div id="reference-overlapped-red"></div>
+
+  <table id="test-overlapping-green">
+
+    <tr><td></td><td></td><td></td><td></td><td></td></tr>
+
+    <tr><td></td><td></td><td></td><td></td><td></td></tr>
+
+  </table>
+
+ </body>
+</html>

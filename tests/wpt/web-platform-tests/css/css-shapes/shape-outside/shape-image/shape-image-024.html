@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: shape-outside from img element with different size than the image file</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="match" href="reference/shape-image-024-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that content wraps around all the image pixels
+                                 calculated from the size of the img element, which is different
+                                 than the size of the image itself."/>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+        .container {
+          left: 10px;
+          font: 100px/1 Ahem;
+        }
+        #test {
+            width: 200px;
+            color: rgb(0,100,0);
+        }
+        #image {
+            float: left;
+            width: 200px;
+            height: 200px;
+            shape-outside: url("support/left-half-rectangle.png");
+            shape-margin: 10px;
+        }
+        .blue {
+            width: 2px;
+            height: 200px;
+            background-color: blue;
+        }
+        .left-line { left: 115px; }
+        .right-line { left: 230px; }
+
+        .failure {
+            left: 120px;
+            width: 100px;
+            height: 200px;
+            background-color: red;
+            z-index: -1;
+        }
+        .container, .blue, .failure {
+            position: absolute;
+            top: 70px;
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if the green rectangle on the right is completely between the two blue lines.
+        There should be no red.
+    </p>
+    <div id="test" class="container">
+        <img id="image" src="support/left-half-rectangle.png"/>
+        X<br/>X
+    </div>
+    <div class="blue left-line"></div>
+    <div class="blue right-line"></div>
+    <div class="failure"></div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-duration - 0s</title>
+<link rel="author" title="Nokia Inc." href="http://www.nokia.com">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-05-05 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<meta name="flags" content="animated">
+<meta name="assert" content="When animation-duration is set to 0s (zero seconds),
+                             animation occurs instantaneously, there will be no animation seen.">
+<style>
+  div {
+    animation-name: sample;
+
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+
+  @keyframes sample {
+    from {
+      left: 150px;
+    }
+    to {
+      left: 0px;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there is a filled blue square with 'Filler Text',
+    which starts staying left for about 2 seconds upon page load,
+    then moves from right to left.
+  </p>
+  <div>Filler Text</div>
+  <script>
+    var div = document.getElementsByTagName("div");
+    div[0].style.animationDuration = "0s";
+    setTimeout(setAnimationDuration, 2000);
+
+    function setAnimationDuration() {
+      div[0].style.animationDuration = "10s";
+    }
+  </script>
+</body>
+

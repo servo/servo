@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and translation-value negative argument with pixel unit in scientific notation on translateY</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-number">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-translatey">
+    <link rel="match" href="reference/svg-translatey-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The translateY transform function must support the absolute length unit 'px' in negative scientific numbers on translation-value arguments. The rect in the test should be moved 50 pixels in the Y direction">
+    <style type="text/css">
+    svg {
+        width: 300px;
+        height: 300px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <rect x="1" y="51" width="98" height="98" fill="red"/>
+        <rect y="100" width="100" height="100" fill="green" transform="translateY(-5.0e1px)"/>
+    </svg>
+</body>
+</html>

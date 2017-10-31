@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry Interfaces: DOMMatrixReadOnly methods do not mutate the object</title>
+    <link href="mailto:peter.hall@algomi.com" rel="author" title="Peter Hall">
+    <link rel="help" href="https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly">
+    <script src="support/dommatrix-test-util.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <p>Test DOMMatrixReadOnly methods do not mutate the object</p>
+    <div id="log"></div>
+    <script>
+
+        function initialMatrix(){
+          return DOMMatrixReadOnly.fromMatrix(
+            {
+              m11:1,   m12:-0.5, m13: 0.5,  m14:0,
+              m21:0.5, m22:2,    m23: -0.5, m24:0,
+              m31:0,   m32:0,    m33: 1,    m34:0,
+              m41:0,   m42:0,    m43: 0,    m44:1,
+              is2D: false
+            }
+          );
+        }
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.translate(1,5,3);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test translate() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.scale(1,5,3,0,1,3);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test scale() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.scale3d(3,2,1,1);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test scale3d() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.rotate(Math.PI, Math.PI/2, Math.PI/6);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test rotate() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.rotateFromVector(10,-4);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test rotateFromVector() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.rotateAxisAngle(3,4,5, Math.PI/6);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test rotateAxisAngle() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.skewX(20);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test skewX() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.skewY(20);
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test skewY() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.multiply({ m11:1, m12:2, m13: 0, m14:0,
+                            m21:-1, m22:2, m23: -1, m24:0,
+                            m31:0, m32:0, m33: 1, m34:0,
+                            m41:5, m42:0, m43: 2, m44:1,
+                            is2D: false,
+                            isIdentity:false });
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test multiply() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.flipX();
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test flipX() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.flipY();
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test flipY() doesn't mutate");
+
+        test(function() {
+          var matrix = initialMatrix();
+          matrix.inverse();
+          checkDOMMatrix(matrix, initialMatrix());
+        },"test inverse() doesn't mutate");
+
+    </script>
+</body>
+</html>

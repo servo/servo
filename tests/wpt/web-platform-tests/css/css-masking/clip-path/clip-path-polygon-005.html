@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Masking: Test clip-path property and polygon function with fill rule nonzero</title>
+	<link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+	<link rel="match" href="reference/clip-path-rectangle-border-ref.html">
+	<meta name="assert" content="The clip-path property takes the basic shape
+	'polygon' for clipping. The point list for the polygon creates a 'hole'
+	with the dimension of the background of the clipped element. With the fill
+	rule 'nonzero', this hole is clipped out. The clipping makes the green
+	background of the parent div box visible. On pass you should see a green
+	square with a blue border.">
+</head>
+<body>
+	<p>The test passes if there is a green square with a blue border.</p>
+	<div style="background-color: green; width: 250px;">
+		<div style="width: 150px; height: 100px; border: solid blue 50px; background-color: red; clip-path: polygon(nonzero, 0 0, 250px 0, 250px 200px, 0 200px, 0 50px, 50px 50px, 50px 150px, 200px 150px, 200px 50px, 0 50px)"></div>
+	</div>
+</body>
+</html>

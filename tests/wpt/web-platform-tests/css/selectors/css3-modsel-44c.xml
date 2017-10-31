@@ -1,0 +1,15 @@
+<csstest def="Child combinator and classes" module="W3C Selectors" modulename="css3-modsel" number="44c" rev="1.1" date="21-june-2003" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  .fail > div { background: red; color: yellow; }
+  .control { background: green; color: white; }
+</cssrules>
+
+<code>
+  <div xmlns="http://www.w3.org/1999/xhtml"> This should be unstyled. </div>
+  <div xmlns="http://www.w3.org/1999/xhtml" class="control"> This should have a green background. </div>
+</code>
+
+</csstest>

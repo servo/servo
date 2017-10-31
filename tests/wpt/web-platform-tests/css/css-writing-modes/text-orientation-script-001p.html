@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Test orientation of characters where vo=Tr (47 code points in U+2329-FFE3).</title>
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation">
+<meta name="assert" content="Test orientation of characters where vo=Tr (47 code points in U+2329-FFE3)">
+<meta name="flags" content="dom">
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "orientation";
+    src: url("support/adobe-fonts/CSSHWOrientationTest.otf");
+}
+.test {
+    font: 16px/1 "orientation";
+    height: 17em;
+    writing-mode: vertical-rl;
+}
+.line {
+    white-space: pre;
+}
+.U {
+    text-orientation: upright;
+}
+.R {
+    text-orientation: sideways;
+}
+#details {
+    margin: 1em .5em;
+}
+summary {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: .5em;
+}
+</style>
+<div id="log"></div>
+<div id="details"></div>
+<div id="container">
+<div data-vo="Tr" class="test">
+<div data-block="Miscellaneous">
+<div class="line">〈〉</div>
+</div>
+<div data-block="CJK">
+<div class="line">〈〉《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰</div>
+</div>
+<div data-block="Katakana">
+<div class="line">゠ー</div>
+</div>
+<div data-block="Small">
+<div class="line">﹙﹚﹛﹜﹝﹞</div>
+</div>
+<div data-block="Halfwidth">
+<div class="line">（）：；［］＿｛｜｝～｟｠￣</div>
+</div>
+</div>
+</div>
+<script src="support/text-orientation.js"></script>

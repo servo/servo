@@ -1,0 +1,47 @@
+<csstest def="Syntax and parsing of unknown pseudo-classes and pseudo-elements" module="W3C Selectors" modulename="css3-modsel" number="161" rev="1.2" date="9-november-2005" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>
+  p { background: lime; }
+  p   * { background: lime; }
+  p > * { background: lime; }
+  p + * { background: lime; }
+  p ~ * { background: lime; }
+
+  /* let's try some pseudos that are not valid CSS but are likely to
+  be implemented as extensions in some UAs. These should not be
+  recognised, as UAs implementing such extensions should use the
+  :-vnd-ident syntax. */
+
+  :canvas { background: red; }
+  :viewport { background: red; }
+  :window { background: red; }
+  :menu { background: red; }
+  :table { background: red; }
+  :select { background: red; }
+  ::canvas { background: red; }
+  ::viewport { background: red; }
+  ::window { background: red; }
+  ::menu { background: red; }
+  ::table { background: red; }
+  ::select { background: red; }
+</cssrules>
+
+<code>
+ <p xmlns="http://www.w3.org/1999/xhtml">This line should have a green background.</p>
+ <p xmlns="http://www.w3.org/1999/xhtml">
+  UAs may render the following element as a pop up menu. If so, please ensure the menu is unstyled (or green).
+  <select size="1">
+   <option>This should</option>
+   <option>have a green</option>
+   <option>background.</option>
+  </select>
+ </p>
+ <table xmlns="http://www.w3.org/1999/xhtml"><tr><td>This line should have a green background (or it might be unstyled).</td></tr></table>
+ <!-- only allowed to be unstyled if + and ~ are not supported -->
+</code>
+
+</csstest>

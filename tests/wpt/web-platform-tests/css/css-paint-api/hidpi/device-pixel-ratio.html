@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="device-pixel-ratio-ref.html">
+<style>
+html, body { margin: 0; padding: 0; }
+.container {
+  width: 150px;
+  height: 150px;
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<p>This test ensures that the PaintWorkletGlobalScope.devicePixelRatio returns
+the correct value, which should be identical as window.devicePixelRatio. To
+manually test, open both this file and "device-pixel-ratio-ref.html" with a
+browser, and you should see two idential green rectangles.</p>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        var draw_width = Math.floor(geom.width / devicePixelRatio);
+        var draw_height = Math.floor(geom.height / devicePixelRatio);
+        ctx.fillRect(0, 0, draw_width, draw_height);
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and scaleX -1.5</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-scalex">
+    <link rel="match" href="reference/svg-scale-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Scaling by a negative value should flip the element. The green rect in this test should be flipped rightward into view and horizontally scaled up 1.5 to completely cover the red rect.">
+    <style type="text/css">
+        svg {
+            width: 200px;
+            height: 200px;
+            background: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <svg>
+        <rect x="1" y="1" width="148" height="148" fill="red"/>
+        <rect x="-100" y="0" width="100" height="150" fill="green" transform="scaleX(-1.5)"/>
+    </svg>
+</body>
+</html>

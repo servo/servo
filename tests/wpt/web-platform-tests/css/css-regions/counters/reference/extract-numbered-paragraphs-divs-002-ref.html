@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		#region {
+			counter-reset: p 0 d 0;
+		}
+		#region p,
+		#region div {
+			margin: 0;
+		}
+		#region p,
+		#region div {
+			counter-increment: p d;
+		}
+
+		#region p::after,
+		#region div::after {
+			display: block;
+			text-align: right;
+			border-top: medium solid black;
+			font-size: 200%;
+		}
+
+		#region p::after {
+			color: red;
+			content: counter(p);
+		}
+		#region div::after {
+			color: green;
+			content: counter(d);
+		}
+
+		#region {
+			width: 20em;
+			background-color: lightblue;
+			border: 1px solid lightblue;
+		}
+		</style>
+	</head>
+	<body>
+		<!-- Numbered <p>-s and <div>-s using different counters, displayed as blocks via ::after -->
+		<p>Test passes if you see a light blue rectangle below, with eight lines of text in it. Each line of text should be black and with a thick underline. Below and to the right of each line of text you should see the number of that line, colored alternatingly red and green.</p>
+		<div id="region">
+			<p>This is numbered line of text no. 1</p>
+			<div>This is numbered line of text no. 2</div>
+			<p>This is numbered line of text no. 3</p>
+			<div>This is numbered line of text no. 4</div>
+			<p>This is numbered line of text no. 5</p>
+			<div>This is numbered line of text no. 6</div>
+			<p>This is numbered line of text no. 7</p>
+			<div>This is numbered line of text no. 8</div>
+		</div>
+	</body>
+</html>

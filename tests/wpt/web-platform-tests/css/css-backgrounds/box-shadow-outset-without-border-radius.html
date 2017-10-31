@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Backgrounds and Borders Test: box-shadow</title>
+    <link rel="author" title="Zhang Xiaochong" href="mailto:joy.xczhang@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-box-shadow">
+    <link rel="match" href="reference/box-shadow-outset-without-border-radius.html">
+    <meta name="assert" content="box-shadow should show shadow.">
+    <style type="text/css">
+        .container {
+            position: relative;
+        }
+        .container div {
+            position: absolute;
+            height: 150px;
+            width: 150px;
+        }
+        .container .test {
+            box-shadow: red 10px 10px;
+            left: 0;
+            top: 0;
+        }
+        .container .ref {
+            background-color: green;
+            left: 10px;
+            top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a filled green square and no red.</p>
+    <div class="container">
+        <div class="test"></div>
+        <div class="ref"></div>
+    </div>
+</body>
+</html>

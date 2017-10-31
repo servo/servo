@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Display Test: display:flow-root</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1322191">
+  <link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-flow-root">
+  <link rel="match" href="display-flow-root-001-ref.html">
+  <style type="text/css">
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+.float {
+  float: left;
+  width: 20px;
+  height: 40px;
+  background: pink;
+}
+
+  </style>
+</head>
+<body>
+
+<div style="border:1px solid">
+  <!-- this tests that the flow-root margins don't collapse with its children. -->
+  <span style="display:flow-root; margin: 20px 0">
+    <div style="margin: 20px 0">x</div>
+  </span>
+</div>
+
+<div style="border:1px solid">
+  <!-- this tests that the flow-root grows to fit child floats -->
+  <span style="display:flow-root"><div class="float"></div></span>
+</div>
+
+<div style="border:1px solid; margin-bottom:20px">
+  <!-- this tests that a float does not intrude into flow-root box -->
+  <div class="float"></div>
+  <span style="display:flow-root; border:1px solid">x</span>
+</div>
+
+<span>
+  <!-- this tests that a flow-root box is constructed also in the "ibsplit" case -->
+  <span style="display:flow-root; background:grey;"><div style="margin:20px">x</div></span>
+</span>
+
+<span style="display:flow-root; border:3px solid; height:10px;">
+  <!-- this tests that a flow-root fills the available width, and that 'height' applies -->
+</span>
+
+</body>
+</html>

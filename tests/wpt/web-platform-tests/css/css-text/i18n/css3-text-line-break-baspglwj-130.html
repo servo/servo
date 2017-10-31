@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, linebreaks: U+2060 WORD JOINER</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#line-break-details'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name='flags' content='dom'>
+<meta name="assert" content="[Exploratory] The browser will NOT break a line of text containing any Unicode character with the WJ Word Joiner property.">
+<style type='text/css'>
+@font-face {
+    font-family: 'csstest_ascii';
+    src: url('support/csstest-ascii-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+	}
+#breakable { font-family: csstest_ascii; font-size: 25px; width: 800px; line-height: 30px; }
+</style>
+</head>
+<body>
+
+
+
+<div class="test">
+			<div id="breakable">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#x2060;bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</div>
+			</div>
+
+
+<!--Notes:
+
+Box height: <span id='debugresult'></span><script>document.getElementById('debugresult').innerHTML = document.getElementById('breakable').offsetHeight;</script>
+
+-->
+<script>
+test(function() {
+assert_true(document.getElementById('breakable').offsetHeight < 35);
+}, " ");
+</script>
+
+<div id='log'></div>
+
+</body>
+</html>

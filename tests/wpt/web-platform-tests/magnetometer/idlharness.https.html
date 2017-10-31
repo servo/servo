@@ -8,61 +8,31 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
-<div id="log"></div>
-
-<script id="idl" type="text/plain">
-interface EventTarget {
-};
-
-interface EventHandler {
-};
-</script>
-
-<script id="magnetometer-idl" type="text/plain">
-// The interface of Sensor is defined in
-// https://www.w3.org/TR/generic-sensor/#idl-index
-[SecureContext, Exposed=Window]
-interface Sensor : EventTarget {
-  readonly attribute boolean activated;
-  readonly attribute boolean hasReading;
-  readonly attribute DOMHighResTimeStamp? timestamp;
-  void start();
-  void stop();
-  attribute EventHandler onreading;
-  attribute EventHandler onactivate;
-  attribute EventHandler onerror;
-};
-
-[Constructor(optional SensorOptions sensorOptions), Exposed=Window]
-interface Magnetometer : Sensor {
-  readonly attribute double? x;
-  readonly attribute double? y;
-  readonly attribute double? z;
-};
-
-[Constructor(optional SensorOptions sensorOptions), Exposed=Window]
-interface UncalibratedMagnetometer : Sensor {
-  readonly attribute double? x;
-  readonly attribute double? y;
-  readonly attribute double? z;
-  readonly attribute double? xBias;
-  readonly attribute double? yBias;
-  readonly attribute double? zBias;
-};
-</script>
-
 <script>
-(() => {
-  "use strict";
-  let idl_array = new IdlArray();
-  idl_array.add_untested_idls(document.getElementById('idl').textContent);
-  idl_array.add_idls(document.getElementById('magnetometer-idl').textContent);
+"use strict";
 
+function doTest([dom, generic_sensor, magnetometer]) {
+  const idl_array = new IdlArray();
+  idl_array.add_untested_idls(dom);
+  idl_array.add_untested_idls('interface EventHandler {};');
+  idl_array.add_idls(generic_sensor, { only: ['Sensor'] });
+  idl_array.add_idls(magnetometer);
   idl_array.add_objects({
     Magnetometer: ['new Magnetometer();'],
     UncalibratedMagnetometer: ['new UncalibratedMagnetometer();']
   });
-
   idl_array.test();
-})();
+}
+
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+  return Promise.all([
+    "/interfaces/dom.idl",
+    "/interfaces/generic-sensor.idl",
+    "/interfaces/magnetometer.idl",
+  ].map(fetchText)).then(doTest);
+}, "Test IDL implementation of Magnetometer Sensor");
 </script>

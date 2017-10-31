@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: parsing text-combine-upright with digits plus calc() computing to invalid digits</title>
+<link rel="author" title="Masataka Yakura" href="http://google.com/+MasatakaYakura">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright">
+<link rel="help" href="http://www.w3.org/TR/css-values-3/#calc-notation">
+<meta name="assert" content="User Agents ignore text-combine-upright with values `digits calc(...)` if the expression inside `calc()` computes to either numbers or out-of-range integers.">
+<meta name="flags" content="dom invalid">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#invalid_digits_calc_0_plus_1 {
+  text-combine-upright: digits calc(0 + 1);
+}
+
+#invalid_digits_calc_2_plus_3 {
+  text-combine-upright: digits calc(2 + 3);
+}
+
+#invalid_digits_calc_4_minus_3 {
+  text-combine-upright: digits calc(4 - 3);
+}
+
+#invalid_digits_calc_10_minus_3 {
+  text-combine-upright: digits calc(10 - 3);
+}
+
+#invalid_digits_calc_3_times_1_0 {
+  text-combine-upright: digits calc(3 * 1.0);
+}
+
+#invalid_digits_calc_2_0_times_2 {
+  text-combine-upright: digits calc(2.0 * 2);
+}
+
+#invalid_digits_calc_2_dividedby_1_0 {
+  text-combine-upright: digits calc(2 / 1.0);
+}
+
+#invalid_digits_calc_4_0_dividedby_2 {
+  text-combine-upright: digits calc(4.0 / 2);
+}
+
+#invalid_digits_calc_2_e_0_times_2_e_positive0 {
+  text-combine-upright: digits calc(2e0 * 2e+0);
+}
+
+#invalid_digits_calc_2_e_2_times_2_e_negative2 {
+  text-combine-upright: digits calc(2e2 * 2e-2);
+}
+
+#invalid_digits_calc_4_e_positive2_dividedby_positive2_e_2 {
+  text-combine-upright: digits calc(4e+2 / +2e2);
+}
+</style>
+</head>
+<body>
+
+<div id="invalid_digits_calc_0_plus_1"></div>
+<div id="invalid_digits_calc_2_plus_3"></div>
+<div id="invalid_digits_calc_4_minus_3"></div>
+<div id="invalid_digits_calc_10_minus_3"></div>
+<div id="invalid_digits_calc_3_times_1_0"></div>
+<div id="invalid_digits_calc_2_0_times_2"></div>
+<div id="invalid_digits_calc_2_dividedby_1_0"></div>
+<div id="invalid_digits_calc_4_0_dividedby_2"></div>
+<div id="invalid_digits_calc_2_e_0_times_2_e_positive0"></div>
+<div id="invalid_digits_calc_2_e_2_times_2_e_negative2"></div>
+<div id="invalid_digits_calc_4_e_positive2_dividedby_positive2_e_2"></div>
+
+<div id="log"></div>
+
+<script>
+var getComputedValueFor = function (id) {
+  var element = document.getElementById(id);
+  return window.getComputedStyle(element).textCombineUpright;
+};
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_0_plus_1'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(0 + 1)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_2_plus_3'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(2 + 3)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_4_minus_3'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(4 - 3)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_10_minus_3'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(10 - 3)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_3_times_1_0'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(3 * 1.0)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_2_0_times_2'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(2.0 * 2)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_2_dividedby_1_0'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(2 / 1.0)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_4_0_dividedby_2'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(4.0 / 2)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_2_e_0_times_2_e_positive0'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(2e0 * 2e+0)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_2_e_2_times_2_e_negative2'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(2e2 * 2e-2)` is `none`');
+
+test(function () {
+  assert_equals(getComputedValueFor('invalid_digits_calc_4_e_positive2_dividedby_positive2_e_2'), 'none');
+}, 'Computed value for `text-combine-upright: digits calc(4e+2 / +2e2)` is `none`');
+</script>
+</body>
+</html>

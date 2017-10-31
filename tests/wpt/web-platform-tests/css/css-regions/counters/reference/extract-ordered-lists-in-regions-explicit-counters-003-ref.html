@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		ol, ul {
+			counter-reset: items 0;
+			padding-left: 2em;
+		}
+		li {
+			counter-increment: items 1;
+			list-style-type: none;
+		}
+		.twice>li {
+			counter-increment: items 2;
+		}
+		li::before {
+			content: counters(items, ".") ". ";
+			display: inline-block;
+			margin-right: .3em;
+			text-align: right;
+		}
+		.roman>li::before {
+			content: counters(items, ".", upper-roman) ". ";
+		}
+		.latin>li::before {
+			content: counters(items, ".", upper-latin) ". ";
+		}
+		.disc>li::before {
+			content: counter(items, disc) " ";
+		}
+
+		.slim-wrap {
+			counter-reset: items 2;
+			padding-left: 0;
+			margin-top: 0;
+			margin-bottom: 0;
+		}
+
+		.region {
+			background-color: lightgray;
+			margin: 1em;
+			float: left;
+			width: 17em;
+			height: 20em;
+		}
+
+		#r1 {
+			color: #006400;
+			background-color: lightgreen;
+		}
+		#r2 {
+			color: blue;
+			background-color: lightblue;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if you see two rectangles, one green and one blue, as described below.</p>
+		<p>The green rectangle should contain two lists, <em>one numbered</em> and <em>one bulleted</em>. The <strong>numbered list</strong> should be numbered with roman numerals. Inside it, after the second item there should be a two items bulleted list that's indented. After the first bullet there should a three items numbered list. The numbering for this list should use three levels of period separated decimal numbers (<em>e.g.</em> 2.1.1). The <strong>bulleted list</strong> should have 4 items and the same indentation as the roman-numbered list above it.</p>
+		<p>The blue rectangle should contain a four items numbered list. The numbering for this list should use three levels of period separated decimal numbers, starting at 2.2.1.</p>
+
+		<div class="region" id="r1">
+			<ol class="roman extract1">
+				<li>Roman list, item I</li>
+				<li>Roman list, item II
+					<ul class="disc">
+						<li>Bullet 1
+							<ol>
+								<li>Sub-point 2.1.1</li>
+								<li>Sub-point 2.1.2</li>
+							</ol>
+						</li>
+						<li>Bullet 2
+						</li>
+					</ul>
+				</li>
+				<li>Roman list, item III</li>
+				<li>Roman list, item IV</li>
+			</ol>
+			<ul class="disc extract1">
+				<li>Another bullet 1</li>
+				<li>Another bullet 2</li>
+				<li>Another bullet 3</li>
+				<li>Another bullet 4</li>
+			</ul>
+		</div>
+		<div class="region" id="r2">
+			<ol class="slim-wrap">
+				<ol class="slim-wrap">
+					<ol>
+						<li>Sub-point 2.2.1</li>
+						<li>Sub-point 2.2.2</li>
+						<li>Sub-point 2.2.3</li>
+						<li>Sub-point 2.2.4</li>
+					</ol>
+				</ol>
+			</ol>
+		</div>
+	</body>
+</html>

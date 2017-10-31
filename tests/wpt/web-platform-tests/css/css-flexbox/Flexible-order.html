@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head><title>CSS Test: Change the value of 'order' property</title>
+
+<meta name="assert" content="The order of three should be blue-red-black" />
+
+<link rel="match" href="reference/Flexible-order-ref.html">
+<link rel="author" title="KeynesQu" href="mailto:keynesqu@sohu.com" />
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#order-property" />
+
+<style>
+
+.box {
+	margin:0 auto;
+	background:#CCC;
+	border-radius:5px;
+	width:600px;
+	display:flex;
+	flex-flow:row;
+}
+
+.box div {
+	text-align:center;
+}
+
+.box .red {
+	order:-2;
+	flex:0 1 auto;
+	width:200px;
+	background:#F00;
+}
+.box .blue {
+	order:-4;
+	flex:0 1 auto;
+	width:200px;
+	background:#00F;
+}
+.box .black {
+	order:-1;
+	flex:0 1 auto;
+	width:200px;
+	background:#000;
+	color:#FFF;
+}
+
+
+
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- FLEX CONTAINER -->
+<div class="box">
+	<div class="red">A</div>
+	<div class="blue">B</div>
+	<div class="black">C</div>
+</div>
+
+
+
+</body>
+</html>

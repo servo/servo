@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Overflow' clips to the curve of the rounded corner.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="'Overflow' clips to the curve of the rounded corner." />
+        <style type="text/css">
+            div
+            {
+                border: solid black;
+                border-radius: 40px;
+                height: 1in;
+                width: 2in;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the 'Filler Text' below is clipped to the curve of the rounded corners.</p>
+        <div>
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+            Filler Text. Filler Text.
+        </div>
+    </body>
+</html>

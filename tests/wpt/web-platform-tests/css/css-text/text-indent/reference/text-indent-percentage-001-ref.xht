@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-indent Percentage - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<style type="text/css"><![CDATA[
+			#parent
+			{
+				font: 16px/1em Ahem;
+				position: relative;
+				width: 400px;
+			}
+			.reference{
+				margin-left: 50%;
+			}
+		]]></style>
+	</head>
+	<body>
+		<p>Test passes if there is no red visible on the page.</p>
+		<div id="parent">
+			<div>X</div>
+		</div>
+		<p>Test passes if the following two text blocks look same in terms of margin-left and text-indent respectively.</p>
+		<div>
+			<span class="reference">abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz.</span><br />
+			ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ.<br />
+		</div>
+		<div>
+			<span class="reference">abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz.</span><br />
+			ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ.<br />
+		</div>
+	</body>
+</html>

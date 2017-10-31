@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and scale horizontally 1.5 and vertically 0.5</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-scale">
+    <link rel="match" href="reference/svg-scale-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The green rect in the test should be scaled up horizontally and down vertically to form a square completely cover the red rect.">
+    <style type="text/css">
+        svg {
+            width: 500px;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <svg>
+        <rect x="1" y="1" width="198" height="198" fill="red"/>
+        <rect width="133.333" height="400" fill="green" transform="scale(1.5, 0.5)"/>
+    </svg>
+</body>
+</html>

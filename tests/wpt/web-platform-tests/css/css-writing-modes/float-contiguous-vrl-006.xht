@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: contiguous left-floating boxes in a 'vertical-rl' block formating context</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="float-contiguous-vrl-006-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks the flow of contiguous left-floating boxes. The later (in source document) left-floating box must be to the right of the right outer edge of earlier floating boxes otherwise (if there is not enough available horizontal space) below the margin box of the earlier box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      writing-mode: vertical-rl;
+    }
+
+  div
+    {
+      height: 299px;
+    }
+
+  img
+    {
+      float: left;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p><img src="support/pass-cdts-float-contiguous.png" width="297" height="35" alt="Image download support must be enabled" /></p>
+
+  <div><img src="support/test-tr.png" width="100" height="100" alt="Image download support must be enabled" /><img src="support/test-br.png" width="100" height="100" alt="Image download support must be enabled" /><img src="support/test-tl.png" width="100" height="100" alt="Image download support must be enabled" /><img src="support/test-bl.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

@@ -1,0 +1,62 @@
+<csstest def=":hover pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="18" rev="1.2" date="20-october-2005" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>p:hover { background-color : lime }
+a:hover { background-color : lime }
+
+tr:hover { background-color : green }
+td:hover { background-color : lime }
+
+table { border-spacing: 5px; }</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">The background color of this paragraph should turn to green when
+   the mouse pointer hovers either its text (<strong>here</strong>) or its whitespace background, <strong>here</strong>:</p>
+<address xmlns="http://www.w3.org/1999/xhtml">The background color of <a href="#foo">this anchor (<strong>here</strong>)</a> should turn to green when the pointing device hovers over it.</address>
+<table xmlns="http://www.w3.org/1999/xhtml">
+ <tbody>
+  <tr>
+   <td>The cells in</td>
+   <td>this table</td>
+   <td>should go</td>
+  </tr>
+  <tr>
+   <td>green when</td>
+   <td>you hover</td>
+   <td>the pointing</td>
+  </tr>
+  <tr>
+   <td>device over</td>
+   <td>them (<strong>here</strong>).</td>
+   <td></td>
+  </tr>
+  <tr>
+   <td>The rows in</td>
+   <td>this table</td>
+   <td>should go</td>
+  </tr>
+  <tr>
+   <td>dark green</td>
+   <td>when the</td>
+   <td>pointing device</td>
+  </tr>
+  <tr>
+   <td>is over the</td>
+   <td>cells <strong>there</strong>:</td>
+   <td></td> <!-- remove this cell to make an evil test; row should still go green, but cell should not -->
+  </tr>
+  <tr>
+   <td>And <strong>here</strong>:</td>
+   <td></td>
+   <td>(blank cells).</td>
+  </tr>
+ </tbody>
+</table>
+</code>
+<!-- the row going green assumes that :hover is hierarchical, something that the spec
+explicitly does not require... -->
+</csstest>

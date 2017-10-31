@@ -1,0 +1,49 @@
+/* Set the margin to 0 so we'll know that the target will be there if the content isn't flowing into a region */
+body {
+    margin: 0;
+}
+#msg-complete {
+    color: blue;
+}
+/* Set the width of the content div so that the blocks will wrap downward when they're not flowing into a region */
+#content {
+	flow-into: content;
+	width: 125px;
+}
+/* Set regions to float left so the blocks will be laid out horizontally when they're flowing into the regions */
+.region {
+	flow-from: content;
+	width: 125px;
+	height: 125px;
+	float:left;
+}
+/* Basic block */
+.block {
+	background-color: gray;
+	display: inline-block;
+    width: 100px;
+    height: 100px;
+}
+/* Set color on the target to be different than the others */
+#target-block {
+	background-color: rgb(0, 0, 0);
+}
+#target-block:hover {
+	background-color: rgb(0, 255, 0);
+}
+input:focus {
+	background-color: rgb(0, 255, 0);
+}
+#outside-region {
+	clear: both;
+	width: 125px;
+	height: 125px;
+	background-color: rgb(255, 191, 0);
+	margin: 25px;
+}
+#outside-region:hover {
+	background-color: rgb(0, 255, 0);
+}
+#log {
+	clear: both;
+}

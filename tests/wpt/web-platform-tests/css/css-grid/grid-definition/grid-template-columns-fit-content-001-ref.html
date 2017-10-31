@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: grid-template-columns fit-content() reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="stylesheet" href="../support/grid.css">
+<meta name="flags" content="ahem">
+<style>
+.grid {
+  justify-content: start;
+  width: 100px;
+  position: relative;
+  padding-top: 10px;
+  margin-bottom: 5px;
+  grid-column-gap: 5px;
+}
+
+.fc0 { grid-template-columns: minmax(auto, 0px);}
+.fc40 { grid-template-columns: minmax(auto, 40px); }
+.fc80 { grid-template-columns: minmax(auto, 80px); }
+.fc110 { grid-template-columns: auto; }
+
+.fc0x2 { grid-template-columns: repeat(2, minmax(auto, 0px));}
+.fc40x2 { grid-template-columns: repeat(2, minmax(auto, 40px)); }
+.fc80x2 { grid-template-columns: repeat(2, minmax(auto, 80px)); }
+.fc110x2 { grid-template-columns: auto auto; }
+
+.fc0p { grid-template-columns: minmax(auto, 0%); }
+.fc30p { grid-template-columns: minmax(auto, 30%); }
+.fc90p { grid-template-columns: minmax(auto, 90%); }
+.fc110p { grid-template-columns: auto; }
+
+.fc0px2 { grid-template-columns: repeat(2, minmax(auto, 0%)); }
+.fc30px2 { grid-template-columns: repeat(2, minmax(auto, 30%)); }
+.fc90px2 { grid-template-columns: repeat(2, minmax(auto, 90%)); }
+.fc110px2 { grid-template-columns: auto auto; }
+
+.item {
+  font: 10px/1 Ahem;
+  background: cyan;
+}
+
+.spanningItem {
+  font: 10px/1 Ahem;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  background: salmon;
+}
+
+.test {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 5px;
+  background: purple;
+}
+.test:nth-child(2n) { background: orange; }
+
+.floatLeft {
+  float: left;
+  width: 190px;
+}
+
+h3 { font-size: 1em; }
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div class="floatLeft">
+  <h3>Only fit-content() and with fixed size tracks.</h3>
+  <div class="grid fc0">
+	<div class="item">XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+  </div>
+
+  <div class="grid fc0x2">
+	<div class="item">XXX</div>
+	<div class="spanningItem">XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid fc40">
+	<div class="item">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto auto;">
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: minmax(auto, 40px) auto;">
+	<div class="item">XXX XXX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid fc80">
+	<div class="item">XXX XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+  </div>
+
+  <div class="grid fc80x2">
+	<div class="spanningItem">XXX XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto minmax(auto, 80px)">
+	<div class="item autoRowSecondColumn">XXX XXX XXX</div>
+	<div class="spanningItem">XXX XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: minmax(auto, 20px) 50%;">
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: minmax(10px, 40px) minmax(auto, 40px);">
+	<div class="item">XXXXX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto minmax(10%, 200px);">
+	<div class="item autoRowSecondColumn">XXXXX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+</div>
+
+<div class="floatLeft">
+  <h3>fit-content() with other content-sized tracks.</h3>
+  <div class="grid" style="grid-template-columns: minmax(auto, 40px) max-content;">
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: minmax(auto, 40px) max-content;">
+	<div class="item">XXXXX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: minmax(auto, 40px) max-content;">
+	<div class="item autoRowSecondColumn">XXXXX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content minmax(auto, 40px);">
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content minmax(auto, 40px);">
+	<div class="item">XXXXX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content minmax(auto, 40px);">
+	<div class="item autoRowSecondColumn">XXXXX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: minmax(auto, 30px) min-content max-content">
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+	<div class="test autoRowThirdColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content minmax(auto, 30px) max-content">
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+	<div class="test autoRowThirdColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content max-content minmax(auto, 30px)">
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+	<div class="test autoRowThirdColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: minmax(auto, 30px) min-content max-content">
+	<div class="item" style="grid-column: 1">XXX XX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+	<div class="test autoRowThirdColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content minmax(auto, 30px) max-content">
+	<div class="item" style="grid-column: 1">XXX XX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+	<div class="test autoRowThirdColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content max-content minmax(auto, 30px)">
+	<div class="item" style="grid-column: 2">XXX XX</div>
+	<div class="spanningItem">XXX XX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+	<div class="test autoRowThirdColumn"></div>
+  </div>
+</div>
+
+<div class="floatLeft">
+  <h3>fit-content() with percentage arguments.</h3>
+  <div class="grid fc0p">
+	<div class="item">XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+  </div>
+
+  <div class="grid fc0px2">
+	<div class="item">XXX</div>
+	<div class="spanningItem">XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid fc30p">
+	<div class="item">XX XX</div>
+	<div class="test autoRowFirstColumn"></div>
+  </div>
+
+  <div class="grid fc30px2">
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid fc30px2">
+	<div class="item autoRowSecondColumn">X X X</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid fc90p">
+	<div class="item">XXX XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+  </div>
+
+  <div class="grid fc90px2">
+	<div class="spanningItem">XXX XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto minmax(auto, 90%)">
+	<div class="item autoRowSecondColumn">XXX XXX XXX</div>
+	<div class="spanningItem">XXX XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+</div>
+
+<div class="floatLeft">
+  <h3>max-content < fit-content() argument.</h3>
+
+  <div class="grid fc110">
+	<div class="item">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+  </div>
+
+  <div class="grid fc110x2">
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid fc110x2">
+	<div class="item">XXX XXX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto auto;">
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto auto;">
+	<div class="item autoRowSecondColumn">XX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: max-content auto;">
+	<div class="spanningItem" style="grid-row: 1;">XX XX XX XX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto min-content;">
+    <div class="spanningItem" style="grid-row: 1;">XX XX XX XX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: max-content auto max-content;">
+	<div class="spanningItem" style="grid-row: 1;">XX XX XX XX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+    <div class="test autoRowThirdColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: min-content auto min-content;">
+	<div class="spanningItem" style="grid-row: 1;">XX XX XX XX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+    <div class="test autoRowThirdColumn"></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns: auto auto auto;">
+	<div class="spanningItem" style="grid-row: 1;">XX XX XX XX</div>
+	<div class="spanningItem">XXX XXX</div>
+	<div class="test autoRowFirstColumn"></div>
+	<div class="test autoRowSecondColumn"></div>
+    <div class="test autoRowThirdColumn"></div>
+  </div>
+
+</div>

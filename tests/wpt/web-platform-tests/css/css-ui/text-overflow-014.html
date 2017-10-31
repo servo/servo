@@ -1,0 +1,40 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: styling the ellipsis</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#ellipsing-details">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="ahem">
+<meta name="assert" content="The ellipsis' font family, font size, and color are styled according to the block.">
+<style>
+.test {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space:pre;
+  font: 100px/1 ahem;
+  color: green;
+
+  /* 2em width and starting with a space
+     because the handling of the ellipsis of the first character on the line is special,
+     and therefore we need to have the thing we want to test in non first position.
+     Shifting 1em left to align with the usual green square.
+   */
+  width: 2em;
+  margin-left: -1em;
+}
+.red {
+  position: absolute;
+  z-index: -1;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+span {
+  font: 50%/1 serif;
+  color: red;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=red></div>
+<div class=test> <span>xxxxxxxxxxxxxxxxxxxx</span></div>

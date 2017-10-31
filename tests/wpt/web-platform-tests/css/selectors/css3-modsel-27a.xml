@@ -1,0 +1,24 @@
+<csstest def="Impossible rules (:root:first-child, etc)" module="W3C Selectors" modulename="css3-modsel" number="27a" rev="1.0" date="19-october-2005" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+:root:first-child { background-color: red; }
+:root:last-child { background-color: red; }
+:root:only-child { background-color: red; }
+:root:nth-child(1) { background-color: red; }
+:root:nth-child(n) { background-color: red; }
+:root:nth-last-child(1) { background-color: red; }
+:root:nth-last-child(n) { background-color: red; }
+:root:first-of-type { background-color: red; }
+:root:last-of-type { background-color: red; }
+:root:only-of-type { background-color: red; }
+:root:nth-of-type(1) { background-color: red; }
+:root:nth-of-type(n) { background-color: red; }
+:root:nth-last-of-type(1) { background-color: red; }
+:root:nth-last-of-type(n) { background-color: red; }
+p { color: green; }</cssrules>
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">This line should be green (there should be no red on this page).</p>
+</code>
+</csstest>

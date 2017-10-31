@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>flexbox | flex-flow and transitioned order</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-property">
+<meta name="flags" content="interact">
+<style>
+div {
+	background: blue;
+	padding: 0;
+	margin: 1em 0;
+	border: 1px solid black;
+	width: 20em;
+	height: 8em;
+
+	display: flex;
+	flex-flow: column-reverse wrap-reverse;
+}
+span {
+	background: white;
+	margin: 1em;
+	width: 8em;
+	height: 1.5em;
+	display: inline-block;
+}
+.one {
+	background: pink;
+	order: -1;
+}
+div:hover .one {
+	transition: order 4s;
+	order: 4;
+}
+.two {
+	background: yellow;
+	order: 3;
+}
+.three {
+	background: black;
+	color: white;
+	order: 2;
+}
+.four {
+	background: fuchsia;
+	color: white;
+	order: 1;
+}
+p~div {
+	padding: 1em 0 0;
+	margin-right: 1em;
+	height: 7em;
+	float: left;
+	display: block;
+}
+p~div span {
+	float: left;
+}
+</style>
+
+<div>
+	<span class="one">one</span>
+	<span class="two">two</span>
+	<span class="three">three</span>
+	<span class="four">four</span>
+</div>
+
+<p>Verify that the box above looks exactly like the first of the boxes
+below. Then hover the blue area above and leave the mouse there for 4
+seconds. After the specified time, the box above should look exactly
+like the second of the boxes below.</p>
+
+<div>
+	<span class="two">two</span>
+	<span class="four">four</span>
+	<span class="three">three</span>
+	<span class="one">one</span>
+</div>
+
+<div>
+	<span class="one">one</span>
+	<span class="three">three</span>
+	<span class="two">two</span>
+	<span class="four">four</span>
+</div>

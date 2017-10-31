@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            CSS Regions Test: Selection is downward, begins and ends inside a region containing one other element -
+            img
+        </title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#relation-to-document-events">
+        <meta name="assert" content="CSS regions module does not alter the normal processing of events in the document
+        tree. Therefore, mouse selection within a region should contain all of the content dragged over by the mouse,
+        including nested elements.">
+        <meta name="flags" content="dom interact">
+        <link href="support/css/regions-selection.css" rel="stylesheet" type="text/css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/js/selection-test-helper.js"></script>
+    </head>
+    <body>
+        <p id="msg">
+            Click on the orange square, keep the mouse button down and drag it to the blue square,
+            release the mouse over the blue square.
+        </p>
+        <div id="beforeRegion">
+            before region before region before region before region before region before region before region before
+            region before region before region before region before region before region before region before region
+            before region before region before region
+        </div>
+        <div id="region"></div>
+        <div id="source">
+            in region in region
+            <div id="start-select" class="select-point"></div>
+            in region in region in region in region in region in region in region in region in region in region in
+            region in region in region in region in region in region in region in region in region in
+            <img id="nestedImg" src="support/img/cat.png"></img>
+            region in region in region in region in region in region in region in region in region in region in region
+            in region in region in region in region in region
+            <div id="end-select" class="select-point"></div>
+            in region in region in region
+        </div>
+        <div id="afterRegion">
+            after region after region after region after region after region after region after region after region
+            after region after region after region after region after region after region after region after region
+            after region after region after region after region after region
+        </div>
+        <div id="log"></div>
+        <script>
+              runSelectionTest( [ { nodeName: "nestedImg", expected: true } ] );
+        </script>
+    </body>
+</html>
+

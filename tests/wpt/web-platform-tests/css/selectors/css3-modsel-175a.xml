@@ -1,0 +1,14 @@
+<csstest def="Parsing: Numbers in classes" module="W3C Selectors" modulename="css3-modsel" number="175a" rev="1.0" date="20-september-2002" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+ p { color: green; }
+ .13 { color: red; }
+</cssrules>
+
+<code>
+   <p xmlns="http://www.w3.org/1999/xhtml" class="13">This line should be green.</p>
+</code>
+
+</csstest>

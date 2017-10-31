@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: margin percentage and 'vertical-rl' (orthogonal flow)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping" title="7.2 Dimensional Mapping" />
+  <link rel="match" href="margin-vrl-002-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks that percentages on the margin are calculated with respect to the width (inline-size) of the containing block if 'writing-mode' of such containing block is 'horizontal-tb'. In this test, div.outer's computed 'writing-mode' value is 'horizontal-tb' and it is the div.inner's containing block." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div.outer
+    {
+      background-color: blue;
+      border: blue solid 3px;
+      width: 200px;
+    }
+
+  div.inner
+    {
+      background-color: yellow;
+      height: 50px;
+      width: 50px;
+      writing-mode: vertical-rl;
+    }
+
+  div.foo
+    {
+      margin-bottom: 2.5%; /* 5px ; collapses with hr's margin-top */
+      margin-left: 50%; /* 100px */
+      margin-right: 25%; /* 50px */
+      margin-top: 10%; /* 20px */
+    }
+
+  hr
+    {
+      background-color: transparent;
+      border: transparent none 0px;
+      height: 3px;
+      margin: 0.5em auto;
+    }
+
+  div.bar
+    {
+      margin-bottom: 10%; /* 20px */
+      margin-left: 25%; /* 50px */
+      margin-right: 50%; /* 100px */
+      margin-top: 2.5%; /* 5px ; collapses with hr's margin-bottom */
+    }
+
+  div#reference
+    {
+      margin-top: 1em;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 2 <strong>identical</strong> blue rectangles, each with 2 small yellow squares: the layout must be identical.</p>
+
+  <div class="outer">
+    <div class="inner foo"></div>
+    <hr />
+    <div class="inner bar"></div>
+  </div>
+
+  <div id="reference"><img src="support/blue-yellow-206w-165h.png" width="206" height="165" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="paint2d-rects-ref.html">
+<style>
+    #output {
+        width: 100px;
+        height: 100px;
+        background-image: paint(rects);
+        background-color: blue;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('rects', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(0, 0, geom.width, geom.height);
+
+        ctx.clearRect(40, 40, 20, 20);
+
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(20, 20, 60, 60);
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

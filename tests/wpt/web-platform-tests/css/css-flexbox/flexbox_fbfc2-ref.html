@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>flexbox | flex formatting context :: float intrusion</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+* {margin: 0;}
+#float {
+	background: lightblue;
+	width: 200px;
+	float: left;
+}
+#flex {
+	background: #ffcc00;
+	margin-left: -200px;
+	width: 400px;
+	overflow: hidden;
+}
+div div {
+	margin: 2em;
+}
+</style>
+
+<div id="float">float</div>
+
+<div id="flex">
+	<div>Yellow box yellow box yellow box</div>
+</div>

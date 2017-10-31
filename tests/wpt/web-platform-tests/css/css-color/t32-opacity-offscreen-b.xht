@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: opacity</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#transparency" />
+		<meta name="flags" content="" />
+		<meta name="assert" content="That opacity specifies compositing the contents as a single offscreen buffer." />
+		<style type="text/css"><![CDATA[
+
+		body { background: white; }
+
+		div { width: 5em; height: 1em; }
+		div.color { background: blue; }
+		div.top { margin: 2px 0; opacity: 0.4; }
+
+		div.ref { opacity: 1.0; background: rgb(153, 153, 255); }
+
+		]]></style>
+	</head>
+	<body>
+		<p>The following five boxes should be the same color:</p>
+
+		<div class="top color"></div>
+		<div class="top color"><div class="color"></div></div>
+		<div class="top"><div class="color"></div></div>
+		<div class="top"><div class="color"><div class="color"></div></div></div>
+		<div class="top ref"></div>
+	</body>
+</html>

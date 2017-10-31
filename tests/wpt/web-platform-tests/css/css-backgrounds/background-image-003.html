@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds: background-image <a></title>
+<link rel="author" title="Justin Hill" href="http://www.justin-hill.com">
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image">
+<link rel="match" href="reference/background-image-001-ref.html">
+<meta name="assert" content="Test checks that background-image displays raster image for <a> tag.">
+<style>
+    .container {
+      top:50px;
+      left:50px;
+      width: 100px;
+      height: 100px;
+    }
+
+    a {
+      width:100px;
+      height:100px;
+      color:transparent;
+      font-size: 50px;
+      background-image: url("support/green.png");
+      background-color: red;
+      display: block;
+    }
+</style>
+<body>
+    <p> Test passes if green image shows and no red visable.</p>
+    <div class="container">
+      <a href="#">x</a>
+    </div>
+</body>

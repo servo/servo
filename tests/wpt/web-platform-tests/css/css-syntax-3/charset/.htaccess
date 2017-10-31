@@ -1,4 +1,0 @@
-IndexOptions NameWidth=*
-AddDefaultCharset Off
-AddCharset bogus .bogus
-AddCharset windows-1250 .windows1250

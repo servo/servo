@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: single auto-sized floated region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="">
+		<meta name="assert" content="Test checks that a single auto-sized region is properly sized,
+				according both to the regions processing model and the specifics of floats sizing.">
+		<link rel="match" href="reference/floated-regions-003-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+		.flow {
+			flow-into: f;
+		}
+
+		.region {
+			flow-from: f;
+		}
+		.region p {
+			background: red;
+		}
+
+		.float {
+			float: left;
+			border: 10px solid black;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a green square with a thick black outline.<br>
+			You should see no red.
+		</p>
+
+		<div class="region float"></div>
+
+		<article class="flow">
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx
+		</article>
+	</body>
+</html>

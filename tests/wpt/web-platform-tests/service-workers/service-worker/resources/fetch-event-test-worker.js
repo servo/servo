@@ -125,6 +125,10 @@ function handleRequestBody(event) {
       }));
 }
 
+function handleKeepalive(event) {
+  event.respondWith(new Response(event.request.keepalive));
+}
+
 self.addEventListener('fetch', function(event) {
     var url = event.request.url;
     var handlers = [
@@ -146,6 +150,7 @@ self.addEventListener('fetch', function(event) {
       { pattern: '?eventsource', fn: handleEventSource },
       { pattern: '?integrity', fn: handleIntegrity },
       { pattern: '?request-body', fn: handleRequestBody },
+      { pattern: '?keepalive', fn: handleKeepalive },
     ];
 
     var handler = null;

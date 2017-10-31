@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into on ordered and unordered list items from multiple lists</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<meta name="flags" content="">
+		<meta name="assert" content="The flow-into property can be applied to individual list items. List items extracted in named flows and flowed into regions must preserve their list markers and numbering, even when extracting items from multiple lists in the same named flow.">
+		<link rel="match" href="reference/extract-list-items-002-ref.html">
+		<style>
+		ul:first-of-type, ol:first-of-type {
+			color: blue;
+		}
+		ul:nth-of-type(3) {
+			color: green;
+		}
+		ol > li {
+			flow-into: f1;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+		ul > li {
+			flow-into: f2;
+		}
+		#r2 {
+			flow-from: f2;
+		}
+		.region {
+			margin: 2em;
+			background-color: lightgray;
+			width: 200px;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if there are two gray rectangles:  the first with two numbered lists (3 items each), the second with three un-numbered lists (2 items each).<br>
+		First list of each type should be blue, second list of each type should be black and the third un-ordered list should be green.
+		</p>
+		<p>Each numbered list should start at 1.<br>
+		Both the numbers and the list markers should be outside of the gray rectangles.</p>
+		<ol>
+			<li>Ordered list 1, item 1</li>
+			<li>Ordered list 1, item 2</li>
+			<li>Ordered list 1, item 3</li>
+		</ol>
+		<ol>
+			<li>Ordered list 2, item 1</li>
+			<li>Ordered list 2, item 2</li>
+			<li>Ordered list 2, item 3</li>
+		</ol>
+		<div class="region" id="r1"></div>
+
+		<ul>
+			<li>Unordered list 1, item 1</li>
+			<li>Unordered list 1, item 2</li>
+		</ul>
+		<ul>
+			<li>Unordered list 2, item 1</li>
+			<li>Unordered list 2, item 2</li>
+		</ul>
+		<ul>
+			<li>Unordered list 3, item 1</li>
+			<li>Unordered list 3, item 2</li>
+		</ul>
+		<div class="region" id="r2"></div>
+	</body>
+</html>

@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow applied at edge of block container</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="reference/text-overflow-006-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="Checks that the elipsis is applied at the edge of the line box, not the end of the block container, when these are different.">
+<style>
+div {
+  white-space: pre;
+  font-family: monospace;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 9.5ch;
+  /* 9ch ought to be enough,
+     but Safari seems to have aliasing issues that make the ellipsis character larger than 1ch by a bit.
+     Adding an extra .5 does not change the validity of the test,
+     and lets safari fit “PASS…” in the space provided.
+     This issue may be a bug, but if so, it is unrelated to what this test is testing,
+     so no need to force a fail when an easy workaround is available.
+   */
+}
+span { float: right; }
+</style>
+
+<p>Test passes if “PASS…” appears below.</p>
+<div><span>    </span>PASS FAIL</div>

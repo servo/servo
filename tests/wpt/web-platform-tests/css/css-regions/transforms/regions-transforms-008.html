@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Regions: Transformed named flow (text) content that breaks across multiple regions and overflows</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+    <link rel="reviewer author" title="Mihai Balan" href="mailto:mibalan@adobe.com"> <!-- 2013-07-24 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css3-break/#transforms">
+    <link rel="match" href="reference/regions-transforms-008-ref.html">
+    <meta name="flags" content="ahem">
+    <meta name="assert" content="This test checks that named flow text content is transformed when it breaks across
+                                 multiple regions and that the overflow remains visible.">
+    <style>
+    .ahem {
+        font-family: Ahem;
+        font-size: 10px;
+        line-height: 20px;
+    }
+    #named-flow {
+        color: green;
+        margin-left: -50px;
+        transform: translateX(50px);
+        flow-into: f;
+    }
+    .region {
+        width: 100px;
+        height: 100px;
+        margin-left: 10px;
+        float: left;
+        border: 1px solid black;
+        flow-from: f;
+    }
+    .failure {
+        position: absolute;
+        width: 102px;
+        height: 102px;
+        margin-top: 1px;
+        margin-left: 10px;
+        padding-left: 1px;
+        color: red;
+        z-index: -1;
+    }
+    .left {
+        left: 8px;
+    }
+    .right {
+        left: 120px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if:</p>
+    <ul>
+        <li>The two squares each contain five green horizontal stripes</li>
+        <li>There are two green horizontal stripes below the square on right</li>
+        <li>There is no red</li>
+    </ul>
+    <div id="named-flow" class="ahem">XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX XXXXXXXXXXX</div>
+    <div class="region"></div>
+    <div class="region"></div>
+
+    <div class="ahem failure left">
+        XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+    </div>
+    <div class="ahem failure right">
+        XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX XXXXXXXXXX
+    </div>
+
+
+</body>
+</html>

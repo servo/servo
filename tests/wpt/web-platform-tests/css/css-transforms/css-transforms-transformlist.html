@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+<head>
+    <title>CSS Test: SVG transform in baseVal list</title>
+    <link rel="author" title="Rik Cabanier" href="mailto:cabanier@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-attribute-dom">
+    <link rel="match" href="reference/css-transforms-transformlist-ref.html">
+    <meta name="assert" content="This test verifies that the CSS transform ends up in the list of SVG transforms">
+    <style type="text/css">
+
+       #rect {
+		   fill: green;
+		   transform: translate(10px, 10px);
+	   }
+
+	   #result {
+		   width:100px;
+		   height:100px;
+		   background-color: red;
+	   }
+
+    </style>
+    <script>
+	window.addEventListener('load', function(){
+		var r = document.getElementById("rect");
+		var result = document.getElementById("result");
+		if(r.transform.baseVal.length>0)
+			result.style.backgroundColor = "rgb(0, 255, 0)";
+
+		document.getElementById("svgelement").style.display="none";
+	}, false);
+	</script>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg id="svgelement">
+		<rect id="rect" width="100" height="100"></rect>
+	</svg>
+    <div id="result"></div>
+</body>
+</html>

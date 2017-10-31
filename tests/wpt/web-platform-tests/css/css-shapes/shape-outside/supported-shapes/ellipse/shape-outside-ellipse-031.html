@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: left float, ellipse radii in % units</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-ellipse">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="match" href="reference/shape-outside-ellipse-030-ref.html">
+        <meta name="flags" content="ahem dom" />
+        <meta name="assert" content="The test verifies that text wraps around a
+                                     left float with a shape-outside defined as
+                                     an ellipse with radii in % units.">
+    </head>
+    <style>
+    body {
+        margin: 0;
+    }
+    .container {
+        font: 15px Ahem, sans-serif;
+        line-height: 20px;
+        width: 400px;
+        height: 200px;
+        color: green;
+    }
+    .ellipse {
+        width: 160px;
+        height: 160px;
+        shape-outside: ellipse(50% 25% at 50% 25%);
+    }
+    </style>
+    <body>
+    <p>The test passes if all of the squares are green. There should be no red.</p>
+    <div class="container">
+        X<br/>
+        <div style="float: left" class="ellipse"></div>
+        <span id="test0">X</span><br/>
+        <span id="test1">X</span><br/>
+        <span id="test2">X</span><br/>
+        <span id="test3">X</span><br/>
+        <span id="test4">X
+    </div>
+      <script src="../support/rounded-rectangle.js"></script>
+      <script src="../support/subpixel-utils.js"></script>
+      <script src="../support/test-utils.js"></script>
+      <script>
+        verifyTextPoints({
+                roundedRect: {x: 0, y: 20, width: 160, height: 80, rx: 80, ry: 40},
+                containerWidth: 200,
+                containerHeight: 200,
+                lineHeight: 20
+        }, 9);
+     </script>
+    </body>
+</html>
+

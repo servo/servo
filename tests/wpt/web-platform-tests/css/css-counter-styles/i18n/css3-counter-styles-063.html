@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>korean-hanja-formal, 10-9999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to korean-hanja-formal will produce list numbering after 9 as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: korean-hanja-formal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='10'><li title='10'>壹拾,</li></ol>
+<ol start='11'><li title='11'>壹拾壹,</li></ol>
+<ol start='12'><li title='12'>壹拾貳,</li></ol>
+<ol start='43'><li title='43'>四拾參,</li></ol>
+<ol start='77'><li title='77'>七拾七,</li></ol>
+<ol start='80'><li title='80'>八拾,</li></ol>
+<ol start='99'><li title='99'>九拾九,</li></ol>
+<ol start='100'><li title='100'>壹百,</li></ol>
+<ol start='101'><li title='101'>壹百壹,</li></ol>
+<ol start='222'><li title='222'>貳百貳拾貳,</li></ol>
+<ol start='540'><li title='540'>五百四拾,</li></ol>
+<ol start='999'><li title='999'>九百九拾九,</li></ol>
+<ol start='1000'><li title='1000'>壹仟,</li></ol>
+<ol start='1005'><li title='1005'>壹仟五,</li></ol>
+<ol start='1060'><li title='1060'>壹仟六拾,</li></ol>
+<ol start='1065'><li title='1065'>壹仟六拾五,</li></ol>
+<ol start='1800'><li title='1800'>壹仟八百,</li></ol>
+<ol start='1860'><li title='1860'>壹仟八百六拾,</li></ol>
+<ol start='1865'><li title='1865'>壹仟八百六拾五,</li></ol>
+<ol start='5865'><li title='5865'>五仟八百六拾五,</li></ol>
+<ol start='7005'><li title='7005'>七仟五,</li></ol>
+<ol start='7800'><li title='7800'>七仟八百,</li></ol>
+<ol start='7865'><li title='7865'>七仟八百六拾五,</li></ol>
+<ol start='9999'><li title='9999'>九仟九百九拾九,</li></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

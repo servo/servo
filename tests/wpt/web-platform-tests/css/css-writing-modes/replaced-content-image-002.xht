@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: alternate text of image and vertical writing mode</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+
+  <meta content="should" name="flags" />
+  <meta content="This test checks that alternate text (latin) of image rotates 90° clockwise in vertical writing mode." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+    {
+      font-size: 2em;
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if the words "Text sample" are <strong>rotated 90° clockwise</strong>.</p>
+
+  <div><img src="#" alt="Text sample" /></div>
+
+ </body>
+</html>

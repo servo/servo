@@ -1,0 +1,16 @@
+<csstest def="Parsing : vs ::" module="W3C Selectors" modulename="css3-modsel" number="177b" rev="1.0" date="22-june-2003" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+ div { color: green; }
+ p::first-child { color: yellow; background: red; }
+</cssrules>
+
+<code>
+ <div xmlns="http://www.w3.org/1999/xhtml">
+  <p>This line should be green.</p>
+ </div>
+</code>
+
+</csstest>

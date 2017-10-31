@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG patternTransform presentation attribute and translation-value negative argument with pica unit in scientific notation on translateX</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-number">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-gradient-transform-pattern-transform">
+    <link rel="match" href="reference/svg-patternTransform-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The patternTransform attribute must support functions with the absolute length unit 'pc' in negative scientific numbers on translation-value arguments. The pattern in the test should be moved 25 pixels in the X direction resulting in a solid green rect.">
+    <style type="text/css">
+    svg {
+        width: 100px;
+        height: 100px;
+        background:red;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <defs>
+            <pattern id="greenRects" patternUnits="userSpaceOnUse" x="0" y="0" width="50" height="50" patternTransform="translateX(-0.15625e1pc)">
+                <rect x="25" y="0" width="25" height="25" fill="green"/>
+                <rect x="25" y="25" width="25" height="25" fill="green"/>
+            </pattern>
+        </defs>
+        <rect fill="green" x="25" y="0" width="25" height="100"/>
+        <rect fill="green" x="75" y="0" width="25" height="100"/>
+        <rect fill="url(#greenRects)" x="0" y="0" width="100" height="100"/>
+    </svg>
+</body>
+</html>

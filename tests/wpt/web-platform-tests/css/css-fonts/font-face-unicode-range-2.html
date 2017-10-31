@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: font-face unicode-range</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="http://www.w3.org/TR/css-fonts-3/#unicode-range-desc">
+<meta name="flags" content="">
+<meta name="assert" content="Check that font-face unicode-range restrics use of glyphs outside that range">
+<style>
+  @font-face {
+    font-family: base;
+    src: url(support/fonts/LigatureSymbolsWithSpaces.woff);
+  }
+  @font-face {
+    font-family: swoosh;
+    src: url(support/fonts/Rochester.otf);
+    unicode-range: U+26;
+  }
+  .test {
+    font-family: swoosh, base;
+  }
+  .ref {
+    font-family: base;
+  }
+  .ref .amp {
+	  font-family: swoosh;
+  }
+  div {
+	  font-size: 5em;
+  }
+</style>
+<body>
+  <p>Test passes if the two lines look the same, with just the ampersand in italic</p>
+  <div class="ref">This <span class="amp">&amp;</span> That</div>
+  <div class="test">This &amp; That</div>
+</body>

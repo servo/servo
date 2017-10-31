@@ -1,0 +1,58 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+
+<!DOCTYPE html>
+
+<html>
+
+ <head>
+
+  <!--
+  The original and initial filename of this reference file was
+  ref-tall-lime8x64-aqua8x64.html
+  -->
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Jeff Walden" href="http://whereswalden.com/">
+
+  <style type="text/css">
+  div#outer
+  {
+  border: black solid 8px;
+  height: 384px;
+  width: 128px;
+  }
+
+  div#inner
+  {
+  height: 128px;
+  width: 8px;
+  }
+
+  div#inner > div
+  {
+  height: 64px;
+  width: 8px;
+  }
+
+  div#top {background-color: lime;}
+
+  div#bottom {background-color: aqua;}
+  </style>
+
+ </head>
+
+ <body>
+
+  <div id="outer">
+      <div id="inner">
+          <div id="top"></div>
+          <div id="bottom"></div>
+      </div>
+  </div>
+
+ </body>
+</html>

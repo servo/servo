@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): "transform-origin: inherit" and percentages</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <meta name="assert" content='The &apos;transform-origin&apos;
+    property&apos;s computed value (which is what&apos;s inherited if
+    &apos;inherit&apos; is specified) is defined as "For &lt;length&gt; the
+    absolute value, otherwise a percentage."  In this test, a parent element
+    has a transform-origin of &apos;50% 100%&apos; with a height/width of 50px,
+    and the child has "transform-origin: inherit" with a height/width of 100px.
+    Since the transform-origin is a percentage, it&apos;s inherited before it
+    gets resolved to a length.  This means it works out to 50px 100px on the
+    child, at its center, so the 180deg rotation should translate the child
+    down by 100px.  An implementation that incorrectly resolved the
+    transform-origin to 25px 50px before inheritance would instead display the
+    child box translated left 75px.'>
+    <link rel="match" href="transform-inherit-origin-ref.html">
+    <style>
+      body {
+        height: 50px;
+        width: 50px;
+        transform-origin: 50% 100%;
+      }
+      div {
+        height: 100px;
+        width: 100px;
+        transform: rotate(180deg);
+        transform-origin: inherit;
+        background: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

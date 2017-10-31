@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Backgrounds and Borders Test: background-origin 'border-box' with background-clip 'padding-box'</title>
+    <link rel="author" title="Intel" href="http://www.intel.com">
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2012-11-09 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-origin" title="3.8. Positioning Area: the 'background-origin' property">
+    <link rel="match" href="reference/background-origin-007-ref.html">
+    <meta name="flags" content="image">
+    <meta name="assert" content="Check if 'background-clip' is 'padding-box', 'background-origin' is 'border-box', 'background-position' is 'top left' (the initial value), and the element has a non-zero border, that expecting the top and left of the background image will be clipped.">
+    <style>
+        div {
+            position: absolute;
+        }
+        #ref-overlapping-green {
+            background-color: green;
+            height: 55px;
+            left: 5px;
+            top: 5px;
+            width: 55px;
+        }
+        #test-overlapped-red {
+            background-clip: padding-box;
+            background-image: url(support/60x60-red.png);
+            background-origin: border-box;
+            background-position: top left;
+            background-repeat: no-repeat;
+            border: transparent dotted 5px;
+            height: 100px;
+            padding: 25px;
+            width: 100px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="container">
+      <div id="test-overlapped-red"></div>
+      <div id="ref-overlapping-green"></div>
+    </div>
+  </body>
+</html>

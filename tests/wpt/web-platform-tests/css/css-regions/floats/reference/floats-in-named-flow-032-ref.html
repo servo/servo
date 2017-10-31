@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+
+		.float {
+			float: left;
+			color: blue;
+			padding: 1em 2em 3em 4em;
+		}
+
+		.outer-container {
+			display: inline-block;
+			border: 10px solid black;
+		}
+
+		.regions-container {
+			padding: 20px 15px 10px 5px;
+		}
+
+		.content {
+			padding: 2px 4px 8px 16px;
+			color: green;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			<!-- TODO Determine what the outcome should be - currently expecting a resolution on
+			the issue on www-style/css3-break -->
+			Test passes if you see two colored squares inside a black-bordered rectangle.<br>
+			The first (top to bottom) square should be blue, while the second should be green.<br>
+			The blue square should be roughly horizontally centered and the green square should be
+			near the bottom left corner of the rectangle. Neither square should touch the black border.<br>
+			You should see no red.
+		</p>
+
+		<div class="outer-container">
+			<div class="regions-container">
+				<div>
+					<article>
+						<div class="float">
+							xxxxx<br>
+							xxxxx<br>
+							xxxxx<br>
+							xxxxx<br>
+							xxxxx
+						</div>
+						<div class="content">
+							xxxxx<br>
+							xxxxx<br>
+							xxxxx<br>
+							xxxxx<br>
+							xxxxx
+						</div>
+					</article>
+				</div>
+			</div>
+		</div>
+
+	</body>
+</html>

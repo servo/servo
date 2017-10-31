@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+     <head>
+        <title>CSS Test: font family names that look like font shorthand</title>
+        <link rel="author" title="Mozilla" href="http://www.mozilla.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-family" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <link rel="match" href="font-family-name-023-ref.xht"/>
+        <meta name="flags" content="font" />
+        <meta name="assert" content="Font family names that appear similar to font shorthand should match to fonts with those names" />
+        <style type="text/css">
+            body { font-size: 36px; }
+            span#verify { font-family: CSSTest Verify; }
+            div.test { font-family: CSSTest Fallback; }
+            p {
+            }
+            p#test1a {
+                font-family: "small-caps 1in CSSTest FamilyName Funky", CSSTest Fallback;
+            }
+            p#test2 {
+                font-family: x-large CSSTest FamilyName Funky, CSSTest Fallback;
+            }
+            p#test2a {
+                font-family: "x-large CSSTest FamilyName Funky", CSSTest Fallback;
+            }
+            p#test3a {
+                font-family: "12px CSSTest FamilyName Funky", CSSTest Fallback;
+            }
+        </style>
+    </head>
+    <body>
+        <div><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify">FAIL</span></div>
+        <div class="test"><p id="test1a">PaSs</p></div>
+        <div class="test"><p id="test2">PaSs</p></div>
+        <div class="test"><p id="test2a">PaSs</p></div>
+        <div class="test"><p id="test3a">PaSs</p></div>
+    </body>
+</html>

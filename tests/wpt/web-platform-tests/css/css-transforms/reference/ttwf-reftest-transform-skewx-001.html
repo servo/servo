@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Reference File</title>
+    <link rel="author" title="Mihai Corlan" href="mailto:mcorlan@adobe.com">
+    <meta name="flags" content="svg">
+    <style type="text/css">
+        .greenSquare {
+            position: absolute;
+            top: 100px;
+            left: 50px;
+         }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green shape and no red.</p>
+    <div class="greenSquare">
+        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+             width="200px" height="100px" viewBox="0 0 200 100" xml:space="preserve">
+            <polygon fill="green" points="200,100 100,100 0,0 100,0 "/>
+        </svg>
+    </div>
+</body>
+</html>

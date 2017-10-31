@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: left float, polygon, args in px units</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="match" href="reference/shape-outside-polygon-007-ref.html">
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The test verifies that text wraps around a
+                                     left float with a shape-outside defined as
+                                     an polygon with the args in px units.">
+    </head>
+    <style>
+        body {
+            margin: 0;
+        }
+        #container {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            font-size: 20px;
+            font-family: Ahem;
+            line-height: 20px;
+            width: 200px;
+            height: 200px;
+            background-color: red;
+            color: green;
+        }
+        #test-shape {
+            float: left;
+            width: 200px;
+            height: 200px;
+            shape-outside: polygon(0px 40px, 120px 40px, 120px 80px, 80px 80px, 80px 120px, 160px 120px, 160px 160px, 0px 160px);
+        }
+        .ref-shape {
+            position: absolute;
+            left: 10px;
+            background-color: green;
+            height: 40px;
+        }
+        #ref-1 {
+            top: 90px;
+            width: 120px;
+        }
+        #ref-2 {
+            top: 130px;
+            width: 80px;
+        }
+        #ref-3 {
+            top: 170px;
+            width: 160px;
+        }
+    </style>
+    <body>
+    <p>The test passes if there is green square and no red.</p>
+    <div id="container">
+        <div id="test-shape"></div>
+        XXXXXXXXXX XXXXXXXXXX XXXX XXXX XXXXXX XXXXXX XX XX XXXXXXXXXX XXXXXXXXXX
+    </div>
+    <div id="ref-1" class="ref-shape"></div>
+    <div id="ref-2" class="ref-shape"></div>
+    <div id="ref-3" class="ref-shape"></div>
+    </body>
+</html>

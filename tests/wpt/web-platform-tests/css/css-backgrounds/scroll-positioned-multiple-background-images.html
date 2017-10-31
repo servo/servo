@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Scroll multiple background images that are positioned</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="match" href="reference/60x60-green-background.html">
+<link rel="help" href="http://www.w3.org/TR/css3-background/#layering">
+<meta name="flags" content="dom image scroll" />
+<meta name="assert" content="When multiple background images are positioned at (0px, 0px) and (0, 60px) of each 60px by 60px in a scrollable element,
+and the element is scrolled to (0, 60px), only the second image is shown." />
+<style type="text/css">
+
+#container {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+}
+
+#element-with-attachment-scroll {
+    width: 500px;
+    height: 500px;
+    background-image: url('support/60x60-red.png'), url('support/60x60-green.png');
+    background-position: 0 0, 0 60px;
+    background-repeat: no-repeat;
+}
+
+</style>
+</head>
+<body>
+<div id="container"><div id="element-with-attachment-scroll"><br></div></div>
+<script>
+document.getElementById('container').scrollTop = 60;
+</script>
+</body>
+</html>

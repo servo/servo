@@ -170,32 +170,12 @@ Install Firefox or use --binary to set the binary path""")
 
             if certutil is None:
                 # Can't download this for now because it's missing the libnss3 library
-                raise WptrunError("""Can't find certutil.
-
-This must be installed using your OS package manager or directly e.g.
-
-Debian/Ubuntu:
-    sudo apt install libnss3-tools
-
-macOS/Homebrew:
-    brew install nss
-
-Others:
-    Download the firefox archive and common.tests.zip archive for your platform
-    from https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/
-
-   Then extract certutil[.exe] from the tests.zip package and
-   libnss3[.so|.dll|.dynlib] and but the former on your path and the latter on
-   your library path.
-""")
+                logger.info("""Can't find certutil, certificates will not be checked.
+Consider installing certutil via your OS package manager or directly.""")
             else:
                 print("Using certutil %s" % certutil)
 
-            if certutil is not None:
-                kwargs["certutil_binary"] = certutil
-            else:
-                print("Unable to find or install certutil, setting ssl-type to none")
-                kwargs["ssl_type"] = "none"
+            kwargs["certutil_binary"] = certutil
 
         if kwargs["webdriver_binary"] is None and "wdspec" in kwargs["test_types"]:
             webdriver_binary = self.browser.find_webdriver()

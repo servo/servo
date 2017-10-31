@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Georgian Supplement, uppercase</title>
+<meta name="assert" content="For the Georgian Supplement Unicode block, text-transform: uppercase puts all letters in uppercase .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-030-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('../../fonts/NotoSansGeorgian-Regular.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 200%; line-height: 2.5em; font-family: webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: uppercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+2D00">&#x2D00; &#x10A0;</span> <span title="U+2D01">&#x2D01; &#x10A1;</span> <span title="U+2D02">&#x2D02; &#x10A2;</span> <span title="U+2D03">&#x2D03; &#x10A3;</span> <span title="U+2D04">&#x2D04; &#x10A4;</span> <span title="U+2D05">&#x2D05; &#x10A5;</span> <span title="U+2D06">&#x2D06; &#x10A6;</span> <span title="U+2D07">&#x2D07; &#x10A7;</span> <span title="U+2D08">&#x2D08; &#x10A8;</span> <span title="U+2D09">&#x2D09; &#x10A9;</span> <span title="U+2D0A">&#x2D0A; &#x10AA;</span> <span title="U+2D0B">&#x2D0B; &#x10AB;</span> <span title="U+2D0C">&#x2D0C; &#x10AC;</span> <span title="U+2D0D">&#x2D0D; &#x10AD;</span> <span title="U+2D0E">&#x2D0E; &#x10AE;</span> <span title="U+2D0F">&#x2D0F; &#x10AF;</span> <span title="U+2D10">&#x2D10; &#x10B0;</span> <span title="U+2D11">&#x2D11; &#x10B1;</span> <span title="U+2D12">&#x2D12; &#x10B2;</span> <span title="U+2D13">&#x2D13; &#x10B3;</span> <span title="U+2D14">&#x2D14; &#x10B4;</span> <span title="U+2D15">&#x2D15; &#x10B5;</span> <span title="U+2D16">&#x2D16; &#x10B6;</span> <span title="U+2D17">&#x2D17; &#x10B7;</span> <span title="U+2D18">&#x2D18; &#x10B8;</span> <span title="U+2D19">&#x2D19; &#x10B9;</span> <span title="U+2D1A">&#x2D1A; &#x10BA;</span> <span title="U+2D1B">&#x2D1B; &#x10BB;</span> <span title="U+2D1C">&#x2D1C; &#x10BC;</span> <span title="U+2D1D">&#x2D1D; &#x10BD;</span> <span title="U+2D1E">&#x2D1E; &#x10BE;</span> <span title="U+2D1F">&#x2D1F; &#x10BF;</span> <span title="U+2D20">&#x2D20; &#x10C0;</span> <span title="U+2D21">&#x2D21; &#x10C1;</span> <span title="U+2D22">&#x2D22; &#x10C2;</span> <span title="U+2D23">&#x2D23; &#x10C3;</span> <span title="U+2D24">&#x2D24; &#x10C4;</span> <span title="U+2D25">&#x2D25; &#x10C5;</span> <span title="U+2D27">&#x2D27; &#x10C7;</span> <span title="U+2D2D">&#x2D2D; &#x10CD;</span></div>
+<!--Notes:
+Tip: To identify the characters where differences occur, in order to report problem characters,either mouse over to reveal a tooltip, or copy and paste the sequence into a tool such as <a href='http://r12a.github.io/uniview/' target='_blank'>UniView</a> or the <a href='http://r12a.github.io/apps/conversion/' target='_blank'>Unicode Conversion Tool</a>.
+-->
+</body>
+</html>

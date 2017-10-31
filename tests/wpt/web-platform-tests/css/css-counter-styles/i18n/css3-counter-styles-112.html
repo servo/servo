@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lower-armenian, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type: lower-armenian produces numbers after 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: lower-armenian;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start='10'><li title="10">ժ</li></ol>
+<ol start="11"><li title="11">ժա</li></ol>
+<ol start="12"><li title="12">ժբ</li></ol>
+<ol start="43"><li title="43">խգ</li></ol>
+<ol start="77"><li title="77">հէ</li></ol>
+<ol start="80"><li title="80">ձ</li></ol>
+<ol start="99"><li title="99">ղթ</li></ol>
+<ol start="100"><li title="100">ճ</li></ol>
+<ol start="101"><li title="101">ճա</li></ol>
+<ol start="222"><li title="222">միբ</li></ol>
+<ol start="540"><li title="540">շխ</li></ol>
+<ol start="999"><li title="999">ջղթ</li></ol>
+<ol start="1000"><li title="1000">ռ</li></ol>
+<ol start="1005"><li title="1005">ռե</li></ol>
+<ol start="1060"><li title="1060">ռկ</li></ol>
+<ol start="1065"><li title="1065">ռկե</li></ol>
+<ol start="1800"><li title="1800">ռպ</li></ol>
+<ol start="1860"><li title="1860">ռպկ</li></ol>
+<ol start="1865"><li title="1865">ռպկե</li></ol>
+<ol start="5865"><li title="5865">րպկե</li></ol>
+<ol start="7005"><li title="7005">ւե</li></ol>
+<ol start="7800"><li title="7800">ւպ</li></ol>
+<ol start="7865"><li title="7865">ւպկե</li></ol>
+<ol start="9999"><li title="9999">քջղթ</li></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+The test relies on the start attribute working.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

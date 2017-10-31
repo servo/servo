@@ -1,0 +1,30 @@
+<csstest def=":nth-of-type() pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="30" rev="1.0" date="11-july-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>.red { background-color : red }
+p:nth-of-type(3) { background-color : lime }
+dl &gt; :nth-of-type(3n+1) { background-color : lime }
+</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">This paragraph is here only to fill space in the DOM</p>
+<address xmlns="http://www.w3.org/1999/xhtml">And this address too..</address>
+<p xmlns="http://www.w3.org/1999/xhtml">So does this paragraph !</p>
+<p class="red" xmlns="http://www.w3.org/1999/xhtml">But this one should have green background</p>
+<dl xmlns="http://www.w3.org/1999/xhtml">
+  <dt class="red">First definition term that should have green background</dt>
+    <dd class="red">First definition that should have green background</dd>
+  <dt>Second definition term</dt>
+    <dd>Second definition</dd>
+  <dt>Third definition term</dt>
+    <dd>Third definition</dd>
+  <dt class="red">Fourth definition term that should have green background</dt>
+    <dd class="red">Fourth definition that should have green background</dd>
+  <dt>Fifth definition term</dt>
+    <dd>Fifth definition</dd>
+  <dt>Sixth definition term</dt>
+    <dd>Sixth definition</dd>
+</dl>
+</code>
+
+</csstest>

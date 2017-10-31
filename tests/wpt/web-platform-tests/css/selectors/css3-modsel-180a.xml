@@ -1,0 +1,15 @@
+<csstest def="::first-letter after &lt;br&gt;" module="W3C Selectors" modulename="css3-modsel" number="180a" rev="1.0" date="29-february-2004" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  p { color: green; }
+  p:first-letter { background: red; color: yellow; font-size: 4em; }
+  p::first-letter { background: red; color: yellow; font-size: 4em; }
+</cssrules>
+
+<code>
+   <p xmlns="http://www.w3.org/1999/xhtml"><br/>This line should be green.</p>
+</code>
+
+</csstest>

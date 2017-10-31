@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="stylesheet" href="../support/common.css">
+		<style>
+		.content {
+			font-family: Times, serif;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.region {
+			width: 200px;
+			height: 200px;
+			border: 2px solid black;
+			margin: 0.5em 0 0.5em 0;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>Below you should see a square with a black border with some text inside it. No
+				red should be visible at any time during this test.</li>
+			<li>Click between the green and blue colored markers and type &ldquo;<strong>foobar
+				bazquux</strong>&rdquo;
+				<ul>
+					<li>The text should not be editable.</li>
+				</ul>
+			</li>
+		</ol>
+
+		<div contentEditable="true" class="region">
+			<div class="content flowed">
+				This is some text that should not be editable. Not even the text between
+				<em><span class="inline-marker green"></span> <span id="marked-one">these two markers</span> <span class="inline-marker blue"></span></em>.
+			</div>
+		</div>
+	</body>
+</html>

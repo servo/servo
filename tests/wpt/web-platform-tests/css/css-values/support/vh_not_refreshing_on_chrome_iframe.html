@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+<head>
+
+	<title>CSS Values and Units Test: vh-based dimension doesn't change when the element other dimension doesn't change.</title>
+
+	<style type="text/css">
+
+		* { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; }
+
+			/* the first test box has its vertical dimension is set to some vh units */
+		#testBoxWithVhOnly { background: #F00; width: 60px; height: 20vh; float: left; }
+
+			/* the second test box, with fixed height */
+		#testBoxNotGrownHorizontallyByJS { background: #F0F; width: 20vh; height: 60px; float: left; }
+
+			/* third box, changed by using CSS transition */
+		#testBoxWithTransition { background: #FF0; width: 20vh; height: 40px; float: left;
+			transition-property:       width, height;
+			transition-duration:       0.3s;
+			transition-delay:          0;
+		}
+
+			/* the reference box, growing in both directions (height by js, width by vh unit */
+		#referenceBoxGrownHorizontallyByJS { background: #0F0; width: 20vh; height: 40px; float: left; }
+
+		p { clear: both; margin: 10px 0; }
+
+	</style>
+
+</head>
+<body>
+
+<p>
+	All boxes should end up the same size. The green box is the reference one.
+</p>
+
+<div id="testBoxWithVhOnly"></div>
+<div id="testBoxNotGrownHorizontallyByJS"></div>
+<div id="testBoxWithTransition"></div>
+<div id="referenceBoxGrownHorizontallyByJS"></div>
+
+<script type="text/javascript">
+	'use strict';
+
+	// In case this file was opened by mistake, redirects to proper test
+	if (window.top.location.href  === document.location.href) {
+
+		window.top.location.href = "vh_not_refreshing_on_chrome.html";
+
+	}
+
+	function setDimension(id, dimension, value) {
+
+		var element = document.getElementById(id);
+
+		element.style[dimension] = value + "px";
+
+	}
+
+	function animate() {
+
+		var viewportHeight = document.documentElement.clientHeight;
+
+		var sizeH = 20;
+
+		var referenceDimension = Math.round(sizeH * viewportHeight / 100);
+
+		setDimension('referenceBoxGrownHorizontallyByJS', 'height', referenceDimension);
+
+		if (referenceDimension < 60) {
+			setTimeout(animate, 20);
+		} else {
+			parent.postMessage('referenceBoxGrownHorizontallyByJS', '*');
+		}
+	}
+
+	setTimeout(animate, 20);
+
+	addEventListener('transitionend', function() {
+		parent.postMessage('testBoxWithTransition', '*');
+	}, false);
+	var transitionedTestBoxStyle = document.getElementById('testBoxWithTransition').style;
+	transitionedTestBoxStyle.height = "60px";
+</script>
+
+</body>
+</html>

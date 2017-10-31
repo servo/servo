@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flowing content with opacity &lt; 1 in region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that content with opacity < 1 is correctly flowed into regions. This might fail on implementations that use layers for compositing but don't properly handle content flowing.">
+		<link rel="match" href="reference/content-node-layers-001-ref.html">
+		<style>
+		#content {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: #5555FF;
+				/*a light-ish blue, to give us a nice purple when alpha-blended with red*/
+			opacity: 0.5;
+			flow-into: f;
+		}
+		#region {
+			width: 100px;
+			height: 100px;
+			background-color: red;
+			flow-from: f;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>Test passes if you see a purple square below.</li>
+		</ol>
+		<div id="content">xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</div>
+		<div id="region"></div>
+	</body>
+</html>

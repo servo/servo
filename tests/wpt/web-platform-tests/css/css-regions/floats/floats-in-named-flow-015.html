@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: painting order for floats overflowing a region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that the painting order for floats flowed in a
+				region is the same as if the floats were direct children of the region.">
+		<link rel="match" href="reference/floats-in-named-flow-013-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: lightblue;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.float {
+			float: left;
+		}
+		.region {
+			flow-from: f;
+			width: 100px;
+			height: 40px;
+		}
+
+		.region > p {
+			background: red;
+		}
+
+		.error {
+			color: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a blue square and no red.
+		</p>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+		<article>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx
+			<div class="flow float">
+				xxxxx<br>
+				xxxxx<br>
+				<span class="error">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</span>
+			</div>
+		</article>
+	</body>
+</html>

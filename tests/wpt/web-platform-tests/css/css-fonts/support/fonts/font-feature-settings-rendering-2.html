@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@font-face {
+    font-family: "FontFeaturesTest";
+    src: url("resources/FontWithFeatures.otf") format("opentype");
+}
+</style>
+</head>
+<body>
+This tests that font features are able to be turned on and off as desired. It uses a special font
+designed specifically for this purpose. The test passes if you see a sequence of alternating check
+marks and X below.
+<div id="insertionpoint"></div>
+<script>
+var insertionpoint = document.getElementById("insertionpoint");
+function addElement(feature, c) {
+    ["0", "1"].map(function(state) {
+        var element = document.createElement("span");
+        element.textContent = c;
+        element.style.fontFamily = "FontFeaturesTest";
+        element.style.webkitFontFeatureSettings = '"' + feature + '" ' + state;
+        insertionpoint.appendChild(element);
+    });
+    insertionpoint.appendChild(document.createTextNode(" "));
+}
+addElement("liga", "C");
+addElement("clig", "D");
+addElement("dlig", "E");
+addElement("hlig", "F");
+addElement("calt", "G");
+addElement("subs", "H");
+addElement("sups", "I");
+addElement("smcp", "J");
+addElement("c2sc", "K");
+addElement("pcap", "L");
+addElement("c2pc", "M");
+addElement("unic", "N");
+addElement("titl", "O");
+addElement("onum", "P");
+addElement("pnum", "Q");
+addElement("tnum", "R");
+addElement("frac", "S");
+//addElement("afrc", "T");
+addElement("ordn", "U");
+addElement("zero", "V");
+addElement("hist", "W");
+addElement("jp78", "X");
+addElement("jp83", "Y");
+addElement("jp90", "Z");
+addElement("jp04", "a");
+addElement("smpl", "b");
+addElement("trad", "c");
+addElement("fwid", "d");
+addElement("pwid", "e");
+addElement("ruby", "f");
+</script>
+</body>
+</html>

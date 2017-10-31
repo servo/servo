@@ -1,0 +1,24 @@
+<csstest def="NEGATED type element selector with declared namespace" module="W3C Selectors" modulename="css3-modsel" number="118" rev="1.2" date="30-july-2002" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>@namespace html url(http://www.w3.org/1999/xhtml);
+@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+*|p, *|l { display : block ; margin-bottom : 1em }
+div.test * { background-color : red }
+div.test *:not(a|p) { background-color : lime }
+</cssrules>
+
+<code>
+<div class="test" xmlns="http://www.w3.org/1999/xhtml">
+ <p xmlns="http://www.w3.org/1999/xhtml">This paragraph should have a green background.</p>
+ <p xmlns="http://www.example.org/b">This paragraph should have a green background.</p>
+ <p xmlns="">This paragraph should have a green background.</p>
+ <p xmlns="http://www.example.org/a">
+ <l>This paragraph should have a green background.</l>
+ </p>
+</div>
+</code>
+</csstest>

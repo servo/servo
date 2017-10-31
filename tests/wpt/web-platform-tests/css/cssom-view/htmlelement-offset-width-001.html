@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSSOM View - 7 - element.offsetWidth detatches correctly</title>
+    <link rel="author" title="Michael Howell" href="mailto:michael@notriddle.com">
+    <link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-htmlelement-offsetwidth">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="element.offsetWidth returns 0 when there is no documentElement.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="myDiv">...</div>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            // These asserts need to be in this order to trigger a bug in Servo.
+            var el = document.createElement("div");
+            el.appendChild(document.createTextNode("..."));
+            assert_equals(el.offsetWidth, 0, "new element has offset width not equal to zero");
+            assert_not_equals(document.getElementById("myDiv"), 0, "element with content has offset width equal to zero");
+            var html = document.removeChild(document.documentElement);
+            // Put back the root element, so that testharnessreport.js can append the result.
+            this.add_cleanup(function() { document.appendChild(html); });
+            assert_equals(el.offsetWidth, 0, "new element has offset width not equal to zero after removing documentElement");
+        });
+    </script>
+</body>
+</html>

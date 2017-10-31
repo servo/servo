@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+	<head>
+		<meta charset="utf-8">
+		<title>CSS Regions: named flow content has contentEditable attribute set and children of it get
+			flowed in a region dynamically</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/html5/editing.html#contenteditable">
+		<meta name="flags" content="dom">
+		<meta name="assert" content="Test checks that setting the contentEditable attribute on
+		an element does not interfere with its children being dinamically flowed into a region.">
+		<link rel="match" href="reference/contentEditable-007-ref.html">
+		<link rel="stylesheet" href="support/common.css">
+		<style>
+		#editable {
+			font-family: Times, serif;
+			font-size: 20px;
+			line-height: 1em;
+			width: 300px;
+			border: 2px solid blue;
+		}
+		.content {
+			flow-into: flow;
+		}
+		.region {
+			flow-from: flow;
+			width: 300px;
+			height: 200px;
+			border: 2px solid black;
+			margin: .5em 0 .5em 0;
+		}
+		.region > p {
+			background-color: red;
+			width: 100%;
+			height: 50%;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>Below you should see a rectangle with a blue border and a rectangle with a black border.
+				The blue rectangle should have one block of text inside it and the black rectangle
+				should have two blocks of text inside it. No red should be visible at any time during
+				this test.</li>
+			<li>Double click on the word &ldquo;editable&rdquo; in the blue rectangle and type
+				&ldquo;foobar bazquux&rdquo;.
+				<ul>
+				 	<li>The word &ldquo;editable&rdquo; should be replaced with &ldquo;foobar bazquux&rdquo;.</li>
+				 </ul>
+			</li>
+			<li>Repeat the steps above, but for the two occurrences of the word &ldquo;editable&rdquo;
+				in the black rectangle. The expected results are the same as for the previous step.
+			</li>
+		</ol>
+
+		<div id="editable" contentEditable="true">
+			<p>
+				This text should be displayed outside of the black border and <span id="marked-outside">editable</span>.
+			</p>
+			<p class="content">
+				This text should be displayed inside the black border and it should also be <span id="marked-inside">editable</span>.
+			</p>
+		</div>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<script type="text/javascript" src="support/helpers.js"></script>
+		<script type="text/javascript">
+		document.addEventListener("DOMContentLoaded", function() {
+			var newElem = document.createElement("p");
+			newElem.classList.add("content");
+			newElem.innerHTML = "This text should also be displayed inside the black border and <span id='marked-inside-new'>editable</span>.";
+
+			document.querySelector("#editable").appendChild(newElem);
+
+			document.body.offsetTop;
+
+			insertText("#marked-outside", "foobar bazquux");
+			insertText("#marked-inside", "foobar bazquux");
+			insertText("#marked-inside-new", "foobar bazquux");
+			document.documentElement.classList.remove('reftest-wait');
+		})
+		</script>
+	</body>
+</html>

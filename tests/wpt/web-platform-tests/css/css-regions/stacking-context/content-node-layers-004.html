@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flowing content with opacity &lt; 1 and opacity = 1 in region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that content nodes with mixed opacity < 1 and opacity = 1
+		is correctly flowed into regions. This might fail on implementations that use layers for
+		compositing but don't properly handle content flowing.">
+		<link rel="match" href="reference/content-node-layers-004-ref.html">
+		<style>
+		#content {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			flow-into: f;
+		}
+		.translucent {
+			color: #5555FF;
+			opacity: 0.5;
+		}
+		.opaque {
+			color: blue;
+				/*a light-ish blue, to give us a nice purple when alpha-blended with red*/
+			opacity: 1;
+		}
+		#region {
+			width: 100px;
+			height: 180px;
+			background-color: red;
+			flow-from: f;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>Test passes if you see four alternating purple and blue rectangles below.</li>
+		</ol>
+		<div id="content">
+			<div class="translucent">
+				xxxxx<br>xxxxx<br>xxxxx
+			</div>
+			<div class="opaque">
+				xxxxx<br>xxxxx<br>xxxxx
+			</div>
+			<div class="translucent">
+				xxxxx<br>xxxxx<br>xxxxx
+			</div>
+			<div class="opaque">
+				xxxxx<br>xxxxx<br>xxxxx
+			</div>
+		</div>
+		<div id="region"></div>
+	</body>
+</html>

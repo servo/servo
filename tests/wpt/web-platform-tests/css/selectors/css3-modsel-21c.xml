@@ -1,0 +1,12 @@
+<csstest def=":target pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="21c" rev="1.2" date="24-january-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>:root { background-color: green; }
+:target { background-color: red; }</cssrules>
+<code>
+ <p xmlns="http://www.w3.org/1999/xhtml">This page should be green.</p>
+</code>
+</csstest>
+

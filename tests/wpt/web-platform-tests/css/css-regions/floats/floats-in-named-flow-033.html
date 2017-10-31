@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: borders around float and non-float content</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that borders for floats and non-floats are properly
+				computed and painted when the elements are flowed in shrink-to-fit regions.">
+		<link rel="match" href="reference/floats-in-named-flow-033-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+
+		.flow {
+			flow-into: f;
+		}
+
+		.float {
+			float: left;
+			color: blue;
+			border: solid purple;
+			border-width: 4px 24px 12px 16px ;
+			margin-left: -12px;
+		}
+
+		.regions-container {
+			padding: 20px 15px 10px 5px;
+			float: left;
+		}
+
+		.content {
+			color: green;
+			border: solid lime;
+			border-width: 12px 16px 4px 12px;
+			margin-bottom: -12px;
+		}
+
+		.region {
+			flow-from: f;
+			border: 12px solid black;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares with differently colored borders:
+			<ul>
+				<li>Both squares should be inside a vertical black-bordered rectangle that lacks the
+					bottom border</li>
+				<li>The first (blue) square should have an irregular width purple border that overlaps
+					the whole width of the left black border of the containing rectangle</li>
+				<li>The second (green) square should have an irregular light green border: the top
+					edge of the border should be invisible (zero width) while the bottom border should
+					be thin and overlap the whole width of the bottom black border of the containing
+					rectangle</li>
+			</ul>
+			You should see no red.
+		</p>
+
+		<div class="regions-container">
+			<div class="region">
+				<p>&nbsp;</p>
+			</div>
+		</div>
+
+		<article class="flow">
+			<div class="float">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div class="content">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+		</article>
+	</body>
+</html>

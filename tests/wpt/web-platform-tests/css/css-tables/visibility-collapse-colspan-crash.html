@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#visibility-collapse-cell-rendering">
+<h1>Visibility collapse</h1>
+<a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">Spec</a>
+<p>
+When a row is collapsed, a cell spanning the row may get clipped. When the row is then uncollapsed,
+the browser should not crash because the cell's children should be correctly updated and laid out.
+</p>
+<table>
+  <col style="background-color:red;">
+  <col id="colToCollapse" style="background-color: blue;">
+  <col style="background-color: green;">
+  <tr>
+    <td class="firstCol">Row 1</td>
+    <td>Row 1 wordword</td>
+    <td class="thirdCol">Row 1 wordwordword</td>
+  </tr>
+  <tr>
+    <td class="firstCol">Row 2</td>
+    <td>Row 2 wordwordword</td>
+    <td class="thirdCol">Row 2 wordword</td>
+  </tr>
+  <tr>
+    <td class="firstCol">Row 3</td>
+    <td>Row 3 word</td>
+    <td class="thirdCol">Row 3 wordwordwordword</td>
+  </tr>
+  <tr>
+    <td colspan="3">superlongwordsuperlongwordsuper&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shouldbeclipped</td>
+  </tr>
+</table>
+
+<script>
+    test(() => {
+    col = document.getElementById("colToCollapse");
+    col.style.visibility = "collapse";
+    step_timeout(function(){ col.style.visibility = "visible"; }, 500);
+    step_timeout(function(){ col.style.visibility = "collapse"; }, 1000);
+    }, "No crash or assertion failure. crbug.com/174167");
+</script>

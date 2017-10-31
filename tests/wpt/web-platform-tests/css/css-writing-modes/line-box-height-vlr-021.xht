@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: line box height and border on non-replaced inline box (complex)</title>
+
+  <!--
+  Test inspired by
+  https://dxr.mozilla.org/mozilla-central/source/layout/reftests/writing-mode/1130907-intrinsic-sizing-2.html
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" title="10.8.1 Leading and half-leading" />
+  <link rel="match" href="line-box-height-vlr-021-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="This test checks that a line box height does not increase because an inline non-replaced box has a border. In this test, the '34' inline box and the '56' inline box should be lined up with its inline '12' sibling. The line box height, enclosed by the blue border should not grow to accommodate transparent 'border-left' of inline box and transparent 'border-right' of inline box." name="assert" />
+  <meta name="DC.date.created" content="2015-07-22T09:54:03+11:00" scheme=
+  "W3CDTF" />
+  <meta name="DC.date.modified" content="2016-07-22T09:54:03+11:00" scheme=
+  "W3CDTF" />
+
+  <style type="text/css"><![CDATA[
+  body
+    {
+      margin-left: 32px;
+    }
+
+  div.vlr, div#reference
+    {
+      border: blue solid 2px;
+      font-size: 32px;
+      margin: 1em;
+    }
+
+  div.vlr
+    {
+      writing-mode: vertical-lr;
+    }
+
+  span.brdr-left
+    {
+      border-left: 1.5em solid transparent;
+    }
+
+  span.brdr-right
+    {
+      border-right: 1.5em solid transparent;
+    }
+
+  div#reference
+    {
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+
+  </head>
+
+  <body>
+
+    <p>Test passes if there are 3 identical blue rectangles with "123456" rotated 90 degrees clockwise. The size of each blue rectangles must be identical and the three "123456" numbers must be enclosed by the three blue borders.</p>
+
+    <div class="vlr">
+      <div>12<span class="brdr-left">34</span>56</div>
+    </div>
+
+    <div class="vlr">
+      <div>12<span class="brdr-right">34</span>56</div>
+    </div>
+
+    <div id="reference">123456</div>
+
+  </body>
+</html>

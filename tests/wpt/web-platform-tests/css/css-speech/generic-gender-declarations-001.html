@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: voice-family generic gender keywords</title>
+    <link rel="author" title="John Foliot" href="mailto:john@foliot.ca">
+    <link rel="help" href="http://www.w3.org/TR/css3-speech/#voice-props-voice-family">
+    <meta name="flags" content="speech">
+    <meta name="assert" content="The male, female, and neutral values of voice-family render the text in male, female, and neutral voices, respectively.">
+
+
+	<style>
+	p.male  { voice-family: male; }
+	p.female  { voice-family: female; }
+	p.neutral  { voice-family: neutral; }
+	</style>
+
+</head>
+<body>
+
+	<p class="male">This sentence should be read in a male voice.</p>
+	<p class="female">This sentence should be read in a female voice.</p>
+	<p class="neutral">This sentence should be read in a "neutral" voice.</p>
+
+</body>
+</html>

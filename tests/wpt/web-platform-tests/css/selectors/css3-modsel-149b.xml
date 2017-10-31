@@ -1,0 +1,16 @@
+<csstest def=":empty pseudo-class and empty elements" module="W3C Selectors" modulename="css3-modsel" number="149b" rev="1.0" date="15-november-2001" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+ address:empty { background: lime; }
+ address { background: red; margin: 0; height: 1em; }
+ .text { margin: -1em 0 0 0; }
+</cssrules>
+
+<code>
+ <address xmlns="http://www.w3.org/1999/xhtml"></address>
+ <div class="text" xmlns="http://www.w3.org/1999/xhtml">This line should have a green background.</div>
+</code>
+
+</csstest>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: float and non-float content floated in different named flows</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that floated content flowed in a named flow does
+				not change the rendering for non-float content flowed in a different named flow.">
+		<link rel="match" href="reference/floats-in-named-flow-021-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+
+		.float {
+			float: left;
+			color: blue;
+			flow-into: f;
+		}
+
+		.non-float {
+			color: green;
+			flow-into: n;
+		}
+
+		.region {
+			max-height: 100px;
+			max-width: 100px;
+			margin-bottom: 10px;
+			border: 10px solid black;
+		}
+
+		.region > p {
+			background: red;
+		}
+
+		.from-float {
+			flow-from: f;
+		}
+		.from-non-float {
+			flow-from: n;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares separated by a small vertical space. The squares should
+			have a black outline, the top square should be blue and the bottom one should be green.<br>
+			You should see no red.
+		</p>
+
+		<div class="region from-float">
+			<p>&nbsp;</p>
+		</div>
+		<div class="region from-non-float">
+			<p>&nbsp;</p>
+		</div>
+
+		<article class="flow">
+			<div class="float">
+				xxxxx
+				xxxxx
+				xxxxx
+				xxxxx
+				xxxxx
+			</div>
+			<div class="non-float">
+				xxxxx
+				xxxxx
+				xxxxx
+				xxxxx
+				xxxxx
+			</div>
+		</article>
+	</body>
+</html>

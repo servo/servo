@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: row flex container fragmentation</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#pagination">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that a flex container with row flow is split between regions.">
+		<link rel="match" href="reference/row-flexbox-break-ref.html">
+		<style>
+			.flex {
+				display: flex;
+				flex-direction: row;
+				flow-into: flow;
+			}
+
+			.region {
+				flow-from: flow;
+				height: 40px;
+				margin-bottom: 20px;
+			}
+
+			.item {
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 1em;
+				color: green;
+			}
+
+			.red {
+				background-color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see two horizontal green stripes on the same horizontal line.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="flex">
+			<div class="item">XX<br>XX<br>XX<br>XX<br></div>
+			<div class="item">XX<br>XX<br>XX<br>XX<br></div>
+		</div>
+		<div class="region"><p class="red">&nbsp;</p></div>
+		<div class="region"><p class="red">&nbsp;</p></div>
+	</body>
+</html>

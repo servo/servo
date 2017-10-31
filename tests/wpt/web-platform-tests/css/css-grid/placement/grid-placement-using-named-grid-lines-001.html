@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid item placement mixing named grid areas and lines</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#line-placement">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-placement-slot">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#named-grid-area">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Line placement algorithm selects the first matching column when using a grid line name associated to several columns and no integer is specified within the custom-ident.">
+<style>
+.grid {
+    display: inline-grid;
+    background: red;
+    grid-template-columns: [C] 25px [C] 25px [C] 25px [C] 25px;
+    grid-auto-rows: 50px;
+    grid-template-areas: "A1 A2 A3 A4"
+                         ".  A2 A3 A4";
+}
+.grid > div { background: green; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="grid">
+    <div style="grid-area: A1"></div>
+    <div style="grid-area: A2"></div>
+    <div style="grid-area: A3"></div>
+    <div style="grid-area: A4"></div>
+    <div style="grid-column: C; grid-row: 2;"></div>
+</div>

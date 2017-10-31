@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS#escape</title>
+<link rel=help href=https://drafts.csswg.org/cssom-1/#the-css.escape()-method>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  assert_equals(CSS.escape.length, 1);
+  assert_throws(new TypeError(), function() { CSS.escape(); });
+}, "Number of arguments");
+
+test(function() {
+  assert_equals(CSS.escape(true), 'true');
+  assert_equals(CSS.escape(false), 'false');
+  assert_equals(CSS.escape(null), 'null');
+  assert_equals(CSS.escape(''), '');
+}, "String conversion");
+
+test(function() {
+  assert_equals(CSS.escape('\0'), '\uFFFD');
+  assert_equals(CSS.escape('a\0'), 'a\uFFFD');
+  assert_equals(CSS.escape('\0b'), '\uFFFDb');
+  assert_equals(CSS.escape('a\0b'), 'a\uFFFDb');
+}, "Null bytes");
+
+test(function() {
+  assert_equals(CSS.escape('\uFFFD'), '\uFFFD');
+  assert_equals(CSS.escape('a\uFFFD'), 'a\uFFFD');
+  assert_equals(CSS.escape('\uFFFDb'), '\uFFFDb');
+  assert_equals(CSS.escape('a\uFFFDb'), 'a\uFFFDb');
+}, "Replacement character");
+
+test(function() {
+  assert_equals(CSS.escape('0a'), '\\30 a');
+  assert_equals(CSS.escape('1a'), '\\31 a');
+  assert_equals(CSS.escape('2a'), '\\32 a');
+  assert_equals(CSS.escape('3a'), '\\33 a');
+  assert_equals(CSS.escape('4a'), '\\34 a');
+  assert_equals(CSS.escape('5a'), '\\35 a');
+  assert_equals(CSS.escape('6a'), '\\36 a');
+  assert_equals(CSS.escape('7a'), '\\37 a');
+  assert_equals(CSS.escape('8a'), '\\38 a');
+  assert_equals(CSS.escape('9a'), '\\39 a');
+}, "Number prefix");
+
+test(function() {
+  assert_equals(CSS.escape('a0b'), 'a0b');
+  assert_equals(CSS.escape('a1b'), 'a1b');
+  assert_equals(CSS.escape('a2b'), 'a2b');
+  assert_equals(CSS.escape('a3b'), 'a3b');
+  assert_equals(CSS.escape('a4b'), 'a4b');
+  assert_equals(CSS.escape('a5b'), 'a5b');
+  assert_equals(CSS.escape('a6b'), 'a6b');
+  assert_equals(CSS.escape('a7b'), 'a7b');
+  assert_equals(CSS.escape('a8b'), 'a8b');
+  assert_equals(CSS.escape('a9b'), 'a9b');
+}, "Letter number prefix");
+
+test(function() {
+  assert_equals(CSS.escape('-0a'), '-\\30 a');
+  assert_equals(CSS.escape('-1a'), '-\\31 a');
+  assert_equals(CSS.escape('-2a'), '-\\32 a');
+  assert_equals(CSS.escape('-3a'), '-\\33 a');
+  assert_equals(CSS.escape('-4a'), '-\\34 a');
+  assert_equals(CSS.escape('-5a'), '-\\35 a');
+  assert_equals(CSS.escape('-6a'), '-\\36 a');
+  assert_equals(CSS.escape('-7a'), '-\\37 a');
+  assert_equals(CSS.escape('-8a'), '-\\38 a');
+  assert_equals(CSS.escape('-9a'), '-\\39 a');
+}, "Dash number prefix");
+
+test(function() {
+  assert_equals(CSS.escape('--a'), '--a');
+}, "Double dash prefix");
+
+test(function() {
+  assert_equals(CSS.escape('\x01\x02\x1E\x1F'), '\\1 \\2 \\1e \\1f ');
+
+  assert_equals(CSS.escape('\x80\x2D\x5F\xA9'), '\x80\x2D\x5F\xA9');
+  assert_equals(CSS.escape('\x7F\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8A\x8B\x8C\x8D\x8E\x8F\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9A\x9B\x9C\x9D\x9E\x9F'), '\\7f \x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8A\x8B\x8C\x8D\x8E\x8F\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9A\x9B\x9C\x9D\x9E\x9F');
+  assert_equals(CSS.escape('\xA0\xA1\xA2'), '\xA0\xA1\xA2');
+  assert_equals(CSS.escape('a0123456789b'), 'a0123456789b');
+  assert_equals(CSS.escape('abcdefghijklmnopqrstuvwxyz'), 'abcdefghijklmnopqrstuvwxyz');
+  assert_equals(CSS.escape('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+
+  assert_equals(CSS.escape('\x20\x21\x78\x79'), '\\ \\!xy');
+}, "Various tests");
+
+test(function() {
+  // astral symbol (U+1D306 TETRAGRAM FOR CENTRE)
+  assert_equals(CSS.escape('\uD834\uDF06'), '\uD834\uDF06');
+  // lone surrogates
+  assert_equals(CSS.escape('\uDF06'), '\uDF06');
+  assert_equals(CSS.escape('\uD834'), '\uD834');
+}, "Surrogates");
+</script>

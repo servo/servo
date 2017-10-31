@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+	<head>
+		<meta charset="utf-8">
+		<title>CSS Regions: named flow content has contentEditable attribute set and is flowed in an
+			auto-height region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/html5/editing.html#contenteditable">
+		<meta name="flags" content="dom">
+		<meta name="assert" content="Test checks that setting the contentEditable attribute on
+		elements that get flowed in a region does not affect their rendering in the regions. Also,
+		if the region uses height:auto, the size of the region should change as the content flowed
+		in it is edited.">
+		<link rel="match" href="reference/contentEditable-006-ref.html">
+		<link rel="stylesheet" href="support/common.css">
+		<style>
+		.flowed {
+			flow-into: flow;
+		}
+		.content {
+			font-family: Times, serif;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.region {
+			flow-from: flow;
+			width: 300px;
+			height: auto;
+			max-height: 150px;
+			border: 2px solid black;
+			margin: 0.5em 0 0.5em 0;
+		}
+		.region > p {
+			background-color: red;
+			width: 100%;
+			height: 50%;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>Below you should see a rectangle with a black border with some text inside it. No
+				red should be visible at any time during this test.</li>
+			<li>Click between the first pair of green and blue colored markers and type
+				&ldquo;<strong>foobar bazquux</strong>&rdquo;
+				<ul>
+					<li>The text you typed is displayed at the cursor position between the
+				two markers and the lines of text wrap inside the black border</li>
+				</ul>
+			</li>
+			<li>Click between the second pair of green and blue colored markers and type
+				&ldquo;<strong>foobar bazquux</strong>&rdquo;
+				<ul>
+					<li>The text you typed is displayed at the cursor position between the
+				two markers and the lines of text wrap inside the black border</li>
+				</ul>
+			</li>
+		</ol>
+		<div class="content flowed" contentEditable="true">
+			<!-- On a single line since new lines in contentEditable elements are messy :( -->
+			This is some text that should be editable. Even the text between <em><span class="inline-marker green"></span> <span id="marked-one">these two markers</span> <span class="inline-marker blue"></span>.</em>
+
+			Likewise, this text <em><span class="inline-marker green"></span> <span id="marked-two">between these colored markers</span> <span class="inline-marker blue"></span></em> should be editable.
+		</div>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<script type="text/javascript" src="support/helpers.js"></script>
+		<script type="text/javascript">
+		insertText("#marked-one", "foobar bazquux");
+		insertText("#marked-two", "foobar bazquux");
+		document.documentElement.classList.remove('reftest-wait');
+		</script>
+	</body>
+</html>

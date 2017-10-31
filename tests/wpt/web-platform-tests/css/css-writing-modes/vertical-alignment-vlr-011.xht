@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Writing Modes Test: vertical-align - 'super' and vertical-lr writing-mode</title>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-10-29 -->
+    <link rel="help" title="7.5 Line-Relative Mappings" href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings" />
+    <link rel="help" title="10.8.1 Leading and half-leading" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/visudet.html#leading" />
+    <meta name="assert" content="This test checks the position of inline non-replaced box with vertical align property. When 'writing-mode' is 'vertical-lr', 'text-orientation' is 'mixed', 'vertical-align' is 'super', the baseline of the box is shifted to the right." />
+    <meta name="flags" content="ahem" />
+    <style type="text/css"><![CDATA[
+    div#lr-mixed
+    {
+      writing-mode: vertical-lr;
+      font: 60px/3 Ahem; /* computes to 60px/180px */
+      color: orange;
+      text-orientation: mixed;
+    }
+
+    span
+    {
+      vertical-align: super;
+      color: blue;
+      margin-top: -1em;
+    }
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if there are an orange rectangle on the left and a blue square on the right.</p>
+
+  <div id="lr-mixed">X<span>2</span></div>
+
+  </body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: GCPM String-set with content()</title>
+<link rel="author" title="Dave Cramer" href="mailto:dauwhe@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/css-gcpm-3/#setting-named-strings-the-string-set-pro">
+
+<meta name="flags" content="paged">
+<meta name="assert" content="Test checks that a string can be set to the text value of an element, using the default content() syntax">
+<style>
+  @page {
+   @top-center {
+   content: string(title);
+   }
+  }
+
+ h1 {
+   string-set: title content();
+ }
+</style>
+</head>
+<body>
+<h1>Chapter Title</h1>
+<p>Test passes if “Chapter Title” appears in the running head at the top of the page.</p>
+</body>
+</html>

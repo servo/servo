@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Masking: Test clip-path property and circle function with farthest-side</title>
+    <link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+    <link rel="match" href="reference/clip-path-circle-ref.html">
+    <meta name="assert" content="The clip-path property takes the basic shape
+    'circle' for clipping. The circle has a radius of 'farthest-side'. This
+    test has a squred div-box. Therefore, 'closest-side', 50% and
+    'farthest-side' show the same behavior. On pass there should be a green
+    circle.">
+</head>
+<body>
+    <p>The test passes if there is a full green circle.</p>
+    <div style="width: 200px; height: 200px; background-color: green; clip-path: circle(farthest-side);"></div>
+</body>
+</html>

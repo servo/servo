@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Float applied to element with 'display' set to run-in</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-float" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'float' property applies to elements with a display of run-in." />
+        <style type="text/css">
+            div
+            {
+                background: green;
+                display: run-in;
+                float: right;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a box on the right side of the page.</p>
+        <div></div>
+    </body>
+</html>

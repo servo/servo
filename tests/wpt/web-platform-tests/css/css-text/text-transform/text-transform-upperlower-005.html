@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Latin Extended-A, uppercase</title>
+<meta name="assert" content="For the Latin Extended-A Unicode block, text-transform: uppercase puts all letters in uppercase .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-005-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('../../fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 200%; line-height: 2.5em; font-family: 'Doulos SIL', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: uppercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+0101">&#x0101; &#x0100;</span> <span title="U+0103">&#x0103; &#x0102;</span> <span title="U+0105">&#x0105; &#x0104;</span> <span title="U+0107">&#x0107; &#x0106;</span> <span title="U+0109">&#x0109; &#x0108;</span> <span title="U+010B">&#x010B; &#x010A;</span> <span title="U+010D">&#x010D; &#x010C;</span> <span title="U+010F">&#x010F; &#x010E;</span> <span title="U+0111">&#x0111; &#x0110;</span> <span title="U+0113">&#x0113; &#x0112;</span> <span title="U+0115">&#x0115; &#x0114;</span> <span title="U+0117">&#x0117; &#x0116;</span> <span title="U+0119">&#x0119; &#x0118;</span> <span title="U+011B">&#x011B; &#x011A;</span> <span title="U+011D">&#x011D; &#x011C;</span> <span title="U+011F">&#x011F; &#x011E;</span> <span title="U+0121">&#x0121; &#x0120;</span> <span title="U+0123">&#x0123; &#x0122;</span> <span title="U+0125">&#x0125; &#x0124;</span> <span title="U+0127">&#x0127; &#x0126;</span> <span title="U+0129">&#x0129; &#x0128;</span> <span title="U+012B">&#x012B; &#x012A;</span> <span title="U+012D">&#x012D; &#x012C;</span> <span title="U+012F">&#x012F; &#x012E;</span> <span title="U+0131">&#x0131; &#x0049;</span> <span title="U+0133">&#x0133; &#x0132;</span> <span title="U+0135">&#x0135; &#x0134;</span> <span title="U+0137">&#x0137; &#x0136;</span> <span title="U+013A">&#x013A; &#x0139;</span> <span title="U+013C">&#x013C; &#x013B;</span> <span title="U+013E">&#x013E; &#x013D;</span> <span title="U+0140">&#x0140; &#x013F;</span> <span title="U+0142">&#x0142; &#x0141;</span> <span title="U+0144">&#x0144; &#x0143;</span> <span title="U+0146">&#x0146; &#x0145;</span> <span title="U+0148">&#x0148; &#x0147;</span> <span title="U+014B">&#x014B; &#x014A;</span> <span title="U+014D">&#x014D; &#x014C;</span> <span title="U+014F">&#x014F; &#x014E;</span> <span title="U+0151">&#x0151; &#x0150;</span> <span title="U+0153">&#x0153; &#x0152;</span> <span title="U+0155">&#x0155; &#x0154;</span> <span title="U+0157">&#x0157; &#x0156;</span> <span title="U+0159">&#x0159; &#x0158;</span> <span title="U+015B">&#x015B; &#x015A;</span> <span title="U+015D">&#x015D; &#x015C;</span> <span title="U+015F">&#x015F; &#x015E;</span> <span title="U+0161">&#x0161; &#x0160;</span> <span title="U+0163">&#x0163; &#x0162;</span> <span title="U+0165">&#x0165; &#x0164;</span> <span title="U+0167">&#x0167; &#x0166;</span> <span title="U+0169">&#x0169; &#x0168;</span> <span title="U+016B">&#x016B; &#x016A;</span> <span title="U+016D">&#x016D; &#x016C;</span> <span title="U+016F">&#x016F; &#x016E;</span> <span title="U+0171">&#x0171; &#x0170;</span> <span title="U+0173">&#x0173; &#x0172;</span> <span title="U+0175">&#x0175; &#x0174;</span> <span title="U+0177">&#x0177; &#x0176;</span> <span title="U+017A">&#x017A; &#x0179;</span> <span title="U+017C">&#x017C; &#x017B;</span> <span title="U+017E">&#x017E; &#x017D;</span> <span title="U+017F">&#x017F; &#x0053;</span></div>
+<!--Notes:
+Characters from this block that do not have case equivalents: &#x0130;, &#x0138;, &#x0149;, &#x0178;
+Tip: To identify the characters where differences occur, in order to report problem characters,either mouse over to reveal a tooltip, or copy and paste the sequence into a tool such as <a href='http://r12a.github.io/uniview/' target='_blank'>UniView</a> or the <a href='http://r12a.github.io/apps/conversion/' target='_blank'>Unicode Conversion Tool</a>.
+-->
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+
+<!DOCTYPE html>
+
+<html>
+
+ <head>
+
+  <!--
+  The original and initial filename of this test was
+  diagonal-percentage-vector-background.html
+  -->
+
+  <title>CSS Backgrounds and Borders Test: scaled vector image without intrinsic dimensions as background, with rendering dependent on the diagonal</title>
+
+  <link rel="author" title="Jeff Walden" href="http://whereswalden.com/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size" title="3.9. Sizing Images: the 'background-size' property">
+  <link rel="help" href="http://www.w3.org/TR/SVG/coords.html#IntrinsicSizing">
+  <link rel="help" href="http://www.w3.org/TR/SVG/coords.html#PreserveAspectRatioAttribute">
+  <link rel="match" href="reference/diagonal-percentage-vector-background-ref.html">
+
+  <meta name="flags" content="svg">
+
+  <style type="text/css">
+  div
+  {
+  background-image: url("support/diagonal-scaled.svg");
+  background-repeat: no-repeat;
+  border: black solid 8px;
+  height: 360px;
+  width: 436px;
+  }
+
+  /*
+
+  Complete quotation of the SVG object code:
+
+  <svg xmlns="http://www.w3.org/2000/svg">
+  <title>Vector image without intrinsic dimensions with percentage stroke-width (proportional to the diagonal)</title>
+  <rect y="0" width="100%" height="50%" fill="lime"/>
+  <rect y="50%" width="100%" height="50%" fill="aqua"/>
+  <!--
+    A percent stroke-width is resolved with respect to:
+
+      d = sqrt(vh**2 + vw**2) / sqrt(2)
+
+    where vh/vw are the image viewport width/height.  Because this image has no
+    intrinsic dimensions or ratio, it expands to fill the entire background
+    positioning area, so its width is 100px and its height is 700px.  For those
+    carefully-chosen dimensions, d = 500px, so 10% of that creates a 50px-wide
+    rectangle, vertically centered and horizontally left-aligned in the image.
+  -->
+  <line x1="25%" y1="25%" x2="25%" y2="75%" stroke="fuchsia" stroke-width="10%"/>
+</svg>
+
+  So:
+
+  d = sqrt(vh**2 + vw**2) / sqrt(2)
+
+  With width: 436px; (instead of 100px) and height: 360px; (instead of 700px):
+
+  d == sqrt ((436 mult 436) + (360 mult 360)) / sqrt(2)
+
+  d == sqrt ((190096) + (129600)) / sqrt(2)
+
+  d == sqrt ((319696)) / sqrt(2)
+
+  d == 565.416660526px / 1.41421356237
+
+  d == 399.809954854px
+
+  and so 10% of 399.809954854px == 39.9809954854px =~ 40px
+
+  */
+
+  </style>
+
+ </head>
+
+ <body>
+
+  <div></div>
+
+ </body>
+</html>

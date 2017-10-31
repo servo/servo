@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: caret-color animation</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#caret-color">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation">
+<meta name="flags" content="interact animated">
+<meta name="assert" content="Test checks that caret-color is animatable as a color">
+<style>
+  textarea {
+    font-size: 3em;
+    font-weight: bold;
+    width: 10em;
+    padding: 10px;
+    background: black; color: white; /* the color of a thin object like the caret is easier to see on a black background. */
+
+    caret-color: red;
+    animation: caret-many-colors 5s linear alternate infinite;
+  }
+  @keyframes caret-many-colors {
+	0% { caret-color: lime; }
+	20% { caret-color: gray; }
+	40% { caret-color: cyan; }
+	60% { caret-color: pink; }
+	80% { caret-color: blue; }
+	100% { caret-color: brown; }
+  }
+</style>
+<body>
+  <p>Test passes if, when the text area below is focused for editing, the text insertion caret continuously changes colors.</p>
+  <p>The shape of the caret, and whether it flashes, are not part of the test.</p>
+  <textarea id="test"></textarea>
+  <script>
+    window.onload = function() {
+      document.getElementById("test").focus();
+    }
+  </script>
+</body>

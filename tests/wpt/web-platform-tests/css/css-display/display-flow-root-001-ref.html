@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: display:flow-root</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1322191">
+  <style type="text/css">
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+.float {
+  float: left;
+  width: 20px;
+  height: 40px;
+  background: pink;
+}
+
+.clearfix:after{content:".";display:block;height:0;clear:both;visibility:hidden;}
+
+  </style>
+</head>
+<body>
+
+<div style="border:1px solid">
+  <div style="margin: 40px 0">
+    <div>x</div>
+  </div>
+</div>
+
+<div style="border:1px solid">
+  <div class="float"></div>
+  <div class="clearfix"></div>
+</div>
+
+<div style="border:1px solid">
+  <div class="float"></div>
+  <div style="display:block; border:1px solid; margin-left:20px">x</div>
+</div>
+
+<span>
+  <span style="display:block; background:grey; margin:20px 0 0 21px"><div style="padding:20px">x</div></span>
+</span>
+
+<div style="border:3px solid; height:10px;"></div>
+
+</body>
+</html>

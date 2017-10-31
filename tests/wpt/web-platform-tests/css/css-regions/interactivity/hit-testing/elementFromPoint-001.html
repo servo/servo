@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: document.elementFromPoint() on for elements that get split between regions</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="document.elementFromPoint() should return the correct element when provided with coordinates of points inside content fragments">
+	<meta name="flags" content="dom interact">
+	<style>
+	body {
+		font-size: 16px;
+	}
+	p {
+		margin: 0;
+	}
+	ol {
+		padding-left: 0;
+	}
+	#content {
+		flow-into: f;
+	}
+	.region {
+		flow-from: f;
+		margin: .25em;
+		margin-left: 40px;
+		width: 200px;
+		height: 150px;
+		background-color: lightgray;
+	}
+	.region p {
+		font-weight: bold;
+		color: red;
+	}
+	.narrow {
+		width: 75px;
+		height: 20px;
+	}
+	</style>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+	<div id="content">
+	</div>
+	<div class="region narrow">
+		<p>FAIL</p>
+	</div>
+	<div class="region" id="target">
+		<p>FAIL</p>
+	</div>
+	<div id="log"></div>
+	<script type="text/javascript">
+	var testElements = [
+			{ tag: "p", content: "Some text here", description: "Block content" },
+			{ tag: "span", content: "Some text here", description: "Inline content", around: " mmm " },
+			{ tag: "img", description: "Replaced content", src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAT0lEQVR42u2WMQoAIAwD+/9Px9VFoUJNhjvoKDmKhVQBQA9tYw3/LiGngJwChBN+CtfjWMOvEp0HIwL2DUT8gYgrQAKJyD4Q0YgiOiHACAvTEtAwKdXD6AAAAABJRU5ErkJggg==", style: { width: "32px", height: "32px"} },
+			{ tag: "li", content: "Some text here", description: "Elements with parents", parent: "ol"},
+			{ tag: "foobar", content: "Some text here", description: "Unknown element type" },
+			{ tag: "div", content: "Floating<br>content", description: "Floating content", style: { float: "left" } },
+		],
+		regionBox = document.querySelector("#target").getBoundingClientRect();
+
+	function insertElement(elem) {
+		var node, parent, content;
+		node = document.createElement(elem.tag);
+		node.innerHTML = elem.content;
+
+		if (elem.parent) {
+			parent = document.createElement(elem.parent);
+			parent.appendChild(node);
+		}
+
+		if (elem.src) {
+			node.src = elem.src;
+		}
+
+		for (var prop in elem.style) {
+			node.style[prop] = elem.style[prop];
+		}
+
+		if (elem.around) {
+			content = elem.around + (parent ? parent.outerHTML : node.outerHTML) + elem.around;
+		} else {
+			content = (parent ? parent.outerHTML : node.outerHTML);
+		}
+
+		document.querySelector("#content").innerHTML = content;
+	}
+	function pointForElement(elem) {
+		// We just assume that (10px, 10px) relative to the second region should fall inside the
+		// second block of the flowed content. Currently getBoundingClientRects() is not
+		// implemented and there isn't a more reliable way of computing it.
+		result = {
+			top : regionBox.top + 10,
+			left : regionBox.left + 10
+		}
+
+		return result;
+	}
+
+	testElements.forEach(function(elem) {
+		test(function() {
+			var point, fromSelector;
+
+			insertElement(elem);
+			point = pointForElement(elem);
+
+			fromSelector = document.querySelector("#content " + elem.tag);
+			assert_equals(fromSelector, document.elementFromPoint(point.left, point.top));
+
+		}, elem.description)
+	});
+	</script>
+</body>
+</html>

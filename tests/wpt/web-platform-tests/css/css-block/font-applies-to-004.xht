@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font and 'display: run-in' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'font' property applies to 'display: run-in' elements." />
+        <style type="text/css">
+            div
+            {
+                font: italic small-caps bold 16px sans-serif;
+            }
+            #div1
+            {
+                display: run-in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the lines of "Filler Text" below match.</p>
+        <div>Filler Text</div>
+        <div id="div1">Filler Text</div>
+    </body>
+</html>

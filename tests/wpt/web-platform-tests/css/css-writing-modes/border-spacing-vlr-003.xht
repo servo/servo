@@ -1,0 +1,134 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: border-spacing - first value is specified and non-zero in 'vertical-lr' table</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#dimension-mapping" title="7.2 Dimension Mapping" />
+  <link rel="help" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/tables.html#separated-borders" title="17.6.1 The separated borders model" />
+  <link rel="match" href="border-spacing-vrl-002-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that first value of 'border-spacing' represents, from top to bottom, a) spacing between logical table left padding (physical table top padding) and leftmost cells and b) inter-column spacing and c) spacing between rightmost cells and logical table right padding (physical table bottom padding)." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table
+    {
+      border-spacing: 0.5em 0em; /* computes to logical horizontal border-spacing: 10px */
+      font: 20px/1 Ahem; /* computes to 20px/20px */
+      padding: 1.25em 0em; /* computes to padding-top: 25px and padding-bottom: 25px */
+      writing-mode: vertical-lr;
+    }
+
+  td
+    {
+      height: 0.5em;
+      padding: 0em;
+      width: 1em;
+    }
+
+  /*
+
+         0px       width of nth row        20px                           TOP
+         |                                 |
+         ===================================     0x (0em)                 |||
+         | table padding-top 25px (1.25em) |                              |||
+         |    with red background=color    |                            \ ||| /
+         |    with red background=color    |                             \   /
+         |    with red background=color    |                              \ /
+         |    with red background=color    |                               v
+         ===================================    25px (1.25em)
+         |logical left border-spacing: 10px|
+         |    with red background=color    |
+         ===================================    35px (1.75em)
+         |  height of 1st td 10px (0.5em)  |                              |||
+         |    with red background=color    |                              |||
+         ===================================    45px (2.25em)           \ ||| /
+         |inter-column spacing 10px (0.5em)|                             \   /
+         |    with red background=color    |                              \ /
+         ===================================    55px (2.75em)              v
+         |  height of 2nd td 10px (0.5em)  |
+         |    with red background=color    |
+         ===================================    65px (3.25em)
+         |logical righ border-spacing: 10px|                              |||
+         |    with red background=color    |                              |||
+         ===================================    75px (3.75em)           \ ||| /
+         |tble padding-bottom 25px (1.25em)|                             \   /
+         |    with red background=color    |                              \ /
+         |    with red background=color    |                               v
+         |    with red background=color    |
+         |    with red background=color    |
+         ===================================   100px (5em)              BOTTOM
+
+  */
+
+  div#reference-overlapping-green
+    {
+      background-color: green;
+      height: 6.25em;
+      position: absolute;
+      width: 6.25em;
+    }
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      height: 6.25em;
+      position: absolute;
+      width: 6.25em;
+      z-index: -1;
+    }
+
+  table#test-overlapped-red
+    {
+      background-color: red;
+    }
+
+  table#test-overlapping-green
+    {
+      background-color: green;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+
+  <div id="reference-overlapping-green"></div>
+
+  <table id="test-overlapped-red">
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+  </table>
+
+  <div id="reference-overlapped-red"></div>
+
+  <table id="test-overlapping-green">
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+    <tr><td></td><td></td></tr>
+
+  </table>
+
+ </body>
+</html>

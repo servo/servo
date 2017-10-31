@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>flexbox | cleared item</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<style>
+#float {
+	background: #3366cc;
+	padding: 1em;
+	float: left;
+}
+#flex {
+	background: #ffcc00;
+	overflow: hidden;
+}
+div div {
+	margin: 2em;
+	height: 4em;
+	clear: both;
+}
+</style>
+
+<div id="float">damer</div>
+
+<div id="flex">
+	<div>Yellow box should be to the right of the blue box, and
+		never below</div>
+</div>

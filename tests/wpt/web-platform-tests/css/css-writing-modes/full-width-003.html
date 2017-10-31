@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: 'text-combine-upright: digits 2' applied on 2 full-width characters</title>
+<link rel="author" title="Masataka Yakura" href="http://google.com/+MasatakaYakura">
+<link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-fullwidth" title="9.1.3.1. Full-width Characters">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-transform-property" title="2.1. Case Transforms: the 'text-transform' property">
+<link rel="mismatch" href="reference/full-width-002-notcu-notref.html">
+<link rel="mismatch" href="reference/full-width-002-horizontal-notref.html">
+<meta content="asis should" name="flags">
+<meta name="assert" content="When two or more full-width characters are combined, they are first converted to non-full-width characters.">
+
+  <!--
+  This test is the equivalent of the "23" day in the
+  <date>2010年2月23日</date> example of example 17 in
+  section 9.1.3.1 of the specification
+  -->
+
+<style>
+  div
+    {
+      font-size: 64px;
+      writing-mode: vertical-rl;
+    }
+
+  div > p
+    {
+      border: black solid 1px;
+    }
+
+  span.tcu-digits2
+    {
+      text-combine-upright: digits 2;
+    }
+
+  span.full-width
+    {
+      text-transform: full-width;
+    }
+</style>
+</head>
+<body>
+
+<p>Test passes if the glyphs in the 3 rectangles have the <strong>same order</strong>, the <strong>same orientation</strong> and the <strong>same layout</strong>; a different inter-character spacing is considered as PASS.</p>
+
+<div>
+
+  <p id="test1"><span class="full-width tcu-digits2">&#x32;&#x38;</span>日</p>
+
+  <!-- &#x32; is the ISO-Latin1 digit 2 -->
+
+  <!-- &#x38; is the ISO-Latin1 digit 8 -->
+
+  <p id="test2"><span class="tcu-digits2">&#xFF12;&#xFF18;</span>日</p>
+
+  <!-- &#xFF12; is the FULLWIDTH DIGIT 2 (≈ <wide> 0032 2)-->
+
+  <!-- &#xFF18; is the FULLWIDTH DIGIT 8 (≈ <wide> 0038 8)-->
+
+  <p id="reference"><span class="tcu-digits2">28</span>日</p>
+
+</div>
+
+</body>
+</html>

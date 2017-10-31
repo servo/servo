@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: Reftest reference</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+</g>
+<defs>
+<clipPath id="clip">
+	<rect x="20" y="20" width="160" height="160" rx="20" ry="20"/>
+</clipPath>
+</defs>
+<rect width="200" height="200" fill="green" clip-path="url(#clip)"/>
+</svg>

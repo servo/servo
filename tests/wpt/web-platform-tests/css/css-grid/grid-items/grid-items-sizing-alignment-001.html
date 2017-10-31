@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid Item Sizing</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#grid-item-sizing">
+<link rel="match" href="grid-items-sizing-alignment-001-ref.html" />
+<meta name="assert" content="Checks how alignment properties affect the size of the non-replaced vs replaced grid items.">
+<style>
+  #grid {
+    display: grid;
+    grid-auto-rows: 200px;
+    grid-template-columns: repeat(3, 200px);
+  }
+</style>
+
+<p>Test passes if it has the same output than the reference.</p>
+
+<div id="grid">
+  <button style="align-self: normal; justify-self: normal;">Stretched button (200x200)</button>
+  <button style="align-self: stretch; justify-self: stretch;">Stretched button (200x200)</button>
+  <button style="align-self: start; justify-self: start;">Regular button</button>
+  <img src="support/50x50-green.png" alt="Image download support must be enabled"
+    style="align-self: normal; justify-self: normal;" />
+  <img src="support/50x50-green.png" alt="Image download support must be enabled"
+    style="align-self: stretch; justify-self: stretch;" />
+  <img src="support/50x50-green.png" alt="Image download support must be enabled"
+    style="align-self: start; justify-self: start;" />
+</div>

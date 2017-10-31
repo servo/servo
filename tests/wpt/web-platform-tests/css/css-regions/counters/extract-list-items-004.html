@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into on unordered list items, when items contain other unordered lists</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<meta name="flags" content="">
+		<meta name="assert" content="The flow-into property can be applied to individual list items. List items extracted in named flows and flowed into regions must preserve their list markers, even when extracting items from multiple and nested lists into the same named flow.">
+		<link rel="match" href="reference/extract-list-items-004-ref.html">
+		<style>
+		#outer-unordered-1 ul,
+		#outer-unordered-2 ul {
+			color: blue;
+		}
+		#outer-unordered-2 ul ul {
+			color: green;
+		}
+
+
+		#outer-unordered-1 > li {
+			flow-into: f1;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+
+		#outer-unordered-2 li {
+			flow-into: f2;
+		}
+		#r2 {
+			flow-from: f2;
+		}
+
+		.region {
+			margin: 2em;
+			background-color: lightgray;
+			width: 20em;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if there are two gray rectangles:  each with a list with another lists nested in it. The list markers for the black list in the first rectangle, and for all the lists in the second rectangle should be rendered outside of the gray boxes</p>
+		<p>The list in the first rectangle should be black, with two blue nested lists in it. The nested lists should appear after the first and the second items, they should be indented and use a different kind of bullet.</p>
+		<p>The list in the second rectangle should be black, with a blue nested list in it that has in turn a nested green list in it. Each of the black, blue and green list should use different kinds of bullets and list items of the same color should have the same kind of bullet.</p>
+		<ul id="outer-unordered-1">
+			<li>First unordered list, item 1
+				<ul>
+					<li>First inner unordered list, item 1</li>
+					<li>First inner unordered list, item 2</li>
+					<li>First inner unordered list, item 3</li>
+				</ul>
+			</li>
+			<li>First unordered list, item 2
+				<ul>
+					<li>Second inner unordered list, item 1</li>
+					<li>Second inner unordered list, item 2</li>
+				</ul>
+			</li>
+			<li>First unordered list, item 3</li>
+		</ul>
+		<div class="region" id="r1"></div>
+
+		<ul id="outer-unordered-2">
+			<li>Second unordered list, item 1</li>
+			<li>Second unordered list, item 2
+				<ul>
+					<li>Last inner unordered list, item 1</li>
+					<li>Last inner unordered list, item 2
+						<ul>
+							<li>Innermost unordered list, item 1</li>
+							<li>Innermost unordered list, item 2</li>
+						</ul>
+					</li>
+					<li>Last inner unordered list, item 3</li>
+					<li>Last inner unordered list, item 4</li>
+				</ul>
+			</li>
+			<li>Second unordered list, item 3</li>
+		</ul>
+		<div class="region" id="r2"></div>
+	</body>
+</html>

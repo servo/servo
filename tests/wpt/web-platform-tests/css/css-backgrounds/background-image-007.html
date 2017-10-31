@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds: background-image :first-letter layered images</title>
+<link rel="author" title="Justin Hill" href="http://www.justin-hill.com">
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image">
+<link rel="match" href="reference/background-image-001-ref.html">
+<meta name="assert" content="Test checks that background-image displays multiple images in correct order on :first-letter selector.">
+<style>
+    .container {
+      top:50px;
+      left:50px;
+      width: 100px;
+      height: 100px;
+    }
+
+    .container p:first-letter {
+      width:100px;
+      height:100px;
+      color:transparent;
+      font-size: 50px;
+      background-image: url("support/green.png"), url("support/red.png");
+      background-color: red;
+      display: block;
+      margin: 0px;
+    }
+</style>
+<body>
+    <p> Test passes if green image shows and no red visable.</p>
+    <div class="container">
+      <p>x</p>
+    </div>
+</body>

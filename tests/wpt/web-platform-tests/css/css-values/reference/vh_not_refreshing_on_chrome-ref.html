@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<!-- Submitted from TestTWF Paris -->
+<head>
+
+	<title>CSS Reference File</title>
+	<link rel="author" title="Marc Bourlon" href="mailto:marc@bourlon.com">
+	<script src="/common/reftest-wait.js"></script>
+
+	<style type="text/css">
+
+		* { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; }
+
+		#frameTest { width: 600px; height: 200px; border: 1px solid #000; }
+
+	</style>
+
+	<script type="text/javascript">
+		'use strict';
+
+		// We must not capture the screen until the frameTest
+		// and testBoxWithVhOnly elements have finished changing height.
+		var elementsPending = 2;
+		function receiveMessage() {
+			if (--elementsPending === 0) {
+				takeScreenshot();
+			}
+		}
+
+		window.addEventListener('message', receiveMessage, false);
+
+		var height = 200;
+
+		function resizeReference() {
+
+			var frameTest = document.getElementById('frameTest');
+
+			// let's resize the iframe vertically only, showing that the vh sizes is not updated.
+			if (height <= 300) {
+
+				//frameTest.style.width = height++ + "px";
+				frameTest.style.height = height++ + "px";
+
+				setTimeout(resizeReference, 10);
+
+			} else {
+
+				// uncomment the next line to see how a width resize triggers a layout recalculation
+				//frameTest.style.width = (parseInt(window.getComputedStyle(document.getElementById('frameTest'))['width'], 10) + 1) + "px";
+
+				window.postMessage('frameTest', '*');
+			}
+
+		}
+
+		setTimeout(resizeReference, 10);
+	</script>
+
+</head>
+<body>
+
+<iframe id="frameTest" src="vh_not_refreshing_on_chrome_iframe-ref.html" frameborder="0"></iframe>
+
+</body>
+</html>

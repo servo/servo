@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Image Threshold - Valid values</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-image-threshold-property">
+        <meta name="assert" content="shape-image-threshold is any valid number and computed the
+                                     clipped value between 0 and 1.">
+        <meta name="flags" content="ahem dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+        var shape_image_threshold_valid_tests = [
+            {
+              "actual": "0.0",
+              "expected_inline": "0",
+              "expected_computed": "0"
+            },
+            {
+              "actual": ".2",
+              "expected_inline": "0.2",
+              "expected_computed": "0.2"
+            },
+            {
+              "actual": "0.333",
+              "expected_inline": "0.333",
+              "expected_computed": "0.333"
+            },
+            {
+              "actual": "1.0",
+              "expected_inline": "1",
+              "expected_computed": "1"
+            },
+            {
+              "actual": "1.5",
+              "expected_inline": "1.5",
+              "expected_computed": "1"
+            }
+        ];
+        generate_tests( ParsingUtils.testShapeThresholdInlineStyle,
+                        ParsingUtils.buildTestCases(shape_image_threshold_valid_tests, 'inline') );
+        generate_tests( ParsingUtils.testShapeThresholdComputedStyle,
+                        ParsingUtils.buildTestCases(shape_image_threshold_valid_tests, 'computed') );
+        </script>
+    </body>
+</html>

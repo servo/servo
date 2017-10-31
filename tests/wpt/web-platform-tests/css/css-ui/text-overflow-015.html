@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis after graphical transformations</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#ellipsing-details">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Ellipsing occurs after relative positioning">
+<style>
+div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100px;
+  height: 100px;
+  white-space: pre;
+  font: 20px/1 ahem;
+  color: green;
+  background: url("support/1x1-red.png") top right / 1em 1em no-repeat, green;
+}
+.rel {
+  position: relative;
+  left: 1em;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div><span class=rel>     </span></div>

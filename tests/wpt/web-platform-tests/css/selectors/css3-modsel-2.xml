@@ -1,0 +1,11 @@
+<csstest def="Type element selectors" module="W3C Selectors" modulename="css3-modsel" number="2" rev="1.1" date="03-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+<cssrules>address { background-color: lime }</cssrules>
+
+<code>
+<address xmlns="http://www.w3.org/1999/xhtml">This address element should have a green background.</address>
+</code>
+
+</csstest>

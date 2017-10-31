@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - height width(more than one properties specified)</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="2.1. The 'transition-property' Property" href="http://www.w3.org/TR/css3-transitions/#transition-property-property">
+<meta name="flags" content="interact">
+<meta name="assert" content="The 'transition-duration' property set more than one properties like 'height, width'
+means only the specified properties will be transitioned.">
+<style>
+  #test {
+    background-color: red;
+    height: 100px;
+    transition-duration: 2s;
+    transition-property: height, width;
+    transition-timing-function: linear;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Click the red square below. Test passes if both height and width of square grow smoothly but the color changed to green immediately.</p>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var div = document.querySelector("#test");
+      div.addEventListener("click", function(evt) {
+        div.setAttribute("style", "background-color: green; height: 200px; width: 200px;");
+      }, false);
+    })();
+  </script>
+</body>

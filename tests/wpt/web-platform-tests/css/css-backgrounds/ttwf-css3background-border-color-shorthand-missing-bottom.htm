@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Backgrounds and Borders Test: border_color_shorthand_missing_bottom</title>
+    <link rel="author" title="disound" href="mailto:disound@gmail.com" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-color" />
+    <meta name="flags" content="image" />
+    <meta name="assert" content="'Border-color' is a shorthand for the four 'border-*-color' properties. The four values set the top, right, bottom and left border, respectively. A missing left is the same as right, a missing bottom is the same as top, and a missing right is also the same as top." />
+    <style>
+        #ref {
+            background-color: white;
+            height: 160px;
+            width: 160px;
+        }
+        #test {
+            border: black solid 5px;
+            border-color: yellow black;
+            bottom: 160px;
+            height: 100px;
+            padding: 25px;
+            position: relative;
+            width: 100px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a white square, left border is black, <strong>bottom border is yellow</strong>, right border is black, top border is yellow.</p>
+    <div id="ref"></div>
+    <div id="test"></div>
+  </body>
+</html>

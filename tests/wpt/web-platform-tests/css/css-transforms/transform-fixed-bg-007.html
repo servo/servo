@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Fixed Background (transform on root)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='This tests that a transform on the root
+    element *does* affect the rendering of fixed backgrounds on its
+    descendants.'>
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-fixed-bg-ref.html">
+    <style>
+      html {
+        transform: rotate(-90deg);
+        transform-origin: 100px 100px;
+        overflow: hidden;
+      }
+      body {
+        margin: 0;
+      }
+      div {
+        background: url(support/transform-triangle-up.svg) fixed;
+        width: 100px;
+        height: 100px;
+        position: relative;
+        left: 50px;
+        top: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

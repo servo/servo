@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry Interfaces: DOMPoint and DOMPointReadOnly interface tests</title>
+    <link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com" />
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#DOMPoint">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dictdef-dompointinit">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-dompoint-dompoint">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-dompointreadonly-dompoint-x">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-dompointreadonly-dompoint-y">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-dompointreadonly-dompoint-z">
+    <link rel="help" href="http://www.w3.org/TR/geometry-1/#dom-dompointreadonly-dompoint-w">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <p>Test DOMPoint and DOMPointReadOnly interfaces</p>
+    <div id="log"></div>
+    <script>
+        test(function() {
+            checkDOMPoint(new DOMPoint(), {x:0, y:0, z:0, w:1});
+        },'testConstructor0');
+        test(function() {
+            assert_throws(new TypeError(), function() { new DOMPoint(1);})
+        },'testConstructor1');
+        test(function() {
+            checkDOMPoint(new DOMPoint(1, 2), {x:1, y:2, z:0, w:1});
+        },'testConstructor2');
+        test(function() {
+            checkDOMPoint(new DOMPoint(1, 2, 3), {x:1, y:2, z:3, w:1});
+        },'testConstructor3');
+        test(function() {
+            checkDOMPoint(new DOMPoint(1, 2, 3, 4), {x:1, y:2, z:3, w:4});
+        },'testConstructor4');
+        test(function() {
+            checkDOMPoint(new DOMPoint(1, 2, 3, 4, 5), {x:1, y:2, z:3, w:4});
+        },'testConstructor5');
+        test(function() {
+            checkDOMPoint(new DOMPoint({}), {x:0, y:0, z:0, w:1});
+        },'testConstructorDictionary0');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1}), {x:1, y:0, z:0, w:1});
+        },'testConstructorDictionary1');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1, y:2}), {x:1, y:2, z:0, w:1});
+        },'testConstructorDictionary2');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1, y:2, z:3}), {x:1, y:2, z:3, w:1});
+        },'testConstructorDictionary3');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1, y:2, z:3, w:4}), {x:1, y:2, z:3, w:4});
+        },'testConstructorDictionary4');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1, y:2, z:3, w:4, v:5}), {x:1, y:2, z:3, w:4});
+        },'testConstructorDictionary5');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1, z:3}), {x:1, y:0, z:3, w:1});
+        },'testConstructorDictionary2irregular');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1, y: undefined, z:3}), {x:1, y:0, z:3, w:1});
+        },'testConstructorDictionary2undefined');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:1, z:3}), {x:1, y:0, z:3, w:1});
+        },'testConstructorDOMPoint');
+        test(function() {
+            checkDOMPoint(new DOMPoint(1, undefined), {x:1, y:0, z:0, w:1});
+        },'testConstructor2undefined');
+        test(function() {
+            checkDOMPoint(new DOMPoint("a", "b"), {x:NaN, y:NaN, z:0, w:1});
+        },'testConstructorUndefined1');
+        test(function() {
+            checkDOMPoint(new DOMPoint({x:"a", y:"b"}), {x:NaN, y:NaN, z:0, w:1});
+        },'testConstructorUndefined2');
+        test(function() {
+            assert_throws(new TypeError(), function() { new DOMPointReadOnly();})
+        },'testConstructorIllegal1');
+        test(function() {
+            assert_throws(new TypeError(), function() { new DOMPointReadOnly(1, 2, 3, 4);})
+        },'testConstructorIllegal2');
+        test(function() {
+            var p = new DOMPoint(0, 0, 0, 1);
+            p.x = undefined;
+            p.y = undefined;
+            p.z = undefined;
+            p.w = undefined;
+            checkDOMPoint(p, {x:NaN, y:NaN, z:NaN, w:NaN});
+        },'testAttributesUndefined');
+        test(function() {
+            var p = new DOMPoint(0, 0, 0, 1);
+            p.x = NaN;
+            p.y = Number.POSITIVE_INFINITY;
+            p.z = Number.NEGATIVE_INFINITY;
+            p.w = Infinity;
+            checkDOMPoint(p, {x:NaN, y:Infinity, z:-Infinity, w:Infinity});
+        },'testAttributesNaNInfinity');
+
+        function checkDOMPoint(p, exp) {
+            assert_equals(p.x, exp.x, "Expected value for x is " + exp.x);
+            assert_equals(p.y, exp.y, "Expected value for y is " + exp.y);
+            assert_equals(p.z, exp.z, "Expected value for z is " + exp.z);
+            assert_equals(p.w, exp.w, "Expected value for w is " + exp.w);
+        }
+    </script>
+</body>
+</html>

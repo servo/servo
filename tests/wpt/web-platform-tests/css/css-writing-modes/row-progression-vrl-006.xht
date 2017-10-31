@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: vertical-rl - table rows progression and rowspan</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="block-flow-direction-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that rowspanned cells in a table are handled according to a right-to-left direction." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
+
+  table
+    {
+      background-color: blue;
+      border-spacing: 0em;
+      border: blue solid 1em;
+      height: 7em;
+      writing-mode: vertical-rl;
+    }
+
+  td
+    {
+      padding-bottom: 0em;
+      padding-left: 1em;
+      padding-right: 0em;
+      padding-top: 0em;
+    }
+
+  td.left-most-cell
+    {
+      padding-left: 0em;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <table>
+
+<!-- The right-most "S" -->
+  <tr><td>A&nbsp; B&nbsp; C&nbsp; DDD</td><td>EE F G H</td><td rowspan="2">JJ &nbsp;K &nbsp;L &nbsp;M &nbsp; WW &nbsp;X &nbsp;Y &nbsp;Z</td></tr>
+
+<!-- The left-most "S" -->
+  <tr><td>N&nbsp; O&nbsp; Q&nbsp; RRR</td><td>SS T U V</td></tr>
+
+<!-- The "A" -->
+  <tr><td>aaa b&nbsp; c&nbsp; ddd</td><td rowspan="2" class="left-most-cell">ee f g hh &nbsp; r s t uu</td><td>jj &nbsp; &nbsp; kk</td></tr>
+
+<!-- The "P" -->
+  <tr><td class="left-most-cell">mmm n&nbsp; o&nbsp; qqq</td><td class="left-most-cell">&nbsp; &nbsp; &nbsp; vv</td></tr>
+
+  </table>
+
+ </body>
+</html>

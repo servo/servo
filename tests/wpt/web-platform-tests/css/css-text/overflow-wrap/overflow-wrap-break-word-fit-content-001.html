@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: overflow-wrap: break-word with fit-content</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<link rel="help" title="6.2. Overflow Wrapping: the 'word-wrap'/'overflow-wrap' property" href="http://www.w3.org/TR/css-text-3/#overflow-wrap">
+<meta name="flags" content="">
+<link rel="match" href="reference/overflow-wrap-break-word-fit-content-001.html">
+<meta name="assert" content="The 'overflow-wrap: break-word' must not break surrogate pairs">
+<style>
+.test {
+  display: inline-block;
+  word-wrap: break-word;
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: .2em;
+}
+</style>
+<body>
+<div id="log"></div>
+<p class="instructions">Tests pass if all lines do not wrap.
+<div><div class="test">&#x1D70B;</div></div>
+<div><div class="test">𝜋</div></div>
+</body>

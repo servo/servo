@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Latin Extended-D, lowercase</title>
+<meta name="assert" content="For the Latin Extended-D Unicode block, text-transform: lowercase puts all letters in lowercase .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-102-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('../../fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 200%; line-height: 2.5em; font-family: webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: lowercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+A722">&#xA722; &#xA723;</span> <span title="U+A724">&#xA724; &#xA725;</span> <span title="U+A726">&#xA726; &#xA727;</span> <span title="U+A728">&#xA728; &#xA729;</span> <span title="U+A72A">&#xA72A; &#xA72B;</span> <span title="U+A72C">&#xA72C; &#xA72D;</span> <span title="U+A72E">&#xA72E; &#xA72F;</span> <span title="U+A732">&#xA732; &#xA733;</span> <span title="U+A734">&#xA734; &#xA735;</span> <span title="U+A736">&#xA736; &#xA737;</span> <span title="U+A738">&#xA738; &#xA739;</span> <span title="U+A73A">&#xA73A; &#xA73B;</span> <span title="U+A73C">&#xA73C; &#xA73D;</span> <span title="U+A73E">&#xA73E; &#xA73F;</span> <span title="U+A740">&#xA740; &#xA741;</span> <span title="U+A742">&#xA742; &#xA743;</span> <span title="U+A744">&#xA744; &#xA745;</span> <span title="U+A746">&#xA746; &#xA747;</span> <span title="U+A748">&#xA748; &#xA749;</span> <span title="U+A74A">&#xA74A; &#xA74B;</span> <span title="U+A74C">&#xA74C; &#xA74D;</span> <span title="U+A74E">&#xA74E; &#xA74F;</span> <span title="U+A750">&#xA750; &#xA751;</span> <span title="U+A752">&#xA752; &#xA753;</span> <span title="U+A754">&#xA754; &#xA755;</span> <span title="U+A756">&#xA756; &#xA757;</span> <span title="U+A758">&#xA758; &#xA759;</span> <span title="U+A75A">&#xA75A; &#xA75B;</span> <span title="U+A75C">&#xA75C; &#xA75D;</span> <span title="U+A75E">&#xA75E; &#xA75F;</span> <span title="U+A760">&#xA760; &#xA761;</span> <span title="U+A762">&#xA762; &#xA763;</span> <span title="U+A764">&#xA764; &#xA765;</span> <span title="U+A766">&#xA766; &#xA767;</span> <span title="U+A768">&#xA768; &#xA769;</span> <span title="U+A76A">&#xA76A; &#xA76B;</span> <span title="U+A76C">&#xA76C; &#xA76D;</span> <span title="U+A76E">&#xA76E; &#xA76F;</span> <span title="U+A779">&#xA779; &#xA77A;</span> <span title="U+A77B">&#xA77B; &#xA77C;</span> <span title="U+A77D">&#xA77D; &#x1D79;</span> <span title="U+A77E">&#xA77E; &#xA77F;</span> <span title="U+A780">&#xA780; &#xA781;</span> <span title="U+A782">&#xA782; &#xA783;</span> <span title="U+A784">&#xA784; &#xA785;</span> <span title="U+A786">&#xA786; &#xA787;</span> <span title="U+A78B">&#xA78B; &#xA78C;</span> <span title="U+A78D">&#xA78D; &#x0265;</span> <span title="U+A790">&#xA790; &#xA791;</span> <span title="U+A792">&#xA792; &#xA793;</span> <span title="U+A796">&#xA796; &#xA797;</span> <span title="U+A798">&#xA798; &#xA799;</span> <span title="U+A79A">&#xA79A; &#xA79B;</span> <span title="U+A79C">&#xA79C; &#xA79D;</span> <span title="U+A79E">&#xA79E; &#xA79F;</span> <span title="U+A7A0">&#xA7A0; &#xA7A1;</span> <span title="U+A7A2">&#xA7A2; &#xA7A3;</span> <span title="U+A7A4">&#xA7A4; &#xA7A5;</span> <span title="U+A7A6">&#xA7A6; &#xA7A7;</span> <span title="U+A7A8">&#xA7A8; &#xA7A9;</span> <span title="U+A7AA">&#xA7AA; &#x0266;</span> <span title="U+A7AB">&#xA7AB; &#x025C;</span> <span title="U+A7AC">&#xA7AC; &#x0261;</span> <span title="U+A7AD">&#xA7AD; &#x026C;</span> <span title="U+A7B0">&#xA7B0; &#x029E;</span> <span title="U+A7B1">&#xA7B1; &#x0287;</span></div>
+<!--Notes:
+Characters from this block that do not have case equivalents: &#xA720; &#xA721; &#xA730; &#xA731; &#xA770; &#xA771; &#xA772; &#xA773; &#xA774; &#xA775; &#xA776; &#xA777; &#xA778; &#xA788; &#xA789; &#xA78A; &#xA78E; &#xA794; &#xA795; &#xA7F7; &#xA7F8; &#xA7F9; &#xA7FA; &#xA7FB; &#xA7FC; &#xA7FD; &#xA7FE; &#xA7FF;
+Tip: To identify the characters where differences occur, in order to report problem characters,either mouse over to reveal a tooltip, or copy and paste the sequence into a tool such as <a href='http://r12a.github.io/uniview/' target='_blank'>UniView</a> or the <a href='http://r12a.github.io/apps/conversion/' target='_blank'>Unicode Conversion Tool</a>.
+-->
+</html>

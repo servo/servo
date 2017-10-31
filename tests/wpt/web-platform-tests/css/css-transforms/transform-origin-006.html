@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): transform-origin percentages 4</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <meta name="assert" content='Percentages in transform-origin refer to the
+    size of the element&apos;s border box.  This tests that they don&apos;t
+    refer to the content, padding, or margin box by applying nonzero margin,
+    border, and padding.  (Note: an implementation that resolves percentages
+    relative to the incorrect box might fail this test by only a few pixels, so
+    it&apos;s important to check that the test and reference renderings match
+    exactly.)'>
+    <link rel="match" href="transform-origin-ref-2.html">
+    <style>
+      body > div {
+        width: 190px;
+        height: 90px;
+        padding: 5px;
+        border: 1px solid black;
+        margin: 5px;
+        transform: rotate(45deg);
+        transform-origin: 50% 50%;
+        position: relative;
+        right: 5px;
+      }
+      body > div > div {
+        margin: -5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div>Some text!</div>
+    </div>
+  </body>
+</html>

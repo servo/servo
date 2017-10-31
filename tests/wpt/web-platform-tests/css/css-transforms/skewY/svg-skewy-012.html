@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and more than full circle skewY with angle in degree</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-skewy">
+    <link rel="match" href="reference/svg-skewy-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The skewY transform function must support 'modulo whole circle' for arguments in. The green rect in this test should be skewed vertically 45 degrees to completely cover the red path.">
+    <style type="text/css">
+        svg {
+            width: 250px;
+            height: 250px;
+            background: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <path d="M 1,2 2,99 99,197 99,101 Z" fill="red"/>
+        <rect width="100" height="100" fill="green" transform="skewY(405deg)"/>
+    </svg>
+</body>
+</html>

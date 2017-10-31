@@ -1,0 +1,19 @@
+<csstest def="Attribute value selector with declared namespace" module="W3C Selectors" modulename="css3-modsel" number="98b" rev="1.1" date="12-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+*|p, *|q, *|r, *|s { display : block ; margin-bottom : 1em }
+*|q { background-color : lime ! important }
+*[a|title="foo"] {background-color : red }
+</cssrules>
+
+<code>
+ <p title="foo" xmlns="http://www.w3.org/1999/xhtml">This paragraph should be unstyled.</p>
+ <q a:title="foo" xmlns="http://www.example.org/a">This paragraph should have a green background</q>
+ <s a:title="foobar" xmlns="http://www.example.org/a">This paragraph should be unstyled.</s>
+ <r b:title="foo" xmlns="http://www.example.org/b">This paragraph should be unstyled.</r>
+</code>
+</csstest>

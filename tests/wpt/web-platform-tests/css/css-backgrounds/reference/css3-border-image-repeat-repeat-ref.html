@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSS Border Test:border image repeat property with value repeat</title>
+    <link rel="author" title="yanshasha" href="mailto:yanshasha133@gmail.com" />
+    <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"> <!-- 2013-09-03 -->
+    <style type="text/css">
+            .box {
+                width: 152px;
+                height: 152px;
+                position: relative;
+            }
+            .red {
+                width: 26px;
+                height: 26px;
+                position: absolute;
+            }
+            #red1 {
+                top: 0;
+                left: 0;
+            }
+            #red2 {
+                top: 0;
+                right: 0;
+            }
+            #red3 {
+                bottom: 0;
+                right: 0;
+            }
+            #red4 {
+                bottom: 0;
+                left: 0;
+            }
+            .blue {
+                position: absolute;
+                background-image: url(../support/blue-diamond.png);
+                background-repeat: repeat;
+                background-position: center;
+            }
+            #blue1 {
+                top: 0;
+                left: 26px;
+                width: 100px;
+                height: 26px;
+            }
+            #blue2 {
+                top: 26px;
+                right: 0;
+                width: 26px;
+                height: 100px;
+            }
+            #blue3 {
+                bottom: 0;
+                right: 26px;
+                width: 100px;
+                height: 26px;
+            }
+            #blue4 {
+                bottom: 26px;
+                left: 0;
+                width: 26px;
+                height: 100px;
+            }
+    </style>
+  </head>
+  <body>
+    <p>
+      The test passes if the blue diamond is repeating between the red diamonds.
+    </p>
+    <div class="box">
+      <img src="../support/red-diamond.png" alt="left top red diamond" class="red" id="red1"/>
+      <img src="../support/red-diamond.png" alt="right top red diamond" class="red" id="red2" />
+      <img src="../support/red-diamond.png" alt="right bottom red diamond" class="red" id="red3" />
+      <img src="../support/red-diamond.png" alt="left bottom red diamond" class="red" id="red4" />
+      <img src="../support/blue-diamond.png" alt="top blue diamond" class="blue" id="blue1"/>
+      <img src="../support/blue-diamond.png" alt="right blue diamond" class="blue" id="blue2" />
+      <img src="../support/blue-diamond.png" alt="bottom blue diamond" class="blue" id="blue3" />
+      <img src="../support/blue-diamond.png" alt="left blue diamond" class="blue" id="blue4" />
+      <div class="blue" id="blue1"></div>
+      <div class="blue" id="blue2"></div>
+      <div class="blue" id="blue3"></div>
+      <div class="blue" id="blue4"></div>
+    </div>
+  </body>
+</html>

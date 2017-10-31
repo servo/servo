@@ -1,0 +1,18 @@
+<csstest def="Namespaces and \: in selectors" module="W3C Selectors" modulename="css3-modsel" number="182" rev="1.0" date="2-march-2004" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+p { color: green; }
+foo\:bar { background: red; color: yellow; }
+</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">
+<foo:bar xmlns:foo="http://www.example.org/">
+This text should be green.
+</foo:bar>
+</p>
+</code>
+
+</csstest>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>test shadow property variable substitution</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <!-- This is testing filters functions with var() function -->
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        .testArea {
+            width: 100px;
+            height: 100px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="log"></div>
+    <div class="testArea" id="box-shadow" style="--foo: rgb(0, 128, 0); box-shadow: 1px 1px 1px 1px var(--foo);">box-shadow</div>
+    <div class="testArea" id="text-shadow" style="--foo: rgb(0, 128, 0); text-shadow: 1px 1px 1px var(--foo);">text-shadow</div>
+    <script type="text/javascript">
+        "use strict";
+
+        let templates = [
+            {
+                testName:"box-shadow",
+                expectedValue:"1px 1px 1px 1px rgb(0,128,0)",
+            },
+            {
+                testName:"text-shadow",
+                expectedValue:"1px 1px 1px rgb(0,128,0)",
+            },
+        ];
+
+        templates.forEach(function (template) {
+            test( function () {
+                let target = document.getElementById(template.testName);
+                let computedStyle = window.getComputedStyle(target);
+                let value = computedStyle.getPropertyValue(template.testName);
+                assert_equals(value, template.expectedValue, "Expected Value should match actual value");
+            }, template.testName);
+        });
+    </script>
+</body>
+</html>

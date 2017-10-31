@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+		.flow {
+			color: blue;
+			overflow: hidden;
+		}
+		.float {
+			float: left;
+			color: green;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a green square and a horizontal blue rectangle side by side;
+			they should have the top edges aligned and be flush to one another.<br>
+			You should see no red.
+		</p>
+
+		<div class="region">
+			<article>
+				<div class="flow">
+					<div class="float">
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx
+					</div>
+					xxxxx<br>
+					xxxxx
+				</div>
+				xxxxx<br>
+				xxxxx
+			</article>
+		</div>
+	</body>
+</html>

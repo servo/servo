@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <style>
+      input {
+        margin: 10px;
+        position: relative;
+      }
+      p + input + input {
+        left: -10px;
+      }
+      p + input + input + input {
+        left: 10px;
+      }
+      p + input + input + input + input {
+        top: -10px;
+      }
+      p + input + input + input + input + input {
+        top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>type=datetime</p>
+    <input value="2012-02-01 17:28Z" type="datetime">
+    <input value="2012-02-01 17:28Z" type="datetime">
+    <input value="2012-02-01 17:28Z" type="datetime">
+    <input value="2012-02-01 17:28Z" type="datetime">
+    <input value="2012-02-01 17:28Z" type="datetime">
+  </body>
+</html>

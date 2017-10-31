@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Full-width Latin, lowercase</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('../../fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 200%; line-height: 2.5em; font-family: 'Doulos SIL', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+FF21">&#xFF41; &#xFF41;</span> <span title="U+FF22">&#xFF42; &#xFF42;</span> <span title="U+FF23">&#xFF43; &#xFF43;</span> <span title="U+FF24">&#xFF44; &#xFF44;</span> <span title="U+FF25">&#xFF45; &#xFF45;</span> <span title="U+FF26">&#xFF46; &#xFF46;</span> <span title="U+FF27">&#xFF47; &#xFF47;</span> <span title="U+FF28">&#xFF48; &#xFF48;</span> <span title="U+FF29">&#xFF49; &#xFF49;</span> <span title="U+FF2A">&#xFF4A; &#xFF4A;</span> <span title="U+FF2B">&#xFF4B; &#xFF4B;</span> <span title="U+FF2C">&#xFF4C; &#xFF4C;</span> <span title="U+FF2D">&#xFF4D; &#xFF4D;</span> <span title="U+FF2E">&#xFF4E; &#xFF4E;</span> <span title="U+FF2F">&#xFF4F; &#xFF4F;</span> <span title="U+FF30">&#xFF50; &#xFF50;</span> <span title="U+FF31">&#xFF51; &#xFF51;</span> <span title="U+FF32">&#xFF52; &#xFF52;</span> <span title="U+FF33">&#xFF53; &#xFF53;</span> <span title="U+FF34">&#xFF54; &#xFF54;</span> <span title="U+FF35">&#xFF55; &#xFF55;</span> <span title="U+FF36">&#xFF56; &#xFF56;</span> <span title="U+FF37">&#xFF57; &#xFF57;</span> <span title="U+FF38">&#xFF58; &#xFF58;</span> <span title="U+FF39">&#xFF59; &#xFF59;</span> <span title="U+FF3A">&#xFF5A; &#xFF5A;</span></div>
+<!--Notes:
+Characters from this block that do not have case equivalents: &#x0138; &#x0149;
+Tip: To identify the characters where differences occur, in order to report problem characters,either mouse over to reveal a tooltip, or copy and paste the sequence into a tool such as <a href='http://r12a.github.io/uniview/' target='_blank'>UniView</a> or the <a href='http://r12a.github.io/apps/conversion/' target='_blank'>Unicode Conversion Tool</a>.
+-->
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Google Inc." href="http://www.google.com/">
+<style>
+
+#circles, #circles div {
+    border: 1em solid blue;
+    border-radius:50%;
+    margin: auto;
+}
+
+#circles { width:9em; height:9em; }
+
+</style>
+</head>
+<body>
+<p>These tests are from the spec: <a href="http://dev.w3.org/csswg/css3-flexbox/#auto-margins">http://dev.w3.org/csswg/css3-flexbox/#auto-margins</a>.</p>
+
+<p>The word OK should be centered vertically and horizontally.</p>
+<div style="width: 4em; height: 4em; background: silver">
+  <table style="width: 100%; height: 100%;"><tr><td style="text-align: center">OK</td></tr></table>
+</div>
+
+<div style="width: 4em; height: 4em; margin-top: 10px; background: silver; writing-mode: vertical-rl">
+  <table style="width: 100%; height: 100%;"><tr><td style="text-align: center">OK</td></tr></table>
+</div>
+
+<p>You should see 3 blue concentric circles.</p>
+<div id="circles">
+  <div style="width: 5em; height: 5em; margin-top: 1em;">
+    <div style="width: 1em; height: 1em; margin-top: 1em;"></div>
+  </div>
+</div>
+
+<p>The computed style of each margin should not be 0.<br>OK: PASS<br>Vertical OK: PASS</p>
+</body>
+</html>

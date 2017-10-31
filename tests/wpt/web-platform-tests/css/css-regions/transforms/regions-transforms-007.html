@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions: Transforms on both the named flow content and the region</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="reviewer author" title="Mihai Balan" href="mailto:mibalan@adobe.com"> <!-- 2013-07-24 -->
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+        <meta name="flags" content="ahem">
+        <meta name="assert" content="Test checks that if both the content flowed in a region and the region have a
+                                     transform applied, they are properly composed. More specifically, in this test
+                                     the content should appear as rotated 180 degrees.">
+        <link rel="match" href="reference/regions-transforms-001-ref.html">
+        <style>
+        .ahem {
+            font-family: Ahem;
+            font-size: 20px;
+            line-height: 20px;
+        }
+        #named-flow {
+            flow-into: f;
+            transform: rotate(90deg);
+            width: 100px;
+            height: 100px;
+            color: red;
+            background-color: green;
+        }
+        #region {
+            flow-from: f;
+            transform: rotate(90deg);
+            width: 100px;
+            height: 100px;
+        }
+        #green-rect {
+            position: absolute;
+            width: 100px;
+            height: 20px;
+            background-color: green;
+            top: 130px;
+            left: 8px;
+        }
+        </style>
+    </head>
+    <body>
+        <p>The test passes if you see a green square and no red.</p>
+        <div id="named-flow" class="ahem">XXXXX</div>
+        <div id="region"></div>
+        <div id="green-rect"></div>
+    </body>
+</html>

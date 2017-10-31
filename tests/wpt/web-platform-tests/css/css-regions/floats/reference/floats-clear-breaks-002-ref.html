@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+
+		.float {
+			float: left;
+			color: blue;
+		}
+
+		.bordered {
+			border: 10px solid black;
+		}
+
+		.region {
+			overflow: hidden;
+			max-width: 100px;
+			margin-bottom: 10px;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares separated by a small vertical space. The squares should
+			have a black outline, the top square should be blue and the bottom one should be green.<br>
+			You should see no red.
+		</p>
+
+		<div class="bordered region">
+			<article>
+				<div class="float">
+					xxxxx
+					xxxxx
+					xxxxx
+					xxxxx
+					xxxxx
+				</div>
+			</article>
+		</div>
+		<div class="bordered region">
+			<article>
+				<div>
+					xxxxx
+					xxxxx
+					xxxxx
+					xxxxx
+					xxxxx
+				</div>
+			</article>
+		</div>
+	</body>
+</html>

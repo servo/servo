@@ -492,5 +492,19 @@ promise_test(t => {
           assert_equals(response_text, 'it\'s me the blob and more blob!');
         });
   }, 'FetchEvent#body is a blob');
+
+promise_test(async (t) => {
+    const scope = 'resources/simple.html?keepalive';
+
+    const reg = await service_worker_unregister_and_register(t, worker, scope);
+    await wait_for_state(t, reg.installing, 'activated');
+    const frame = await with_iframe(scope);
+    assert_equals(frame.contentDocument.body.textContent, 'false');
+    const response = await frame.contentWindow.fetch(scope, {keepalive: true});
+    const text = await response.text();
+    assert_equals(text, 'true');
+    frame.remove();
+    await service_worker_unregister_and_done(t, scope);
+  }, 'Service Worker responds to fetch event with the correct keepalive value');
 </script>
 </body>

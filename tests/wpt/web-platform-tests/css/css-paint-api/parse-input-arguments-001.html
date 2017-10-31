@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="parse-input-arguments-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+var testsPassed = false;
+try {
+    registerPaint('foo', class {
+        static get inputArguments() {
+            throw Error('failed!');
+        }
+    });
+} catch(ex) {
+    if (ex.name == 'Error' && ex.message == 'failed!')
+        testsPassed = true;
+}
+
+registerPaint('geometry', class {
+    paint(ctx, geom) {
+        if (testsPassed)
+            ctx.strokeStyle = 'green';
+        else
+            ctx.strokeStyle = 'red';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

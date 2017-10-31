@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: Paragraph element with mix-blend-mode over parent with background image.</title>
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that test a paragraph element blends with the parent element having background image.">
+        <meta name="flags" content="svg">
+        <link rel="reviewer" title="Rik Cabanier" href="mailto:cabanier@adobe.com">
+        <link rel="reviewer" title="Mirela Budaes" href="mailto:mbudaes@adobe.com">
+        <link rel="match" href="reference/mix-blend-mode-paragraph-background-image-ref.html">
+        <style type="text/css">
+            div {
+                width: 100px;
+                height: 100px;
+                background-image: url('support/yellow_square.svg');
+            }
+
+            #blender {
+                mix-blend-mode: difference;
+                color: #F00;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the paragraph text is drawn with green.</p>
+        <div>
+            <p id="blender">This should be drawn with green.</p>
+        </div>
+    </body>
+</html>

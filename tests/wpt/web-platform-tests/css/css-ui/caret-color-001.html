@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: caret-color</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#caret-color">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that caret-color can be set on a textarea">
+<style>
+  textarea {
+    font-size: 3em;
+    font-weight: bold;
+    width: 10em;
+    padding: 10px;
+    background: black; color: white; /* the color of a thin object like the caret is easier to see on a black background. */
+
+    caret-color: lime;
+  }
+</style>
+<body>
+  <p>Test passes if, when the text area below is focused for editing, the text insertion caret is green.</p>
+  <p>The shape of the caret, and whether it flashes, are not part of the test.</p>
+  <textarea id="test"></textarea>
+  <script>
+    window.onload = function() {
+      document.getElementById("test").focus();
+    }
+  </script>
+</body>

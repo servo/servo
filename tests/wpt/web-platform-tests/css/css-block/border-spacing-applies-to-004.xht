@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing and 'display: run-in' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Border-spacing does not apply to 'display: run-in' elements." />
+        <style type="text/css">
+            div
+            {
+                border: 10px solid black;
+                border-spacing: 20px;
+                display: run-in;
+                height: 100px;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two boxes below are adjoining.</p>
+        <div></div>
+        <div></div>
+    </body>
+</html>

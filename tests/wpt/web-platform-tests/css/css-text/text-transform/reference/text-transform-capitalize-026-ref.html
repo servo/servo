@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: capitalize, Enclosed Alphanumerics</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('../../fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 200%; line-height: 2.5em; font-family: webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">The text is arranged in pairs of three-letter 'words'. Test passes if there are NO uppercase letters.<br>
+If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+24D0">&#x24D0;&#x24D0;&#x24D0;</span> <span title="U+24D1">&#x24D1;&#x24D1;&#x24D1;</span> <span title="U+24D2">&#x24D2;&#x24D2;&#x24D2;</span> <span title="U+24D3">&#x24D3;&#x24D3;&#x24D3;</span> <span title="U+24D4">&#x24D4;&#x24D4;&#x24D4;</span> <span title="U+24D5">&#x24D5;&#x24D5;&#x24D5;</span> <span title="U+24D6">&#x24D6;&#x24D6;&#x24D6;</span> <span title="U+24D7">&#x24D7;&#x24D7;&#x24D7;</span> <span title="U+24D8">&#x24D8;&#x24D8;&#x24D8;</span> <span title="U+24D9">&#x24D9;&#x24D9;&#x24D9;</span> <span title="U+24DA">&#x24DA;&#x24DA;&#x24DA;</span> <span title="U+24DB">&#x24DB;&#x24DB;&#x24DB;</span> <span title="U+24DC">&#x24DC;&#x24DC;&#x24DC;</span> <span title="U+24DD">&#x24DD;&#x24DD;&#x24DD;</span> <span title="U+24DE">&#x24DE;&#x24DE;&#x24DE;</span> <span title="U+24DF">&#x24DF;&#x24DF;&#x24DF;</span> <span title="U+24E0">&#x24E0;&#x24E0;&#x24E0;</span> <span title="U+24E1">&#x24E1;&#x24E1;&#x24E1;</span> <span title="U+24E2">&#x24E2;&#x24E2;&#x24E2;</span> <span title="U+24E3">&#x24E3;&#x24E3;&#x24E3;</span> <span title="U+24E4">&#x24E4;&#x24E4;&#x24E4;</span> <span title="U+24E5">&#x24E5;&#x24E5;&#x24E5;</span> <span title="U+24E6">&#x24E6;&#x24E6;&#x24E6;</span> <span title="U+24E7">&#x24E7;&#x24E7;&#x24E7;</span> <span title="U+24E8">&#x24E8;&#x24E8;&#x24E8;</span> <span title="U+24E9">&#x24E9;&#x24E9;&#x24E9;</span></div>
+<!--Notes:
+Tip: To identify the characters where differences occur, in order to report problem characters,either mouse over to reveal a tooltip, or copy and paste the sequence into a tool such as <a href='http://r12a.github.io/uniview/' target='_blank'>UniView</a> or the <a href='http://r12a.github.io/apps/conversion/' target='_blank'>Unicode Conversion Tool</a>.
+The reason titlecase is not applied is that these characters have the general property So, and are therefore not included in the definition of typographic letter unit.
+-->
+</body>
+</html>

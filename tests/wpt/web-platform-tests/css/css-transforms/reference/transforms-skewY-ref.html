@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Transforms Test: transform property with skew function for Y axis.</title>
+    <link rel="author" title="Jacy-Bai" href="mailto:jinxin.bai@gmail.com">
+    <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"> <!-- 2013-09-03 -->
+    <style type="text/css">
+      .triangle-bottomleft {
+        position: absolute;
+        top: 50px;
+        left: 100px;
+        width: 0;
+        height: 0;
+        border-bottom: 100px solid green;
+        border-right: 100px solid transparent;
+      }
+      .triangle-topright {
+        position: absolute;
+        top: 150px;
+        left: 100px;
+        width: 0;
+        height: 0;
+        border-top: 100px solid green;
+        border-left: 100px solid transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <p>The test passes if there is a green parallelogram and no red.</p>
+    <div class="triangle-topright"></div>
+    <div class="triangle-bottomleft"></div>
+  </body>
+</html>

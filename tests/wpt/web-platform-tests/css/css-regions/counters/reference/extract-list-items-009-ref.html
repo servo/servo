@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		.container {
+			color: #006400;
+			background-color: lightgreen;
+			margin: 2em;
+
+		}
+		.region {
+			margin: 2em;
+			background-color: lightblue;
+			color: blue;
+		}
+		.region > ul,
+		.region > ol {
+			padding: 0;
+			margin: 0;
+		}
+		.disc {
+			list-style-type: disc;
+		}
+		.decimal {
+			list-style-type: decimal;
+		}
+		.latin {
+			list-style-type: upper-latin;
+		}
+		.hide {
+			visibility: hidden;
+			height: 0;
+		}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if you see two rectangles, one green and one blue, as described below:<br>
+		The green rectangle should contain three lists, separated by a small vertical space. The <strong>first list</strong> should be a numbered list starting at 3, with only one item. The <strong>second list</strong> should be a bulleted list with three items. The <strong>third list</strong> should be a numbered list with two items, numbered A and C respectively.<br>
+		The blue rectangle should contain a list with items numbered/marked in a different ways, as follows. As opposed to the green rectangle, the numbers/markings for the list items in the blue rectangle should be outside the rectangle. The <strong>first and second items</strong> should be numbered with 1 and 2 (decimal). The <strong>third and fourth items</strong> should be bulleted. The <strong>fifth and sixth items</strong> should be numbered with B and D respectively.</p>
+		<div class="container">
+			<ol class="decimal" start="3">
+				<li>First numbered list, item 3</li>
+			</ol>
+			<ul class="disc">
+				<li>Bullet list, item 1</li>
+				<li>Bullet list, item 3</li>
+				<li>Bullet list, item 5</li>
+			</ul>
+			<ol class="latin" start="1">
+				<li>Second numbered list, item A</li>
+				<li class="hide"></li>
+				<li>Second numbered list, item C</li>
+			</ol>
+		</div>
+		<div class="region" id="r1">
+			<ol class="decimal">
+				<li id="theItem">First numbered list, item 1</li>
+				<li class="extract">First numbered list, item 2</li>
+			</ol>
+			<ul class="disc">
+				<li class="extract">Bullet list, item 2</li>
+				<li class="extract">Bullet list, item 4</li>
+			</ul>
+			<ol class="latin" start="2">
+				<li class="extract">Second numbered list, item B</li>
+				<li class="hide"></li>
+				<li class="extract">Second numbered list, item D</li>
+			</ol>
+		</div>
+	</body>
+</html>

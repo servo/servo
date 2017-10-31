@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: grid container justify-items is used for grid item regardless of intermediate display: contents ancestors</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecobos@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="help" href="https://drafts.csswg.org/css-align/#justify-items-property">
+<link rel="match" href="display-contents-alignment-002-ref.html">
+<style>
+  .container {
+    display: grid;
+    width: 300px;
+    height: 300px;
+    justify-items: center;
+    border: 2px solid purple;
+  }
+  .contents {
+    display: contents;
+    justify-items: start;
+  }
+  .contents > div {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    justify-self: auto;
+  }
+</style>
+<p>Test passes if there's a blue square horizontally centered inside the box.</p>
+<div class="container">
+  <div class="contents">
+    <div></div>
+  </div>
+</div>
