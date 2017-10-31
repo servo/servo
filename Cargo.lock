@@ -798,63 +798,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "encoding"
-version = "0.2.33"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "encoding-index-japanese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-korean 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-simpchinese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-singlebyte 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-tradchinese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "encoding-index-japanese"
-version = "1.20141219.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "encoding_index_tests 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "encoding-index-korean"
-version = "1.20141219.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "encoding_index_tests 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "encoding-index-simpchinese"
-version = "1.20141219.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "encoding_index_tests 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "encoding-index-singlebyte"
-version = "1.20141219.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "encoding_index_tests 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "encoding-index-tradchinese"
-version = "1.20141219.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "encoding_index_tests 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "encoding_index_tests"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "encoding_rs"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2617,7 +2560,6 @@ dependencies = [
  "devtools_traits 0.0.1",
  "dom_struct 0.0.1",
  "domobject_derive 0.0.1",
- "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3862,13 +3804,6 @@ dependencies = [
 "checksum dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "07c4c7cc7b396419bc0a4d90371d0cee16cb5053b53647d287c0b728000c41fe"
 "checksum dwrote 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "36e3b27cd0b8a68e00f07e8d8e1e4f4d8a6b8b873290a734f63bd56d792d23e1"
 "checksum either 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "18785c1ba806c258137c937e44ada9ee7e69a37e3c72077542cd2f069d78562a"
-"checksum encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "6b0d943856b990d12d3b55b359144ff341533e516d94098b1d3fc1ac666d36ec"
-"checksum encoding-index-japanese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "04e8b2ff42e9a05335dbf8b5c6f7567e5591d0d916ccef4e0b1710d32a0d0c91"
-"checksum encoding-index-korean 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4dc33fb8e6bcba213fe2f14275f0963fd16f0a02c878e3095ecfdf5bee529d81"
-"checksum encoding-index-simpchinese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "d87a7194909b9118fc707194baa434a4e3b0fb6a5a757c73c3adb07aa25031f7"
-"checksum encoding-index-singlebyte 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "3351d5acffb224af9ca265f435b859c7c01537c0849754d3db3fdf2bfe2ae84a"
-"checksum encoding-index-tradchinese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "fd0e20d5688ce3cab59eb3ef3a2083a5c77bf496cb798dc6fcdb75f323890c18"
-"checksum encoding_index_tests 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "a246d82be1c9d791c5dfde9a2bd045fc3cbba3fa2b11ad558f27d01712f00569"
 "checksum encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f5215aabf22b83153be3ee44dfe3f940214541b2ce13d419c55e7a115c8c51a9"
 "checksum energy-monitor 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fe872d0664f1cc60db36349af245d892ee67d3c8f78055df0ebc43271fd4e05c"
 "checksum energymon 0.3.0 (git+https://github.com/energymon/energymon-rust.git)" = "<none>"

@@ -10,21 +10,20 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecoderTrap, EncodingRef};
+use encoding_rs::Encoding;
 use js::jsapi::{JSContext, JSObject};
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 
 #[dom_struct]
 pub struct TextDecoder {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Defined in rust-encoding"]
-    encoding: EncodingRef,
+    encoding: &'static Encoding,
     fatal: bool,
 }
 
 impl TextDecoder {
-    fn new_inherited(encoding: EncodingRef, fatal: bool) -> TextDecoder {
+    fn new_inherited(encoding: &'static Encoding, fatal: bool) -> TextDecoder {
         TextDecoder {
             reflector_: Reflector::new(),
             encoding: encoding,
@@ -36,7 +35,7 @@ impl TextDecoder {
         Err(Error::Range("The given encoding is not supported.".to_owned()))
     }
 
-    pub fn new(global: &GlobalScope, encoding: EncodingRef, fatal: bool) -> DomRoot<TextDecoder> {
+    pub fn new(global: &GlobalScope, encoding: &'static Encoding, fatal: bool) -> DomRoot<TextDecoder> {
         reflect_dom_object(Box::new(TextDecoder::new_inherited(encoding, fatal)),
                            global,
                            TextDecoderBinding::Wrap)
@@ -47,18 +46,9 @@ impl TextDecoder {
                        label: DOMString,
                        options: &TextDecoderBinding::TextDecoderOptions)
                             -> Fallible<DomRoot<TextDecoder>> {
-        let encoding = match encoding_from_whatwg_label(&label) {
+        let encoding = match Encoding::for_label_no_replacement(label.as_bytes()) {
             None => return TextDecoder::make_range_error(),
             Some(enc) => enc
-        };
-        // The rust-encoding crate has WHATWG compatibility, so we are
-        // guaranteed to have a whatwg_name because we successfully got
-        // the encoding from encoding_from_whatwg_label.
-        // Use match + panic! instead of unwrap for better error message
-        match encoding.whatwg_name() {
-            None => panic!("Label {} fits valid encoding without valid name", label),
-            Some("replacement") => return TextDecoder::make_range_error(),
-            _ => ()
         };
         Ok(TextDecoder::new(global, encoding, options.fatal))
     }
@@ -68,7 +58,7 @@ impl TextDecoder {
 impl TextDecoderMethods for TextDecoder {
     // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
     fn Encoding(&self) -> DOMString {
-        DOMString::from(self.encoding.whatwg_name().unwrap())
+        DOMString::from(self.encoding.name().to_ascii_lowercase())
     }
 
     // https://encoding.spec.whatwg.org/#dom-textdecoder-fatal
@@ -93,15 +83,15 @@ impl TextDecoderMethods for TextDecoder {
             }
         };
 
-        let trap = if self.fatal {
-            DecoderTrap::Strict
+        let s = if self.fatal {
+            match self.encoding.decode_without_bom_handling_and_without_replacement(data.as_slice()) {
+                Some(s) => s,
+                None => return Err(Error::Type("Decoding failed".to_owned())),
+            }
         } else {
-            DecoderTrap::Replace
+            let (s, _has_errors) = self.encoding.decode_without_bom_handling(data.as_slice());
+            s
         };
-
-        match self.encoding.decode(data.as_slice(), trap) {
-            Ok(s) => Ok(USVString(s)),
-            Err(_) => Err(Error::Type("Decoding failed".to_owned())),
-        }
+        Ok(USVString(s.into_owned()))
     }
 }
