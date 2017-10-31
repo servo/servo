@@ -23,7 +23,7 @@ from mach.registrar import Registrar
 import toml
 
 from servo.packages import WINDOWS_MSVC as msvc_deps
-from servo.util import host_triple, host_platform
+from servo.util import host_triple
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
@@ -261,9 +261,13 @@ class CommandBase(object):
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         # https://github.com/rust-lang/rust/pull/39754
-        platforms_with_rustc_alt_builds = ["unknown-linux-gnu", "apple-darwin", "pc-windows-msvc"]
+        triples_with_rustc_alt_builds = [
+            "x86_64-unknown-linux-gnu",
+            "x86_64-apple-darwin",
+            "x86_64-pc-windows-msvc",
+        ]
         llvm_assertions_default = ("SERVO_RUSTC_LLVM_ASSERTIONS" in os.environ
-                                   or host_platform() not in platforms_with_rustc_alt_builds)
+                                   or host_triple() not in triples_with_rustc_alt_builds)
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
