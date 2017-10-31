@@ -2247,16 +2247,28 @@ impl Animate for ComputedTransform {
     #[inline]
     fn animate(
         &self,
-        other: &Self,
+        other_: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        if self.0.is_empty() && other.0.is_empty() {
+
+        let animate_equal_lists = |this: &[ComputedTransformOperation],
+                                   other: &[ComputedTransformOperation]|
+                                   -> Result<ComputedTransform, ()> {
+            Ok(Transform(this.iter().zip(other)
+                             .map(|(this, other)| this.animate(other, procedure))
+                             .collect::<Result<Vec<_>, _>>()?))
+            // If we can't animate for a pair of matched transform lists
+            // this means we have at least one undecomposable matrix,
+            // so we should bubble out Err here, and let the caller do
+            // the fallback procedure.
+        };
+        if self.0.is_empty() && other_.0.is_empty() {
             return Ok(Transform(vec![]));
         }
 
 
         let this = &self.0;
-        let other = &other.0;
+        let other = &other_.0;
 
         if procedure == Procedure::Add {
             let result = this.iter().chain(other).cloned().collect::<Vec<_>>();
@@ -2272,36 +2284,43 @@ impl Animate for ComputedTransform {
                 });
 
                 if is_matched_transforms {
-                    let result = this.iter().zip(other).map(|(this, other)| {
-                        this.animate(other, procedure)
-                    }).collect::<Result<Vec<_>, _>>();
-                    if let Ok(list) = result {
-                        return Ok(Transform(list));
-                    }
-
-                    // Can't animate for a pair of matched transform lists?
-                    // This means we have at least one undecomposable matrix,
-                    // so we should report Err here, and let the caller do
-                    // the fallback procedure.
-                    return Err(());
+                    return animate_equal_lists(this, other);
                 }
             }
         }
 
         // For mismatched transform lists.
+        let mut owned_this = this.clone();
+        let mut owned_other = other.clone();
+
+        if this.is_empty() {
+            let this = other_.to_animated_zero()?.0;
+            if this.iter().zip(other).all(|(this, other)| is_matched_operation(this, other)) {
+                return animate_equal_lists(&this, other)
+            }
+            owned_this = this;
+        }
+        if other.is_empty() {
+            let other = self.to_animated_zero()?.0;
+            if this.iter().zip(&other).all(|(this, other)| is_matched_operation(this, other)) {
+                return animate_equal_lists(this, &other)
+            }
+            owned_other = other;
+        }
+
         match procedure {
             Procedure::Add => Err(()),
             Procedure::Interpolate { progress } => {
                 Ok(Transform(vec![TransformOperation::InterpolateMatrix {
-                    from_list: Transform(this.clone()),
-                    to_list: Transform(other.clone()),
+                    from_list: Transform(owned_this),
+                    to_list: Transform(owned_other),
                     progress: Percentage(progress as f32),
                 }]))
             },
             Procedure::Accumulate { count } => {
                 Ok(Transform(vec![TransformOperation::AccumulateMatrix {
-                    from_list: Transform(this.clone()),
-                    to_list: Transform(other.clone()),
+                    from_list: Transform(owned_this),
+                    to_list: Transform(owned_other),
                     count: cmp::min(count, i32::max_value() as u64) as i32,
                 }]))
             },
