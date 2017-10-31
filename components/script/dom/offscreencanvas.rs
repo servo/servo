@@ -70,16 +70,13 @@ pub trait LayoutOffscreenCanvasHelpers {
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-width
      fn Width(&self) -> u64 {
          let width: u64 = 300;
     	  width
      }
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn SetHeight(&self, height : u64) -> (){
 
     }
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn SetWidth(&self, width : u64) -> () {
 
     }
