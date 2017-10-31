@@ -63,6 +63,22 @@ impl Matrix3D {
             m41: 0., m42: 0., m43: 0., m44: 1.0
         }
     }
+
+    /// Convert to a 2D Matrix
+    pub fn into_2d(self) -> Result<Matrix, ()> {
+        if self.m13 == 0. && self.m23 == 0. &&
+           self.m31 == 0. && self.m32 == 0. &&
+           self.m33 == 1. && self.m34 == 0. &&
+           self.m14 == 0. && self.m24 == 0. &&
+           self.m43 == 0. && self.m44 == 1. {
+            Ok(Matrix {
+                a: self.m11, c: self.m21, e: self.m41,
+                b: self.m12, d: self.m22, f: self.m42,
+            })
+        } else {
+            Err(())
+        }
+    }
 }
 
 impl PrefixedMatrix3D {
@@ -84,10 +100,21 @@ impl Matrix {
     /// Get an identity matrix
     pub fn identity() -> Self {
         Self {
-            a: 1., c: 0., /* 0 */e: 0.,
-            b: 0., d: 1., /* 0 */f: 0.,
+            a: 1., c: 0., /* 0      0*/
+            b: 0., d: 1., /* 0      0*/
             /* 0      0      1      0 */
-            /* 0      0      0      1 */
+            e: 0., f: 0., /* 0      1 */
+        }
+    }
+}
+
+impl From<Matrix> for Matrix3D {
+    fn from(m: Matrix) -> Self {
+        Self {
+            m11: m.a, m12: m.b, m13: 0.0, m14: 0.0,
+            m21: m.c, m22: m.d, m23: 0.0, m24: 0.0,
+            m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
+            m41: m.e, m42: m.f, m43: 0.0, m44: 1.0
         }
     }
 }
@@ -97,10 +124,10 @@ impl PrefixedMatrix {
     /// Get an identity matrix
     pub fn identity() -> Self {
         Self {
-            a: 1., c: 0., /* 0 */e: Either::First(0.),
-            b: 0., d: 1., /* 0 */f: Either::First(0.),
-            /* 0      0      1      0 */
-            /* 0      0      0      1 */
+            a: 1.,                    c: 0., /*            0      0 */
+            b: 0.,                    d: 1., /*            0      0 */
+            /* 0                      0                    1      0 */
+            e: Either::First(0.), f: Either::First(0.), /* 0      1 */
         }
     }
 }
@@ -240,10 +267,7 @@ impl ToAnimatedZero for TransformOperation {
             GenericTransformOperation::Scale3D(..) => {
                 Ok(GenericTransformOperation::Scale3D(1.0, 1.0, 1.0))
             },
-            GenericTransformOperation::Scale(_, None) => {
-                Ok(GenericTransformOperation::Scale(1.0, None))
-            },
-            GenericTransformOperation::Scale(_, Some(_)) => {
+            GenericTransformOperation::Scale(_, _) => {
                 Ok(GenericTransformOperation::Scale(1.0, Some(1.0)))
             },
             GenericTransformOperation::ScaleX(..) => {
