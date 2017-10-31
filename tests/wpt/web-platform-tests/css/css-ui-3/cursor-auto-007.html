@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor:auto on unselectable text</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#content-selection">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="The 'auto' cursor value does the same as 'default' over unselectable text.">
+<style>
+#test {
+  border: solid blue;
+  width: 200px;
+  cursor: auto;
+}
+#test * {
+  cursor: url("support/cursors/fail.png"), help !important; /* Override UA styles, regardless of specificity */
+  cursor: auto !important; /* Override UA styles, regardless of specificity */
+}
+#ref {
+  width: 100px;
+  height: 100px;
+  cursor: default;
+  border: solid orange;
+}
+:root {
+  cursor: help; /* give the root element a different cursor so that
+  it is easy to tell if something changes when hovering the target.*/
+}
+
+/* Hide the text if we cannot make it unselectable.
+ user-select is not part of css-ui level 3, so we should not depend on it
+ but it is nice to test it if it is supported.
+ Test for level 4 can take the conditional out. */
+.unselectable { display: none; }
+@supports (user-select: none) or (-webkit-user-select: none) {
+  .unselectable {
+    display: block;
+    user-select: none;
+    -webkit-user-select: none; /* Yes, vendor prefixes are ugly. But this one was grandfathered in and support is required by spec. */
+  }
+}
+
+</style>
+<body>
+  <p>The test passes if, when moved over every element inside the blue box, the cursor remains the platform-dependent default cursor.</p>
+  <p>Place the cursor into the orange box for a reference of what this should look like.</p>
+  <div id=test>
+    <!-- text in a button is either not considered text because it's in a replaced element,
+      or it is text but it is unselectable, eitherway, we should get the default cursor-->
+    <button>Text in a button</button>
+
+    <div class=unselectable>Unselectable text</div>
+  </div>
+  <div id=ref></div>
+</body>

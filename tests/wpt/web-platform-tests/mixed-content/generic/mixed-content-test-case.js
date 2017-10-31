@@ -88,8 +88,8 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
     "script-tag": "text/javascript",
     "worker-request": "application/javascript",
     "xhr-request": "application/json",
-    "audio-tag": "audio/mpeg",
-    "video-tag": "video/mp4",
+    "audio-tag": "audio/wav",
+    "video-tag": "video/ogg",
     "picture-tag": "image/png",
     "object-tag": "text/html",
     "link-css-tag": "text/css",
@@ -119,12 +119,12 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
                              contentType[scenario.subresource];
 
     xhrRequest(announceResourceRequestUrl)
-      .then(function(response) {
+      .then(mixed_content_test.step_func(_ => {
         // Send out the real resource request.
         // This should tear down the key if it's not blocked.
         return resourceMap[scenario.subresource](resourceRequestUrl);
-      })
-      .then(function() {
+      }))
+      .then(mixed_content_test.step_func(_ => {
         mixed_content_test.step(function() {
           assert_equals("allowed", scenario.expectation,
                         "The triggered event should match '" +
@@ -133,7 +133,8 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
 
         // Send request to check if the key has been torn down.
         return xhrRequest(assertResourceRequestUrl);
-      }, function(error) {
+      }))
+      .catch(mixed_content_test.step_func(e => {
         mixed_content_test.step(function() {
           assert_equals("blocked", scenario.expectation,
                         "The triggered event should match '" +
@@ -145,19 +146,15 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
 
         // When requestResource fails, we also check the key state.
         return xhrRequest(assertResourceRequestUrl);
-      })
-      .then(function(response) {
+      }))
+      .then(mixed_content_test.step_func_done(response => {
          // Now check if the value has been torn down. If it's still there,
          // we have blocked the request to mixed-content.
-         mixed_content_test.step(function() {
-           assert_equals(response.status, scenario.expectation,
-                  "The resource request should be '" + scenario.expectation +
-                  "'.");
-         }, "Check if request was sent.");
-         mixed_content_test.done();
-      });
+         assert_equals(response.status, scenario.expectation,
+           "The resource request should be '" + scenario.expectation + "'.");
+      }));
 
   }  // runTest
 
-  return {start: runTest};
+  return {start: mixed_content_test.step_func(runTest) };
 }  // MixedContentTestCase

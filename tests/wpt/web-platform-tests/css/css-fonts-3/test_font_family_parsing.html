@@ -133,20 +133,17 @@ var testFontFamilyLists = [
   { namelist: "normal simple", single: true },
   { namelist: "caption", single: true }, // these are keywords for the 'font' property but only when in the first position
   { namelist: "icon", single: true },
-  { namelist: "menu", single: true }
+  { namelist: "menu", single: true },
 
+  /* Unset */
+  { namelist: "unset", invalid: true, fontonly: true, single: true },
+  { namelist: "unset, simple", invalid: true },
+  { namelist: "simple, unset", invalid: true },
+  { namelist: "simple, unset bongo" },
+  { namelist: "simple, bongo unset" },
+  { namelist: "simple unset", single: true },
+  { namelist: "unset simple", single: true },
 ];
-
-if (SpecialPowers.getBoolPref("layout.css.unset-value.enabled")) {
-  testFontFamilyLists.push(
-    { namelist: "unset", invalid: true, fontonly: true, single: true },
-    { namelist: "unset, simple", invalid: true },
-    { namelist: "simple, unset", invalid: true },
-    { namelist: "simple, unset bongo" },
-    { namelist: "simple, bongo unset" },
-    { namelist: "simple unset", single: true },
-    { namelist: "unset simple", single: true });
-}
 
 var gTest = 0;
 

@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Window.open should not open javascript url if not allowed.</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc';">
     <script nonce='abc' src='/resources/testharness.js'></script>
     <script nonce='abc' src='/resources/testharnessreport.js'></script>
 </head>
@@ -15,8 +16,5 @@
 
     window.open('javascript:test(function() { assert_unreached("FAIL")});', 'new');
   </script>
-
-  <script nonce='abc' async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27nonce-abc%27'></script>
-
 </body>
 </html>

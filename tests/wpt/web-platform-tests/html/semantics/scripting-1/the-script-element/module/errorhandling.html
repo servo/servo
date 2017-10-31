@@ -35,7 +35,7 @@
         var test_wrongMimetype_root = async_test("External root module with non-script mimetype");
         var script_wrongMimetype_root = document.createElement("script");
         script_wrongMimetype_root.type = "module";
-        script_wrongMimetype_root.src = "errorhandling-wrongMimetype.js?pipe=header(Content-Type,text/plain),header(X-Content-Type-Options,nosniff)";
+        script_wrongMimetype_root.src = "errorhandling-wrongMimetype.js?pipe=header(Content-Type,text/plain)";
         script_wrongMimetype_root.addEventListener("error", test_wrongMimetype_root.step_func(function () {
             test_wrongMimetype_root.done();
         }));

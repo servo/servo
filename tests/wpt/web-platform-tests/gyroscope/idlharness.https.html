@@ -24,6 +24,7 @@ interface EventHandler {
 [SecureContext, Exposed=Window]
 interface Sensor : EventTarget {
   readonly attribute boolean activated;
+  readonly attribute boolean hasReading;
   readonly attribute DOMHighResTimeStamp? timestamp;
   void start();
   void stop();
@@ -34,9 +35,9 @@ interface Sensor : EventTarget {
 
 [Constructor(optional SensorOptions sensorOptions), Exposed=Window]
 interface Gyroscope : Sensor {
-  readonly attribute unrestricted double? x;
-  readonly attribute unrestricted double? y;
-  readonly attribute unrestricted double? z;
+  readonly attribute double? x;
+  readonly attribute double? y;
+  readonly attribute double? z;
 };
 </script>
 

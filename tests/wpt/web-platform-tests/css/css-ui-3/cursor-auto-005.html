@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <title>CSS Basic User Interface Test: cursor:auto on form elements</title>
-<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
 <link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
 <meta name="flags" content="interact">
 <meta charset="UTF-8">
-<meta name="assert" content="The 'auto' cursor value does the same as 'default' over everything other than text, such as form elements.">
+<meta name="assert" content="The 'auto' cursor value does the same as 'default' over everything other than selectable text or editable elements, such as form elements that do not take text input.">
 <style>
 #test {
   border: solid blue;
@@ -33,8 +33,6 @@
   <p>Place the cursor into the orange box for a reference of what this should look like.</p>
   <div id=test>
     <button>button</button>
-    <textarea></textarea>
-    <input>
     <input type=button value=input-button>
     <select></select>
   </div>

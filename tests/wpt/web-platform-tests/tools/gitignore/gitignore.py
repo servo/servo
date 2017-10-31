@@ -66,7 +66,7 @@ def fnmatch_translate(pat, path_name=False):
     parts.append("$")
     try:
         return re.compile("".join(parts))
-    except:
+    except Exception:
         raise
 
 

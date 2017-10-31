@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>injected-inline-style-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS: 2 stylesheets on the page."]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+       window.addEventListener('securitypolicyviolation', function(e) {
+            log("Fail");
+       });
+    </script>
+
+    <div id="test1">
+        FAIL 1/2
+    </div>
+    
+    <div id="test2">
+        FAIL 2/2
+    </div>
+    
+    <script src="support/inject-style.js"></script>
+    <script>
+        if (document.styleSheets.length === 2)
+            log("PASS: 2 stylesheets on the page.");
+        else
+            log("FAIL: " + document.styleSheets.length + " stylesheets on the page (should be 2).");
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

@@ -7,13 +7,16 @@ import sys
 import manifest
 from . import vcs
 from .log import get_logger
+from .download import download_from_github
 
 here = os.path.dirname(__file__)
 
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
+logger = get_logger()
 
 def update(tests_root, manifest, working_copy=False):
+    logger.info("Updating manifest")
     tree = None
     if not working_copy:
         tree = vcs.Git.for_path(tests_root, manifest.url_base)
@@ -29,7 +32,9 @@ def update_from_cli(**kwargs):
     assert tests_root is not None
 
     m = None
-    logger = get_logger()
+
+    if kwargs["download"]:
+        download_from_github(path, tests_root)
 
     if not kwargs.get("rebuild", False):
         try:
@@ -37,8 +42,6 @@ def update_from_cli(**kwargs):
         except manifest.ManifestVersionMismatch:
             logger.info("Manifest version changed, rebuilding")
             m = None
-        else:
-            logger.info("Updating manifest")
 
     if m is None:
         m = manifest.Manifest(kwargs["url_base"])
@@ -69,6 +72,9 @@ def create_parser():
     parser.add_argument(
         "--url-base", action="store", default="/",
         help="Base url to use as the mount point for tests in this manifest.")
+    parser.add_argument(
+        "--no-download", dest="download", action="store_false", default=True,
+        help="Never attempt to download the manifest.")
     return parser
 
 

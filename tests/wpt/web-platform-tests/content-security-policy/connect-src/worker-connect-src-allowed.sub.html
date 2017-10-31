@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; script-src 'self' 'unsafe-inline';">
+    <title>worker-connect-src-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["xhr allowed"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log('Fail');
+        });
+    
+        try {
+            var worker = new Worker('/content-security-policy/connect-src/support/worker-make-xhr.sub.js');
+            worker.onmessage = function(event) {
+                log(event.data);
+            };
+        } catch (e) {
+            log(e);
+        }
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>
