@@ -7,7 +7,7 @@
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use servo_arc::Arc;
-use std::{mem, ptr};
+use std::{fmt, mem, ptr};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
@@ -25,10 +25,17 @@ pub unsafe trait ThreadSafeRefCounted: RefCounted {}
 
 /// A custom RefPtr implementation to take into account Drop semantics and
 /// a bit less-painful memory management.
-#[derive(Debug)]
 pub struct RefPtr<T: RefCounted> {
     ptr: *mut T,
     _marker: PhantomData<T>,
+}
+
+impl<T: RefCounted> fmt::Debug for RefPtr<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("RefPtr { ")?;
+        self.ptr.fmt(f)?;
+        f.write_str("}")
+    }
 }
 
 /// A RefPtr that we know is uniquely owned.

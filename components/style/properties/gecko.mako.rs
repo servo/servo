@@ -71,7 +71,6 @@ pub mod style_structs {
 /// FIXME(emilio): This is completely duplicated with the other properties code.
 pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedData;
 
-#[derive(Debug)]
 #[repr(C)]
 pub struct ComputedValues(::gecko_bindings::structs::mozilla::ServoStyleContext);
 
@@ -4487,11 +4486,11 @@ fn static_assert() {
     }
 
     pub fn clone_image_orientation(&self) -> longhands::image_orientation::computed_value::T {
-        use gecko_bindings::structs::{nsStyleImageOrientation_Bits, nsStyleImageOrientation_Angles};
+        use gecko_bindings::structs::nsStyleImageOrientation_Angles;
         use properties::longhands::image_orientation::computed_value::{Orientation, T};
 
         let gecko_orientation = self.gecko.mImageOrientation.mOrientation;
-        if gecko_orientation & nsStyleImageOrientation_Bits::FROM_IMAGE_MASK as u8 != 0 {
+        if gecko_orientation & structs::nsStyleImageOrientation_Bits_FROM_IMAGE_MASK as u8 != 0 {
             T::FromImage
         } else {
             const ANGLE0: u8 = nsStyleImageOrientation_Angles::ANGLE_0 as u8;
@@ -4499,14 +4498,15 @@ fn static_assert() {
             const ANGLE180: u8 = nsStyleImageOrientation_Angles::ANGLE_180 as u8;
             const ANGLE270: u8 = nsStyleImageOrientation_Angles::ANGLE_270 as u8;
 
-            let flip = gecko_orientation & nsStyleImageOrientation_Bits::FLIP_MASK as u8 != 0;
-            let orientation = match gecko_orientation & nsStyleImageOrientation_Bits::ORIENTATION_MASK as u8 {
-                ANGLE0 => Orientation::Angle0,
-                ANGLE90 => Orientation::Angle90,
-                ANGLE180 => Orientation::Angle180,
-                ANGLE270 => Orientation::Angle270,
-                _ => unreachable!()
-            };
+            let flip = gecko_orientation & structs::nsStyleImageOrientation_Bits_FLIP_MASK as u8 != 0;
+            let orientation =
+                match gecko_orientation & structs::nsStyleImageOrientation_Bits_ORIENTATION_MASK as u8 {
+                    ANGLE0 => Orientation::Angle0,
+                    ANGLE90 => Orientation::Angle90,
+                    ANGLE180 => Orientation::Angle180,
+                    ANGLE270 => Orientation::Angle270,
+                    _ => unreachable!()
+                };
             T::AngleWithFlipped(orientation, flip)
         }
     }

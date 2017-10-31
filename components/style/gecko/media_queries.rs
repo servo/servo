@@ -16,7 +16,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSValue, nsCSSUnit};
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
-use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType, nsMediaFeature_RequirementFlags};
+use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType};
 use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
 use parser::ParserContext;
@@ -236,7 +236,7 @@ impl ToCss for Expression {
     {
         dest.write_str("(")?;
 
-        if (self.feature.mReqFlags & nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8) != 0 {
+        if (self.feature.mReqFlags & structs::nsMediaFeature_RequirementFlags_eHasWebkitPrefix) != 0 {
             dest.write_str("-webkit-")?;
         }
         match self.range {
@@ -612,7 +612,7 @@ impl Expression {
 
                 if context.in_chrome_stylesheet() ||
                     context.stylesheet_origin == Origin::UserAgent {
-                    flags |= nsMediaFeature_RequirementFlags::eUserAgentAndChromeOnly as u8;
+                    flags |= structs::nsMediaFeature_RequirementFlags_eUserAgentAndChromeOnly;
                 }
 
                 let result = {
@@ -621,9 +621,9 @@ impl Expression {
                     if unsafe { structs::StylePrefs_sWebkitPrefixedAliasesEnabled } &&
                        starts_with_ignore_ascii_case(feature_name, "-webkit-") {
                         feature_name = &feature_name[8..];
-                        flags |= nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8;
+                        flags |= structs::nsMediaFeature_RequirementFlags_eHasWebkitPrefix;
                         if unsafe { structs::StylePrefs_sWebkitDevicePixelRatioEnabled } {
-                            flags |= nsMediaFeature_RequirementFlags::eWebkitDevicePixelRatioPrefEnabled as u8;
+                            flags |= structs::nsMediaFeature_RequirementFlags_eWebkitDevicePixelRatioPrefEnabled;
                         }
                     }
 
