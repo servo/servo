@@ -1226,7 +1226,12 @@ impl Animate for ComputedTransformOperation {
                     fd_matrix.animate(&td_matrix, procedure)?,
                 ))
             },
-            // XXXManishearth handle crossover between translate and scale functions
+            (ref f, ref t) if f.is_translate() && t.is_translate() => {
+                f.to_translate_3d().animate(&t.to_translate_3d(), procedure)
+            }
+            (ref f, ref t) if f.is_scale() && t.is_scale() => {
+                f.to_scale_3d().animate(&t.to_scale_3d(), procedure)
+            }
             _ => Err(()),
         }
     }
