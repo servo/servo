@@ -1,0 +1,15 @@
+<csstest def="Parsing : vs ::" module="W3C Selectors" modulename="css3-modsel" number="177a" rev="1.0" date="22-june-2003" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>
+ p:selection { color: yellow; background: red; }
+</cssrules>
+
+<code>
+  <p xmlns="http://www.w3.org/1999/xhtml">When you select this text, it shouldn't go red.</p>
+</code>
+
+</csstest>

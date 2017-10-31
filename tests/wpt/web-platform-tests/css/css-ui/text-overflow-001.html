@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow - clip - the text inline content overflows will be broken</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="8.2. Overflow Ellipsis: the 'text-overflow' property" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="reference/text-overflow-001-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="Test checks that the inline content that overflows will be clipped. Characters may be only partially rendered when
+text-overflow set clip">
+<style>
+  div {
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    width: 120px;
+  }
+  span {
+    font-family: Ahem;
+    font-size: 30px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a <strong>black rectangle</strong> below.</p>
+  <div>
+    <span>Test checks the content broken if the content overflows the container</span>
+  </div>
+</body>

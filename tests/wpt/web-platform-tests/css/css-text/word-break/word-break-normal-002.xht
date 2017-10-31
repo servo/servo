@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+		<title>CSS Test: word-break - normal - basic cases</title>
+		<link rel="author" title="Satoshi Umehara" href="mailto:umehara@est.co.jp" />
+		<link rel="help" title="CSS Text Level 3: 5.2. Word Breaking Rules: the ‘word-break’ property" href="http://www.w3.org/TR/css-text-3/#word-break" />
+		<link rel="match" href="reference/word-break-normal-002-ref.xht"/>
+		<meta name="flags" content="font" />
+		<meta name="assert" content="Break lines according to their usual rules." />
+		<style type="text/css">
+			<![CDATA[
+				.test span {
+					word-break: normal;
+				}
+				/* the CSS below is not part of the test */
+				p.test, p.control {
+					border: 1px solid gray;
+					color: blue;
+					font-family: "IPAMincho", "IPAGothic", "IPA明朝", "IPAゴシック";
+					width: 10em;
+				}
+				span.attention {
+					color: red;
+				}
+			]]>
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if each pair of upper and lower text in the square box is identical.
+		</p>
+		<hr />
+		<p class="test">
+			<span>Filler Text Filler Text Filler Text</span>
+		</p>
+		<p class="control">
+			<span>Filler Text Filler<br />Text Filler Text</span>
+		</p>
+		<hr />
+		<p class="test">
+			<span>満たすための文字 Filler Text</span>
+		</p>
+		<p class="control">
+			<span>満たすための文字<br />Filler Text</span>
+		</p>
+		<hr />
+		<p class="test">
+			<span>満たすための文字満たすための文字</span>
+		</p>
+		<p class="control">
+			<span>満たすための文字満た<br />すための文字</span>
+		</p>
+		<hr />
+		<p>
+			<span class="attention">* You will need a Japanese font.</span><br />
+			If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and reload this page.
+		</p>
+	</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Table With Preserve-3D 3</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-style-property">
+    <meta name="assert" content="This is an even more extreme example of
+    transform-table-010.html.  CSS will create several anonymous table boxes
+    wrapping the div with display: table-cell, but none of these have
+    corresponding elements.  Every actual element in the DOM still has
+    preserve-3d specified, so the text should not vanish.">
+    <link rel="match" href="transform-table-009-ref.html">
+    <link rel="mismatch" href="transform-table-011-notref.html">
+    <style>
+      body > div {
+        transform: rotateX(90deg);
+        transform-style: preserve-3d;
+      }
+      body > div > div {
+        display: table-cell;
+        transform-style: preserve-3d;
+      }
+      body > div > div > div {
+        transform: rotateX(90deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div>
+        <div>Some text</div>
+      </div>
+    </div>
+  </body>
+</html>

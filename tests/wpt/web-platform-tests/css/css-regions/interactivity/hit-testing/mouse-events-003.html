@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: mouse over DOM location of content flowed in a region</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="Mouse events should not fire over the would-be location of the content nodes (where they would have been rendered were they not flowed in a region)">
+	<meta name="flags" content="dom interact">
+	<style>
+	body {
+		margin: 0;
+		padding: 20px;
+	}
+	.box {
+		width: 200px;
+		height: 200px;
+		float: left;
+		margin: 20px;
+	}
+	#source {
+		background-color: lightblue;
+	}
+	#source p {
+		flow-into: flow;
+	}
+	#region {
+		background-color: lightgreen;
+		flow-from: flow;
+	}
+	#shield {
+		opacity: 0.01;
+		background-color: white;
+		z-index: 100;
+		position: relative;
+		left: -240px;
+	}
+	#result {
+		clear: both;
+	}
+	.pass {
+		color: green;
+		font-weight: bold;
+	}
+	.fail {
+		color: red;
+		font-weight: bold;
+	}
+	</style>
+</head>
+<body>
+	This test passes if you never see red during the test or the word "FAIL" and all expected results happen when following the steps below:
+	<ol>
+		<li>You should see a blue empty square and a green square with text</li>
+		<li>Move the mouse over the blue empty square <strong>Expected:</strong> The text "PASS" appears under the blue square.</li>
+	</ol>
+	<div id="source" class="box">
+		<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Recusandae eveniet. Explicabo veritatis adipisci praesentium placeat voluptates dolorum pariatur architecto itaque.</p>
+	</div>
+	<div id="region" class="box"></div>
+	<div class="box" id="shield"></div>
+	<div id="result" class=""></div>
+	<script type="text/javascript">
+	var target = document.querySelector("#source p");
+
+	function finishTest() {
+		if (window.testRunner) {
+			testRunner.notifyDone();
+		}
+	}
+
+	target.parentElement.addEventListener("mouseover", function(evt) {
+		var tag = document.querySelector("#result");
+			result;
+		if (evt.target != evt.currentTarget) {
+			result = "FAIL";
+		} else {
+			result = "PASS";
+		}
+
+		tag.innerHTML = result;
+		tag.classList.add(result.toLowerCase());
+
+		finishTest();
+	}, true);
+
+	if (window.testRunner) {
+		testRunner.dumpAsText();
+		testRunner.waitUntilDone();
+
+		eventSender.enableDOMUIEventLogging();
+
+		eventSender.mouseMoveTo(10, 40);
+		eventSender.mouseMoveTo(100, 100);
+
+		eventSender.mouseUp();
+	}
+	</script>
+</body>
+</html>

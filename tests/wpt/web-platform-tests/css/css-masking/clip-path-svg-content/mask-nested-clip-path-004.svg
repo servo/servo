@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: clipPath and mask nesting 4</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
+	<html:link rel="match" href="reference/mask-nested-clip-path-001-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">Multiple references between clipPath and
+	mask elements. You should see a green square with 4 equally
+	sized and positioned white squares in it.</desc>
+</g>
+<clipPath id="clip1" clipPathUnits="objectBoundingBox">
+	<rect x="0.1" y="0.1" width="0.3" height="0.3"/>
+	<rect x="0.1" y="0.6" width="0.3" height="0.3"/>
+</clipPath>
+
+<clipPath id="clip2" clipPathUnits="objectBoundingBox">
+	<rect x="0.6" y="0.1" width="0.3" height="0.3"/>
+	<rect x="0.6" y="0.6" width="0.3" height="0.3"/>
+</clipPath>
+
+<clipPath id="clip" clipPathUnits="objectBoundingBox">
+	<rect x="0" y="0" width="1" height="1" clip-path="url(#clip1)"/>
+	<rect x="0" y="0" width="1" height="1" clip-path="url(#clip2)"/>
+</clipPath>
+
+<mask id="mask1" x="0" y="0" width="1" height="1" maskContentUnits="objectBoundingBox">
+	<rect x="0" y="0" width="1" height="1" fill="white"/>
+	<rect x="0" y="0" width="1" height="1" fill="black" clip-path="url(#clip)" />
+</mask>
+
+<rect width="200" height="200" fill="green" mask="url(#mask1)"/>
+</svg>

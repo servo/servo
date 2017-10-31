@@ -1,0 +1,12 @@
+<csstest def="Attribute existence selector" module="W3C Selectors" modulename="css3-modsel" number="5" rev="1.0" date="11-july-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>p { background-color : red }
+p[title] { background-color : lime }</cssrules>
+
+<code>
+<p title="title" xmlns="http://www.w3.org/1999/xhtml">This paragraph should have a green background because its TITLE
+      attribute is set.</p>
+</code>
+
+</csstest>

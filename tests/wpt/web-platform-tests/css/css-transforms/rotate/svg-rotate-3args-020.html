@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG rotate with three arguments with transform-origin with first value 'right' and second value 'top'</title>
+    <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <link rel="match" href="reference/svg-rotate-3args-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The rotate transform function must support three arguments in combination with transform-origin using two keyword values. First, the transform-origin value of 'right top' should translate the origin by 40px in the horizontal direction and by 80px in the vertical direction temporarily to (40px 80px), which is the top right corner of the green rect.  Second, the green rect should be rotated 90 degrees clockwise after the transform origin has been translated by 20 pixels in both the vertical and horizontal directions, making the origin (60px 100px) temporarily.  The green rect should completely cover the red rect.">
+    <style type="text/css">
+    svg {
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <rect x="1" y="1" width="78" height="78" fill="red"/>
+        <rect x="-40" y="80" width="80" height="80" fill="green" transform="rotate(90deg,20px,20px)" transform-origin="right top"/>
+    </svg>
+</body>
+</html>

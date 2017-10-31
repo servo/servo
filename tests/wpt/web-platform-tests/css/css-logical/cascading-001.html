@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Logical Properties: "A computed value that has logical and physical properties is determined by applying the CSS cascade to declarations of both."</title>
+  <link rel="author" title="Manish Goregaokar" href="mailto:manishearth@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-logical-props-1/#logical-box-props">
+  <link rel="match" href="cascading-001-ref.html">
+  <meta name="flags" content="">
+  <meta name="assert" content="Physical property declarations with higher specificity should override logical ones and vice versa.">
+  <style>
+    div {
+      writing-mode: horizontal-tb;
+      direction: ltr;
+      background-color: blue;
+    }
+    .horizontal-logical {
+      inline-size: 100px;
+      block-size: 10px;
+    }
+    #horizontal-logical {
+      inline-size: 100px;
+      block-size: 10px;
+    }
+    .horizontal-physical {
+      width: 100px;
+      height: 10px;
+    }
+    #horizontal-physical {
+      width: 100px;
+      height: 10px;
+    }
+    .vertical-logical {
+      inline-size: 10px;
+      block-size: 100px;
+    }
+    #vertical-logical {
+      inline-size: 10px;
+      block-size: 100px;
+    }
+    .vertical-physical {
+      width: 10px;
+      height: 100px;
+    }
+    #vertical-physical {
+      width: 10px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there are two vertical blue boxes followed by two horizontal blue boxes.</p>
+<div class="horizontal-logical" id="vertical-physical"></div><br>
+<div class="horizontal-physical" id="vertical-logical"></div><br>
+<div class="vertical-logical" id="horizontal-physical"></div><br>
+<div class="vertical-physical" id="horizontal-logical"></div><br>
+</body>
+</html>

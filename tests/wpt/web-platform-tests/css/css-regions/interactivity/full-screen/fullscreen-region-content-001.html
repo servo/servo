@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: calling requestFullscreen() on video element inside a named flow</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from" />
+		<link rel="help" href="http://www.w3.org/TR/fullscreen/#api" />
+		<meta name="flags" content="dom interact">
+		<meta name="assert" content="This test checks that calling the requestFullscreen() method
+				on a video element that's part of a named flow properly displays the video in
+				full screen">
+		<link rel="stylesheet" href="support/common.css" media="all">
+		<script src="support/util.js"></script>
+		<style>
+		#content {
+			flow-into: flow;
+		}
+		#region {
+			flow-from: flow;
+		}
+		#region > p {
+			background: red;
+
+		}
+		</style>
+	</head>
+	<body>
+		<section id="instructions">
+			<ol>
+				<li>You should see no red rectangles or squares before or during the text</li>
+				<li>You should see a video playing below</li>
+				<li>Click the <em>Go full screen</em> button below
+					<ul>
+						<li>The page should enter full screen mode, with only the video showing; the
+						video should still play.</li>
+						<li>The browser might display a permission window asking you to allow full
+						screen on this page. Allow it.</li>
+					</ul>
+				</li>
+				<li>Exit full screen (e.g. by pressing <em>Esc</em>)
+					<ul>
+						<li>Video should still play</li>
+					</ul>
+				</li>
+			</ol>
+			<button>Go full screen</button>
+		</section>
+
+		<div id="content">
+			<video controls autoplay width="432" height="240" muted loop>
+				<source type="video/webm" src="support/green-at-15.ogv"></source>
+				<source type="video/mp4" src="support/green-at-15.mp4"></source>
+			</video>
+		</div>
+		<div id="region">
+			<p>&nbsp;</p>
+		</div>
+		<div id="fail-marker"></div>
+
+		<script>
+		makeFullScreenToggle("button", "video");
+		</script>
+	</body>
+</html>

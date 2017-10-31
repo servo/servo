@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: margins around forced breaks when break is around float</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-break/#break-margins">
+		<link rel="help" href="http://www.w3.org/TR/css3-break/#parallel-flows">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that margins are correctly preserved when content
+				has floats and is fragmented via forced breaks.">
+		<link rel="match" href="reference/floats-in-named-flow-029-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+
+		.flow {
+			flow-into: f;
+		}
+
+		.break {
+			break-before: region;
+		}
+
+		.spaced {
+			margin: 1em 2em 3em 5em;
+			color: green;
+		}
+
+		.float {
+			float: left;
+			color: blue;
+		}
+		.bordered {
+			border: 10px solid black;
+		}
+
+		.region {
+			flow-from: f;
+			float: left;
+			margin-left: 10px;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			<!-- TODO Determine what the outcome should be - currently expecting a resolution on
+			the issue on www-style/css3-break -->
+			Test passes if you see two colored squares each inside a black-bordered rectangle:
+			<ul>
+				<li>The black-bordered rectangles should be separated by a small horizontal space</li>
+				<li>The colored squares should be positioned roughly in the top-left area of their
+					rectangles, but without being flush to any of its sides</li>
+			</ul><br>
+			You should see no red.
+		</p>
+
+		<div class="bordered region">
+			<p>&nbsp;</p>
+		</div><div class="bordered region">
+			<p>&nbsp;</p>
+		</div>
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<article class="flow">
+			<div class="spaced float">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div class="break spaced">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+		</article>
+	</body>
+</html>

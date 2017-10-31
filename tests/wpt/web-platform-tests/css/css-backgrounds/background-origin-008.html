@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Backgrounds and Borders Test: background-origin - inherit keyword value</title>
+    <link rel="author" title="Intel" href="http://www.intel.com">
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2012-11-09 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-origin" title="3.8. Positioning Area: the 'background-origin' property">
+    <link rel="match" href="reference/background-origin-005-ref.html">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#value-types" title="2.2. Value Types">
+    <!--
+    "
+    all properties defined in this specification also accept
+    the inherit keyword as their property value
+    "
+    CSS Backgrounds and Borders Module Level 3
+    2.2. Value Types
+    http://www.w3.org/TR/css3-background/#value-types
+    -->
+
+    <meta name="flags" content="">
+    <meta name="assert" content="Background-origin with 'inherit' implies to inherit its parent element value to position the background area.">
+    <style>
+        div {
+            position: absolute;
+        }
+        #container {
+            background-origin: content-box;
+        }
+        #ref {
+            background-color: red;
+            height: 60px;
+            left: 30px;
+            top: 30px;
+            width: 60px;
+        }
+        #test {
+            background-image: url(support/60x60-green.png);
+            background-origin: inherit;
+            background-repeat: no-repeat;
+            border: transparent dotted 5px;
+            height: 100px;
+            padding: 25px;
+            width: 100px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="container">
+      <div id="ref"></div>
+      <div id="test"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+<csstest def=":nth-child() pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="28" rev="1.0" date="3-march-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>.red { background-color : red }
+ul &gt; li:nth-child(odd) { background-color : lime }
+ol &gt; li:nth-child(even) { background-color : lime }
+table.t1 tr:nth-child(-n+4) { background-color : lime }
+table.t2 td:nth-child(3n+1) { background-color : lime }</cssrules>
+
+<code>
+<ul xmlns="http://www.w3.org/1999/xhtml">
+  <li class="red">This first list item should have a green background</li>
+  <li>Second list item</li>
+  <li class="red">This third list item should have a green background</li>
+  <li>Fourth list item</li>
+  <li class="red">This fifth list item should have a green background</li>
+  <li>Sixth list item</li>
+</ul>
+<ol xmlns="http://www.w3.org/1999/xhtml">
+  <li>First list item</li>
+  <li class="red">This second list item should have a green background</li>
+  <li>Third list item</li>
+  <li class="red">This fourth list item should have a green background</li>
+  <li>Fifth list item</li>
+  <li class="red">This sixth list item should have a green background</li>
+</ol>
+<div xmlns="http://www.w3.org/1999/xhtml">
+<table border="1" class="t1">
+  <tr class="red">
+<td>Green row : 1.1</td>
+<td>1.2</td>
+     <td>1.3</td>
+</tr>
+  <tr class="red">
+<td>Green row : 2.1</td>
+<td>2.2</td>
+     <td>2.3</td>
+</tr>
+  <tr class="red">
+<td>Green row : 3.1</td>
+<td>3.2</td>
+     <td>3.3</td>
+</tr>
+  <tr class="red">
+<td>Green row : 4.1</td>
+<td>4.2</td>
+      <td>4.3</td>
+</tr>
+  <tr>
+<td>5.1</td>
+<td>5.2</td>
+<td>5.3</td>
+</tr>
+  <tr>
+<td>6.1</td>
+<td>6.2</td>
+<td>6.3</td>
+</tr>
+</table>
+
+<table class="t2" border="1">
+  <tr>
+<td class="red">green cell</td>
+<td>1.2</td>
+<td>1.3</td>
+      <td class="red">green cell</td>
+<td>1.5</td>
+<td>1.6</td>
+      <td class="red">green cell</td>
+<td>1.8</td>
+</tr>
+  <tr>
+<td class="red">green cell</td>
+<td>2.2</td>
+<td>2.3</td>
+      <td class="red">green cell</td>
+<td>2.5</td>
+<td>2.6</td>
+      <td class="red">green cell</td>
+<td>2.8</td>
+</tr>
+  <tr>
+<td class="red">green cell</td>
+<td>3.2</td>
+<td>3.3</td>
+      <td class="red">green cell</td>
+<td>3.5</td>
+<td>3.6</td>
+      <td class="red">green cell</td>
+<td>3.8</td>
+</tr>
+</table>
+</div>
+</code>
+</csstest>

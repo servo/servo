@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<style>
+div {
+    border-radius: 3px;
+}
+div::before {
+    width: 100px;
+    height: 100px;
+    border-radius: 2px;
+    content: 'foo';
+    color: rgba(0, 0, 0, 0);
+}
+canvas{
+    border-radius: 2px;
+    display: block;
+    position: relative;
+    top: -1em;
+}
+</style>
+<body style="font: 10px/1 Ahem;">
+    <div><canvas width="30px" height="10px"></canvas></div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var canvas = document.querySelector('canvas');
+    var context = canvas.getContext("2d");
+    context.strokeStyle = 'green';
+    context.lineWidth = 4;
+    context.strokeRect(0, 0, 30, 10);
+});
+</script>
+</body>
+</html>

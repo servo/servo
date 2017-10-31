@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>trad-chinese-formal, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to trad-chinese-formal will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: trad-chinese-formal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='0'><li title='0'>零、</li></ol>
+<ol start='1'><li title='1'>壹、</li></ol>
+<ol start='2'><li title='2'>貳、</li></ol>
+<ol start='3'><li title='3'>參、</li></ol>
+<ol start='4'><li title='4'>肆、</li></ol>
+<ol start='5'><li title='5'>伍、</li></ol>
+<ol start='6'><li title='6'>陸、</li></ol>
+<ol start='7'><li title='7'>柒、</li></ol>
+<ol start='8'><li title='8'>捌、</li></ol>
+<ol start='9'><li title='9'>玖、</li></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

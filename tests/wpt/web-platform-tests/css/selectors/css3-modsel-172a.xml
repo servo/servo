@@ -1,0 +1,28 @@
+<csstest def="Namespaced attribute selectors" module="W3C Selectors" modulename="css3-modsel" number="172a" rev="1.0" date="20-september-2002" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+ tests, tests * { display: block; color: green; }
+ testA[|attribute] { color: red; }
+ testB[|attribute="fail"] { color: red; }
+ testC[|attribute~="fail"] { color: red; }
+ testD[|attribute^="fail"] { color: red; }
+ testE[|attribute*="fail"] { color: red; }
+ testF[|attribute$="fail"] { color: red; }
+ testG[|attribute|="fail"] { color: red; }
+</cssrules>
+
+<code>
+  <tests xmlns="http://css.example.net/" xmlns:test="http://css.example.net/">
+   <testA test:attribute="fail">This should be green.</testA>
+   <testB test:attribute="fail">This should be green.</testB>
+   <testC test:attribute="fail">This should be green.</testC>
+   <testD test:attribute="fail">This should be green.</testD>
+   <testE test:attribute="fail">This should be green.</testE>
+   <testF test:attribute="fail">This should be green.</testF>
+   <testG test:attribute="fail">This should be green.</testG>
+  </tests>
+</code>
+
+</csstest>

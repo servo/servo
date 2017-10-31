@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Flexible Box Test: display proprety - inline-flex</title>
+    <link rel="author" title="haosdent" href="mailto:haosdent@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#valdef-display-inline-flex">
+    <link rel="match" href="reference/ttwf-reftest-flex-inline-ref.html">
+    <meta name="assert" content="Statement describing what the test case is asserting">
+    <style type="text/css">
+        /* Positioned container allows for the self-describing statement to still
+           be visible in the case of failure */
+        .container {
+	position: relative;
+        }
+	.greenSquare {
+	display: inline-flex;
+	margin-top: -200px;
+	background: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passed if you see a green block which its text is 'Success!'.</p>
+    <div class="container">
+      <!-- This is the square that should not be visible if the test passes -->
+      <div class="greenSquare">Success!</div>
+    </div>
+</body>
+</html>

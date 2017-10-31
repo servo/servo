@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: place-content shorthand - single values specified</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="http://www.w3.org/TR/css3-align/#propdef-place-content" />
+<meta name="assert" content="Check that setting a single value to place-content expands to such value set in both 'align-content' and 'justify-content'." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    var values = ["normal"].concat(contentPositionValues, distributionValues, baselineValues);
+    values.forEach(function(value) {
+        test(function() {
+            checkPlaceShorhandLonghands("place-content", "align-content", "justify-content", value);
+        }, "Checking place-content: " + value);
+    });
+</script>

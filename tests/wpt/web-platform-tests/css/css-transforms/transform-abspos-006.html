@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Containing Block for Absolute Positioning (table)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='"In the HTML namespace, any value other than
+    &apos;none&apos; for the transform results in the creation of . . . a
+    containing block."  This means absolutely positioned elements need to be
+    rooted at a transformed ancestor, just as though it had non-static
+    position.  This test differs from transform-abspos-001.html in that the outer div is a
+    table, which might cause buggy rendering engines to treat it differently.'>
+    <link rel="match" href="transform-abspos-ref.html">
+    <style>
+      body > div {
+        display: table;
+        width: 100px;
+        height: 200px;
+        transform: translate(50px, 50px);
+        background: gold;
+      }
+      body > div > div {
+        width: 200px;
+        height: 100px;
+        position: absolute;
+        left: 50px;
+        top: 100px;
+        background: navy;
+        color: gold;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+      <div>
+        0 1 2 3 4 5 6 7 8 9
+      </div>
+    </div>
+  </body>
+</html>

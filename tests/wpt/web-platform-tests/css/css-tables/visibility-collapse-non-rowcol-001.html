@@ -1,0 +1,110 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='support/base.css' />
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#visibility-prop">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#visibility-collapse-cell-rendering">
+<style>
+    x-table {
+      border: 5px solid black;
+    }
+    x-table span {
+        display: inline-block;
+        vertical-align: top;
+        background: lime;
+        margin: 3px;
+        height: 100px;
+        width: 100px;
+    }
+</style>
+<main>
+    <h1>Visibility collapse</h1>
+    <a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">Spec</a>
+    <p>
+    When setting any element that is not a row, col, row group, or col group,
+    visibility:collapse is equivalent to visibility:hidden.
+    </p>
+    <x-table id="one">
+        <x-tr>
+            <x-td id="visibleCell">
+                <span>row 1</span>
+            </x-td>
+            <x-td>
+                <span id="visibleSpan"></span>
+            </x-td>
+        </x-tr>
+        <x-tr>
+            <x-td>
+                <span>row 2</span>
+            </x-td>
+            <x-td>
+                <span></span>
+            </x-td>
+        </x-tr>
+    </x-table>
+    Bottom table is identical to top except top cells have been collapsed.
+    <x-table id="two">
+        <x-tr>
+            <x-td id="hiddenCell" style="visibility:collapse">
+                <span>row 1</span>
+            </x-td>
+            <x-td>
+                <span id="hiddenSpan" style="visibility:collapse"></span>
+            </x-td>
+        </x-tr>
+        <x-tr>
+            <x-td>
+                <span>row 2</span>
+            </x-td>
+            <x-td>
+                <span></span>
+            </x-td>
+        </x-tr>
+    </x-table>
+</main>
+
+<script>
+    tests = [
+    [
+        document.getElementById('two').offsetWidth,
+        document.getElementById('one').offsetWidth,
+        "table width is unchanged"
+    ],
+    [
+        document.getElementById('two').offsetHeight,
+        document.getElementById('one').offsetHeight,
+        "table height is unchanged"
+    ],
+    [
+        document.getElementById('hiddenCell').offsetWidth,
+        document.getElementById('visibleCell').offsetWidth,
+        "td visibility:collapse has no effect on td width"
+    ],
+    [
+        document.getElementById('hiddenCell').offsetHeight,
+        document.getElementById('visibleCell').offsetHeight,
+        "td visibility:collapse has no effect on td height"
+    ],
+    [
+        document.getElementById('hiddenSpan').offsetWidth,
+        document.getElementById('visibleSpan').offsetWidth,
+        "span visibility:collapse has no effect on span width"
+    ],
+    [
+        document.getElementById('hiddenSpan').offsetHeight,
+        document.getElementById('visibleSpan').offsetHeight,
+        "span visibility:collapse has no effect on span height"
+    ]];
+
+    for (i = 0; i< tests.length; i++) {
+        test(function()
+            {
+                assert_equals.apply(this, tests[i]);
+            },
+            tests[i][2]);
+    };
+</script>
+</html>

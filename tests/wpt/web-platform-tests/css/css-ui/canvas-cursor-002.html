@@ -1,0 +1,22 @@
+<!doctype html>
+<title>CSS UI Test: not propagating the body cursor to the canvas</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#canvas_cursor">
+<meta name="flags" content="interact image">
+<meta name="assert" content="Test checks the cursor applied to the body element is not propagated to the canvas.">
+<style>
+:root { padding:0; background:blue;}
+body {
+	margin:0;
+	cursor: url(support/red.ico), pointer;
+}
+p {
+	background: white;
+	cursor: default;
+	position:absolute;
+	/* the p is taken out of flow to make the html and body elements collapse to nothing,
+	leaving the whole background area empty of any element,
+	as that's what we want to hover over */ }
+</style>
+<body>
+<p>Place the mouse cursor over the blue area. You should see no red.

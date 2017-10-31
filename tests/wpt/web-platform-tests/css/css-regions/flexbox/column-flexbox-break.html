@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: fragmenting a flex container with column flow </title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-containers">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-direction-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that a flex container with column flow is fragmented between regions.">
+		<link rel="match" href="reference/column-flexbox-break-ref.html">
+		<style>
+			.flex {
+				display: flex;
+				flex-direction: column;
+				flow-into: flow;
+			}
+
+			.region {
+				flow-from: flow;
+				height: 45px;
+				margin-bottom: 20px;
+			}
+
+			.item {
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 1em;
+				color: green;
+			}
+
+			.red {
+				background-color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see two horizontal green stripes.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="flex">
+			<div class="item">XXXX<br>XXXX</div>
+			<div class="item">XXXX<br>XXXX</div>
+		</div>
+		<div class="region"></div>
+		<div class="region"><p class="red">&nbsp;</p></div>
+	</body>
+</html>

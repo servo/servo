@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: left float, url(png), real image 70% + shape-image-threshold + shape-margin (px)</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-margin-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-image-threshold-property"/>
+    <link rel="match" href="reference/shape-image-006-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that content wraps around the image pixels extracted from
+                                 a shape-outside png file with shape-image-threshold set + the shape-margin in
+                                 absolute length."/>
+    <style type="text/css">
+        body { margin: 0; }
+        #test, #image, #white, .blue, .failure {
+            position: absolute;
+            top: 70px;
+        }
+        #test, #image { left: 10px; }
+        #image { z-index: -2; }
+
+        #white {
+            left: 60px;
+            width: 10px;
+            height: 100px;
+            background-color: white;
+            z-index: -1;
+        }
+        #test {
+          font: 50px/1 Ahem;
+          width: 200px;
+          color: rgb(0,100,0);
+          z-index: 2;
+        }
+        #shape-image {
+            float: left;
+            width: 100px;
+            height: 100px;
+            shape-outside: url("support/left-half-rectangle-70.png");
+            shape-margin: 10px;
+            shape-image-threshold: 0.75;
+        }
+        .blue {
+            width: 2px;
+            height: 100px;
+            background-color: blue;
+            z-index: 3;
+        }
+        .left-line { left: 65px; }
+        .right-line { left: 125px; }
+
+        .failure {
+            left: 70px;
+            width: 50px;
+            height: 100px;
+            background-color: red;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if the green rectangle on the right is completely between the two blue lines.
+        There should be no red.
+    </p>
+    <img id="image" src="support/left-half-rectangle-70.png"/>
+    <div id="white"></div>
+    <div id="test">
+        <div id="shape-image"></div>
+        X<br/>X
+    </div>
+    <div class="blue left-line"></div>
+    <div class="blue right-line"></div>
+    <div class="failure"></div>
+</body>
+</html>

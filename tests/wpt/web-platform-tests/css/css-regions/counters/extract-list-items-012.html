@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into on individual list items preserves other list styling properties (list-style-*)</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<meta name="flags" content="">
+		<meta name="assert" content="Test checks that list styling properties are honored even for list items extracted in named flows and rendered in regions.">
+		<link rel="match" href="reference/extract-list-items-012-ref.html">
+		<style>
+		#first {
+			list-style-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpGRDAzNDVGOTNCMEQxMUUyQkVGOEU1OTA4MTYyRjA0RiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpGRDAzNDVGQTNCMEQxMUUyQkVGOEU1OTA4MTYyRjA0RiI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZEMDM0NUY3M0IwRDExRTJCRUY4RTU5MDgxNjJGMDRGIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkZEMDM0NUY4M0IwRDExRTJCRUY4RTU5MDgxNjJGMDRGIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+rpZ8YAAAAGlJREFUeNpi/P//PwMlgImBQoDVAEZGxv9ATLELiDKEkBcIGkJMGOA1hNhAxGkIKbHwn37RiAM0UmIASPMB7B4DJmV0DPUvDDcAsQM2dWC1BAzAq5mQAQ34NBIyoAFKOxAygJHS7AwQYAAt068AjhXk+gAAAABJRU5ErkJggg==);
+			list-style-position: inside;
+		}
+		#second {
+			list-style-type: square;
+			list-style-position: outside;
+		}
+		#third {
+			list-style-type: upper-roman;
+			list-style-position: inside;
+		}
+		#third li {
+			font-weight: bold;
+		}
+		#third li span {
+			font-weight: normal;
+		}
+		#inner {
+			list-style-type: upper-alpha;
+		}
+		.container {
+			color: #006400;
+			background-color: lightgreen;
+			margin: 2em;
+			float: left;
+			width: 20em;
+			height: 20em;
+		}
+		li:last-child {
+			flow-into: f1;
+			color: blue;
+		}
+		.region {
+			margin: 2em;
+			background-color: lightblue;
+			float: left;
+			width: 20em;
+			height: 20em;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+		</style>
+	</head>
+	<body>
+		<!-- Setting different values for list-style-position, list-style-type, list-style-image and
+		then extracting individual list items into named flows. Numbering shouldn't be affected, as
+		shouldn't indenting and marker boxes positioning. -->
+		<p>Test passes if you see two rectangles, one green and one blue, as described below. Except where noted, all list items should be rendered on two lines.<br>
+		The green rectangle should contain three lists, separated by a small vertical space, each with two items. The <strong>first list</strong> should use a triangle-shaped bullet and the text on the second line should start below the bullet. The <strong>second list</strong> should use a square-shaped bullet and the text on the second line should not come under the bullet. The <strong>third list</strong> should be numbered with roman numerals starting with 20 (XX) and the text on the second line should start below the number.<br>
+		The blue rectangle should contain a list with items numbered/marked in different ways, as follows. The <strong>first item</strong> should use a triangle-shaped bullet and the text on the second line should start below the bullet. The <strong>second item</strong> should use a square-shaped bullet and the bullet should be outside of the blue rectangle. The <strong>third and fourth items</strong> should be one-line and numbered with letters A and B respectively. The third item should be indented while the fourth item should have the number outside the blue rectangle. The <strong>fifth item</strong> should be numbered with the roman numeral 22 (XXII) and the text on the second line should start below the number.</p>
+
+		<div class="container">
+			<ul id="first">
+				<li>Custom bullet list, item 1<br><em>Another line of text here</em></li>
+				<li>Custom bullet list, item 2<br><em>Another line of text here</em></li>
+				<li>Custom bullet list, item 3<br><em>Another line of text here</em></li>
+			</ul>
+			<ul id="second">
+				<li>Square bullet list, item 1<br><em>Another line of text here</em></li>
+				<li>Square bullet list, item 2<br><em>Another line of text here</em></li>
+				<li>Square bullet list, item 3<br><em>Another line of text here</em>
+					<ol id="inner">
+						<li>Inner ordered list, item A</li>
+						<li>Inner ordered list, item B</li>
+					</ol>
+				</li>
+			</ul>
+			<ol start="20" id="third">
+				<li><span>Roman numbered list, item XX<br><em>Another line of text here</em></span></li>
+				<li><span>Roman numbered list, item XXI<br><em>Another line of text here</em></span></li>
+				<li><span>Roman numbered list, item XXII<br><em>Another line of text here</em></span></li>
+			</ol>
+		</div>
+		<div class="region" id="r1"></div>
+	</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Page Box Background Coverage</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The page background covers the entire page box, including the page margins."/>
+<style type="text/css">
+	@page {
+		background-color:#ccffcc;
+		margin:25%;
+		border: 2pt solid;
+	}
+</style>
+</head>
+<body>
+	<div>This page must be covered by a pale green background. The background either completely covers the page, or leaves only a small strip of white where the printer can't reach.</div>
+</body>
+</html>

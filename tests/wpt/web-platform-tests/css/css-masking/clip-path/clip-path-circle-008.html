@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Masking: Test clip-path property and circle with closest-side on rectangular div 2</title>
+    <link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+    <link rel="match" href="reference/clip-path-circle-3-ref.html">
+    <meta name="assert" content="The clip-path property takes the basic shape
+    'circle' for clipping. The clipped div box is twice as high as it is
+    wide. With 'closest-side', there should be a full green circle.">
+    <style type="text/css">
+    body, div {
+        padding: 0;
+        margin: 0;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a full green circle.</p>
+    <div style="width: 200px; height: 400px; background-color: green; clip-path: circle(closest-side);"></div>
+</body>
+</html>

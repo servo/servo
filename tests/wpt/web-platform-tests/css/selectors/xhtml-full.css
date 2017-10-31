@@ -1,0 +1,65 @@
+@namespace url(http://www.w3.org/1999/xhtml);
+
+pre.rules {
+  border : 1px solid black ;
+  padding : 5px
+}
+
+.WARNING {
+  background-color: black;
+  color: white;
+  font-weight: bold;
+  margin-top: 1em;
+}
+
+div.testText {
+  background: white;
+  color: black;
+}
+
+div.testSource {
+  border: thin black solid;
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+div.testDescription {
+  border: thin black solid;
+  background-color: red;
+}
+
+.testDescription {
+  margin-top: 1em;
+  width: 100%;
+  border: thin solid black;
+  margin-bottom: 1em;
+}
+
+.testDescription th,
+.testDescription td {
+  text-align: center;
+}
+
+.testDescription th {
+  background-color: silver;
+}
+
+.testDescription .a {
+  width: 25%;
+}
+
+.testDescription .b {
+  width: 50%;
+}
+
+.testDescription .c {
+  width: 100%;
+}
+
+div.validator {
+  margin-top: 1em;
+}
+
+div.validator img {
+  border-width : 0;
+}

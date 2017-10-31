@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Writing Modes: parsing writing-mode: sideways-lr</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow">
+<meta name="assert" content="This test asserts the parser and getComputedStyle works correctly for the writing-mode: sideways-lr.">
+<meta name="flags" content="dom">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="writing-mode: sideways-lr"
+  data-expected="sideways-lr"></div>
+
+<script>
+Array.prototype.forEach.call(document.querySelectorAll("[data-expected]"), function (element) {
+  test(function () {
+    var actual = getComputedStyle(element).writingMode;
+    assert_equals(actual, element.dataset.expected);
+  }, element.title || element.getAttribute("style"));
+});
+</script>

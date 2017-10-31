@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+		.float {
+			float: left;
+		}
+		#float-container {
+			width: 100px;
+			border: 20px solid blue;
+			border-left-width: 0;
+		}
+		/* "clear-fixed" container */
+		#float-container::after {
+			content: "";
+			display: block;
+			clear: both;
+		}
+		.region {
+			border-left: 20px solid blue;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a green square with a thick blue outline.<br>
+			You should see no red.
+		</p>
+
+		<div class="region">
+			<article class="flow">
+				<div id="float-container">
+					<div class="float">
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx<br>
+						xxxxx
+					</div>
+				</div>
+			</article>
+		</div>
+	</body>
+</html>

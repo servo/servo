@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: rgba() colors</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#rgba-color" />
+		<link rel="match" href="t422-rgba-a1.0-a-ref.html" />
+		<meta name="flags" content="" />
+		<meta name="assert" content="Opacity of 1.0 makes text fully opaque." />
+		<style type="text/css"><![CDATA[
+			html, body { background: white; }
+			p { color: white; }
+			#one { color: rgb(0, 0, 0); }
+			#two { color: rgba(0, 0, 0, 1.0); }
+		]]></style>
+	</head>
+	<body>
+		<p id="one">This text should be the same color (black) as the line below.</p>
+		<p id="two">This text should be the same color (black) as the line above.</p>
+	</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: :after generated content - display run-in</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="reviewer" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" title="12.1 The :before and :after pseudo-elements" />
+  <link rel="help" href="http://www.w3.org/TR/css3-box/#run-in-boxes" title="4.3. Run-in boxes" />
+
+  <meta content="" name="flags" />
+  <meta content="Generated content can have their own display value explicitly set in which case they behave as if they were real elements inserted just inside their associated element." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div:after
+  {
+  content: "Filler text";
+  display: run-in;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there are <strong>2 lines of "Filler text"</strong>.</p>
+
+  <div>Filler text</div>
+
+ </body>
+</html>

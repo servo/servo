@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: test scale y</title>
+  <link rel="author" title="Ebay Inc." href="mailto:xiatian@ebay.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#3d-transform-rendering"/>
+  <link rel="match" href="scaley-ref.html"/>
+  <meta name="flags" content="" />
+  <meta name="assert" content="scale y 2"/>
+  <style type="text/css">
+      .container {
+        position: absolute;
+        z-index: 11;
+          height: 100px;
+          width: 100px;
+          background-color:green;
+          margin-top: 200px;
+          transform: scaleY(2);
+      }
+
+      .hidden {
+        position: absolute;
+        z-index: 10;
+          height: 200px;
+          width: 100px;
+          background-color:red;
+          margin-top: 150px;
+      }
+  </style>
+
+ </head>
+ <body>
+   <p style="margin-top:70px;">You should see only 1 green area</p>
+  <div class="container">
+  </div>
+
+  <div class="hidden">
+  </div>
+
+</body>
+</html>

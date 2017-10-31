@@ -1,0 +1,17 @@
+<csstest def="Parsing: :not and pseudo-elements" module="W3C Selectors" modulename="css3-modsel" number="178" rev="1.0" date="22-june-2003" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+ div { color: green; }
+ p:not(:first-line) { color: yellow; background: red; }
+ p:not(:after) { color: yellow; background: red; content: ' THIS TEST HAS FAILED! '; }
+</cssrules>
+
+<code>
+ <div xmlns="http://www.w3.org/1999/xhtml">
+  <p>This line should be green.</p>
+ </div>
+</code>
+
+</csstest>

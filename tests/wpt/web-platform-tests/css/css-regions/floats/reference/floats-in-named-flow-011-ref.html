@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			color: blue;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.float {
+			color: green;
+			float: left;
+		}
+		.region {
+			margin: 10px;
+			width: 200px;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares, horizontally side by side. The left square should be
+			green and the right square should be blue.<br>
+			Test fails is you see any red.
+		</p>
+
+		<article>
+		</article>
+
+		<div class="region">
+			<article>
+				<div class="float">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</div>
+			</article>
+		</div>
+		<div class="region">
+			<article>
+				<div class="flow">
+					xxxxx xxxxx xxxxx xxxxx xxxxx
+				</div>
+			</article>
+		</div>
+	</body>
+</html>

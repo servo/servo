@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>CSS Exclusions Test: wrap-flow property set to start</title>
+        <link rel="author" title="Jacob Goldstein" href="mailto:jacobg@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-exclusions/#wrap-flow-property">
+        <meta name="flags" content="ahem dom">
+        <meta name="assert" content="Text should flow from the beginning of the line to the exclusion, as well as above and below">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="resources/helper.js"></script>
+        <style>
+            * {
+                margin: 0px;
+                padding: 0px;
+            }
+            .exclusion {
+                wrap-flow: start;
+                position: absolute;
+                top: 40px;
+                left: 40px;
+                width: 60px;
+                height: 25px;
+                background: blue;
+            }
+            #content {
+                width: 400px;
+                line-height: 12px;
+                font: 12px Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="exclusion"></div>
+
+        <div id="content">
+            <span id="linesAbove">ethical<BR>beer<BR>craft<BR></span>
+            <span id="lineLeft1">foo</span>
+            <span id="lineLeft2">sed</span>
+            <span id="linesBelow">Vegan<BR>cliche<BR>retro</span>
+        </div>
+
+        <div id="log"></div>
+
+        <script type="text/javascript">
+            test(function() {assert_equals(checkLinePos("lineLeft1",36,"top"), true)}, "Verify top of the 'lineLeft1' span is positioned correctly");
+            test(function() {assert_equals(checkLinePos("lineLeft2",48,"top"), true)}, "Verify top of the 'lineLeft2' span is positioned correctly");
+            test(function() {assert_equals(checkLinePos("lineLeft2",36,"right"), true)}, "Verify right of the 'lineLeft2' span is positioned correctly");
+            test(function() {assert_equals(checkLinePos("linesBelow",65,"top"), true)}, "Verify top of the 'linesBelow' span is positioned correctly");
+        </script>
+    </body>
+</html>

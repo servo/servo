@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor: pointer</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="The 'pointer' cursor value is supported">
+<style>
+div {
+  cursor: url("support/cursors/fail.png"), help;
+  cursor: pointer;
+  width: 100px;
+  height: 100px;
+  border: solid blue;
+}
+</style>
+<body>
+<p>The test passes if, when moved inside the blue box, the cursor indicates a link. Often rendered as the backside of a hand with the index finger poiting and the other fingers closed.</p>
+  <div></div>
+</body>

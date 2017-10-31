@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Multi-column Layout Test: 'column-span: all' element with block children (complex)</title>
+  <link rel="author" title="Opera Software ASA" href="http://www.opera.com/" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-08-19 -->
+  <link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-span" title="6.1. 'column-span'" />
+  <link rel="bookmark" title="[css3-multicol] spanning element with only block children" href="http://lists.w3.org/Archives/Public/www-style/2013Aug/0318.html" />
+  <link rel="match" href="multicol-span-all-child-001-ref.xht" />
+  <meta name="flags" content="ahem may" />
+  <meta name="assert" content="This test checks how a spanning element with block children is rendered inside a multi-column element with a set height which is insufficient for rendering the entire spanning element. Since the available height (10em)is insufficient to render the spanning element (height needed: 3 times 4em) entirely inside the multi-column element, then UA may treat 'column-span: all' as 'column-span: none'." />
+  <style type="text/css"><![CDATA[
+  body
+  {
+  color: black;
+  font: 1.25em/1 Ahem;
+  height: 10em;
+  orphans: 1;
+  widows: 1;
+  width: 10em;
+
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 0em;
+  }
+
+  div
+  {
+  background-color: yellow;
+  border: blue solid 2em;
+
+  column-span: all;
+  }
+
+  span
+  {
+  display: block;
+  height: 4em;
+  width: 5em;
+  }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <div>
+    <span>block</span>
+    <span>block</span>
+    <span>block</span>
+  </div>
+
+ </body>
+</html>

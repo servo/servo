@@ -1,0 +1,40 @@
+<csstest def="Case sensitivity" module="W3C Selectors" modulename="css3-modsel" number="181" rev="1.0" date="1-march-2004" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+ .cs { color: green; }
+ .cs P { background: red; color: yellow; }
+ .cs .a { background: red; color: yellow; }
+ .cs .span1 span { background: red; color: yellow; }
+ .cs .span2 { color: red; }
+ .cs .span2 SPAN { color: green; }
+ .cs .span2 span { background: red; color: yellow; }
+ .ci { color: red; }
+ .ci P { background: green; color: white; }
+ .ci .a { background: green; color: white; }
+ .ci .span1 span { background: green; color: white; }
+ .ci .span2 SPAN { background: green; color: white; }
+</cssrules>
+
+<code xmlns:test="http://www.example.org/css3tests">
+<div xmlns="http://www.w3.org/1999/xhtml">
+<test:restrict for="xml xhtml">
+ <div class="cs">
+   <p>This line should be green.</p>
+   <p class="A">This line should be green.</p>
+   <p class="span1"><SPAN>This line should be green.</SPAN></p>
+   <p class="span2"><SPAN>This line should be green.</SPAN></p>
+ </div>
+</test:restrict>
+<test:restrict for="html">
+ <div class="ci">
+   <p>This line should be green.</p>
+   <p class="A">This line should be green.</p>
+   <p><SPAN>This line should be green.</SPAN></p>
+ </div>
+</test:restrict>
+</div>
+</code>
+
+</csstest>

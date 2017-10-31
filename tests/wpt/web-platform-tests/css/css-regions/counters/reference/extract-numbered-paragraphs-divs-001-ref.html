@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		#region {
+			counter-reset: c 0;
+		}
+		#region p,
+		#region div {
+			counter-increment: c;
+			margin: 1em 0;
+		}
+		#region p::before,
+		#region div::before {
+			content: "(" counter(c) ") ";
+			background: darkblue;
+			color: white;
+		}
+		#region {
+			background-color: lightblue;
+			border: 1px solid lightblue;
+		}
+		</style>
+	</head>
+	<body>
+		<p>Test passes if you see a light blue rectangle below, with eight lines of text in it. The text on each line should be black and preceded by the line number between parantheses. The line numbers should be white on a dark blue background.</p>
+		<div id="region">
+			<p>This is numbered line of text no. 1</p>
+			<p>This is numbered line of text no. 2</p>
+			<div>This is numbered line of text no. 3</div>
+			<p>This is numbered line of text no. 4</p>
+			<div>This is numbered line of text no. 5</div>
+			<p>This is numbered line of text no. 6</p>
+			<div>This is numbered line of text no. 7</div>
+			<div>This is numbered line of text no. 8</div>
+		</div>
+	</body>
+</html>

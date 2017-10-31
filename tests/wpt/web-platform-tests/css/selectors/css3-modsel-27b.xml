@@ -1,0 +1,11 @@
+<csstest def="Impossible rules (* html, * :root)" module="W3C Selectors" modulename="css3-modsel" number="27b" rev="1.0" date="17-october-2005" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>* html { background-color: red; }
+* :root { background-color: red; }
+p { color: green; }</cssrules>
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">This line should be green (there should be no red on this page).</p>
+</code>
+</csstest>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: named flow contains a nested floated region</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#regions-visual-formatting-details">
+		<meta name="flags" content="">
+		<meta name="assert" content="Test checks that a named flow that contains a nested floated
+				auto-sized region is formatted according to the visual formatting model.">
+		<link rel="match" href="reference/floated-regions-004-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.flow {
+			flow-into: f;
+			color: green;
+		}
+		.inner-flow {
+			flow-into: g;
+			color: blue;
+		}
+
+		.region {
+			flow-from: f;
+			border: 10px solid black;
+		}
+		.inner-region {
+			flow-from: g;
+		}
+		.region p,
+		.inner-region p {
+			background: red;
+		}
+
+		.float {
+			float: right;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a horizontal, black-bordered rectangle with a green square at its
+			left end and a blue square at its right end. The rectangle should be approximately as
+			wide as the page.<br>
+			You should see no red.
+		</p>
+
+		<div class="region"></div>
+
+		<article class="flow">
+			<div class="float inner-region">
+				<p>&nbsp;</p>
+			</div>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx
+		</article>
+		<article class="inner-flow">
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx
+		</article>
+	</body>
+</html>

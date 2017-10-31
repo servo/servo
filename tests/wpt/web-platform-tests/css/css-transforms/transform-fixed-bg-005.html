@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Fixed Background (no-op transform)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='This affects that adding a no-op transform to
+    an element with a fixed background doesn&apos;t affect  rendering.'>
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-fixed-bg-ref.html">
+    <style>
+      body {
+        margin: 0;
+      }
+      div {
+        background: url(support/transform-triangle-left.svg) fixed;
+        width: 100px;
+        height: 100px;
+        position: relative;
+        left: 50px;
+        top: 50px;
+        transform: translate(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

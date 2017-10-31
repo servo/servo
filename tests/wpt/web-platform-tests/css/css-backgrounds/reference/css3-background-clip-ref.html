@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Background-clip Test: the background is pruned to content box</title>
+  <link rel="author" title="Xie Bing" href="mailto:451887565@qq.com">
+  <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"> <!-- 2013-09-03 -->
+  <style type="text/css">
+    .box{
+      width:300px;
+      height:300px;
+      padding:50px;
+      border:10px dashed #000000;
+    }
+    .inner{
+      width:300px;
+      height:300px;
+      background-color:yellow;
+    }
+  </style>
+</head>
+<body>
+  <p>The test passes if the background is pruned to content box.</p>
+  <div class="box">
+    <div class="inner">Inner area!</div>
+  </div>
+</body>
+</html>

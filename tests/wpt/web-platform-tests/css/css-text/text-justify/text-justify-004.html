@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-justify: inter-character, arabic</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<meta name="assert" content="text-justify:inter-character means justification adjusts spacing between each pair of adjacent typographic character units. Justification must not introduce gaps between the joined typographic letter units of cursive scripts such as Arabic.">
+<style type='text/css'>
+.test { text-align: justify; text-justify: inter-character; }
+/* the CSS below is not part of the test */
+.test { border: 1px solid blue;  margin: 20px; width: 290px; font-size: 28px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the sequence مممممع has no gaps in it.</div>
+<div class="test">مممممع مممممع مممممع مممممع مممممع</div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		.region {
+			width: 100px;
+			height: 100px;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+		.region p{
+			height: 50%;
+			background-color: red;
+		}
+
+		#container {
+			position: relative;
+			opacity: .7;
+		}
+		#container > div {
+			position: absolute;
+			width: 100px;
+			height: 100px;
+		}
+		.left {
+			top: 0;
+			left: 0;
+			background-color: lightgreen;
+		}
+		.center {
+			top: 25px;
+			left: 25px;
+			background-color: lightblue;
+		}
+		.right {
+			top: 50px;
+			left: 50px;
+			background-color: yellow;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>You should see three colored overlapping squares, from back to front: a green square, a blue square and a yellow square.</li>
+		</ol>
+		<div id="container">
+			<div class="left region">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div class="center"></div>
+			<div class="right"></div>
+		</div>
+	</body>
+</html>

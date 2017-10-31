@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - letter-spacing</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.1. Properties from CSS" href="http://www.w3.org/TR/css3-transitions/#animatable-css">
+<meta name="flags" content="ahem interact">
+<meta name="assert" content="Test checks that the 'letter-spacing' property is animatable.">
+<style>
+  #test {
+    font-family: ahem;
+    letter-spacing: 0px;
+    transition-duration: 4s;
+    transition-property: letter-spacing;
+    transition-timing-function: linear;
+  }
+</style>
+<body>
+  <p>Click the black rectangle below. Test passes if the black rectangle splits into ten little squares and the spacing between little squares increases gradually not immediately until it stops.</p>
+  <div id="test">FillerText</div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      test.addEventListener("click", function(evt) {
+        test.setAttribute("style", "letter-spacing: 20px;");
+      }, false);
+    })();
+  </script>
+</body>

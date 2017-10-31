@@ -1,0 +1,15 @@
+<csstest def=":active pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="19" rev="1.1" date="03-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>a:active { background-color : lime }</cssrules>
+
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">The background color of <a href="#foo">the anchor</a>
+   should turn to green when it is activated and come back to
+   normal when it is released.</p>
+</code>
+</csstest>

@@ -1,0 +1,24 @@
+<csstest def=":hover with ::selection" module="W3C Selectors" modulename="css3-modsel" number="165" rev="1.0" date="21-november-2001" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>
+  p { border: solid thick gray; }
+  p:hover { border: solid thick green; }
+  p::selection { background: silver; color: black; }
+  p:hover::selection { background: lime; color: black; }
+</cssrules>
+
+<code>
+   <p xmlns="http://www.w3.org/1999/xhtml">Select some of this
+   paragraph, then move your pointing device around. While it is above
+   the paragraph, the selection should be green. While the pointing
+   device is elsewhere, the selection should be silver. The
+   paragraph's border should at all times be a darker colour than the
+   selection's background. Repeat the test with everything
+   selected.</p>
+</code>
+
+</csstest>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>
+        CSS Border and Background: border-image #2 border-image-slice
+    </title>
+    <meta name="assert" content="Basic support for the border-image-slice property" />
+
+    <link rel="author" title="Jérémie Patonnier" href="mailto:jeremie@patonnier.net" / >
+
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#border-image-slice">
+
+    <style type="text/css">
+
+        #fail {
+            background-color: red;
+            width  : 60px;
+            height : 60px;
+        }
+
+        #filler {
+            background-color: #009900;
+            width  : 40px;
+            height : 40px;
+        }
+
+        #test {
+            border : 10px solid red;
+            width  : 40px;
+            height : 40px;
+
+            border-image-source: url(support/img-ref-1.png);
+            border-image-slice : 10;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <p>
+        Pass if the square is fully green.
+    </p>
+
+    <div id="fail">
+        <div id="test">
+            <div id="filler"></div>
+        </div>
+    </div>
+
+</body>
+</html>

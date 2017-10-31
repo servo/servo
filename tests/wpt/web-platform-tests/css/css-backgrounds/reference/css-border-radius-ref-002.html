@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS border-radius Test</title>
+    <style type="text/css">
+        .redSquare {
+            position: absolute;
+			left:50px;
+            width: 100px;
+            height: 100px;
+			background-image:url(../support/yyy.png);
+        }
+		.greenSquare {
+            position: absolute;
+			left:50px;
+            width: 100px;
+            height: 100px;
+			background-image:url(../support/yy.png);
+        }
+        .container {
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is one graph with one color.</p>
+    <div class="container">
+        <!-- This is the graph that should not be visible if the test passes -->
+		<div id="green" class="greenSquare"></div>
+		<!-- This is the square being tested with the radius-->
+		<div id="red" class="redSquare">
+    </div>
+</body>
+</html>

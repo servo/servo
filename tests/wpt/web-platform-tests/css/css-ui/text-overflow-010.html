@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis hides atomic inlines and chars at end of line</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Implementations must hide atomic inlines and characters at the end of the line to make room for the ellipsis">
+<style>
+.green {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+.test {
+  white-space: pre;
+  font-family: ahem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 5.2em; /* making this 5.2em rather than 5em, to ensure that the atomic inline gets entirely hidden even if it is only partially obstructing */
+  color: green;
+}
+span {
+  color: red;
+}
+.ib {
+  display: inline-block;
+  background: red; /* in case the text gets disapeared but the box is still there. */
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=green></div>
+<div class=test>    <span class=ib>X</span>     </div>
+<div class=test>    <span>X</span>     </div>
+<div class=test>    <img src="support/1x1-red.png" width=10 height=10>     </div>

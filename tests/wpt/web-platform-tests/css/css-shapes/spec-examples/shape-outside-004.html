@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: inset with no extent and inline content - inset(50% 50% 50% 50%)</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#relation-to-box-model-and-float-behavior"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#supported-basic-shapes"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="match" href="reference/shape-outside-004-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that a shape with no extent allow inline
+                                 content to flow through all of the float's box."/>
+     <!-- This test is derived from Example 3 in this version of the spec:
+          http://www.w3.org/TR/2013/WD-css-shapes-1-20131203/ -->
+    <style type="text/css">
+        .container {
+          width: 400px;
+          font-family: Ahem;
+          font-size: 20px;
+          line-height: 1.5em;
+        }
+        #test {
+            color: green;
+        }
+        #test-float-left {
+          shape-outside: inset(50% 50% 50% 50%);
+          float: left;
+          width: 200px;
+          height: 200px;
+        }
+        #failure {
+            color: red;
+            z-index: -1;
+        }
+        #test, #failure {
+            position: absolute;
+            top: 70px;
+        }
+        #square{
+            position: absolute;
+            top: 70px;
+            width: 196px;
+            height: 196px;
+            border: 1px solid black;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if there are two columns of six green horizontal bars of the same
+        size inside the square and two columns of six matching green bars outside and to the
+        right of the square. There should be no red.
+    </p>
+    <div id="test" class="container">
+        <div id="test-float-left"></div>
+        XXXX XXXX
+        XXXX XXXX
+        XXXX XXXX
+        XXXX XXXX
+        XXXX XXXX XXXX XXXX
+        XXXX XXXX XXXX XXXX
+        XXXX XXXX XXXX XXXX
+        XXXX XXXX XXXX XXXX
+    </div>
+    <div id="failure" class="container">
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+          XXXX XXXX XXXX XXXX
+    </div>
+    <div id="square"></div>
+</body>
+</html>

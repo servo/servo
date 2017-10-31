@@ -1,0 +1,16 @@
+<csstest def="Nondeterministic matching of descendant and direct adjacent combinators" module="W3C Selectors" modulename="css3-modsel" number="88b" rev="1.2" date="3-march-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>p { color: green ! important; }
+blockquote + div p { color: red; }</cssrules>
+<code>
+<blockquote xmlns="http://www.w3.org/1999/xhtml"><div>This text should be unstyled.</div></blockquote>
+<div xmlns="http://www.w3.org/1999/xhtml">
+<div>
+<p>This text should be green.</p>
+</div>
+</div>
+</code>
+</csstest>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: Auto-height region in fixed sized flexbox using flex basis</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#rfcb-flow-fragment-height-resolution">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks the layout of regions placed inside a fixed sized flexbox using flex
+		basis and column flow. The flex container should force the first region to break by constraining its height.">
+		<link rel="match" href="reference/autoheight-regions-in-fixed-sized-flexbox-004-ref.html">
+		<style>
+			.content {
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 1em;
+				color: green;
+				flow-into: flow;
+			}
+
+			.flex {
+				display: flex;
+				height: 100px;
+				width: 100px;
+				flex-direction: column;
+				margin-bottom: 20px;
+			}
+
+			.fixed {
+				flex-basis: 60%;
+			}
+
+			.region {
+				flow-from: flow;
+			}
+
+			#first {
+				flex-basis: 40%;
+			}
+
+			#second {
+				height: 100px;
+			}
+
+			.red {
+				background-color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see two green stripes.</li>
+			<li>You should not see any red.</li>
+		</ul>
+		<div class="content">
+			XXXXX<br>
+			XXXXX<br>
+			XXXXX<br>
+			XXXXX<br>
+		</div>
+		<div class="flex">
+			<div class="fixed"></div>
+			<div class="region" id="first"></div>
+		</div>
+		<div class="region" id="second">
+			<p class="red">&nbsp;</p>
+		</div>
+	</body>
+</html>

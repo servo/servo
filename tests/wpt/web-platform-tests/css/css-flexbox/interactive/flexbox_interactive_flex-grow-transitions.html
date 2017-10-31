@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>flexbox | transitioned flex-grow</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-grow-property">
+<meta name="flags" content="interact">
+<style>
+div {
+	width: 20em;
+	height: 8em;
+
+	display: flex;
+}
+span {
+	background: yellow;
+	width: 8em;
+	flex: 1 0 0%;
+}
+#test, .ref {
+	background: #3366cc;
+}
+div:hover #test {
+	transition: flex-grow 4s;
+	flex-grow: 2;
+}
+p~div {
+	margin-right: 1em;
+	float: left;
+	display: block;
+}
+p~div span {
+	width: 5em;
+	height: 8em;
+	float: left;
+}
+p~div~div span {
+	width: 4em;
+}
+p~div~div span.ref {
+	width: 8em;
+}
+</style>
+
+<div>
+	<span>one</span>
+	<span id="test">two</span>
+	<span>three</span>
+	<span>four</span>
+</div>
+
+<p>Verify that the box above looks exactly like the first of the boxes
+below. Then hover the box above and leave the mouse there for 4 seconds.
+After the specified time, the box above should look exactly like the
+second of the boxes below.</p>
+
+<div>
+	<span>one</span>
+	<span class="ref">two</span>
+	<span>three</span>
+	<span>four</span>
+</div>
+
+<div>
+	<span>one</span>
+	<span class="ref">two</span>
+	<span>three</span>
+	<span>four</span>
+</div>

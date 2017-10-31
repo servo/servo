@@ -1,0 +1,15 @@
+<csstest def="NEGATED :focus pseudo-class" module="W3C Selectors" modulename="css3-modsel" number="65" rev="1.0" date="11-july-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+
+<userinteraction/>
+
+<cssrules>a:not(:focus) { background-color: transparent; }
+a { background-color: lime; }
+</cssrules>
+<code>
+<p xmlns="http://www.w3.org/1999/xhtml">The background color of all <a href="#foo">anchors</a>
+  should become <a href="#foo"> green</a> when they have the
+  <a href="#foo">focus</a>.</p>
+</code>
+</csstest>

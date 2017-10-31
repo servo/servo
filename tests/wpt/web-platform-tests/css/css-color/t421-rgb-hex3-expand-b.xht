@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: expansion of #rgb colors to #rrggbb</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#rgb-color" />
+		<meta name="flags" content="" />
+		<meta name="assert" content="Test that 3-digit #rgb values are expanded into #rrggbb and not #r0g0b0" />
+		<style type="text/css"><![CDATA[
+		table { border-spacing: 0; padding: 0; border: none; }
+		td { border: none; padding: 0; width: 1.2em; height: 1.2em; }
+		]]></style>
+	</head>
+	<body>
+
+	<p>The left and right cells in each row of the following table should be the <em>same</em> color.</p>
+
+	<table>
+		<tr><td style="background: #e92">&nbsp;</td><td style="background: #ee9922">&nbsp;</td></tr>
+		<tr><td style="background: #fb0">&nbsp;</td><td style="background: #ffbb00">&nbsp;</td></tr>
+		<tr><td style="background: #381">&nbsp;</td><td style="background: #338811">&nbsp;</td></tr>
+	</table>
+
+	<p>The left and right cells in each row of the following table should be slightly <em>different</em> colors.  The right side should be slightly darker than the left.</p>
+
+	<table>
+		<tr><td style="background: #e92">&nbsp;</td><td style="background: #e09020">&nbsp;</td></tr>
+		<tr><td style="background: #fb0">&nbsp;</td><td style="background: #f0b000">&nbsp;</td></tr>
+		<tr><td style="background: #381">&nbsp;</td><td style="background: #308010">&nbsp;</td></tr>
+	</table>
+
+	</body>
+</html>

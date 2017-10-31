@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>flexbox | order; justify-content: space-around</title>
+<link rel="author" href="http://opera.com" title="Opera Software">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#order-property">
+<link rel="match" href="flexbox_order-abspos-space-around-ref.html">
+<style>
+div {
+	background: blue;
+	border: 1px solid black;
+	width: 27em;
+	height: 8em;
+	position: relative;
+
+	display: flex;
+	justify-content: space-around;
+}
+span {
+	background: yellow;
+	width: 5em;
+	flex: 0 0 auto;
+}
+#test {
+	position: absolute;
+	right: 0;
+	order: -1;
+}
+</style>
+
+<div>
+	<span>damer</span>
+	<span id="test"></span>
+	<span>damer</span>
+	<span>damer</span>
+</div>

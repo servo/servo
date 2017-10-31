@@ -1,0 +1,15 @@
+<csstest def="::first-line on inlines" module="W3C Selectors" modulename="css3-modsel" number="179" rev="1.0" date="29-february-2004" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  p { color: green; }
+  span:first-line { background: red; color: yellow; font-size: 4em; }
+  span::first-line { background: red; color: yellow; font-size: 4em; }
+</cssrules>
+
+<code>
+   <p xmlns="http://www.w3.org/1999/xhtml"><span>This line should be green.</span></p>
+</code>
+
+</csstest>

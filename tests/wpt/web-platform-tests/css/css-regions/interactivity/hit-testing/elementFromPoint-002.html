@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: document.elementFromPoint() for elements flowed into regions</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="document.elementFromPoint() should return the correct element when provided with coordinates of points corresponding to elements flowed into regions">
+	<meta name="flags" content="dom interact">
+	<style>
+	p {
+		margin: 0;
+	}
+	ol {
+		padding: 0;
+		margin: 0;
+	}
+	#content {
+		flow-into: f;
+	}
+	#region {
+		flow-from: f;
+		margin-left: 40px;
+		width: 200px;
+		height: 150px;
+		background-color: lightgray;
+	}
+	#region p {
+		font-weight: bold;
+		color: red;
+	}
+	</style>
+	<script src="/resources/testharness.js"></script>
+	<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+	<div id="content">
+	</div>
+	<div id="region">
+		<p>FAIL</p>
+	</div>
+	<div id="log"></div>
+	<script type="text/javascript">
+	var testElements = [
+			{ tag: "p", content: "Some text here", description: "Block content" },
+			{ tag: "span", content: "Some text here", description: "Inline content", around: "mmm" },
+			{ tag: "img", description: "Replaced content", src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAT0lEQVR42u2WMQoAIAwD+/9Px9VFoUJNhjvoKDmKhVQBQA9tYw3/LiGngJwChBN+CtfjWMOvEp0HIwL2DUT8gYgrQAKJyD4Q0YgiOiHACAvTEtAwKdXD6AAAAABJRU5ErkJggg==", style: { width: "32px", height: "32px"} },
+			{ tag: "li", content: "Some text here", description: "Elements with parents", parent: "ol"},
+			{ tag: "foobar", content: "Some text here", description: "Unknown element type" },
+			{ tag: "div", content: "Floating content", description: "Floating content", style: { float: "right" } },
+		],
+		regionBox = document.querySelector("#region").getBoundingClientRect();
+
+	function insertElement(elem) {
+		var node, parent, content;
+		node = document.createElement(elem.tag);
+		node.appendChild(document.createTextNode(elem.content));
+
+		if (elem.parent) {
+			parent = document.createElement(elem.parent);
+			parent.appendChild(node);
+		}
+
+		if (elem.src) {
+			node.src = elem.src;
+		}
+
+		for (var prop in elem.style) {
+			node.style[prop] = elem.style[prop];
+		}
+
+		if (elem.around) {
+			content = elem.around + (parent ? parent.outerHTML : node.outerHTML) + elem.around;
+		} else {
+			content = (parent ? parent.outerHTML : node.outerHTML);
+		}
+
+		document.querySelector("#content").innerHTML = content;
+	}
+	function pointForElement(elem) {
+		var elemBox, result, aroundElem, aroundBox;
+		elemBox = document.querySelector("#content " + elem.tag).getBoundingClientRect();
+
+		result = {
+			top : regionBox.top + elemBox.height/2,
+			left : regionBox.left + elemBox.width/2
+
+		};
+
+		if (elem.around) {
+			aroundElem = document.createElement("span");
+			aroundElem.innerHTML = elem.around;
+			aroundElem.style.visibility = "hidden";
+
+			document.body.insertBefore(aroundElem, null);
+			document.body.offsetTop;
+			aroundBox = aroundElem.getBoundingClientRect();
+			document.body.removeChild(aroundElem);
+
+			result.left += aroundBox.width;
+		}
+
+		if (elem.style && elem.style.float == "right") {
+			result.left = regionBox.right - (aroundBox ? aroundBox.width : 0) - elemBox.width/2;
+		}
+
+		return result;
+	}
+
+	testElements.forEach(function(elem) {
+		test(function() {
+			var point, fromSelector;
+
+			insertElement(elem);
+			point = pointForElement(elem);
+
+			fromSelector = document.querySelector("#content " + elem.tag);
+			assert_equals(fromSelector, document.elementFromPoint(point.left, point.top));
+
+		}, elem.description)
+	});
+	</script>
+</body>
+</html>

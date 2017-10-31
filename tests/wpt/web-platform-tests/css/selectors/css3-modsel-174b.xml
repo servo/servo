@@ -1,0 +1,18 @@
+<csstest def="NEGATED Attribute selectors with multiple attributes" module="W3C Selectors" modulename="css3-modsel" number="174b" rev="1.0" date="20-september-2002" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+ tests, tests * { display: block; color: green }
+ testA:not([*|attribute="pass"]) { color: red; }
+ testB:not([*|attribute="pass"]) { color: red; }
+</cssrules>
+
+<code>
+  <tests xmlns="http://css.example.net/" xmlns:test="http://css.example.net/">
+   <testA attribute="pass" test:attribute="fail">This should be green.</testA>
+   <testB attribute="fail" test:attribute="pass">This should be green.</testB>
+  </tests>
+</code>
+
+</csstest>

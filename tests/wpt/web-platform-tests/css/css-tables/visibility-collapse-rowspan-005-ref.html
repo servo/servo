@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test Reference: Overflow clipping in cells that span rows</title>
+<link rel='stylesheet' href='support/base.css' />
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#visibility-collapse-cell-rendering">
+<style>
+table {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+table td {
+    border: 1px solid blue;
+    padding: 5px;
+}
+</style>
+<h1>Visibility collapse</h1>
+<a href="https://drafts.csswg.org/css-tables-3/#visibility-collapse-cell-rendering">Spec</a>
+<table>
+    <tr>
+      <td>Row 1 Left</td>
+      <td>Row 1 Center</td>
+      <td rowspan=2 style="width:100px"><p>Supersuperlongword</p><p style="visibility: hidden;">row with lots and lots of text</p></td>
+    </tr>
+    <tr style="visibility: collapse">
+      <td>Row 2 Left</td>
+      <td>Row 2 Center</td>
+    </tr>
+    <tr>
+      <td>Row 3 Left</td>
+      <td>Row 3 Center</td>
+      <td>Row 3 Right</td>
+    </tr>
+</table>

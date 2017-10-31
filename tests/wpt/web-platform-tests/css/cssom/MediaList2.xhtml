@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: the MediaList interface</title>
+<link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com"/>
+<link rel="help" href="http://www.w3.org/TR/cssom-1/#the-medialist-interface"/>
+<link rel="help" href="http://dev.w3.org/2006/webapi/WebIDL/#getownproperty"/>
+<style media="screen, print" id="test-style"></style>
+<script src="/resources/testharness.js"/>
+<script src="/resources/testharnessreport.js"/>
+<script id="metadata_cache">/*
+{
+  "MediaList": {},
+  "MediaList.mediaText": {},
+  "MediaList.length": {},
+  "MediaList getter": {},
+  "MediaList.item": {}
+}
+*/</script>
+</head>
+<body>
+<div id="log"/>
+<script>
+test(function() {
+  var ss = document.styleSheets[0];
+  assert_equals(ss.ownerNode.id, "test-style", "Got the wrong style element");
+
+  var media = ss.media;
+  test(function() {
+    // https://www.w3.org/Bugs/Public/show_bug.cgi?id=17526
+    assert_equals(media.mediaText, "screen, print", "Serialization should be \"screen, print\"");
+  }, "MediaList.mediaText");
+
+  test(function() {
+    assert_equals(media.length, 2, "Got wrong number of media");
+  }, "MediaList.length");
+
+  test(function() {
+    assert_equals(media[-1], undefined, "media[-1] should return undefined");
+    assert_equals(media[0], "screen", "media[0] should return \"screen\"");
+    assert_equals(media[1], "print", "media[1] should return \"print\"");
+    assert_equals(media[2], undefined, "media[2] should return undefined");
+  }, "MediaList getter");
+
+  test(function() {
+    assert_equals(media.item(-1), null, "media.item(-1) should return null");
+    assert_equals(media.item(0), "screen", "media.item(0) should return \"screen\"");
+    assert_equals(media.item(1), "print", "media.item(1) should return \"print\"");
+    assert_equals(media.item(2), null, "media.item(2) should return null");
+  }, "MediaList.item");
+}, "MediaList");
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: Auto-height regions in auto-height flex container</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#rfcb-flow-fragment-height-resolution">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-flex-wrap">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-direction-property">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-flow-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test that auto-height regions placed in a flex container with auto-height and
+		row wrap reverse flow are sized correctly. The content from the second flow should flow through the region on
+		the second row and into the region from the first row, making the left blue rectangle taller than the green
+		rectangle on the right.">
+		<link rel="match" href="reference/autoheight-regions-in-autoheight-flexbox-001-ref.html">
+		<style>
+			.content {
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 1em;
+			}
+
+			#c1 {
+				color: green;
+				flow-into: flow1;
+			}
+
+			#c2 {
+				color: blue;
+				flow-into: flow2;
+			}
+
+			.flex {
+				display: flex;
+				max-width: 300px;
+				flex-flow: row-reverse wrap-reverse;
+			}
+
+			.fromFlow1 {
+				flow-from: flow1;
+			}
+
+			.fromFlow2 {
+				flow-from: flow2;
+			}
+
+			#r1 {
+				max-width: 100px;
+				max-height: 40px;
+				flex: 1 1 auto;
+			}
+
+			#r2 {
+				width: 200px;
+				flex: 1 1 auto;
+			}
+
+			#r3 {
+				flex: 1 1 auto;
+			}
+
+			.blue {
+				color: blue;
+			}
+
+			.red {
+				background-color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see a blue rectangle and a green rectangle, from left to right in this order.</li>
+			<li>The blue rectangle one the left should be taller than the green rectangle on the right.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div id="c1" class="content">
+			XXXXX<br>
+			XXXXX<br>
+			<span class="blue">XXXXX</span>
+		</div>
+		<div id="c2" class="content">
+			XXXXX<br>
+			XXXXX
+		</div>
+		<div class="flex">
+			<div id="r1" class="fromFlow1"><p class="red">&nbsp;</p></div>
+			<div id="r2" class="fromFlow2"><p class="red">&nbsp;</p></div>
+			<div id="r3" class="fromFlow1"><p class="red">&nbsp;</p></div>
+		</div>
+	</body>
+</html>

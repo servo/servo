@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Padding-right applied to element with display run-in</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-padding-right" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'padding-right' property applies to elements with a display of run-in." />
+        <style type="text/css">
+            div
+            {
+                height: 200px;
+            }
+            #div1
+            {
+                border-right: 10px solid blue;
+                display: run-in;
+                padding-right: 50px;
+                width: 200px;
+            }
+            div div
+            {
+                border-right: 10px solid orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is space between the blue and orange lines below.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>
+        CSS Border and Background: border-image #15 border-image-repeat
+    </title>
+    <meta name="assert" content="Test for the border-image-repeat property with the value space" />
+
+    <link rel="author" title="Jérémie Patonnier" href="mailto:jeremie@patonnier.net" / >
+
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-repeat">
+
+    <style type="text/css">
+
+        #test {
+            border : 10px solid red;
+            width  : 39px;
+            height : 39px;
+
+            border-image-source: url(support/img-ref-2.png);
+            border-image-slice : 10;
+            border-image-repeat: space;
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <p>
+        Pass if the square has borders made of plain regular green dots.
+    </p>
+
+    <div id="test"></div>
+
+</body>
+</html>

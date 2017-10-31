@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: transparent</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#transparent" />
+		<link rel="match" href="t423-transparent-2-a-ref.html" />
+		<meta name="flags" content="" />
+		<meta name="assert" content="That the 'transparent' color keyword makes colors transparent." />
+		<style type="text/css"><![CDATA[
+		html, body { background: black; }
+		p { color: white; }
+		#two { color: transparent; }
+		]]></style>
+	</head>
+	<body>
+		<p id="one">This should be the only text visible on this page.</p>
+		<p id="two">This text should NOT be visible.</p>
+	</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Opera Software ASA" href="http://www.opera.com/" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-08-08 -->
+  <meta name="flags" content="image" />
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: blue;
+  font: 1.25em/1 serif;
+  }
+
+  div#top
+  {
+  height: 5em;
+  width: 22em;
+  }
+
+  div#bottom
+  {
+  height: 3em;
+  width: 14em;
+  }
+
+  img {vertical-align: top;}
+  ]]></style>
+ </head>
+ <body>
+    <div id="top"><img src="support/black20x20.png" width="60" height="100" alt="Image download support must be enabled" /></div>
+
+  <div id="bottom"><img src="support/swatch-orange.png" width="60" height="60" alt="Image download support must be enabled" /></div>
+
+  <!--
+
+  Expected results:
+
+ 0em                        14em            22em
+  v                           v               v
+0 *********************************************
+  * bla                       |               *
+  * bla                       |               *
+  * bla                       |               *
+  * bla                       |               *
+5 * bla                       |               *
+6 * orn                       |****************
+7 * orn                       |
+8 * orn                       |
+  *****************************
+
+  -->
+
+ </body>
+</html>

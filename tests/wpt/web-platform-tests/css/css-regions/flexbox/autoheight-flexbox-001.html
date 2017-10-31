@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: fixed height flexbox inside auto height region</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#rfcb-flow-fragment-height-resolution">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+		<meta name="assert" content="Test that flowing a flex container inside a region with auto-height will enlarge
+		the region to fit the content.">
+		<link rel="match" href="reference/autoheight-flexbox-001-ref.html">
+		<style>
+			.flex {
+				display: flex;
+				height: 100px;
+				width: 100px;
+				background-color: green;
+				flow-into: flow;
+			}
+
+			.region {
+				width: 100px;
+				background-color: gray;
+				padding: 10px;
+				flow-from: flow;
+			}
+
+			.red {
+				background-color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see a green square inside a gray square.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="flex">
+		</div>
+		<div class="region">
+			<p class="red">&nbsp;</p>
+		</div>
+	</body>
+</html>

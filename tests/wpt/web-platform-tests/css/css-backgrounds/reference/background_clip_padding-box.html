@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Backgrounds and Borders Test: background-clip_border-box</title>
+    <link rel="author" title="Xiaoyan Jiang" href="mailto:dajiangxiaoyan@126.com">
+    <link rel="reviewer" title="Jinlong Zhang" href="mailto:jinlongz@oupeng.com">
+    <style type="text/css">
+        /* Positioned container allows for the self-describing statement to still
+           be visible in the case of failure */
+        .container {
+            position: absolute;
+        }
+        .ref {
+			background-color: red;
+			height: 130px;
+			left: 10px;
+			top: 10px;
+			width: 130px;
+			position: absolute;
+         }
+
+		 .ref1 {
+			height: 130px;
+			left: 5px;
+			top: 5px;
+			width: 130px;
+			position: absolute;
+			border: blue dotted 5px ;
+         }
+
+    </style>
+</head>
+<body>
+<p>Test passes if border is blue and dotted without red background</p>
+    <div class="container">
+        <div class="ref"></div>
+		<div class="ref1"></div>
+    </div>
+</body>
+</html>

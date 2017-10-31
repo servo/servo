@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transition Reference File</title>
+    <link rel="author" title="Oleg Janeiko" href="mailto:oleg@the-incredible.me">
+    <style type="text/css">
+        .container {
+            background-color: red;
+            height: 200px;
+            width: 200px;
+        }
+        .box {
+            width: 100px;
+            height: 100px;
+            background-color: green;
+
+            transition-property: width;
+            transition-duration: 0;
+        }
+        .box.transition {
+            width: 200px;
+            height: 200px;
+        }
+    </style>
+    <script type="text/javascript" charset="utf-8">
+        function ready(){
+            var box = document.querySelector('.box');
+            box.className = 'box transition';
+        }
+    </script>
+</head>
+<body onload="ready();">
+    <div>
+        <p>You should not see a red background during the transition. Note: if the test passes transition is instant.</p>
+    </div>
+    <div class="container">
+        <div class="box"></div>
+    </div>
+</body>
+</html>

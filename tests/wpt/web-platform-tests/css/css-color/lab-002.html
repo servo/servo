@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Specifying Lab and LCH</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#specifying-lab-lch">
+<link rel="match" href="blacktext-ref.html">
+<meta name="assert" content="lab() with no alpha">
+<style>
+    .test { color: red; }
+    .test { color: lab(0 0 0)} 	// black (sRGB #000000) converted to Lab
+</style>
+<body>
+    <p class="test">Test passess if this text is black</p>
+</body>

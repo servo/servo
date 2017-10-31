@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: forced page breaks for different page values</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="assert" content="A page break MUST occur in the vertical margin between block boxes if the last line box above this margin and the first one below it do not have the same value for 'page'."/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	@page {size: portrait;}
+	@page breaker {size: portrait;}
+	* {margin: 0;}
+	div {page: breaker;}
+</style>
+</head>
+<body>
+	<p>When printed, this test requires two pages.</p>
+	<div>This sentence must appear on a new page.</div>
+</body>
+</html>

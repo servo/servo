@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.blue {
+			color: blue;
+		}
+		.green {
+			color: green;
+		}
+		.left {
+			float: left;
+		}
+		.sized {
+			max-height: 100px;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you two squares side by side. The left one should be green, the right one
+			should be blue and they should be flush to one another.<br>
+			You should see no red.
+		</p>
+
+		<div class="sized left region">
+			<article>
+				<div class="green">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</div>
+			</article>
+		</div>
+		<div class="region">
+			<article>
+				<div class="blue">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</div>
+			</article>
+		</div>
+	</body>
+</html>

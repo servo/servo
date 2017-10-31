@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow - ellipsis - the broken textual content instead of ellipsis</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="8.2. Overflow Ellipsis: the 'text-overflow' property" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="reference/text-overflow-002-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="Test checks that an ellipsis (...) is shown instead of overflowing textual content">
+<style>
+  div {
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 150px;
+  }
+  span {
+    font-family: Ahem;
+    font-size: 30px;
+  }
+</style>
+<body>
+  <p>PREREQUISITE: The font used must have a glyph for the U+2026 character.</p>
+  <p>Test passes if there is an <strong>ellipsis</strong> after a black rectangle below.</p>
+  <div>
+    <span>TestChecksThatTheBrokenContentRepalcedByEllipsis</span>
+  </div>
+</body>

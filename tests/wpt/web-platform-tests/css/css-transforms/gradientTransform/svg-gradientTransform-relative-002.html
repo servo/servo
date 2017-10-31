@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG gradientTransform presentation attribute and translation-value argument with negative percentage unit on translateX - has no effect</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-gradient-transform-pattern-transform">
+    <link rel="match" href="reference/svg-gradientTransform-relative-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Arguments in percentage units in gradientTransform functions should have no affect. The gradient in the test should be not be moved.">
+    <style type="text/css">
+    svg {
+        width: 100px;
+        height: 100px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a vertical green bar next to a vertical blue bar.</p>
+    <svg>
+        <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" gradientTransform="translateX(-25%)">
+                <stop offset="50%" stop-color="green"/>
+                <stop offset="50%" stop-color="blue"/>
+            </linearGradient>
+        </defs>
+        <rect fill="url(#grad)" x="0" y="0" width="100" height="100"/>
+    </svg>
+</body>
+</html>

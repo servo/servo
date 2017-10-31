@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#3/9, 2048 code points in U+1B08-2858).</title>
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation">
+<meta name="assert" content="Test orientation of characters where vo=R (#3/9, 2048 code points in U+1B08-2858)">
+<meta name="flags" content="dom">
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "orientation";
+    src: url("support/adobe-fonts/CSSHWOrientationTest.otf");
+}
+.test {
+    font: 16px/1 "orientation";
+    height: 17em;
+    writing-mode: vertical-rl;
+}
+.line {
+    white-space: pre;
+}
+.U {
+    text-orientation: upright;
+}
+.R {
+    text-orientation: sideways;
+}
+#details {
+    margin: 1em .5em;
+}
+summary {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: .5em;
+}
+</style>
+<div id="log"></div>
+<div id="details"></div>
+<div id="container">
+<div data-vo="R" class="test">
+<div data-block="Balinese">
+<div class="line">ᬈᬉᬊᬋᬌᬍᬎᬏᬐᬑᬒᬓᬔᬕᬖᬗᬘᬙᬚᬛᬜᬝᬞᬟᬠᬡᬢᬣᬤᬥᬦᬧ</div>
+<div class="line">ᬨᬩᬪᬫᬬᬭᬮᬯᬰᬱᬲᬳᭅᭆᭇᭈᭉᭊᭋ᭐᭑᭒᭓᭔᭕᭖᭗᭘᭙᭚᭛᭜</div>
+<div class="line">᭝᭞᭟᭠᭡᭢᭣᭤᭥᭦᭧᭨᭩᭪᭴᭵᭶᭷᭸᭹᭺᭻᭼</div>
+</div>
+<div data-block="Sundanese">
+<div class="line">ᮃᮄᮅᮆᮇᮈᮉᮊᮋᮌᮍᮎᮏᮐᮑᮒᮓᮔᮕᮖᮗᮘᮙᮚᮛᮜᮝᮞᮟᮠᮮᮯ</div>
+<div class="line">᮰᮱᮲᮳᮴᮵᮶᮷᮸᮹ᮺᮻᮼᮽᮾᮿ</div>
+</div>
+<div data-block="Batak">
+<div class="line">ᯀᯁᯂᯃᯄᯅᯆᯇᯈᯉᯊᯋᯌᯍᯎᯏᯐᯑᯒᯓᯔᯕᯖᯗᯘᯙᯚᯛᯜᯝᯞᯟ</div>
+<div class="line">ᯠᯡᯢᯣᯤᯥ᯼᯽᯾᯿</div>
+</div>
+<div data-block="Lepcha">
+<div class="line">ᰀᰁᰂᰃᰄᰅᰆᰇᰈᰉᰊᰋᰌᰍᰎᰏᰐᰑᰒᰓᰔᰕᰖᰗᰘᰙᰚᰛᰜᰝᰞᰟ</div>
+<div class="line">ᰠᰡᰢᰣ᰻᰼᰽᰾᰿᱀᱁᱂᱃᱄᱅᱆᱇᱈᱉ᱍᱎᱏ</div>
+</div>
+<div data-block="Ol">
+<div class="line">᱐᱑᱒᱓᱔᱕᱖᱗᱘᱙ᱚᱛᱜᱝᱞᱟᱠᱡᱢᱣᱤᱥᱦᱧᱨᱩᱪᱫᱬᱭᱮᱯ</div>
+<div class="line">ᱰᱱᱲᱳᱴᱵᱶᱷᱸᱹᱺᱻᱼᱽ᱾᱿</div>
+</div>
+<div data-block="Cyrillic">
+<div class="line">ᲀᲁᲂᲃᲄᲅᲆᲇᲈ</div>
+</div>
+<div data-block="Sundanese">
+<div class="line">᳀᳁᳂᳃᳄᳅᳆᳇</div>
+</div>
+<div data-block="Vedic">
+<div class="line">᳓ᳩᳪᳫᳬᳮᳯᳰᳱᳵᳶ</div>
+</div>
+<div data-block="Phonetic">
+<div class="line">ᴀᴁᴂᴃᴄᴅᴆᴇᴈᴉᴊᴋᴌᴍᴎᴏᴐᴑᴒᴓᴔᴕᴖᴗᴘᴙᴚᴛᴜᴝᴞᴟ</div>
+<div class="line">ᴠᴡᴢᴣᴤᴥᴦᴧᴨᴩᴪᴫᴬᴭᴮᴯᴰᴱᴲᴳᴴᴵᴶᴷᴸᴹᴺᴻᴼᴽᴾᴿ</div>
+<div class="line">ᵀᵁᵂᵃᵄᵅᵆᵇᵈᵉᵊᵋᵌᵍᵎᵏᵐᵑᵒᵓᵔᵕᵖᵗᵘᵙᵚᵛᵜᵝᵞᵟ</div>
+<div class="line">ᵠᵡᵢᵣᵤᵥᵦᵧᵨᵩᵪᵫᵬᵭᵮᵯᵰᵱᵲᵳᵴᵵᵶᵷᵸᵹᵺᵻᵼᵽᵾᵿ</div>
+<div class="line">ᶀᶁᶂᶃᶄᶅᶆᶇᶈᶉᶊᶋᶌᶍᶎᶏᶐᶑᶒᶓᶔᶕᶖᶗᶘᶙᶚᶛᶜᶝᶞᶟ</div>
+<div class="line">ᶠᶡᶢᶣᶤᶥᶦᶧᶨᶩᶪᶫᶬᶭᶮᶯᶰᶱᶲᶳᶴᶵᶶᶷᶸᶹᶺᶻᶼᶽᶾᶿ</div>
+</div>
+<div data-block="Latin">
+<div class="line">ḀḁḂḃḄḅḆḇḈḉḊḋḌḍḎḏḐḑḒḓḔḕḖḗḘḙḚḛḜḝḞḟ</div>
+<div class="line">ḠḡḢḣḤḥḦḧḨḩḪḫḬḭḮḯḰḱḲḳḴḵḶḷḸḹḺḻḼḽḾḿ</div>
+<div class="line">ṀṁṂṃṄṅṆṇṈṉṊṋṌṍṎṏṐṑṒṓṔṕṖṗṘṙṚṛṜṝṞṟ</div>
+<div class="line">ṠṡṢṣṤṥṦṧṨṩṪṫṬṭṮṯṰṱṲṳṴṵṶṷṸṹṺṻṼṽṾṿ</div>
+<div class="line">ẀẁẂẃẄẅẆẇẈẉẊẋẌẍẎẏẐẑẒẓẔẕẖẗẘẙẚẛẜẝẞẟ</div>
+<div class="line">ẠạẢảẤấẦầẨẩẪẫẬậẮắẰằẲẳẴẵẶặẸẹẺẻẼẽẾế</div>
+<div class="line">ỀềỂểỄễỆệỈỉỊịỌọỎỏỐốỒồỔổỖỗỘộỚớỜờỞở</div>
+<div class="line">ỠỡỢợỤụỦủỨứỪừỬửỮữỰựỲỳỴỵỶỷỸỹỺỻỼỽỾỿ</div>
+</div>
+<div data-block="Greek">
+<div class="line">ἀἁἂἃἄἅἆἇἈἉἊἋἌἍἎἏἐἑἒἓἔἕἘἙἚἛἜἝἠἡἢἣ</div>
+<div class="line">ἤἥἦἧἨἩἪἫἬἭἮἯἰἱἲἳἴἵἶἷἸἹἺἻἼἽἾἿὀὁὂὃ</div>
+<div class="line">ὄὅὈὉὊὋὌὍὐὑὒὓὔὕὖὗὙὛὝὟὠὡὢὣὤὥὦὧὨὩὪὫ</div>
+<div class="line">ὬὭὮὯὰάὲέὴήὶίὸόὺύὼώᾀᾁᾂᾃᾄᾅᾆᾇᾈᾉᾊᾋᾌᾍ</div>
+<div class="line">ᾎᾏᾐᾑᾒᾓᾔᾕᾖᾗᾘᾙᾚᾛᾜᾝᾞᾟᾠᾡᾢᾣᾤᾥᾦᾧᾨᾩᾪᾫᾬᾭ</div>
+<div class="line">ᾮᾯᾰᾱᾲᾳᾴᾶᾷᾸᾹᾺΆᾼ᾽ι᾿῀῁ῂῃῄῆῇῈΈῊΉῌ῍῎῏</div>
+<div class="line">ῐῑῒΐῖῗῘῙῚΊ῝῞῟ῠῡῢΰῤῥῦῧῨῩῪΎῬ῭΅`ῲῳῴ</div>
+<div class="line">ῶῷῸΌῺΏῼ´῾</div>
+</div>
+<div data-block="General">
+<div class="line">           ‐‑‒–—―‗‘’‚‛“”„‟•‣․‥…‧</div>
+<div class="line">   ′″‴‵‶‷‸‹›‽‾‿⁀⁁⁃⁄⁅⁆⁊⁋⁌⁍⁎⁏⁐⁒⁓⁔⁕</div>
+<div class="line">⁖⁗⁘⁙⁚⁛⁜⁝⁞ </div>
+</div>
+<div data-block="Superscripts">
+<div class="line">⁰ⁱ⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒ</div>
+<div class="line">ₓₔₕₖₗₘₙₚₛₜ</div>
+</div>
+<div data-block="Currency">
+<div class="line">₠₡₢₣₤₥₦₧₨₩₪₫€₭₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽₾</div>
+</div>
+<div data-block="Letterlike">
+<div class="line">ℂℊℋℌℍℎℐℑℒℕ℘ℙℚℛℜℝℤΩℨKÅℬℭℯℰℱℲℳℴ⅀⅁⅂</div>
+<div class="line">⅃⅄⅋ⅎ</div>
+</div>
+<div data-block="Number">
+<div class="line">↊↋</div>
+</div>
+<div data-block="Arrows">
+<div class="line">←↑→↓↔↕↖↗↘↙↚↛↜↝↞↟↠↡↢↣↤↥↦↧↨↩↪↫↬↭↮↯</div>
+<div class="line">↰↱↲↳↴↵↶↷↸↹↺↻↼↽↾↿⇀⇁⇂⇃⇄⇅⇆⇇⇈⇉⇊⇋⇌⇍⇎⇏</div>
+<div class="line">⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇚⇛⇜⇝⇞⇟⇠⇡⇢⇣⇤⇥⇦⇧⇨⇩⇪⇫⇬⇭⇮⇯</div>
+<div class="line">⇰⇱⇲⇳⇴⇵⇶⇷⇸⇹⇺⇻⇼⇽⇾⇿</div>
+</div>
+<div data-block="Mathematical">
+<div class="line">∀∁∂∃∄∅∆∇∈∉∊∋∌∍∎∏∐∑−∓∔∕∖∗∘∙√∛∜∝∟∠</div>
+<div class="line">∡∢∣∤∥∦∧∨∩∪∫∬∭∮∯∰∱∲∳∶∷∸∹∺∻∼∽∾∿≀≁≂</div>
+<div class="line">≃≄≅≆≇≈≉≊≋≌≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≠≡≢</div>
+<div class="line">≣≤≥≦≧≨≩≪≫≬≭≮≯≰≱≲≳≴≵≶≷≸≹≺≻≼≽≾≿⊀⊁⊂</div>
+<div class="line">⊃⊄⊅⊆⊇⊈⊉⊊⊋⊌⊍⊎⊏⊐⊑⊒⊓⊔⊕⊖⊗⊘⊙⊚⊛⊜⊝⊞⊟⊠⊡⊢</div>
+<div class="line">⊣⊤⊥⊦⊧⊨⊩⊪⊫⊬⊭⊮⊯⊰⊱⊲⊳⊴⊵⊶⊷⊸⊹⊺⊻⊼⊽⊾⊿⋀⋁⋂</div>
+<div class="line">⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋕⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟⋠⋡⋢</div>
+<div class="line">⋣⋤⋥⋦⋧⋨⋩⋪⋫⋬⋭⋮⋯⋰⋱⋲⋳⋴⋵⋶⋷⋸⋹⋺⋻⋼⋽⋾⋿</div>
+</div>
+<div data-block="Miscellaneous">
+<div class="line">⌈⌉⌊⌋⌠⌡⌢⌣⌬⌭⌮⌯⌰⌱⌲⌳⌴⌵⌶⌷⌸⌹⌺⌻⌼⌽⌾⌿⍀⍁⍂⍃</div>
+<div class="line">⍄⍅⍆⍇⍈⍉⍊⍋⍌⍍⍎⍏⍐⍑⍒⍓⍔⍕⍖⍗⍘⍙⍚⍛⍜⍝⍞⍟⍠⍡⍢⍣</div>
+<div class="line">⍤⍥⍦⍧⍨⍩⍪⍫⍬⍭⍮⍯⍰⍱⍲⍳⍴⍵⍶⍷⍸⍹⍺⍻⍼⎛⎜⎝⎞⎟⎠⎡</div>
+<div class="line">⎢⎣⎤⎥⎦⎧⎨⎩⎪⎫⎬⎭⎮⎯⎰⎱⎲⎳⎴⎵⎶⎷⎸⎹⎺⎻⎼⎽⏎⏐⏜⏝</div>
+<div class="line">⏞⏟⏠⏡</div>
+</div>
+<div data-block="Control">
+<div class="line">␣</div>
+</div>
+<div data-block="Box">
+<div class="line">─━│┃┄┅┆┇┈┉┊┋┌┍┎┏┐┑┒┓└┕┖┗┘┙┚┛├┝┞┟</div>
+<div class="line">┠┡┢┣┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿</div>
+<div class="line">╀╁╂╃╄╅╆╇╈╉╊╋╌╍╎╏═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟</div>
+<div class="line">╠╡╢╣╤╥╦╧╨╩╪╫╬╭╮╯╰╱╲╳╴╵╶╷╸╹╺╻╼╽╾╿</div>
+</div>
+<div data-block="Block">
+<div class="line">▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟</div>
+</div>
+<div data-block="Miscellaneous">
+<div class="line">☚☛☜☝☞☟</div>
+</div>
+<div data-block="Dingbats">
+<div class="line">❨❩❪❫❬❭❮❯❰❱❲❳❴❵➔➕➖➗➘➙➚➛➜➝➞➟➠➡➢➣➤➥</div>
+<div class="line">➦➧➨➩➪➫➬➭➮➯➰➱➲➳➴➵➶➷➸➹➺➻➼➽➾➿</div>
+</div>
+<div data-block="Miscellaneous">
+<div class="line">⟀⟁⟂⟃⟄⟅⟆⟇⟈⟉⟊⟋⟌⟍⟎⟏⟐⟑⟒⟓⟔⟕⟖⟗⟘⟙⟚⟛⟜⟝⟞⟟</div>
+<div class="line">⟠⟡⟢⟣⟤⟥⟦⟧⟨⟩⟪⟫⟬⟭⟮⟯</div>
+</div>
+<div data-block="Supplemental">
+<div class="line">⟰⟱⟲⟳⟴⟵⟶⟷⟸⟹⟺⟻⟼⟽⟾⟿</div>
+</div>
+<div data-block="Braille">
+<div class="line">⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒⠓⠔⠕⠖⠗⠘⠙⠚⠛⠜⠝⠞⠟</div>
+<div class="line">⠠⠡⠢⠣⠤⠥⠦⠧⠨⠩⠪⠫⠬⠭⠮⠯⠰⠱⠲⠳⠴⠵⠶⠷⠸⠹⠺⠻⠼⠽⠾⠿</div>
+<div class="line">⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘</div>
+</div>
+</div>
+</div>
+<script src="support/text-orientation.js"></script>

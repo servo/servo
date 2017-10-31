@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: place-items shorthand - Shorthand 'specified' and 'resolved' value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="http://www.w3.org/TR/css3-align/#place-items-property" />
+<meta name="assert" content="Check the place-items's 'specified' and 'resolved' values serialization." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    var values = ["normal", "stretch"].concat(selfPositionValues, baselineValues);
+    values.forEach(function(alignValue) {
+        [""].concat(values).forEach(function(justifyValue) {
+            var value = (alignValue + " " + justifyValue).trim();
+            test(function() {
+                checkPlaceShorhand("place-items", alignValue, justifyValue)
+            }, "Checking place-items: " + value);
+        });
+    });
+</script>

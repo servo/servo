@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Deseret, uppercase</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('../../fonts/NotoSansDeseret-Regular.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 200%; line-height: 2.5em; font-family: webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+10428">&#x10400; &#x10400;</span> <span title="U+10429">&#x10401; &#x10401;</span> <span title="U+1042A">&#x10402; &#x10402;</span> <span title="U+1042B">&#x10403; &#x10403;</span> <span title="U+1042C">&#x10404; &#x10404;</span> <span title="U+1042D">&#x10405; &#x10405;</span> <span title="U+1042E">&#x10406; &#x10406;</span> <span title="U+1042F">&#x10407; &#x10407;</span> <span title="U+10430">&#x10408; &#x10408;</span> <span title="U+10431">&#x10409; &#x10409;</span> <span title="U+10432">&#x1040A; &#x1040A;</span> <span title="U+10433">&#x1040B; &#x1040B;</span> <span title="U+10434">&#x1040C; &#x1040C;</span> <span title="U+10435">&#x1040D; &#x1040D;</span> <span title="U+10436">&#x1040E; &#x1040E;</span> <span title="U+10437">&#x1040F; &#x1040F;</span> <span title="U+10438">&#x10410; &#x10410;</span> <span title="U+10439">&#x10411; &#x10411;</span> <span title="U+1043A">&#x10412; &#x10412;</span> <span title="U+1043B">&#x10413; &#x10413;</span> <span title="U+1043C">&#x10414; &#x10414;</span> <span title="U+1043D">&#x10415; &#x10415;</span> <span title="U+1043E">&#x10416; &#x10416;</span> <span title="U+1043F">&#x10417; &#x10417;</span> <span title="U+10440">&#x10418; &#x10418;</span> <span title="U+10441">&#x10419; &#x10419;</span> <span title="U+10442">&#x1041A; &#x1041A;</span> <span title="U+10443">&#x1041B; &#x1041B;</span> <span title="U+10444">&#x1041C; &#x1041C;</span> <span title="U+10445">&#x1041D; &#x1041D;</span> <span title="U+10446">&#x1041E; &#x1041E;</span> <span title="U+10447">&#x1041F; &#x1041F;</span> <span title="U+10448">&#x10420; &#x10420;</span> <span title="U+10449">&#x10421; &#x10421;</span> <span title="U+1044A">&#x10422; &#x10422;</span> <span title="U+1044B">&#x10423; &#x10423;</span> <span title="U+1044C">&#x10424; &#x10424;</span> <span title="U+1044D">&#x10425; &#x10425;</span> <span title="U+1044E">&#x10426; &#x10426;</span> <span title="U+1044F">&#x10427; &#x10427;</span> </div>
+<!--Notes:
+Tip: To identify the characters where differences occur, in order to report problem characters,either mouse over to reveal a tooltip, or copy and paste the sequence into a tool such as <a href='http://r12a.github.io/uniview/' target='_blank'>UniView</a> or the <a href='http://r12a.github.io/apps/conversion/' target='_blank'>Unicode Conversion Tool</a>.
+-->
+</body>
+</html>

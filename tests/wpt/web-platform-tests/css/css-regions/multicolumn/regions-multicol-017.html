@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Multiple named flows, text content flowing into multiple
+                     regions in a multi-column container</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-multicol/#columns"/>
+    <link rel="match" href="reference/regions-multicol-017-ref.html"/>
+    <meta name="assert" content="This test checks multiple named flows with text
+                                 content flow into multiple regions in the multi-column
+                                 container."/>
+    <meta name="flags" content="ahem"/>
+    <style type="text/css">
+        #multicol-container {
+            position: absolute;
+            top: 50px;
+            left: 20px;
+            width: 200px;
+            height: 200px;
+            border: 2px solid black;
+            columns: 4;
+            column-gap: 0;
+        }
+        .named-flow {
+            font-family: Ahem;
+            font-size: 25px;
+            line-height: 1em;
+        }
+        .region {
+            height: 50px;
+        }
+        .black {
+            color: black;
+        }
+        .gray {
+            color: gray;
+        }
+        .region.black {
+          flow-from: multicol-1;
+        }
+        .named-flow.black {
+          flow-into: multicol-1;
+        }
+        .region.gray{
+          flow-from: multicol-2;
+        }
+        .named-flow.gray {
+          flow-into: multicol-2;
+        }
+        #failure {
+            position: absolute;
+            top: 50px;
+            left: 20px;
+            background-color: red;
+            width: 204px;
+            height: 204px;
+            z-index: -1;
+        }
+	</style>
+</head>
+<body>
+    <p>The test passes if there is a 4x4 black and gray checkerboard and no red.</p>
+    <div class="named-flow black">
+        XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX
+    </div>
+    <div class="named-flow gray">
+        XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX
+    </div>
+    <div id="multicol-container">
+        <div class="region black"></div>
+        <div class="region gray"></div>
+        <div class="region black"></div>
+        <div class="region gray"></div>
+        <div class="region gray"></div>
+        <div class="region black"></div>
+        <div class="region gray"></div>
+        <div class="region black"></div>
+        <div class="region black"></div>
+        <div class="region gray"></div>
+        <div class="region black"></div>
+        <div class="region gray"></div>
+        <div class="region gray"></div>
+        <div class="region black"></div>
+        <div class="region gray"></div>
+        <div class="region black"></div>
+    </div>
+    <div id="failure"></div>
+</body>
+</html>

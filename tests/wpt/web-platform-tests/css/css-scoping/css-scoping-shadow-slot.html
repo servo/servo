@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Scoping Module Level 1 - elements with a distribution list should generate boxes in the formatting tree.</title>
+    <link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org"/>
+    <link rel="help" href="http://www.w3.org/TR/css-scoping-1/#selectors-data-model">
+    <link rel="match" href="reference/green-box.html"/>
+</head>
+<body>
+    <style>
+    my-host {
+        display: block;
+        width: 100px;
+        height: 100px;
+        overflow: hidden;
+    }
+    div {
+        width: 100%;
+        height: 50%;
+    }
+    </style>
+    <p>Test passes if you see a single 100px by 100px green box below.</p> 
+    <my-host>
+        <div slot="green" style="background: green;"></div>
+        <div style="background: red;">FAIL</div>
+        <div slot="green" style="background: green;"></div>
+    </my-host>
+    <script>
+
+    try {
+        var shadowHost = document.querySelector('my-host');
+        shadowRoot = shadowHost.attachShadow({mode: 'open'});
+        shadowRoot.innerHTML = '<slot name="green"></slot>';
+    } catch (exception) {
+        document.body.appendChild(document.createTextNode(exception));
+    }
+
+    </script>
+</body>
+</html>

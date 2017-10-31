@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Scoping Module Level 1 - ::slotted pseudo element rule must apply to an element that got slotted via another slot</title>
+    <link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org"/>
+    <link rel="help" href="http://www.w3.org/TR/css-scoping-1/#slotted-pseudo">
+    <link rel="match" href="reference/green-box.html"/>
+</head>
+<body>
+    <style>
+        outer-host {
+            display: block;
+            width: 100px;
+            height: 100px;
+            background: red;
+        }
+        outer-host > * {
+            display: block;
+            width: 100px;
+            height: 25px;
+        }
+    </style>
+    <p>Test passes if you see a single 100px by 100px green box below.</p> 
+    <outer-host>
+        <span slot="outer">FAIL1</span>
+        <span slot="inner">FAIL2</span>
+        <span slot="both">FAIL3</span>
+    </outer-host>
+    <template id="outer-host-template">
+        <inner-host>
+            <style>
+                ::slotted([slot=outer]) { background: green; color: green; }
+                ::slotted([slot=both]) { background: green; }
+                span { display: block; width: 100px; height: 25px; }
+            </style>
+            <slot name="outer"></slot>
+            <slot name="inner"></slot>
+            <slot name="both"></slot>
+            <span slot="inner">FAIL4</span>
+        </inner-host>
+    </template>
+    <template id="inner-host-template">
+        <style>
+            ::slotted([slot=inner]) { background: green; color: green; }
+            ::slotted([slot=both]) { color: green; }
+        </style>
+        <slot></slot>
+        <slot name="inner"></slot>
+    </template>
+    <script>
+
+        try {
+            var outerHost = document.querySelector('outer-host');
+            outerShadow = outerHost.attachShadow({mode: 'closed'});
+            outerShadow.appendChild(document.getElementById('outer-host-template').content.cloneNode(true));
+
+            var innerHost = outerShadow.querySelector('inner-host');
+            innerShadow = innerHost.attachShadow({mode: 'closed'});
+            innerShadow.appendChild(document.getElementById('inner-host-template').content.cloneNode(true));
+        } catch (exception) {
+            document.body.appendChild(document.createTextNode(exception));
+        }
+
+    </script>
+</body>
+</html>

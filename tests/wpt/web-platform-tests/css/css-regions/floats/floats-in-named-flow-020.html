@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: cleared pseudo-elements (clearfix) in named flow contents</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that floats and cleared pseudoelements (clearfix)
+				render in regions just as they render without regions.">
+		<link rel="match" href="reference/floats-in-named-flow-020-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.float {
+			float: left;
+		}
+
+		#float-container {
+			width: 100px;
+			border: 20px solid blue;
+			border-left-width: 0;
+		}
+		/* "clear-fixed" container */
+		#float-container::after {
+			content: "";
+			display: block;
+			clear: both;
+		}
+		.region {
+			flow-from: f;
+			border-left: 20px solid blue;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a green square with a thick blue outline.<br>
+			You should see no red.
+		</p>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<article class="flow">
+			<div id="float-container">
+				<div class="float">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</div>
+			</div>
+		</article>
+	</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Regions establish a new block formatting context</title>
+    <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com"/>
+    <style type="text/css">
+      .blueBox{
+        background-color: blue;
+        width: 100px;
+        height: 100px;
+        float: left;
+      }
+      .floatLeft{
+        float: left;
+        width: 100px;
+        height: 100px;
+        background-color: green;
+      }
+      .error{
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if you see a blue square to the right of a green square.</p>
+    <div class="floatLeft"></div>
+    <div class="blueBox"></div>
+  </body>
+</html>

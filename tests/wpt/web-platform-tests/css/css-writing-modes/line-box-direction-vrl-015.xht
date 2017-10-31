@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: table-cell and 'vertical-rl' - ordering direction of line boxes</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="block-flow-direction-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that the lines boxes of a table-cell with its 'writing-mode' set to 'vertical-rl' are ordered from right to left." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
+
+  div
+    {
+      background-color: blue;
+      border: blue solid 1em;
+      display: table-cell;
+      height: 7em; /* Each line box has an inline-size of 7em */
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <div>A&nbsp; BBBB C&nbsp; D&nbsp; E F&nbsp; G&nbsp; H JJJJ&nbsp; K &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; L&nbsp; MMMM Q&nbsp; R&nbsp; S T&nbsp; U&nbsp; V WWWW&nbsp; X &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; YYYYYYY Z&nbsp; a&nbsp;&nbsp; b&nbsp; c&nbsp;&nbsp; ddddddd &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; eeee&nbsp;&nbsp; f&nbsp; g&nbsp;&nbsp; h&nbsp; j&nbsp;&nbsp; kkkkkkk</div>
+
+ </body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Backgrounds and Borders Test: border-image-slice - &lt;number&gt;</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-slice" title="6.2. Image Slicing: the 'border-image-slice' property" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+  <meta name="flags" content="image" />
+  <meta name="assert" content="Number values for 'border-image-slice' are pixels in the image: the width of the image for the horizontal (left and right) offsets, the height for vertical (top and bottom) offsets. 'border-image-slice' specifies inward offsets from the top, right, bottom, and left edges (in that order) of the image. In this test, the image serving as 'border-image-source' is a 100px by 100px image which has 5px of green at the top, 10px of green on the right, 15px of green at the bottom and 20px of green at the left; the remaining center (which has a width of 70px and a height of 80px) is all red." />
+
+  <style type="text/css"><![CDATA[
+  div#test
+  {
+  border-color: red;
+  border-style: solid;
+  border-width: 15px 20px 35px 30px;
+  border-image-source: url("support/outline-5px-10px-15px-20px-green.png");
+  border-image-slice: 5 10 15 20; /* or 5% 10% 15% 20% : see border-image-slice-001 test */
+  border-image-width: 15% 20% 35% 30%;
+  /* 1 is default ; <number>s represent multiples of the corresponding
+  computed border-width; % unit is a percentage of height or width of border-box.*/
+  border-image-outset: 0; /* 0 is default */
+  border-image-repeat: repeat repeat;
+  /* stretch is default; since the green area we repeat is an
+  undifferentiated and homogeneous image of green, then 'repeat' or
+  'stretch' will be equivalent, will do and should cause equivalent
+  rendered layout. */
+
+  /*
+  Equivalent to this shorthand form (see border-image-slice-124 test):
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5% 10% 15% 20% / 15% 20% 35% 30% / 0 repeat repeat;
+
+  or to this shorthand form (see border-image-slice-125 test):
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5 10 15 20 / 15% 20% 35% 30% / 0 repeat repeat;
+
+  or to this shorthand form (see border-image-slice-126 test):
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5% 10% 15% 20% / 1 1 1 1 / 0 repeat repeat;
+
+  or to this shorthand form  (see border-image-slice-127 test):
+  border-image: url("support/outline-5px-10px-15px-20px-green.png") 5 10 15 20 / 1 1 1 1 / 0 repeat repeat;
+  */
+
+  width: 50px;
+  }
+
+  img {vertical-align: top;}
+
+  div#overlapped-red
+  {
+  background-color: red;
+  bottom: 100px;
+  height: 100px;
+  position: relative;
+  width: 100px;
+  z-index: -1;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="test"><img src="support/50x50-green.png" alt="Image download support must be enabled" /></div>
+
+  <div id="overlapped-red"></div>
+
+ </body>
+</html>

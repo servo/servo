@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>CSS Writing Modes Test: The resulting composition is treated as a signel glyph for decorations</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-layout" title="9.1.2. Layout Rules">
+<link rel="match" href="reference/text-combine-upright-decorations-001.html">
+<meta name="assert" content="The resulting composition is treated as a signel glyph for decorations">
+<meta name="flags" content="ahem">
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<style>
+#container {
+    font: 50px/1 Ahem;
+}
+.vlr {
+    writing-mode:vertical-lr;
+}
+.vrl {
+    writing-mode:vertical-rl;
+}
+.test, .ref {
+    border:solid thin;
+    margin:.2em;
+}
+p {
+    margin:0 .5em;
+}
+.tcy {
+    text-combine-upright:all;
+}
+.underline {
+    text-decoration:underline;
+}
+.overline {
+    text-decoration:overline;
+}
+.emphasis {
+    text-emphasis:filled;
+}
+</style>
+<p>This test asserts the resulting composition is treated as a single glyph for decorations.
+<p>Test passes if the following two boxes in each row are identical.
+<div id=container>
+    <div class=vlr>
+        <div class=test>
+            <p class=underline>X<span class=tcy>&#xA0;</span>X
+            <p class=overline>X<span class=tcy>&#xA0;</span>X
+            <p class=emphasis>X<span class=tcy>X</span>X
+        </div>
+        <div class=ref>
+            <p class=underline>X&#xA0;X
+            <p class=overline>X&#xA0;X
+            <p class=emphasis>XXX
+        </div>
+    </div>
+    <div class=vrl>
+        <div class=test>
+            <p class=underline>X<span class=tcy>&#xA0;</span>X
+            <p class=overline>X<span class=tcy>&#xA0;</span>X
+            <p class=emphasis>X<span class=tcy>X</span>X
+        </div>
+        <div class=ref>
+            <p class=underline>X&#xA0;X
+            <p class=overline>X&#xA0;X
+            <p class=emphasis>XXX
+        </div>
+    </div>
+</div>

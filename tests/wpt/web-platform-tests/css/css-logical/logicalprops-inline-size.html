@@ -1,0 +1,163 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Logical Properties: {max-,min-}inline-size</title>
+<link rel="author" title="Xu Xing" href="mailto:openxu@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-logical-props-1/#logical-dimension-properties">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/style-check.js"></script>
+
+<style>
+div {
+  border: 1px solid #000;
+}
+#div1 {
+  inline-size: 40px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+}
+#div2 {
+  inline-size: 100px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+}
+#div3 {
+  inline-size: 120px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+}
+#ref_div1 {
+  width: 40px;
+  min-width: 50px;
+  max-width: 100px;
+}
+#ref_div2 {
+  width: 100px;
+  min-width: 50px;
+  max-width: 100px;
+}
+#ref_div3 {
+  width: 120px;
+  min-width: 50px;
+  max-width: 100px;
+}
+
+p {
+  border: 1px solid #000;
+}
+#p1 {
+  inline-size: 100px;
+  width: 50px;
+}
+#p2 {
+  width: 50px;
+  inline-size: 100px;
+}
+#ref_p1 {
+  width: 50px;
+}
+#ref_p2 {
+  width: 100px;
+}
+
+.table {
+  border: 1px solid #000;
+  display: table;
+}
+.tablecell {
+  display: table-cell;
+}
+#table1_cell {
+  inline-size: 40px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+  block-size: 100px;
+  background-color: red;
+}
+#table2_cell {
+  inline-size: 100px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+  block-size: 100px;
+  background-color: blue;
+}
+#table3_cell {
+  inline-size: 120px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+  block-size: 100px;
+  background-color: green;
+}
+#ref_table1_cell {
+  width: 40px;
+  min-width: 50px;
+  max-width: 100px;
+  height: 100px;
+  background-color: red;
+}
+#ref_table2_cell {
+  width: 100px;
+  min-width: 50px;
+  max-width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+#ref_table3_cell {
+  width: 120px;
+  min-width: 50px;
+  max-width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+
+<div id="div1"></div>
+<div id="div2"></div>
+<div id="div3"></div>
+<div id="ref_div1"></div>
+<div id="ref_div2"></div>
+<div id="ref_div3"></div>
+
+<p id="p1"></div>
+<p id="p2"></div>
+<p id="ref_p1"></div>
+<p id="ref_p2"></div>
+
+<div class="table">
+  <div class="tablecell" id="table1_cell"></div>
+</div>
+<div class="table">
+  <div class="tablecell" id="table2_cell"></div>
+</div>
+<div class="table">
+  <div class="tablecell" id="table3_cell"></div>
+</div>
+<div class="table">
+  <div class="tablecell" id="ref_table1_cell"></div>
+</div>
+<div class="table">
+  <div class="tablecell" id="ref_table2_cell"></div>
+</div>
+<div class="table">
+  <div class="tablecell"  id="ref_table3_cell"></div>
+</div>
+
+<script>
+test(function () {
+  assert_true(compareWidthHeight("div1", "ref_div1"));
+  assert_true(compareWidthHeight("div2", "ref_div2"));
+  assert_true(compareWidthHeight("div3", "ref_div3"));
+}, "Check that inline-size < min-inline-size or min-inline-size < inline-size <= max-inline-size or inline-size > max-inline-size");
+
+test(function () {
+  assert_true(compareWidthHeight("p1", "ref_p1"));
+  assert_true(compareWidthHeight("p2", "ref_p2"));
+}, "Check that width override inline-size and vice versa");
+
+test(function () {
+  assert_true(compareWidthHeight("table1_cell", "ref_table1_cell"));
+  assert_true(compareWidthHeight("table2_cell", "ref_table2_cell"));
+  assert_true(compareWidthHeight("table3_cell", "ref_table3_cell"));
+}, "Check that inline-size < min-inline-size or min-inline-size < inline-size <= max-inline-size or inline-size > max-inline-size in table");
+</script>

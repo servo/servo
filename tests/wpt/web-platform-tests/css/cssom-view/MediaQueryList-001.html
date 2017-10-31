@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSSOM View Module test:MediaQueryList</title>
+    <link rel="author" title="unbug" href="mailto:tidelgl@gmail.com" />
+    <link rel="help" href="http://www.w3.org/TR/cssom-view/#the-mediaquerylist-interface">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style type="text/css">
+    </style>
+</head>
+<body>
+  <p>This case tests the MediaQueryList</p>
+    <div id="log"></div>
+    <script>
+        test(function(){
+            assert_equals(window.matchMedia('(min-width: 1px)').matches, true, "Expected any device to match min-width: 1px");
+        },'matchMedia');
+    </script>
+</body>
+</html>

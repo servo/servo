@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="match" href="overdraw-ref.html">
+<style>
+    #output {
+        width: 100px;
+        height: 100px;
+        background-image: paint(green);
+        background-color: red;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('green', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(-10, -10, geom.width + 20, geom.height + 20);
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

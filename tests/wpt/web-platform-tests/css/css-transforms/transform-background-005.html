@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Transform of Background Image (non-propagated body)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <meta name="assert" content="Background images fall within the element's
+    border box, so they need to be transformed along with it.  In this case the
+    scale is applied to the root element, and the background is on the body.
+    The white background on the root element prevents the body's background
+    from propagating to the canvas, so it's just a regular background.">
+    <meta name="flags" content="svg">
+    <link rel="match" href="transform-background-ref-2.html">
+    <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+      }
+      html {
+        background: white;
+        transform: scale(-1);
+      }
+      body {
+        background: url(support/transform-triangle-down.svg) bottom right;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

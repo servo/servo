@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Run in - basic replaced element</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#run-in"/>
+  <link rel="match" href="run-in-replaced-001-ref.xht"/>
+  <meta name="flags" content="" />
+  <meta name="assert"
+        content="Tests that replaced elements can actually run in and that
+                 they ten get sized correctly."/>
+  <style type="text/css"><![CDATA[
+    div { display: block; }
+    .run-in { display: run-in; width: 20%; height: 50% }
+    #target { border: 2px solid black;  width: 500px; height: 200px; }
+    #container { height: 0; width: 0; }
+  ]]></style>
+ </head>
+ <body>
+   <div id="container">
+     <img class="run-in" src="support/swatch-blue.png" />
+     <div id="target">Start of block.  The blue square should be inside the
+       border of this block, a square, and half the block's height.</div>
+   </div>
+ </body>
+</html>

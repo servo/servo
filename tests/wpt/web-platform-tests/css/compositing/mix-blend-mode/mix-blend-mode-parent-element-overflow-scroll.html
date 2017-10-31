@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blending between an element with overflow:scroll and its child</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Ion Roșca" href="mailto:rosca@adobe.com">
+        <link rel="reviewer" title="Mihai Țică" href="mailto:mitica@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="flags" content="">
+        <meta name="assert" content="Test checks that an element with mix-blend-mode blends its parent having overflow:scroll">
+        <link rel="match" href="reference/mix-blend-mode-parent-element-overflow-scroll-ref.html">
+        <style type="text/css">
+            .parent {
+                background: yellow;
+                width: 140px;
+                height: 140px;
+                position: relative;
+                z-index: 1;
+                overflow:scroll;
+            }
+            .blended {
+                background: red;
+                width: 200px;
+                height: 200px;
+                mix-blend-mode: difference;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you see a scrollable lime rectangle.</p>
+        <div class="parent">
+            <div class="blended"></div>
+        </div>
+    </body>
+</html>

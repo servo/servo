@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+ <head>
+  <title>CSS Test: Border Image: box with spaced repeating border image</title>
+  <link rel="author" title="Levi Weintraub" href="mailto:leviw@chromium.org">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-repeat">
+  <meta name="flags" content="">
+  <meta name="assert" content="border-image-repeat: space property spaces out background image that doesn't fit an even number of times.">
+  <link rel="match" href="reference/border-image-space-001-ref.html">
+  <style>
+   .borderContainer {
+    width: 108px;
+    height: 108px;
+    border-image: url('support/border.png') 27;
+    background-color: green;
+    border-image-repeat: space;
+    border-image-width: 20px;
+   }
+  </style>
+ </head>
+ <body>
+  <p>There should be a green box below with red diamonds in the corners, and three yellow diamonds evenly spaced
+    apart along the edges.</p>
+  <div class="borderContainer">
+  </div>
+ </body>
+</html>

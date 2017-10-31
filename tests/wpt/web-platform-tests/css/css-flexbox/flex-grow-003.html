@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: flex-grow - negative number</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.3.1. The 'flex-grow' property" href="http://www.w3.org/TR/css-flexbox-1/#flex-grow-property">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="">
+<meta name="assert" content="The 'flex-grow' property set negative number, the flex item will not grow.">
+<style>
+  #container {
+    background-color: green;
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+  #container div {
+    background-color: red;
+    height: 100px;
+  }
+  #test1 {
+    flex-grow: -2;
+    width: 25px;
+  }
+  #test2 {
+    flex-grow: -3;
+    width: 25px;
+  }
+  #cover {
+    background-color: green;
+    height: 100px;
+    position: relative;
+    top: -100px;
+    width: 50px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="container">
+    <div id="test1"></div>
+    <div id="test2"></div>
+  </div>
+  <div id="cover"></div>
+</body>

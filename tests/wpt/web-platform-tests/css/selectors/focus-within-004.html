@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang=en class="reftest-wait">
+<meta charset="utf-8">
+<title>Selectors Level 4: focus-within</title>
+<link rel="author" title="Keyong Li" href="mailto:kli79@bloomberg.net">
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#focus-within-pseudo">
+<link rel="match" href="focus-within-001-ref.html">
+<meta name="assert" content="Test that :focus-within works on elements that are focusable due to contenteditable.">
+<style>
+/* Suppress things that cannot be reproduced in the reference file */
+:focus {
+  outline: none;
+
+  /* Make the caret invisible
+     since it matches the color of the text, which is transparent,
+     while keeping the text readable thanks to its shadow.
+     Not using the caret-color property as it is too new to be relied on. */
+  color: transparent; text-shadow: black 0px 0px 0px;
+}
+
+/* Use blue to indicate that the user needs to pay attention.
+   This element needs to be focused for the test to make sense. */
+#focusme:not(:focus) {
+  border: solid 15px blue;
+}
+
+:focus {
+  border: solid 5px red;
+}
+div:focus-within, #focusme:focus-within {
+  border: solid 5px green;
+}
+</style>
+<p>Test passes if, when the element below is focused,
+it is surrounded by a thick green border.
+There must be no red or blue once it is focused.</p>
+<div>
+  <div>
+    <div id="focusme" contentEditable="true">Focus this element</div>
+  </div>
+</div>
+<script>
+var focusme = document.getElementById('focusme');
+focusme.focus();
+document.documentElement.classList.remove('reftest-wait');
+</script>
+</html>

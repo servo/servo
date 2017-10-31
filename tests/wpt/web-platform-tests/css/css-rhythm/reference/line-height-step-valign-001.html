@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Rhythmic Sizing: line-height-step vertical-align test</title>
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<style>
+div {
+  font-family: Ahem;
+  font-size: 40px;
+}
+.ref {
+  line-height: 1;
+}
+.adjuster {
+  line-height: 80px;
+  color: transparent;
+}
+.top {
+  vertical-align: top;
+}
+.text-top {
+  vertical-align: text-top;
+}
+.text-bottom {
+  vertical-align: text-bottom;
+}
+.bottom {
+  vertical-align: bottom;
+}
+</style>
+<p class="instructions">Test passes if two lines are the same.
+<div class="ref">
+  <div>XX<span class="top">X</span><span class="text-top">X</span><span class="text-bottom">X</span><span class="bottom">X</span><span class="adjuster">X</span></div>
+</div>
+<div class="ref">
+  <div>XX<span class="top">X</span><span class="text-top">X</span><span class="text-bottom">X</span><span class="bottom">X</span><span class="adjuster">X</span></div>
+</div>

@@ -1,0 +1,37 @@
+<csstest def=":nth-child() pseudo-class with hidden elements" module="W3C Selectors" modulename="css3-modsel" number="146b" rev="1.1" date="9-october-2002" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  line { display: block; }
+  [type~=match] { background: lime ! important; }
+  line:nth-child(3n-1) { background: red; }
+  [hidden] { display: none; }
+</cssrules>
+
+<code>
+ <test xmlns="http://www.example.org/">
+  <line type="">This line should be unstyled.</line>
+  <line type="match">This line should be green.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="match">This line should be green.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="" hidden="hidden">This line should be unstyled.</line>
+  <line type="match">This line should be green.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="match">This line should be green.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="" hidden="hidden">This line should be unstyled.</line>
+  <line type="match" hidden="hidden">This line should be green.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="match">This line should be green.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="">This line should be unstyled.</line>
+  <line type="match">This line should be green.</line>
+  <line type="">This line should be unstyled.</line>
+ </test>
+</code>
+</csstest>

@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" width="10000" height="400">
-<g id="testmeta">
-	<title>CSS Masking: Reftest reference</title>
-	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
-</g>
-<rect x="99" width="101" height="100" fill="green"/>
-<rect x="299" width="101" height="100" fill="green"/>
-</svg>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>translations on position:sticky elements should apply after sticking</title>
+<link rel="match" href="position-sticky-transforms-translate-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that translations on position:sticky elements are carried out on their stuck position" />
+
+<style>
+.group {
+  display: inline-block;
+  position: relative;
+  width: 150px;
+  height: 250px;
+}
+
+.scroller {
+  position: relative;
+  width: 100px;
+  height: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.contents {
+  height: 500px;
+}
+
+.container {
+  height: 150px;
+}
+
+.indicator {
+  background-color: red;
+  position: absolute;
+  left: 0;
+}
+
+.sticky {
+  background-color: green;
+  position: sticky;
+  top: 50px;
+}
+
+.box {
+  width: 100%;
+  height: 50px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 50;
+  document.getElementById('scroller2').scrollTop = 70;
+  document.getElementById('scroller3').scrollTop = 50;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="indicator box" style="top: 50px;"></div>
+    <div class="contents">
+      <div class="container">
+        <div class="sticky box" style="transform: translateY(-100%);"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- The pre-transform sticky is not allowed to escape its containing block. -->
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="indicator box" style="top: 50px;"></div>
+    <div class="contents">
+      <div class="container">
+        <div class="sticky box" style="transform: translateY(-100%);"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- The sticky element should stick before the container is transformed. -->
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="indicator box" style="top: 200px;"></div>
+    <div class="contents">
+      <div class="container" style="transform: translateY(100px);">
+        <div class="sticky box"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>You should see three green boxes above. No red should be visible.</div>

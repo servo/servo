@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: transform property with scale function on hover state</title>
+    <link rel="author" title="Chris Sanborn" href="mailto:granimalcracker@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-functions">
+    <!-- See also: http://www.w3.org/wiki/CSS/Selectors/pseudo-classes/:hover -->
+    <link rel="match" href="reference/css-transform-scale-ref-001.html">
+    <meta name="assert" content="When the element is hovered over, the transform scales the element to twice its size in both the X and Y directions and moves its origin to the top left corner.">
+    <meta name="flag" content="interactive">
+    <style type="text/css">
+        .container {
+            position: absolute;
+        }
+        .greenSquare {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 100px;
+            background-color: green;
+         }
+        .greenSquare:hover {
+            transform-origin: 0 0;
+            transform: scale(2);
+        }
+
+         /* This div should only be visible if the test fails */
+        .redSquare {
+            position: absolute;
+            /* It is approximately the same size as the test div, but with a 1px margin */
+            width: 98px;
+            height: 98px;
+            background-color: red;
+            left: 100px;
+            top :100px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you hover over the green square and it completely covers the red square.</p>
+    <div class="container">
+        <!-- This is the square that should not be visible if the test passes -->
+        <div class="redSquare"></div>
+        <!-- This is the square being tested with the transform -->
+        <div class="greenSquare"></div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<csstest def="Direct adjacent combinator and classes" module="W3C Selectors" modulename="css3-modsel" number="45c" rev="1.1" date="6-december-2002" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  .fail + div { background: red; }
+  .control { background: lime; }
+</cssrules>
+
+<code>
+  <div xmlns="http://www.w3.org/1999/xhtml"> This should be unstyled. </div>
+  <div xmlns="http://www.w3.org/1999/xhtml" class="control"> This should have a green background. </div>
+</code>
+
+</csstest>

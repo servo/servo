@@ -833,7 +833,7 @@ Runner.prototype = {
 
     load: function(path) {
         this.ensure_test_window();
-        if (path.match(".https."))
+        if (path.match(/\.https\./))
           this.test_window.location.href = this.https_server + path;
         else
           this.test_window.location.href = this.server + path;

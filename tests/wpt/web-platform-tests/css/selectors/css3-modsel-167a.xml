@@ -1,0 +1,14 @@
+<csstest def=":first-line with ::first-line" module="W3C Selectors" modulename="css3-modsel" number="167a" rev="1.0" date="1-january-2001" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  p::first-line { background-color: red; }
+  p:first-line { background-color: lime; }
+</cssrules>
+
+<code>
+   <p xmlns="http://www.w3.org/1999/xhtml">The first line of this paragraph should have a green background.</p>
+</code>
+
+</csstest>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Jaffe Worley" href="mailto:jaffe75@gmail.com">
+  <link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+  <link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-origin-property">
+  <link rel="match" href="transform-origin-013-ref.html">
+  <style type="text/css">
+    div {
+      width: 100px;
+      height: 100px;
+    }
+    .gradient{
+      background-image: linear-gradient(orange 50%, fuchsia 50%);
+      transform: rotate(90deg);
+      transform-origin: top right;
+    }
+
+    .red {
+      width: 98px;
+      height: 98px;
+      background: red;
+    }
+  </style>
+ </head>
+ <body>
+   <p>The test passes if there is a vertical fuchsia stripe to the left of an orange stripe. You should see no red.</p>
+    <div class="red"></div>
+    <div class="gradient"></div>
+ </body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Masking: Test clip-path property and ellipse function with absolute values</title>
+	<link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+	<link rel="match" href="reference/clip-path-circle-ref.html">
+	<meta name="assert" content="The clip-path property takes the basic shape
+	'ellipse' for clipping. Test absolute values for radii and position
+	arguments. On pass you should see a green circle.">
+</head>
+<body>
+	<p>The test passes if there is a green circle.</p>
+	<div style="width: 150px; height: 100px; border: solid red 50px; background-color: green; clip-path: ellipse();"></div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<csstest def="Multiple IDs" module="W3C Selectors" modulename="css3-modsel" number="15c" rev="1.1" date="24-february-2005" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+.warning { color: navy; }
+div { color: red; }
+#Aone#Atwo, #Aone#Athree, #Atwo#Athree { color: green; }
+p { color: green; }
+#Bone#Btwo, #Bone#Bthree, #Btwo#Bthree { color: red; }
+#Cone#Ctwo, #Cone#Cthree, #Ctwo#Cthree { color: red; }
+#Done#Dtwo, #Done#Dthree, #Dtwo#Dthree { color: red; }
+</cssrules>
+
+<code>
+  <p xmlns="http://www.w3.org/1999/xhtml" class="warning">This test requires support for two or more of XHTML, xml:id, and DOM3 Core.</p>
+<div xmlns="http://www.w3.org/1999/xhtml" id="Aone" xml:id="Atwo" title="Athree">This line should be green.</div>
+  <p xmlns="http://www.w3.org/1999/xhtml" id="Bone"                             >This line should be green.</p>
+  <p xmlns="http://www.w3.org/1999/xhtml"           xml:id="Ctwo"               >This line should be green.</p>
+  <p xmlns="http://www.w3.org/1999/xhtml"                         title="Dthree">This line should be green.</p>
+ <script xmlns="http://www.w3.org/1999/xhtml" type="text/javascript">
+  document.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'div')[0].setIdAttribute('title', true);
+  document.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'p')[3].setIdAttribute('title', true);
+ </script>
+ <!-- This test could also be done using a custom DOCTYPE with an internal subset, which would
+      then work in any XHTML UA. However, that requires massive changes to the generator scripts.
+      Better, if we need such a test, would be to special-case it and have 15d be a separate file. -->
+</code>
+
+</csstest>

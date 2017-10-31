@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'text-indent' with absolute unit, 'direction: rtl' in 'vertical-rl' writing-mode (orthogonal)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#logical-direction-layout" title="7.4 Flow-Relative Mappings" />
+  <link rel="match" href="text-indent-vrl-004-ref.xht" />
+
+  <meta content="ahem image" name="flags" />
+  <meta content="This test checks that 'text-indent' will indent the first line of text at line-start. Text of a line box in 'direction: rtl' and with 'writing-mode: vertical-rl' starts at bottom toward the top and progress toward the top." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+    {
+      color: green;
+      font: 80px/1 Ahem; /* computes to 80px/80px */
+      height: 320px;
+      width: 320px;
+    }
+
+  div
+    {
+      background: red url("support/bg-red-4col-3row-320x320.png");
+      direction: rtl;
+      text-indent: 80px;
+      writing-mode: vertical-rl;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p><img src="support/pass-cdts-abs-pos-non-replaced.png" width="246" height="36" alt="Image download support must be enabled" /></p>
+
+  <div>A</div>
+
+ </body>
+</html>

@@ -1,0 +1,18 @@
+<csstest def="Attribute multivalue selector" module="W3C Selectors" modulename="css3-modsel" number="7b" rev="1.0" date="1-january-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+p { background: lime; }
+[title~="hello world"] { background: red; }
+/* Section 6.3.1: Represents the att attribute whose value is a
+space-separated list of words, one of which is exactly "val". If this
+selector is used, the words in the value must not contain spaces
+(since they are separated by spaces). */
+</cssrules>
+
+<code>
+  <p xmlns="http://www.w3.org/1999/xhtml" title="hello world">This line should have a green background.</p>
+</code>
+
+</csstest>

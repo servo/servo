@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: Dynamic changes to ::before and ::after on display:contents</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecobos@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-pass-green-no-red-ref.html">
+<style>
+    div { display: contents; color: green; }
+    .p::before { content: "P" }
+    .a::before { content: "A" }
+    .s::after { content: "S" }
+    div::before { color: red; display: contents; border: 1px solid red; }
+    .active div::before { color: green; }
+</style>
+<p>You should see the word PASS in green and no red below.</p>
+<div><!--
+ --><div><div class="p"></div></div><!--
+ --><div></div><!--
+ --><div class="a"></div><!--
+ --><div>S<div class="s"></div></div>
+</div>
+<script>
+document.body.offsetTop;
+document.body.className = "active";
+</script>

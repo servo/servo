@@ -1,0 +1,32 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis hides end of line</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Implementations must hide at the *end* (not right) of the line to make room for the ellipsis">
+<style>
+.test {
+  white-space: pre;
+  font: 100px/1 ahem;
+  color: green;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 500px;
+}
+.red {
+  position: absolute;
+  z-index: -1;
+  background: red;
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=red></div>
+<div class=test dir=rtl>    <span style="color:orange">xxxxxx</span></div>
+<!-- Adding some visible non-green characters in the positions that are supposed to be elided,
+to make sure that not only the ellipsis is shown at the right place, but that it replaces
+the right characters -->

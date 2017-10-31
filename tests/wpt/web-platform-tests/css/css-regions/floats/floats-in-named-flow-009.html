@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: floats in a named flow fragmented through multiple regions</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that floats in named flow contents are correctly
+				fragmented and the fragments are floated relative to the region container they are
+				laid out in and not their initial container.">
+		<link rel="match" href="reference/floats-in-named-flow-009-ref.html">
+		<style>
+		article {
+			color: gray;
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.flow {
+			flow-into: f;
+		}
+		.left-floater {
+			float: left;
+			color: lightblue;
+		}
+		.right-floater {
+			float: right;
+			color: lightgreen;
+		}
+		.region {
+			flow-from: f;
+			width: 180px;
+			height: 60px;
+			margin: 10px;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two identical rows of colored squares. Each row should have three
+			squares, from left to right as follows: blue, gray, green. The squares in a row should
+			be flush to each other, but the two rows should have some space between them.<br>
+			Test fails is you see any red.
+		</p>
+
+		<article>
+			<div class="flow right-floater">xxx<br>xxx<br>xxx<br>xxx<br>xxx<br>xxx</div>
+			<div class="flow left-floater">xxx<br>xxx<br>xxx<br>xxx<br>xxx<br>xxx</div>
+			<div class="flow">
+				xxx
+				xxx
+				xxx
+				xxx
+				xxx
+				xxx
+			</div>
+		</article>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into on list items from lists that use multiple CSS counters with nested scopes and ::after for list numbering</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-reset" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-increment" />
+		<meta name="flags" content="">
+		<meta name="assert" content="The flow-into property can be applied to ordered lists. List items numbered using multiple counters displayed in the ::after pseudo-element and extracted in a named flow should render in regions just as without regions.">
+		<link rel="match" href="reference/extract-ordered-lists-in-regions-explicit-counters-005-ref.html">
+		<style>
+		/*Lists setup*/
+		ol {
+			padding-left: 1em;
+		}
+		ol>li {
+			display: block;
+			position: relative;
+		}
+		li::after {
+			position: absolute;
+			top: 0;
+			right: 0;
+			margin-right: .5em;
+		}
+		ol.part {
+			counter-reset: part 0;
+		}
+		ol.part>li {
+			counter-increment: part;
+		}
+		ol.part>li::after {
+			content: counter(part, upper-roman) " ";
+			font-weight: bold;
+		}
+
+		ol.chapter {
+			counter-reset: chapter 0;
+		}
+		ol.chapter>li {
+			counter-increment: chapter;
+		}
+		ol.chapter>li::after {
+			content:  "\2026\ " counter(chapter, decimal);
+		}
+
+		ol.section {
+			counter-reset: section 0;
+		}
+		ol.section>li {
+			counter-increment: section;
+		}
+		ol.section>li::after {
+			content: counter(part, upper-roman) "." counter(chapter, decimal) "-" counter(section, lower-latin) " ";
+			color: blue;
+		}
+		/*Regions setup*/
+		.extract1 {
+			flow-into: f1;
+		}
+		.extract2 {
+			flow-into: f2;
+		}
+		.region {
+			background-color: lightgray;
+			margin: 1em;
+			float: left;
+			width: 20em;
+			height: 20em;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+		#r2 {
+			flow-from: f2;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if you see two gray rectangles, as described below. All numbering should be aligned to the right margin of the rectangles.</p>
+		<p>The first rectangle contains two numbered lists. The <strong>first list</strong> has three items and is numbered using bold roman numerals, starting at 1 (I). After the first item there's a numbered sublist; it is indented and has four items, numbered using decimal numbers preceded by an ellipsis (&hellip;), starting at 1. After the last item in this sublist there's a single item numbered list; the numbering is blue and uses three levels of numbering: roman, decimal and with latin letters, respectively; numbering starts with I.4-a. The <strong>second list</strong> has two items and uses the same blue, three-level numbering, that starts at I.3-a this time.</p>
+		<p>The second rectangle contains a two-items numbered list, numbered using decimal numbers preceded by an ellipsis. After the first item there's a sublist. The sublist is indented and has blue, three level-numbering: roman, decimal and with latin letters, respectively. Numbering starts with <em>III.1-a</em>.</p>
+		<ol class="part extract1">
+			<li>Part I
+				<ol class="chapter">
+					<li>Chapter 1</li>
+					<li>Chapter 2</li>
+					<li>Chapter 3
+						<ol class="section extract1">
+							<li>Section I.3-a</li>
+							<li>Section I.3-b</li>
+						</ol>
+					</li>
+					<li>Chapter 4
+						<ol class="section">
+							<li>Section I.4-a</li>
+						</ol>
+					</li>
+				</ol>
+			</li>
+			<li>Part II</li>
+			<li>Part III
+				<ol class="chapter extract2">
+					<li>Chapter 1
+						<ol class="section">
+							<li>Section III.1-a</li>
+							<li>Section III.1-b</li>
+							<li>Section III.1-c</li>
+							<li>Section III.1-d</li>
+						</ol>
+					</li>
+					<li>Chapter 2</li>
+				</ol>
+			</li>
+		</ol>
+		<div class="region" id="r1"></div>
+		<div class="region" id="r2"></div>
+	</body>
+</html>

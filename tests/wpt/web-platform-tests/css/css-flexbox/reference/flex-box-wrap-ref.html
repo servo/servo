@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Flexbox Test: flex-wrap: wrap</title>
+    <link rel="author" title="Tsuyoshi Tokuda" href="mailto:tokuda109@gmail.com">
+    <style type="text/css">
+
+      .box {
+         margin: 0;
+         padding-left: 0;
+         width: 200px;
+       }
+       .item {
+         float: left;
+         list-style-type: none;
+         width: 120px;
+         height: 100px;
+         background-color: green;
+       }
+
+    </style>
+</head>
+<body>
+    <p>There should be a green block with no red.</p>
+
+    <ul class="box">
+      <li class="item">width: 120px</li>
+      <li class="item">width: 120px</li>
+    </ul>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: clipPath with objectBoundingBox</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="match" href="reference/clip-path-square-002-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">clipPathUnits="objectBoundingBox" changes the
+	behavior of non-percentage values. The dimension of the clipped
+	element is equal to one unit for the content of clipPath.
+	You should see a green square.</desc>
+</g>
+<clipPath id="clip1" clipPathUnits="objectBoundingBox">
+	<rect x="0.25" y="0.25" width="0.5" height="0.5"/>
+</clipPath>
+<rect width="200" height="200" fill="green" clip-path="url(#clip1)"/>
+</svg>

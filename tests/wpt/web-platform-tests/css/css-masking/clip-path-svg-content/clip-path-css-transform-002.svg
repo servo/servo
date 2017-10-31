@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: clipPath with CSS Transforms and 2nd content element</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="match" href="reference/clip-path-square-002-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">CSS Transforms must apply on the clipPath
+	element. This example adds a second content element since that may
+	cause masking in some implementations. A green square should be
+	visible.</desc>
+</g>
+<clipPath id="clip1" style="transform: scale(10) translate(2px, 2px);">
+	<rect width="10" height="10"/>
+	<!-- Second rect may cause masking -->
+	<rect width="5" height="4"/>
+</clipPath>
+<rect width="200" height="200" fill="green" clip-path="url(#clip1)"/>
+</svg>

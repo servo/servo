@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Shape from box value - content-box</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="author" title="Bem Jones-Bey" href="mailto:bemjb@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-box-values"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <meta name="flags" content="ahem dom"/>
+    <meta name="assert" content="This test verifies that content wraps around a shape
+                                 defined by its content box."/>
+    <!-- This test is derived from Examples 8 and 9 in this version of the spec:
+         http://www.w3.org/TR/2014/WD-css-shapes-1-20140211/ -->
+    <style type="text/css">
+        #test {
+            color: green;
+            width: 400px;
+            font-family: Ahem;
+            font-size: 20px;
+            line-height: 2em;
+        }
+        #box {
+            float: left;
+            width: 200px;
+            height: 200px;
+            background-color: lightblue;
+            border-radius: 90px;
+            shape-outside: content-box;
+        }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/spec-example-utils.js"></script>
+</head>
+<body>
+    <p>
+        The test passes if the short green horizontal bars are the right of the shape,
+        the long green bar is beneath it, and no bars intersect it. There should be no red.
+    </p>
+    <div id="test">
+        <div id="box"></div>
+        <span id="line-0">XXXXXX</span>
+        <span id="line-1">XXXXXX</span>
+        <span id="line-2">XXXXXX</span>
+        <span id="line-3">XXXXXX</span>
+        <span id="line-4">XXXXXX</span>
+        <span id="line-5">XXXXXXXXXXXXXXX</span>
+    </div>
+    <div id="log"></div>
+    <script>
+        approxShapeTest('test', 'line-', 2, [185, 199, 200, 199, 185, 0]);
+    </script>
+</body>
+</html>

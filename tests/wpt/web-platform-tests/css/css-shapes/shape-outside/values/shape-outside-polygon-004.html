@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Polygon - Argument Length Units</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-values/#lengths">
+        <meta name="assert" content="A polygon's veritices may in percentage or any valid <length> units.">
+        <meta name="flags" content="ahem dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            var arg_length_units_tests = [
+               ['%', 'px', 'px'],
+               ['px', '%', 'px'],
+               ['px', 'px', '%'],
+               ['%', '%', '%'],
+               ['em', 'em', 'ex'],
+               ['vw', 'vh', '%'],
+               ['cm', 'mm', 'pc'],
+               ['vmin', 'vmin', 'vmax'],
+               ['rem', 'ch', 'rem'],
+               ['in', 'pt', '%']
+            ];
+            generate_tests( ParsingUtils.testInlineStyle,
+                            ParsingUtils.buildPolygonTests(arg_length_units_tests, 'inline') );
+            generate_tests( ParsingUtils.testComputedStyle,
+                            ParsingUtils.buildPolygonTests(arg_length_units_tests, 'computed') );
+        </script>
+    </body>
+</html>

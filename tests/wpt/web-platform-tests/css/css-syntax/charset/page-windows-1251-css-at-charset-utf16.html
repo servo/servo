@@ -1,0 +1,17 @@
+<!doctype html>
+<title>CSS charset: page windows-1251, CSS @charset utf-16</title>
+<link rel=help href="https://drafts.csswg.org/css-syntax-3/#determine-the-fallback-encoding">
+<meta charset=windows-1251>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel=stylesheet href="support/at-charset-utf16.css">
+<div id=log></div>
+<div id=&#xfffd;></div>
+<script>
+var elm = document.getElementById('\ufffd');
+var t = async_test();
+onload = t.step_func(function(){
+  assert_equals(getComputedStyle(elm, '').visibility, 'hidden');
+  this.done();
+});
+</script>

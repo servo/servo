@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: CSS transforms rotate inheritance on div element</title>
+    <link rel="author" title="Delong Gao" href="mailto:gaodl@uw.edu">
+    <link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <!--<link rel="match" href="reference/ttwf-reftest-tutorial-ref.html">
+	<meta name="flags" content="svg">-->
+    <meta name="assert" content="Rotation on parent element will not be inherited by child element, unless declared. The test is passed if there is a green square and no red. And it is rotated 45 degree.">
+    <style type="text/css">
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		.flag {
+			position: absolute;
+			top: 100px;
+			left: 100px;
+			width: 100px;
+			height: 100px;
+			background-color: green;
+			z-index: 2;
+		}/*This div is used to show the red square*/
+        .parentSquare {
+			position: absolute;
+			top: 50px;
+			left: 50px;
+            width: 200px;
+			height: 200px;
+			transform: rotate(45deg);
+			background-color: green;
+        }
+        .childSquare {
+			position: absolute;
+			top: 50px;
+			left: 50px;
+            width: 100px;
+			height: 100px;
+			background-color: red;
+			transform: inherit;/*While inherited, the child div should rotate 90 degree instead of 45*/
+			}
+		p {
+			position: absolute;
+			top: 300px;
+		}
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red. And it is rotated 45 degree.</p>
+	<div class="flag"></div>
+	<div class="parentSquare">
+		<div class="childSquare"></div>
+	</div>
+</body>
+</html>

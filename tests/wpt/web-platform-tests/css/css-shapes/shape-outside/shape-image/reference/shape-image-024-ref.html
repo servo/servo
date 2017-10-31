@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Reference File</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+        .green {
+            background-color: rgb(0,100,0);
+            width: 100px;
+            height: 200px;
+        }
+        .left-rect { left: 10px; }
+        .right-rect { left: 120px; }
+
+        .blue {
+            width: 2px;
+            height: 200px;
+            background-color: blue;
+        }
+        .left-line { left: 115px; }
+        .right-line { left: 230px }
+
+        .green, .blue {
+            position: absolute;
+            top: 70px;
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if the green rectangle on the right is completely between the two blue lines.
+        There should be no red.
+    </p>
+    <div class="green left-rect"></div>
+    <div class="green right-rect"></div>
+    <div class="blue left-line"></div>
+    <div class="blue right-line"></div>
+</body>
+</html>

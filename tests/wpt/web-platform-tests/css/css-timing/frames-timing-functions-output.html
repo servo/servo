@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="assert"
+content="This test checks the output of frame timing functions with different frame numbers" />
+<title>Frames timing function output tests</title>
+<link rel="help"
+href="https://drafts.csswg.org/css-timing/#frames-timing-functions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="testcommon.js"></script>
+<style>
+@keyframes anim {
+  from { left: 0px; }
+  to   { left: 100px; }
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(function(t) {
+  const div = createDiv(t);
+  div.style.animation = 'anim 10s frames(2) forwards';
+  assert_equals(getComputedStyle(div).left, '0px');
+}, 'For an input progress of 0.0, the output of a frames timing function is ' +
+   'the first frame');
+
+test(function(t) {
+  const div = createDiv(t);
+  div.style.animation = 'anim 10s frames(2) forwards';
+
+  div.style.animationDelay = '-4999ms';
+  assert_equals(getComputedStyle(div).left, '0px');
+  div.style.animationDelay = '-5000ms';
+  assert_equals(getComputedStyle(div).left, '100px');
+}, 'At a frame boundary, the output of a frames timing function is the next ' +
+   'frame');
+
+test(function(t) {
+  const div = createDiv(t);
+  div.style.animation = 'anim 10s frames(2) forwards';
+
+  div.style.animationDelay = '-10s';
+  assert_equals(getComputedStyle(div).left, '100px');
+}, 'For an input progress of 1.0, the output of a frames timing function is ' +
+   'the final frame');
+
+test(function(t) {
+  const div = createDiv(t);
+  div.style.animation = 'anim 11s frames(11) forwards';
+
+  // We have 11 frames in 11s, so the first step happens at 1.0.
+  div.style.animationDelay = '-999ms';
+  assert_equals(getComputedStyle(div).left, '0px');
+  div.style.animationDelay = '-1000ms';
+  assert_equals(getComputedStyle(div).left, '10px');
+}, 'The number of frames is correctly reflected in the frames timing ' +
+   'function output');
+
+test(function(t) {
+  const div = createDiv(t);
+  div.style.transition = 'left 11s frames(11)';
+
+  // We have 11 frames in 11s, so the first step happens at 1.0.
+  div.style.left = '0px';
+  div.style.transitionDelay = '-999ms';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+  assert_equals(getComputedStyle(div).left, '0px');
+
+  div.style.left = '0px';
+  div.style.transitionDelay = '-1000ms';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+  assert_equals(getComputedStyle(div).left, '10px');
+}, 'The number of frames is correctly reflected in the frames timing ' +
+   'function output on CSS Transitions');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'frames(2)' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, 1.5, 1, 1.5)' });
+
+  // The bezier function produces values between 0.5 and 1 in
+  // (~0.0442, 0.23368), and values between 1 and 2 in (0.23368794, 1).
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 45;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 230;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 250;
+  assert_equals(getComputedStyle(target).left, '200px');
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'frames easing with input progress greater than 1');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'frames(2)' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, 3, 1, 3)' });
+
+  // The bezier funciton produces values:
+  // Input           ->  Output
+  // 0.0                 0.0
+  // 0.114 ~ 0.245       1.5~2.0, so frames(2) is 3.0
+  // 0.245 ~ 0.6         2.0~2.4, so frames(2) is 4.0
+  // 0.6   ~ 0.882       2.4~2.0, so frames(2) is 4.0
+  // 0.882 ~ 0.976       2.0~1.5, so frames(2) is 3.0
+  // 1.0                 1.0
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 114;
+  assert_equals(getComputedStyle(target).left, '300px');
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(target).left, '400px');
+  anim.currentTime = 900;
+  assert_equals(getComputedStyle(target).left, '300px');
+}, 'frames easing with input progress greater than 1.5');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'frames(2)' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, -0.5, 1, -0.5)' });
+
+  // The bezier function produces negative values (but always greater than -0.5)
+  // in (0, 0.766312060).
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 750;
+  assert_equals(getComputedStyle(target).left, '-100px');
+  anim.currentTime = 800;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'frames easing with input progress less than 0');
+
+</script>
+</body>

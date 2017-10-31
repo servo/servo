@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <meta name="DC.date.created" content="2016-12-14T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2017-02-17T09:54:03+11:00" scheme="W3CDTF" />
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <meta content="" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  div#horiz-parent
+    {
+      border: orange solid 8px;
+      font-size: 32px;
+      line-height: 1.25; /* computes to 40px */
+    }
+
+  div#orthog-vert
+    {
+      background-color: blue;
+      color: white;
+      left: 16px;
+      position: absolute;
+      writing-mode: vertical-rl;
+    }
+
+  span
+    {
+      left: 40px;
+      position: relative;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div id="horiz-parent">
+    <div id="orthog-vert">VRL floated left</div>
+    <span>HTB parent</span>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Content Distribution 'space-between' on 2x2 grid</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-align">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-content-space-between">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="Content Distribution properties with 'space-between' value render correcly.">
+<style>
+.block {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 200px;
+  height: 200px;
+}
+.block > div {
+  position: absolute;
+  background: red;
+  width: 20px;
+  height: 20px;
+}
+.grid {
+  z-index: 1;
+  display: grid;
+  width: 200px;
+  height: 200px;
+  grid-template-columns: 20px 20px;
+  grid-template-rows: 20px 20px;
+  align-content: space-between;
+  justify-content: space-between;
+}
+.grid > div { background: green; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="block">
+    <div style="top: 0px; left: 0px;"></div>
+    <div style="top: 180px; left: 180px;"></div>
+</div>
+<div class="grid">
+    <div style="grid-row: 1; grid-column: 1;"></div>
+    <div style="grid-row: 2; grid-column: 2;"></div>
+</div>

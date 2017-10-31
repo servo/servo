@@ -1,0 +1,6 @@
+[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+interface Gyroscope : Sensor {
+  readonly attribute double? x;
+  readonly attribute double? y;
+  readonly attribute double? z;
+};

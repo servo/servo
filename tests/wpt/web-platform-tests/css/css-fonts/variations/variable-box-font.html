@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="variable-box-font-ref.html">
+<meta charset="utf-8">
+<style>
+    @font-face {
+    font-family: variabletest_box;
+    src: url(resources/variabletest_box.ttf);
+    }
+
+    body {
+    font-family: variabletest_box,
+    sans-serif;
+    font-size: 200px;
+    }
+
+    .a_up {
+    font-variation-settings: "UPWD" 350;
+    }
+</style>
+<!-- The variabletest_box font has an A glyph that looks like a lower half box,
+  with deltas on the 'UPWD' variation axis that allow shifting the box up. At
+  350, the box is at the top. The font also has two glyphs for UPPER HALF BLOCK
+  and LOWER HALF BLOCK, which look identical to the respective variations of A.
+-->
+A <span class="a_up">A</span>
+<script>
+    document.fonts.ready.then(
+        () => { document.documentElement.classList.remove("reftest-wait"); });
+</script>
+</html>

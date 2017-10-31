@@ -1,0 +1,24 @@
+<csstest def=":hover pseudo-class on links" module="W3C Selectors" modulename="css3-modsel" number="18a" rev="1.0" date="29-february-2004" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<userinteraction/>
+
+<cssrules>
+p { color: navy; }
+
+.a a:hover { background: green; color: white; }
+
+.b a:hover { background: red; color: yellow; }
+.b a:link { background: green; color: white; }
+
+.c :link { background: green; color: white; }
+.c :visited:hover { background: red; color: yellow; }
+</cssrules>
+
+<code>
+<p class="a" xmlns="http://www.w3.org/1999/xhtml">The background color of <a href="#foo">this anchor (<strong>here</strong>)</a> should turn to green when the pointing device hovers over it.</p>
+<p class="b" xmlns="http://www.w3.org/1999/xhtml">The background color of <a href="#foo">this anchor (<strong>here</strong>)</a> should <strong>remain green when you hover it</strong>.</p>
+<p class="c" xmlns="http://www.w3.org/1999/xhtml">The background color of <a href="http://link.example.com/">this anchor (<strong>here</strong>)</a> should <strong>remain green when the pointing device hovers over it</strong> (do not follow that link).</p>
+</code>
+</csstest>

@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Multi-column Layout Test: 'column-rule-style' outset</title>
+  <link rel="author" title="Opera Software ASA" href="http://www.opera.com/" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-08-15 -->
+  <link rel="help" href="http://www.w3.org/TR/css3-multicol/#crs" title="4.3. 'column-rule-style'" />
+  <link rel="match" href="multicol-rule-style-groove-001-ref.xht" />
+  <meta name="flags" content="ahem" />
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  p
+  {
+  line-height: 1.25em;
+  margin: 1em 0em;
+  }
+
+  strong {line-height: 1;}
+
+  div {color: transparent;}
+
+  div#reference
+  {
+  border-collapse: collapse;
+  border-left: orange outset 100px;
+  font: 6.25em/1 Ahem;
+  display: table;
+  }
+
+  div#test
+  {
+  font: 1.25em/1 Ahem; /* equivalent to 20px/1 Ahem */
+  position: relative;
+  right: 40px;
+  top: 0.5em;
+  width: 9em;
+
+  column-count: 2;
+  column-gap: 5em;
+  column-rule: orange outset 5em;
+  }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if the 2 orange squares are <strong>identical</strong>.</p>
+
+  <div id="reference">T</div>
+
+  <div id="test">Le ft Co lu mn Ri gh Co lu mn</div>
+
+  <!--
+
+  Expected results
+    column-gap
+    column-rule
+     v=====v
+  *************
+  |Le|     |Ri|
+  |ft|     |gh|
+  |Co|     |Co|
+  |lu|     |lu|
+  |mn|     |mn|
+  *************
+
+  -->
+
+ </body>
+</html>

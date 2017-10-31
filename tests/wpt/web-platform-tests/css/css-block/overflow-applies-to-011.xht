@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: overflow applied to elements with 'display' set to 'run-in'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#propdef-overflow" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'overflow' property applies to elements with 'display' set to 'run-in'." />
+        <style type="text/css">
+            div
+            {
+                border: 5px solid transparent;
+                color: white;
+                display: run-in;
+                font: 20px/1em Ahem;
+                height: 5em;
+                overflow: hidden;
+                width: 5em;
+            }
+            #span2
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div><span>XXXXX</span><span id="span2">XXXXX</span></div>
+    </body>
+</html>

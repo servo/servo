@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="geometry-background-image-tiled-002-ref.html">
+<style>
+html, body { margin: 0; padding: 0; }
+.container {
+  width: 100px;
+  height: 100px;
+  background: paint(geometry) center right/50% 20% no-repeat;
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+    paint(ctx, geom) {
+        ctx.strokeStyle = 'green';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

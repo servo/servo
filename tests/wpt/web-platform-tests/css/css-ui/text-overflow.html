@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+	<title>CSS Basic User Interface Test: text-overflow - ellipsis</title>
+    <link rel="author" title="YreenChan" href="mailto:yreenchan@gmail.com">
+    <link rel="reviewer" title="Simon Pieters" href="mailto:simonp@opera.com">
+    <link rel="reviewer" title="Leif Arne Storset" href="mailto:lstorset@opera.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow" title="8.2. the 'text-overflow' property">
+    <link rel="match" href="text-overflow-ref.html">
+    <meta name="flags" content="font ahem">
+    <meta name="assert" content="'text-overflow:ellipsis' renders U+2026 when text is overflowing.">
+	<style>
+	div {
+		font-size:10px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		width: 50px;
+	}
+	span { font-family: Ahem; font-size:30px; }
+	</style>
+<body>
+	<p>PREREQUISITE: The font used must have a glyph for the U+2026 character.</p>
+	<p>Test passes if there is <strong>ellipsis</strong> after a black square.</p>
+	<div>
+		<span>AAAA</span>
+	</div>
+</body>
+</html>

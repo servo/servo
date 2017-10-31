@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		ol {
+			margin-top: 0;
+			margin-bottom: 0;
+		}
+		ol ol {
+			color: blue;
+			list-style-type: lower-roman;
+		}
+		#list21, #list31 {
+			margin-bottom: 1em;
+		}
+
+		.region {
+			background-color: lightgray;
+			margin: 1em;
+			float: left;
+			width: 17em;
+			height: 15em;
+		}
+		</style>
+	</head>
+	<body>
+		<p>The test passes if there are three gray rectangles: the left one with a 4 items list, the middle one with two 2 items lists, the right one with two 5 items lists. <br> The blue items in the right rectangle should be indented and numbered using roman numerals.</p>
+		<div class="region" id="region1">
+			<ol id="list1">
+				<li>First list, item 1</li>
+				<li>First list, item 2</li>
+				<li>First list, item 3</li>
+				<li>First list, item 4</li>
+			</ol>
+		</div>
+		<div class="region" id="region2">
+			<ol id="list21">
+				<li>List 2-1, item 1</li>
+				<li>List 2-1, item 2</li>
+			</ol>
+			<ol id="list22">
+				<li>List 2-2, item 1</li>
+				<li>List 2-2, item 2</li>
+			</ol>
+		</div>
+		<div class="region" id="region3">
+			<ol id="list31">
+				<li>List 3-1, item 1</li>
+				<li>List 3-1, item 2
+					<ol>
+						<li>First inner list, item i</li>
+						<li>First inner list, item ii</li>
+					</ol>
+				</li>
+				<li>List 3-1, item 3</li>
+			</ol>
+			<ol id="list32">
+				<li>List 3-2, item 1</li>
+				<li>List 3-2, item 2</li>
+				<li>List 3-2, item 3
+					<ol>
+						<li>Second inner list, item i</li>
+						<li>Second inner list, item ii</li>
+					</ol>
+				</li>
+			</ol>
+		</div>
+	</body>
+</html>

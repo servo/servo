@@ -1,0 +1,27 @@
+<csstest def="More than one class selector" module="W3C Selectors" modulename="css3-modsel" number="14" rev="1.2" date="22-june-2003" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>p { background-color : red ; border : thick solid red ; padding : 1em }
+p.t1 { background-color : lime }
+p.t2 { border : thick solid green }
+
+div { background: green; color: white; }
+div.teST { background: red; color: yellow; }
+div.te { background: red; color: yellow; }
+div.st { background: red; color: yellow; }
+div.te.st { background: red; color: yellow; }</cssrules>
+
+<code>
+
+<p class="t1 t2" xmlns="http://www.w3.org/1999/xhtml">This paragraph
+should have a green background and a green thick solid border because
+it carries both classes t1 and t2.</p>
+
+<div class="test" xmlns="http://www.w3.org/1999/xhtml">This line
+should be green.</div>
+
+</code>
+
+</csstest>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSS Backgrounds Test:background clip property with value content-box</title>
+    <link rel="author" title="yanshasha" href="mailto:yanshasha133@gmail.com" />
+    <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"> <!-- 2013-09-03 -->
+    <style type="text/css">
+            .box {
+                width: 200px;
+                height: 200px;
+                position: relative;
+            }
+            .box div {
+                position: absolute;
+            }
+            #div1 {
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: green;
+            }
+            #div2 {
+                top: 15px;
+                left: 15px;
+                right: 15px;
+                bottom: 15px;
+                background-color: red;
+            }
+            #div3 {
+                top: 30px;
+                left: 30px;
+                right: 30px;
+                bottom: 30px;
+                background-color: yellow;
+            }
+    </style>
+  </head>
+  <body>
+    <p>
+      The test passes if threre are three overlapping squares with different color(green,red and yellow from outside to inside).
+    </p>
+    <div class="box">
+      <div id="div1"></div>
+      <div id="div2"></div>
+      <div id="div3"></div>
+    </div>
+  </body>
+</html>

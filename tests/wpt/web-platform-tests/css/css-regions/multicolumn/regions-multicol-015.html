@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: One named flow muticolumn container, text content flowing into
+                     multiple regions with content overflowing last region</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <!-- Reviewed on Github on 09-26-2013: https://github.com/w3c/csswg-test/pull/89 -->
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-multicol/#columns"/>
+    <link rel="match" href="reference/regions-multicol-013-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test checks that text content flows through multiple
+                                 regions from the named flow multi-column container and that
+                                 it overflows the last region in the region chain visibly."/>
+    <style type="text/css">
+        #named-flow-multicol {
+            font-family: Ahem;
+            font-size: 25px;
+            line-height: 1em;
+            color: green;
+            columns: 2;
+            column-gap: 10px;
+            flow-into: multicol;
+        }
+        #region-1 , #region-2 {
+            position: absolute;
+            top: 50px;
+            width: 110px;
+            flow-from: multicol;
+        }
+        #region-1 {
+            left: 20px;
+            height: 200px;
+        }
+        #region-2 {
+            left: 140px;
+            height: 100px;
+        }
+        .failure {
+            position: absolute;
+            background-color: red;
+            top: 50px;
+            width: 50px;
+            height: 200px;
+            z-index: -1;
+        }
+        #bar-1 {
+            left: 20px;
+        }
+        #bar-2 {
+            left: 80px;
+        }
+        #bar-3 {
+            left: 140px;
+        }
+        #bar-4 {
+            left: 200px;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there are four green vertical bars and no red.</p>
+    <div id="named-flow-multicol">
+        XX XX XX XX XX XX XX XX
+        XX XX XX XX XX XX XX XX
+        XX XX XX XX XX XX XX XX
+        XX XX XX XX XX XX XX XX
+    </div>
+    <div id="region-1"></div>
+    <div id="region-2"></div>
+    <div class="failure" id="bar-1"></div>
+    <div class="failure" id="bar-2"></div>
+    <div class="failure" id="bar-3"></div>
+    <div class="failure" id="bar-4"></div>
+</body>
+</html>

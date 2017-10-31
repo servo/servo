@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Transform Affects Descendant</title>
+    <link rel="author" title="Clint Talbert" href="mailto:ctalbert@mozilla.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="reviewer" title="Apple Inc." href="http://www.apple.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='This just tests that a transform on a
+    container div moves its contents, not just the div itself.'>
+    <link rel="match" href="transform-descendant-ref.html">
+    <style>
+      body > div {
+        background: green;
+        width: 100px;
+        height: 100px;
+      }
+      span {
+        background: yellow;
+      }
+      body > div > div {
+        transform: translate(20px, 150px);
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div><span>span 1</span></div>
+    </div>
+    <span>span 2</span>
+  </body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: painting order for floats and relatively positioned content</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that floats and relatively positioned content are
+				painted in the same order when flowed into region as when they are not flowed into
+				regions.">
+		<link rel="match" href="reference/floats-in-named-flow-025-ref.html">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+		}
+		.flow {
+			flow-into: f;
+
+		}
+		.float {
+			float: left;
+			color: red;
+			position: relative;
+		}
+
+		.content {
+			color: green;
+			position: relative;
+			left: -100px;
+		}
+
+		.region {
+			flow-from: f;
+		}
+
+		.region > p {
+			background: red;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a green square.<br>
+			You should see no red.
+		</p>
+
+		<div class="region">
+			<p>&nbsp;</p>
+		</div>
+
+		<article class="flow">
+			<div class="float">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div class="content">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+		</article>
+	</body>
+</html>

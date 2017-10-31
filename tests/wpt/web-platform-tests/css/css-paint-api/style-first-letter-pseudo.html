@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="style-first-letter-pseudo-ref.html">
+<style>
+div {
+    color: rgb(0, 255, 0);
+    line-height: 1px;
+    height: 10px;
+}
+
+div::first-letter {
+    background-image: paint(geometry);
+    color: rgb(255, 0, 0);
+    line-height: 2px;
+}
+</style>
+<script src="../common/reftest-wait.js"></script>
+<script src="../common/css-paint-tests.js"></script>
+<body style="font: 10px/1 Ahem;">
+<div>ppp</div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+    static get inputProperties() {
+        return [
+            'color',
+            'line-height',
+        ];
+    }
+    paint(ctx, geom, styleMap) {
+        const properties = styleMap.getProperties().sort();
+        var serializedStrings = [];
+        for (let i = 0; i < properties.length; i++) {
+            const value = styleMap.get(properties[i]);
+            let serialized;
+            if (value)
+                serialized = properties[i].toString() + ': [' + value.constructor.name + '=' + value.toString() + ']';
+            else
+                serialized = properties[i].toString() + ': [null]';
+            serializedStrings.push(serialized);
+        }
+        ctx.strokeStyle = 'green';
+        if (serializedStrings[0] != "color: [CSSStyleValue=rgb(255, 0, 0)]")
+            ctx.strokeStyle = 'red';
+        if (serializedStrings[1] != "line-height: [CSSUnitValue=2px]")
+            ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

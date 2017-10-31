@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: <%= title %>.</title>
+<% if (reference) {
+%><link rel="match" href="<%= reference %>">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation">
+<% }
+%><link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<style>
+@font-face {
+    font-family: "orientation";
+    src: url("support/adobe-fonts/CSSHWOrientationTest.otf");
+}
+html {
+    <%= prefix %>writing-mode: <%= writingMode %>;
+}
+.test {
+    font: 20px/1 "orientation";
+    height: 17em;
+    <%= prefix %>text-orientation: <%= textOrientation %>;
+}
+.line {
+    white-space: pre;
+}
+</style>
+<body>
+<div id="container">
+<% for (var range of codePointRanges) {
+%><div><%= headingFromRange(range) %><div class="test">
+<%   var codePoints = codePointsFromRangeForRendering(range);
+     for (var line of linesFromCodePoints(codePoints)) {
+%><div class="line"><%= line %></div>
+<%   }
+%></div></div>
+<% } %></div>
+</body>

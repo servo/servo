@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: transform property with rotate function and one parameter</title>
+    <link rel="author" title="Ji Kai" href="mailto:7jikai@gmail.com">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-1/#two-d-transform-functions">
+    <link rel="match" href="reference/transforms-rotate-degree-45-ref.html">
+    <meta name="assert" content="If the rotate and scale with parameter not provided, greenSquare will not cover redSquare.">
+    <style type="text/css">
+        .greenSquare {
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            width: 100px;
+            height: 100px;
+            background: green;
+            transform: rotate(45deg);
+        }
+
+        .redSquare-up {
+            position: absolute;
+            top: 80px;
+            left: 80px;
+            width: 0;
+            height: 0;
+            border-left: 70px solid transparent;
+            border-right: 70px solid transparent;
+            border-bottom: 70px solid red;
+        }
+
+        .redSquare-down {
+            position: absolute;
+            top: 150px;
+            left: 80px;
+            width: 0;
+            height: 0;
+            border-left: 70px solid transparent;
+            border-right: 70px solid transparent;
+            border-top: 70px solid red;
+        }
+      </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <div class="redSquare-up"></div>
+    <div class="redSquare-down"></div>
+    <div class="greenSquare"></div>
+</body>
+</html>

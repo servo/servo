@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lao, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type:lao produces numbers up to 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: lao;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol>
+<li title="1">໑</li>
+<li title="2">໒</li>
+<li title="3">໓</li>
+<li title="4">໔</li>
+<li title="5">໕</li>
+<li title="6">໖</li>
+<li title="7">໗</li>
+<li title="8">໘</li>
+<li title="9">໙</li>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

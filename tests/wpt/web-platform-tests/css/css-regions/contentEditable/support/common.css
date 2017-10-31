@@ -1,0 +1,17 @@
+.inline-marker {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+}
+
+.green {
+	background-color: lime;
+}
+
+.blue {
+	background-color: lightblue;
+}
+
+.gray {
+	background-color: silver;
+}

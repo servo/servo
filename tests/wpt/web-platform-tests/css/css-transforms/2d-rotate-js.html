@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>JS test: Rotate via javascript must show the correct computed rotation</title>
+		<link rel="author" title="Rick Hurst" href="http://mrkn.co/axegs">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+		<script src="/resources/testharness.js"></script>
+		<script src="/resources/testharnessreport.js"></script>
+		<meta name="flags" content="svg">
+		<meta name="assert" content="Asserting that you can rotate an element with JS and it show up in CSS computed values not as a matrix but as the rotation">
+		<style>
+			#box{
+				margin-top:30px;
+				display: block;
+				width: 50px;
+				height: 50px;
+				background-color: green;
+			}
+		</style>
+	</head>
+    <body>
+		<h1>Rotate via JS</h1>
+        <div id="log"></div>
+        <div id="box"></div>
+		<script>
+			test(function() {
+				var box = document.getElementById("box");
+				box.style.transform = "rotate(30deg)";
+				assert_equals(window.getComputedStyle(box).getPropertyValue("transform"),
+				              "rotate(30deg)");
+			});
+		</script>
+    </body>
+</html>

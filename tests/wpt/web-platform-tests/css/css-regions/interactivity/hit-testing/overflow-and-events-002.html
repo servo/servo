@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: JavaScript event handlers for elements in a region's scroll overflow</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="For regions that have scroll overflow, JavaScript events on elements that are in the scrollable overflow should trigger once the element is scrolled into view and the corresponding user gesture is made">
+	<meta name="flags" content="dom interact">
+	<style>
+	p {
+		margin: 0;
+	}
+	input {
+		width: 100px;
+	}
+	#content {
+		font-family: monospace;
+		font-size: 20px;
+		line-height: 1em;
+		flow-into: f;
+	}
+	.spacer {
+		width: 100%;
+		height: 80px;
+		display: block;
+	}
+	.highlite {
+		color: deepskyblue;
+		display: inline-block;
+		height: 50px;
+
+	}
+	#parent {
+		height: 200px;
+	}
+	#region {
+		border: 2px solid black;
+		background-color: lightgray;
+		width: 100px;
+		height: 100px;
+		flow-from: f;
+		overflow-y: scroll;
+	}
+	#region p {
+		background-color: red;
+		width: 100%;
+		height: 50%;
+	}
+	#result {
+		color: green;
+		font-weight: bold;
+	}
+	</style>
+</head>
+<body>
+	This tests that elements displayed in a region's scrollable overflow can be scrolled into view and handle mouse events.
+	<ol>
+		<li>You should not see any red before or during this test.</li>
+		<li>Scroll the contents of the square below so that the blue word (<em>overflows</em>) scrolls into view.</li>
+		<li>Click on the blue word (<em>overflows</em>) outside the gray square.</li>
+		<li>You should see "PASS" word being displayed in green, below.</li>
+	</ol>
+	<div id="content"><span class="spacer"></span>This text has <span class="highlite">overflow</span></div>
+	<div id="result">&nbsp;</div>
+	<div id="parent">
+		<div id="region">
+			<p></p>
+		</div>
+	</div>
+	<script type="text/javascript">
+	var word = document.querySelector(".highlite");
+	word.addEventListener("click", function(evt) {
+		document.querySelector("#result").innerHTML = "PASS";
+		finishTest();
+	});
+
+	var parent = document.querySelector("#parent");
+	parent.addEventListener("click", function(evt) {
+		var result = document.querySelector("#result");
+		if (result.innerHTML != "&nbsp;") {
+			result.innerHTML = "FAIL";
+			result.style.color = "red";
+		}
+
+		finishTest();
+	})
+
+	function finishTest() {
+		if (window.testRunner) {
+			testRunner.notifyDone();
+		}
+	}
+
+	function runScript() {
+		if (window.testRunner) {
+			testRunner.dumpAsText();
+			testRunner.waitUntilDone();
+
+			var region = document.querySelector("#region");
+			region.scrollTop = 100;
+
+			var boxLocation = document.querySelector(".highlite").getBoundingClientRect();
+			eventSender.mouseMoveTo(boxLocation.left + boxLocation.width/2, boxLocation.top + boxLocation.height/2);
+
+			eventSender.mouseDown();
+			eventSender.mouseUp();
+		}
+	}
+
+	runScript();
+	</script>
+</body>
+</html>
