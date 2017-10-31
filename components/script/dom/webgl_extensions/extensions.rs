@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::WebGLError;
+use canvas_traits::webgl::{WebGLError, WebGLVersion};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
@@ -20,13 +20,13 @@ use ref_filter_map::ref_filter_map;
 use std::cell::Ref;
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use super::{ext, WebGLExtension};
+use super::{ext, WebGLExtension, WebGLExtensionSpec};
 use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 
-// Data types that are implemented for texImage2D and texSubImage2D in WebGLRenderingContext
+// Data types that are implemented for texImage2D and texSubImage2D in a WebGL 1.0 context
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_texture_float/
-const DEFAULT_DISABLED_TEX_TYPES: [GLenum; 2] = [
+const DEFAULT_DISABLED_TEX_TYPES_WEBGL1: [GLenum; 2] = [
     constants::FLOAT, OESTextureHalfFloatConstants::HALF_FLOAT_OES
 ];
 
@@ -37,10 +37,10 @@ const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
     constants::FLOAT, OESTextureHalfFloatConstants::HALF_FLOAT_OES
 ];
 
-// Param names that are implemented for getParameter WebGL function
+// Param names that are implemented for glGetParameter in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
-const DEFAULT_DISABLED_GET_PARAMETER_NAMES: [GLenum; 1] = [
+const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 1] = [
     OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES
 ];
 
@@ -58,16 +58,25 @@ struct WebGLExtensionFeatures {
     disabled_get_parameter_names: FnvHashSet<GLenum>,
 }
 
-impl Default for WebGLExtensionFeatures {
-    fn default() -> WebGLExtensionFeatures {
-        WebGLExtensionFeatures {
+impl WebGLExtensionFeatures {
+    fn new(webgl_version: WebGLVersion) -> Self {
+        let (disabled_tex_types, disabled_get_parameter_names) = match webgl_version {
+            WebGLVersion::WebGL1 => {
+                (DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
+                 DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect())
+            },
+            WebGLVersion::WebGL2 => {
+                (Default::default(), Default::default())
+            }
+        };
+        Self {
             gl_extensions: Default::default(),
-            disabled_tex_types: DEFAULT_DISABLED_TEX_TYPES.iter().cloned().collect(),
+            disabled_tex_types,
             not_filterable_tex_types: DEFAULT_NOT_FILTERABLE_TEX_TYPES.iter().cloned().collect(),
             effective_tex_internal_formats: Default::default(),
             query_parameter_handlers: Default::default(),
             hint_targets: Default::default(),
-            disabled_get_parameter_names: DEFAULT_DISABLED_GET_PARAMETER_NAMES.iter().cloned().collect(),
+            disabled_get_parameter_names,
         }
     }
 }
@@ -78,13 +87,15 @@ impl Default for WebGLExtensionFeatures {
 pub struct WebGLExtensions {
     extensions: DomRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
     features: DomRefCell<WebGLExtensionFeatures>,
+    webgl_version: WebGLVersion,
 }
 
 impl WebGLExtensions {
-    pub fn new() -> WebGLExtensions {
+    pub fn new(webgl_version: WebGLVersion) -> WebGLExtensions {
         Self {
             extensions: DomRefCell::new(HashMap::new()),
-            features: DomRefCell::new(Default::default())
+            features: DomRefCell::new(WebGLExtensionFeatures::new(webgl_version)),
+            webgl_version
         }
     }
 
@@ -104,7 +115,14 @@ impl WebGLExtensions {
 
     pub fn get_suported_extensions(&self) -> Vec<&'static str> {
         self.extensions.borrow().iter()
-                                .filter(|ref v| v.1.is_supported(&self))
+                                .filter(|ref v| {
+                                    if let WebGLExtensionSpec::Specific(version) = v.1.spec() {
+                                        if self.webgl_version != version {
+                                            return false;
+                                        }
+                                    }
+                                    v.1.is_supported(&self)
+                                })
                                 .map(|ref v| v.1.name())
                                 .collect()
     }
