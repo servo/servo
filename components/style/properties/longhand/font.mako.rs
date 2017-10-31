@@ -852,8 +852,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
                 if let Some(info) = computed.keyword_info {
-                    computed.size = context.maybe_zoom_text(info.kw.to_computed_value(context)
-                                                                .scale_by(info.factor) + info.offset)
+                    computed.size = info.to_computed_value(context);
                 }
             }
         % endif
@@ -885,8 +884,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         let kw_inherited_size = context.builder.get_parent_font()
                                        .clone_font_size()
                                        .keyword_info.map(|info| {
-            context.maybe_zoom_text(SpecifiedValue::Keyword(info)
-                  .to_computed_value(context).size)
+            SpecifiedValue::Keyword(info).to_computed_value(context).size
         });
         let mut font = context.builder.take_font();
         font.inherit_font_size_from(context.builder.get_parent_font(),
@@ -904,9 +902,9 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
-        let mut computed = longhands::font_size::get_initial_specified_value()
-                                            .to_computed_value(context);
-        computed.size = context.maybe_zoom_text(computed.size);
+        let computed =
+            longhands::font_size::get_initial_specified_value()
+                .to_computed_value(context);
         context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
             let device = context.builder.device;

@@ -38,6 +38,13 @@ pub struct KeywordInfo {
 }
 
 impl KeywordInfo {
+    /// Computes the final size for this font-size keyword, accounting for
+    /// text-zoom.
+    pub fn to_computed_value(&self, context: &Context) -> NonNegativeLength {
+        let base = context.maybe_zoom_text(self.kw.to_computed_value(context));
+        base.scale_by(self.factor) + context.maybe_zoom_text(self.offset)
+    }
+
     /// Given a parent keyword info (self), apply an additional factor/offset to it
     pub fn compose(self, factor: f32, offset: NonNegativeLength) -> Self {
         KeywordInfo {

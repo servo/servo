@@ -316,7 +316,7 @@ impl FontSize {
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived
                 info = Some(i);
-                context.maybe_zoom_text(i.kw.to_computed_value(context).scale_by(i.factor) + i.offset)
+                i.to_computed_value(context)
             }
             FontSize::Smaller => {
                 info = compose_keyword(1. / LARGER_FONT_SIZE_RATIO);
