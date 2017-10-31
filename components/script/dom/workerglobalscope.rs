@@ -90,7 +90,7 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    navigation_start_precise: f64,
+    navigation_start_precise: u64,
     performance: MutNullableDom<Performance>,
 }
 
@@ -124,7 +124,7 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver,
-            navigation_start_precise: precise_time_ns() as f64,
+            navigation_start_precise: precise_time_ns(),
             performance: Default::default(),
         }
     }

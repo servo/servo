@@ -1961,7 +1961,7 @@ impl Document {
 
         if self.tti_window.borrow().needs_check() {
             self.get_interactive_metrics().maybe_set_tti(self,
-                InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start() as f64));
+                InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start()));
         }
     }
 
