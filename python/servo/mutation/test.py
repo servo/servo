@@ -12,32 +12,37 @@ import re
 import subprocess
 import sys
 import os
+import random
 DEVNULL = open(os.devnull, 'wb')
 
 
-def mutate_line(file_name, line_number):
-    for line in fileinput.input(file_name, inplace=True):
-        if fileinput.lineno() == line_number:
-            line = re.sub(r'\s&&\s', ' || ', line)
-        print line.rstrip()
-
-
-def mutation_test(file_name, tests):
+def mutate_random_line(file_name):
     line_numbers = []
     for line in fileinput.input(file_name):
         if re.search(r'\s&&\s', line):
             line_numbers.append(fileinput.lineno())
+    if len(line_numbers) == 0:
+        return -1
+    else:
+        mutation_line_number = line_numbers[random.randint(0, len(line_numbers) - 1)]
+        for line in fileinput.input(file_name, inplace=True):
+            if fileinput.lineno() == mutation_line_number:
+                line = re.sub(r'\s&&\s', ' || ', line)
+            print line.rstrip()
+        return mutation_line_number
 
-    for line_to_mutate in line_numbers:
-        print "Mutating {0} at line {1}".format(file_name, line_to_mutate)
-        mutate_line(file_name, line_to_mutate)
-        print "compling mutant {0}:{1}".format(file_name, line_to_mutate)
+
+def mutation_test(file_name, tests):
+    mutated_line = mutate_random_line(file_name)
+    if mutated_line != -1:
+        print "Mutating {0} at line {1}".format(file_name, mutated_line)
+        print "compling mutant {0}:{1}".format(file_name, mutated_line)
         sys.stdout.flush()
         subprocess.call('python mach build --release', shell=True, stdout=DEVNULL)
-        print "running tests for mutant {0}:{1}".format(file_name, line_to_mutate)
-        sys.stdout.flush()
         for test in tests:
             test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
+            print "running `{0}` test for mutant {1}:{2}".format(test, file_name, mutated_line)
+            sys.stdout.flush()
             test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
             if test_status != 0:
                 print("Failed: while running `{0}`".format(test_command))
@@ -47,6 +52,9 @@ def mutation_test(file_name, tests):
             else:
                 print("Success: Mutation killed by {0}".format(test.encode('utf-8')))
                 break
-        print "reverting mutant {0}:{1}".format(file_name, line_to_mutate)
+        print "reverting mutant {0}:{1}".format(file_name, mutated_line)
         sys.stdout.flush()
         subprocess.call('git checkout {0}'.format(file_name), shell=True)
+    else:
+        print "Cannot mutate {0}".format(file_name)
+    print "-----------------------------------------------------------------\n"
