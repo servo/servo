@@ -42,7 +42,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use encoding::EncodingRef;
+use encoding::{EncodingRef, EncoderTrap};
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use html5ever::{LocalName, Prefix};
@@ -56,6 +56,8 @@ use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
+use url::UrlQuery;
+use url::form_urlencoded::Serializer;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -378,10 +380,8 @@ impl HTMLFormElement {
     fn mutate_action_url(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData, encoding: EncodingRef) {
         let charset = &*encoding.whatwg_name().unwrap();
 
-        load_data.url
-            .as_mut_url()
-            .query_pairs_mut().clear()
-            .encoding_override(Some(self.pick_encoding()))
+        self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
+            .clear()
             .extend_pairs(form_data.into_iter()
                                     .map(|field| (field.name.clone(), field.replace_value(charset))));
 
@@ -397,10 +397,8 @@ impl HTMLFormElement {
                 let charset = &*encoding.whatwg_name().unwrap();
                 load_data.headers.set(ContentType::form_url_encoded());
 
-                load_data.url
-                    .as_mut_url()
-                    .query_pairs_mut().clear()
-                    .encoding_override(Some(self.pick_encoding()))
+                self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
+                    .clear()
                     .extend_pairs(form_data.into_iter()
                     .map(|field| (field.name.clone(), field.replace_value(charset))));
 
@@ -419,6 +417,17 @@ impl HTMLFormElement {
 
         load_data.data = Some(bytes);
         self.plan_to_navigate(load_data);
+    }
+
+    fn set_encoding_override<'a>(&self, mut serializer: Serializer<UrlQuery<'a>>)
+                                 -> Serializer<UrlQuery<'a>> {
+        let encoding = self.pick_encoding();
+        if encoding.name() != "utf-8" {
+            serializer.custom_encoding_override(move |s| {
+                encoding.encode(s, EncoderTrap::NcrEscape).unwrap().into()
+            });
+        }
+        serializer
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)

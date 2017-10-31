@@ -1386,8 +1386,7 @@ impl Extractable for FormData {
 
 impl Extractable for URLSearchParams {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
-        // Default encoding is UTF-8.
-        (self.serialize(None).into_bytes(),
+        (self.serialize_utf8().into_bytes(),
             Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
     }
 }
