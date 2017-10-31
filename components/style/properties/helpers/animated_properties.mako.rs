@@ -18,8 +18,6 @@ use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
 #[cfg(feature = "gecko")]
 use properties::longhands::font_variation_settings::computed_value::T as FontVariationSettings;
-use properties::longhands::transform::computed_value::ComputedOperation as ComputedTransformOperation;
-use properties::longhands::transform::computed_value::T as ComputedTransform;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")]
 use properties::PropertyId;
@@ -45,6 +43,8 @@ use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::computed::ToComputedValue;
 use values::computed::transform::{DirectionVector, Matrix, Matrix3D};
+use values::computed::transform::TransformOperation as ComputedTransformOperation;
+use values::computed::transform::Transform as ComputedTransform;
 use values::generics::transform::{Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
@@ -1226,11 +1226,11 @@ impl Animate for ComputedTransformOperation {
                     fd_matrix.animate(&td_matrix, procedure)?,
                 ))
             },
-            (ref f, ref t) if f.is_translate() && t.is_translate() => {
-                f.to_translate_3d().animate(&t.to_translate_3d(), procedure)
+            _ if self.is_translate() && other.is_translate() => {
+                self.to_translate_3d().animate(&other.to_translate_3d(), procedure)
             }
-            (ref f, ref t) if f.is_scale() && t.is_scale() => {
-                f.to_scale_3d().animate(&t.to_scale_3d(), procedure)
+            _ if self.is_scale() && other.is_scale() => {
+                self.to_scale_3d().animate(&other.to_scale_3d(), procedure)
             }
             _ => Err(()),
         }
@@ -2334,6 +2334,19 @@ impl Animate for ComputedTransform {
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1318591#c0.
 impl ComputeSquaredDistance for ComputedTransformOperation {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        // For translate, We don't want to require doing layout in order to calculate the result, so
+        // drop the percentage part. However, dropping percentage makes us impossible to
+        // compute the distance for the percentage-percentage case, but Gecko uses the
+        // same formula, so it's fine for now.
+        // Note: We use pixel value to compute the distance for translate, so we have to
+        // convert Au into px.
+        let extract_pixel_length = |lop: &LengthOrPercentage| {
+            match *lop {
+                LengthOrPercentage::Length(px) => px.px(),
+                LengthOrPercentage::Percentage(_) => 0.,
+                LengthOrPercentage::Calc(calc) => calc.length().px(),
+            }
+        };
         match (self, other) {
             (
                 &TransformOperation::Matrix3D(ref this),
@@ -2341,6 +2354,16 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
             ) => {
                 this.compute_squared_distance(other)
             },
+            (
+                &TransformOperation::Matrix(ref this),
+                &TransformOperation::Matrix(ref other),
+            ) => {
+                let this: Matrix3D = (*this).into();
+                let other: Matrix3D = (*other).into();
+                this.compute_squared_distance(&other)
+            },
+
+
             (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
@@ -2351,23 +2374,18 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 )
             },
             (
+                &TransformOperation::SkewX(ref f),
+                &TransformOperation::SkewX(ref t),
+            ) | (
+                &TransformOperation::SkewY(ref f),
+                &TransformOperation::SkewY(ref t),
+            ) => {
+                f.compute_squared_distance(&t)
+            },
+            (
                 &TransformOperation::Translate3D(ref fx, ref fy, ref fz),
                 &TransformOperation::Translate3D(ref tx, ref ty, ref tz),
             ) => {
-                // We don't want to require doing layout in order to calculate the result, so
-                // drop the percentage part. However, dropping percentage makes us impossible to
-                // compute the distance for the percentage-percentage case, but Gecko uses the
-                // same formula, so it's fine for now.
-                // Note: We use pixel value to compute the distance for translate, so we have to
-                // convert Au into px.
-                let extract_pixel_length = |lop: &LengthOrPercentage| {
-                    match *lop {
-                        LengthOrPercentage::Length(px) => px.px(),
-                        LengthOrPercentage::Percentage(_) => 0.,
-                        LengthOrPercentage::Calc(calc) => calc.length().px(),
-                    }
-                };
-
                 let fx = extract_pixel_length(&fx);
                 let fy = extract_pixel_length(&fy);
                 let tx = extract_pixel_length(&tx);
@@ -2408,6 +2426,24 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 }
             }
             (
+                &TransformOperation::RotateX(fa),
+                &TransformOperation::RotateX(ta),
+            ) |
+            (
+                &TransformOperation::RotateY(fa),
+                &TransformOperation::RotateY(ta),
+            ) |
+            (
+                &TransformOperation::RotateZ(fa),
+                &TransformOperation::RotateZ(ta),
+            ) |
+            (
+                &TransformOperation::Rotate(fa),
+                &TransformOperation::Rotate(ta),
+            ) => {
+                fa.compute_squared_distance(&ta)
+            }
+            (
                 &TransformOperation::Perspective(ref fd),
                 &TransformOperation::Perspective(ref td),
             ) => {
@@ -2434,6 +2470,12 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                     p_matrix.m34 = -1. / p.px();
                 }
                 p_matrix.compute_squared_distance(&m)
+            }
+            _ if self.is_translate() && other.is_translate() => {
+                self.to_translate_3d().compute_squared_distance(&other.to_translate_3d())
+            }
+            _ if self.is_scale() && other.is_scale() => {
+                self.to_scale_3d().compute_squared_distance(&other.to_scale_3d())
             }
             _ => Err(()),
         }
