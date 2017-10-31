@@ -120,7 +120,8 @@ pub struct Performance {
 impl Performance {
     fn new_inherited(global: &GlobalScope,
                      navigation_start: u64,
-                     navigation_start_precise: f64) -> Performance {
+                     navigation_start_precise: u64) -> Performance {
+        let navigation_start_precise = navigation_start_precise as f64;
         Performance {
             reflector_: Reflector::new(),
             timing: if global.is::<Window>() {
@@ -139,7 +140,7 @@ impl Performance {
 
     pub fn new(global: &GlobalScope,
                navigation_start: u64,
-               navigation_start_precise: f64) -> DomRoot<Performance> {
+               navigation_start_precise: u64) -> DomRoot<Performance> {
         reflect_dom_object(
             Box::new(Performance::new_inherited(global, navigation_start, navigation_start_precise)),
             global,

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
-use metrics::{InteractiveMetrics, InteractiveFlag, InteractiveWindow};
+use metrics::{InteractiveMetrics, InteractiveFlag};
 use metrics::{ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use time;
@@ -24,7 +24,7 @@ fn test_interactive() -> InteractiveMetrics {
     assert_eq!((&interactive).get_navigation_start(), None);
     assert_eq!(interactive.get_tti(), None);
 
-    interactive.set_navigation_start(time::precise_time_ns() as f64);
+    interactive.set_navigation_start(time::precise_time_ns());
 
     interactive
 }
@@ -52,16 +52,16 @@ fn test_set_mta() {
     let t = time::precise_time_ns();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(t as f64),
+        InteractiveFlag::TimeToInteractive(t),
     );
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());
-    assert_eq!(mta, Some(t as f64));
+    assert_eq!(mta, Some(t));
 
     //try to overwrite
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(time::precise_time_ns() as f64),
+        InteractiveFlag::TimeToInteractive(time::precise_time_ns()),
     );
     assert_eq!(interactive.get_main_thread_available(), mta);
     assert_eq!(interactive.get_tti(), None);
@@ -75,7 +75,7 @@ fn test_set_tti_dcl() {
     let t = time::precise_time_ns();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(t as f64),
+        InteractiveFlag::TimeToInteractive(t),
     );
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());
@@ -100,7 +100,7 @@ fn test_set_tti_mta() {
     let t = time::precise_time_ns();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(t as f64),
+        InteractiveFlag::TimeToInteractive(t),
     );
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());

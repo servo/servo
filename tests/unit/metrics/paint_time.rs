@@ -70,7 +70,7 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
     );
 
     // Should not set any metric until navigation start is set.
-    paint_time_metrics.maybe_set_metric(epoch, 0.);
+    paint_time_metrics.maybe_set_metric(epoch, 0);
     assert_eq!(
         paint_time_metrics.get_first_paint(),
         None,
@@ -82,7 +82,7 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
         "first contentful paint is None"
     );
 
-    let navigation_start = time::precise_time_ns() as f64;
+    let navigation_start = time::precise_time_ns();
     paint_time_metrics.set_navigation_start(navigation_start);
     assert_eq!(
         (&paint_time_metrics).get_navigation_start().unwrap(),
@@ -101,7 +101,7 @@ fn test_first_paint_setter() {
     };
     let epoch = Epoch(0);
     let paint_time_metrics = test_common(&empty_display_list, epoch);
-    let now = time::precise_time_ns() as f64;
+    let now = time::precise_time_ns();
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(
         paint_time_metrics.get_first_paint().is_some(),
@@ -135,7 +135,7 @@ fn test_first_contentful_paint_setter() {
     };
     let epoch = Epoch(0);
     let paint_time_metrics = test_common(&display_list, epoch);
-    let now = time::precise_time_ns() as f64;
+    let now = time::precise_time_ns();
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(
         paint_time_metrics.get_first_contentful_paint().is_some(),

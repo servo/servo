@@ -122,7 +122,7 @@ pub enum LayoutControlMsg {
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
     /// Send the paint time for a specific epoch to the layout thread.
-    PaintMetric(Epoch, f64),
+    PaintMetric(Epoch, u64),
 }
 
 /// can be passed to `LoadUrl` to load a page with GET/POST
@@ -324,7 +324,7 @@ pub enum ConstellationControlMsg {
     /// Notifies the script thread of WebVR events.
     WebVREvents(PipelineId, Vec<WebVREvent>),
     /// Notifies the script thread about a new recorded paint metric.
-    PaintMetric(PipelineId, ProgressiveWebMetricType, f64),
+    PaintMetric(PipelineId, ProgressiveWebMetricType, u64),
 }
 
 impl fmt::Debug for ConstellationControlMsg {

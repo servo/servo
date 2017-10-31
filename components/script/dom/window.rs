@@ -186,7 +186,7 @@ pub struct Window {
     custom_element_registry: MutNullableDom<CustomElementRegistry>,
     performance: MutNullableDom<Performance>,
     navigation_start: Cell<u64>,
-    navigation_start_precise: Cell<f64>,
+    navigation_start_precise: Cell<u64>,
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
@@ -1045,7 +1045,7 @@ impl Window {
         }
     }
 
-    pub fn get_navigation_start(&self) -> f64 {
+    pub fn get_navigation_start(&self) -> u64 {
         self.navigation_start_precise.get()
     }
 
@@ -1734,7 +1734,7 @@ impl Window {
         let current_time = time::get_time();
         let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64;
         self.navigation_start.set(now);
-        self.navigation_start_precise.set(time::precise_time_ns() as f64);
+        self.navigation_start_precise.set(time::precise_time_ns());
     }
 
     fn send_to_constellation(&self, msg: ScriptMsg) {
@@ -1777,7 +1777,7 @@ impl Window {
         window_size: Option<WindowSizeData>,
         origin: MutableOrigin,
         navigation_start: u64,
-        navigation_start_precise: f64,
+        navigation_start_precise: u64,
         webgl_chan: WebGLChan,
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         microtask_queue: Rc<MicrotaskQueue>,
