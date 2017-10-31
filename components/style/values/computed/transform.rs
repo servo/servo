@@ -12,8 +12,8 @@ use values::animated::ToAnimatedZero;
 use values::computed::{Angle, Integer, Length, LengthOrPercentage, Number, Percentage};
 use values::computed::{LengthOrNumber, LengthOrPercentageOrNumber};
 use values::generics::transform::{Matrix as GenericMatrix, Matrix3D as GenericMatrix3D};
-use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::{Transform as GenericTransform, TransformOperation as GenericTransformOperation};
+use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
 
 /// A single operation in a computed CSS `transform`
