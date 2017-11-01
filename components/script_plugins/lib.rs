@@ -15,6 +15,7 @@
 
 
 #![deny(unsafe_code)]
+#![feature(macro_vis_matcher)]
 #![feature(plugin)]
 #![feature(plugin_registrar)]
 #![feature(rustc_private)]
