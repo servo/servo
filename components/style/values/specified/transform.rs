@@ -20,8 +20,15 @@ use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOr
 use values::specified::position::{Side, X, Y};
 
 /// A single operation in a specified CSS `transform`
-pub type TransformOperation = GenericTransformOperation<Angle, Number, Length, Integer,
-                                                        LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber>;
+pub type TransformOperation = GenericTransformOperation<
+    Angle,
+    Number,
+    Length,
+    Integer,
+    LengthOrNumber,
+    LengthOrPercentage,
+    LengthOrPercentageOrNumber,
+>;
 /// A specified CSS `transform`
 pub type Transform = GenericTransform<TransformOperation>;
 
@@ -39,15 +46,19 @@ impl Transform {
     ) -> Result<Self, ParseError<'i>> {
         use style_traits::{Separator, Space};
 
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(GenericTransform(Vec::new()))
+        if input
+            .try(|input| input.expect_ident_matching("none"))
+            .is_ok()
+        {
+            return Ok(GenericTransform(Vec::new()));
         }
 
         Ok(GenericTransform(Space::parse(input, |input| {
             let function = input.expect_function()?.clone();
             input.parse_nested_block(|input| {
                 let location = input.current_source_location();
-                let result = match_ignore_ascii_case! { &function,
+                let result =
+                    match_ignore_ascii_case! { &function,
                     "matrix" => {
                         let a = specified::parse_number(context, input)?;
                         input.expect_comma()?;
@@ -260,7 +271,9 @@ pub type TimingFunction = GenericTimingFunction<Integer, Number>;
 impl Parse for TransformOrigin {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let parse_depth = |input: &mut Parser| {
-            input.try(|i| Length::parse(context, i)).unwrap_or(Length::from_px(0.))
+            input.try(|i| Length::parse(context, i)).unwrap_or(
+                Length::from_px(0.),
+            )
         };
         match input.try(|i| OriginComponent::parse(context, i)) {
             Ok(x_origin @ OriginComponent::Center) => {
@@ -307,7 +320,8 @@ impl Parse for TransformOrigin {
 }
 
 impl<S> Parse for OriginComponent<S>
-    where S: Parse,
+where
+    S: Parse,
 {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
@@ -322,18 +336,15 @@ impl<S> Parse for OriginComponent<S>
 }
 
 impl<S> ToComputedValue for OriginComponent<S>
-    where S: Side,
+where
+    S: Side,
 {
     type ComputedValue = ComputedLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            OriginComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(ComputedPercentage(0.5))
-            },
-            OriginComponent::Length(ref length) => {
-                length.to_computed_value(context)
-            },
+            OriginComponent::Center => ComputedLengthOrPercentage::Percentage(ComputedPercentage(0.5)),
+            OriginComponent::Length(ref length) => length.to_computed_value(context),
             OriginComponent::Side(ref keyword) => {
                 let p = ComputedPercentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
@@ -362,7 +373,9 @@ fn allow_frames_timing() -> bool {
 
 #[cfg(feature = "servo")]
 #[inline]
-fn allow_frames_timing() -> bool { true }
+fn allow_frames_timing() -> bool {
+    true
+}
 
 impl Parse for TimingFunction {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -370,7 +383,8 @@ impl Parse for TimingFunction {
             return Ok(GenericTimingFunction::Keyword(keyword));
         }
         if let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
-            let position = match_ignore_ascii_case! { &ident,
+            let position =
+                match_ignore_ascii_case! { &ident,
                 "step-start" => StepPosition::Start,
                 "step-end" => StepPosition::End,
                 _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
@@ -424,10 +438,13 @@ impl ToComputedValue for TimingFunction {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            GenericTimingFunction::Keyword(keyword) => {
-                GenericTimingFunction::Keyword(keyword)
-            },
-            GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
+            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
+            GenericTimingFunction::CubicBezier {
+                x1,
+                y1,
+                x2,
+                y2,
+            } => {
                 GenericTimingFunction::CubicBezier {
                     x1: x1.to_computed_value(context),
                     y1: y1.to_computed_value(context),
@@ -436,15 +453,10 @@ impl ToComputedValue for TimingFunction {
                 }
             },
             GenericTimingFunction::Steps(steps, position) => {
-                GenericTimingFunction::Steps(
-                    steps.to_computed_value(context) as u32,
-                    position,
-                )
+                GenericTimingFunction::Steps(steps.to_computed_value(context) as u32, position)
             },
             GenericTimingFunction::Frames(frames) => {
-                GenericTimingFunction::Frames(
-                    frames.to_computed_value(context) as u32,
-                )
+                GenericTimingFunction::Frames(frames.to_computed_value(context) as u32)
             },
         }
     }
@@ -452,10 +464,13 @@ impl ToComputedValue for TimingFunction {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            GenericTimingFunction::Keyword(keyword) => {
-                GenericTimingFunction::Keyword(keyword)
-            },
-            GenericTimingFunction::CubicBezier { ref x1, ref y1, ref x2, ref y2 } => {
+            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
+            GenericTimingFunction::CubicBezier {
+                ref x1,
+                ref y1,
+                ref x2,
+                ref y2,
+            } => {
                 GenericTimingFunction::CubicBezier {
                     x1: Number::from_computed_value(x1),
                     y1: Number::from_computed_value(y1),
@@ -464,15 +479,10 @@ impl ToComputedValue for TimingFunction {
                 }
             },
             GenericTimingFunction::Steps(steps, position) => {
-                GenericTimingFunction::Steps(
-                    Integer::from_computed_value(&(steps as i32)),
-                    position,
-                )
+                GenericTimingFunction::Steps(Integer::from_computed_value(&(steps as i32)), position)
             },
             GenericTimingFunction::Frames(frames) => {
-                GenericTimingFunction::Frames(
-                    Integer::from_computed_value(&(frames as i32)),
-                )
+                GenericTimingFunction::Frames(Integer::from_computed_value(&(frames as i32)))
             },
         }
     }

@@ -22,6 +22,7 @@ pub struct Matrix<T, U = T> {
 }
 
 #[allow(missing_docs)]
+#[cfg_attr(rustfmt, rustfmt_skip)]
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct Matrix3D<T, U = T, V = T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,
@@ -51,7 +52,12 @@ pub enum TimingFunction<Integer, Number> {
     Keyword(TimingKeyword),
     /// `cubic-bezier(<number>, <number>, <number>, <number>)`
     #[allow(missing_docs)]
-    CubicBezier { x1: Number, y1: Number, x2: Number, y2: Number },
+    CubicBezier {
+        x1: Number,
+        y1: Number,
+        x2: Number,
+        y2: Number,
+    },
     /// `step-start | step-end | steps(<integer>, [ start | end ]?)`
     Steps(Integer, StepPosition),
     /// `frames(<integer>)`
@@ -103,7 +109,12 @@ where
     {
         match *self {
             TimingFunction::Keyword(keyword) => keyword.to_css(dest),
-            TimingFunction::CubicBezier { ref x1, ref y1, ref x2, ref y2 } => {
+            TimingFunction::CubicBezier {
+                ref x1,
+                ref y1,
+                ref x2,
+                ref y2,
+            } => {
                 dest.write_str("cubic-bezier(")?;
                 x1.to_css(dest)?;
                 dest.write_str(", ")?;
@@ -223,23 +234,63 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     Perspective(Length),
     /// A intermediate type for interpolation of mismatched transform lists.
     #[allow(missing_docs)]
-    InterpolateMatrix { #[compute(ignore_bound)]
-                        from_list: Transform<TransformOperation<Angle, Number, Length, Integer,
-                                                                LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                        #[compute(ignore_bound)]
-                        to_list: Transform<TransformOperation<Angle, Number, Length, Integer,
-                                                              LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                        #[compute(clone)] progress: computed::Percentage },
+    InterpolateMatrix {
+        #[compute(ignore_bound)]
+        from_list: Transform<
+            TransformOperation<
+                Angle,
+                Number,
+                Length,
+                Integer,
+                LengthOrNumber,
+                LengthOrPercentage,
+                LoPoNumber,
+            >,
+        >,
+        #[compute(ignore_bound)]
+        to_list: Transform<
+            TransformOperation<
+                Angle,
+                Number,
+                Length,
+                Integer,
+                LengthOrNumber,
+                LengthOrPercentage,
+                LoPoNumber,
+            >,
+        >,
+        #[compute(clone)]
+        progress: computed::Percentage,
+    },
     /// A intermediate type for accumulation of mismatched transform lists.
     #[allow(missing_docs)]
-
-    AccumulateMatrix { #[compute(ignore_bound)]
-                       from_list: Transform<TransformOperation<Angle, Number, Length, Integer,
-                                                               LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                       #[compute(ignore_bound)]
-                       to_list: Transform<TransformOperation<Angle, Number, Length, Integer,
-                                                             LengthOrNumber, LengthOrPercentage, LoPoNumber>>,
-                       count: Integer },
+    AccumulateMatrix {
+        #[compute(ignore_bound)]
+        from_list: Transform<
+            TransformOperation<
+                Angle,
+                Number,
+                Length,
+                Integer,
+                LengthOrNumber,
+                LengthOrPercentage,
+                LoPoNumber,
+            >,
+        >,
+        #[compute(ignore_bound)]
+        to_list: Transform<
+            TransformOperation<
+                Angle,
+                Number,
+                Length,
+                Integer,
+                LengthOrNumber,
+                LengthOrPercentage,
+                LoPoNumber,
+            >,
+        >,
+        count: Integer,
+    },
 }
 
 #[derive(Animate, ToComputedValue)]
@@ -254,7 +305,7 @@ impl<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNum
         use self::TransformOperation::*;
         match *self {
             Translate(..) | Translate3D(..) | TranslateX(..) | TranslateY(..) | TranslateZ(..) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -263,11 +314,12 @@ impl<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNum
         use self::TransformOperation::*;
         match *self {
             Scale(..) | Scale3D(..) | ScaleX(..) | ScaleY(..) | ScaleZ(..) => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
      Integer: ToCss + Copy, LengthOrNumber: ToCss, LengthOrPercentage: ToCss, LoPoNumber: ToCss>
     ToCss for
@@ -379,9 +431,12 @@ impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
 }
 
 impl<T: ToCss> ToCss for Transform<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         if self.0.is_empty() {
-            return dest.write_str("none")
+            return dest.write_str("none");
         }
 
         let mut first = true;
