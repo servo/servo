@@ -240,33 +240,33 @@ impl StructuredCloneData {
     }
 
     /// Reads a structured clone.
-    ///
-    /// Panics if `JS_ReadStructuredClone` fails.
     fn read_clone(global: &GlobalScope,
                   data: *mut u64,
                   nbytes: size_t,
-                  rval: MutableHandleValue) {
+                  rval: MutableHandleValue) -> bool {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         unsafe {
-            assert!(JS_ReadStructuredClone(cx,
-                                           data,
-                                           nbytes,
-                                           JS_STRUCTURED_CLONE_VERSION,
-                                           rval,
-                                           &STRUCTURED_CLONE_CALLBACKS,
-                                           ptr::null_mut()));
+            JS_ReadStructuredClone(
+                cx,
+                data,
+                nbytes,
+                JS_STRUCTURED_CLONE_VERSION,
+                rval,
+                &STRUCTURED_CLONE_CALLBACKS,
+                ptr::null_mut()
+            )
         }
     }
 
     /// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
-    pub fn read(self, global: &GlobalScope, rval: MutableHandleValue) {
+    pub fn read(self, global: &GlobalScope, rval: MutableHandleValue) -> bool {
         match self {
             StructuredCloneData::Vector(mut vec_msg) => {
                 let nbytes = vec_msg.len();
                 let data = vec_msg.as_mut_ptr() as *mut u64;
-                StructuredCloneData::read_clone(global, data, nbytes, rval);
+                StructuredCloneData::read_clone(global, data, nbytes, rval)
             }
             StructuredCloneData::Struct(data, nbytes) => StructuredCloneData::read_clone(global, data, nbytes, rval)
         }
