@@ -1,5 +1,0 @@
-1.0.2: packaging fixes
------------------------------------------------------------------------
-
-this release is purely a release for fixing packaging issues.
-

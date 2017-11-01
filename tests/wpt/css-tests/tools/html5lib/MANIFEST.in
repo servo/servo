@@ -1,6 +1,0 @@
-include LICENSE
-include CHANGES.rst
-include README.rst
-include requirements*.txt
-graft html5lib/tests/testdata
-recursive-include html5lib/tests *.py

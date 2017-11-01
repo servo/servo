@@ -1,8 +1,0 @@
-syntax: glob
-*.pyc
-dist
-MANIFEST
-documentation/_build
-.tox
-.gitignore
-six.egg-info
