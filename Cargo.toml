@@ -24,3 +24,5 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+xml5ever = { git = "https://github.com/servo/html5ever/", branch = "xml-namespace" }
+markup5ever = { git = "https://github.com/servo/html5ever/", branch = "xml-namespace" }
