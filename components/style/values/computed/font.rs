@@ -5,8 +5,10 @@
 //! Computed values for font properties
 
 use app_units::Au;
+use cssparser::Parser;
+use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use values::animated::ToAnimatedValue;
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
 use values::specified::font as specified;
@@ -14,6 +16,15 @@ use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::XTextZoom;
+
+/// As of CSS Fonts Module Level 3, only the following values are
+/// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+///
+/// However, system fonts may provide other values. Pango
+/// may provide 350, 380, and 1000 (on top of the existing values), for example.
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+pub struct FontWeight(pub u16);
 
 #[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -68,6 +79,69 @@ impl From<specified::KeywordSize> for KeywordInfo {
             offset: Au(0).into(),
         }
     }
+}
+
+impl FontWeight {
+    /// Value for normal
+    pub fn normal() -> Self {
+        FontWeight(400)
+    }
+
+    /// Value for bold
+    pub fn bold() -> Self {
+        FontWeight(700)
+    }
+
+    /// Convert from an integer to Weight
+    pub fn from_int(n: i32) -> Result<Self, ()> {
+        if n >= 100 && n <= 900 && n % 100 == 0 {
+            Ok(FontWeight(n as u16))
+        } else {
+            Err(())
+        }
+    }
+
+    /// Convert from an Gecko weight
+    pub fn from_gecko_weight(weight: u16) -> Self {
+        // we allow a wider range of weights than is parseable
+        // because system fonts may provide custom values
+        FontWeight(weight)
+    }
+
+    /// Weither this weight is bold
+    pub fn is_bold(&self) -> bool {
+        self.0 > 500
+    }
+
+    /// Return the bolder weight
+    pub fn bolder(self) -> Self {
+        if self.0 < 400 {
+            FontWeight(400)
+        } else if self.0 < 600 {
+            FontWeight(700)
+        } else {
+            FontWeight(900)
+        }
+    }
+
+    /// Returns the lighter weight
+    pub fn lighter(self) -> Self {
+        if self.0 < 600 {
+            FontWeight(100)
+        } else if self.0 < 800 {
+            FontWeight(400)
+        } else {
+            FontWeight(700)
+        }
+    }
+}
+
+impl Parse for FontWeight {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+        -> Result<FontWeight, ParseError<'i>> {
+            FontWeight::from_int(input.expect_integer()?)
+                .map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
 }
 
 impl FontSize {
