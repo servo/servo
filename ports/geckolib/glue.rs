@@ -965,7 +965,6 @@ pub extern "C" fn Servo_Element_GetPrimaryComputedValues(element: RawGeckoElemen
 {
     let element = GeckoElement(element);
     let data = element.borrow_data().expect("Getting CVs on unstyled element");
-    assert!(data.has_styles(), "Getting CVs on unstyled element");
     data.styles.primary().clone().into()
 }
 
@@ -3455,8 +3454,6 @@ pub extern "C" fn Servo_ResolveStyle(
     let data =
         element.borrow_data().expect("Resolving style on unstyled element");
 
-    // TODO(emilio): Downgrade to debug assertions when close to release.
-    assert!(data.has_styles(), "Resolving style on unstyled element");
     debug_assert!(element.has_current_styles(&*data),
                   "Resolving style on {:?} without current styles: {:?}", element, data);
     data.styles.primary().clone().into()
