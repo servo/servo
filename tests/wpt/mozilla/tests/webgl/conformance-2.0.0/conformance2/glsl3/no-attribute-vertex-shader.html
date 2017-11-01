@@ -1,0 +1,86 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test no attribute vertex shaders</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+
+void main() {
+  ivec2 xy = ivec2(
+      gl_VertexID % 2,
+      (gl_VertexID / 2 + gl_VertexID / 3) % 2);
+  gl_Position = vec4(vec2(xy) * 2. - 1., 0, 1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 result;
+void main() {
+  result = vec4(0, 1, 0, 1);
+}
+</script>
+<script>
+"use strict";
+description("Test no attribute shaders work as expected");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+function test() {
+    debug("");
+    var program = wtu.setupProgram(gl, ["vertex-shader", "fshader"], undefined, undefined, true);
+    if (!program) {
+        testFailed('Program compilation failed');
+        return;
+    }
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 0);
+};
+
+if (!gl) {
+    testFailed("context does not exist");
+} else {
+    test();
+}
+var successfullyParsed = true;
+finishTest();
+</script>
+</body>
+</html>

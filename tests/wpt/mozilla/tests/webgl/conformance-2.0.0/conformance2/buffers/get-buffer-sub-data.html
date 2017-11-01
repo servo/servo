@@ -1,0 +1,178 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL getBufferSubData test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test makes sure that getBufferSubData acts as expected governed by WebGL 2.");
+
+var wtu = WebGLTestUtils;
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+var vertices = [
+     1.1,  1.0,  1.3,
+    -1.0, -1.0,  -5.0,
+     5.3, -1.0,  1.0
+];
+var floatArray = new Float32Array(vertices);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+
+var buffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+gl.bufferData(gl.ARRAY_BUFFER, floatArray, gl.STATIC_DRAW);
+
+var uninitializedBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, uninitializedBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, 36, gl.STATIC_DRAW);
+gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from buffer setup.");
+
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+debug("");
+debug("Test that getBufferSubData successfully works reading buffer data from gl.ARRAY_BUFFER");
+var retArray = new Float32Array(vertices.length);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray)");
+
+debug("Argument must be ArrayBufferView, not ArrayBuffer")
+shouldThrow("gl.getBufferSubData(gl.ARRAY_BUFFER, 0, new ArrayBuffer(4))");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should not generate GL error");
+debug("Argument must be ArrayBufferView, not null")
+shouldThrow("gl.getBufferSubData(gl.ARRAY_BUFFER, 0, null)");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should not generate GL error");
+
+debug("Check array data to match original data set by the buffer");
+var failed = false;
+for (var i = 0; i < vertices.length; i++) {
+  if (floatArray[i] != retArray[i]) {
+    failed = true;
+    break;
+  }
+}
+if (failed)
+  testFailed("The returned array buffer fails to match original data");
+else
+  testPassed("The returned array buffer matches original data");
+
+debug("Test that getBufferSubData successfully works with dstOffset");
+retArray = new Float32Array(vertices.length);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray, 2)");
+shouldBeTrue("areArraysEqual(retArray.slice(0, 2), [0, 0])");
+shouldBeTrue("areArraysEqual(retArray.slice(2), floatArray.slice(0, floatArray.length - 2))");
+
+retArray = new Float32Array(vertices.length);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray, retArray.length)");
+shouldBeTrue("areArraysEqual(retArray, [0, 0, 0, 0, 0, 0, 0, 0, 0])");
+
+debug("Test that getBufferSubData fails when given a dstOffset beyond the end of retArray");
+wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray, retArray.length + 1)");
+
+debug("Test that getBufferSubData successfully works with dstOffset and length");
+retArray = new Float32Array(vertices.length);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray, 2, 2)");
+shouldBeTrue("areArraysEqual(retArray.slice(0, 2), [0, 0])");
+shouldBeTrue("areArraysEqual(retArray.slice(2, 4), floatArray.slice(0, 2))");
+shouldBeTrue("areArraysEqual(retArray.slice(4), [0, 0, 0, 0, 0])");
+
+retArray = new Float32Array(vertices.length);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray, retArray.length - 1, 1)");
+shouldBeTrue("areArraysEqual(retArray.slice(0, 8), [0, 0, 0, 0, 0, 0, 0, 0])");
+shouldBeTrue("areArraysEqual(retArray.slice(8), floatArray.slice(0, 1))");
+
+debug("Test that getBufferSubData fails when given a dstOffset+length beyond the end of retArray");
+wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray, retArray.length - 1, 2)");
+
+debug("Test that getBufferSubData fails when given a buffer with its size larger than the original data");
+var extraLargeBuffer = new Float32Array(vertices.length + 1);
+gl.getBufferSubData(gl.ARRAY_BUFFER, 0, extraLargeBuffer);
+wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE,
+                          "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, extraLargeBuffer)",
+                          "Extra length should generate INVALID_VALUE.");
+
+debug("Test that getBufferSubData fails when offset summed with buffer length is larger than the size of the original data size");
+wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE,
+                          "gl.getBufferSubData(gl.ARRAY_BUFFER, retArray.byteLength + 1, retArray)");
+wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, "gl.getBufferSubData(gl.ARRAY_BUFFER, 1, retArray)");
+
+debug("Test that getBufferSubData fails when 0 is bound to the target");
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION,
+                          "gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, retArray)");
+
+debug("Test that getBufferSubData fails when offset is less than 0");
+wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, "gl.getBufferSubData(gl.ARRAY_BUFFER, -1, retArray)");
+
+debug("");
+debug("Test that getBufferSubData successfully works with uninitialized buffers");
+retArray = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+gl.bindBuffer(gl.ARRAY_BUFFER, uninitializedBuffer);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR,
+    "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray)");
+shouldBeTrue("areArraysEqual(retArray, [0, 0, 0, 0, 0, 0, 0, 0, 0])");
+
+debug("");
+debug("Test that getBufferSubData works when a buffer is immediately resized to be too small");
+
+retArray = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR,
+    "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray)");
+gl.bufferData(gl.ARRAY_BUFFER, 4, gl.STATIC_DRAW);
+shouldBeTrue("areArraysEqual(retArray, floatArray)");
+
+debug("");
+debug("Test that getBufferSubData works when a buffer is immediately deleted");
+retArray = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+gl.bufferData(gl.ARRAY_BUFFER, floatArray, gl.STATIC_DRAW);
+wtu.shouldGenerateGLError(gl, gl.NO_ERROR,
+    "gl.getBufferSubData(gl.ARRAY_BUFFER, 0, retArray)");
+gl.deleteBuffer(buffer);
+shouldBeTrue("areArraysEqual(retArray, floatArray)");
+
+finishTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

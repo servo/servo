@@ -1,0 +1,335 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verify int(bool) and float(bool) work correctly (Mac AMD driver bug)</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader-int1" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+varying mediump float fvalue;
+uniform bool bvalue;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+    int ivalue = int(bvalue);
+    if (ivalue == 0) {
+        fvalue = 0.0;
+    } else if (ivalue == 1) {
+        fvalue = 1.0;
+    } else {
+        fvalue = -1.0;
+    }
+}
+</script>
+<script id="fshader-int1" type="x-shader/x-fragment">
+varying mediump float fvalue;
+
+void main() {
+    if (fvalue == 1.0)
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == 0.0)
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-int2" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshader-int2" type="x-shader/x-fragment">
+uniform bool bvalue;
+
+void main() {
+    int ivalue = int(bvalue);
+
+    if (ivalue == 1)
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (ivalue == 0)
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-float1" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+varying mediump float fvalue;
+uniform bool bvalue;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+    fvalue = float(bvalue);
+}
+</script>
+<script id="fshader-float1" type="x-shader/x-fragment">
+varying mediump float fvalue;
+
+void main() {
+    if (fvalue == 1.0)
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == 0.0)
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-float2" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshader-float2" type="x-shader/x-fragment">
+uniform bool bvalue;
+
+void main() {
+    mediump float fvalue = float(bvalue);
+
+    if (fvalue == 1.0)
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == 0.0)
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-vec2-1" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+varying mediump vec2 fvalue;
+uniform bool bvalue;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+    fvalue = vec2(bvalue);
+}
+</script>
+<script id="fshader-vec2-1" type="x-shader/x-fragment">
+varying mediump vec2 fvalue;
+
+void main() {
+    if (fvalue == vec2(1.0, 1.0))
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == vec2(0.0, 0.0))
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-vec2-2" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshader-vec2-2" type="x-shader/x-fragment">
+precision mediump float;
+uniform bool bvalue;
+
+void main() {
+    vec2 fvalue = vec2(bvalue);
+
+    if (fvalue == vec2(1.0, 1.0))
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == vec2(0.0, 0.0))
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-vec3-1" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+varying mediump vec3 fvalue;
+uniform bool bvalue;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+    fvalue = vec3(bvalue);
+}
+</script>
+<script id="fshader-vec3-1" type="x-shader/x-fragment">
+varying mediump vec3 fvalue;
+
+void main() {
+    if (fvalue == vec3(1.0, 1.0, 1.0))
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == vec3(0.0, 0.0, 0.0))
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-vec3-2" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshader-vec3-2" type="x-shader/x-fragment">
+precision mediump float;
+uniform bool bvalue;
+
+void main() {
+    vec3 fvalue = vec3(bvalue);
+
+    if (fvalue == vec3(1.0, 1.0, 1.0))
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == vec3(0.0, 0.0, 0.0))
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-vec4-1" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+varying mediump vec4 fvalue;
+uniform bool bvalue;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+    fvalue = vec4(bvalue);
+}
+</script>
+<script id="fshader-vec4-1" type="x-shader/x-fragment">
+varying mediump vec4 fvalue;
+
+void main() {
+    if (fvalue == vec4(1.0, 1.0, 1.0, 1.0))
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == vec4(0.0, 0.0, 0.0, 0.0))
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-vec4-2" type="x-shader/x-vertex">
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshader-vec4-2" type="x-shader/x-fragment">
+precision mediump float;
+uniform bool bvalue;
+
+void main() {
+    vec4 fvalue = vec4(bvalue);
+
+    if (fvalue == vec4(1.0, 1.0, 1.0, 1.0))
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else if (fvalue == vec4(0.0, 0.0, 0.0, 0.0))
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+    <script type="application/javascript">
+"use strict";
+description("Verify int(bool) and float(bool) work correctly");
+debug("");
+var wtu = WebGLTestUtils;
+function test() {
+    var gl = wtu.create3DContext("canvas");
+    if (!gl) {
+        testFailed("context does not exist");
+        return;
+    }
+    wtu.setupUnitQuad(gl);
+
+    var testCases = [
+        { vshader: "vshader-int1", fshader: "fshader-int1", desc: "vertex shader int" },
+        { vshader: "vshader-int2", fshader: "fshader-int2", desc: "fragment shader int" },
+        { vshader: "vshader-float1", fshader: "fshader-float1", desc: "vertex shader float" },
+        { vshader: "vshader-float2", fshader: "fshader-float2", desc: "fragment shader float" },
+        { vshader: "vshader-vec2-1", fshader: "fshader-vec2-1", desc: "vertex shader vec2" },
+        { vshader: "vshader-vec2-2", fshader: "fshader-vec2-2", desc: "fragment shader vec2" },
+        { vshader: "vshader-vec3-1", fshader: "fshader-vec3-1", desc: "vertex shader vec3" },
+        { vshader: "vshader-vec3-2", fshader: "fshader-vec3-2", desc: "fragment shader vec3" },
+        { vshader: "vshader-vec4-1", fshader: "fshader-vec4-1", desc: "vertex shader vec4" },
+        { vshader: "vshader-vec4-2", fshader: "fshader-vec4-2", desc: "fragment shader vec4" },
+    ];
+
+    for (var idx = 0; idx < testCases.length; ++idx) {
+        var test = testCases[idx];
+
+        debug("");
+        var program = wtu.setupProgram(gl, [test.vshader, test.fshader], ["aPosition"]);
+        if (!program) {
+            testFailed("Fail to set up program");
+        } else {
+            var uniformLoc = gl.getUniformLocation(program, 'bvalue');
+            debug("Testing " + test.desc + " with false");
+            gl.uniform1i(uniformLoc, 0);
+            wtu.drawUnitQuad(gl);
+            wtu.checkCanvas(gl, [0, 255, 0, 255]);
+            debug("Testing " + test.desc + " with true");
+            gl.uniform1i(uniformLoc, 1);
+            wtu.drawUnitQuad(gl);
+            wtu.checkCanvas(gl, [255, 0, 0, 255]);
+            gl.deleteProgram(program);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from testing");
+        }
+    }
+};
+
+test();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,134 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description("Verify RGB/RGB8 textures and renderbuffers support");
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+function testRenderbuffer(width, height) {
+    var samples = gl.getInternalformatParameter(gl.RENDERBUFFER, gl.RGB8, gl.SAMPLES);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from getInternalformatParameter()");
+
+    if (!samples || samples.length == 0) {
+        testFailed("getInternalformatParameter on RGB8 fails to return valid samples");
+        return;
+    }
+
+    for (var idx = 0; idx < samples.length + 2; ++idx) {
+        debug("");
+        var renderbuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+        var sampleCount = 0;
+        switch (idx) {
+          case samples.length:
+            sampleCount = 0;
+            break;
+          case samples.length + 1:
+            sampleCount = -1; // non multisampled
+            break;
+          default:
+            sampleCount = samples[idx];
+        }
+
+        if (sampleCount < 0) {
+            debug("test non-multisampled RGB8 renderbuffer");
+            gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB8, 2, 2);
+        } else {
+            debug("test RGB8 renderbuffer with " + sampleCount + " samples");
+            gl.renderbufferStorageMultisample(gl.RENDERBUFFER, sampleCount, gl.RGB8, width, height);
+        }
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from renderbufferStorage{Multisample}");
+
+        var fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, renderbuffer);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+            testFailed("framebuffer with renderbuffer is incomplete");
+        } else {
+            testPassed("framebuffer with renderbuffer is complete");
+        }
+
+        gl.clearColor(1, 0, 1, 1);
+        gl.clear(gl.COLOR_BIT);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear()");
+    }
+}
+
+function testTexture(width, height) {
+    var formats = [ "RGB", "RGB8" ];
+    for (var idx = 0; idx < formats.length; ++idx) {
+        debug("");
+        debug("test texture format " + formats[idx]);
+        var internalformat = gl[formats[idx]];
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, internalformat, width, height, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from texture setup");
+
+        var fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+            testFailed("framebuffer with texture is incomplete");
+        } else {
+            testPassed("framebuffer with texture is complete");
+        }
+
+        gl.clearColor(1, 0, 1, 1);
+        gl.clear(gl.COLOR_BIT);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear()");
+    }
+}
+
+if (!gl) {
+    testFailed('canvas.getContext() failed');
+} else {
+    testRenderbuffer(2, 2);
+    testTexture(2, 2);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

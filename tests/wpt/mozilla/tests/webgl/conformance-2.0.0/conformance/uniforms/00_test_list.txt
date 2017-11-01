@@ -1,0 +1,12 @@
+gl-uniform-arrays.html
+# This test is no longer valid with the new packing restrictions
+#--min-version 1.0.02 gl-uniform-unused-array-elements-get-truncated.html
+gl-uniform-bool.html
+gl-uniformmatrix4fv.html
+gl-unknown-uniform.html
+null-uniform-location.html
+--min-version 1.0.2 out-of-bounds-uniform-array-access.html
+--min-version 1.0.2 uniform-default-values.html
+--min-version 1.0.3 uniform-values-per-program.html
+uniform-location.html
+uniform-samplers-test.html

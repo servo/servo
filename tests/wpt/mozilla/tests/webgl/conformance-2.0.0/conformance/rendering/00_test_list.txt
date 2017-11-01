@@ -1,0 +1,28 @@
+--min-version 1.0.4 --max-version 1.9.9 clipping-wide-points.html
+--min-version 1.0.2 culling.html
+--min-version 1.0.4 default-texture-draw-bug.html
+draw-arrays-out-of-bounds.html
+draw-elements-out-of-bounds.html
+--min-version 1.0.4 draw-with-changing-start-vertex-bug.html
+--min-version 1.0.3 framebuffer-switch.html
+--min-version 1.0.3 framebuffer-texture-switch.html
+gl-clear.html
+--min-version 1.0.3 gl-drawarrays.html
+gl-drawelements.html
+gl-scissor-test.html
+--min-version 1.0.2 gl-scissor-fbo-test.html
+--min-version 1.0.3 gl-scissor-canvas-dimensions.html
+--min-version 1.0.3 gl-viewport-test.html
+--min-version 1.0.3 many-draw-calls.html
+more-than-65536-indices.html
+multisample-corruption.html
+--min-version 1.0.3 negative-one-index.html
+out-of-bounds-index-buffers.html
+--min-version 1.0.3 point-no-attributes.html
+point-size.html
+--min-version 1.0.4 point-specific-shader-variables.html
+--min-version 1.0.3 point-with-gl-pointcoord-in-fragment-shader.html
+--min-version 1.0.3 polygon-offset.html
+--min-version 1.0.2 simple.html
+triangle.html
+line-loop-tri-fan.html
