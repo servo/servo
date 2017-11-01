@@ -42,9 +42,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use encoding::EncodingRef;
-use encoding::all::UTF_8;
-use encoding::label::encoding_from_whatwg_label;
+use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, Prefix};
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
@@ -56,6 +54,8 @@ use std::cell::Cell;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
+use url::UrlQuery;
+use url::form_urlencoded::Serializer;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
@@ -250,14 +250,15 @@ pub enum ResetFrom {
 
 impl HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#picking-an-encoding-for-the-form
-    fn pick_encoding(&self) -> EncodingRef {
+    fn pick_encoding(&self) -> &'static Encoding {
         // Step 2
         if self.upcast::<Element>().has_attribute(&local_name!("accept-charset")) {
             // Substep 1
             let input = self.upcast::<Element>().get_string_attribute(&local_name!("accept-charset"));
 
             // Substep 2, 3, 4
-            let mut candidate_encodings = split_html_space_chars(&*input).filter_map(encoding_from_whatwg_label);
+            let mut candidate_encodings = split_html_space_chars(&*input)
+                .filter_map(|c| Encoding::for_label(c.as_bytes()));
 
             // Substep 5, 6
             return candidate_encodings.next().unwrap_or(UTF_8);
@@ -276,7 +277,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
 
         // Step 3
-        let charset = &*encoding.whatwg_name().unwrap();
+        let charset = encoding.name();
 
         for entry in form_data.iter_mut() {
             // Step 4, 5
@@ -375,13 +376,11 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#submit-mutate-action
-    fn mutate_action_url(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData, encoding: EncodingRef) {
-        let charset = &*encoding.whatwg_name().unwrap();
+    fn mutate_action_url(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData, encoding: &'static Encoding) {
+        let charset = encoding.name();
 
-        load_data.url
-            .as_mut_url()
-            .query_pairs_mut().clear()
-            .encoding_override(Some(self.pick_encoding()))
+        self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
+            .clear()
             .extend_pairs(form_data.into_iter()
                                     .map(|field| (field.name.clone(), field.replace_value(charset))));
 
@@ -390,17 +389,15 @@ impl HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#submit-body
     fn submit_entity_body(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData,
-                          enctype: FormEncType, encoding: EncodingRef) {
+                          enctype: FormEncType, encoding: &'static Encoding) {
         let boundary = generate_boundary();
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
-                let charset = &*encoding.whatwg_name().unwrap();
+                let charset = encoding.name();
                 load_data.headers.set(ContentType::form_url_encoded());
 
-                load_data.url
-                    .as_mut_url()
-                    .query_pairs_mut().clear()
-                    .encoding_override(Some(self.pick_encoding()))
+                self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
+                    .clear()
                     .extend_pairs(form_data.into_iter()
                     .map(|field| (field.name.clone(), field.replace_value(charset))));
 
@@ -419,6 +416,13 @@ impl HTMLFormElement {
 
         load_data.data = Some(bytes);
         self.plan_to_navigate(load_data);
+    }
+
+    fn set_encoding_override<'a>(&self, mut serializer: Serializer<UrlQuery<'a>>)
+                                 -> Serializer<UrlQuery<'a>> {
+        let encoding = self.pick_encoding();
+        serializer.custom_encoding_override(move |s| encoding.encode(s).0);
+        serializer
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
@@ -1109,12 +1113,12 @@ impl FormControlElementHelpers for Element {
 
 // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
 pub fn encode_multipart_form_data(form_data: &mut Vec<FormDatum>,
-                                  boundary: String, encoding: EncodingRef) -> Vec<u8> {
+                                  boundary: String, encoding: &'static Encoding) -> Vec<u8> {
     // Step 1
     let mut result = vec![];
 
     // Step 2
-    let charset = &*encoding.whatwg_name().unwrap_or("UTF-8");
+    let charset = encoding.name();
 
     // Step 3
     for entry in form_data.iter_mut() {

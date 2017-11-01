@@ -36,9 +36,7 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use dom_struct::dom_struct;
-use encoding::all::UTF_8;
-use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
+use encoding_rs::{Encoding, UTF_8};
 use euclid::Length;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
@@ -66,6 +64,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
+use std::slice;
 use std::str;
 use std::sync::{Arc, Mutex};
 use task_source::networking::NetworkingTaskSource;
@@ -137,8 +136,7 @@ pub struct XMLHttpRequest {
     response_headers: DomRefCell<Headers>,
     #[ignore_malloc_size_of = "Defined in hyper"]
     override_mime_type: DomRefCell<Option<Mime>>,
-    #[ignore_malloc_size_of = "Defined in rust-encoding"]
-    override_charset: DomRefCell<Option<EncodingRef>>,
+    override_charset: DomRefCell<Option<&'static Encoding>>,
 
     // Associated concepts
     #[ignore_malloc_size_of = "Defined in hyper"]
@@ -726,7 +724,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 4
         let value = override_mime.get_param(mime::Attr::Charset);
         *self.override_charset.borrow_mut() = value.and_then(|value| {
-            encoding_from_whatwg_label(value)
+            Encoding::for_label(value.as_bytes())
         });
         Ok(())
     }
@@ -1085,7 +1083,9 @@ impl XMLHttpRequest {
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
         // Step 1, 2, 6
-        charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap()
+        let response = self.response.borrow();
+        let (text, _, _) = charset.decode(&response);
+        text.into_owned()
     }
 
     // https://xhr.spec.whatwg.org/#blob-response
@@ -1164,8 +1164,22 @@ impl XMLHttpRequest {
             return NullValue();
         }
         // Step 4
-        let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
-        let json_text: Vec<u16> = json_text.encode_utf16().collect();
+        fn decode_to_utf16(bytes: &[u8], encoding: &'static Encoding) -> Vec<u16> {
+            let mut decoder = encoding.new_decoder();
+            let capacity = decoder.max_utf16_buffer_length(bytes.len()).expect("Overflow");
+            let mut utf16 = Vec::with_capacity(capacity);
+            let extra = unsafe {
+                slice::from_raw_parts_mut(utf16.as_mut_ptr(), capacity)
+            };
+            let last = true;
+            let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, last);
+            assert!(read == bytes.len());
+            unsafe {
+                utf16.set_len(written)
+            }
+            utf16
+        }
+        let json_text = decode_to_utf16(&bytes, UTF_8);
         // Step 5
         rooted!(in(cx) let mut rval = UndefinedValue());
         unsafe {
@@ -1185,7 +1199,8 @@ impl XMLHttpRequest {
     fn document_text_html(&self) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
-        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
+        let response = self.response.borrow();
+        let (decoded, _, _) = charset.decode(&response);
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
         ServoParser::parse_html_document(
@@ -1198,7 +1213,8 @@ impl XMLHttpRequest {
     fn handle_xml(&self) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
-        let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
+        let response = self.response.borrow();
+        let (decoded, _, _) = charset.decode(&response);
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
         ServoParser::parse_xml_document(
@@ -1307,7 +1323,7 @@ impl XMLHttpRequest {
         Ok(())
     }
 
-    fn final_charset(&self) -> Option<EncodingRef> {
+    fn final_charset(&self) -> Option<&'static Encoding> {
         if self.override_charset.borrow().is_some() {
             self.override_charset.borrow().clone()
         } else {
@@ -1315,7 +1331,7 @@ impl XMLHttpRequest {
                 Some(&ContentType(ref mime)) => {
                     let value = mime.get_param(mime::Attr::Charset);
                     value.and_then(|value|{
-                        encoding_from_whatwg_label(value)
+                        Encoding::for_label(value.as_bytes())
                     })
                 }
                 None => { None }
@@ -1370,7 +1386,7 @@ impl Extractable for Blob {
 
 impl Extractable for DOMString {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
-        (UTF_8.encode(self, EncoderTrap::Replace).unwrap(),
+        (self.as_bytes().to_owned(),
             Some(DOMString::from("text/plain;charset=UTF-8")))
     }
 }
@@ -1378,16 +1394,14 @@ impl Extractable for DOMString {
 impl Extractable for FormData {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         let boundary = generate_boundary();
-        let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(),
-                                               UTF_8 as EncodingRef);
+        let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(), UTF_8);
         (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
     }
 }
 
 impl Extractable for URLSearchParams {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
-        // Default encoding is UTF-8.
-        (self.serialize(None).into_bytes(),
+        (self.serialize_utf8().into_bytes(),
             Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
     }
 }

@@ -46,7 +46,7 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
-use encoding::types::EncodingRef;
+use encoding_rs::Encoding;
 use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, ScaleFactor};
 use euclid::Length as EuclidLength;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
@@ -122,7 +122,7 @@ pub unsafe trait JSTraceable {
 
 unsafe_no_jsmanaged_fields!(CSSError);
 
-unsafe_no_jsmanaged_fields!(EncodingRef);
+unsafe_no_jsmanaged_fields!(&'static Encoding);
 
 unsafe_no_jsmanaged_fields!(Reflector);
 

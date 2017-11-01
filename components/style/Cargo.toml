@@ -20,7 +20,7 @@ gecko = ["nsstring", "num_cpus",
          "style_traits/gecko", "fallible/known_system_malloc"]
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
-         "cssparser/serde", "encoding", "malloc_size_of/servo",
+         "cssparser/serde", "encoding_rs", "malloc_size_of/servo",
 
          # FIXME: Uncomment when https://github.com/servo/servo/pull/16953 has landed:
          #"arrayvec/use_union"
@@ -36,7 +36,7 @@ bitflags = "1.0"
 byteorder = "1.0"
 cfg-if = "0.1.0"
 cssparser = "0.22.0"
-encoding = {version = "0.2", optional = true}
+encoding_rs = {version = "0.7", optional = true}
 euclid = "0.15"
 fallible = { path = "../fallible" }
 fnv = "1.0"

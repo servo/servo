@@ -34,7 +34,7 @@ extern crate devtools_traits;
 extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
-extern crate encoding;
+extern crate encoding_rs;
 extern crate euclid;
 extern crate fnv;
 extern crate gleam;

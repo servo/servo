@@ -39,7 +39,7 @@ deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
-encoding = "0.2"
+encoding_rs = "0.7"
 euclid = "0.15"
 fnv = "1.0"
 gleam = "0.4"
@@ -90,7 +90,7 @@ style_traits = {path = "../style_traits"}
 swapper = "0.1"
 time = "0.1.12"
 unicode-segmentation = "1.1.0"
-url = {version = "1.2", features = ["query_encoding"]}
+url = "1.6"
 utf-8 = "0.7"
 uuid = {version = "0.5", features = ["v4"]}
 xml5ever = {version = "0.11"}

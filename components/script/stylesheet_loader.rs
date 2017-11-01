@@ -13,8 +13,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
-use encoding::EncodingRef;
-use encoding::all::UTF_8;
+use encoding_rs::UTF_8;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
@@ -127,7 +126,7 @@ impl FetchResponseListener for StylesheetContext {
             let data = if is_css { mem::replace(&mut self.data, vec![]) } else { vec![] };
 
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-            let environment_encoding = UTF_8 as EncodingRef;
+            let environment_encoding = UTF_8;
             let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
             let final_url = metadata.final_url;
 
