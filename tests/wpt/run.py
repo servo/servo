@@ -35,7 +35,7 @@ def run_tests(paths=None, **kwargs):
     use_mach_logging = False
     if len(kwargs["test_list"]) == 1:
         file_ext = os.path.splitext(kwargs["test_list"][0])[1].lower()
-        if file_ext in [".htm", ".html", ".js", ".xhtml"]:
+        if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht"]:
             use_mach_logging = True
 
     if use_mach_logging:
