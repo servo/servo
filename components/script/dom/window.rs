@@ -2121,10 +2121,10 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoCompartment::new(cx, obj.get());
             rooted!(in(cx) let mut message_clone = UndefinedValue());
-            serialize_with_transfer_result.read(
+            assert!(serialize_with_transfer_result.read(
                 this.upcast(),
                 message_clone.handle_mut(),
-            );
+            ));
 
             // Step 7.6.
             // TODO: MessagePort array.
