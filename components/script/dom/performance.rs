@@ -114,13 +114,13 @@ pub struct Performance {
     entries: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
-    navigation_start_precise: f64,
+    navigation_start_precise: u64,
 }
 
 impl Performance {
     fn new_inherited(global: &GlobalScope,
                      navigation_start: u64,
-                     navigation_start_precise: f64) -> Performance {
+                     navigation_start_precise: u64) -> Performance {
         Performance {
             reflector_: Reflector::new(),
             timing: if global.is::<Window>() {
@@ -139,7 +139,7 @@ impl Performance {
 
     pub fn new(global: &GlobalScope,
                navigation_start: u64,
-               navigation_start_precise: f64) -> DomRoot<Performance> {
+               navigation_start_precise: u64) -> DomRoot<Performance> {
         reflect_dom_object(
             Box::new(Performance::new_inherited(global, navigation_start, navigation_start_precise)),
             global,
@@ -260,7 +260,7 @@ impl Performance {
             Some(ref timing) => timing.navigation_start_precise(),
             None => self.navigation_start_precise,
         };
-        (time::precise_time_ns() as f64 - nav_start) / 1000000 as f64
+        (time::precise_time_ns() - nav_start) as f64 / 1000000.
     }
 }
 

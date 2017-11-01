@@ -169,7 +169,7 @@ struct InProgressLoad {
     /// Timestamp reporting the time when the browser started this load.
     navigation_start: u64,
     /// High res timestamp reporting the time when the browser started this load.
-    navigation_start_precise: f64,
+    navigation_start_precise: u64,
 }
 
 impl InProgressLoad {
@@ -183,7 +183,7 @@ impl InProgressLoad {
            url: ServoUrl,
            origin: MutableOrigin) -> InProgressLoad {
         let current_time = get_time();
-        let navigation_start_precise = precise_time_ns() as f64;
+        let navigation_start_precise = precise_time_ns();
         layout_chan.send(message::Msg::SetNavigationStart(navigation_start_precise)).unwrap();
         InProgressLoad {
             pipeline_id: id,
@@ -2655,7 +2655,7 @@ impl ScriptThread {
     fn handle_paint_metric(&self,
                            pipeline_id: PipelineId,
                            metric_type: ProgressiveWebMetricType,
-                           metric_value: f64) {
+                           metric_value: u64) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
             let entry = PerformancePaintTiming::new(&window.upcast::<GlobalScope>(),
