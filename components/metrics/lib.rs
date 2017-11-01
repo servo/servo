@@ -227,7 +227,7 @@ impl ProgressiveWebMetric for InteractiveMetrics {
         self.navigation_start = Some(time);
     }
 
-    fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: f64) { }
+    fn send_queued_constellation_msg(&self, _name: ProgressiveWebMetricType, _time: f64) { }
 
     fn get_time_profiler_chan(&self) -> &ProfilerChan {
         &self.time_profiler_chan
