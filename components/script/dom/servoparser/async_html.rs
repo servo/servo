@@ -38,6 +38,183 @@ use style::context::QuirksMode as ServoQuirksMode;
 type ParseNodeId = usize;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+struct ParseOperationExecutor {
+    nodes: HashMap<ParseNodeId, Dom<Node>>,
+}
+
+impl ParseOperationExecutor {
+    fn new(document: Option<&Document>) -> ParseOperationExecutor {
+        let mut executor = ParseOperationExecutor {
+            nodes: HashMap::new(),
+        };
+        match document {
+            Some(doc) => executor.insert_node(0, Dom::from_ref(doc.upcast())),
+            None => {}
+        };
+        executor
+    }
+
+    fn insert_node(&mut self, id: ParseNodeId, node: Dom<Node>) {
+        assert!(self.nodes.insert(id, node).is_none());
+    }
+
+    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a Dom<Node> {
+        self.nodes.get(id).expect("Node not found!")
+    }
+
+    fn append_before_sibling(&mut self, sibling: ParseNodeId, node: NodeOrText) {
+        let node = match node {
+            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id))),
+            NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
+                Tendril::from(text)
+            )
+        };
+        let sibling = &**self.get_node(&sibling);
+        let parent = &*sibling.GetParentNode().expect("append_before_sibling called on node without parent");
+
+        super::insert(parent, Some(sibling), node);
+    }
+
+    fn append(&mut self, parent: ParseNodeId, node: NodeOrText) {
+        let node = match node {
+            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id))),
+            NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
+                Tendril::from(text)
+            )
+        };
+
+        let parent = &**self.get_node(&parent);
+        super::insert(parent, None, node);
+    }
+
+    fn has_parent_node(&self, node: ParseNodeId) -> bool {
+        self.get_node(&node).GetParentNode().is_some()
+    }
+
+    fn same_tree(&self, x: ParseNodeId, y: ParseNodeId) -> bool {
+        let x = self.get_node(&x);
+        let y = self.get_node(&y);
+
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+        x.is_in_same_home_subtree(y)
+    }
+
+
+    fn process_operation(&mut self, op: ParseOperation) {
+        let document = DomRoot::from_ref(&**self.get_node(&0));
+        let document = document.downcast::<Document>().expect("Document node should be downcasted!");
+        match op {
+            ParseOperation::GetTemplateContents { target, contents } => {
+                let target = DomRoot::from_ref(&**self.get_node(&target));
+                let template = target.downcast::<HTMLTemplateElement>().expect(
+                    "Tried to extract contents from non-template element while parsing");
+                self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
+            }
+            ParseOperation::CreateElement { node, name, attrs, current_line } => {
+                let is = attrs.iter()
+                              .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+                              .map(|attr| LocalName::from(&*attr.value));
+
+                let elem = Element::create(name,
+                                           is,
+                                           document,
+                                           ElementCreator::ParserCreated(current_line),
+                                           CustomElementCreationMode::Synchronous);
+                for attr in attrs {
+                    elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
+                }
+
+                self.insert_node(node, Dom::from_ref(elem.upcast()));
+            }
+            ParseOperation::CreateComment { text, node } => {
+                let comment = Comment::new(DOMString::from(text), document);
+                self.insert_node(node, Dom::from_ref(&comment.upcast()));
+            }
+            ParseOperation::AppendBeforeSibling { sibling, node } => {
+                self.append_before_sibling(sibling, node);
+            }
+            ParseOperation::Append { parent, node } => {
+                self.append(parent, node);
+            }
+            ParseOperation::AppendBasedOnParentNode { element, prev_element, node } => {
+                if self.has_parent_node(element) {
+                    self.append_before_sibling(element, node);
+                } else {
+                    self.append(prev_element, node);
+                }
+            }
+            ParseOperation::AppendDoctypeToDocument { name, public_id, system_id } => {
+                let doctype = DocumentType::new(
+                    DOMString::from(String::from(name)), Some(DOMString::from(public_id)),
+                    Some(DOMString::from(system_id)), document);
+
+                document.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
+            }
+            ParseOperation::AddAttrsIfMissing { target, attrs } => {
+                let elem = self.get_node(&target).downcast::<Element>()
+                    .expect("tried to set attrs on non-Element in HTML parsing");
+                for attr in attrs {
+                    elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
+                }
+            }
+            ParseOperation::RemoveFromParent { target } => {
+                if let Some(ref parent) = self.get_node(&target).GetParentNode() {
+                    parent.RemoveChild(&**self.get_node(&target)).unwrap();
+                }
+            }
+            ParseOperation::MarkScriptAlreadyStarted { node } => {
+                let script = self.get_node(&node).downcast::<HTMLScriptElement>();
+                script.map(|script| script.set_already_started(true));
+            }
+            ParseOperation::ReparentChildren { parent, new_parent } => {
+                let parent = self.get_node(&parent);
+                let new_parent = self.get_node(&new_parent);
+                while let Some(child) = parent.GetFirstChild() {
+                    new_parent.AppendChild(&child).unwrap();
+                }
+            }
+            ParseOperation::AssociateWithForm { target, form, element, prev_element } => {
+                let tree_node = prev_element.map_or(element, |prev| {
+                    if self.has_parent_node(element) { element } else { prev }
+                });
+
+                if !self.same_tree(tree_node, form) {
+                    return;
+                }
+                let form = self.get_node(&form);
+                let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
+                    .expect("Owner must be a form element");
+
+                let node = self.get_node(&target);
+                let elem = node.downcast::<Element>();
+                let control = elem.and_then(|e| e.as_maybe_form_control());
+
+                if let Some(control) = control {
+                    control.set_form_owner_from_parser(&form);
+                } else {
+                    // TODO remove this code when keygen is implemented.
+                    assert!(node.NodeName() == "KEYGEN", "Unknown form-associatable element");
+                }
+            }
+            ParseOperation::Pop { node } => {
+                vtable_for(self.get_node(&node)).pop();
+            }
+            ParseOperation::CreatePI { node, target, data } => {
+                let pi = ProcessingInstruction::new(
+                    DOMString::from(target),
+                    DOMString::from(data),
+                    document);
+                self.insert_node(node, Dom::from_ref(pi.upcast()));
+            }
+            ParseOperation::SetQuirksMode { mode } => {
+                document.set_quirks_mode(mode);
+            }
+        }
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct ParseNode {
     id: ParseNodeId,
     qual_name: Option<QualName>,
@@ -167,14 +344,12 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct Tokenizer {
-    document: Dom<Document>,
     #[ignore_malloc_size_of = "Defined in std"]
     receiver: Receiver<ToTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    nodes: HashMap<ParseNodeId, Dom<Node>>,
     url: ServoUrl,
+    executor: ParseOperationExecutor,
 }
 
 impl Tokenizer {
@@ -189,13 +364,11 @@ impl Tokenizer {
         let (to_tokenizer_sender, tokenizer_receiver) = channel();
 
         let mut tokenizer = Tokenizer {
-            document: Dom::from_ref(document),
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
-            nodes: HashMap::new(),
-            url: url
+            url: url,
+            executor: ParseOperationExecutor::new(Some(document)),
         };
-        tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
         let mut sink = Sink::new(to_tokenizer_sender.clone());
         let mut ctxt_parse_node = None;
@@ -203,12 +376,12 @@ impl Tokenizer {
         let mut fragment_context_is_some = false;
         if let Some(fc) = fragment_context {
             let node = sink.new_parse_node();
-            tokenizer.insert_node(node.id, Dom::from_ref(fc.context_elem));
+            tokenizer.executor.insert_node(node.id, Dom::from_ref(fc.context_elem));
             ctxt_parse_node = Some(node);
 
             form_parse_node = fc.form_elem.map(|form_elem| {
                 let node = sink.new_parse_node();
-                tokenizer.insert_node(node.id, Dom::from_ref(form_elem));
+                tokenizer.executor.insert_node(node.id, Dom::from_ref(form_elem));
                 node
             });
             fragment_context_is_some = true;
@@ -277,162 +450,13 @@ impl Tokenizer {
         self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::SetPlainTextState).unwrap();
     }
 
-    fn insert_node(&mut self, id: ParseNodeId, node: Dom<Node>) {
-        assert!(self.nodes.insert(id, node).is_none());
-    }
 
-    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a Dom<Node> {
-        self.nodes.get(id).expect("Node not found!")
-    }
-
-
-    fn append_before_sibling(&mut self, sibling: ParseNodeId, node: NodeOrText) {
-        let node = match node {
-            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id))),
-            NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
-                Tendril::from(text)
-            )
         };
-        let sibling = &**self.get_node(&sibling);
-        let parent = &*sibling.GetParentNode().expect("append_before_sibling called on node without parent");
-
-        super::insert(parent, Some(sibling), node);
     }
 
-    fn append(&mut self, parent: ParseNodeId, node: NodeOrText) {
-        let node = match node {
-            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id))),
-            NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
-                Tendril::from(text)
-            )
-        };
 
-        let parent = &**self.get_node(&parent);
-        super::insert(parent, None, node);
-    }
-
-    fn has_parent_node(&self, node: ParseNodeId) -> bool {
-        self.get_node(&node).GetParentNode().is_some()
-    }
-
-    fn same_tree(&self, x: ParseNodeId, y: ParseNodeId) -> bool {
-        let x = self.get_node(&x);
-        let y = self.get_node(&y);
-
-        let x = x.downcast::<Element>().expect("Element node expected");
-        let y = y.downcast::<Element>().expect("Element node expected");
-        x.is_in_same_home_subtree(y)
-    }
-
-    fn process_operation(&mut self, op: ParseOperation) {
-        let document = DomRoot::from_ref(&**self.get_node(&0));
-        let document = document.downcast::<Document>().expect("Document node should be downcasted!");
-        match op {
-            ParseOperation::GetTemplateContents { target, contents } => {
-                let target = DomRoot::from_ref(&**self.get_node(&target));
-                let template = target.downcast::<HTMLTemplateElement>().expect(
-                    "Tried to extract contents from non-template element while parsing");
-                self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
-            }
-            ParseOperation::CreateElement { node, name, attrs, current_line } => {
-                let is = attrs.iter()
-                              .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
-                              .map(|attr| LocalName::from(&*attr.value));
-
-                let elem = Element::create(name,
-                                           is,
-                                           &*self.document,
-                                           ElementCreator::ParserCreated(current_line),
-                                           CustomElementCreationMode::Synchronous);
-                for attr in attrs {
-                    elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
-                }
-
-                self.insert_node(node, Dom::from_ref(elem.upcast()));
-            }
-            ParseOperation::CreateComment { text, node } => {
-                let comment = Comment::new(DOMString::from(text), document);
-                self.insert_node(node, Dom::from_ref(&comment.upcast()));
-            }
-            ParseOperation::AppendBeforeSibling { sibling, node } => {
-                self.append_before_sibling(sibling, node);
-            }
-            ParseOperation::Append { parent, node } => {
-                self.append(parent, node);
-            }
-            ParseOperation::AppendBasedOnParentNode { element, prev_element, node } => {
-                if self.has_parent_node(element) {
-                    self.append_before_sibling(element, node);
                 } else {
-                    self.append(prev_element, node);
                 }
-            }
-            ParseOperation::AppendDoctypeToDocument { name, public_id, system_id } => {
-                let doctype = DocumentType::new(
-                    DOMString::from(String::from(name)), Some(DOMString::from(public_id)),
-                    Some(DOMString::from(system_id)), document);
-
-                document.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
-            }
-            ParseOperation::AddAttrsIfMissing { target, attrs } => {
-                let elem = self.get_node(&target).downcast::<Element>()
-                    .expect("tried to set attrs on non-Element in HTML parsing");
-                for attr in attrs {
-                    elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
-                }
-            }
-            ParseOperation::RemoveFromParent { target } => {
-                if let Some(ref parent) = self.get_node(&target).GetParentNode() {
-                    parent.RemoveChild(&**self.get_node(&target)).unwrap();
-                }
-            }
-            ParseOperation::MarkScriptAlreadyStarted { node } => {
-                let script = self.get_node(&node).downcast::<HTMLScriptElement>();
-                script.map(|script| script.set_already_started(true));
-            }
-            ParseOperation::ReparentChildren { parent, new_parent } => {
-                let parent = self.get_node(&parent);
-                let new_parent = self.get_node(&new_parent);
-                while let Some(child) = parent.GetFirstChild() {
-                    new_parent.AppendChild(&child).unwrap();
-                }
-            }
-            ParseOperation::AssociateWithForm { target, form, element, prev_element } => {
-                let tree_node = prev_element.map_or(element, |prev| {
-                    if self.has_parent_node(element) { element } else { prev }
-                });
-
-                if !self.same_tree(tree_node, form) {
-                    return;
-                }
-                let form = self.get_node(&form);
-                let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
-                    .expect("Owner must be a form element");
-
-                let node = self.get_node(&target);
-                let elem = node.downcast::<Element>();
-                let control = elem.and_then(|e| e.as_maybe_form_control());
-
-                if let Some(control) = control {
-                    control.set_form_owner_from_parser(&form);
-                } else {
-                    // TODO remove this code when keygen is implemented.
-                    assert!(node.NodeName() == "KEYGEN", "Unknown form-associatable element");
-                }
-            }
-            ParseOperation::Pop { node } => {
-                vtable_for(self.get_node(&node)).pop();
-            }
-            ParseOperation::CreatePI { node, target, data } => {
-                let pi = ProcessingInstruction::new(
-                    DOMString::from(target),
-                    DOMString::from(data),
-                    document);
-                self.insert_node(node, Dom::from_ref(pi.upcast()));
-            }
-            ParseOperation::SetQuirksMode { mode } => {
-                document.set_quirks_mode(mode);
-            }
         }
     }
 }
