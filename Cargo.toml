@@ -24,3 +24,5 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+html5ever = { git = "https://github.com/cynicaldevil/html5ever", branch= "clone-tokenizer-state" }
+xml5ever = { git = "https://github.com/cynicaldevil/html5ever", branch= "clone-tokenizer-state" }
