@@ -214,6 +214,14 @@ impl ParseOperationExecutor {
     }
 }
 
+fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue {
+    let mut buffer_queue = BufferQueue::new();
+    while let Some(st) = buffers.pop_front() {
+        buffer_queue.push_back(StrTendril::from(st));
+    }
+    buffer_queue
+}
+
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub struct ParseNode {
     id: ParseNodeId,
@@ -285,35 +293,65 @@ enum ToTokenizerMsg {
     // From HtmlTokenizer
     TokenizerResultDone {
         #[ignore_malloc_size_of = "Defined in html5ever"]
-        updated_input: VecDeque<SendTendril<UTF8>>
+        updated_input: VecDeque<SendTendril<UTF8>>,
+        speculative_parsing_mode: bool,
     },
+
     TokenizerResultScript {
         script: ParseNode,
         #[ignore_malloc_size_of = "Defined in html5ever"]
-        updated_input: VecDeque<SendTendril<UTF8>>
+        updated_input: VecDeque<SendTendril<UTF8>>,
+        speculative_parsing_mode: bool,
     },
-    End, // Sent to Tokenizer to signify HtmlTokenizer's end method has returned
+
+    /// Sent to Tokenizer to signify HtmlTokenizer's end method has returned
+    End,
+
+    /// The tokenizer on the main thread receives the h5e's tokenizer's state, which will
+    /// be used to reconstruct the original tokenizer to parse document.write()'s contents.
+    HtmlTokenizerInternalState(
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        SendableTokenizer<SendableTreeBuilder<ParseNode, SendableSink>>,
+    ),
 
     // From Sink
     ProcessOperation(ParseOperation),
+    SpeculativeParseOps(VecDeque<ParseOperation>),
 }
 
 #[derive(MallocSizeOf)]
 enum ToHtmlTokenizerMsg {
     Feed {
         #[ignore_malloc_size_of = "Defined in html5ever"]
-        input: VecDeque<SendTendril<UTF8>>
+        input: VecDeque<SendTendril<UTF8>>,
+        should_parse_speculatively: bool
     },
     End,
     SetPlainTextState,
+    RestoreInternalState {
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        tok_internal_state: SendableTokenizer<SendableTreeBuilder<ParseNode, SendableSink>>
+    },
+    FlushTreeOps,
 }
 
-fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue {
-    let mut buffer_queue = BufferQueue::new();
-    while let Some(st) = buffers.pop_front() {
-        buffer_queue.push_back(StrTendril::from(st));
+#[allow(unsafe_code)]
+unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<ParseNode, Sink>> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.sink.sink.trace(trc);
     }
-    buffer_queue
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub enum TokenizerState {
+    /// Default state, executes parse ops sent to it by the Sink
+    ExecutingParseOps,
+    /// HtmlTokenizer needed to parse content from calls to document.write() (if any) synchronously
+    SpeculativeParsing {
+        #[ignore_malloc_size_of = "Defined in html5ever"]
+        tokenizer: HtmlTokenizer<TreeBuilder<ParseNode, Sink>>,
+        document_write_called: bool,
+    },
 }
 
 // The async HTML Tokenizer consists of two separate types working together: the Tokenizer
@@ -349,6 +387,7 @@ pub struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in std"]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
     url: ServoUrl,
+    pub state: TokenizerState,
     executor: ParseOperationExecutor,
 }
 
@@ -360,13 +399,14 @@ impl Tokenizer {
             -> Self {
         // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
         let (to_html_tokenizer_sender, html_tokenizer_receiver) = channel();
-        // Messages from HtmlTokenizer and Sink (parser thread) to Tokenizer (main thread)
+        // Messages from HtmlTokenizer and Sink (both in parser thread) to Tokenizer (main thread)
         let (to_tokenizer_sender, tokenizer_receiver) = channel();
 
         let mut tokenizer = Tokenizer {
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
             url: url,
+            state: TokenizerState::ExecutingParseOps,
             executor: ParseOperationExecutor::new(Some(document)),
         };
 
