@@ -1179,6 +1179,11 @@ impl XMLHttpRequest {
             }
             utf16
         }
+        // https://xhr.spec.whatwg.org/#json-response refers to
+        // https://infra.spec.whatwg.org/#parse-json-from-bytes which refers to
+        // https://encoding.spec.whatwg.org/#utf-8-decode which means
+        // that the encoding is always UTF-8 and the UTF-8 BOM is removed,
+        // if present, but UTF-16BE/LE BOM must not be honored.
         let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
         // Step 5
         rooted!(in(cx) let mut rval = UndefinedValue());
