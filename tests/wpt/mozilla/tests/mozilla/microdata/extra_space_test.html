@@ -33,66 +33,15 @@
 </body>
 
 <script>
-  test(function(){
-    // Test body element
-    var body = document.getElementById("body");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
+  test(function() {
+    // Test all elements
+    var ids = ["body", "h1", "h2", "p", "input", "form", "li", "ul", "meta", "table", "div", "anchor"];
+    for (let id of ids) {
+      var elem = document.getElementById(id);
+      assert_array_equals(elem.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
+      assert_array_equals(elem.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
+    }
 
-    // Test h1 element
-    var h1 = document.getElementById("h1");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test h2 element
-    var h2 = document.getElementById("h2");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test p element
-    var p = document.getElementById("p");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test input element
-    var input = document.getElementById("input");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test form element
-    var form = document.getElementById("form");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test li element
-    var li = document.getElementById("li");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test ul element
-    var ul = document.getElementById("ul");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test meta element
-    var meta = document.getElementById("meta");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test table element
-    var table = document.getElementById("table");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test div element
-    var div = document.getElementById("div");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-
-    // Test anchor element
-    var anchor = document.getElementById("anchor");
-    assert_array_equals(body.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
-    assert_array_equals(body.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
 
   });
 </script>

@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <html>
+
 <head>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
@@ -33,67 +34,14 @@
 </body>
 
 <script>
-  test(function(){
-    // Test body element
-    var body = document.getElementById("body");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test h1 element
-    var h1 = document.getElementById("h1");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test h2 element
-    var h2 = document.getElementById("h2");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test p element
-    var p = document.getElementById("p");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test input element
-    var input = document.getElementById("input");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test form element
-    var form = document.getElementById("form");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test li element
-    var li = document.getElementById("li");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test ul element
-    var ul = document.getElementById("ul");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test meta element
-    var meta = document.getElementById("meta");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test table element
-    var table = document.getElementById("table");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test div element
-    var div = document.getElementById("div");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
-    // Test anchor element
-    var anchor = document.getElementById("anchor");
-    assert_equals(body.propertyNames(), null, "The method should return null ");
-    assert_equals(body.itemtypes(), null, "The method should return null ");
-
+  test(function() {
+    // Test all elements
+    var ids = ["body", "h1", "h2", "p", "input", "form", "li", "ul", "meta", "table", "div", "anchor"];
+    for (let id of ids) {
+      var elem = document.getElementById(id);
+      assert_equals(elem.propertyNames(), null, "The method should return null ");
+      assert_equals(elem.itemtypes(), null, "The method should return null ");
+    }
   });
 </script>
 

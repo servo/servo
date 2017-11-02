@@ -25,7 +25,7 @@ interface HTMLElement : Element {
   //         attribute any itemValue; // acts as DOMString on setting
   [Pref="dom.microdata.enabled"]
   sequence<DOMString>? propertyNames();
-  [Pref="dom.microdata.enabled"]
+  [Pref="dom.microdata.testing.enabled"]
   sequence<DOMString>? itemtypes();
 
   // user interaction
