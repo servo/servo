@@ -1936,82 +1936,14 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="-moz-script-level" products="gecko" animation_value_type="none"
-                   predefined_type="Integer" gecko_ffi_name="mScriptLevel"
-                   spec="Internal (not web-exposed)"
-                   internal="True">
-    use std::fmt;
-    use style_traits::ToCss;
-
-
-    pub mod computed_value {
-        pub type T = i8;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        0
-    }
-
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum SpecifiedValue {
-        Relative(i32),
-        Absolute(i32),
-        Auto
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Auto => dest.write_str("auto"),
-                SpecifiedValue::Relative(rel) => rel.to_css(dest),
-                // can only be specified by pres attrs; should not
-                // serialize to anything else
-                SpecifiedValue::Absolute(_) => Ok(()),
-            }
-        }
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        fn to_computed_value(&self, cx: &Context) -> i8 {
-            use properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
-            use std::{cmp, i8};
-
-            let int = match *self {
-                SpecifiedValue::Auto => {
-                    let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
-                    let display = cx.builder.get_parent_font().clone__moz_math_display();
-                    if display == DisplayValue::inline {
-                        parent + 1
-                    } else {
-                        parent
-                    }
-                }
-                SpecifiedValue::Relative(rel) => {
-                    let parent = cx.builder.get_parent_font().clone__moz_script_level();
-                    parent as i32 + rel
-                }
-                SpecifiedValue::Absolute(abs) => abs,
-            };
-            cmp::min(int, i8::MAX as i32) as i8
-        }
-        fn from_computed_value(other: &computed_value::T) -> Self {
-            SpecifiedValue::Absolute(*other as i32)
-        }
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        if let Ok(i) = input.try(|i| i.expect_integer()) {
-            return Ok(SpecifiedValue::Relative(i))
-        }
-        input.expect_ident_matching("auto")?;
-        Ok(SpecifiedValue::Auto)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("-moz-script-level",
+                          "MozScriptLevel",
+                          0,
+                          animation_value_type="none",
+                          products="gecko",
+                          internal=True,
+                          gecko_ffi_name="mScriptLevel",
+                          spec="Internal (not web-exposed)")}
 
 ${helpers.single_keyword("-moz-math-display",
                          "inline block",

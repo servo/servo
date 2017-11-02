@@ -192,3 +192,38 @@ impl ToComputedValue for specified::MozScriptMinSize {
         specified::MozScriptMinSize(ToComputedValue::from_computed_value(other))
     }
 }
+
+/// The computed value of the -moz-script-level property.
+pub type MozScriptLevel = i8;
+
+#[cfg(feature = "gecko")]
+impl ToComputedValue for specified::MozScriptLevel {
+    type ComputedValue = MozScriptLevel;
+
+    fn to_computed_value(&self, cx: &Context) -> i8 {
+        use properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
+        use std::{cmp, i8};
+
+        let int = match *self {
+            specified::MozScriptLevel::Auto => {
+                let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
+                let display = cx.builder.get_parent_font().clone__moz_math_display();
+                if display == DisplayValue::inline {
+                    parent + 1
+                } else {
+                    parent
+                }
+            }
+            specified::MozScriptLevel::Relative(rel) => {
+                let parent = cx.builder.get_parent_font().clone__moz_script_level();
+                parent as i32 + rel
+            }
+            specified::MozScriptLevel::Absolute(abs) => abs,
+        };
+        cmp::min(int, i8::MAX as i32) as i8
+    }
+
+    fn from_computed_value(other: &i8) -> Self {
+        specified::MozScriptLevel::Absolute(*other as i32)
+    }
+}
