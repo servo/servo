@@ -59,6 +59,8 @@ pub type Matrix = GenericMatrix<Number>;
 /// computed value of matrix() in -moz-transform
 pub type PrefixedMatrix = GenericMatrix<Number, LengthOrPercentageOrNumber>;
 
+// we rustfmt_skip here because we want the matrices to look like
+// matrices instead of being split across lines
 #[cfg_attr(rustfmt, rustfmt_skip)]
 impl Matrix3D {
     #[inline]

@@ -3202,8 +3202,7 @@ fn static_assert() {
 
         let result = match list {
             Some(list) => {
-                let vec: Vec<_> = list
-                    .into_iter()
+                list.into_iter()
                     .filter_map(|value| {
                         // Handle none transform.
                         if value.is_none() {
@@ -3212,12 +3211,11 @@ fn static_assert() {
                             Some(Self::clone_single_transform_function(value))
                         }
                     })
-                    .collect();
-                if !vec.is_empty() { Some(vec) } else { None }
+                    .collect::<Vec<_>>()
             },
-            _ => None,
+            _ => vec![],
         };
-        Transform(result.unwrap_or(vec!()))
+        Transform(result)
     }
 
     ${impl_transition_time_value('delay', 'Delay')}

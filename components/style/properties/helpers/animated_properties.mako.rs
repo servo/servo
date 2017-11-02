@@ -1438,6 +1438,8 @@ impl Animate for Matrix3D {
     }
 
     #[cfg(feature = "gecko")]
+    // Gecko doesn't exactly follow the spec here; we use a different procedure
+    // to match it
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let (from, to) = if self.is_3d() || other.is_3d() {
             (decompose_3d_matrix(*self), decompose_3d_matrix(*other))
@@ -1467,6 +1469,8 @@ impl Animate for Matrix {
     }
 
     #[cfg(feature = "gecko")]
+    // Gecko doesn't exactly follow the spec here; we use a different procedure
+    // to match it
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let from = decompose_2d_matrix(&(*self).into());
         let to = decompose_2d_matrix(&(*other).into());
@@ -2471,6 +2475,9 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 }
                 p_matrix.compute_squared_distance(&m)
             }
+            // Gecko cross-interpolates amongst all translate and all scale
+            // functions (See ToPrimitive in layout/style/StyleAnimationValue.cpp)
+            // without falling back to InterpolateMatrix
             _ if self.is_translate() && other.is_translate() => {
                 self.to_translate_3d().compute_squared_distance(&other.to_translate_3d())
             }
