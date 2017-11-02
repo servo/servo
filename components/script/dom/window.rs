@@ -2298,6 +2298,7 @@ impl Window {
                 message_clone.handle(),
                 None,
                 Some(&*source),
+                vec![],
             );
         });
         // FIXME(nox): Why are errors silenced here?
