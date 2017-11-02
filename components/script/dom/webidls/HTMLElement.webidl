@@ -17,8 +17,7 @@ interface HTMLElement : Element {
   readonly attribute DOMStringMap dataset;
 
   // microdata
-  //           attribute boolean itemScope;
-  //           attribute DOMString itemProp;
+  //         attribute boolean itemScope;
 
   //         attribute DOMString itemId;
   //readonly attribute HTMLPropertiesCollection properties;
