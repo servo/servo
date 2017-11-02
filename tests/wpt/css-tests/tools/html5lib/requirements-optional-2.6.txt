@@ -1,5 +1,0 @@
--r requirements-optional-cpython.txt
-
-# Can be used to force attributes to be serialized in alphabetical
-# order.
-ordereddict

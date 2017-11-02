@@ -53,9 +53,6 @@ TEST_SUITES = OrderedDict([
              "paths": [path.abspath(WEB_PLATFORM_TESTS_PATH),
                        path.abspath(SERVO_TESTS_PATH)],
              "include_arg": "include"}),
-    ("css", {"kwargs": {"release": False},
-             "paths": [path.abspath(path.join("tests", "wpt", "css-tests"))],
-             "include_arg": "include"}),
     ("unit", {"kwargs": {},
               "paths": [path.abspath(path.join("tests", "unit"))],
               "include_arg": "test_name"}),
@@ -116,7 +113,6 @@ class MachCommands(CommandBase):
         suites["tidy"]["kwargs"] = {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test,
                                     "stylo": False}
         suites["wpt"]["kwargs"] = {"release": release}
-        suites["css"]["kwargs"] = {"release": release}
         suites["unit"]["kwargs"] = {}
         suites["compiletest"]["kwargs"] = {"release": release}
 
@@ -609,41 +605,6 @@ class MachCommands(CommandBase):
                      help='Run the dev build')
     def update_jquery(self, release, dev):
         return self.jquery_test_runner("update", release, dev)
-
-    @Command('test-css',
-             description='Run the web platform CSS tests',
-             category='testing',
-             parser=create_parser_wpt)
-    def test_css(self, **kwargs):
-        self.ensure_bootstrapped()
-        ret = self.run_test_list_or_dispatch(kwargs["test_list"], "css", self._test_css, **kwargs)
-        if kwargs["always_succeed"]:
-            return 0
-        else:
-            return ret
-
-    def _test_css(self, **kwargs):
-        run_file = path.abspath(path.join("tests", "wpt", "run_css.py"))
-        return self.wptrunner(run_file, **kwargs)
-
-    @Command('update-css',
-             description='Update the web platform CSS tests',
-             category='testing',
-             parser=updatecommandline.create_parser())
-    @CommandArgument('--patch', action='store_true', default=False,
-                     help='Create an mq patch or git commit containing the changes')
-    def update_css(self, patch, **kwargs):
-        self.ensure_bootstrapped()
-        run_file = path.abspath(path.join("tests", "wpt", "update_css.py"))
-        kwargs["no_patch"] = not patch
-
-        if kwargs["no_patch"] and kwargs["sync"]:
-            print("Are you sure you don't want a patch?")
-            return 1
-
-        run_globals = {"__file__": run_file}
-        execfile(run_file, run_globals)
-        return run_globals["update_tests"](**kwargs)
 
     @Command('compare_dromaeo',
              description='Compare outputs of two runs of ./mach test-dromaeo command',

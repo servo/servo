@@ -2,7 +2,7 @@ mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
   - bash ./etc/ci/lockfile_changed.sh
@@ -11,20 +11,20 @@ mac-rel-wpt1:
 mac-rel-wpt2:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build-geckolib --release
 
 mac-rel-wpt3:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
 mac-rel-wpt4:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - ./mach test-wpt --release --pref dom.servoparser.async_html_tokenizer.enabled --processes=8 --log-raw test-async-parsing.log --log-errorsummary async-parsing-errorsummary.log --always-succeed domparsing html/syntax html/dom/documents html/dom/dynamic-markup-insertion
   - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --use-tracker
@@ -42,16 +42,16 @@ mac-dev-unit:
 mac-rel-css1:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-css --release --processes 4 --total-chunks 2 --this-chunk 1 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
-  - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
+  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 5 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-css2:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
-  - ./mach test-css --release --processes 4 --total-chunks 2 --this-chunk 2 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
-  - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
+  - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
 mac-nightly:
   - ./mach clean-nightlies --keep 3 --force
@@ -94,15 +94,15 @@ linux-rel-wpt:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach build --release --with-debug-assertions
   - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
 
 linux-rel-css:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach build --release --with-debug-assertions
-  - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
-  - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
+  - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
+  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - ./mach build-geckolib --release
   - ./mach test-stylo --release
   - bash ./etc/ci/lockfile_changed.sh

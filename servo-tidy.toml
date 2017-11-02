@@ -51,7 +51,6 @@ files = [
   "./components/style/gecko/generated/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
-  "./tests/wpt/metadata-css/MANIFEST.json",
   "./components/script/dom/webidls/ForceTouchEvent.webidl",
   "./support/android/openssl.sh",
   # Ignore those files since the issues reported are on purpose
@@ -65,14 +64,12 @@ files = [
 directories = [
   # Upstream
   "./support/android/apk",
-  "./tests/wpt/css-tests",
   "./tests/wpt/harness",
   "./tests/wpt/update",
   "./tests/wpt/web-platform-tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
   "./tests/wpt/mozilla/tests/webgl",
   "./tests/wpt/sync",
-  "./tests/wpt/sync_css",
   "./python/tidy/servo_tidy_tests",
   "./components/script/dom/bindings/codegen/parser",
   "./components/script/dom/bindings/codegen/ply",

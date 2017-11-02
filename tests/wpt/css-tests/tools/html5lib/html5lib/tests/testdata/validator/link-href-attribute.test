@@ -1,7 +1,0 @@
-{"tests": [
-
-{"description": "link href contains invalid URI due to space in domain",
-"input": "<link href='http://www.example. com/'",
-"fail-unless": "invalid-uri-char"}
-
-]}
