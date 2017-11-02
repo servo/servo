@@ -14,27 +14,35 @@
 //!                       Use this for structs that correspond to a DOM type
 
 
+
 #![deny(unsafe_code)]
 #![feature(macro_vis_matcher)]
 #![feature(plugin)]
 #![feature(plugin_registrar)]
 #![feature(rustc_private)]
 
+#[cfg(feature = "unrooted_must_root_lint")]
 #[macro_use]
 extern crate rustc;
+
 extern crate rustc_plugin;
 extern crate syntax;
 
 use rustc_plugin::Registry;
 use syntax::feature_gate::AttributeType::Whitelisted;
 
+#[cfg(feature = "unrooted_must_root_lint")]
 mod unrooted_must_root;
+
 /// Utilities for writing plugins
+#[cfg(feature = "unrooted_must_root_lint")]
 mod utils;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
+    #[cfg(feature = "unrooted_must_root_lint")]
     reg.register_late_lint_pass(Box::new(unrooted_must_root::UnrootedPass::new()));
+
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
     reg.register_attribute("must_root".to_string(), Whitelisted);
 }
