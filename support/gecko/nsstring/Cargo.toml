@@ -9,4 +9,5 @@ description = "Rust bindings to xpcom string types"
 gecko_debug = []
 
 [dependencies]
-bitflags = "0.8"
+bitflags = "1.0"
+

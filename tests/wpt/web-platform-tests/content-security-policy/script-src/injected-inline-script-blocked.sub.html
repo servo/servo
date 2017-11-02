@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc'; connect-src 'self';">
+    <title>injected-inline-script-blocked</title>
+    <script nonce='abc' src="/resources/testharness.js"></script>
+    <script nonce='abc' src="/resources/testharnessreport.js"></script>
+    <script nonce='abc' src='../support/logTest.sub.js?logs=["violated-directive=script-src",]'></script>
+    <script nonce='abc' src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+
+<body>
+    <script nonce='abc'>
+       window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+    </script>
+    <script src="support/inject-script.js"></script>
+    <div id="log"></div>
+</body>
+
+</html>

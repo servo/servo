@@ -21,7 +21,7 @@ use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TDocument, TNode};
-use element_state::{ElementState, DocumentState, NS_DOCUMENT_STATE_WINDOW_INACTIVE};
+use element_state::{ElementState, DocumentState};
 use error_reporting::ParseErrorReporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use gecko::data::PerDocumentStyleData;
@@ -519,8 +519,13 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
+    fn may_be_in_binding_manager(&self) -> bool {
+        self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) != 0
+    }
+
+    #[inline]
     fn get_xbl_binding(&self) -> Option<GeckoXBLBinding<'le>> {
-        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
+        if !self.may_be_in_binding_manager() {
             return None;
         }
 
@@ -553,9 +558,11 @@ impl<'le> GeckoElement<'le> {
         } else {
             let binding_parent = unsafe {
                 self.get_non_xul_xbl_binding_parent_raw_content().as_ref()
-            }.map(GeckoNode::from_content)
-                .and_then(|n| n.as_element());
-            debug_assert!(binding_parent == unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) });
+            }.map(GeckoNode::from_content).and_then(|n| n.as_element());
+
+            debug_assert!(binding_parent == unsafe {
+                bindings::Gecko_GetBindingParent(self.0).map(GeckoElement)
+            });
             binding_parent
         }
     }
@@ -767,18 +774,17 @@ impl<'le> GeckoElement<'le> {
 /// it's probably not worth the trouble.
 fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
     use gecko_bindings::structs::*;
-    use selectors::matching::*;
     let mut gecko_flags = 0u32;
-    if flags.contains(HAS_SLOW_SELECTOR) {
+    if flags.contains(ElementSelectorFlags::HAS_SLOW_SELECTOR) {
         gecko_flags |= NODE_HAS_SLOW_SELECTOR as u32;
     }
-    if flags.contains(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
+    if flags.contains(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
         gecko_flags |= NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS as u32;
     }
-    if flags.contains(HAS_EDGE_CHILD_SELECTOR) {
+    if flags.contains(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
         gecko_flags |= NODE_HAS_EDGE_CHILD_SELECTOR as u32;
     }
-    if flags.contains(HAS_EMPTY_SELECTOR) {
+    if flags.contains(ElementSelectorFlags::HAS_EMPTY_SELECTOR) {
         gecko_flags |= NODE_HAS_EMPTY_SELECTOR as u32;
     }
 
@@ -923,6 +929,28 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn after_pseudo_element(&self) -> Option<Self> {
         self.get_before_or_after_pseudo(/* is_before = */ false)
+    }
+
+    /// Ensure this accurately represents the rules that an element may ever
+    /// match, even in the native anonymous content case.
+    fn style_scope(&self) -> Self::ConcreteNode {
+        if self.implemented_pseudo_element().is_some() {
+            return self.closest_non_native_anonymous_ancestor().unwrap().style_scope();
+        }
+
+        if self.is_in_native_anonymous_subtree() {
+            return self.as_node().owner_doc().as_node();
+        }
+
+        if self.get_xbl_binding().is_some() {
+            return self.as_node();
+        }
+
+        if let Some(parent) = self.get_xbl_binding_parent() {
+            return parent.as_node();
+        }
+
+        self.as_node().owner_doc().as_node()
     }
 
     /// Execute `f` for each anonymous content child element (apart from
@@ -1118,8 +1146,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn is_visited_link(&self) -> bool {
-        use element_state::IN_VISITED_STATE;
-        self.get_state().intersects(IN_VISITED_STATE)
+        self.get_state().intersects(ElementState::IN_VISITED_STATE)
     }
 
     #[inline]
@@ -1230,7 +1257,6 @@ impl<'le> TElement for GeckoElement<'le> {
     /// Process various tasks that are a result of animation-only restyle.
     fn process_post_animation(&self,
                               tasks: PostAnimationTasks) {
-        use context::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL;
         use gecko_bindings::structs::nsChangeHint_nsChangeHint_Empty;
         use gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree;
 
@@ -1240,7 +1266,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // the descendants in the display:none subtree. Instead of resolving
         // those styles in animation-only restyle, we defer it to a subsequent
         // normal restyle.
-        if tasks.intersects(DISPLAY_CHANGED_FROM_NONE_FOR_SMIL) {
+        if tasks.intersects(PostAnimationTasks::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL) {
             debug_assert!(self.implemented_pseudo_element()
                               .map_or(true, |p| !p.is_before_or_after()),
                           "display property animation shouldn't run on pseudo elements \
@@ -1935,7 +1961,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context),
             NonTSPseudoClass::Visited => relevant_link.is_visited(self, context),
             NonTSPseudoClass::MozFirstNode => {
-                flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
+                flags_setter(self, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
                 let mut elem = self.as_node();
                 while let Some(prev) = elem.prev_sibling() {
                     if prev.contains_non_whitespace_content() {
@@ -1946,7 +1972,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 true
             }
             NonTSPseudoClass::MozLastNode => {
-                flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
+                flags_setter(self, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
                 let mut elem = self.as_node();
                 while let Some(next) = elem.next_sibling() {
                     if next.contains_non_whitespace_content() {
@@ -1957,7 +1983,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 true
             }
             NonTSPseudoClass::MozOnlyWhitespace => {
-                flags_setter(self, HAS_EMPTY_SELECTOR);
+                flags_setter(self, ElementSelectorFlags::HAS_EMPTY_SELECTOR);
                 if self.as_node().dom_children().any(|c| c.contains_non_whitespace_content()) {
                     return false
                 }
@@ -1982,7 +2008,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 self.get_document_theme() == DocumentTheme::Doc_Theme_Dark
             }
             NonTSPseudoClass::MozWindowInactive => {
-                self.document_state().contains(NS_DOCUMENT_STATE_WINDOW_INACTIVE)
+                self.document_state().contains(DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE)
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {

@@ -37,7 +37,7 @@ use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 #[cfg(feature = "servo")] use style_traits::SpeculativePainter;
 use stylist::Stylist;
-use thread_state;
+use thread_state::{self, ThreadState};
 use time;
 use timer::Timer;
 use traversal::DomTraversal;
@@ -421,15 +421,15 @@ impl TraversalStatistics {
 bitflags! {
     /// Represents which tasks are performed in a SequentialTask of
     /// UpdateAnimations which is a result of normal restyle.
-    pub flags UpdateAnimationsTasks: u8 {
+    pub struct UpdateAnimationsTasks: u8 {
         /// Update CSS Animations.
-        const CSS_ANIMATIONS = structs::UpdateAnimationsTasks_CSSAnimations,
+        const CSS_ANIMATIONS = structs::UpdateAnimationsTasks_CSSAnimations;
         /// Update CSS Transitions.
-        const CSS_TRANSITIONS = structs::UpdateAnimationsTasks_CSSTransitions,
+        const CSS_TRANSITIONS = structs::UpdateAnimationsTasks_CSSTransitions;
         /// Update effect properties.
-        const EFFECT_PROPERTIES = structs::UpdateAnimationsTasks_EffectProperties,
+        const EFFECT_PROPERTIES = structs::UpdateAnimationsTasks_EffectProperties;
         /// Update animation cacade results for animations running on the compositor.
-        const CASCADE_RESULTS = structs::UpdateAnimationsTasks_CascadeResults,
+        const CASCADE_RESULTS = structs::UpdateAnimationsTasks_CascadeResults;
     }
 }
 
@@ -437,11 +437,11 @@ bitflags! {
 bitflags! {
     /// Represents which tasks are performed in a SequentialTask as a result of
     /// animation-only restyle.
-    pub flags PostAnimationTasks: u8 {
+    pub struct PostAnimationTasks: u8 {
         /// Display property was changed from none in animation-only restyle so
         /// that we need to resolve styles for descendants in a subsequent
         /// normal restyle.
-        const DISPLAY_CHANGED_FROM_NONE_FOR_SMIL = 0x01,
+        const DISPLAY_CHANGED_FROM_NONE_FOR_SMIL = 0x01;
     }
 }
 
@@ -483,7 +483,7 @@ impl<E: TElement> SequentialTask<E> {
     /// Executes this task.
     pub fn execute(self) {
         use self::SequentialTask::*;
-        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        debug_assert!(thread_state::get() == ThreadState::LAYOUT);
         match self {
             Unused(_) => unreachable!(),
             #[cfg(feature = "gecko")]
@@ -571,7 +571,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
 
     /// Applies the flags. Must be called on the main thread.
     pub fn apply_flags(&mut self) {
-        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        debug_assert!(thread_state::get() == ThreadState::LAYOUT);
         for (el, flags) in self.map.drain() {
             unsafe { el.set_selector_flags(flags); }
         }
@@ -608,7 +608,7 @@ where
     E: TElement,
 {
     fn drop(&mut self) {
-        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        debug_assert!(thread_state::get() == ThreadState::LAYOUT);
         for task in self.0.drain(..) {
             task.execute()
         }
@@ -803,7 +803,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
 impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
     fn drop(&mut self) {
         debug_assert!(self.current_element_info.is_none());
-        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        debug_assert!(thread_state::get() == ThreadState::LAYOUT);
 
         // Apply any slow selector flags that need to be set on parents.
         self.selector_flags.apply_flags();

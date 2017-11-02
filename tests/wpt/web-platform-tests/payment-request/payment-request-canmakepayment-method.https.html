@@ -123,9 +123,10 @@ promise_test(async t => {
         `method "${method}" must not be supported`
       );
     } catch (err) {
-      assert_true(
-        false,
-        `Unexpected exception testing method ${method}, expected false. See error console.`
+      assert_equals(
+        err.name,
+        "NotAllowedError",
+        "if it throws, then it must be a NotAllowedError."
       );
     }
   }

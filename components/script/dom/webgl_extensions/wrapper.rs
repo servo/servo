@@ -9,7 +9,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use malloc_size_of::MallocSizeOf;
 use std::any::Any;
-use super::{WebGLExtension, WebGLExtensions};
+use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 /// Trait used internally by WebGLExtensions to store and
 /// handle the different WebGL extensions in a common list.
@@ -18,6 +18,7 @@ pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
                         ctx: &WebGLRenderingContext,
                         ext: &WebGLExtensions)
                         -> NonNullJSObjectPtr;
+    fn spec(&self) -> WebGLExtensionSpec;
     fn is_supported(&self, &WebGLExtensions) -> bool;
     fn is_enabled(&self) -> bool;
     fn enable(&self, ext: &WebGLExtensions);
@@ -59,6 +60,10 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
         unsafe {
             NonNullJSObjectPtr::new_unchecked(extension.reflector().get_jsobject().get())
         }
+    }
+
+    fn spec(&self) -> WebGLExtensionSpec {
+         T::spec()
     }
 
     fn is_supported(&self, ext: &WebGLExtensions) -> bool {

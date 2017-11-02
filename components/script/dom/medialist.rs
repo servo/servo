@@ -18,7 +18,7 @@ use style::media_queries::MediaList as StyleMediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRuleType;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss};
+use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
 pub struct MediaList {
@@ -78,7 +78,7 @@ impl MediaListMethods for MediaList {
         let url = window.get_url();
         let quirks_mode = window.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                   PARSING_MODE_DEFAULT,
+                                                   ParsingMode::DEFAULT,
                                                    quirks_mode);
         *media_queries = parse_media_query_list(&context, &mut parser,
                                                 window.css_error_reporter());
@@ -116,7 +116,7 @@ impl MediaListMethods for MediaList {
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                   PARSING_MODE_DEFAULT,
+                                                   ParsingMode::DEFAULT,
                                                    quirks_mode);
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
@@ -145,7 +145,7 @@ impl MediaListMethods for MediaList {
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                   PARSING_MODE_DEFAULT,
+                                                   ParsingMode::DEFAULT,
                                                    quirks_mode);
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2

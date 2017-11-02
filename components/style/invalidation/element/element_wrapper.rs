@@ -348,7 +348,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 
     fn pseudo_element_originating_element(&self) -> Option<Self> {
-        self.element.closest_non_native_anonymous_ancestor()
+        self.element.pseudo_element_originating_element()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
+    }
+
+    fn blocks_ancestor_combinators(&self) -> bool {
+        self.element.blocks_ancestor_combinators()
     }
 }

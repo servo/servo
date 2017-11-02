@@ -15,7 +15,6 @@ use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use msg::constellation_msg;
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -144,16 +143,16 @@ impl KeyboardEvent {
     pub fn get_key_modifiers(&self) -> KeyModifiers {
         let mut result = KeyModifiers::empty();
         if self.shift.get() {
-            result = result | constellation_msg::SHIFT;
+            result = result | KeyModifiers::SHIFT;
         }
         if self.ctrl.get() {
-            result = result | constellation_msg::CONTROL;
+            result = result | KeyModifiers::CONTROL;
         }
         if self.alt.get() {
-            result = result | constellation_msg::ALT;
+            result = result | KeyModifiers::ALT;
         }
         if self.meta.get() {
-            result = result | constellation_msg::SUPER;
+            result = result | KeyModifiers::SUPER;
         }
         result
     }
@@ -165,7 +164,7 @@ pub fn key_value(ch: Option<char>, key: Key, mods: KeyModifiers) -> Cow<'static,
         return Cow::from(format!("{}", ch));
     }
 
-    let shift = mods.contains(constellation_msg::SHIFT);
+    let shift = mods.contains(KeyModifiers::SHIFT);
     Cow::from(match key {
         Key::Space => " ",
         Key::Apostrophe if shift => "\"",

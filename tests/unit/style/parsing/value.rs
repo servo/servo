@@ -7,14 +7,14 @@ use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::Number;
-use style_traits::PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES;
+use style_traits::ParsingMode;
 
 #[test]
 fn test_parsing_allo_all_numeric_values() {
     // In SVG length mode, non-zero lengths are assumed to be px.
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url,
-                                     Some(CssRuleType::Style), PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES,
+                                     Some(CssRuleType::Style), ParsingMode::ALLOW_ALL_NUMERIC_VALUES,
                                      QuirksMode::NoQuirks);
     let mut input = ParserInput::new("-1");
     let mut parser = Parser::new(&mut input);

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-noncynonce' 'nonce-noncy+/nonce='; connect-src 'self';">
+    <title>scriptnonce-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script nonce="noncynonce">
+        function log(msg) {
+            test(function() {
+                assert_unreached(msg)
+            });
+        }
+
+    </script>
+    <script nonce="noncynonce">
+        window.addEventListener('securitypolicyviolation', function(e) {
+            alert_assert("Fail");
+        });
+
+        var t_alert = async_test('Expecting alerts: ["PASS (1/2)","PASS (2/2)"]');
+        var expected_alerts = ["PASS (1/2)", "PASS (2/2)"];
+
+        function alert_assert(msg) {
+            t_alert.step(function() {
+                if (msg.match(/^FAIL/i)) {
+                    assert_unreached(msg);
+                    t_alert.done();
+                }
+                for (var i = 0; i < expected_alerts.length; i++) {
+                    if (expected_alerts[i] == msg) {
+                        assert_true(expected_alerts[i] == msg);
+                        expected_alerts.splice(i, 1);
+                        if (expected_alerts.length == 0) {
+                            t_alert.done();
+                        }
+                        return;
+                    }
+                }
+                assert_unreached('unexpected alert: ' + msg);
+                t_log.done();
+            });
+        }
+
+    </script>
+    <!-- enforcing policy:
+script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/nonce='; connect-src 'self';
+-->
+    <script nonce="noncynonce">
+        alert_assert('PASS (1/2)');
+
+    </script>
+    <script nonce="noncy+/nonce=">
+        alert_assert('PASS (2/2)');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests the effect of a valid script-nonce value. It passes if no CSP violation is generated and the alerts are executed.
+    </p>
+    <div id="log"></div>
+</body>
+
+</html>

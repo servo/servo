@@ -1,8 +1,10 @@
 // Runs a series of tests related to importing scripts on a worklet.
 //
 // Usage:
-// runImportTests(workletType);
-function runImportTests(worklet) {
+// runImportTests("paint");
+function runImportTests(worklet_type) {
+    const worklet = get_worklet(worklet_type);
+
     promise_test(() => {
         const kScriptURL = 'resources/empty-worklet-script.js';
         return worklet.addModule(kScriptURL).then(undefined_arg => {

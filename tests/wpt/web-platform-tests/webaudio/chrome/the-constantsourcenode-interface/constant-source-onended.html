@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test ConstantSourceNode onended
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let sampleRate = 44100.0;
+      // Number of frames that the source will run; fairly arbitrary
+      let numberOfFrames = 32;
+      // Number of frames to render; arbitrary, but should be larger than
+      // numberOfFrames;
+      let renderFrames = 16 * numberOfFrames;
+
+      let context = new OfflineAudioContext(1, renderFrames, sampleRate);
+      let src = new ConstantSourceNode(context);
+      src.connect(context.destination);
+
+      let tester = async_test('ConstantSourceNode onended event fired');
+
+      src.onended = function() {
+        tester.step(function() {
+          assert_true(true, 'ConstantSourceNode.onended fired');
+        });
+        tester.done();
+      };
+
+      src.start();
+      src.stop(numberOfFrames / context.sampleRate);
+
+      context.startRendering();
+    </script>
+  </body>
+</html>

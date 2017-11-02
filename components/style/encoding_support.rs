@@ -4,43 +4,45 @@
 
 //! Parsing stylesheets from bytes (not `&str`).
 
-extern crate encoding;
+extern crate encoding_rs;
 
 use context::QuirksMode;
 use cssparser::{stylesheet_encoding, EncodingSupport};
 use error_reporting::ParseErrorReporter;
 use media_queries::MediaList;
-use self::encoding::{EncodingRef, DecoderTrap};
 use servo_arc::Arc;
 use shared_lock::SharedRwLock;
+use std::borrow::Cow;
 use std::str;
 use stylesheets::{Stylesheet, StylesheetLoader, Origin, UrlExtraData};
 
-struct RustEncoding;
+struct EncodingRs;
 
-impl EncodingSupport for RustEncoding {
-    type Encoding = EncodingRef;
+impl EncodingSupport for EncodingRs {
+    type Encoding = &'static encoding_rs::Encoding;
 
     fn utf8() -> Self::Encoding {
-        encoding::all::UTF_8
+        encoding_rs::UTF_8
     }
 
     fn is_utf16_be_or_le(encoding: &Self::Encoding) -> bool {
-        matches!(encoding.name(), "utf-16be" | "utf-16le")
+        *encoding == encoding_rs::UTF_16LE ||
+        *encoding == encoding_rs::UTF_16BE
     }
 
     fn from_label(ascii_label: &[u8]) -> Option<Self::Encoding> {
-        str::from_utf8(ascii_label).ok().and_then(encoding::label::encoding_from_whatwg_label)
+        encoding_rs::Encoding::for_label(ascii_label)
     }
 }
 
-fn decode_stylesheet_bytes(css: &[u8], protocol_encoding_label: Option<&str>,
-                           environment_encoding: Option<EncodingRef>)
-                           -> (String, EncodingRef) {
-    let fallback_encoding = stylesheet_encoding::<RustEncoding>(
+fn decode_stylesheet_bytes<'a>(css: &'a [u8], protocol_encoding_label: Option<&str>,
+                               environment_encoding: Option<&'static encoding_rs::Encoding>)
+                               -> Cow<'a, str> {
+    let fallback_encoding = stylesheet_encoding::<EncodingRs>(
         css, protocol_encoding_label.map(str::as_bytes), environment_encoding);
-    let (result, used_encoding) = encoding::decode(css, DecoderTrap::Replace, fallback_encoding);
-    (result.unwrap(), used_encoding)
+    let (result, _used_encoding, _) = fallback_encoding.decode(&css);
+    // FIXME record used encoding for environment encoding of @import
+    result
 }
 
 impl Stylesheet {
@@ -52,7 +54,7 @@ impl Stylesheet {
     pub fn from_bytes<R>(bytes: &[u8],
                          url_data: UrlExtraData,
                          protocol_encoding_label: Option<&str>,
-                         environment_encoding: Option<EncodingRef>,
+                         environment_encoding: Option<&'static encoding_rs::Encoding>,
                          origin: Origin,
                          media: MediaList,
                          shared_lock: SharedRwLock,
@@ -62,8 +64,7 @@ impl Stylesheet {
                          -> Stylesheet
         where R: ParseErrorReporter
     {
-        let (string, _) = decode_stylesheet_bytes(
-            bytes, protocol_encoding_label, environment_encoding);
+        let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
         Stylesheet::from_str(&string,
                              url_data,
                              origin,
@@ -80,14 +81,13 @@ impl Stylesheet {
     pub fn update_from_bytes<R>(existing: &Stylesheet,
                                 bytes: &[u8],
                                 protocol_encoding_label: Option<&str>,
-                                environment_encoding: Option<EncodingRef>,
+                                environment_encoding: Option<&'static encoding_rs::Encoding>,
                                 url_data: UrlExtraData,
                                 stylesheet_loader: Option<&StylesheetLoader>,
                                 error_reporter: &R)
         where R: ParseErrorReporter
     {
-        let (string, _) = decode_stylesheet_bytes(
-            bytes, protocol_encoding_label, environment_encoding);
+        let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
         Self::update_from_str(existing,
                               &string,
                               url_data,

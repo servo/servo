@@ -74,7 +74,7 @@ pub enum WebGLContextShareMode {
 }
 
 /// Defines the WebGL version
-#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum WebGLVersion {
     /// https://www.khronos.org/registry/webgl/specs/1.0.2/
     /// Conforms closely to the OpenGL ES 2.0 API

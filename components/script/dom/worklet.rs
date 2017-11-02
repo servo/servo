@@ -62,7 +62,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::thread;
-use style::thread_state;
+use style::thread_state::{self, ThreadState};
 use swapper::Swapper;
 use swapper::swapper;
 use task::TaskBox;
@@ -425,7 +425,7 @@ impl WorkletThread {
             // TODO: set interrupt handler?
             // TODO: configure the JS runtime (e.g. discourage GC, encourage agressive JIT)
             debug!("Initializing worklet thread.");
-            thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
+            thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
             let roots = RootCollection::new();
             let _stack_roots = ThreadLocalStackRoots::new(&roots);
             let mut thread = RootedTraceableBox::new(WorkletThread {

@@ -9,8 +9,8 @@ use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use servo_allocator::libc_compat::{malloc, realloc, free};
 use servo_allocator::usable_size;
-use std::mem;
 use std::os::raw::{c_long, c_void};
 use std::ptr;
 use std::rc::Rc;
@@ -22,64 +22,38 @@ pub struct User {
     size: usize,
 }
 
-// FreeType doesn't require any particular alignment for allocations.
-const FT_ALIGNMENT: usize = 1;
-
 extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
-    assert!(FT_ALIGNMENT == 1);
-    let mut vec = Vec::<u8>::with_capacity(req_size as usize);
-    let ptr = vec.as_mut_ptr() as *mut c_void;
-    mem::forget(vec);
-
     unsafe {
-        let actual_size = usable_size(ptr as *const _);
+        let ptr = malloc(req_size as usize);
+        let ptr = ptr as *mut c_void;  // libc::c_void vs std::os::raw::c_void
+        let actual_size = usable_size(ptr);
         let user = (*mem).user as *mut User;
         (*user).size += actual_size;
+        ptr
     }
-
-    ptr
 }
 
 extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
     unsafe {
-        let actual_size = usable_size(ptr as *const _);
+        let actual_size = usable_size(ptr);
         let user = (*mem).user as *mut User;
         (*user).size -= actual_size;
-
-        assert!(FT_ALIGNMENT == 1);
-        mem::drop(Vec::<u8>::from_raw_parts(ptr as *mut u8, actual_size, 0))
+        free(ptr as *mut _);
     }
 }
 
 extern fn ft_realloc(mem: FT_Memory, _old_size: c_long, new_req_size: c_long,
                      old_ptr: *mut c_void) -> *mut c_void {
-    let old_actual_size;
-    let mut vec;
     unsafe {
-        old_actual_size = usable_size(old_ptr as *const _);
-        let old_size = old_actual_size as usize;
-        vec = Vec::<u8>::from_raw_parts(old_ptr as *mut u8, old_size, old_size);
-    };
-
-    let new_req_size = new_req_size as usize;
-    if new_req_size > old_actual_size {
-        vec.reserve_exact(new_req_size - old_actual_size)
-    } else if new_req_size < old_actual_size {
-        vec.truncate(new_req_size);
-        vec.shrink_to_fit()
-    }
-
-    let new_ptr = vec.as_mut_ptr() as *mut c_void;
-    mem::forget(vec);
-
-    unsafe {
-        let new_actual_size = usable_size(new_ptr as *const _);
+        let old_actual_size = usable_size(old_ptr);
+        let new_ptr = realloc(old_ptr as *mut _, new_req_size as usize);
+        let new_ptr = new_ptr as *mut c_void;
+        let new_actual_size = usable_size(new_ptr);
         let user = (*mem).user as *mut User;
         (*user).size += new_actual_size;
         (*user).size -= old_actual_size;
+        new_ptr
     }
-
-    new_ptr
 }
 
 // A |*mut User| field in a struct triggers a "use of `#[derive]` with a raw pointer" warning from

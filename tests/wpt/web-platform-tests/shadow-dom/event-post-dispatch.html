@@ -206,7 +206,7 @@ document.body.removeChild(n6.test6);
 let n7 = createTestTree(test7);
 document.body.appendChild(n7.test7);
 test(() => {
-  let log = dispatchEventWithEventLog(n7, n7.target, new MouseEvent('my-event', {bubbles: true, compoesed: true, relatedTarget: n7.relatedTarget}));
+  let log = dispatchEventWithEventLog(n7, n7.target, new MouseEvent('my-event', {bubbles: true, composed: true, relatedTarget: n7.relatedTarget}));
   assert_equals(log.event.target, n7.host1);
   assert_equals(log.event.relatedTarget, n7.host2);
   assert_equals(log.event.eventPhase, 0);
@@ -215,7 +215,7 @@ test(() => {
 }, 'Event properties post dispatch with relatedTarget in the different shadow trees. (composed: true)');
 
 test(() => {
-  let log = dispatchEventWithEventLog(n7, n7.target, new MouseEvent('my-event', {bubbles: true, compoesed: false, relatedTarget: n7.relatedTarget}));
+  let log = dispatchEventWithEventLog(n7, n7.target, new MouseEvent('my-event', {bubbles: true, composed: false, relatedTarget: n7.relatedTarget}));
   assert_equals(log.event.target, null);
   assert_equals(log.event.relatedTarget, null);
   assert_equals(log.event.eventPhase, 0);

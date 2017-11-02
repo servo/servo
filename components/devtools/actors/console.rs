@@ -9,7 +9,7 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::object::ObjectActor;
-use devtools_traits::{CONSOLE_API, CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR};
+use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg};
 use devtools_traits::CachedConsoleMessage;
 use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
 use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
@@ -107,8 +107,8 @@ impl Actor for ConsoleActor {
                 let mut message_types = CachedConsoleMessageTypes::empty();
                 for str_type in str_types {
                     match str_type {
-                        "PageError" => message_types.insert(PAGE_ERROR),
-                        "ConsoleAPI" => message_types.insert(CONSOLE_API),
+                        "PageError" => message_types.insert(CachedConsoleMessageTypes::PAGE_ERROR),
+                        "ConsoleAPI" => message_types.insert(CachedConsoleMessageTypes::CONSOLE_API),
                         s => debug!("unrecognized message type requested: \"{}\"", s),
                     };
                 };

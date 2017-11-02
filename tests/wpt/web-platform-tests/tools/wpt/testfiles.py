@@ -27,9 +27,17 @@ def get_git_cmd(repo_path):
     return git
 
 
+def display_branch_point():
+    print(branch_point())
+
+
 def branch_point():
     git = get_git_cmd(wpt_root)
-    if os.environ.get("TRAVIS_PULL_REQUEST", "false") != "false":
+    if (os.environ.get("TRAVIS_PULL_REQUEST", "false") == "false" and
+        os.environ.get("TRAVIS_BRANCH") == "master"):
+        # For builds on the master branch just return the HEAD commit
+        return git("rev-parse", "HEAD")
+    elif os.environ.get("TRAVIS_PULL_REQUEST", "false") != "false":
         # This is a PR, so the base branch is in TRAVIS_BRANCH
         travis_branch = os.environ.get("TRAVIS_BRANCH")
         assert travis_branch, "TRAVIS_BRANCH environment variable is defined"

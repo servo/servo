@@ -25,7 +25,7 @@ test(function(t) {
                            duration: 100,
                            delay: 1 });
   anim.effect.timing.iterationStart = 2.5;
-  assert_equals(anim.effect.getComputedTiming().progress, 0.5);
+  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5);
   assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
 }, 'Test that changing the iterationStart affects computed timing ' +
    'when backwards-filling');
@@ -39,7 +39,7 @@ test(function(t) {
                            duration: 100,
                            delay: 0 });
   anim.effect.timing.iterationStart = 2.5;
-  assert_equals(anim.effect.getComputedTiming().progress, 0.5);
+  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5);
   assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
 }, 'Test that changing the iterationStart affects computed timing ' +
    'during the active phase');
@@ -54,7 +54,7 @@ test(function(t) {
                            delay: 0 });
   anim.finish();
   anim.effect.timing.iterationStart = 2.5;
-  assert_equals(anim.effect.getComputedTiming().progress, 0.5);
+  assert_times_equal(anim.effect.getComputedTiming().progress, 0.5);
   assert_equals(anim.effect.getComputedTiming().currentIteration, 3);
 }, 'Test that changing the iterationStart affects computed timing ' +
    'when forwards-filling');

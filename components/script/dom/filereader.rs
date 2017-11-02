@@ -21,9 +21,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::progressevent::ProgressEvent;
 use dom_struct::dom_struct;
-use encoding::all::UTF_8;
-use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecoderTrap, EncodingRef};
+use encoding_rs::{Encoding, UTF_8};
 use hyper::mime::{Attr, Mime};
 use js::jsapi::Heap;
 use js::jsapi::JSAutoCompartment;
@@ -223,8 +221,8 @@ impl FileReader {
         //https://w3c.github.io/FileAPI/#encoding-determination
         // Steps 1 & 2 & 3
         let mut encoding = blob_label.as_ref()
-            .map(|string| &**string)
-            .and_then(encoding_from_whatwg_label);
+            .map(|string| string.as_bytes())
+            .and_then(Encoding::for_label);
 
         // Step 4 & 5
         encoding = encoding.or_else(|| {
@@ -232,16 +230,16 @@ impl FileReader {
             resultmime.and_then(|Mime(_, _, ref parameters)| {
                 parameters.iter()
                     .find(|&&(ref k, _)| &Attr::Charset == k)
-                    .and_then(|&(_, ref v)| encoding_from_whatwg_label(&v.to_string()))
+                    .and_then(|&(_, ref v)| Encoding::for_label(v.as_str().as_bytes()))
             })
         });
 
         // Step 6
-        let enc = encoding.unwrap_or(UTF_8 as EncodingRef);
+        let enc = encoding.unwrap_or(UTF_8);
 
         let convert = blob_bytes;
         // Step 7
-        let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
+        let (output, _, _) = enc.decode(convert);
         *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(output)));
     }
 

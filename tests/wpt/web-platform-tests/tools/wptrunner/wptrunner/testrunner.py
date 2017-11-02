@@ -157,6 +157,7 @@ class BrowserManager(object):
         self.started = False
 
         self.init_timer = None
+        self.command_queue = command_queue
 
     def update_settings(self, test):
         browser_settings = self.browser.settings(test)

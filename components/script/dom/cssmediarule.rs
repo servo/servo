@@ -20,7 +20,7 @@ use style::media_queries::parse_media_query_list;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
-use style_traits::{PARSING_MODE_DEFAULT, ToCss};
+use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
 pub struct CSSMediaRule {
@@ -76,7 +76,7 @@ impl CSSMediaRule {
         let url = window.get_url();
         let quirks_mode = window.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                   PARSING_MODE_DEFAULT,
+                                                   ParsingMode::DEFAULT,
                                                    quirks_mode);
 
         let new_medialist = parse_media_query_list(&context, &mut input,

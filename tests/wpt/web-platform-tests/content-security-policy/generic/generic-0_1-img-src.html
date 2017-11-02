@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>default-src should cascade to img-src directive</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline';">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
     <script src='../support/siblingPath.js'></script>
@@ -13,6 +14,11 @@
     <script>
       var imgsrc = async_test("Verify cascading of default-src to img-src policy");
       var onerrorFired = false;
+      var t_spv = async_test("Should fire violation events for every failed violation");
+      
+      window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+          assert_equals(e.violatedDirective, "img-src");
+      }));
     </script>
 
     <img id='imgfail' src=''
@@ -28,8 +34,5 @@
         imgsrc.done();
       }
     </script>
-
-    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27self%27%20%27unsafe-inline%27'></script>
-
 </body>
 </html>

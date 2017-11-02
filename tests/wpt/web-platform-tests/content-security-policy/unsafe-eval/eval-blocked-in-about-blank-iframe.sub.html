@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>eval-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=script-src","PASS"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+
+<body>
+
+<p>Eval should be blocked in the iframe, but inline script should be allowed.</p>
+<script>
+    window.addEventListener('securitypolicyviolation', function(e) {
+        log("violated-directive=" + e.violatedDirective);
+    });
+    window.onmessage = function(e) {
+        log(e.data);    
+    }
+    window.onload = function() {
+        frames[0].document.write("<script>eval('window.parent.postMessage(\"FAIL\", \"*\");'); window.parent.postMessage(\"PASS\", \"*\");</sc" + "ript>");
+        frames[0].document.close();
+    }
+
+</script>
+<iframe src="about:blank"></iframe>
+
+</body>
+
+</html>

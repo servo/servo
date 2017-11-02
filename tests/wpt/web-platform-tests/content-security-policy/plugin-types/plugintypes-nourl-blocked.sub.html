@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="plugin-types text/plain; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>plugintypes-nourl-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=plugin-types"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+    </script>    
+
+    This test passes if there is a CSP violation saying the plugin was blocked.
+    <object type="application/x-webkit-test-netscape"></object>
+    <div id="log"></div>
+</body>
+
+</html>

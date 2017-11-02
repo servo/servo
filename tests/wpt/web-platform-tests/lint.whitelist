@@ -146,6 +146,7 @@ PARSE-FAILED:content-security-policy/svg/including.sub.svg
 #Helper files that aren't valid XML
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/empty.xml
 PARSE-FAILED:dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
+PARSE-FAILED:acid/acid3/empty.xml
 
 # The patches may have trailing whitespace
 TRAILING WHITESPACE:webgl/tools/*.patch
@@ -161,12 +162,12 @@ SET TIMEOUT: cookies/resources/testharness-helpers.js
 SET TIMEOUT: common/reftest-wait.js
 SET TIMEOUT: conformance-checkers/*
 SET TIMEOUT: content-security-policy/*
-SET TIMEOUT: css/selectors4/selector-placeholder-shown-type-change-001.html
-SET TIMEOUT: css/selectors4/selector-placeholder-shown-type-change-002.html
-SET TIMEOUT: css/selectors4/selector-placeholder-shown-type-change-003.html
-SET TIMEOUT: css/selectors4/selector-read-write-type-change-002.html
-SET TIMEOUT: css/selectors4/selector-required-type-change-002.html
-SET TIMEOUT: css-fonts/font-display/font-display.html
+SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-001.html
+SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-002.html
+SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-003.html
+SET TIMEOUT: css/selectors/selector-read-write-type-change-002.html
+SET TIMEOUT: css/selectors/selector-required-type-change-002.html
+SET TIMEOUT: css/css-fonts/font-display/font-display.html
 SET TIMEOUT: encrypted-media/Google/migrated_to_root_disabled/encrypted-media-utils.js
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
@@ -267,42 +268,42 @@ SET TIMEOUT: XMLHttpRequest/resources/xmlhttprequest-timeout.js
 
 # generate_tests usage (should be got rid of)
 GENERATE_TESTS: 2dcontext/drawing-images-to-the-canvas/*
-GENERATE_TESTS: css/css-shapes-1/shape-outside/values/*
-GENERATE_TESTS: css/css-tables-3/bounding-box-computation-1.html
-GENERATE_TESTS: css/css-tables-3/bounding-box-computation-2.html
-GENERATE_TESTS: css/css-tables-3/bounding-box-computation-3.html
-GENERATE_TESTS: css/css-tables-3/caption-side-1.html
-GENERATE_TESTS: css/css-tables-3/fixed-layout-1.html
-GENERATE_TESTS: css/css-tables-3/fixed-layout-2.html
-GENERATE_TESTS: css/css-tables-3/height-distribution/computing-row-measure-0.html
-GENERATE_TESTS: css/css-tables-3/height-distribution/computing-row-measure-1.html
-GENERATE_TESTS: css/css-tables-3/height-distribution/percentage-sizing-of-table-cell-children.html
-GENERATE_TESTS: css/css-tables-3/height-distribution/percentage-sizing-of-table-cell-children.html
-GENERATE_TESTS: css/css-tables-3/html-to-css-mapping-1.html
-GENERATE_TESTS: css/css-tables-3/html-to-css-mapping-2.html
-GENERATE_TESTS: css/css-tables-3/html5-table-formatting-1.html
-GENERATE_TESTS: css/css-tables-3/html5-table-formatting-1.html
-GENERATE_TESTS: css/css-tables-3/html5-table-formatting-2.html
-GENERATE_TESTS: css/css-tables-3/html5-table-formatting-3.html
-GENERATE_TESTS: css/css-tables-3/html5-table-formatting-fixed-layout-1.html
-GENERATE_TESTS: css/css-tables-3/table-model-fixup-2.html
-GENERATE_TESTS: css/css-tables-3/table-model-fixup-2.html
-GENERATE_TESTS: css/css-tables-3/table-model-fixup-2.html
-GENERATE_TESTS: css/css-tables-3/table-model-fixup.html
-GENERATE_TESTS: css/css-tables-3/visibility-collapse-col-001.html
-GENERATE_TESTS: css/css-tables-3/visibility-collapse-row-001.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/computing-column-measure-0.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/computing-column-measure-1.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/computing-table-width-0.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/computing-table-width-1.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-1.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-2.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-guess.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-percent-guess.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-specified-guess.1.html
-GENERATE_TESTS: css/css-tables-3/width-distribution/distribution-algo-min-content-specified-guess.html
+GENERATE_TESTS: css/css-shapes/shape-outside/values/*
+GENERATE_TESTS: css/css-tables/bounding-box-computation-1.html
+GENERATE_TESTS: css/css-tables/bounding-box-computation-2.html
+GENERATE_TESTS: css/css-tables/bounding-box-computation-3.html
+GENERATE_TESTS: css/css-tables/caption-side-1.html
+GENERATE_TESTS: css/css-tables/fixed-layout-1.html
+GENERATE_TESTS: css/css-tables/fixed-layout-2.html
+GENERATE_TESTS: css/css-tables/height-distribution/computing-row-measure-0.html
+GENERATE_TESTS: css/css-tables/height-distribution/computing-row-measure-1.html
+GENERATE_TESTS: css/css-tables/height-distribution/percentage-sizing-of-table-cell-children.html
+GENERATE_TESTS: css/css-tables/height-distribution/percentage-sizing-of-table-cell-children.html
+GENERATE_TESTS: css/css-tables/html-to-css-mapping-1.html
+GENERATE_TESTS: css/css-tables/html-to-css-mapping-2.html
+GENERATE_TESTS: css/css-tables/html5-table-formatting-1.html
+GENERATE_TESTS: css/css-tables/html5-table-formatting-1.html
+GENERATE_TESTS: css/css-tables/html5-table-formatting-2.html
+GENERATE_TESTS: css/css-tables/html5-table-formatting-3.html
+GENERATE_TESTS: css/css-tables/html5-table-formatting-fixed-layout-1.html
+GENERATE_TESTS: css/css-tables/table-model-fixup-2.html
+GENERATE_TESTS: css/css-tables/table-model-fixup-2.html
+GENERATE_TESTS: css/css-tables/table-model-fixup-2.html
+GENERATE_TESTS: css/css-tables/table-model-fixup.html
+GENERATE_TESTS: css/css-tables/visibility-collapse-col-001.html
+GENERATE_TESTS: css/css-tables/visibility-collapse-row-001.html
+GENERATE_TESTS: css/css-tables/width-distribution/computing-column-measure-0.html
+GENERATE_TESTS: css/css-tables/width-distribution/computing-column-measure-1.html
+GENERATE_TESTS: css/css-tables/width-distribution/computing-table-width-0.html
+GENERATE_TESTS: css/css-tables/width-distribution/computing-table-width-1.html
+GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-1.html
+GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-2.html
+GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-guess.html
+GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-percent-guess.html
+GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-specified-guess.1.html
+GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-specified-guess.html
 GENERATE_TESTS: css/work-in-progress/ttwf_sf/divya/index-002.html
-GENERATE_TESTS: cssom/index-002.html
+GENERATE_TESTS: css/cssom/index-002.html
 GENERATE_TESTS: dom/nodes/case.js
 GENERATE_TESTS: dom/ranges/Range-cloneRange.html
 GENERATE_TESTS: dom/ranges/Range-collapse.html
@@ -338,6 +339,9 @@ GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/w
 # Intentional use of setTimeout
 SET TIMEOUT: html/webappapis/timers/*
 
+# setTimeout use in reftests
+SET TIMEOUT: acid/acid3/test.html
+
 # CI scripts
 PRINT STATEMENT:check_stability.py
 W3C-TEST.ORG:check_stability.py
@@ -356,11 +360,11 @@ W3C-TEST.ORG:.travis.yml
 
 
 ## Third party data files
-TRAILING WHITESPACE: css/css-writing-modes-3/tools/generators/ucd/Blocks.txt
+TRAILING WHITESPACE: css/css-writing-modes/tools/generators/ucd/Blocks.txt
 
 
 ## Test generation files
-CONSOLE: css/css-writing-modes-3/tools/generators/unicode-data.js
+CONSOLE: css/css-writing-modes/tools/generators/unicode-data.js
 
 
 ## Give up on work-in-progress for now
@@ -401,23 +405,23 @@ SUPPORT-WRONG-DIR: css/*/OWNERS
 SUPPORT-WRONG-DIR: css/fonts/*
 
 # The selectors-3 testsuite has a weird build system
-SUPPORT-WRONG-DIR: css/css3-selectors/*
+SUPPORT-WRONG-DIR: css/selectors/*
 
 # Things we should fix
-SUPPORT-WRONG-DIR: css/css-animations-1/animationevent-interface.js
-SUPPORT-WRONG-DIR: css/css-backgrounds-3/justfortest.html
-SUPPORT-WRONG-DIR: css/css-backgrounds-3/background-attachment-local/aqua-yellow-32x32.png
-SUPPORT-WRONG-DIR: css/css-backgrounds-3/background-clip/list.txt
-SUPPORT-WRONG-DIR: css/css-backgrounds-3/background-origin/list.txt
-SUPPORT-WRONG-DIR: css/css3-color/htaccess
-SUPPORT-WRONG-DIR: css/css-fonts-3/font-variant-debug.html
-SUPPORT-WRONG-DIR: css/css-masking-1/clip-path/svg-clipPath.svg
-SUPPORT-WRONG-DIR: css/css-multicol-1/multicol-red.png
+SUPPORT-WRONG-DIR: css/css-animations/animationevent-interface.js
+SUPPORT-WRONG-DIR: css/css-backgrounds/justfortest.html
+SUPPORT-WRONG-DIR: css/css-backgrounds/background-attachment-local/aqua-yellow-32x32.png
+SUPPORT-WRONG-DIR: css/css-backgrounds/background-clip/list.txt
+SUPPORT-WRONG-DIR: css/css-backgrounds/background-origin/list.txt
+SUPPORT-WRONG-DIR: css/css-color/htaccess
+SUPPORT-WRONG-DIR: css/css-fonts/font-variant-debug.html
+SUPPORT-WRONG-DIR: css/css-masking/clip-path/svg-clipPath.svg
+SUPPORT-WRONG-DIR: css/css-multicol/multicol-red.png
 SUPPORT-WRONG-DIR: css/CSS2/section-index.xht
 SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-18.css
 SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-19-alt.xml
 SUPPORT-WRONG-DIR: css/CSS2/other-formats/xml/background-19.css
-SUPPORT-WRONG-DIR: css/filter-effects-1/filter-external-002-filter.svg
+SUPPORT-WRONG-DIR: css/filter-effects/filter-external-002-filter.svg
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/check-for-references.sh
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-tests-filter
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-tests.sh
@@ -438,64 +442,62 @@ SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/masking/b
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/transforms/green.html
 SUPPORT-WRONG-DIR: css/WOFF2/manifest.txt
 SUPPORT-WRONG-DIR: css/WOFF2/testcaseindex.xht
-NON-EXISTENT-REF: css/css-masking-1/clip-path-svg-content/clip-path-clip-rule-008.svg
+NON-EXISTENT-REF: css/css-masking/clip-path-svg-content/clip-path-clip-rule-008.svg
 
 
 ## Whitespace rules that we can't enforce yet
 INDENT TABS: css/.gitmodules
-INDENT TABS: css/compositing-1/*
+INDENT TABS: css/compositing/*
 INDENT TABS: css/CSS2/*
-INDENT TABS: css/css-align-3/*
-INDENT TABS: css/css-backgrounds-3/*
-INDENT TABS: css/css3-color/*
-INDENT TABS: css/css-color-4/*
-INDENT TABS: css/css-conditional-3/*
-INDENT TABS: css/css-counter-styles-3/*
-INDENT TABS: css/css-flexbox-1/*
-INDENT TABS: css/css-fonts-3/*
-INDENT TABS: css/css-grid-1/*
-INDENT TABS: css/css-images-3/*
-INDENT TABS: css/css-lists-3/*
-INDENT TABS: css/css-masking-1/*
-INDENT TABS: css/css-multicol-1/*
-INDENT TABS: css/cssom-1/*
-INDENT TABS: css/cssom-view-1/*
-INDENT TABS: css/css-page-3/*
-INDENT TABS: css/css-pseudo-4/*
-INDENT TABS: css/css-regions-1/*
-INDENT TABS: css/css-round-display-1/*
-INDENT TABS: css/css-shapes-1/*
-INDENT TABS: css/css-speech-1/*
-INDENT TABS: css/css-text-3/*
-INDENT TABS: css/css-text-decor-3/*
-INDENT TABS: css/css-transforms-1/*
-INDENT TABS: css/css-transitions-1/*
-INDENT TABS: css/css-ui-3/*
-INDENT TABS: css/css-values-3/*
-INDENT TABS: css/css-variables-1/*
-INDENT TABS: css/css-writing-modes-3/*
-INDENT TABS: css/filter-effects-1/*
+INDENT TABS: css/css-align/*
+INDENT TABS: css/css-backgrounds/*
+INDENT TABS: css/css-color/*
+INDENT TABS: css/css-conditional/*
+INDENT TABS: css/css-counter-styles/*
+INDENT TABS: css/css-flexbox/*
+INDENT TABS: css/css-fonts/*
+INDENT TABS: css/css-grid/*
+INDENT TABS: css/css-images/*
+INDENT TABS: css/css-lists/*
+INDENT TABS: css/css-masking/*
+INDENT TABS: css/css-multicol/*
+INDENT TABS: css/cssom/*
+INDENT TABS: css/cssom-view/*
+INDENT TABS: css/css-page/*
+INDENT TABS: css/css-pseudo/*
+INDENT TABS: css/css-regions/*
+INDENT TABS: css/css-round-display/*
+INDENT TABS: css/css-shapes/*
+INDENT TABS: css/css-speech/*
+INDENT TABS: css/css-text/*
+INDENT TABS: css/css-text-decor/*
+INDENT TABS: css/css-transforms/*
+INDENT TABS: css/css-transitions/*
+INDENT TABS: css/css-ui/*
+INDENT TABS: css/css-values/*
+INDENT TABS: css/css-variables/*
+INDENT TABS: css/css-writing-modes/*
+INDENT TABS: css/filter-effects/*
 INDENT TABS: css/fonts/*
-INDENT TABS: css/mediaqueries-3/*
-INDENT TABS: css/css3-selectors/*
-INDENT TABS: css/selectors4/*
+INDENT TABS: css/mediaqueries/*
+INDENT TABS: css/selectors/*
 INDENT TABS: css/vendor-imports/*
 INDENT TABS: css/WOFF2/*
 
 
 ## Things we're stopping from getting worse
 CONSOLE: css/*/support/check-layout-th.js
-CONSOLE: css/css-regions-1/elements/support/Three.js
-CONSOLE: css/css-regions-1/interactivity/selection/support/js/selection-test-helper.js
-CONSOLE: css/css-regions-1/stacking-context/javascript-stacking-context-002.html
-CONSOLE: css/css-shapes-1/shape-outside/supported-shapes/support/test-utils.js
-CONSOLE: css/css-transitions-1/transition-delay-002.html
-CONSOLE: css/css-transitions-1/transition-delay-003.html
-CONSOLE: css/css-values-3/viewport-units-css2-001.html
-CONSOLE: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001*.html
-CONSOLE: css/css-writing-modes-3/tools/generators/gulpfile.js
-CONSOLE: css/css-writing-modes-3/tools/generators/text-orientation-generator.js
-CONSOLE: css/cssom-1/index-002.html
+CONSOLE: css/css-regions/elements/support/Three.js
+CONSOLE: css/css-regions/interactivity/selection/support/js/selection-test-helper.js
+CONSOLE: css/css-regions/stacking-context/javascript-stacking-context-002.html
+CONSOLE: css/css-shapes/shape-outside/supported-shapes/support/test-utils.js
+CONSOLE: css/css-transitions/transition-delay-002.html
+CONSOLE: css/css-transitions/transition-delay-003.html
+CONSOLE: css/css-values/viewport-units-css2-001.html
+CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
+CONSOLE: css/css-writing-modes/tools/generators/gulpfile.js
+CONSOLE: css/css-writing-modes/tools/generators/text-orientation-generator.js
+CONSOLE: css/cssom/index-002.html
 CONSOLE: css/work-in-progress/mozilla/mochitest-simplified/packed.js
 CONSOLE: css/work-in-progress/ttwf_sf/divya/index-002.html
 CONSOLE: css/work-in-progress/ttwf_tokyo/hiromitsuuuuu/test_font_face_parser.html
@@ -503,33 +505,33 @@ CONSOLE: css/work-in-progress/ttwf_tokyo/hiromitsuuuuu/test_font_face_parser.htm
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-002.html
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-003.html
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-004.html
-TRAILING WHITESPACE: css/css-color-4/lab-004.html
-TRAILING WHITESPACE: css/css-color-4/lab-005.html
-TRAILING WHITESPACE: css/css-color-4/lab-006.html
-TRAILING WHITESPACE: css/css-color-4/lab-007.html
-TRAILING WHITESPACE: css/css-color-4/lch-004.html
-TRAILING WHITESPACE: css/css-color-4/lch-005.html
-TRAILING WHITESPACE: css/css-color-4/lch-006.html
-TRAILING WHITESPACE: css/css-color-4/lch-007.html
-TRAILING WHITESPACE: css/css-fonts-3/support/fonts/gsubtest-lookup3.ufo/features.fea
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-assigned-node-with-before-after.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-assigned-node-with-rules.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-host-rule.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-host-with-before-after.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-invisible-slot.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-root-hides-children.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-slot-display-override.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-slot.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-slot-style.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-slotted-nested.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-slotted-rule.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-with-outside-rules.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-with-rules.html
-TRAILING WHITESPACE: css/css-scoping-1/css-scoping-shadow-with-rules-no-style-leak.html
-TRAILING WHITESPACE: css/css-transforms-1/css3-transform-rotateY.html
-TRAILING WHITESPACE: css/css-variables-1/reference/vars-font-shorthand-001-ref.html
-TRAILING WHITESPACE: css/css-variables-1/vars-font-shorthand-001.html
-TRAILING WHITESPACE: css/geometry-1/DOMMatrix-001.html
+TRAILING WHITESPACE: css/css-color/lab-004.html
+TRAILING WHITESPACE: css/css-color/lab-005.html
+TRAILING WHITESPACE: css/css-color/lab-006.html
+TRAILING WHITESPACE: css/css-color/lab-007.html
+TRAILING WHITESPACE: css/css-color/lch-004.html
+TRAILING WHITESPACE: css/css-color/lch-005.html
+TRAILING WHITESPACE: css/css-color/lch-006.html
+TRAILING WHITESPACE: css/css-color/lch-007.html
+TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.fea
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-assigned-node-with-before-after.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-assigned-node-with-rules.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-host-rule.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-host-with-before-after.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-invisible-slot.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-root-hides-children.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slot-display-override.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slot.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slot-style.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slotted-nested.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slotted-rule.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-outside-rules.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-rules.html
+TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-rules-no-style-leak.html
+TRAILING WHITESPACE: css/css-transforms/css3-transform-rotateY.html
+TRAILING WHITESPACE: css/css-variables/reference/vars-font-shorthand-001-ref.html
+TRAILING WHITESPACE: css/css-variables/vars-font-shorthand-001.html
+TRAILING WHITESPACE: css/geometry/DOMMatrix-001.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-7.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-7-ref.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-8.html
@@ -540,54 +542,54 @@ TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/flexbox
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/multicol3/moz-multicol3-column-balancing-break-inside-avoid-1.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/multicol3/moz-multicol3-column-balancing-break-inside-avoid-1-ref.html
 
-SET TIMEOUT: css/compositing-1/mix-blend-mode/mix-blend-mode-parent-with-3D-transform-and-transition.html
-SET TIMEOUT: css/compositing-1/mix-blend-mode/mix-blend-mode-sibling-with-3D-transform-and-transition.html
-SET TIMEOUT: css/css-animations-1/animation-display.html
-SET TIMEOUT: css/css-animations-1/animation-duration-001.html
-SET TIMEOUT: css/css-animations-1/animation-duration-003.html
-SET TIMEOUT: css/css-animations-1/animation-duration-004.html
-SET TIMEOUT: css/css-animations-1/animation-iteration-count-006.html
-SET TIMEOUT: css/css-animations-1/animation-name-001.html
-SET TIMEOUT: css/css-animations-1/animation-name-003.html
-SET TIMEOUT: css/css-animations-1/animation-name-004.html
-SET TIMEOUT: css/css-animations-1/animation-play-state-001.html
-SET TIMEOUT: css/css-shapes-1/spec-examples/support/spec-example-utils.js
-SET TIMEOUT: css/css-transitions-1/changing-while-transition.html
-SET TIMEOUT: css/css-transitions-1/events-007.html
-SET TIMEOUT: css/css-transitions-1/support/generalParallelTest.js
-SET TIMEOUT: css/css-transitions-1/support/runParallelAsyncHarness.js
-SET TIMEOUT: css/css-transitions-1/transitions-animatable-properties-01.html
-SET TIMEOUT: css/css-transitions-2/transitioncancel-001.html
-SET TIMEOUT: css/css-values-3/reference/vh_not_refreshing_on_chrome-ref.html
-SET TIMEOUT: css/css-values-3/reference/vh_not_refreshing_on_chrome_iframe-ref.html
-SET TIMEOUT: css/css-values-3/vh_not_refreshing_on_chrome.html
-SET TIMEOUT: css/css-values-3/support/vh_not_refreshing_on_chrome_iframe.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001a.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001b.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001c.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001d.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001e.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001f.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001g.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001h.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001i.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001j.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001k.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001l.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001m.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001n.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001o.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001p.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001q.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001r.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001s.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001t.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001u.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001v.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001w.html
-SET TIMEOUT: css/css-writing-modes-3/orthogonal-parent-shrink-to-fit-001x.html
-SET TIMEOUT: css/css-writing-modes-3/support/text-orientation.js
+SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-parent-with-3D-transform-and-transition.html
+SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-sibling-with-3D-transform-and-transition.html
+SET TIMEOUT: css/css-animations/animation-display.html
+SET TIMEOUT: css/css-animations/animation-duration-001.html
+SET TIMEOUT: css/css-animations/animation-duration-003.html
+SET TIMEOUT: css/css-animations/animation-duration-004.html
+SET TIMEOUT: css/css-animations/animation-iteration-count-006.html
+SET TIMEOUT: css/css-animations/animation-name-001.html
+SET TIMEOUT: css/css-animations/animation-name-003.html
+SET TIMEOUT: css/css-animations/animation-name-004.html
+SET TIMEOUT: css/css-animations/animation-play-state-001.html
+SET TIMEOUT: css/css-shapes/spec-examples/support/spec-example-utils.js
+SET TIMEOUT: css/css-transitions/changing-while-transition.html
+SET TIMEOUT: css/css-transitions/events-007.html
+SET TIMEOUT: css/css-transitions/support/generalParallelTest.js
+SET TIMEOUT: css/css-transitions/support/runParallelAsyncHarness.js
+SET TIMEOUT: css/css-transitions/transitions-animatable-properties-01.html
+SET TIMEOUT: css/css-transitions/transitioncancel-001.html
+SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome-ref.html
+SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome_iframe-ref.html
+SET TIMEOUT: css/css-values/vh_not_refreshing_on_chrome.html
+SET TIMEOUT: css/css-values/support/vh_not_refreshing_on_chrome_iframe.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001a.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001b.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001c.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001d.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001e.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001f.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001g.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001h.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001i.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001j.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001k.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001l.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001m.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001n.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001o.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001p.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001q.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001r.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001s.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001t.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001u.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001v.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001w.html
+SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001x.html
+SET TIMEOUT: css/css-writing-modes/support/text-orientation.js
 SET TIMEOUT: css/CSS2/backgrounds/background-root-101.xht
 SET TIMEOUT: css/CSS2/backgrounds/background-root-102.xht
 SET TIMEOUT: css/CSS2/backgrounds/background-root-103.xht
@@ -601,13 +603,13 @@ SET TIMEOUT: css/CSS2/generated-content/counter-reset-002.xht
 SET TIMEOUT: css/CSS2/selectors/dom-hover-001.xht
 SET TIMEOUT: css/CSS2/selectors/dom-hover-002.xht
 SET TIMEOUT: css/CSS2/tables/tables-102.xht
-SET TIMEOUT: css/cssom-view-1/matchMediaAddListener.html
-SET TIMEOUT: css/mediaqueries-3/min-width-tables-001.html
-SET TIMEOUT: css/selectors4/focus-within-shadow-001.html
-SET TIMEOUT: css/selectors4/focus-within-shadow-002.html
-SET TIMEOUT: css/selectors4/focus-within-shadow-003.html
-SET TIMEOUT: css/selectors4/focus-within-shadow-004.html
-SET TIMEOUT: css/selectors4/focus-within-shadow-005.html
+SET TIMEOUT: css/cssom-view/matchMediaAddListener.html
+SET TIMEOUT: css/mediaqueries/min-width-tables-001.html
+SET TIMEOUT: css/selectors/focus-within-shadow-001.html
+SET TIMEOUT: css/selectors/focus-within-shadow-002.html
+SET TIMEOUT: css/selectors/focus-within-shadow-003.html
+SET TIMEOUT: css/selectors/focus-within-shadow-004.html
+SET TIMEOUT: css/selectors/focus-within-shadow-005.html
 SET TIMEOUT: css/work-in-progress/apple/css-transforms/scripts/prefixfree.min.js
 SET TIMEOUT: css/work-in-progress/aryehgregor/transitions/test_transitions.html
 SET TIMEOUT: css/work-in-progress/aryehgregor/transitions/test_transitions_per_property.html
@@ -635,76 +637,76 @@ CSS-COLLIDING-SUPPORT-NAME: css/*/.htaccess
 CSS-COLLIDING-SUPPORT-NAME: css/*/LOCK
 
 # These are all the current "merge mismatch" errors the build system produces
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox-1/support/100x100-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid-1/grid-items/support/100x100-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox-1/support/200x200-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid-1/grid-items/support/200x200-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/contentEditable/support/common.css
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/interactivity/full-screen/support/common.css
-CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes-3/support/pattern-gg-gr-100x100.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/100x100-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/100x100-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/200x200-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/200x200-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/contentEditable/support/common.css
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/full-screen/support/common.css
+CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/pattern-gg-gr-100x100.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-gg-gr-100x100.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/visuren/support/pattern-gg-gr-100x100.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds-3/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol-1/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions-1/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds-3/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts-3/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol-1/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page-3/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox-1/support/solidblue.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/solidblue.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/flexbox/support/solidblue.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes-3/support/swatch-fuchsia.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/swatch-fuchsia.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-fuchsia.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/interactivity/full-screen/support/util.js
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/interactivity/resizing/support/util.js
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/full-screen/support/util.js
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/interactivity/resizing/support/util.js
 
 # More duplicated copies of the above
 CSS-COLLIDING-SUPPORT-NAME: css/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/archive/raw-tests/css1tests/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/media/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/syntax/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values-3/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/margin-padding-clear/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text-3/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/colors/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images-3/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/pattern-rgr-grg-rgr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox-1/support/pattern-rgr-grg-rgr.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts-3/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms-1/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view-1/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes-1/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/margin-padding-clear/support/pattern-grg-rgr-grg.png
@@ -716,20 +718,20 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox-1/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects-1/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text-3/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/media/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values-3/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page-3/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-1/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/pattern-grg-rgr-grg.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images-3/support/pattern-grg-rgr-grg.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/pattern-grg-rgr-grg.png
 
@@ -738,20 +740,20 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects-1/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view-1/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values-3/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol-1/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/archive/raw-tests/css1tests/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/support/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts-3/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/pagination/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox-1/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/swatch-red.png
@@ -759,116 +761,251 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/csswg-issues/submitted/css2.1/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/i18n/syndata/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text-3/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds-3/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms-1/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/syntax/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images-3/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions-1/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes-1/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/colors/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/positioning/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-1/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page-3/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/swatch-red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generate/support/swatch-red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values-3/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/csswg-issues/submitted/css2.1/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/archive/raw-tests/css1tests/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/support/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-1/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes-3/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/positioning/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts-3/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images-3/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/colors/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generate/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text-3/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page-3/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/i18n/syndata/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/syntax/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/margin-padding-clear/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds-3/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view-1/support/swatch-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/swatch-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/pagination/support/swatch-green.png
 
 # Duplicate filename not picked up by the build system
 # https:css///github.com/w3c/csswg-test/issues/1236
-CSS-COLLIDING-REF-NAME: css/css-masking-1/clip-path-svg-content/reference/clip-path-square-001-ref.svg
-CSS-COLLIDING-REF-NAME: css/css-masking-1/clip-path/reference/clip-path-square-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-masking-1/clip-path-svg-content/reference/clip-path-square-002-ref.svg
-CSS-COLLIDING-REF-NAME: css/css-masking-1/clip-path/reference/clip-path-square-002-ref.html
+CSS-COLLIDING-REF-NAME: css/css-masking/clip-path-svg-content/reference/clip-path-square-001-ref.svg
+CSS-COLLIDING-REF-NAME: css/css-masking/clip-path/reference/clip-path-square-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-masking/clip-path-svg-content/reference/clip-path-square-002-ref.svg
+CSS-COLLIDING-REF-NAME: css/css-masking/clip-path/reference/clip-path-square-002-ref.html
 
 # Duplicate filename where there's no actual merging
 # (i.e., we're being more aggressive than the build system at forbidding it)
 CSS-COLLIDING-REF-NAME: css/CSS2/positioning/position-relative-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-regions-1/positioned-content/reference/position-relative-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-regions/positioned-content/reference/position-relative-001-ref.html
 CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-lowercase-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text-3/text-transform/reference/text-transform-lowercase-001-ref.xht
+CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-lowercase-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-capitalize-003-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text-3/text-transform/reference/text-transform-capitalize-003-ref.html
+CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-capitalize-003-ref.html
 CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-capitalize-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text-3/text-transform/reference/text-transform-capitalize-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-pseudo-4/first-letter-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-capitalize-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-pseudo/first-letter-001-ref.html
 CSS-COLLIDING-REF-NAME: css/CSS2/selectors/first-letter-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/text/text-transform-uppercase-001-ref.xht
-CSS-COLLIDING-REF-NAME: css/css-text-3/text-transform/reference/text-transform-uppercase-001-ref.xht
+CSS-COLLIDING-REF-NAME: css/css-text/text-transform/reference/text-transform-uppercase-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/visufx/overflow-applies-to-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/ui/overflow-applies-to-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/visuren/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/linebox/inline-formatting-context-001-ref.xht
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds-3/support/red.png
-CSS-COLLIDING-SUPPORT-NAME: css/compositing-1/mix-blend-mode/support/red.png
-CSS-COLLIDING-SUPPORT-NAME: css/compositing-1/background-blending/support/red.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
+CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
+CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-3.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-3.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds-3/background-size/support/50x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds-3/support/50x50-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-grid-1/grid-items/support/50x50-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/background-size/support/50x50-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/50x50-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/animated.gif
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes-1/shape-outside/shape-image/support/animated.gif
+CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/shape-outside/shape-image/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/archive/raw-tests/css1tests/support/pattern-gg-gr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/pattern-gg-gr.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-display-3/support/util.js
+CSS-COLLIDING-SUPPORT-NAME: css/css-display/support/util.js
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-1.png
 
+# CSS tests that used to be at the top level and weren't subject to lints
+MISSING-LINK: css/css-fonts/font-display/font-display.html
+MISSING-LINK: css/css-fonts/matching/fixed-stretch-style-over-weight.html
+SUPPORT-WRONG-DIR: css/css-fonts/matching/font-matching.css
+MISSING-LINK: css/css-fonts/matching/stretch-distance-over-weight-distance.html
+MISSING-LINK: css/css-fonts/matching/style-ranges-over-weight-direction.html
+MISSING-LINK: css/css-fonts/variations/font-parse-numeric-stretch-style-weight.html
+MISSING-LINK: css/css-fonts/variations/variable-box-font.html
+MISSING-LINK: css/css-fonts/variations/variable-gpos-m2b.html
+MISSING-LINK: css/css-fonts/variations/variable-gsub.html
+MISSING-LINK: css/css-paint-api/background-image-alpha.html
+MISSING-LINK: css/css-paint-api/background-image-multiple.html
+MISSING-LINK: css/css-paint-api/background-image-tiled.html
+MISSING-LINK: css/css-paint-api/geometry-background-image-001.html
+MISSING-LINK: css/css-paint-api/geometry-background-image-002.html
+MISSING-LINK: css/css-paint-api/geometry-background-image-tiled-001.html
+MISSING-LINK: css/css-paint-api/geometry-background-image-tiled-002.html
+MISSING-LINK: css/css-paint-api/geometry-background-image-tiled-003.html
+MISSING-LINK: css/css-paint-api/geometry-border-image-001.html
+MISSING-LINK: css/css-paint-api/geometry-border-image-002.html
+MISSING-LINK: css/css-paint-api/geometry-border-image-003.html
+MISSING-LINK: css/css-paint-api/geometry-border-image-004.html
+MISSING-LINK: css/css-paint-api/invalid-image-constructor-error.html
+MISSING-LINK: css/css-paint-api/invalid-image-paint-error.html
+MISSING-LINK: css/css-paint-api/invalid-image-pending-script.html
+MISSING-LINK: css/css-paint-api/overdraw.html
+MISSING-LINK: css/css-paint-api/paint-arguments.html
+MISSING-LINK: css/css-paint-api/paint-function-arguments.html
+MISSING-LINK: css/css-paint-api/paint2d-composite.html
+MISSING-LINK: css/css-paint-api/paint2d-filter.html
+MISSING-LINK: css/css-paint-api/paint2d-gradient.html
+MISSING-LINK: css/css-paint-api/paint2d-image.html
+MISSING-LINK: css/css-paint-api/paint2d-paths.html
+MISSING-LINK: css/css-paint-api/paint2d-rects.html
+MISSING-LINK: css/css-paint-api/paint2d-shadows.html
+MISSING-LINK: css/css-paint-api/paint2d-transform.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-001.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-002.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-003.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-004.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-005.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-006.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-007.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-008.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-009.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-010.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-011.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-012.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-013.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-014.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-015.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-016.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-017.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-018.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-019.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-020.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-021.html
+MISSING-LINK: css/css-paint-api/parse-input-arguments-022.html
+MISSING-LINK: css/css-paint-api/registered-properties-in-custom-paint.html
+MISSING-LINK: css/css-paint-api/style-background-image.html
+MISSING-LINK: css/css-paint-api/style-before-pseudo.html
+MISSING-LINK: css/css-paint-api/style-first-letter-pseudo.html
+MISSING-LINK: css/css-paint-api/valid-image-after-load.html
+MISSING-LINK: css/css-paint-api/valid-image-before-load.html
+MISSING-LINK: css/css-paint-api/hidpi/device-pixel-ratio.html
+MISSING-LINK: css/css-scroll-anchoring/abspos-containing-block-outside-scroller.html
+MISSING-LINK: css/css-scroll-anchoring/abspos-contributes-to-static-parent-bounds.html
+MISSING-LINK: css/css-scroll-anchoring/ancestor-change-heuristic.html
+MISSING-LINK: css/css-scroll-anchoring/anchor-updates-after-explicit-scroll.html
+MISSING-LINK: css/css-scroll-anchoring/anchoring-with-bounds-clamping-div.html
+MISSING-LINK: css/css-scroll-anchoring/anchoring-with-bounds-clamping.html
+MISSING-LINK: css/css-scroll-anchoring/anonymous-block-box.html
+MISSING-LINK: css/css-scroll-anchoring/basic.html
+MISSING-LINK: css/css-scroll-anchoring/clipped-scrollers-skipped.html
+MISSING-LINK: css/css-scroll-anchoring/descend-into-container-with-float.html
+MISSING-LINK: css/css-scroll-anchoring/descend-into-container-with-overflow.html
+MISSING-LINK: css/css-scroll-anchoring/exclude-fixed-position.html
+MISSING-LINK: css/css-scroll-anchoring/inline-block.html
+MISSING-LINK: css/css-scroll-anchoring/negative-layout-overflow.html
+MISSING-LINK: css/css-scroll-anchoring/opt-out.html
+MISSING-LINK: css/css-scroll-anchoring/position-change-heuristic.html
+MISSING-LINK: css/css-scroll-anchoring/start-edge-in-block-layout-direction.html
+MISSING-LINK: css/css-scroll-anchoring/subtree-exclusion.html
+MISSING-LINK: css/css-scroll-anchoring/wrapped-text.html
+SUPPORT-WRONG-DIR: css/css-timing/testcommon.js
+MISSING-LINK: css/css-typed-om/CSSMatrixComponent-DOMMatrix-mutable.html
+MISSING-LINK: css/css-typed-om/declared-styleMap-accepts-inherit.html
+MISSING-LINK: css/css-typed-om/styleMap-update-function.html
+MISSING-LINK: css/cssom/CSS.html
+MISSING-LINK: css/cssom/CSSKeyframeRule.html
+MISSING-LINK: css/cssom/CSSKeyframesRule.html
+MISSING-LINK: css/cssom/CSSNamespaceRule.html
+MISSING-LINK: css/cssom/CSSRuleList.html
+MISSING-LINK: css/cssom/CSSStyleSheet.html
+MISSING-LINK: css/cssom/GetBoundingRect.html
+MISSING-LINK: css/cssom/historical.html
+MISSING-LINK: css/cssom/MediaList.html
+MISSING-LINK: css/cssom/overflow-serialization.html
+MISSING-LINK: css/cssom/selectorText-modification-restyle-001.html
+MISSING-LINK: css/cssom/serialization-CSSDeclaration-with-important.html
+MISSING-LINK: css/cssom/serialize-values.html
+MISSING-LINK: css/cssom/serialize-variable-reference.html
+MISSING-LINK: css/cssom/shorthand-serialization.html
+SUPPORT-WRONG-DIR: css/cssom/stylesheet-same-origin.css
+MISSING-LINK: css/cssom/stylesheet-same-origin.sub.html
+MISSING-LINK: css/cssom/StyleSheetList.html
+MISSING-LINK: css/cssom/variable-names.html
+MISSING-LINK: css/cssom-view/DOMRectList.html
+MISSING-LINK: css/cssom-view/elementFromPoint-002.html
+MISSING-LINK: css/cssom-view/elementFromPoint-003.html
+MISSING-LINK: css/cssom-view/elementFromPoint.html
+MISSING-LINK: css/cssom-view/elementScroll.html
+MISSING-LINK: css/cssom-view/elementsFromPoint-iframes.html
+MISSING-LINK: css/cssom-view/elementsFromPoint-invalid-cases.html
+MISSING-LINK: css/cssom-view/elementsFromPoint-shadowroot.html
+MISSING-LINK: css/cssom-view/elementsFromPoint-simple.html
+MISSING-LINK: css/cssom-view/elementsFromPoint-svg.html
+MISSING-LINK: css/cssom-view/elementsFromPoint-table.html
+MISSING-LINK: css/cssom-view/elementsFromPoint.html
+MISSING-LINK: css/cssom-view/historical.html
+MISSING-LINK: css/cssom-view/HTMLBody-ScrollArea_quirksmode.html
+SUPPORT-WRONG-DIR: css/cssom-view/iframe.html
+MISSING-LINK: css/cssom-view/MediaQueryList-with-empty-string.html
+MISSING-LINK: css/cssom-view/mouseEvent.html
+MISSING-LINK: css/cssom-view/negativeMargins.html
+MISSING-LINK: css/cssom-view/offsetTopLeftInScrollableParent.html
+MISSING-LINK: css/cssom-view/overscrollBehavior-manual.html
+MISSING-LINK: css/cssom-view/scrolling-no-browsing-context.html
+MISSING-LINK: css/cssom-view/scrolling-quirks-vs-nonquirks.html
+MISSING-LINK: css/cssom-view/scrollingElement.html
+MISSING-LINK: css/cssom-view/scrollIntoView-shadow.html
+MISSING-LINK: css/cssom-view/scrollIntoView-smooth.html
+CSS-COLLIDING-TEST-NAME: css/cssom-view/interfaces.html
+CSS-COLLIDING-TEST-NAME: css/cssom/interfaces.html
+
 # TODO https://github.com/w3c/web-platform-tests/issues/5770
-MISSING-LINK: css/geometry-1/*.worker.js
+MISSING-LINK: css/geometry/*.worker.js
 
 WEBIDL2.JS:.gitmodules
 
@@ -876,6 +1013,6 @@ WEBIDL2.JS:.gitmodules
 CONSOLE:payment-request/payment-request-response-id.html
 
 # Tests that use WebKit/Blink testing APIs
-LAYOUTTESTS APIS: css/css-regions-1/interactivity/*
+LAYOUTTESTS APIS: css/css-regions/interactivity/*
 LAYOUTTESTS APIS: css/work-in-progress/opera/css-device-adapt/template.blink.html
 LAYOUTTESTS APIS: webgl/conformance-1.0.3/*

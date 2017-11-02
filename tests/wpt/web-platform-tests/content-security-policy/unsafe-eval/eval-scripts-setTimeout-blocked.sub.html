@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>eval-scripts-setTimeout-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS","violated-directive=script-src"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+<script>
+  window.addEventListener('securitypolicyviolation', function(e) {
+    log("violated-directive=" + e.violatedDirective);
+  });
+  
+  var id = setTimeout("alert_assert('FAIL')", 0);
+  if (id != 0)
+    log('FAIL');
+    
+  var id = setTimeout(function() {
+    log('PASS');
+  }, 0);
+  
+  if (id == 0)
+    log('FAIL');
+</script>
+
+</html>

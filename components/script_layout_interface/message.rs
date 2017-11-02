@@ -97,7 +97,7 @@ pub enum Msg {
     RegisterPaint(Atom, Vec<Atom>, Box<Painter>),
 
     /// Send to layout the precise time when the navigation started.
-    SetNavigationStart(f64),
+    SetNavigationStart(u64),
 }
 
 #[derive(Debug, PartialEq)]

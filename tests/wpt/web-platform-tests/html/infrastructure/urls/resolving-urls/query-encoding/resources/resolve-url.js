@@ -35,7 +35,7 @@ onload = function() {
                       // page and the test timing out
                       test_obj.force_timeout();
                   }
-                  setTimeout(poll, 200);
+                  step_timeout(poll, 200);
               } else {
                   assert_equals(xhr.response, expected);
                   test_obj.done();
@@ -43,7 +43,7 @@ onload = function() {
           });
           xhr.send();
       })
-      setTimeout(poll, 200);
+      step_timeout(poll, 200);
   }
 
   // background attribute, check with getComputedStyle
