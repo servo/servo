@@ -26,10 +26,9 @@ backgroundFetchTest((t, bgFetch) => {
   return bgFetch.fetch(uniqueTag(), 'http://[::1]');
 }, 'loopback IPv6 http: fetch should register ok');
 
-// http://localhost is not tested here since the correct behavior from
-// https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
-// depends on whether the UA conforms to the name resolution rules in
-// https://tools.ietf.org/html/draft-west-let-localhost-be-localhost
+backgroundFetchTest((t, bgFetch) => {
+  return bgFetch.fetch(uniqueTag(), 'http://localhost');
+}, 'localhost http: fetch should register ok');
 
 backgroundFetchTest((t, bgFetch) => {
   return promise_rejects(t, new TypeError(),

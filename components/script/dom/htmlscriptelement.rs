@@ -23,8 +23,7 @@ use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecoderTrap, EncodingRef};
+use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -147,7 +146,7 @@ struct ScriptContext {
     kind: ExternalScriptKind,
     /// The (fallback) character encoding argument to the "fetch a classic
     /// script" algorithm.
-    character_encoding: EncodingRef,
+    character_encoding: &'static Encoding,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -199,11 +198,11 @@ impl FetchResponseListener for ScriptContext {
 
             // Step 6.
             let encoding = metadata.charset
-                .and_then(|encoding| encoding_from_whatwg_label(&encoding))
+                .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
                 .unwrap_or(self.character_encoding);
 
             // Step 7.
-            let source_text = encoding.decode(&self.data, DecoderTrap::Replace).unwrap();
+            let (source_text, _, _) = encoding.decode(&self.data);
             ClassicScript::external(DOMString::from(source_text), metadata.final_url)
         });
 
@@ -232,7 +231,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
                           url: ServoUrl,
                           cors_setting: Option<CorsSettings>,
                           integrity_metadata: String,
-                          character_encoding: EncodingRef) {
+                          character_encoding: &'static Encoding) {
     let doc = document_from_node(script);
 
     // Step 1, 2.
@@ -366,7 +365,7 @@ impl HTMLScriptElement {
 
         // Step 14.
         let encoding = element.get_attribute(&ns!(), &local_name!("charset"))
-                              .and_then(|charset| encoding_from_whatwg_label(&charset.value()))
+                              .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
                               .unwrap_or_else(|| doc.encoding());
 
         // Step 15.

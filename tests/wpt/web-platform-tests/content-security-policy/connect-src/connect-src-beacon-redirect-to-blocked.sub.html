@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-beacon-redirect-to-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=connect-src"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script></script>
+</head>
+
+<body>
+    <p>The beacon should not follow the redirect to http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png and send a CSP violation report.</p>
+    <p>Verify that a CSP connect-src directive blocks redirects.</p>
+    <script>
+       window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+       });
+       
+	     if (typeof navigator.sendBeacon != 'function') {
+	          t_log.set_status(t_log.NOTRUN, "No navigator.sendBeacon, cannot run test.");
+            t_log.phase = t_log.phases.HAS_RESULT;
+            t_log.done();
+        } else {
+            navigator.sendBeacon(
+                "/common/redirect.py?location=http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png",
+                "ping");
+        }
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

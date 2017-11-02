@@ -11,7 +11,6 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   generateOffer()
   //   assert_session_desc_equals()
   //   test_state_change_event()
 
@@ -50,41 +49,78 @@
         - If description is of type "offer", set connection.pendingRemoteDescription
           attribute to description and signaling state to have-remote-offer.
    */
+
   promise_test(t => {
-    const pc = new RTCPeerConnection();
+    const pc1 = new RTCPeerConnection();
+    pc1.createDataChannel('datachannel');
 
-    test_state_change_event(t, pc, ['have-remote-offer']);
+    const pc2 = new RTCPeerConnection();
 
-    return generateOffer({ pc, data: true })
-    .then(offer =>
-      pc.setRemoteDescription(offer)
+    test_state_change_event(t, pc2, ['have-remote-offer']);
+
+    return pc1.createOffer()
+     .then(offer => {
+      return pc2.setRemoteDescription(offer)
       .then(() => {
-        assert_equals(pc.signalingState, 'have-remote-offer');
-        assert_session_desc_equals(pc.remoteDescription, offer);
-        assert_session_desc_equals(pc.pendingRemoteDescription, offer);
-        assert_equals(pc.currentRemoteDescription, null);
-      }));
-  }, 'setRemoteDescription with valid offer should succeed');
+        assert_equals(pc2.signalingState, 'have-remote-offer');
+        assert_session_desc_equals(pc2.remoteDescription, offer);
+        assert_session_desc_equals(pc2.pendingRemoteDescription, offer);
+        assert_equals(pc2.currentRemoteDescription, null);
+      });
+    });
+   }, 'setRemoteDescription with valid offer should succeed');
 
   promise_test(t => {
-    const pc = new RTCPeerConnection();
+    const pc1 = new RTCPeerConnection();
+    pc1.createDataChannel('datachannel');
+
+    const pc2 = new RTCPeerConnection();
 
     // have-remote-offer event should only fire once
-    test_state_change_event(t, pc, ['have-remote-offer']);
+    test_state_change_event(t, pc2, ['have-remote-offer']);
 
-    return Promise.all([
-      pc.createOffer({ offerToReceiveAudio: true }),
-      generateOffer({ pc, data: true })
-    ]).then(([offer1, offer2]) =>
-      pc.setRemoteDescription(offer1)
-      .then(() => pc.setRemoteDescription(offer2))
+    return pc1.createOffer()
+    .then(offer => {
+      return pc2.setRemoteDescription(offer)
+      .then(() => pc2.setRemoteDescription(offer))
       .then(() => {
-        assert_equals(pc.signalingState, 'have-remote-offer');
-        assert_session_desc_equals(pc.remoteDescription, offer2);
-        assert_session_desc_equals(pc.pendingRemoteDescription, offer2);
-        assert_equals(pc.currentRemoteDescription, null);
-      }));
-  }, 'Setting remote description multiple times with different offer should succeed');
+        assert_equals(pc2.signalingState, 'have-remote-offer');
+        assert_session_desc_equals(pc2.remoteDescription, offer);
+        assert_session_desc_equals(pc2.pendingRemoteDescription, offer);
+        assert_equals(pc2.currentRemoteDescription, null);
+      });
+    });
+  }, 'setRemoteDescription multiple times should succeed');
+
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    pc1.createDataChannel('datachannel');
+
+    const pc2 = new RTCPeerConnection();
+
+    // have-remote-offer event should only fire once
+    test_state_change_event(t, pc2, ['have-remote-offer']);
+
+    return pc1.createOffer()
+    .then(offer1 => {
+      return pc1.setLocalDescription(offer1)
+       .then(()=> {
+        return pc1.createOffer({ offerToReceiveAudio: true })
+        .then(offer2 => {
+          assert_session_desc_not_equals(offer1, offer2);
+
+          return pc2.setRemoteDescription(offer1)
+          .then(() => pc2.setRemoteDescription(offer2))
+          .then(() => {
+            assert_equals(pc2.signalingState, 'have-remote-offer');
+            assert_session_desc_equals(pc2.remoteDescription, offer2);
+            assert_session_desc_equals(pc2.pendingRemoteDescription, offer2);
+            assert_equals(pc2.currentRemoteDescription, null);
+          });
+        });
+      });
+    });
+  }, 'setRemoteDescription multiple times with different offer should succeed');
 
   /*
     4.3.1.6.  Set the RTCSessionSessionDescription
@@ -123,13 +159,14 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
-
     return pc.createOffer()
-    .then(offer => pc.setLocalDescription(offer))
-    .then(() => pc.createOffer())
-    .then(offer2 =>
-      promise_rejects(t, 'InvalidStateError',
-        pc.setRemoteDescription(offer2)));
-  }, 'Calling setRemoteDescription(offer) from have-local-offer state should reject with InvalidStateError');
+    .then(offer => {
+      return pc.setLocalDescription(offer)
+      .then(() => {
+        return promise_rejects(t, 'InvalidStateError',
+          pc.setRemoteDescription(offer));
+      });
+    });
+  }, 'setRemoteDescription(offer) from have-local-offer state should reject with InvalidStateError');
 
 </script>

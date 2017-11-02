@@ -38,13 +38,11 @@ use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use nonzero::NonZero;
 use range::Range;
-use script::layout_exports::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
-use script::layout_exports::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
-use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers};
-use script::layout_exports::LayoutDom;
+use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, LayoutDom, RawLayoutElementHelpers};
+use script::layout_exports::NodeFlags;
 use script::layout_exports::PendingRestyle;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
@@ -212,11 +210,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn can_be_fragmented(&self) -> bool {
-        unsafe { self.node.get_flag(CAN_BE_FRAGMENTED) }
+        unsafe { self.node.get_flag(NodeFlags::CAN_BE_FRAGMENTED) }
     }
 
     unsafe fn set_can_be_fragmented(&self, value: bool) {
-        self.node.set_flag(CAN_BE_FRAGMENTED, value)
+        self.node.set_flag(NodeFlags::CAN_BE_FRAGMENTED, value)
     }
 }
 
@@ -403,28 +401,28 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn has_dirty_descendants(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(HAS_DIRTY_DESCENDANTS) }
+        unsafe { self.as_node().node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) }
     }
 
     fn has_snapshot(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(HAS_SNAPSHOT) }
+        unsafe { self.as_node().node.get_flag(NodeFlags::HAS_SNAPSHOT) }
     }
 
     fn handled_snapshot(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(HANDLED_SNAPSHOT) }
+        unsafe { self.as_node().node.get_flag(NodeFlags::HANDLED_SNAPSHOT) }
     }
 
     unsafe fn set_handled_snapshot(&self) {
-        self.as_node().node.set_flag(HANDLED_SNAPSHOT, true);
+        self.as_node().node.set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
     }
 
     unsafe fn set_dirty_descendants(&self) {
-        debug_assert!(self.as_node().node.get_flag(IS_IN_DOC));
-        self.as_node().node.set_flag(HAS_DIRTY_DESCENDANTS, true)
+        debug_assert!(self.as_node().node.get_flag(NodeFlags::IS_IN_DOC));
+        self.as_node().node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.as_node().node.set_flag(HAS_DIRTY_DESCENDANTS, false)
+        self.as_node().node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
     }
 
     fn store_children_to_process(&self, n: isize) {
@@ -583,11 +581,11 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     pub unsafe fn unset_snapshot_flags(&self) {
-        self.as_node().node.set_flag(HAS_SNAPSHOT | HANDLED_SNAPSHOT, false);
+        self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
     }
 
     pub unsafe fn set_has_snapshot(&self) {
-        self.as_node().node.set_flag(HAS_SNAPSHOT, true);
+        self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
     }
 
     pub unsafe fn note_dirty_descendant(&self) {

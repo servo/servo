@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="style-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';">
+    <title>style-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=style-src","PASS"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+    </script>    
+    <link rel="stylesheet" href="resources/blue.css">
+</head>
+
+<body>
+    <script>
+        log(document.styleSheets.length > 0 ? 'FAIL' : 'PASS');
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

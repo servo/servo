@@ -101,7 +101,6 @@ def test_tests_affected(capsys):
     assert excinfo.value.code == 0
     out, err = capsys.readouterr()
     assert "html/browsers/offline/appcache/workers/appcache-worker.html" in out
-    assert err == ""
 
 
 def test_serve():

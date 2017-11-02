@@ -23,6 +23,12 @@ impl nsCSSValue {
         unsafe { mem::zeroed() }
     }
 
+    /// Returns true if this nsCSSValue is none.
+    #[inline]
+    pub fn is_none(&self) -> bool {
+        self.mUnit == nsCSSUnit::eCSSUnit_None
+    }
+
     /// Returns this nsCSSValue value as an integer, unchecked in release
     /// builds.
     pub fn integer_unchecked(&self) -> i32 {

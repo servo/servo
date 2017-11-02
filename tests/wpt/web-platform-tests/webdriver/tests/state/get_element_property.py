@@ -19,9 +19,9 @@ def test_no_browsing_context(session, create_window):
     assert_error(result, "no such window")
 
 
-def test_handle_prompt_dismiss(new_session):
+def test_handle_prompt_dismiss(new_session, add_browser_capabilites):
     # 13.3 step 2
-    _, session = new_session({"alwaysMatch": {"unhandledPromptBehavior": "dismiss"}})
+    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "dismiss"})}})
     session.url = inline("<input id=foo>")
 
     create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")
@@ -53,9 +53,9 @@ def test_handle_prompt_dismiss(new_session):
 
 
 
-def test_handle_prompt_accept(new_session):
+def test_handle_prompt_accept(new_session, add_browser_capabilites):
     # 13.3 step 2
-    _, session = new_session({"alwaysMatch": {"unhandledPromptBehavior": "accept"}})
+    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept"})}})
     session.url = inline("<input id=foo>")
 
     create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")

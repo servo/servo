@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';">
+    <title>worker-importscripts-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log('Fail');
+        });
+        var result = '';
+        try {
+            var worker = new Worker('/content-security-policy/script-src/support/worker-importscripts.js');
+            worker.onmessage = function(event) {
+                result = event.data;
+                test(function() {
+                    assert_equals(result, 'importScripts blocked')
+                });
+                log("TEST COMPLETE");
+            };
+        } catch (e) {
+            result = e;
+            test(function() {
+                assert_equals(result, 'importScripts blocked')
+            });
+            log("TEST COMPLETE");
+        }
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

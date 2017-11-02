@@ -36,6 +36,13 @@
   var reportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=take&timeout=" + timeout + "&reportID=" + reportID;
 
   var reportTest = async_test("Violation report status OK.");
+
+  function assert_field_value(field, value, field_name) {
+    assert_true(field.indexOf(value.split(" ")[0]) != -1,
+                field_name + " value of  \"" + field + "\" did not match " +
+                value.split(" ")[0] + ".");
+  }
+
   reportTest.step(function () {
 
     var report = new XMLHttpRequest();
@@ -55,9 +62,11 @@
           // is reported, not the details...
 
           if(data["csp-report"] != undefined && data["csp-report"][reportField] != undefined) {
-            assert_true(data["csp-report"][reportField].indexOf(reportValue.split(" ")[0]) != -1,
-                reportField + " value of  \"" + data["csp-report"][reportField] + "\" did not match " +
-                reportValue.split(" ")[0] + ".");
+            assert_field_value(data["csp-report"][reportField], reportValue, reportField);
+          } else if (data[0] != undefined && data[0]["report"] != undefined && data[0]["report"][reportField] != undefined) {
+            assert_field_value(data[0]["report"][reportField], reportValue, reportField);
+          } else {
+            assert_equals("", reportField, "Expected report field could not be found in report");
           }
         }
 

@@ -1,0 +1,19 @@
+diff --git a/conformance-suites/1.0.3/conformance/more/unit.js b/conformance-suites/1.0.3/conformance/more/unit.js
+index 89f4e87..742f8d7 100644
+--- a/conformance-suites/1.0.3/conformance/more/unit.js
++++ b/conformance-suites/1.0.3/conformance/more/unit.js
+@@ -892,9 +892,14 @@ GLConstants = [
+ 0x809D
+ ];
+ 
++var WPT_TEST_ID = 0;
+ function reportTestResultsToHarness(success, msg) {
+   if (window.parent.webglTestHarness) {
+     window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
++  } else if (window.test) { // WPT test harness
++    test(function () {
++      assert_true(success, msg);
++    }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
+   }
+ }
+ 

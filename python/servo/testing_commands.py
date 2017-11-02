@@ -20,6 +20,7 @@ from time import time
 import json
 import urllib2
 import base64
+import shutil
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -929,3 +930,24 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_test_file"](cache_dir)
+
+    @Command('update-webgl',
+             description='Update the WebGL conformance suite tests from Khronos repo',
+             category='testing')
+    @CommandArgument('--version', action='store_true', default='1.0.3',
+                     help='WebGL conformance suite version')
+    def update_webgl(self, version=None):
+        self.ensure_bootstrapped()
+
+        base_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
+                                "tests", "wpt", "mozilla", "tests", "webgl"))
+        run_file = path.join(base_dir, "tools", "import-conformance-tests.py")
+        dest_folder = path.join(base_dir, "conformance-%s" % version)
+        patches_dir = path.join(base_dir, "tools")
+        # Clean dest folder if exists
+        if os.path.exists(dest_folder):
+            shutil.rmtree(dest_folder)
+
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+        return run_globals["update_conformance"](version, dest_folder, None, patches_dir)

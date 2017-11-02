@@ -15,7 +15,6 @@ use dom::bindings::weakref::MutableWeakRef;
 use dom::globalscope::GlobalScope;
 use dom::url::URL;
 use dom_struct::dom_struct;
-use encoding::types::EncodingRef;
 use url::form_urlencoded;
 
 // https://url.spec.whatwg.org/#interface-urlsearchparams
@@ -140,17 +139,16 @@ impl URLSearchParamsMethods for URLSearchParams {
 
     // https://url.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.serialize(None))
+        DOMString::from(self.serialize_utf8())
     }
 }
 
 
 impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlencoded-serializer
-    pub fn serialize(&self, encoding: Option<EncodingRef>) -> String {
+    pub fn serialize_utf8(&self) -> String {
         let list = self.list.borrow();
         form_urlencoded::Serializer::new(String::new())
-            .encoding_override(encoding)
             .extend_pairs(&*list)
             .finish()
     }

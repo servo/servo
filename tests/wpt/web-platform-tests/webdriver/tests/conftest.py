@@ -1,8 +1,9 @@
 import pytest
 from tests.support.fixtures import (
-    configuration, create_dialog, create_frame, create_window, http,
-    new_session, server_config, session, url)
+    add_browser_capabilites, configuration, create_dialog, create_frame,
+    create_window, http, new_session, server_config, session, url)
 
+pytest.fixture()(add_browser_capabilites)
 pytest.fixture(scope="session")(configuration)
 pytest.fixture()(create_dialog)
 pytest.fixture()(create_frame)

@@ -18,53 +18,19 @@ object returned by the success callback in getUserMedia is correctly initialized
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=/resources/WebIDLParser.js></script>
-<script src=/resources/idlharness.js></script>
 <script>
-var t = async_test("Tests that the video MediaStreamTrack objects are properly initialized", {timeout:10000});
-var track = null
-var idl_array = new IdlArray();
-
-idl_array.add_idls("interface EventTarget {\
-  void addEventListener(DOMString type, EventListener? callback, optional boolean capture = false);\
-  void removeEventListener(DOMString type, EventListener? callback, optional boolean capture = false);\
-  boolean dispatchEvent(Event event);\
-};");
-
-idl_array.add_idls("interface MediaStreamTrack : EventTarget {\
-    readonly    attribute DOMString             kind;\
-    readonly    attribute DOMString             id;\
-    readonly    attribute DOMString             label;\
-                attribute boolean               enabled;\
-    readonly    attribute boolean               muted;\
-                attribute EventHandler          onmute;\
-                attribute EventHandler          onunmute;\
-    readonly    attribute MediaStreamTrackState readyState;\
-                attribute EventHandler          onended;\
-                attribute EventHandler          onoverconstrained;\
-    MediaStreamTrack       clone ();\
-    void                   stop ();\
-    MediaTrackCapabilities getCapabilities ();\
-    MediaTrackConstraints  getConstraints ();\
-    MediaTrackSettings     getSettings ();\
-    Promise<void>          applyConstraints (optional MediaTrackConstraints constraints);\
-};");
-
-t.step(function () {
-  navigator.mediaDevices.getUserMedia({video: true})
-    .then(t.step_func(function (stream) {
+promise_test(() => {
+  return navigator.mediaDevices.getUserMedia({video: true})
+    .then(stream => {
       var videoTracks = stream.getVideoTracks();
       assert_equals(videoTracks.length, 1, "There is exactly one video track in the media stream");
       track = videoTracks[0];
-      idl_array.add_objects({MediaStreamTrack: ["track"]});
-      idl_array.test();
       assert_equals(track.readyState, "live", "The track object is in live state");
       assert_equals(track.kind, "video", "The track object is of video kind");
       // Not clear that this is required by the spec,
       // see https://www.w3.org/Bugs/Public/show_bug.cgi?id=22212
       assert_true(track.enabled, "The track object is enabed");
-      t.done();
-    }));
+    });
 });
 </script>
 </body>

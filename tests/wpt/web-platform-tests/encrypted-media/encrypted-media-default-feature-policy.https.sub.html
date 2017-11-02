@@ -9,7 +9,7 @@
   run_all_fp_tests_allow_self(
       'https://{{domains[www]}}:{{ports[https][0]}}',
       'encrypted-media',
-      'NotSupportedError: requestMediaKeySystemAccess is disabled by feature ' +
+      'SecurityError: requestMediaKeySystemAccess is disabled by feature ' +
       'policy.',
       function() {
         return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{

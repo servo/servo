@@ -9,9 +9,9 @@
 
 #[cfg(feature = "unstable")]
 #[global_allocator]
-static ALLOC: platform::Allocator = platform::Allocator;
+static ALLOC: Allocator = Allocator;
 
-pub use platform::usable_size;
+pub use platform::*;
 
 
 #[cfg(all(feature = "unstable", not(windows)))]
@@ -24,6 +24,11 @@ mod platform {
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
         jemallocator::usable_size(ptr)
+    }
+
+    /// Memory allocation APIs compatible with libc
+    pub mod libc_compat {
+        pub use super::jemallocator::ffi::{malloc, realloc, free};
     }
 }
 
@@ -57,6 +62,10 @@ mod platform {
     pub unsafe extern "C" fn usable_size(_ptr: *const c_void) -> usize {
         0
     }
+
+    /// Memory allocation APIs compatible with libc
+    pub mod libc_compat {
+        extern crate libc;
+        pub use self::libc::{malloc, realloc, free};
+    }
 }
-
-

@@ -30,7 +30,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
-pub use self::font::XTextZoom;
+pub use self::font::{FontWeight, MozScriptMinSize, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
@@ -50,7 +50,7 @@ pub use self::percentage::Percentage;
 pub use self::position::{Position, PositionComponent};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;

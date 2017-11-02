@@ -28,17 +28,17 @@ pub enum ValidityStatus {
 }
 
 bitflags!{
-    pub flags ValidationFlags: u32 {
-        const VALUE_MISSING    = 0b0000000001,
-        const TYPE_MISMATCH    = 0b0000000010,
-        const PATTERN_MISMATCH = 0b0000000100,
-        const TOO_LONG         = 0b0000001000,
-        const TOO_SHORT        = 0b0000010000,
-        const RANGE_UNDERFLOW  = 0b0000100000,
-        const RANGE_OVERFLOW   = 0b0001000000,
-        const STEP_MISMATCH    = 0b0010000000,
-        const BAD_INPUT        = 0b0100000000,
-        const CUSTOM_ERROR     = 0b1000000000,
+    pub struct ValidationFlags: u32 {
+        const VALUE_MISSING    = 0b0000000001;
+        const TYPE_MISMATCH    = 0b0000000010;
+        const PATTERN_MISMATCH = 0b0000000100;
+        const TOO_LONG         = 0b0000001000;
+        const TOO_SHORT        = 0b0000010000;
+        const RANGE_UNDERFLOW  = 0b0000100000;
+        const RANGE_OVERFLOW   = 0b0001000000;
+        const STEP_MISMATCH    = 0b0010000000;
+        const BAD_INPUT        = 0b0100000000;
+        const CUSTOM_ERROR     = 0b1000000000;
     }
 }
 

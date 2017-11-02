@@ -33,8 +33,8 @@ def test_title_from_closed_context(session, create_window):
 #    [...]
 #
 # 3. Return success.
-def test_title_handle_prompt_dismiss(new_session):
-    _, session = new_session({"alwaysMatch": {"unhandledPromptBehavior": "dismiss"}})
+def test_title_handle_prompt_dismiss(new_session, add_browser_capabilites):
+    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "dismiss"})}})
     session.url = inline("<title>WD doc title</title>")
 
     expected_title = read_global(session, "document.title")
@@ -80,8 +80,8 @@ def test_title_handle_prompt_dismiss(new_session):
 #    [...]
 #
 # 3. Return success.
-def test_title_handle_prompt_accept(new_session):
-    _, session = new_session({"alwaysMatch": {"unhandledPromptBehavior": "accept"}})
+def test_title_handle_prompt_accept(new_session, add_browser_capabilites):
+    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept"})}})
     session.url = inline("<title>WD doc title</title>")
     create_dialog(session)("alert", text="accept #1", result_var="accept1")
 

@@ -8,7 +8,7 @@ use cssparser::{Parser, ParserInput};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
-use style_traits::{PARSING_MODE_DEFAULT, ParseError};
+use style_traits::{ParsingMode, ParseError};
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
 where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>> {
@@ -20,7 +20,7 @@ fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result
 where F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>> {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Style),
-                                     PARSING_MODE_DEFAULT,
+                                     ParsingMode::DEFAULT,
                                      QuirksMode::NoQuirks);
     let mut parser = Parser::new(input);
     f(&context, &mut parser)

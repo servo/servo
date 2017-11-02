@@ -33,7 +33,7 @@ def test_handle_prompt_dismiss():
     """TODO"""
 
 
-def test_handle_prompt_accept(new_session):
+def test_handle_prompt_accept(new_session, add_browser_capabilites):
     """
     2. Handle any user prompts and return its value if it is an error.
 
@@ -53,8 +53,7 @@ def test_handle_prompt_accept(new_session):
            Accept the current user prompt.
 
     """
-    _, session = new_session(
-        {"alwaysMatch": {"unhandledPromptBehavior": "accept"}})
+    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept"})}})
     original = session.window.rect
 
     # step 2

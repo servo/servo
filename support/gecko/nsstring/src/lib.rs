@@ -138,13 +138,13 @@ mod data_flags {
         // While this has the same layout as u16, it cannot be passed
         // over FFI safely as a u16.
         #[repr(C)]
-        pub flags DataFlags: u16 {
-            const TERMINATED = 1 << 0, // IsTerminated returns true
-            const VOIDED = 1 << 1, // IsVoid returns true
-            const SHARED = 1 << 2, // mData points to a heap-allocated, shared buffer
-            const OWNED = 1 << 3, // mData points to a heap-allocated, raw buffer
-            const INLINE = 1 << 4, // mData points to a writable, inline buffer
-            const LITERAL = 1 << 5, // mData points to a string literal; TERMINATED will also be set
+        pub struct DataFlags: u16 {
+            const TERMINATED = 1 << 0; // IsTerminated returns true
+            const VOIDED = 1 << 1; // IsVoid returns true
+            const SHARED = 1 << 2; // mData points to a heap-allocated, shared buffer
+            const OWNED = 1 << 3; // mData points to a heap-allocated, raw buffer
+            const INLINE = 1 << 4; // mData points to a writable, inline buffer
+            const LITERAL = 1 << 5; // mData points to a string literal; TERMINATED will also be set
         }
     }
 }
@@ -154,9 +154,9 @@ mod class_flags {
         // While this has the same layout as u16, it cannot be passed
         // over FFI safely as a u16.
         #[repr(C)]
-        pub flags ClassFlags: u16 {
-            const INLINE = 1 << 0, // |this|'s buffer is inline
-            const NULL_TERMINATED = 1 << 1, // |this| requires its buffer is null-terminated
+        pub struct ClassFlags: u16 {
+            const INLINE = 1 << 0; // |this|'s buffer is inline
+            const NULL_TERMINATED = 1 << 1; // |this| requires its buffer is null-terminated
         }
     }
 }
@@ -213,7 +213,7 @@ macro_rules! define_string_types {
                 $StringRepr {
                     data: &NUL,
                     length: 0,
-                    dataflags: data_flags::TERMINATED | data_flags::LITERAL,
+                    dataflags: DataFlags::TERMINATED | DataFlags::LITERAL,
                     classflags: classflags,
                 }
             }
@@ -556,7 +556,7 @@ macro_rules! define_string_types {
         impl $String {
             pub fn new() -> $String {
                 $String {
-                    hdr: $StringRepr::new(class_flags::NULL_TERMINATED),
+                    hdr: $StringRepr::new(ClassFlags::NULL_TERMINATED),
                 }
             }
         }
@@ -638,8 +638,8 @@ macro_rules! define_string_types {
                     hdr: $StringRepr {
                         data: ptr,
                         length: length,
-                        dataflags: data_flags::OWNED | data_flags::TERMINATED,
-                        classflags: class_flags::NULL_TERMINATED,
+                        dataflags: DataFlags::OWNED | DataFlags::TERMINATED,
+                        classflags: ClassFlags::NULL_TERMINATED,
                     }
                 }
             }
@@ -1062,7 +1062,7 @@ pub mod test_helpers {
     //! gtest code.
 
     use std::mem;
-    use super::{class_flags, data_flags};
+    use super::{ClassFlags, DataFlags};
     use super::{nsCStr, nsCString, nsCStringRepr};
     use super::{nsStr, nsString, nsStringRepr};
 
@@ -1192,14 +1192,14 @@ pub mod test_helpers {
                                           f_class_inline: *mut u16,
                                           f_class_null_terminated: *mut u16) {
         unsafe {
-            *f_terminated = data_flags::TERMINATED.bits();
-            *f_voided = data_flags::VOIDED.bits();
-            *f_shared = data_flags::SHARED.bits();
-            *f_owned = data_flags::OWNED.bits();
-            *f_inline = data_flags::INLINE.bits();
-            *f_literal = data_flags::LITERAL.bits();
-            *f_class_inline = class_flags::INLINE.bits();
-            *f_class_null_terminated = class_flags::NULL_TERMINATED.bits();
+            *f_terminated = DataFlags::TERMINATED.bits();
+            *f_voided = DataFlags::VOIDED.bits();
+            *f_shared = DataFlags::SHARED.bits();
+            *f_owned = DataFlags::OWNED.bits();
+            *f_inline = DataFlags::INLINE.bits();
+            *f_literal = DataFlags::LITERAL.bits();
+            *f_class_inline = ClassFlags::INLINE.bits();
+            *f_class_null_terminated = ClassFlags::NULL_TERMINATED.bits();
         }
     }
 }

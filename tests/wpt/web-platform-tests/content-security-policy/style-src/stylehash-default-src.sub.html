@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>stylehash allowed from default-src</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'sha256-SXMrww9+PS7ymkxYbv91id+HfXeO7p1uCY0xhNb4MIw='; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            test(function() { assert_unreached("securitypolicyviolat was fired")});
+        });
+    </script>
+    </head>
+
+    <body>
+    <p id="p">Test</p>
+    <style>p#p { color: green; }</style>
+    <script>
+    var color = window.getComputedStyle(document.querySelector('#p')).color;
+    assert_equals(color, "rgb(0, 128, 0)");
+    done();
+    </script>
+
+    <div id="log"></div>
+    </body>
+</html>

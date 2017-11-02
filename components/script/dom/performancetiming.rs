@@ -15,13 +15,13 @@ use dom_struct::dom_struct;
 pub struct PerformanceTiming {
     reflector_: Reflector,
     navigation_start: u64,
-    navigation_start_precise: f64,
+    navigation_start_precise: u64,
     document: Dom<Document>,
 }
 
 impl PerformanceTiming {
     fn new_inherited(nav_start: u64,
-                     nav_start_precise: f64,
+                     nav_start_precise: u64,
                      document: &Document)
                          -> PerformanceTiming {
         PerformanceTiming {
@@ -35,7 +35,7 @@ impl PerformanceTiming {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
                navigation_start: u64,
-               navigation_start_precise: f64)
+               navigation_start_precise: u64)
                -> DomRoot<PerformanceTiming> {
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
@@ -90,7 +90,7 @@ impl PerformanceTimingMethods for PerformanceTiming {
 
 
 impl PerformanceTiming {
-    pub fn navigation_start_precise(&self) -> f64 {
+    pub fn navigation_start_precise(&self) -> u64 {
         self.navigation_start_precise
     }
 }

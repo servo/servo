@@ -7,7 +7,7 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
-use super::{constants as webgl, WebGLExtension, WebGLExtensions};
+use super::{constants as webgl, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 #[dom_struct]
 pub struct OESTextureFloatLinear {
@@ -28,6 +28,10 @@ impl WebGLExtension for OESTextureFloatLinear {
         reflect_dom_object(Box::new(OESTextureFloatLinear::new_inherited()),
                            &*ctx.global(),
                            OESTextureFloatLinearBinding::Wrap)
+    }
+
+    fn spec() -> WebGLExtensionSpec {
+        WebGLExtensionSpec::All
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {

@@ -8,7 +8,6 @@ def rmtree(top):
     top = os.path.abspath(top)
     assert top != os.path.expanduser("~")
     assert len(top) > len(os.path.expanduser("~"))
-    assert "web-platform-tests" in top
     assert "mixed-content" in top
 
     for root, dirs, files in os.walk(top, topdown=False):

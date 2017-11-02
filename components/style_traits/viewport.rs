@@ -105,7 +105,7 @@ impl Zoom {
     ///
     /// <https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom>
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
-        use PARSING_MODE_DEFAULT;
+        use ParsingMode;
         use cssparser::Token;
         use values::specified::AllowedNumericType::NonNegative;
 
@@ -113,12 +113,12 @@ impl Zoom {
         match *input.next()? {
             // TODO: This parse() method should take ParserContext as an
             // argument, and pass ParsingMode owned by the ParserContext to
-            // is_ok() instead of using PARSING_MODE_DEFAULT directly.
+            // is_ok() instead of using ParsingMode::DEFAULT directly.
             // In order to do so, we might want to move these stuff into style::stylesheets::viewport_rule.
-            Token::Percentage { unit_value, .. } if NonNegative.is_ok(PARSING_MODE_DEFAULT, unit_value) => {
+            Token::Percentage { unit_value, .. } if NonNegative.is_ok(ParsingMode::DEFAULT, unit_value) => {
                 Ok(Zoom::Percentage(unit_value))
             }
-            Token::Number { value, .. } if NonNegative.is_ok(PARSING_MODE_DEFAULT, value) => {
+            Token::Number { value, .. } if NonNegative.is_ok(ParsingMode::DEFAULT, value) => {
                 Ok(Zoom::Number(value))
             }
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") => {
