@@ -10756,11 +10756,6 @@
      {}
     ]
    ],
-   "mozilla/.DS_Store": [
-    [
-     {}
-    ]
-   ],
    "mozilla/2x2.png": [
     [
      {}
@@ -39692,10 +39687,6 @@
   "css/writing-mode_change_display.html": [
    "9ac1f9756a4cd44196242beb80621b9bc8cbe2ff",
    "testharness"
-  ],
-  "mozilla/.DS_Store": [
-   "df2fbeb1400acda0909a32c1cf6bf492f1121e07",
-   "support"
   ],
   "mozilla/2x2.png": [
    "c67d3f646e86413722833d2308a9bfc793a916bf",
