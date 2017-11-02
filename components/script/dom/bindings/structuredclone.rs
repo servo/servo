@@ -9,8 +9,10 @@ use crate::dom::bindings::conversions::root_from_handleobject;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::{Blob, BlobImpl};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
 use js::glue::CopyJSStructuredCloneData;
 use js::glue::DeleteJSAutoStructuredCloneBuffer;
 use js::glue::GetLengthOfJSStructuredCloneData;
@@ -43,6 +45,7 @@ enum StructuredCloneTags {
     /// To support additional types, add new tags with values incremented from the last one before Max.
     Min = 0xFFFF8000,
     DomBlob = 0xFFFF8001,
+    MessagePort = 0xFFFF8002,
     Max = 0xFFFFFFFF,
 }
 
@@ -188,26 +191,39 @@ unsafe extern "C" fn write_callback(
 }
 
 unsafe extern "C" fn read_transfer_callback(
-    _cx: *mut JSContext,
-    _r: *mut JSStructuredCloneReader,
-    _tag: u32,
-    _content: *mut raw::c_void,
-    _extra_data: u64,
-    _closure: *mut raw::c_void,
-    _return_object: RawMutableHandleObject,
+    cx: *mut JSContext,
+    r: *mut JSStructuredCloneReader,
+    tag: u32,
+    content: *mut raw::c_void,
+    extra_data: u64,
+    closure: *mut raw::c_void,
+    return_object: RawMutableHandleObject,
 ) -> bool {
-    false
+    if tag == StructuredCloneTags::MessagePort as u32 {
+        <MessagePort as Transferable>::transfer_receive(cx, r, closure, content, extra_data, return_object)
+    } else {
+        false
+    }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
 unsafe extern "C" fn write_transfer_callback(
     _cx: *mut JSContext,
-    _obj: RawHandleObject,
-    _closure: *mut raw::c_void,
-    _tag: *mut u32,
-    _ownership: *mut TransferableOwnership,
-    _content: *mut *mut raw::c_void,
-    _extra_data: *mut u64,
+    obj: RawHandleObject,
+    closure: *mut raw::c_void,
+    tag: *mut u32,
+    ownership: *mut TransferableOwnership,
+    content:  *mut *mut raw::c_void,
+    extra_data: *mut u64,
 ) -> bool {
+    if let Ok(port) = root_from_handleobject::<MessagePort>(Handle::from_raw(obj)) {
+        *tag = StructuredCloneTags::MessagePort as u32;
+        *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
+        if port.transfer(closure, content, extra_data) {
+            port.set_detached(true);
+            return true;
+        }
+    }
     false
 }
 
