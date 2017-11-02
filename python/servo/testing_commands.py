@@ -895,7 +895,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
     @Command('update-webgl',
              description='Update the WebGL conformance suite tests from Khronos repo',
              category='testing')
-    @CommandArgument('--version', action='store_true', default='1.0.3',
+    @CommandArgument('--version', default='2.0.0',
                      help='WebGL conformance suite version')
     def update_webgl(self, version=None):
         self.ensure_bootstrapped()

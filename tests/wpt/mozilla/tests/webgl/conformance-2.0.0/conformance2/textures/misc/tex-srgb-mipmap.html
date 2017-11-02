@@ -1,0 +1,229 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture mipmap conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="4" height="4" style="width: 16px; height: 16px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+uniform vec4 uMult;
+attribute vec4 vPosition;
+attribute vec2 texCoord0;
+varying vec2 texCoord;
+void main()
+{
+    gl_Position = vPosition * uMult;
+    texCoord = texCoord0;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 texCoord;
+void main()
+{
+    gl_FragColor = texture2D(tex, texCoord);
+}
+</script>
+<script>
+"use strict";
+var canvas;
+var wtu = WebGLTestUtils;
+
+function generateMipmap()
+{
+    description("Generate mipmaps for sRGB texture");
+
+    canvas = document.getElementById("example");
+    var gl = wtu.create3DContext(canvas);
+
+    wtu.setupUnitQuad(gl, 0, 1);
+    var program = wtu.setupProgram(
+        gl, ['vshader', 'fshader'], ['vPosition', 'texCoord0'], [0, 1]);
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+
+    var colors = {
+        blank: [0, 0, 0, 0],
+        srgba: [0, 63, 127, 255],
+    };
+
+    var texLoc = gl.getUniformLocation(program, "tex");
+    gl.uniform1i(texLoc, 0);
+    var multLoc = gl.getUniformLocation(program, "uMult");
+
+    var width = 128;
+    var height = 128;
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+
+    var srgbTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, srgbTex);
+    gl.uniform4f(multLoc, 1, 1, 1, 1);
+    // Set full texture as srgba color first.
+    wtu.fillTexture(gl, srgbTex, width, height, colors['srgba'], 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.SRGB8_ALPHA8);
+    // Set up-left region of the texture as red color.
+    // In order to make sure bi-linear interpolation operates on different colors, red region
+    // is 1 pixel smaller than a quarter of the full texture on each side.
+    var redWidth = width / 2 - 1;
+    var redHeight = height / 2 - 1;
+    var buf = new Uint8Array(redWidth * redHeight * 4);
+    for (var i = 0; i < redWidth * redHeight; i++) {
+        buf[4 * i + 0] = 255;
+        buf[4 * i + 1] = 0;
+        buf[4 * i + 2] = 0;
+        buf[4 * i + 3] = 255;
+    }
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, redWidth, redHeight, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+
+    // Decode the srgba texture to a linear texture which will be used as reference.
+    var linearTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, linearTex);
+    wtu.fillTexture(gl, linearTex, width, height, wtu.sRGBToLinear(colors['srgba']), 0, gl.RGBA, gl.UNSIGNED_BYTE);
+    // Set up-left region of the texture as red color.
+    // In order to make sure bi-linear interpolation operates on different colors, red region
+    // is 1 pixel smaller than a quarter of the full texture on each side.
+    for (var i = 0; i < redWidth * redHeight; i++) {
+        buf[4 * i + 0] = 255;
+        buf[4 * i + 1] = 0;
+        buf[4 * i + 2] = 0;
+        buf[4 * i + 3] = 255;
+    }
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, redWidth, redHeight, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+
+    // Change canvas to a small size.
+    width = 64;
+    height = 64;
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+
+    // Draw with srgb texture and linear texture respectively.
+    gl.bindTexture(gl.TEXTURE_2D, srgbTex);
+    wtu.clearAndDrawUnitQuad(gl);
+    var result = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, result);
+    gl.bindTexture(gl.TEXTURE_2D, linearTex);
+    wtu.clearAndDrawUnitQuad(gl);
+    var reference = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, reference);
+
+    gl.deleteTexture(srgbTex);
+    gl.deleteTexture(linearTex);
+
+    var tolerance = 7;
+    var diff = new Uint8Array(width * height * 4);
+    var failed = compare(result, reference, tolerance, diff);
+    if (failed) {
+        testFailed("Generate wrong mipmaps for sRGB texture.");
+        displayDiff(result, reference, diff, width, height);
+    } else {
+        testPassed("Generate correct mipmaps for sRGB texture.");
+    }
+
+    function compare(cmp, ref, tolerance, diff) {
+        if (cmp.length != ref.length) {
+            testFailed("invalid pixel size.");
+        }
+
+        var count = 0;
+        for (var i = 0; i < cmp.length; i++) {
+            diff[i * 4] = 0;
+            diff[i * 4 + 1] = 255;
+            diff[i * 4 + 2] = 0;
+            diff[i * 4 + 3] = 255;
+            if (Math.abs(cmp[i * 4] - ref[i * 4]) > tolerance ||
+                Math.abs(cmp[i * 4 + 1] - ref[i * 4 + 1]) > tolerance ||
+                Math.abs(cmp[i * 4 + 2] - ref[i * 4 + 2]) > tolerance ||
+                Math.abs(cmp[i * 4 + 3] - ref[i * 4 + 3]) > tolerance) {
+                debug("Pixel " + i + ": expected (" +
+                    [ref[i * 4], ref[i * 4 + 1], ref[i * 4 + 2], ref[i * 4 + 3]] + "), got (" +
+                    [cmp[i * 4], cmp[i * 4 + 1], cmp[i * 4 + 2], cmp[i * 4 + 3]] + ")");
+                count++;
+                diff[i * 4] = 255;
+                diff[i * 4 + 1] = 0;
+            }
+        }
+
+        return count;
+    }
+
+    function displayDiff(cmp, ref, diff, width, height) {
+        var div = document.createElement("div");
+
+        var cmpImg = createImage(cmp, width, height);
+        var refImg = createImage(ref, width, height);
+        var diffImg = createImage(diff, width, height);
+        wtu.insertImage(div, "Reference", refImg);
+        wtu.insertImage(div, "Result", cmpImg);
+        wtu.insertImage(div, "Difference", diffImg);
+
+        var console = document.getElementById("console");
+        console.appendChild(div);
+    }
+
+    function createImage(buf, width, height) {
+        var canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        var ctx = canvas.getContext("2d");
+        var imgData = ctx.getImageData(0, 0, width, height);
+
+        for (var i = 0; i < buf.length; i++)
+            imgData.data[i] = buf[i];
+        ctx.putImageData(imgData, 0, 0);
+        var img = wtu.makeImageFromCanvas(canvas);
+        return img;
+    }
+}
+
+generateMipmap();
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

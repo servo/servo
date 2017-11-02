@@ -1,0 +1,147 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Active TEXTURE1 Bug Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+precision mediump float;
+in vec4 a_position;
+in vec2 a_coord;
+out vec2 v_coord;
+void main() {
+    gl_Position = a_position;
+    v_coord = a_coord;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+in vec2 v_coord;
+uniform mediump sampler3D u_sampler;
+out vec4 o_color;
+void main () {
+    o_color = texture(u_sampler, vec3(v_coord, 0.0));
+}
+</script>
+<script>
+"use strict";
+description("Test for a MacOSX 10.12 with Intel GPUs driver crash bug activating TEXTURE1 for 3d texture");
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var samplerLoc;
+
+function render(textureUnit, width, height, expectedColor, msg) {
+    gl.uniform1i(samplerLoc, textureUnit);
+    wtu.setupUnitQuad(gl, 0, 1);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, expectedColor, msg);
+}
+
+function activeTextureTest() {
+    var texture = gl.createTexture();
+    var sampler = gl.createSampler();
+    var width = 64;
+    var height = 64;
+    var depth = 4;
+    var black = [0, 0, 0, 255];
+    var size = width * height * depth * 4;
+
+    var buf = new Uint8Array(size);
+    for (var i = 0; i < size; i += 4) {
+        buf[i + 0] = 0;
+        buf[i + 1] = 255;
+        buf[i + 2] = 0;
+        buf[i + 3] = 255;
+    }
+
+    var program = wtu.setupProgram(gl, ["vshader", "fshader"], ['a_position', 'a_coord'], [0, 1]);
+    samplerLoc = gl.getUniformLocation(program, "u_sampler");
+
+    gl.viewport(0, 0, width, height);
+
+    gl.bindTexture(gl.TEXTURE_3D, texture);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    // texture is unbound from the default texture unit TEXTURE0,
+    // then a default black texture will be bound to TEXTURE0.
+    gl.bindTexture(gl.TEXTURE_3D, null);
+
+    // Active TEXTURE1 and 3d texture are necessary to reproduce the crash bug.
+    gl.activeTexture(gl.TEXTURE1);
+
+    gl.bindSampler(0, sampler);
+    gl.samplerParameteri(sampler, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.samplerParameteri(sampler, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.bindTexture(gl.TEXTURE_3D, texture);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    // Render using sampler
+    // When rendering from texture unit 0, the black texture will be drawn.
+    render(0, width, height, black, "Result pixels rendering from TEXTURE0 should be black");
+
+    gl.bindSampler(0, null);
+    gl.deleteSampler(sampler);
+
+    // Render using texture
+    // When rendering from texture unit 0, the black texture will be drawn.
+    // Crash happens when calling gl.drawArrays during this rendering.
+    render(0, width, height, black, "Result pixels rendering from TEXTURE0 should be black");
+
+    gl.bindTexture(gl.TEXTURE_3D, null);
+    gl.deleteTexture(texture);
+    gl.deleteProgram(program);
+}
+
+if (!gl) {
+    testFailed("Fail to get a WebGL2 context");
+} else {
+    testPassed("Created WebGL2 context successfully");
+    activeTextureTest();
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

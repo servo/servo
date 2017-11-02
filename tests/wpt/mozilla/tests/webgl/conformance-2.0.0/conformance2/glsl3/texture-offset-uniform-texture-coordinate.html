@@ -1,0 +1,193 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL texture offset with uniform texture coordinates test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderTextureOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec2 u_texCoord;
+
+void main() {
+    my_FragColor = textureOffset(u_sampler, u_texCoord, ivec2(0, 1));
+}
+</script>
+<script id="fshaderTextureProjOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec4 u_texCoord;
+
+void main() {
+    my_FragColor = textureProjOffset(u_sampler, u_texCoord, ivec2(0, 1));
+}
+</script>
+<script id="fshaderTextureLodOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec2 u_texCoord;
+uniform float u_lod;
+
+void main() {
+    my_FragColor = textureLodOffset(u_sampler, u_texCoord, u_lod, ivec2(0, 1));
+}
+</script>
+<script id="fshaderTextureProjLodOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec4 u_texCoord;
+uniform float u_lod;
+
+void main() {
+    my_FragColor = textureProjLodOffset(u_sampler, u_texCoord, u_lod, ivec2(0, 1));
+}
+</script>
+<script id="fshaderTextureGradOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec2 u_texCoord;
+uniform vec2 u_dPdx;
+uniform vec2 u_dPdy;
+
+void main() {
+    my_FragColor = textureGradOffset(u_sampler, u_texCoord, u_dPdx, u_dPdy, ivec2(0, 1));
+}
+</script>
+<script id="fshaderTextureProjGradOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec4 u_texCoord;
+uniform vec2 u_dPdx;
+uniform vec2 u_dPdy;
+
+void main() {
+    my_FragColor = textureProjGradOffset(u_sampler, u_texCoord, u_dPdx, u_dPdy, ivec2(0, 1));
+}
+</script>
+<script id="fshaderTexelFetchOffset" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+uniform sampler2D u_sampler;
+uniform vec2 u_texCoord;
+uniform vec2 u_lod;
+
+void main() {
+    my_FragColor = texelFetchOffset(u_sampler, ivec2(u_texCoord), int(u_lod), ivec2(0, 1));
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Texture coordinates expressed as uniform variable should not crash in texture offset functions.");
+
+var wtu = WebGLTestUtils;
+
+var shaderTextureOffsetSrc = wtu.getScript('fshaderTextureOffset');
+var shaderTextureLodOffsetSrc = wtu.getScript('fshaderTextureLodOffset');
+var shaderTextureGradOffsetSrc = wtu.getScript('fshaderTextureGradOffset');
+var shaderTextureProjOffsetSrc = wtu.getScript('fshaderTextureProjOffset');
+var shaderTextureProjLodOffsetSrc = wtu.getScript('fshaderTextureProjLodOffset');
+var shaderTextureProjGradOffsetSrc = wtu.getScript('fshaderTextureProjGradOffset');
+var shaderTexelFetchOffsetSrc = wtu.getScript('fshaderTexelFetchOffset');
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+if (!gl) {
+    testFailed("Unable to initialize WebGL 2.0 context.");
+} else {
+    GLSLConformanceTester.runTests([
+    {
+        fShaderSource: shaderTextureOffsetSrc,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        passMsg: 'textureOffset with uniform texture coordinates should not crash'
+    },
+    {
+        fShaderSource: shaderTextureLodOffsetSrc,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        passMsg: 'textureLodOffset with uniform texture coordinates should not crash'
+    },
+    {
+        fShaderSource: shaderTextureGradOffsetSrc,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        passMsg: 'textureGradOffset with uniform texture coordinates should not crash'
+    },
+    {
+        fShaderSource: shaderTextureProjOffsetSrc,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        passMsg: 'textureProjOffset with uniform texture coordinates should not crash'
+    },
+    {
+        fShaderSource: shaderTextureProjLodOffsetSrc,
+        fShaderSuccess: true,
+        linkSuccess: true,
+         passMsg: 'textureProjLodOffset with uniform texture coordinates should not crash'
+    },
+    {
+        fShaderSource: shaderTextureProjGradOffsetSrc,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        passMsg: 'textureProjGradOffset with uniform texture coordinates should not crash'
+    },
+    {
+        fShaderSource: shaderTexelFetchOffsetSrc,
+        fShaderSuccess: true,
+        linkSuccess: true,
+        passMsg: 'texelFetchOffset with uniform texture coordinates should not crash'
+    }
+    ], 2);
+}
+</script>
+</body>
+</html>

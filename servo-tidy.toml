@@ -53,6 +53,8 @@ files = [
   "./tests/wpt/metadata/MANIFEST.json",
   "./components/script/dom/webidls/ForceTouchEvent.webidl",
   "./support/android/openssl.sh",
+  # Upstream code from Khronos/WebGL uses tabs for indentation
+  "./tests/wpt/mozilla/tests/webgl",
   # Ignore those files since the issues reported are on purpose
   "./tests/html/bad-line-ends.html",
   "./tests/unit/net/parsable_mime/text",

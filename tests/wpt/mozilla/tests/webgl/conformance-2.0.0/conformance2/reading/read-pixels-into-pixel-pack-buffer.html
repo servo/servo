@@ -1,0 +1,175 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 Conformance Test: ReadPixels Into Pixel Pack Buffer.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="4" height="4"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+function checkFormatAndType()
+{
+    debug("");
+    debug("check format / type");
+    var invalidFormat = [gl.DEPTH_COMPONENT, gl.DEPTH_STENCIL, gl.R8, gl.RGBA4, gl.LUMINANCE, gl.LUMINANCE_ALPHA];
+    var invalidType = [gl.UNSIGNED_INT_24_8];
+    for (var ff = 0; ff < invalidFormat.length; ++ff) {
+        var format = invalidFormat[ff];
+        gl.readPixels(0, 0, 1, 1, format, gl.UNSIGNED_BYTE, 0);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Format should not be able to read as " + wtu.glEnumToString(gl, format));
+    }
+    for (var tt = 0; tt < invalidType.length; ++tt) {
+        var type = invalidType[tt];
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, type, 0);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Type should not be able to read as " + wtu.glEnumToString(gl, type));
+    }
+
+    debug("");
+    debug("check combinations of format and type");
+    var combinations = [
+        {format: gl.RGBA,         type: gl.UNSIGNED_BYTE},
+        {format: gl.RGB,          type: gl.UNSIGNED_BYTE},
+        {format: gl.RGB,          type: gl.UNSIGNED_SHORT_5_6_5},
+        {format: gl.RGBA,         type: gl.UNSIGNED_SHORT_5_5_5_1},
+        {format: gl.RGBA,         type: gl.UNSIGNED_SHORT_4_4_4_4},
+        {format: gl.ALPHA,        type: gl.UNSIGNED_BYTE},
+        {format: gl.RED,          type: gl.UNSIGNED_BYTE},
+        {format: gl.RGBA_INTEGER, type: gl.UNSIGNED_INT},
+        {format: gl.RGBA_INTEGER, type: gl.INT}
+    ];
+
+    var implFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+    var implType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+    for (var tt = 0; tt < combinations.length; ++ tt) {
+        var info = combinations[tt];
+        var format = info.format;
+        var type = info.type;
+        gl.readPixels(0, 0, 1, 1, format, type, 0);
+        // Only two format/type parameter pairs are accepted. GL_RGBA/GL_UNSIGNED_BYTE is always
+        // accepted on default readbuffer. The other acceptable pair can be discovered by querying
+        // GL_IMPLEMENTATION_COLOR_READ_FORMAT and GL_IMPLEMENTATION_COLOR_READ_TYPE.
+        if ((format == gl.RGBA && type == gl.UNSIGNED_BYTE) || (format == implFormat && type == implType)) {
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "The combination of format/type should be able to read as " +
+                                wtu.glEnumToString(gl, format) + " / " + wtu.glEnumToString(gl, type));
+        } else {
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "The combination of format/type should not be able to read as " +
+                                wtu.glEnumToString(gl, format) + " / " + wtu.glEnumToString(gl, type));
+        }
+    }
+}
+
+function validatePixelPackBufferAndParameters(canvasWidth, canvasHeight)
+{
+    debug("");
+    debug("Validate PIXEL_PACK buffer and readPixels' parameters");
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
+
+    var size = canvasWidth * canvasHeight * 4;
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+    gl.bufferData(gl.PIXEL_PACK_BUFFER, size, gl.STATIC_DRAW);
+    var array = new Uint8Array(size);
+
+    debug("");
+    debug("PIXEL_PACK buffer is bound");
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, array);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "should generate INVALID_OPERATION if pixel pack buffer is bound");
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    debug("");
+    debug("Validate the offset of PIXEL_PACK buffer and buffer size");
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, -1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "offset < 0");
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, size);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "offset > buffer size");
+    gl.readPixels(0, 0, canvasWidth + 1, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "pixel pack buffer is not large enough");
+
+    debug("");
+    debug("Validate the reading area of framebuffer");
+    gl.readPixels(-1, -2, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "reading pixels outside of the framebuffer should succeed.");
+    gl.readPixels(2, 1, canvasWidth, canvasHeight, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "reading pixels outside of the framebuffer should succeed.");
+    gl.readPixels(2, 1, -1, -1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+                        "reading pixels with negative width / height should generate INVALID_VALUE.");
+
+    checkFormatAndType();
+
+    debug("");
+    debug("no PIXEL_PACK buffer bound");
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, array);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "no pixel pack buffer bound");
+
+    gl.deleteBuffer(buffer);
+}
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var pixel = [0, 0, 0, 0];
+var expectedColor = [255, 102, 0, 255];
+
+var canvas = document.getElementById("example");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  description('ReadPixels into PIXEL_PACK buffer');
+  validatePixelPackBufferAndParameters(4, 4);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

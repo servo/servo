@@ -1,0 +1,375 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="4" height="4"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict"
+
+var wtu = WebGLTestUtils;
+var initialColor = [1, 2, 3, 4];
+var expectedColor = [[249, 102, 0, 255],
+                     [2, 200, 102, 255],
+                     [134, 87, 234, 255],
+                     [99, 5, 76, 255]];
+
+function calculatePaddingBytes(bytesPerPixel, packAlignment, width)
+{
+    var padding = 0;
+    switch (packAlignment) {
+    case 1:
+    case 2:
+    case 4:
+    case 8:
+        padding = (bytesPerPixel * width) % packAlignment;
+        if (padding > 0)
+            padding = packAlignment - padding;
+        return padding;
+    default:
+        testFailed("should not reach here");
+        return;
+    }
+}
+
+function paintWebGLCanvas(gl)
+{
+    var program = wtu.setupTexturedQuad(gl);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+
+    var data = new Uint8Array(4 * 4);
+    for (var ii = 0; ii < 4; ++ii) {
+        data[ii * 4] = expectedColor[ii][0];
+        data[ii * 4 + 1] = expectedColor[ii][1];
+        data[ii * 4 + 2] = expectedColor[ii][2];
+        data[ii * 4 + 3] = expectedColor[ii][3];
+    }
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    var loc = gl.getUniformLocation(program, "tex");
+    gl.uniform1i(loc, 0);
+
+    wtu.clearAndDrawUnitQuad(gl);
+}
+
+function samePixel(array, index, refPixel, row, pixelTag)
+{
+    for (var ii = 0; ii < refPixel.length; ++ii) {
+      if (array[index] == refPixel[ii][0] &&
+          array[index + 1] == refPixel[ii][1] &&
+          array[index + 2] == refPixel[ii][2] &&
+          array[index + 3] == refPixel[ii][3]) {
+          return true;
+      }
+    }
+    var refPixelText = "";
+    for (var ii = 0; ii < refPixel.length; ++ii) {
+        if (ii > 0)
+            refPixelText += " or ";
+        refPixelText += "[" + refPixel[ii] + "]";
+    }
+    testFailed(pixelTag + " pixel of row " + row + ": expected " + refPixelText + ", got [" +
+        [array[index], array[index + 1], array[index + 2], array[index + 3]] + "]");
+    return false;
+}
+
+function runTestIteration(xoffset, yoffset, width, height, packParams, usePixelPackBuffer, packParamsValid)
+{
+    if (!("alignment" in packParams))
+        packParams.alignment = 4;
+    if (!("rowLength" in packParams))
+        packParams.rowLength = 0;
+    if (!("skipPixels" in packParams))
+        packParams.skipPixels = 0;
+    if (!("skipRows" in packParams))
+        packParams.skipRows = 0;
+    debug("Testing xoffset = " + xoffset + ", yoffset " + yoffset +
+          ", width = " + width + ", height = " + height +
+          ", PACK_ALIGNMENT = " + packParams.alignment + ", PACK_ROW_LENGTH = " + packParams.rowLength +
+          ", PACK_SKIP_PIXELS = " + packParams.skipPixels + " , PACK_SKIP_ROWS = " + packParams.skipRows);
+    gl.pixelStorei(gl.PACK_ALIGNMENT, packParams.alignment);
+    gl.pixelStorei(gl.PACK_ROW_LENGTH, packParams.rowLength);
+    gl.pixelStorei(gl.PACK_SKIP_PIXELS, packParams.skipPixels);
+    gl.pixelStorei(gl.PACK_SKIP_ROWS, packParams.skipRows);
+
+    var actualWidth = packParams.rowLength > 0 ? packParams.rowLength : width;
+
+    var bytesPerPixel = 4; // see readPixels' parameters below, the format is gl.RGBA, type is gl.UNSIGNED_BYTE
+    var padding = calculatePaddingBytes(bytesPerPixel, packParams.alignment, actualWidth);
+    var bytesPerRow = actualWidth * bytesPerPixel + padding;
+
+    var size = bytesPerRow * (height - 1) + bytesPerPixel * width;
+    var skipSize = packParams.skipPixels * bytesPerPixel + packParams.skipRows * bytesPerRow;
+    var array = new Uint8Array(skipSize + size);
+    for (var ii = 0; ii < skipSize + size; ++ii) {
+        array[ii] = initialColor[ii % bytesPerPixel];
+    }
+    var arrayWrongSize = null;
+    if (size > 0)
+        arrayWrongSize = new Uint8Array(skipSize + size - 1);
+    if (usePixelPackBuffer) {
+        var offset = 0;
+
+        var buffer = gl.createBuffer();
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+        if (size > 0) {
+            gl.bufferData(gl.PIXEL_PACK_BUFFER, arrayWrongSize, gl.STATIC_DRAW);
+            gl.readPixels(xoffset, yoffset, width, height, gl.RGBA, gl.UNSIGNED_BYTE, offset);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+        }
+        gl.bufferData(gl.PIXEL_PACK_BUFFER, array, gl.STATIC_DRAW);
+        gl.readPixels(xoffset, yoffset, width, height, gl.RGBA, gl.UNSIGNED_BYTE, offset);
+    } else {
+        if (size > 0) {
+            gl.readPixels(xoffset, yoffset, width, height, gl.RGBA, gl.UNSIGNED_BYTE, arrayWrongSize);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+        }
+        gl.readPixels(xoffset, yoffset, width, height, gl.RGBA, gl.UNSIGNED_BYTE, array);
+    }
+    if (packParamsValid) {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readPixels should succeed");
+    } else {
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Invalid pack params combination");
+        return;
+    }
+
+    if (size == 0)
+        return;
+
+    if (usePixelPackBuffer) {
+        array = new Uint8Array(skipSize + size);
+        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, array);
+    }
+
+    // Check skipped bytes are unchanged.
+    for (var ii = 0; ii < skipSize; ++ii) {
+        if (array[ii] != initialColor[ii % bytesPerPixel]) {
+            testFailed("skipped bytes changed at index " + ii + ": expected " +
+                       initialColor[ii % bytesPerPixel] + " got " + array[ii]);
+            break;
+        }
+    }
+    // Check the first and last pixels of each row.
+    var canvasWidth = 4;
+    var canvasHeight = 4;
+    for (var row = 0; row < height; ++row) {
+        var refColor;
+        var yIndex = yoffset + row;
+        var xIndex;
+
+        // First pixel
+        var pos = skipSize + bytesPerRow * row;
+        xIndex = xoffset;
+        if (xIndex < 0 || xIndex >= canvasWidth || yIndex < 0 || yIndex >= canvasHeight) {
+            if (row > 0 && usePixelPackBuffer && packParams.rowLength > 0 && packParams.rowLength < width)
+                refColor = [initialColor, expectedColor[yIndex - 1]];
+            else
+                refColor = [initialColor];
+        } else {
+            refColor = [expectedColor[yIndex]];
+        }
+        samePixel(array, pos, refColor, row, "first");
+
+        // Last pixel
+        var xSpan;
+        if (row + 1 == height || packParams.rowLength > width)
+            xSpan = width;
+        else
+            xSpan = actualWidth;
+        xIndex = xoffset + xSpan - 1;
+        pos += (xSpan - 1) * bytesPerPixel;
+        if (xIndex < 0 || xIndex >= canvasWidth || yIndex < 0 || yIndex >= canvasHeight) {
+            if (row > 0 && usePixelPackBuffer && packParams.rowLength > 0 && packParams.rowLength < width)
+                refColor = [initialColor, expectedColor[yIndex - 1]];
+            else
+                refColor = [initialColor];
+        } else {
+            refColor = [expectedColor[yIndex]];
+        }
+        samePixel(array, pos, refColor, row, "last");
+
+        // Check padding bytes are unchanged and bytes beyond rowLength set correctly.
+        pos += bytesPerPixel;
+        if (row + 1 < height) {
+            // Beyond bytes filled for PACK_ROW_LENGTH, the row could have extra bytes due to
+            // padding. These extra bytes could be either filled with pixel data if
+            // PACK_ROW_LENGTH is set to be less than width, or they could be left unchanged
+            // if they are beyond |width| pixels.
+            if (packParams.rowLength > 0 && packParams.rowLength < width) {
+                var trailingBytes = Math.min((width - packParams.rowLength) * bytesPerPixel,
+                                             bytesPerRow - packParams.rowLength * bytesPerPixel);
+                for (var ii = 0; ii < trailingBytes; ++ii) {
+                    if (array[pos + ii] != refColor[0][ii % bytesPerPixel]) {
+                        testFailed("Trailing byte " + ii + " after rowLength of row " + row + " : expected " +
+                                   refColor[0][ii % bytesPerPixel] + ", got " + array[pos + ii]);
+                        break;
+                    }
+                }
+                pos += trailingBytes;
+            }
+            var paddingBytes = skipSize + bytesPerRow * (row + 1) - pos;
+            for (var ii = 0; ii < paddingBytes; ++ii) {
+                if (array[pos + ii] != initialColor[ii % bytesPerPixel]) {
+                    testFailed("Padding byte " + ii + " of row " + row + " changed: expected " +
+                               initialColor[ii % bytesPerPixel] + ", got " + array[pos + ii]);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+function testPackParameters(usePixelPackBuffer)
+{
+    debug("");
+    var destText = usePixelPackBuffer ? "PIXEL_PACK buffer" : "array buffer";
+    debug("Verify that reading pixels to " + destText + " works fine with various pack alignments.");
+    runTestIteration(0, 0, 1, 3, {alignment:1}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 1, 3, {alignment:2}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 1, 3, {alignment:4}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 1, 3, {alignment:8}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 2, 3, {alignment:4}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 2, 3, {alignment:8}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 3, 3, {alignment:4}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 3, 3, {alignment:8}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 0, 0, {alignment:1}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 1, 3, {alignment:4}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 1, 3, {alignment:8}, usePixelPackBuffer, true);
+
+    debug("");
+    debug("Verify that reading pixels to " + destText + " is disallowed when PACK_ROW_LENGTH < width.");
+    runTestIteration(0, 0, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(-1, 0, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(0, -1, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(-1, -1, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(-5, 0, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(0, -5, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(2, 0, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(0, 2, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(2, 2, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(5, 0, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(0, 5, 3, 3, {alignment:8, rowLength:2}, usePixelPackBuffer, false);
+    runTestIteration(0, 0, 3, 3, {alignment:8, rowLength:1}, usePixelPackBuffer, false);
+
+    debug("");
+    debug("Verify that reading pixels to " + destText + " works fine with PACK_ROW_LENGTH == width.");
+    runTestIteration(0, 0, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(-1, 0, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(0, -1, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(-1, -1, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(-5, 0, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(0, -5, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(2, 0, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(0, 2, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(2, 2, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(5, 0, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+    runTestIteration(0, 5, 3, 3, {alignment:8, rowLength:3}, usePixelPackBuffer, true);
+
+    debug("");
+    debug("Verify that reading pixels to " + destText + " works fine with PACK_ROW_LENGTH > width and with no padding");
+    runTestIteration(0, 0, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(-1, 0, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(0, -1, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(-1, -1, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(-5, 0, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(0, -5, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(2, 0, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(0, 2, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(2, 2, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(5, 0, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+    runTestIteration(0, 5, 3, 3, {alignment:8, rowLength:4}, usePixelPackBuffer, true);
+
+    debug("");
+    debug("Verify that reading pixels to " + destText + " works fine with PACK_ROW_LENGTH > width and with padding");
+    runTestIteration(0, 0, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(-1, 0, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(0, -1, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(-1, -1, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(-5, 0, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(0, -5, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(2, 0, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(0, 2, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(2, 2, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(5, 0, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+    runTestIteration(0, 5, 3, 3, {alignment:8, rowLength:5}, usePixelPackBuffer, true);
+
+    debug("");
+    debug("Verify that reading pixels to " + destText + " works fine with pack skip parameters.");
+    runTestIteration(0, 0, 3, 3, {alignment:8, skipPixels:2}, usePixelPackBuffer, false);
+    runTestIteration(0, 0, 3, 3, {alignment:8, skipPixels:1, skipRows:3}, usePixelPackBuffer, false);
+    runTestIteration(0, 0, 3, 3, {alignment:8, skipRows:3}, usePixelPackBuffer, true);
+    runTestIteration(0, 0, 2, 3, {alignment:8, skipPixels:2}, usePixelPackBuffer, false);
+    runTestIteration(0, 0, 2, 3, {alignment:8, skipPixels:1, skipRows:3}, usePixelPackBuffer, false);
+    runTestIteration(0, 0, 2, 3, {alignment:8, skipRows:3}, usePixelPackBuffer, true);
+}
+
+debug("");
+debug("Canvas.getContext");
+
+var canvas = document.getElementById("example");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  description('ReadPixels into array buffer');
+  paintWebGLCanvas(gl);
+  var usePixelPackBuffer = false;
+  testPackParameters(usePixelPackBuffer);
+  usePixelPackBuffer = true;
+  testPackParameters(usePixelPackBuffer);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

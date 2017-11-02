@@ -1,0 +1,69 @@
+4c4
+< ** Copyright (c) 2012 The Khronos Group Inc.
+---
+> ** Copyright (c) 2015 The Khronos Group Inc.
+34c34
+< <script src="../resources/webgl-test-utils.js"></script>
+---
+> <script src="../../conformance/resources/webgl-test-utils.js"></script>
+45,62c45
+< function sizeInBytes(type) {
+<   switch (type) {
+<   case gl.BYTE:
+<   case gl.UNSIGNED_BYTE:
+<     return 1;
+<   case gl.SHORT:
+<   case gl.UNSIGNED_SHORT:
+<     return 2;
+<   case gl.INT:
+<   case gl.UNSIGNED_INT:
+<   case gl.FLOAT:
+<     return 4;
+<   default:
+<     throw "unknown type";
+<   }
+< }
+< 
+< var gl = wtu.create3DContext();
+---
+> var gl = wtu.create3DContext(null, null, 2);
+191a175,178
+> var validArray = new Array(gl.COLOR_ATTACHMENT0, gl.DEPTH_ATTACHMENT, gl.STENCIL_ATTACHMENT, gl.DEPTH_STENCIL_ATTACHMENT);
+> for (var ii = 1; ii < gl.getParameter(gl.MAX_COLOR_ATTACHMENTS); ++ii) {
+>   validArray[validArray.length] = gl.COLOR_ATTACHMENT0 + ii;
+> }
+195,199c182
+<     [ gl.COLOR_ATTACHMENT0,
+<       gl.DEPTH_ATTACHMENT,
+<       gl.STENCIL_ATTACHMENT,
+<       gl.DEPTH_STENCIL_ATTACHMENT
+<     ],
+---
+>     validArray,
+257a241
+>       gl.RENDERBUFFER_SAMPLES,
+325c309
+< var boolProgram = wtu.loadProgramFromFile(gl, "../resources/boolUniformShader.vert", "../resources/noopUniformShader.frag");
+---
+> var boolProgram = wtu.loadProgramFromFile(gl, "../../conformance/resources/boolUniformShader.vert", "../../conformance/resources/noopUniformShader.frag");
+342c326
+< var intProgram = wtu.loadProgramFromFile(gl, "../resources/intUniformShader.vert", "../resources/noopUniformShader.frag");
+---
+> var intProgram = wtu.loadProgramFromFile(gl, "../../conformance/resources/intUniformShader.vert", "../../conformance/resources/noopUniformShader.frag");
+359c343
+< var floatProgram = wtu.loadProgramFromFile(gl, "../resources/floatUniformShader.vert", "../resources/noopUniformShader.frag");
+---
+> var floatProgram = wtu.loadProgramFromFile(gl, "../../conformance/resources/floatUniformShader.vert", "../../conformance/resources/noopUniformShader.frag");
+376c360
+< var samplerProgram = wtu.loadProgramFromFile(gl, "../resources/noopUniformShader.vert", "../resources/samplerUniformShader.frag");
+---
+> var samplerProgram = wtu.loadProgramFromFile(gl, "../../conformance/resources/noopUniformShader.vert", "../../conformance/resources/samplerUniformShader.frag");
+387c371
+< var matProgram = wtu.loadProgramFromFile(gl, "../resources/matUniformShader.vert", "../resources/noopUniformShader.frag");
+---
+> var matProgram = wtu.loadProgramFromFile(gl, "../../conformance/resources/matUniformShader.vert", "../../conformance/resources/noopUniformShader.frag");
+438c422,423
+<       gl.CURRENT_VERTEX_ATTRIB
+---
+>       gl.CURRENT_VERTEX_ATTRIB,
+>       gl.VERTEX_ATTRIB_ARRAY_DIVISOR

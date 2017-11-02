@@ -1,0 +1,23 @@
+--min-version 2.0.1 active-3d-texture-bug.html
+copy-texture-image.html
+copy-texture-image-luma-format.html
+copy-texture-image-webgl-specific.html
+gl-get-tex-parameter.html
+--min-version 2.0.1 integer-cubemap-texture-sampling.html
+--min-version 2.0.1 integer-cubemap-specification-order-bug.html
+mipmap-fbo.html
+tex-3d-size-limit.html
+tex-image-and-sub-image-with-array-buffer-view-sub-source.html
+tex-image-with-bad-args.html
+tex-image-with-bad-args-from-dom-elements.html
+tex-image-with-different-data-source.html
+tex-input-validation.html
+tex-mipmap-levels.html
+tex-new-formats.html
+--min-version 2.0.1 tex-srgb-mipmap.html
+tex-storage-2d.html
+tex-storage-and-subimage-3d.html
+tex-storage-compressed-formats.html
+tex-unpack-params.html
+texel-fetch-undefined.html
+texture-npot.html

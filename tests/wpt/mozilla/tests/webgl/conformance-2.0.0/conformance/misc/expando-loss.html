@@ -1,0 +1,245 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<title>WebGL Object Expandos Conformance Test</title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="8" height="8" style="width: 8px; height: 8px;"></canvas>
+<script>
+"use strict";
+description("This test verifies that WebGL object expandos are preserved across garbage collections.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, {antialias: false});
+
+// Helpers that set expandos and verify they are set to the correct value.
+var expandoValue = "WebGL is awesome!"
+function setTestExpandos(instance) {
+    instance.expando1 = expandoValue;
+    instance.expando2 = { subvalue : expandoValue };
+}
+function verifyTestExpandos(instance, msg) {
+    assertMsg(instance.expando1 === expandoValue, msg + ": Expect basic expando to survive despite GC.");
+    assertMsg(instance.expando2 && instance.expando2.subvalue === expandoValue, msg + ": Expect subobject expando to survive despite GC.");
+}
+
+// Tests that we don't get expando loss for bound resources where the
+// only remaining reference is internal to WebGL
+function testBasicBindings() {
+    debug('Basic Bindings');
+
+    // Test data that describes how to create, bind, and retrieve an object off of the context
+    var glProt = Object.getPrototypeOf(gl);
+    var simpleData = [
+        {
+            creationFn: glProt.createTexture,
+            bindFn: glProt.bindTexture,
+            bindConstant: glProt.TEXTURE_2D,
+            retrieveConstant: glProt.TEXTURE_BINDING_2D,
+            name: "TEXTURE_BINDING_2D",
+        },
+        {
+            creationFn: glProt.createFramebuffer,
+            bindFn: glProt.bindFramebuffer,
+            bindConstant: glProt.FRAMEBUFFER,
+            retrieveConstant: glProt.FRAMEBUFFER_BINDING,
+            name: "FRAMEBUFFER_BINDING",
+        },
+        {
+            creationFn: glProt.createRenderbuffer,
+            bindFn: glProt.bindRenderbuffer,
+            bindConstant: glProt.RENDERBUFFER,
+            retrieveConstant: glProt.RENDERBUFFER_BINDING,
+            name: "RENDERBUFFER_BINDING",
+        },
+        {
+            creationFn: glProt.createBuffer,
+            bindFn: glProt.bindBuffer,
+            bindConstant: glProt.ELEMENT_ARRAY_BUFFER,
+            retrieveConstant: glProt.ELEMENT_ARRAY_BUFFER_BINDING,
+            name: "ELEMENT_ARRAY_BUFFER_BINDING",
+        },
+        {
+            creationFn: glProt.createBuffer,
+            bindFn: glProt.bindBuffer,
+            bindConstant: glProt.ARRAY_BUFFER,
+            retrieveConstant: glProt.ARRAY_BUFFER_BINDING,
+            name: "ARRAY_BUFFER_BINDING",
+        },
+        {
+            creationFn: glProt.createTexture,
+            bindFn: glProt.bindTexture,
+            bindConstant: glProt.TEXTURE_CUBE_MAP,
+            retrieveConstant: glProt.TEXTURE_BINDING_CUBE_MAP,
+            name: "TEXTURE_BINDING_CUBE_MAP",
+        },
+    ];
+
+    simpleData.forEach(function(test) {
+        var instance = test.creationFn.apply(gl, []);
+        var msg = "getParameter(" + test.name + ")";
+        setTestExpandos(instance);
+
+        test.bindFn.apply(gl, [test.bindConstant, instance]);
+        assertMsg(instance === gl.getParameter(test.retrieveConstant), msg + " returns instance that was bound.");
+
+        // Garbage collect Javascript references.  Remaining references should be internal to WebGL.
+        instance = null;
+        webglHarnessCollectGarbage();
+
+        verifyTestExpandos(gl.getParameter(test.retrieveConstant), msg);
+    });
+
+    debug('');
+}
+
+// Attach a couple of shaders to a program and verify no expando loss when you call
+// getAttachedShaders and getParameter(CURRENT_PROGRAM).
+function testProgramsAndShaders() {
+    debug('Programs and Shaders');
+
+    var vs = wtu.loadShader(gl, wtu.simpleVertexShader, gl.VERTEX_SHADER);
+    setTestExpandos(vs);
+
+    var fs = wtu.loadShader(gl, wtu.simpleColorFragmentShader, gl.FRAGMENT_SHADER);
+    setTestExpandos(fs);
+
+    var program = wtu.setupProgram(gl, [vs, fs]);
+    setTestExpandos(program);
+    assertMsg(program === gl.getParameter(gl.CURRENT_PROGRAM), "getParameter(gl.CURRENT_PROGRAM) return instance set with useProgram");
+
+    var attachedShaders = gl.getAttachedShaders(program);
+    assertMsg(attachedShaders.indexOf(vs) !== -1, "Vertex shader instance found in getAttachedShaders");
+    assertMsg(attachedShaders.indexOf(fs) !== -1, "Fragment shader instance found in getAttachedShaders");
+
+    // Garbage collect Javascript references. Remaining references should be internal to WebGL.
+    attachedShaders = null;
+    program = null;
+    vs = null;
+    fs = null;
+    webglHarnessCollectGarbage();
+
+    var currentProgram = gl.getParameter(gl.CURRENT_PROGRAM);
+    verifyTestExpandos(currentProgram, "Current program");
+    shouldBeType(currentProgram, 'WebGLProgram');
+
+    var retrievedShaders = gl.getAttachedShaders(currentProgram);
+    verifyTestExpandos(retrievedShaders[0], "Shader[0]");
+    shouldBeType(retrievedShaders[0], "WebGLShader");
+    verifyTestExpandos(retrievedShaders[1], "Shader[1]");
+    shouldBeType(retrievedShaders[1], "WebGLShader");
+
+    debug('');
+}
+
+// Attach a buffer via vertexAttribPointer and verify no expando loss when you call getVertexAttrib.
+function testVertexAttributeBuffers() {
+    debug('Vertex Attribute Buffers');
+
+    var program = wtu.setupSimpleColorProgram(gl);
+    var position = gl.getAttribLocation(program, "vPosition");
+
+    var buffer = gl.createBuffer();
+    setTestExpandos(buffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+    assertMsg(buffer === gl.getVertexAttrib(position, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING),
+        "getVertexAttrib(VERTEX_ATTRIB_ARRAY_BUFFER_BINDING) return instance set with vertexAttribPointer");
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Garbage collect Javascript references. Remaining references should be internal to WebGL.
+    buffer = null;
+    program = null;
+    webglHarnessCollectGarbage();
+
+    var retrievedBuffer = gl.getVertexAttrib(position, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+    verifyTestExpandos(retrievedBuffer, "Vertex Attribute Buffer");
+    shouldBeType(retrievedBuffer, 'WebGLBuffer');
+
+    debug('');
+}
+
+// Attach renderbuffers to framebuffers and verify no expando loss ocurrs when you call
+// getFramebufferAttachmentParameter
+function testFrameBufferAttachments() {
+    debug('FrameBuffer Attachments');
+
+    var framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    var attachments = [
+        { enum: gl.COLOR_ATTACHMENT0,       name: "COLOR_ATTACHMENT0" },
+        { enum: gl.DEPTH_ATTACHMENT,        name: "DEPTH_ATTACHMENT" },
+        { enum: gl.STENCIL_ATTACHMENT,      name: "STENCIL_ATTACHMENT" },
+        { enum: gl.DEPTH_STENCIL_ATTACHMENT,name: "DEPTH_STENCIL_ATTACHMENT" },
+    ];
+
+    // Attach a renderbuffer to all attachment points.
+    attachments.forEach(function(attachment) {
+        var renderbuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        setTestExpandos(renderbuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment.enum, gl.RENDERBUFFER, renderbuffer);
+        assertMsg(renderbuffer === gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, attachment.enum, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME),
+            "getFramebufferAttachmentParameter(" + attachment.name + ") returns instance set with framebufferRenderbuffer");
+        renderbuffer = null;
+    });
+
+    // Garbage collect Javascript references. Remaining references should be internal to WebGL.
+    webglHarnessCollectGarbage();
+
+    // Verify all attached renderbuffers have expandos.
+    attachments.forEach(function(attachment) {
+        var retrievedRenderbuffer = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, attachment.enum, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+        verifyTestExpandos(retrievedRenderbuffer, attachment.name);
+        shouldBeType(retrievedRenderbuffer, 'WebGLRenderbuffer');
+    });
+
+    debug('');
+}
+
+// Run tests
+testBasicBindings();
+testProgramsAndShaders();
+testVertexAttributeBuffers();
+testFrameBufferAttachments();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

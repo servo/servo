@@ -9,8 +9,14 @@ import bisect
 import argparse
 
 KHRONOS_REPO_URL = "https://github.com/KhronosGroup/WebGL.git"
-PATCHES = [
+# Patches for conformance tests 1.0.x
+PATCHES_1X = [
     ("js-test-pre.patch", "resources/js-test-pre.js"),
+    ("unit.patch", "conformance/more/unit.js")
+]
+# Patches for conformance tests 2.0.x
+PATCHES_2X = [
+    ("js-test-pre2.patch", "js/js-test-pre.js"),
     ("unit.patch", "conformance/more/unit.js")
 ]
 
@@ -124,7 +130,8 @@ def update_conformance(version, destination, existing_repo, patches_dir):
     # Try to apply the patches to the required files
     if not patches_dir:
         patches_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-    for patch, file_name in PATCHES:
+    patches = PATCHES_2X if version.startswith('2') else PATCHES_1X
+    for patch, file_name in patches:
         try:
             patch = os.path.join(patches_dir, patch)
             subprocess.check_call(["patch", "-d", destination, file_name, patch])

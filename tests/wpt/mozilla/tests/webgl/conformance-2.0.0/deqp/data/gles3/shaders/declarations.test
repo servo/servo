@@ -1,0 +1,591 @@
+group invalid_declarations "Invalid declarations"
+	case in_in_vertex_main
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				in mediump float val;
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case out_in_vertex_main
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				out mediump float val;
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			in mediump float val;
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case in_in_fragment_main
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			out mediump float val;
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				in mediump float val;
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case out_in_fragment_main
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				out mediump float val;
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_in_vertex_main
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				uniform mediump float val;
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_in_fragment_main
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				uniform mediump float val;
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_block_in_main
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			void main()
+			{
+				uniform Block { mediump float val; };
+				${OUTPUT}
+			}
+		""
+	end
+
+	case invariant_attribute
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			invariant in mediump float val;
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invariant_uniform
+		version 300 es
+		expect compile_fail
+		vertex ""
+			#version 300 es
+			invariant uniform mediump float val;
+			${VERTEX_DECLARATIONS}
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			#version 300 es
+			${FRAGMENT_DECLARATIONS}
+			void main()
+			{
+				${FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case invariant_uniform_block_1
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			invariant uniform Block { mediump float val; };
+			${DECLARATIONS}
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case invariant_uniform_block_2
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			uniform Block { invariant mediump float val; };
+			${DECLARATIONS}
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_layout_qualifier
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			layout(foobar) uniform Block
+			{
+				mediump float val;
+			};
+			${DECLARATIONS}
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_member_layout_qualifier
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				layout(foobar) uniform mediump float val;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_nested_struct_definition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				struct S
+				{
+					mediump float v;
+					struct T
+					{
+						highp int i;
+					} t;
+				} s;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case nested_uniform_block
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				uniform Block2
+				{
+					mediump float v;
+				} block2;
+			} block;
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_sampler_2d
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				uniform sampler2D s;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_sampler_cube
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				uniform samplerCube s;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_missing_member_semicolon
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float var
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_missing_end_semicolon
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float var;
+			}
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_duplicate_member_name_1
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float var;
+				mediump float var;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_duplicate_member_name_2
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float var;
+			};
+			uniform Block2
+			{
+				mediump float var;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_duplicate_member_name_3
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform mediump float var;
+			uniform Block
+			{
+				mediump float var;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_duplicate_block_name
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float var;
+			};
+			uniform Block
+			{
+				mediump float var2;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_duplicate_instance_name_1
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float var;
+			} block;
+			uniform Block2
+			{
+				mediump float var2;
+			} block;
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_duplicate_instance_name_2
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform mediump float block;
+			uniform Block
+			{
+				mediump float var;
+			} block;
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_duplicate_instance_name_3
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float block;
+			};
+			uniform Block2
+			{
+				mediump float var2;
+			} block;
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_array_without_instance_name_1
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block[2]
+			{
+				mediump float var;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_array_without_instance_name_2
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				mediump float var;
+			} [2];
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_in
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				in mediump float var;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_out
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				out mediump float var;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uniform_block_const
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			${DECLARATIONS}
+			uniform Block
+			{
+				const mediump float var;
+			};
+			void main()
+			{
+				${OUTPUT}
+			}
+		""
+	end
+
+end # invalid_declarations
