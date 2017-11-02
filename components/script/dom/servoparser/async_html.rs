@@ -500,6 +500,23 @@ struct ParseNodeData {
     is_integration_point: bool,
 }
 
+pub struct SendableSink {
+    current_line: u64,
+    parse_node_data: HashMap<ParseNodeId, ParseNodeData>,
+    next_parse_node_id: ParseNodeId,
+    document_node: ParseNode,
+}
+
+#[derive(JSTraceable)]
+enum SinkState {
+    /// Default state of the Sink, sends all parse ops to main thread
+    SendingParseOps,
+    /// State assumed while parsing document.write()'s contents on the main thread
+    ParsingDocWriteContents(ParseOperationExecutor),
+    /// Speculative parsing mode, enqueues parse operations in parser thread
+    EnqueuingParseOps(VecDeque<ParseOperation>),
+}
+
 pub struct Sink {
     current_line: u64,
     parse_node_data: HashMap<ParseNodeId, ParseNodeData>,
@@ -734,5 +751,26 @@ impl TreeSink for Sink {
 
     fn pop(&mut self, node: &Self::Handle) {
         self.send_op(ParseOperation::Pop { node: node.id });
+impl Sendable for Sink {
+    type SendableSelf = SendableSink;
+
+    fn get_sendable(&self) -> Self::SendableSelf {
+        SendableSink {
+            current_line: self.current_line,
+            parse_node_data: self.parse_node_data.clone(),
+            next_parse_node_id: self.next_parse_node_id.get(),
+            document_node: self.document_node.clone(),
+        }
+    }
+
+    fn get_self_from_sendable(sendable_sink: Self::SendableSelf) -> Self {
+        Sink {
+            current_line: sendable_sink.current_line,
+            parse_node_data: sendable_sink.parse_node_data,
+            next_parse_node_id: Cell::new(sendable_sink.next_parse_node_id),
+            document_node: sendable_sink.document_node,
+            sender: None,
+            state: SinkState::SendingParseOps,
+        }
     }
 }
