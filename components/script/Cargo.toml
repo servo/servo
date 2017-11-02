@@ -14,6 +14,8 @@ path = "lib.rs"
 [features]
 debugmozjs = ['js/debugmozjs']
 unstable = ["servo_allocator/unstable"]
+unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
+default = ["unrooted_must_root_lint"]
 
 [build-dependencies]
 cmake = "0.1"
