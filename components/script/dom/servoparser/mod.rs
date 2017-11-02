@@ -43,6 +43,7 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
+use self::async_html::TokenizerState;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
@@ -223,7 +224,7 @@ impl ServoParser {
         assert_eq!(script_nesting_level, 0);
 
         self.script_nesting_level.set(script_nesting_level + 1);
-        script.execute(result);
+        self.handle_script(script, Some(result));
         self.script_nesting_level.set(script_nesting_level);
 
         if !self.suspended.get() {
@@ -436,13 +437,51 @@ impl ServoParser {
             let script_nesting_level = self.script_nesting_level.get();
 
             self.script_nesting_level.set(script_nesting_level + 1);
-            script.prepare();
+            self.handle_script(&script, None);
             self.script_nesting_level.set(script_nesting_level);
 
             if self.document.has_pending_parsing_blocking_script() {
                 self.suspended.set(true);
                 return;
             }
+        }
+    }
+
+    fn handle_script(&self, script: &HTMLScriptElement, result: Option<ScriptResult>) {
+        // speculative parsing is called only when the async tokenizer is
+        // in `ExecutingParseOps` state.
+        let do_speculative_parsing = match *self.tokenizer.borrow_mut() {
+            Tokenizer::AsyncHtml(ref mut tok) => {
+                match tok.state {
+                    TokenizerState::ExecutingParseOps => true,
+                    _ => false,
+                }
+            },
+            _ => false,
+        };
+        if do_speculative_parsing {
+            match *self.tokenizer.borrow_mut() {
+                Tokenizer::AsyncHtml(ref mut tok) => {
+                    tok.start_speculative_parsing(&*self.network_input.borrow());
+                },
+                _ => unreachable!(),
+            };
+
+            match result {
+                Some(result) => script.execute(result),
+                None => script.prepare(),
+            };
+            match *self.tokenizer.borrow_mut() {
+                Tokenizer::AsyncHtml(ref mut tok) => {
+                    tok.end_speculative_parsing(&mut *self.network_input.borrow_mut());
+                },
+                _ => unreachable!(),
+            };
+        } else {
+            match result {
+                Some(result) => script.execute(result),
+                None => script.prepare(),
+            };
         }
     }
 

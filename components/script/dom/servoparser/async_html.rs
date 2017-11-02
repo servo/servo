@@ -7,8 +7,9 @@
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, DomRoot};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
@@ -19,18 +20,20 @@ use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::virtualmethods::vtable_for;
-use html5ever::{Attribute as HtmlAttribute, ExpandedName, LocalName, QualName};
+use html5ever::{Attribute as HtmlAttribute, ExpandedName, LocalName, QualName, Sendable};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
 use html5ever::tendril::fmt::UTF8;
-use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
-use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode, TreeSink};
-use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use html5ever::tokenizer::{SendableTokenizer, Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
+use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode};
+use html5ever::tree_builder::{SendableTreeBuilder, TreeSink, TreeBuilder, TreeBuilderOpts};
+use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::vec_deque::VecDeque;
+use std::mem;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use style::context::QuirksMode as ServoQuirksMode;
@@ -389,6 +392,7 @@ pub struct Tokenizer {
     url: ServoUrl,
     pub state: TokenizerState,
     executor: ParseOperationExecutor,
+    pending_results: VecDeque<MutNullableDom<HTMLScriptElement>>,
 }
 
 impl Tokenizer {
@@ -408,6 +412,7 @@ impl Tokenizer {
             url: url,
             state: TokenizerState::ExecutingParseOps,
             executor: ParseOperationExecutor::new(Some(document)),
+            pending_results: VecDeque::new(),
         };
 
         let mut sink = Sink::new(to_tokenizer_sender.clone());
@@ -426,12 +431,13 @@ impl Tokenizer {
             });
             fragment_context_is_some = true;
         };
+        let sendable_sink = sink.get_sendable();
 
         // Create new thread for HtmlTokenizer. This is where parser actions
         // will be generated from the input provided. These parser actions are then passed
         // onto the main thread to be executed.
         thread::Builder::new().name(String::from("HTML Parser")).spawn(move || {
-            run(sink,
+            run(sendable_sink,
                 fragment_context_is_some,
                 ctxt_parse_node,
                 form_parse_node,
@@ -443,31 +449,73 @@ impl Tokenizer {
     }
 
     pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
-        let mut send_tendrils = VecDeque::new();
-        while let Some(str) = input.pop_front() {
-            send_tendrils.push_back(SendTendril::from(str));
-        }
+        match self.state {
+            TokenizerState::SpeculativeParsing {
+                ref mut tokenizer,
+                ref mut document_write_called
+            } => {
+                // Only document.write() calls can call tokenizer's feed function when
+                // it is in speculative parsing state.
+                *document_write_called = true;
+                // All previous speculative parsing results have been invalidated now, so discard them.
+                self.pending_results.clear();
+                assert!(self.pending_results.is_empty());
 
-        // Send message to parser thread, asking it to start reading from the input.
-        // Parser operation messages will be sent to main thread as they are evaluated.
-        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::Feed { input: send_tendrils }).unwrap();
-
-        loop {
-            match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
-                ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
-                ToTokenizerMsg::TokenizerResultDone { updated_input } => {
-                    let buffer_queue = create_buffer_queue(updated_input);
-                    *input = buffer_queue;
-                    return Ok(());
-                },
-                ToTokenizerMsg::TokenizerResultScript { script, updated_input } => {
-                    let buffer_queue = create_buffer_queue(updated_input);
-                    *input = buffer_queue;
-                    let script = self.get_node(&script.id);
-                    return Err(DomRoot::from_ref(script.downcast().unwrap()));
+                match tokenizer.feed(input) {
+                    TokenizerResult::Done => Ok(()),
+                    TokenizerResult::Script(script) => Err(DomRoot::from_ref(self.executor.get_node(&script.id)
+                                                       .downcast().unwrap())),
                 }
-                ToTokenizerMsg::End => unreachable!(),
-            };
+            },
+            TokenizerState::ExecutingParseOps => {
+                // If pending results are present (results generated during speculative parsing, while a
+                // pending-parsing-blocking script was being prepared/executed), then we take the oldest result and
+                // return it instead of feeding.
+                match self.pending_results.pop_front() {
+                    Some(result) => {
+                        return match result.get() {
+                            Some(script) => Err(script),
+                            None => Ok(()),
+                        };
+                    },
+                    None => {},
+                };
+
+                let mut send_tendrils = VecDeque::new();
+                while let Some(str) = input.pop_front() {
+                    send_tendrils.push_back(SendTendril::from(str));
+                }
+
+                // Send message to parser thread, asking it to start reading from the input.
+                // Parser operation messages will be sent to main thread as they are evaluated.
+                self.html_tokenizer_sender.send(
+                    ToHtmlTokenizerMsg::Feed {
+                        input: send_tendrils,
+                        should_parse_speculatively: false
+                    }).unwrap();
+
+                loop {
+                    match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
+                        ToTokenizerMsg::ProcessOperation(parse_op) => self.executor.process_operation(parse_op),
+                        ToTokenizerMsg::TokenizerResultDone { updated_input, speculative_parsing_mode } => {
+                            assert_eq!(speculative_parsing_mode, false);
+
+                            let buffer_queue = create_buffer_queue(updated_input);
+                            *input = buffer_queue;
+                            return Ok(());
+                        },
+                        ToTokenizerMsg::TokenizerResultScript { script, updated_input, speculative_parsing_mode } => {
+                            assert_eq!(speculative_parsing_mode, false);
+
+                            let buffer_queue = create_buffer_queue(updated_input);
+                            *input = buffer_queue;
+                            let script = self.executor.get_node(&script.id);
+                            return Err(DomRoot::from_ref(script.downcast().unwrap()));
+                        },
+                        _ => unreachable!(),
+                    };
+                }
+            }
         }
     }
 
@@ -475,7 +523,7 @@ impl Tokenizer {
         self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::End).unwrap();
         loop {
             match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
-                ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
+                ToTokenizerMsg::ProcessOperation(parse_op) => self.executor.process_operation(parse_op),
                 ToTokenizerMsg::End => return,
                 _ => unreachable!(),
             };
@@ -492,7 +540,8 @@ impl Tokenizer {
 
     pub fn start_speculative_parsing(&mut self, input: &BufferQueue) {
         let mut send_tendrils = VecDeque::new();
-        while let Some(str) = input.clone().pop_front() {
+        let mut input = input.clone();
+        while let Some(str) = input.pop_front() {
             send_tendrils.push_back(SendTendril::from(str));
         }
 
@@ -508,8 +557,8 @@ impl Tokenizer {
         match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
             ToTokenizerMsg::HtmlTokenizerInternalState(sendable_tok) => {
                 let mut tokenizer: HtmlTokenizer<TreeBuilder<ParseNode, Sink>> = HtmlTokenizer::get_self_from_sendable(
-                                                                                 sendable_tok
-                                                                             );
+                                                                                     sendable_tok
+                                                                                 );
                 // transfer the executor to the Sink, while leaving a dummy executor in place.
                 tokenizer.sink.sink.state = SinkState::ParsingDocWriteContents(
                     mem::replace(&mut self.executor, ParseOperationExecutor::new(None))
@@ -523,45 +572,31 @@ impl Tokenizer {
         };
     }
 
-    pub fn end_speculative_parsing(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    pub fn end_speculative_parsing(&mut self, input: &mut BufferQueue) {
         let mut old_state = mem::replace(&mut self.state, TokenizerState::ExecutingParseOps);
         match old_state {
             TokenizerState::SpeculativeParsing {
                 ref mut tokenizer,
                 document_write_called
             } => {
-                let (updated_input, result) = match self.receiver.recv()
-                                                    .expect("Unexpected channel panic in main thread.") {
-                    ToTokenizerMsg::TokenizerResultDone { updated_input, speculative_parsing_mode } => {
-                        assert!(speculative_parsing_mode);
-                        (updated_input, Ok(()))
-                    },
-                    ToTokenizerMsg::TokenizerResultScript { script, updated_input, speculative_parsing_mode } => {
-                        assert!(speculative_parsing_mode);
-                        let script = match tokenizer.sink.sink.state {
-                            SinkState::ParsingDocWriteContents(ref executor) => executor.get_node(&script.id),
-                            _ => unreachable!(),
-                        };
-                        (updated_input, Err(DomRoot::from_ref(script.downcast().unwrap())))
+                let msg = self.receiver.recv().expect("Unexpected channel panic in main thread.");
+                match tokenizer.sink.sink.state {
+                    SinkState::ParsingDocWriteContents(ref mut executor) => {
+                        // self.executor contains the dummy executor we had assigned to it in
+                        // `starts_speculative_parsing`; this line ensures that the tokenizer once again
+                        // repossesses it.
+                        mem::swap(&mut self.executor, executor);
                     }
                     _ => unreachable!(),
                 };
 
                 if document_write_called {
-                    match tokenizer.sink.sink.state {
-                        SinkState::ParsingDocWriteContents(ref mut executor) => {
-                            // self.executor contains the dummy executor we had assigned to it in
-                            // `starts_speculative_parsing`; this line ensures that the tokenizer once again
-                            // repossesses it.
-                            mem::swap(&mut self.executor, executor);
-                        }
-                        _ => unreachable!(),
-                    };
                     tokenizer.sink.sink.state = SinkState::SendingParseOps;
                     let tok_internal_state = tokenizer.get_sendable();
                     self.html_tokenizer_sender.send(
                         ToHtmlTokenizerMsg::RestoreInternalState { tok_internal_state }
                     ).unwrap();
+                    assert!(self.pending_results.is_empty());
                 } else {
                     self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::FlushTreeOps).unwrap();
                     match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
@@ -571,18 +606,32 @@ impl Tokenizer {
                             }
                         },
                         _ => unreachable!(),
-                    }
+                    };
+
+                    let (updated_input, result) = match msg {
+                        ToTokenizerMsg::TokenizerResultDone { updated_input, speculative_parsing_mode } => {
+                            assert!(speculative_parsing_mode);
+                            (updated_input, MutNullableDom::new(None))
+                        },
+                        ToTokenizerMsg::TokenizerResultScript { script, updated_input, speculative_parsing_mode } => {
+                            assert!(speculative_parsing_mode);
+                            let script = self.executor.get_node(&script.id);
+                            (updated_input, MutNullableDom::new(Some(script.downcast().unwrap())))
+                        }
+                        _ => unreachable!(),
+                    };
                     let buffer_queue = create_buffer_queue(updated_input);
                     *input = buffer_queue;
+
+                    self.pending_results.push_back(result);
                 }
-                result
             },
             TokenizerState::ExecutingParseOps => unreachable!(),
         }
     }
 }
 
-fn run(sink: Sink,
+fn run(sink: SendableSink,
        fragment_context_is_some: bool,
        ctxt_parse_node: Option<ParseNode>,
        form_parse_node: Option<ParseNode>,
@@ -593,6 +642,8 @@ fn run(sink: Sink,
         .. Default::default()
     };
 
+    let mut sink = Sink::get_self_from_sendable(sink);
+    sink.sender = Some(sender.clone());
     let mut html_tokenizer = if fragment_context_is_some {
         let tb = TreeBuilder::new_for_fragment(
             sink,
@@ -612,8 +663,13 @@ fn run(sink: Sink,
 
     loop {
         match receiver.recv().expect("Unexpected channel panic in html parser thread") {
-            ToHtmlTokenizerMsg::Feed { input } => {
+            ToHtmlTokenizerMsg::Feed { input, should_parse_speculatively } => {
                 let mut input = create_buffer_queue(input);
+                if should_parse_speculatively {
+                    let sendable_tokenizer = html_tokenizer.get_sendable();
+                    html_tokenizer.sink.sink.state = SinkState::EnqueuingParseOps(VecDeque::new());
+                    sender.send(ToTokenizerMsg::HtmlTokenizerInternalState(sendable_tokenizer)).unwrap();
+                }
                 let res = html_tokenizer.feed(&mut input);
 
                 // Gather changes to 'input' and place them in 'updated_input',
@@ -624,22 +680,38 @@ fn run(sink: Sink,
                 }
 
                 let res = match res {
-                    TokenizerResult::Done => ToTokenizerMsg::TokenizerResultDone { updated_input },
-                    TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript { script, updated_input }
+                    TokenizerResult::Done => ToTokenizerMsg::TokenizerResultDone {
+                                                 updated_input,
+                                                 speculative_parsing_mode: should_parse_speculatively
+                                             },
+                    TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript {
+                                                           script,
+                                                           updated_input,
+                                                           speculative_parsing_mode: should_parse_speculatively
+                                                       },
                 };
                 sender.send(res).unwrap();
+            },
+            ToHtmlTokenizerMsg::FlushTreeOps => {
+                // In addition to flushing tree ops, this method
+                // implictly changes the Sink's state to `SinkState::SendingParseOps`.
+                html_tokenizer.sink.sink.flush_tree_ops();
+            }
+            ToHtmlTokenizerMsg::RestoreInternalState { tok_internal_state } => {
+                html_tokenizer = HtmlTokenizer::get_self_from_sendable(tok_internal_state);
+                html_tokenizer.sink.sink.sender = Some(sender.clone());
             },
             ToHtmlTokenizerMsg::End => {
                 html_tokenizer.end();
                 sender.send(ToTokenizerMsg::End).unwrap();
                 break;
             },
-            ToHtmlTokenizerMsg::SetPlainTextState => html_tokenizer.set_plaintext_state()
+            ToHtmlTokenizerMsg::SetPlainTextState => html_tokenizer.set_plaintext_state(),
         };
     }
 }
 
-#[derive(Default, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 struct ParseNodeData {
     contents: Option<ParseNode>,
     is_integration_point: bool,
