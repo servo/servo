@@ -9,14 +9,15 @@ interface MessageEvent : Event {
   readonly attribute DOMString origin;
   readonly attribute DOMString lastEventId;
   //readonly attribute (WindowProxy or MessagePort)? source;
-  //readonly attribute MessagePort[]? ports;
+  readonly attribute /*FrozenArray<MessagePort>*/any ports;
 };
 
 dictionary MessageEventInit : EventInit {
   any data = null;
   DOMString origin = "";
   DOMString lastEventId = "";
-  //DOMString channel;
   //(WindowProxy or MessagePort)? source;
-  //sequence<MessagePort> ports;
+  sequence<MessagePort> ports;
 };
+
+typedef (/*WindowProxy or */MessagePort or ServiceWorker) MessageEventSource;

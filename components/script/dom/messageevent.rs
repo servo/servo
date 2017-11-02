@@ -14,9 +14,11 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
 use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext};
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use servo_atoms::Atom;
 
@@ -26,6 +28,7 @@ pub struct MessageEvent {
     data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
+    ports: Vec<DomRoot<MessagePort>>,
 }
 
 impl MessageEvent {
@@ -35,6 +38,7 @@ impl MessageEvent {
             HandleValue::undefined(),
             DOMString::new(),
             DOMString::new(),
+            vec![],
         )
     }
 
@@ -43,12 +47,14 @@ impl MessageEvent {
         data: HandleValue,
         origin: DOMString,
         lastEventId: DOMString,
+        ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<MessageEvent> {
         let ev = Box::new(MessageEvent {
             event: Event::new_inherited(),
             data: Heap::default(),
-            origin: origin,
-            lastEventId: lastEventId,
+            origin,
+            lastEventId,
+            ports,
         });
         let ev = reflect_dom_object(ev, global, MessageEventBinding::Wrap);
         ev.data.set(data.get());
@@ -64,8 +70,9 @@ impl MessageEvent {
         data: HandleValue,
         origin: DOMString,
         lastEventId: DOMString,
+        ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<MessageEvent> {
-        let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
+        let ev = MessageEvent::new_initialized(global, data, origin, lastEventId, ports);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -86,6 +93,7 @@ impl MessageEvent {
             init.data.handle(),
             init.origin.clone(),
             init.lastEventId.clone(),
+            init.ports.clone().unwrap_or(vec![])
         );
         Ok(ev)
     }
@@ -97,6 +105,7 @@ impl MessageEvent {
         scope: &GlobalScope,
         message: HandleValue,
         origin: Option<&str>,
+        ports: Vec<DomRoot<MessagePort>>,
     ) {
         let messageevent = MessageEvent::new(
             scope,
@@ -106,6 +115,7 @@ impl MessageEvent {
             message,
             DOMString::from(origin.unwrap_or("")),
             DOMString::new(),
+            ports,
         );
         messageevent.upcast::<Event>().fire(target);
     }
@@ -113,23 +123,31 @@ impl MessageEvent {
 
 impl MessageEventMethods for MessageEvent {
     #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-messageevent-data
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-data>
     unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
         self.data.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
     fn Origin(&self) -> DOMString {
         self.origin.clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-messageevent-lasteventid
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-lasteventid>
     fn LastEventId(&self) -> DOMString {
         self.lastEventId.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
+    }
+
+    #[allow(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
+    unsafe fn Ports(&self, cx: *mut JSContext) -> JSVal {
+        rooted!(in(cx) let mut ports = UndefinedValue());
+        self.ports.to_jsval(cx, ports.handle_mut());
+        *ports
     }
 }
