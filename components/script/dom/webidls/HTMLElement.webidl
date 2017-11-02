@@ -23,7 +23,7 @@ interface HTMLElement : Element {
   //         attribute DOMString itemId;
   //readonly attribute HTMLPropertiesCollection properties;
   //         attribute any itemValue; // acts as DOMString on setting
-  [Pref="dom.microdata.enabled"]
+  [Pref="dom.microdata.testing.enabled"]
   sequence<DOMString>? propertyNames();
   [Pref="dom.microdata.testing.enabled"]
   sequence<DOMString>? itemtypes();
