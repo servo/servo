@@ -147,7 +147,7 @@ impl Worker {
         let _ac = JSAutoRealm::new(global.get_cx(), target.reflector().get_jsobject().get());
         rooted!(in(global.get_cx()) let mut message = UndefinedValue());
         assert!(data.read(&global, message.handle_mut()));
-        MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None);
+        MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, vec![]);
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {

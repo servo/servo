@@ -4,7 +4,7 @@
 
 //! Trait representing the concept of [transferable objects]
 //! (https://html.spec.whatwg.org/multipage/#transferable-objects).
-use dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomObject;
 use js::jsapi::{JSContext, JSStructuredCloneReader, MutableHandleObject};
 use std::os::raw;
 
