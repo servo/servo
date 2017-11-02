@@ -45,7 +45,8 @@ pub struct HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLElement {
+    pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>,
+                         document: &Document) -> HTMLElement {
         HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
