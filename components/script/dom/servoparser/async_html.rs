@@ -517,12 +517,14 @@ enum SinkState {
     EnqueuingParseOps(VecDeque<ParseOperation>),
 }
 
+#[derive(JSTraceable)]
 pub struct Sink {
     current_line: u64,
     parse_node_data: HashMap<ParseNodeId, ParseNodeData>,
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
-    sender: Sender<ToTokenizerMsg>,
+    sender: Option<Sender<ToTokenizerMsg>>,
+    state: SinkState,
 }
 
 impl Sink {
@@ -535,7 +537,8 @@ impl Sink {
                 id: 0,
                 qual_name: None,
             },
-            sender: sender
+            sender: Some(sender),
+            state: SinkState::SendingParseOps,
         };
         let data = ParseNodeData::default();
         sink.insert_parse_node_data(0, data);
@@ -553,8 +556,29 @@ impl Sink {
         }
     }
 
-    fn send_op(&self, op: ParseOperation) {
-        self.sender.send(ToTokenizerMsg::ProcessOperation(op)).unwrap();
+    fn send_msg(&self, msg: ToTokenizerMsg) {
+        match self.sender {
+            Some(ref sender) => sender.send(msg).unwrap(),
+            None => unreachable!(),
+        };
+    }
+
+    fn process_op(&mut self, op: ParseOperation) {
+        match self.state {
+            SinkState::EnqueuingParseOps(ref mut parse_op_queue) => parse_op_queue.push_back(op),
+            SinkState::SendingParseOps => self.send_msg(ToTokenizerMsg::ProcessOperation(op)),
+            SinkState::ParsingDocWriteContents(ref mut executor) => executor.process_operation(op),
+        }
+    }
+
+    fn flush_tree_ops(&mut self) {
+        let old_state = mem::replace(&mut self.state, SinkState::SendingParseOps);
+        match old_state {
+            SinkState::EnqueuingParseOps(parse_op_queue) => {
+                self.send_msg(ToTokenizerMsg::SpeculativeParseOps(parse_op_queue));
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn insert_parse_node_data(&mut self, id: ParseNodeId, data: ParseNodeData) {
@@ -590,7 +614,7 @@ impl TreeSink for Sink {
             let data = self.get_parse_node_data_mut(&target.id);
             data.contents = Some(node.clone());
         }
-        self.send_op(ParseOperation::GetTemplateContents { target: target.id, contents: node.id });
+        self.process_op(ParseOperation::GetTemplateContents { target: target.id, contents: node.id });
         node
     }
 
@@ -619,24 +643,25 @@ impl TreeSink for Sink {
         let attrs = html_attrs.into_iter()
             .map(|attr| Attribute { name: attr.name, value: String::from(attr.value) }).collect();
 
-        self.send_op(ParseOperation::CreateElement {
+        let current_line = self.current_line;
+        self.process_op(ParseOperation::CreateElement {
             node: node.id,
             name,
             attrs,
-            current_line: self.current_line
+            current_line,
         });
         node
     }
 
     fn create_comment(&mut self, text: StrTendril) -> Self::Handle {
         let node = self.new_parse_node();
-        self.send_op(ParseOperation::CreateComment { text: String::from(text), node: node.id });
+        self.process_op(ParseOperation::CreateComment { text: String::from(text), node: node.id });
         node
     }
 
     fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> ParseNode {
         let node = self.new_parse_node();
-        self.send_op(ParseOperation::CreatePI {
+        self.process_op(ParseOperation::CreatePI {
             node: node.id,
             target: String::from(target),
             data: String::from(data)
@@ -651,7 +676,7 @@ impl TreeSink for Sink {
         nodes: (&Self::Handle, Option<&Self::Handle>),
     ) {
         let (element, prev_element) = nodes;
-        self.send_op(ParseOperation::AssociateWithForm {
+        self.process_op(ParseOperation::AssociateWithForm {
             target: target.id,
             form: form.id,
             element: element.id,
@@ -666,7 +691,7 @@ impl TreeSink for Sink {
             HtmlNodeOrText::AppendNode(node) => NodeOrText::Node(node),
             HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
         };
-        self.send_op(ParseOperation::AppendBeforeSibling { sibling: sibling.id, node: new_node });
+        self.process_op(ParseOperation::AppendBeforeSibling { sibling: sibling.id, node: new_node });
     }
 
     fn append_based_on_parent_node(
@@ -679,7 +704,7 @@ impl TreeSink for Sink {
             HtmlNodeOrText::AppendNode(node) => NodeOrText::Node(node),
             HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
         };
-        self.send_op(ParseOperation::AppendBasedOnParentNode {
+        self.process_op(ParseOperation::AppendBasedOnParentNode {
             element: elem.id,
             prev_element: prev_elem.id,
             node: child
@@ -696,7 +721,7 @@ impl TreeSink for Sink {
             QuirksMode::LimitedQuirks => ServoQuirksMode::LimitedQuirks,
             QuirksMode::NoQuirks => ServoQuirksMode::NoQuirks,
         };
-        self.send_op(ParseOperation::SetQuirksMode { mode });
+        self.process_op(ParseOperation::SetQuirksMode { mode });
     }
 
     fn append(&mut self, parent: &Self::Handle, child: HtmlNodeOrText<Self::Handle>) {
@@ -704,12 +729,12 @@ impl TreeSink for Sink {
             HtmlNodeOrText::AppendNode(node) => NodeOrText::Node(node),
             HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
         };
-        self.send_op(ParseOperation::Append { parent: parent.id, node: child });
+        self.process_op(ParseOperation::Append { parent: parent.id, node: child });
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
                                   system_id: StrTendril) {
-        self.send_op(ParseOperation::AppendDoctypeToDocument {
+        self.process_op(ParseOperation::AppendDoctypeToDocument {
             name: String::from(name),
             public_id: String::from(public_id),
             system_id: String::from(system_id)
@@ -719,15 +744,15 @@ impl TreeSink for Sink {
     fn add_attrs_if_missing(&mut self, target: &Self::Handle, html_attrs: Vec<HtmlAttribute>) {
         let attrs = html_attrs.into_iter()
             .map(|attr| Attribute { name: attr.name, value: String::from(attr.value) }).collect();
-        self.send_op(ParseOperation::AddAttrsIfMissing { target: target.id, attrs });
+        self.process_op(ParseOperation::AddAttrsIfMissing { target: target.id, attrs });
     }
 
     fn remove_from_parent(&mut self, target: &Self::Handle) {
-        self.send_op(ParseOperation::RemoveFromParent { target: target.id });
+        self.process_op(ParseOperation::RemoveFromParent { target: target.id });
     }
 
     fn mark_script_already_started(&mut self, node: &Self::Handle) {
-        self.send_op(ParseOperation::MarkScriptAlreadyStarted { node: node.id });
+        self.process_op(ParseOperation::MarkScriptAlreadyStarted { node: node.id });
     }
 
     fn complete_script(&mut self, _: &Self::Handle) -> NextParserState {
@@ -735,7 +760,7 @@ impl TreeSink for Sink {
     }
 
     fn reparent_children(&mut self, parent: &Self::Handle, new_parent: &Self::Handle) {
-        self.send_op(ParseOperation::ReparentChildren { parent: parent.id, new_parent: new_parent.id });
+        self.process_op(ParseOperation::ReparentChildren { parent: parent.id, new_parent: new_parent.id });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
@@ -750,7 +775,10 @@ impl TreeSink for Sink {
     }
 
     fn pop(&mut self, node: &Self::Handle) {
-        self.send_op(ParseOperation::Pop { node: node.id });
+        self.process_op(ParseOperation::Pop { node: node.id });
+    }
+}
+
 impl Sendable for Sink {
     type SendableSelf = SendableSink;
 
