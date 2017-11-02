@@ -7,7 +7,7 @@
 #[cfg(feature = "gecko")]
 use Atom;
 use app_units::Au;
-use cssparser::Parser;
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 use std::fmt;
@@ -58,19 +58,24 @@ impl FontWeight {
 }
 
 impl Parse for FontWeight {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<FontWeight, ParseError<'i>> {
-        let result = input.try(|input| {
-            let ident = input.expect_ident().map_err(|_| ())?;
-            match_ignore_ascii_case! { &ident,
-                "normal" => Ok(FontWeight::Normal),
-                "bold" => Ok(FontWeight::Bold),
-                "bolder" => Ok(FontWeight::Bolder),
-                "lighter" => Ok(FontWeight::Lighter),
-                _ => Err(())
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontWeight, ParseError<'i>> {
+        let result = match *input.next()? {
+            Token::Ident(ref ident) => {
+                match_ignore_ascii_case! { ident,
+                    "normal" => Ok(FontWeight::Normal),
+                    "bold" => Ok(FontWeight::Bold),
+                    "bolder" => Ok(FontWeight::Bolder),
+                    "lighter" => Ok(FontWeight::Lighter),
+                    _ => Err(()),
+                }
             }
-        });
-        result.or_else(|_| computed::FontWeight::parse(context, input).map(FontWeight::Weight))
+            Token::Number { int_value: Some(value), .. } => {
+                computed::FontWeight::from_int(value).map(FontWeight::Weight)
+            },
+            _ => Err(()),
+        };
+
+        result.map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -83,16 +88,18 @@ impl ToComputedValue for FontWeight {
             FontWeight::Weight(weight) => weight,
             FontWeight::Normal => computed::FontWeight::normal(),
             FontWeight::Bold => computed::FontWeight::bold(),
-            FontWeight::Bolder =>
-                context.builder.get_parent_font().clone_font_weight().bolder(),
-            FontWeight::Lighter =>
-                context.builder.get_parent_font().clone_font_weight().lighter(),
+            FontWeight::Bolder => {
+                context.builder.get_parent_font().clone_font_weight().bolder()
+            },
+            FontWeight::Lighter => {
+                context.builder.get_parent_font().clone_font_weight().lighter()
+            },
             #[cfg(feature = "gecko")]
-            FontWeight::System(_) =>
-                context.cached_system_font.as_ref().unwrap().font_weight.clone(),
+            FontWeight::System(_) => {
+                context.cached_system_font.as_ref().unwrap().font_weight.clone()
+            },
             #[cfg(not(feature = "gecko"))]
-            FontWeight::System(_) =>
-                unreachable!(),
+            FontWeight::System(_) => unreachable!(),
         }
     }
 

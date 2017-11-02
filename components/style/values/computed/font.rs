@@ -5,10 +5,8 @@
 //! Computed values for font properties
 
 use app_units::Au;
-use cssparser::Parser;
-use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use style_traits::ToCss;
 use values::animated::ToAnimatedValue;
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
 use values::specified::font as specified;
@@ -134,14 +132,6 @@ impl FontWeight {
             FontWeight(700)
         }
     }
-}
-
-impl Parse for FontWeight {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
-        -> Result<FontWeight, ParseError<'i>> {
-            FontWeight::from_int(input.expect_integer()?)
-                .map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
 }
 
 impl FontSize {
