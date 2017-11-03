@@ -684,6 +684,7 @@ ${helpers.predefined_type("transform-origin",
                           "computed::TransformOrigin::initial_value()",
                           animation_value_type="ComputedValue",
                           extra_prefixes="moz webkit",
+                          gecko_ffi_name="mTransformOrigin",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-transforms/#transform-origin-property")}
 
