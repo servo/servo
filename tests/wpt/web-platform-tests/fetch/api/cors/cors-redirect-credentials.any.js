@@ -49,3 +49,17 @@ for (var code of [301, 302, 303, 307, 308]) {
   corsRedirectCredentials("Redirect " + code + " from remote to another remote with user", remoteRedirect, remoteLocation2, code, "user:");
   corsRedirectCredentials("Redirect " + code + " from remote to another remote with password", remoteRedirect, remoteLocation2, code, ":password");
 }
+
+promise_test(function(test) {
+  var urlParameters = "?redirect_status=302";
+  var redirectLocation = remoteRedirect + "?redirect_status=302&location=" + encodeURIComponent(localLocation.replace("://", "://user:password@"));
+  urlParameters += "&location=" + encodeURIComponent(redirectLocation);
+  var requestInit = { "mode": "cors", "redirect": "follow" };
+
+  return fetch(localRedirect + urlParameters, requestInit).then(function(res) {
+    assert_unreached();
+  }, function(err) {
+    assert_equals(err.toString(), "TypeError: Credentials check failed");
+    test.done();
+  });
+}, "Accept doubly redirected cross-to-same-origin request with credentials");
