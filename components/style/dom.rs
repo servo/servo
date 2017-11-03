@@ -122,6 +122,7 @@ where
 {
     type Item = N;
 
+    #[inline]
     fn next(&mut self) -> Option<N> {
         let prev = match self.previous.take() {
             None => return None,
@@ -146,6 +147,18 @@ pub trait TDocument : Sized + Copy + Clone {
 
     /// Returns the quirks mode of this document.
     fn quirks_mode(&self) -> QuirksMode;
+
+    /// Get a list of elements with a given ID in this document, sorted by
+    /// document position.
+    ///
+    /// Can return an error to signal that this list is not available, or also
+    /// return an empty slice.
+    fn elements_with_id(
+        &self,
+        _id: &Atom,
+    ) -> Result<&[<Self::ConcreteNode as TNode>::ConcreteElement], ()> {
+        Err(())
+    }
 }
 
 /// The `TNode` trait. This is the main generic trait over which the style
@@ -180,6 +193,9 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
         DomChildren(self.first_child())
     }
 
+    /// Returns whether the node is attached to a document.
+    fn is_in_document(&self) -> bool;
+
     /// Iterate over the DOM children of a node, in preorder.
     fn dom_descendants(&self) -> DomDescendants<Self> {
         DomDescendants {
@@ -190,6 +206,7 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Returns the next children in pre-order, optionally scoped to a subtree
     /// root.
+    #[inline]
     fn next_in_preorder(&self, scoped_to: Option<Self>) -> Option<Self> {
         if let Some(c) = self.first_child() {
             return Some(c);
