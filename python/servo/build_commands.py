@@ -261,7 +261,15 @@ class MachCommands(CommandBase):
                 os.makedirs(openssl_dir)
             shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
             shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
+
+            # Check if the NDK version is 12
             env["ANDROID_NDK_ROOT"] = env["ANDROID_NDK"]
+            with open(path.join(env["ANDROID_NDK"], 'source.properties')) as ndk_properties:
+                lines = ndk_properties.readlines()
+                if lines[1].split(' = ')[1].split('.')[0] != '12':
+                    print("Currently only support NDK 12.")
+                    sys.exit(1)
+
             env["RUST_TARGET"] = target
             with cd(openssl_dir):
                 status = call(
