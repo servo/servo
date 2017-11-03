@@ -2178,6 +2178,15 @@ ${helpers.single_keyword("-moz-osx-font-smoothing",
                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                          animation_value_type="discrete")}
 
+${helpers.predefined_type("-moz-font-smoothing-background-color",
+                          "RGBAColor",
+                          "RGBA::transparent()",
+                          animation_value_type="AnimatedRGBA",
+                          products="gecko",
+                          gecko_ffi_name="mFont.fontSmoothingBackgroundColor",
+                          internal=True,
+                          spec="None (Nonstandard internal property)")}
+
 ${helpers.predefined_type("-moz-min-font-size-ratio",
                           "Percentage",
                           "computed::Percentage::hundred()",
