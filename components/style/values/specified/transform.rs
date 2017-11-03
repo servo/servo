@@ -254,6 +254,12 @@ impl Transform {
     }
 }
 
+impl Parse for Transform {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Transform::parse_internal(context, input, false)
+    }
+}
+
 /// The specified value of a component of a CSS `<transform-origin>`.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum OriginComponent<S> {
