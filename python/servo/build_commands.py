@@ -176,11 +176,13 @@ class MachCommands(CommandBase):
     def build(self, target=None, release=False, dev=False, jobs=None,
               features=None, android=None, verbose=False, debug_mozjs=False, params=None,
               with_debug_assertions=False):
+
+        opts = params or []
+        opts += ["--manifest-path", self.servo_manifest()]
+
         if android is None:
             android = self.config["build"]["android"]
         features = features or self.servo_features()
-
-        opts = params or []
 
         base_path = self.get_target_dir()
         release_path = path.join(base_path, "release", "servo")
@@ -326,8 +328,7 @@ class MachCommands(CommandBase):
         cargo_binary = "cargo" + BIN_SUFFIX
 
         status = call(
-            [cargo_binary, "build"] + opts,
-            env=env, cwd=self.servo_crate(), verbose=verbose)
+            [cargo_binary, "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Do some additional things if the build succeeded
@@ -392,6 +393,8 @@ class MachCommands(CommandBase):
 
         ret = None
         opts = []
+        opts += ["--manifest-path", self.cef_manifest()]
+
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
@@ -415,10 +418,7 @@ class MachCommands(CommandBase):
             # common dependencies with the same flags.
             opts += ["--", "-C", "link-args=-Xlinker -undefined -Xlinker dynamic_lookup"]
 
-        with cd(path.join("ports", "cef")):
-            ret = call(["cargo", "rustc"] + opts,
-                       env=env,
-                       verbose=verbose)
+        ret = call(["cargo", "rustc"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -449,20 +449,20 @@ class MachCommands(CommandBase):
 
         ret = None
         opts = []
+        opts += ["--manifest-path", self.geckolib_manifest()]
         features = []
+
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
         if release:
             opts += ["--release"]
-
         if features:
             opts += ["--features", ' '.join(features)]
 
         build_start = time()
-        with cd(path.join("ports", "geckolib")):
-            ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
+        ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value

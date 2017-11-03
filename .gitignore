@@ -1,5 +1,6 @@
 /.servo
-/.cargo
+/.cargo/*
+!/.cargo/config.*
 /.servobuild
 /target
 /ports/android/bin
