@@ -2397,6 +2397,7 @@ fn static_assert() {
         self.copy__x_lang_from(other)
     }
 
+    ${impl_simple("_moz_script_level", "mScriptLevel")}
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
 
     pub fn set_font_variant_alternates(&mut self,
