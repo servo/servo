@@ -549,7 +549,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-mode
     fn Mode(&self) -> RequestMode {
-        self.request.borrow().mode.into()
+        self.request.borrow().mode.clone().into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-credentials
@@ -758,7 +758,8 @@ impl Into<RequestMode> for NetTraitsRequestMode {
             NetTraitsRequestMode::SameOrigin => RequestMode::Same_origin,
             NetTraitsRequestMode::NoCors => RequestMode::No_cors,
             NetTraitsRequestMode::CorsMode => RequestMode::Cors,
-            NetTraitsRequestMode::WebSocket => unreachable!("Websocket request mode should never be exposed to Dom"),
+            NetTraitsRequestMode::WebSocket { .. } =>
+                unreachable!("Websocket request mode should never be exposed to Dom"),
         }
     }
 }

@@ -5,6 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use angle::hl::{BuiltInResources, Output, ShaderValidator};
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLMsgSender, WebGLParameter, WebGLResult, WebGLShaderId};
+use canvas_traits::webgl::WebGLVersion;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::reflector::reflect_dom_object;
@@ -99,7 +100,7 @@ impl WebGLShader {
     }
 
     /// glCompileShader
-    pub fn compile(&self, ext: &WebGLExtensions) {
+    pub fn compile(&self, version: WebGLVersion, ext: &WebGLExtensions) {
         if self.compilation_status.get() != ShaderCompilationStatus::NotCompiled {
             debug!("Compiling already compiled shader {}", self.id);
         }
@@ -108,9 +109,19 @@ impl WebGLShader {
             let mut params = BuiltInResources::default();
             params.FragmentPrecisionHigh = 1;
             params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
-            let validator = ShaderValidator::for_webgl(self.gl_type,
-                                                       SHADER_OUTPUT_FORMAT,
-                                                       &params).unwrap();
+            let validator = match version {
+                WebGLVersion::WebGL1 => {
+                    ShaderValidator::for_webgl(self.gl_type,
+                                               SHADER_OUTPUT_FORMAT,
+                                               &params).unwrap()
+                },
+                WebGLVersion::WebGL2 => {
+                    ShaderValidator::for_webgl2(self.gl_type,
+                                               SHADER_OUTPUT_FORMAT,
+                                               &params).unwrap()
+                },
+            };
+
             match validator.compile_and_translate(&[source]) {
                 Ok(translated_source) => {
                     debug!("Shader translated: {}", translated_source);

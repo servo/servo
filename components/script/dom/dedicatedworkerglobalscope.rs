@@ -41,7 +41,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
-use style::thread_state;
+use style::thread_state::{self, ThreadState};
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -166,7 +166,7 @@ impl DedicatedWorkerGlobalScope {
         let origin = GlobalScope::current().expect("No current global object").origin().immutable().clone();
 
         thread::Builder::new().name(name).spawn(move || {
-            thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
+            thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
 
             if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
                 TopLevelBrowsingContextId::install(top_level_browsing_context_id);
@@ -195,7 +195,8 @@ impl DedicatedWorkerGlobalScope {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::Task(
                         WorkerEvent,
-                        Box::new(SimpleWorkerErrorHandler::new(worker))
+                        Box::new(SimpleWorkerErrorHandler::new(worker)),
+                        pipeline_id
                     )).unwrap();
                     return;
                 }
@@ -357,6 +358,7 @@ impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(forward_error_to_worker_object: move || {
             let worker = worker.root();
             let global = worker.global();
@@ -382,7 +384,7 @@ impl DedicatedWorkerGlobalScope {
             }
         }));
         // TODO: Should use the DOM manipulation task source.
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task)).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
     }
 }
 
@@ -403,10 +405,11 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
         }));
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task)).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
         Ok(())
     }
 

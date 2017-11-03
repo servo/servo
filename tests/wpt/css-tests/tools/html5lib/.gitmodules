@@ -1,3 +1,0 @@
-[submodule "testdata"]
-	path = html5lib/tests/testdata
-	url = https://github.com/html5lib/html5lib-tests.git

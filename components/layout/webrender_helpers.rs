@@ -460,13 +460,14 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                              webrender_api::LayoutSize::zero());
             }
             DisplayItem::Line(ref item) => {
-                      builder.push_line(&self.prim_info(),
-                                        // TODO(gw): Use a better estimate for wavy line thickness.
-                                        (0.33 * item.base.bounds.size.height.to_f32_px()).ceil(),
-                                        webrender_api::LineOrientation::Horizontal,
-                                        &item.color,
-                                        item.style);
-                  }
+
+                builder.push_line(&self.prim_info(),
+                                  // TODO(gw): Use a better estimate for wavy line thickness.
+                                  (0.33 * item.base.bounds.size.height.to_f32_px()).ceil(),
+                                  webrender_api::LineOrientation::Horizontal,
+                                  &item.color,
+                                  item.style);
+            }
 
             DisplayItem::BoxShadow(ref item) => {
                 let box_bounds = item.box_bounds.to_rectf();
@@ -541,10 +542,16 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             scroll_sensitivity
                         )
                     }
-                    ClipScrollNodeType::StickyFrame(sticky_frame_info) => {
+                    ClipScrollNodeType::StickyFrame(ref sticky_data) => {
                         // TODO: Add define_sticky_frame_with_parent to WebRender.
                         builder.push_clip_id(parent_id);
-                        let id = builder.define_sticky_frame(node.id, item_rect, sticky_frame_info);
+                        let id = builder.define_sticky_frame(
+                            node.id,
+                            item_rect,
+                            sticky_data.margins,
+                            sticky_data.vertical_offset_bounds,
+                            sticky_data.horizontal_offset_bounds,
+                        );
                         builder.pop_clip_id();
                         id
                     }

@@ -1,4 +1,4 @@
-This folder contains the web platform tests, CSS WG tests, and the
+This folder contains the web platform tests and the
 code required to integrate them with Servo. 
 To learn how to write tests, go [here](http://web-platform-tests.org/writing-tests/index.html).
 
@@ -9,15 +9,10 @@ In particular, this folder contains:
 
 * `config.ini`: some configuration for the web-platform-tests.
 * `include.ini`: the subset of web-platform-tests we currently run.
-* `config_css.ini`: some configuration for the CSSWG tests.
-* `include_css.ini`: the subset of the CSSWG tests we currently run.
 * `run_wpt.py`: glue code to run the web-platform-tests in Servo.
-* `run_css.py`: glue code to run the CSSWG tests in Servo.
-* `run.py`: common code used by `run_wpt.py` and `run_css.py`.
+* `run.py`: common code used by `run_wpt.py`.
 * `web-platform-tests`: copy of the web-platform-tests.
 * `metadata`: expected failures for the web-platform-tests we run.
-* `css-tests`: copy of the built CSSWG tests.
-* `metadata-css`: expected failures for the CSSWG tests we run.
 * `mozilla`: web-platform-tests that cannot be upstreamed.
 
 Running the tests
@@ -27,8 +22,6 @@ The simplest way to run the web-platform-tests in Servo is `./mach
 test-wpt` in the root directory. This will run the subset of
 JavaScript tests defined in `include.ini` and log the output to
 stdout.
-
-Similarly the CSSWG tests can be run using `./mach test-css`.
 
 A subset of tests may be run by providing positional arguments to the
 mach command, either as filesystem paths or as test urls e.g.
@@ -56,10 +49,9 @@ test with `mach test-wpt --release`
 Running the tests without mach
 ------------------------------
 
-When avoiding `mach` for some reason, one can run either `run_wpt.py`
-ir `run_css.py` directly. However, this requires that all the
-dependencies for `wptrunner` are avaliable in the current python
-environment.
+When avoiding `mach` for some reason, one can run `run_wpt.py`
+directly. However, this requires that all the dependencies for
+`wptrunner` are avaliable in the current python environment.
 
 Running the tests manually
 --------------------------
@@ -135,9 +127,6 @@ log is saved, run from the root directory:
 
     ./mach update-wpt /tmp/servo.log
 
-For CSSWG tests a similar prcedure works, with `./mach test-css` and
-`./mach update-css`.
-
 Writing new tests
 =================
 
@@ -167,11 +156,6 @@ web-platform-tests may be edited in-place and the changes committed to
 the servo tree. These changes will be upstreamed when the tests are
 next synced.
 
-For CSS tests this kind of in-place update is not possible because the
-tests have a build step before they are pulled into the servo
-repository. Therefore corrections must be submitted directly to the
-source repository.
-
 Updating the upstream tests
 ===========================
 
@@ -183,8 +167,7 @@ commands. e.g. to update the web-platform-tests:
     ./mach update-wpt update.log
 
 This should create two commits in your servo repository with the
-updated tests and updated metadata. The same process works for the
-CSSWG tests, using the `update-css` and `test-css` mach commands.
+updated tests and updated metadata.
 
 Servo-specific tests
 ====================
@@ -200,7 +183,7 @@ Analyzing reftest results
 Reftest results can be analyzed from a raw log file. To generate this run
 with the `--log-raw` option e.g.
 
-    ./mach test-css --log-raw css.log
+    ./mach test-wpt --log-raw wpt.log
 
 This file can then be fed into the
 [reftest analyzer](http://hoppipolla.co.uk/410/reftest-analyser-structured.xhtml)

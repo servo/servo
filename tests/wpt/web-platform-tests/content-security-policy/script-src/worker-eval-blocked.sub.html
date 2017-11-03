@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>worker-eval-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["eval blocked"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+
+<body>
+    <p>This test loads a worker, delivered with its own policy.
+    The eval() call in the worker should be forbidden by that
+    policy.  No report should be generated because the worker
+    policy does not set a report-uri (although this parent
+    resource does).</p>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log('Fail');
+        });
+    
+        try {
+            var worker = new Worker('/content-security-policy/script-src/support/worker-eval.js');
+            worker.onmessage = function(event) {
+                log(event.data);
+            };
+        } catch (e) {
+            log(e);
+        }
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

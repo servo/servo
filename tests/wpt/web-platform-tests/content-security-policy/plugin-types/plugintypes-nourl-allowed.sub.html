@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="plugin-types application/x-webkit-test-netscape; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>plugintypes-nourl-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["After object"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("Fail");
+        });
+    </script>    
+
+    This test passes if there isn&apos;t a CSP violation sayingthe plugin was blocked.
+    <object type="application/x-webkit-test-netscape"></object>
+    <script>
+        log("After object");
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

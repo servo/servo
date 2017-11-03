@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="module">
+import { importMetaOnRootModule, importMetaOnDependentModule }
+    from "./import-meta-root.js";
+
+var base = location.href.slice(0, location.href.lastIndexOf('/'));
+
+test(() => {
+  assert_equals(import.meta.url, location.href);
+}, "import.meta.url in a root inline script");
+
+test(() => {
+  assert_equals(importMetaOnRootModule.url,
+                base + "/import-meta-root.js");
+}, "import.meta.url in a root external script");
+
+test(() => {
+  assert_equals(importMetaOnDependentModule.url,
+                base + "/import-meta-dependent.js");
+}, "import.meta.url in a dependent external script");
+</script>

@@ -16,9 +16,9 @@ use http_loader::{HttpState, http_redirect_fetch};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
-use net_traits::{CoreResourceMsg, FetchResponseMsg};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{CustomResponseMediator, ResourceId};
-use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
+use net_traits::{ResourceThreads, WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -155,12 +155,16 @@ impl ResourceChannelManager {
                    msg: CoreResourceMsg,
                    http_state: &Arc<HttpState>) -> bool {
         match msg {
-            CoreResourceMsg::Fetch(req_init, sender) =>
-                self.resource_manager.fetch(req_init, None, sender, http_state),
+            CoreResourceMsg::Fetch(req_init, channels) => {
+                match channels {
+                    FetchChannels::ResponseMsg(sender) =>
+                        self.resource_manager.fetch(req_init, None, sender, http_state),
+                    FetchChannels::WebSocket { event_sender, action_receiver } =>
+                        self.resource_manager.websocket_connect(req_init, event_sender, action_receiver, http_state),
+                }
+            }
             CoreResourceMsg::FetchRedirect(req_init, res_init, sender) =>
                 self.resource_manager.fetch(req_init, Some(res_init), sender, http_state),
-            CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
-                self.resource_manager.websocket_connect(connect, connect_data, http_state),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
                 self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, http_state),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
@@ -360,10 +364,13 @@ impl CoreResourceManager {
         }).expect("Thread spawning failed");
     }
 
-    fn websocket_connect(&self,
-                         connect: WebSocketCommunicate,
-                         connect_data: WebSocketConnectData,
-                         http_state: &Arc<HttpState>) {
-        websocket_loader::init(connect, connect_data, http_state.clone());
+    fn websocket_connect(
+        &self,
+        request: RequestInit,
+        event_sender: IpcSender<WebSocketNetworkEvent>,
+        action_receiver: IpcReceiver<WebSocketDomAction>,
+        http_state: &Arc<HttpState>
+    ) {
+        websocket_loader::init(request, event_sender, action_receiver, http_state.clone());
     }
 }

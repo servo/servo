@@ -1,0 +1,158 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<title>WebGL Out-of-Bounds Index Buffer Conformance Test</title>
+</head>
+<body>
+<canvas id="canvas" width="8" height="8" style="width: 100px; height: 100px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vsCheckOutOfBounds" type="x-shader/x-vertex">
+    precision mediump float;
+    attribute vec2 position;
+    attribute vec4 vecRandom;
+    varying vec4 v_color;
+
+    // Per the spec, each component can either contain existing contents
+    // of the buffer or 0.
+    bool testFloatComponent(float component) {
+        return (component == 0.2 || component == 0.0);
+    }
+    // The last component is additionally allowed to be 1.0.
+    bool testLastFloatComponent(float component) {
+        return testFloatComponent(component) || component == 1.0;
+    }
+
+    void main() {
+        if (testFloatComponent(vecRandom.x) &&
+            testFloatComponent(vecRandom.y) &&
+            testFloatComponent(vecRandom.z) &&
+            testLastFloatComponent(vecRandom.w)) {
+            v_color = vec4(0.0, 1.0, 0.0, 1.0); // green -- We're good
+        } else {
+            v_color = vec4(1.0, 0.0, 0.0, 1.0); // red -- Unexpected value
+        }
+        gl_Position = vec4(position, 0.0, 1.0);
+    }
+</script>
+<script>
+"use strict";
+description("This test verifies that out-of-bounds index buffers behave according to spec.");
+
+// Prepare an element array buffer that indexes out-of-bounds beginning with the start index passed in.
+// Ensure that drawElements flags either no error or INVALID_OPERATION. In the case of INVALID_OPERATION,
+// no canvas pixels can be touched.  In the case of NO_ERROR, all written values must either be the
+// zero vertex or a value in the vertex buffer.  See vsCheckOutOfBounds shader.
+function drawAndVerifyOutOfBoundsIndex(gl, startIndex) {
+    gl.clearColor(0.0, 0.0, 1.0, 1.0);  // Start with blue to indicate no pixels touched.
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    prepareElementArrayBuffer(gl, /*StartIndex*/startIndex);
+
+    gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_SHORT, /*offset*/0);
+    var error = gl.getError();
+    if (error === gl.INVALID_OPERATION) {
+        testPassed("drawElements flagged INVALID_OPERATION, which is valid so long as all canvas pixels were not touched.");
+        wtu.checkCanvas(gl, [0, 0, 255, 255]);
+    } else if (error === gl.NO_ERROR) {
+        testPassed("drawElements flagged NO_ERROR, which is valid so long as all canvas pixels are green.");
+        wtu.checkCanvas(gl, [0, 255, 0, 255]);
+    } else {
+        testFailed("Invalid error flagged by drawElements. Should be INVALID_OPERATION or NO_ERROR");
+    }
+}
+
+// Create an element array buffer with a tri-strip that starts at startIndex and make
+// it the active element array buffer.
+function prepareElementArrayBuffer(gl, startIndex) {
+    var glElementArrayBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, glElementArrayBuffer);
+    var quadIndices = new Uint16Array(4);
+    for (var i = 0; i < quadIndices.length; i++) {
+        quadIndices[i] = startIndex + i;
+    }
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, quadIndices, gl.STATIC_DRAW);
+}
+
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, {antialias: false});
+
+var numberOfQuads = 200;
+
+// Create a vertex buffer with 200 properly formed tri-strip quads. These quads will cover the canvas texture
+// such that every single pixel is touched by the fragment shader.
+var glQuadBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, glQuadBuffer);
+var quadPositions = new Float32Array(numberOfQuads * /*ComponentsPerQuad*/2 * /*VerticesPerQuad*/4);
+for (var i = 0; i < quadPositions.length; i += /*ComponentsPerQuad*/2 * /*VerticesPerQuad*/4) {
+    quadPositions[i+0] = -1.0;  // upper left
+    quadPositions[i+1] =  1.0;
+    quadPositions[i+2] =  1.0;  // upper right
+    quadPositions[i+3] =  1.0;
+    quadPositions[i+4] = -1.0;  // lower left
+    quadPositions[i+5] = -1.0;
+    quadPositions[i+6] =  1.0;  // lower right
+    quadPositions[i+7] = -1.0;
+}
+gl.bufferData(gl.ARRAY_BUFFER, quadPositions, gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+// Create a small vertex buffer with determined-ahead-of-time "random" values (0.2). This buffer will be
+// the one indexed off the end.
+var glVertexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, glVertexBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0.2, 0.2, 0.2, 0.2]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(1);
+gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+
+// Setup the verification program.
+var glProgram = wtu.setupProgram(gl, ["vsCheckOutOfBounds", wtu.simpleVertexColorFragmentShader], ["position", "vecRandom"]);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Shader and buffer setup should generate errors");
+
+debug("Test -- Index off the end of the vertex buffer near the beginning of the out of bounds area.");
+drawAndVerifyOutOfBoundsIndex(gl, /*StartIndex*/4);
+
+debug("");
+
+debug("Test -- Index off the end of the vertex buffer near the end of the out of bounds area.")
+drawAndVerifyOutOfBoundsIndex(gl, /*StartIndex*/numberOfQuads - 4);
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

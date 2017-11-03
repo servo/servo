@@ -53,7 +53,7 @@ FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
                           "*.yml"]
 
 # File patterns that are ignored for all tidy and lint checks.
-FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh"]
+FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh", "*.ogv", "*.webm"]
 
 SPEC_BASE_PATH = "components/script/dom/"
 
@@ -316,7 +316,7 @@ def check_flake8(file_name, contents):
 
 def check_lock(file_name, contents):
     def find_reverse_dependencies(name, content):
-        for package in itertools.chain([content["root"]], content["package"]):
+        for package in itertools.chain([content.get("root", [])], content["package"]):
             for dependency in package.get("dependencies", []):
                 if dependency.startswith("{} ".format(name)):
                     yield package["name"], dependency

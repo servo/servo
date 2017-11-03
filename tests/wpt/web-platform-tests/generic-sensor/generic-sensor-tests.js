@@ -40,8 +40,10 @@ function runGenericSensorTests(sensorType) {
     let sensor = new sensorType();
     sensor.onreading = t.step_func_done(() => {
       assert_reading_not_null(sensor);
+      assert_true(sensor.hasReading);
       sensor.stop();
       assert_reading_null(sensor);
+      assert_false(sensor.hasReading);
     });
     sensor.onerror = t.step_func_done(unreached);
     sensor.start();
@@ -192,8 +194,8 @@ function runGenericSensorTests(sensorType) {
 
 function runGenericSensorInsecureContext(sensorType) {
   test(() => {
-    assert_throws('SecurityError', () => { new sensorType(); });
-  }, `${sensorType.name}: throw a 'SecurityError' when construct sensor in an insecure context`);
+    assert_false(sensorType in window, `${sensorType} must not be exposed`);
+  }, `${sensorType} is not exposed in an insecure context`);
 }
 
 function runGenericSensorOnerror(sensorType) {

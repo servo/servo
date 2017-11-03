@@ -1,0 +1,100 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Global invariant does not leak across shaders</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="InvariantVertex" type="x-shader/x-vertex">
+#pragma STDGL invariant(all)
+
+void main()
+{
+    gl_Position = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="Fragment" type="x-shader/x-fragment">
+precision mediump float;
+
+void main()
+{
+    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+<script id="VertexWithVarying" type="x-shader/x-vertex">
+varying vec2 testVarying;
+
+void main() {
+    gl_Position = vec4(1.0, 0.0, 0.0, 1.0);
+    testVarying = vec2(0.0, 0.0);
+}
+</script>
+<script id="FragmentWithVarying" type="x-shader/x-fragment">
+precision mediump float;
+varying vec2 testVarying;
+
+void main()
+{
+    gl_FragColor = vec4(testVarying, 0.0, 1.0);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("The use of the global invariant pragma in one shader must not affect other shaders.");
+
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "InvariantVertex",
+    vShaderSuccess: true,
+    fShaderId: "Fragment",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "Shaders using global invariant pragma should compile and link."
+  },
+  {
+    vShaderId: "VertexWithVarying",
+    vShaderSuccess: true,
+    fShaderId: "FragmentWithVarying",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "Shaders not using global invariant pragma should compile and link."
+  },
+]);
+</script>
+</body>
+</html>

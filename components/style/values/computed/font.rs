@@ -8,8 +8,21 @@ use app_units::Au;
 use std::fmt;
 use style_traits::ToCss;
 use values::animated::ToAnimatedValue;
-use values::computed::NonNegativeLength;
+use values::computed::{Context, NonNegativeLength, ToComputedValue};
 use values::specified::font as specified;
+use values::specified::length::{FontBaseSize, NoCalcLength};
+
+pub use values::computed::Length as MozScriptMinSize;
+pub use values::specified::font::XTextZoom;
+
+/// As of CSS Fonts Module Level 3, only the following values are
+/// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+///
+/// However, system fonts may provide other values. Pango
+/// may provide 350, 380, and 1000 (on top of the existing values), for example.
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+pub struct FontWeight(pub u16);
 
 #[derive(Animate, ComputeSquaredDistance, MallocSizeOf, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -34,6 +47,13 @@ pub struct KeywordInfo {
 }
 
 impl KeywordInfo {
+    /// Computes the final size for this font-size keyword, accounting for
+    /// text-zoom.
+    pub fn to_computed_value(&self, context: &Context) -> NonNegativeLength {
+        let base = context.maybe_zoom_text(self.kw.to_computed_value(context));
+        base.scale_by(self.factor) + context.maybe_zoom_text(self.offset)
+    }
+
     /// Given a parent keyword info (self), apply an additional factor/offset to it
     pub fn compose(self, factor: f32, offset: NonNegativeLength) -> Self {
         KeywordInfo {
@@ -55,6 +75,61 @@ impl From<specified::KeywordSize> for KeywordInfo {
             kw: x,
             factor: 1.,
             offset: Au(0).into(),
+        }
+    }
+}
+
+impl FontWeight {
+    /// Value for normal
+    pub fn normal() -> Self {
+        FontWeight(400)
+    }
+
+    /// Value for bold
+    pub fn bold() -> Self {
+        FontWeight(700)
+    }
+
+    /// Convert from an integer to Weight
+    pub fn from_int(n: i32) -> Result<Self, ()> {
+        if n >= 100 && n <= 900 && n % 100 == 0 {
+            Ok(FontWeight(n as u16))
+        } else {
+            Err(())
+        }
+    }
+
+    /// Convert from an Gecko weight
+    pub fn from_gecko_weight(weight: u16) -> Self {
+        // we allow a wider range of weights than is parseable
+        // because system fonts may provide custom values
+        FontWeight(weight)
+    }
+
+    /// Weither this weight is bold
+    pub fn is_bold(&self) -> bool {
+        self.0 > 500
+    }
+
+    /// Return the bolder weight
+    pub fn bolder(self) -> Self {
+        if self.0 < 400 {
+            FontWeight(400)
+        } else if self.0 < 600 {
+            FontWeight(700)
+        } else {
+            FontWeight(900)
+        }
+    }
+
+    /// Returns the lighter weight
+    pub fn lighter(self) -> Self {
+        if self.0 < 600 {
+            FontWeight(100)
+        } else if self.0 < 800 {
+            FontWeight(400)
+        } else {
+            FontWeight(700)
         }
     }
 }
@@ -90,5 +165,65 @@ impl ToAnimatedValue for FontSize {
             size: animated.clamp(),
             keyword_info: None,
         }
+    }
+}
+
+impl ToComputedValue for specified::MozScriptMinSize {
+    type ComputedValue = MozScriptMinSize;
+
+    fn to_computed_value(&self, cx: &Context) -> MozScriptMinSize {
+        // this value is used in the computation of font-size, so
+        // we use the parent size
+        let base_size = FontBaseSize::InheritedStyle;
+        match self.0 {
+            NoCalcLength::FontRelative(value) => {
+                value.to_computed_value(cx, base_size)
+            }
+            NoCalcLength::ServoCharacterWidth(value) => {
+                value.to_computed_value(base_size.resolve(cx))
+            }
+            ref l => {
+                l.to_computed_value(cx)
+            }
+        }
+    }
+
+    fn from_computed_value(other: &MozScriptMinSize) -> Self {
+        specified::MozScriptMinSize(ToComputedValue::from_computed_value(other))
+    }
+}
+
+/// The computed value of the -moz-script-level property.
+pub type MozScriptLevel = i8;
+
+#[cfg(feature = "gecko")]
+impl ToComputedValue for specified::MozScriptLevel {
+    type ComputedValue = MozScriptLevel;
+
+    fn to_computed_value(&self, cx: &Context) -> i8 {
+        use properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
+        use std::{cmp, i8};
+
+        let int = match *self {
+            specified::MozScriptLevel::Auto => {
+                let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
+                let display = cx.builder.get_parent_font().clone__moz_math_display();
+                if display == DisplayValue::inline {
+                    parent + 1
+                } else {
+                    parent
+                }
+            }
+            specified::MozScriptLevel::Relative(rel) => {
+                let parent = cx.builder.get_parent_font().clone__moz_script_level();
+                parent as i32 + rel
+            }
+            specified::MozScriptLevel::Absolute(abs) => abs,
+        };
+        cmp::min(int, i8::MAX as i32) as i8
+    }
+
+    fn from_computed_value(other: &i8) -> Self {
+        specified::MozScriptLevel::Absolute(*other as i32)
     }
 }

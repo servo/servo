@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>gl_FragCoord multisampling bug</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="canvasHolder"></div>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main() {
+  gl_Position = vec4(a_position.xy, 1.0, 1.0);
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+
+void main() {
+  float depth = gl_FragCoord.z / gl_FragCoord.w;
+  gl_FragColor = vec4( 0.0, depth, 0.0, 1.0 );
+}
+</script>
+
+<script type="application/javascript">
+"use strict";
+description("gl_FragCoord multisampling bug");
+debug("Verifies gl_FragCoord z/w values are unaffected by multisampling.");
+debug('Regression test for <a href="https://github.com/mrdoob/three.js/issues/7769">Three.js Issue 7769</a>');
+var wtu = WebGLTestUtils;
+for (var ii = 0; ii < 2; ++ii) {
+  debug("Testing " + (ii > 0 ? "with" : "without") + " multisampling");
+  var canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  canvas.style.padding = "2px";
+  document.getElementById('canvasHolder').appendChild(canvas);
+  var options;
+  if (ii > 0) {
+    options = { antialias: true };
+  }
+  var gl = wtu.create3DContext(canvas, options);
+
+  gl.clearColor(1, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var attribBuffers = wtu.setupUnitQuad(gl, 0, 1);
+  var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['a_position'], [0], true);
+  if (!program) {
+    testFailed("Shader compilation/link failed");
+  } else {
+    // Draw
+    wtu.drawUnitQuad(gl);
+    // Verify output
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 3);
+  }
+}
+
+finishTest();
+</script>

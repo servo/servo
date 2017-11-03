@@ -20,8 +20,7 @@ use js::jsapi::GetStaticPrototype;
 use js::jsapi::JS_GetPropertyDescriptorById;
 use js::jsapi::MutableHandleObject;
 use js::jsval::ObjectValue;
-use libc;
-use std::{mem, ptr};
+use std::ptr;
 
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
@@ -91,11 +90,7 @@ pub unsafe extern "C" fn define_property(cx: *mut JSContext,
                                          desc: Handle<PropertyDescriptor>,
                                          result: *mut ObjectOpResult)
                                          -> bool {
-    // FIXME: Workaround for https://github.com/rust-lang/rfcs/issues/718
-    let setter: *const libc::c_void = mem::transmute(desc.get().setter);
-    let setter_stub: unsafe extern fn(_, _, _, _, _) -> _ = JS_StrictPropertyStub;
-    let setter_stub: *const libc::c_void = mem::transmute(setter_stub);
-    if (desc.get().attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
+    if (desc.get().attrs & JSPROP_GETTER) != 0 && desc.get().setter == Some(JS_StrictPropertyStub) {
         (*result).code_ = JSErrNum::JSMSG_GETTER_ONLY as ::libc::uintptr_t;
         return true;
     }

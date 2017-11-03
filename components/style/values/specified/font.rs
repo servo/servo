@@ -7,13 +7,107 @@
 #[cfg(feature = "gecko")]
 use Atom;
 use app_units::Au;
-use cssparser::Parser;
+use cssparser::{Parser, Token};
+use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 use std::fmt;
-use style_traits::{ToCss, ParseError};
-use values::computed::{font as computed, Context, NonNegativeLength, ToComputedValue};
+use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::specified::{LengthOrPercentage, NoCalcLength};
-use values::specified::length::FontBaseSize;
+use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
+
+const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
+
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+/// A specified font-weight value
+pub enum FontWeight {
+    /// Normal variant
+    Normal,
+    /// Bold variant
+    Bold,
+    /// Bolder variant
+    Bolder,
+    /// Lighter variant
+    Lighter,
+    /// Computed weight variant
+    Weight(computed::FontWeight),
+    /// System font varaint
+    System(SystemFont),
+}
+
+impl FontWeight {
+    /// Get a specified FontWeight from a gecko keyword
+    pub fn from_gecko_keyword(kw: u32) -> Self {
+        computed::FontWeight::from_int(kw as i32).map(FontWeight::Weight)
+            .expect("Found unexpected value in style struct for font-weight property")
+    }
+
+    /// Get a specified FontWeight from a SystemFont
+    pub fn system_font(f: SystemFont) -> Self {
+        FontWeight::System(f)
+    }
+
+    /// Retreive a SystemFont from FontWeight
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontWeight::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl Parse for FontWeight {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontWeight, ParseError<'i>> {
+        let result = match *input.next()? {
+            Token::Ident(ref ident) => {
+                match_ignore_ascii_case! { ident,
+                    "normal" => Ok(FontWeight::Normal),
+                    "bold" => Ok(FontWeight::Bold),
+                    "bolder" => Ok(FontWeight::Bolder),
+                    "lighter" => Ok(FontWeight::Lighter),
+                    _ => Err(()),
+                }
+            }
+            Token::Number { int_value: Some(value), .. } => {
+                computed::FontWeight::from_int(value).map(FontWeight::Weight)
+            },
+            _ => Err(()),
+        };
+
+        result.map_err(|_| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+}
+
+impl ToComputedValue for FontWeight {
+    type ComputedValue = computed::FontWeight;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            FontWeight::Weight(weight) => weight,
+            FontWeight::Normal => computed::FontWeight::normal(),
+            FontWeight::Bold => computed::FontWeight::bold(),
+            FontWeight::Bolder => {
+                context.builder.get_parent_font().clone_font_weight().bolder()
+            },
+            FontWeight::Lighter => {
+                context.builder.get_parent_font().clone_font_weight().lighter()
+            },
+            #[cfg(feature = "gecko")]
+            FontWeight::System(_) => {
+                context.cached_system_font.as_ref().unwrap().font_weight.clone()
+            },
+            #[cfg(not(feature = "gecko"))]
+            FontWeight::System(_) => unreachable!(),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &computed::FontWeight) -> Self {
+        FontWeight::Weight(*computed)
+    }
+}
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 /// A specified font-size value
@@ -313,7 +407,7 @@ impl FontSize {
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived
                 info = Some(i);
-                context.maybe_zoom_text(i.kw.to_computed_value(context).scale_by(i.factor) + i.offset)
+                i.to_computed_value(context)
             }
             FontSize::Smaller => {
                 info = compose_keyword(1. / LARGER_FONT_SIZE_RATIO);
@@ -371,5 +465,81 @@ impl FontSize {
         } else {
             None
         }
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+/// text-zoom. Enable if true, disable if false
+pub struct XTextZoom(pub bool);
+
+impl Parse for XTextZoom {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<XTextZoom, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+}
+
+impl ToCss for XTextZoom {
+    fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+        Ok(())
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+/// Specifies the minimum font size allowed due to changes in scriptlevel.
+/// Ref: https://wiki.mozilla.org/MathML:mstyle
+pub struct MozScriptMinSize(pub NoCalcLength);
+
+impl MozScriptMinSize {
+    #[inline]
+    /// Calculate initial value of -moz-script-min-size.
+    pub fn get_initial_value() -> Length {
+        Length::new(DEFAULT_SCRIPT_MIN_SIZE_PT as f32 * (AU_PER_PT / AU_PER_PX))
+    }
+}
+
+impl Parse for MozScriptMinSize {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<MozScriptMinSize, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+/// Changes the scriptlevel in effect for the children.
+/// Ref: https://wiki.mozilla.org/MathML:mstyle
+///
+/// The main effect of scriptlevel is to control the font size.
+/// https://www.w3.org/TR/MathML3/chapter3.html#presm.scriptlevel
+pub enum MozScriptLevel {
+    /// Change `font-size` relatively
+    Relative(i32),
+    /// Change `font-size` absolutely
+    Absolute(i32),
+    /// Change `font-size` automatically
+    Auto
+}
+
+impl ToCss for MozScriptLevel {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            MozScriptLevel::Auto => dest.write_str("auto"),
+            MozScriptLevel::Relative(rel) => rel.to_css(dest),
+            // can only be specified by pres attrs; should not
+            // serialize to anything else
+            MozScriptLevel::Absolute(_) => Ok(()),
+        }
+    }
+}
+
+impl Parse for MozScriptLevel {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<MozScriptLevel, ParseError<'i>> {
+        if let Ok(i) = input.try(|i| i.expect_integer()) {
+            return Ok(MozScriptLevel::Relative(i))
+        }
+        input.expect_ident_matching("auto")?;
+        Ok(MozScriptLevel::Auto)
     }
 }

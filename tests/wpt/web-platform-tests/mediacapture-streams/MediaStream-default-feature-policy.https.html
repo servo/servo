@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/get-host-info.sub.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script>
+  'use strict';
+
+  // The promise_factory must return a promise that runs the feature and
+  // resolves if feature usage is successful, otherwise rejects. Using
+  // getUserMedia is successful if at least one mic/camera is returned when
+  // mic/camera has been explicitly allowed by feature policy.
+  function promise_factory(allowed_features) {
+    return new Promise((resolve, reject) => {
+      navigator.getUserMedia({video: true, audio: true},
+          function(stream) {
+            // If microphone is allowed, there should be at least one microphone
+            // in the result. If camera is allowed, there should be at least one
+            // camera in the result.
+            if ((allowed_features.includes('microphone') &&
+                 stream.getAudioTracks().length == 0) ||
+                (allowed_features.includes('camera') &&
+                 stream.getVideoTracks().length == 0)) {
+                reject('Feature policy allowed feature but devices not ' +
+                    'present.');
+            } else {
+              // Otherwise the result is expected.
+              resolve();
+            }
+          },
+          function(error) { reject(error); });
+    });
+  };
+
+  var cross_domain = get_host_info().HTTPS_REMOTE_ORIGIN;
+  run_all_fp_tests_allow_self(
+      cross_domain,
+      'microphone',
+      '[object NavigatorUserMediaError]',
+      function() {
+        return promise_factory('microphone');
+      });
+
+  run_all_fp_tests_allow_self(
+      cross_domain,
+      'camera',
+      '[object NavigatorUserMediaError]',
+      function() {
+        return promise_factory('camera');
+      });
+
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'camera; microphone',
+    '[object NavigatorUserMediaError]',
+    function() {
+      return promise_factory('camera; microphone');
+    });
+  </script>
+</body>
+

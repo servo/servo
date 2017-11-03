@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<script src="/common/utils.js"></script>
+<script>
+const uuid = token();
+const URL =
+    `../resources/redirect.py?` +
+    `delay=100&` +
+    `location=../resources/stash-put.py?key=${uuid}%26value=on`;
+
+addEventListener('load', () => {
+  let p = fetch(URL, {keepalive: true});
+  window.parent.postMessage(uuid, '*');
+});
+</script>
+</html>

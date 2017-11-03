@@ -32,12 +32,14 @@ and should be easy to run in any browser.
 ## Test Layout
 
 Each top level directory in the repository corresponds to tests for a
-single specification. For W3C specs, these directories are typically
-named after the shortname of the spec (i.e. the name used for snapshot
-publications under `/TR/`); for WHATWG specs, they are typically named
-after the subdomain of the spec (i.e. trimming `.spec.whatwg.org` from
-the URL); for other specs, something deemed sensible is used. In any
-case, there are occasional exceptions for historic reasons.
+single specification, with the exception of `css/` which contains
+testsuites for CSS WG specifications. For W3C specs, these directories
+are typically named after the shortname of the spec (i.e. the name
+used for snapshot publications under `/TR/`); for WHATWG specs, they
+are typically named after the subdomain of the spec (i.e. trimming
+`.spec.whatwg.org` from the URL); for other specs, something deemed
+sensible is used. In any case, there are occasional exceptions for
+historic reasons.
 
 Within the specification-specific directory there are two common ways
 of laying out tests: the first is a flat structure which is sometimes

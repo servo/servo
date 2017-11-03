@@ -1,0 +1,15 @@
+typedef (Float32Array or Float64Array or DOMMatrix) RotationMatrixType;
+
+[SecureContext, Exposed=Window]
+interface OrientationSensor : Sensor {
+  readonly attribute FrozenArray<double>? quaternion;
+  void populateMatrix(RotationMatrixType targetMatrix);
+};
+
+[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+interface AbsoluteOrientationSensor : OrientationSensor {
+};
+
+[Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
+interface RelativeOrientationSensor : OrientationSensor {
+};

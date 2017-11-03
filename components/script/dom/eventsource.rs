@@ -23,7 +23,8 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};
-use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseMsg, FetchResponseListener, NetworkError};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
+use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
@@ -489,7 +490,8 @@ impl EventSource {
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
         }));
-        global.core_resource_thread().send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
+        global.core_resource_thread().send(
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender))).unwrap();
         // Step 13
         Ok(ev)
     }
@@ -552,6 +554,7 @@ impl EventSourceTimeoutCallback {
             request.headers.set(LastEventId(String::from(event_source.last_event_id.borrow().clone())));
         }
         // Step 5.4
-        global.core_resource_thread().send(CoreResourceMsg::Fetch(request, self.action_sender)).unwrap();
+        global.core_resource_thread().send(
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(self.action_sender))).unwrap();
     }
 }

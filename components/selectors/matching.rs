@@ -20,37 +20,39 @@ pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: usize = 4096;
 bitflags! {
     /// Set of flags that are set on either the element or its parent (depending
     /// on the flag) if the element could potentially match a selector.
-    pub flags ElementSelectorFlags: usize {
+    pub struct ElementSelectorFlags: usize {
         /// When a child is added or removed from the parent, all the children
         /// must be restyled, because they may match :nth-last-child,
         /// :last-of-type, :nth-last-of-type, or :only-of-type.
-        const HAS_SLOW_SELECTOR = 1 << 0,
+        const HAS_SLOW_SELECTOR = 1 << 0;
 
         /// When a child is added or removed from the parent, any later
         /// children must be restyled, because they may match :nth-child,
         /// :first-of-type, or :nth-of-type.
-        const HAS_SLOW_SELECTOR_LATER_SIBLINGS = 1 << 1,
+        const HAS_SLOW_SELECTOR_LATER_SIBLINGS = 1 << 1;
 
         /// When a child is added or removed from the parent, the first and
         /// last children must be restyled, because they may match :first-child,
         /// :last-child, or :only-child.
-        const HAS_EDGE_CHILD_SELECTOR = 1 << 2,
+        const HAS_EDGE_CHILD_SELECTOR = 1 << 2;
 
         /// The element has an empty selector, so when a child is appended we
         /// might need to restyle the parent completely.
-        const HAS_EMPTY_SELECTOR = 1 << 3,
+        const HAS_EMPTY_SELECTOR = 1 << 3;
     }
 }
 
 impl ElementSelectorFlags {
     /// Returns the subset of flags that apply to the element.
     pub fn for_self(self) -> ElementSelectorFlags {
-        self & (HAS_EMPTY_SELECTOR)
+        self & (ElementSelectorFlags::HAS_EMPTY_SELECTOR)
     }
 
     /// Returns the subset of flags that apply to the parent.
     pub fn for_parent(self) -> ElementSelectorFlags {
-        self & (HAS_SLOW_SELECTOR | HAS_SLOW_SELECTOR_LATER_SIBLINGS | HAS_EDGE_CHILD_SELECTOR)
+        self & (ElementSelectorFlags::HAS_SLOW_SELECTOR |
+                ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS |
+                ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR)
     }
 }
 
@@ -60,6 +62,7 @@ struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     matches_hover_and_active_quirk: bool,
 }
 
+#[inline(always)]
 pub fn matches_selector_list<E>(
     selector_list: &SelectorList<E::Impl>,
     element: &E,
@@ -371,6 +374,7 @@ where
 }
 
 /// Matches a complex selector.
+#[inline(always)]
 pub fn matches_complex_selector<E, F>(
     mut iter: SelectorIter<E::Impl>,
     element: &E,
@@ -383,8 +387,8 @@ where
 {
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
-    if context.nesting_level == 0 &&
-        context.matching_mode == MatchingMode::ForStatelessPseudoElement {
+    if context.matching_mode == MatchingMode::ForStatelessPseudoElement &&
+        context.nesting_level == 0 {
         // Consume the pseudo.
         match *iter.next().unwrap() {
             Component::PseudoElement(ref pseudo) => {
@@ -486,6 +490,32 @@ enum Rightmost {
     No,
 }
 
+#[inline(always)]
+fn next_element_for_combinator<E>(
+    element: &E,
+    combinator: Combinator,
+) -> Option<E>
+where
+    E: Element,
+{
+    match combinator {
+        Combinator::NextSibling |
+        Combinator::LaterSibling => {
+            element.prev_sibling_element()
+        }
+        Combinator::Child |
+        Combinator::Descendant => {
+            if element.blocks_ancestor_combinators() {
+                return None;
+            }
+            element.parent_element()
+        }
+        Combinator::PseudoElement => {
+            element.pseudo_element_originating_element()
+        }
+    }
+}
+
 fn matches_complex_selector_internal<E, F>(
     mut selector_iter: SelectorIter<E::Impl>,
     element: &E,
@@ -524,87 +554,83 @@ where
     };
 
     let combinator = selector_iter.next_sequence();
-    let siblings = combinator.map_or(false, |c| c.is_sibling());
-    if siblings {
-        flags_setter(element, HAS_SLOW_SELECTOR_LATER_SIBLINGS);
+    if combinator.map_or(false, |c| c.is_sibling()) {
+        flags_setter(element, ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS);
     }
 
     if !matches_all_simple_selectors {
         return SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling;
     }
 
-    match combinator {
-        None => SelectorMatchingResult::Matched,
-        Some(c) => {
-            let (mut next_element, candidate_not_found) = match c {
-                Combinator::NextSibling | Combinator::LaterSibling => {
-                    // Only ancestor combinators are allowed while looking for
-                    // relevant links, so switch to not looking.
-                    *relevant_link = RelevantLinkStatus::NotLooking;
-                    (element.prev_sibling_element(),
-                     SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant)
-                }
-                Combinator::Child | Combinator::Descendant => {
-                    if element.blocks_ancestor_combinators() {
-                        (None, SelectorMatchingResult::NotMatchedGlobally)
-                    } else {
-                        (element.parent_element(),
-                         SelectorMatchingResult::NotMatchedGlobally)
-                    }
-                }
-                Combinator::PseudoElement => {
-                    (element.pseudo_element_originating_element(),
-                     SelectorMatchingResult::NotMatchedGlobally)
-                }
-            };
+    let combinator = match combinator {
+        None => return SelectorMatchingResult::Matched,
+        Some(c) => c,
+    };
 
-            loop {
-                let element = match next_element {
-                    None => return candidate_not_found,
-                    Some(next_element) => next_element,
-                };
-                let result = matches_complex_selector_internal(
-                    selector_iter.clone(),
-                    &element,
-                    context,
-                    relevant_link,
-                    flags_setter,
-                    Rightmost::No,
-                );
-                match (result, c) {
-                    // Return the status immediately.
-                    (SelectorMatchingResult::Matched, _) => return result,
-                    (SelectorMatchingResult::NotMatchedGlobally, _) => return result,
-
-                    // Upgrade the failure status to
-                    // NotMatchedAndRestartFromClosestDescendant.
-                    (_, Combinator::PseudoElement) |
-                    (_, Combinator::Child) => return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant,
-
-                    // Return the status directly.
-                    (_, Combinator::NextSibling) => return result,
-
-                    // If the failure status is NotMatchedAndRestartFromClosestDescendant
-                    // and combinator is Combinator::LaterSibling, give up this Combinator::LaterSibling matching
-                    // and restart from the closest descendant combinator.
-                    (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, Combinator::LaterSibling)
-                        => return result,
-
-                    // The Combinator::Descendant combinator and the status is
-                    // NotMatchedAndRestartFromClosestLaterSibling or
-                    // NotMatchedAndRestartFromClosestDescendant,
-                    // or the Combinator::LaterSibling combinator and the status is
-                    // NotMatchedAndRestartFromClosestDescendant
-                    // can continue to matching on the next candidate element.
-                    _ => {},
-                }
-                next_element = if siblings {
-                    element.prev_sibling_element()
-                } else {
-                    element.parent_element()
-                };
-            }
+    let candidate_not_found = match combinator {
+        Combinator::NextSibling |
+        Combinator::LaterSibling => {
+            // Only ancestor combinators are allowed while looking for
+            // relevant links, so switch to not looking.
+            *relevant_link = RelevantLinkStatus::NotLooking;
+            SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant
         }
+        Combinator::Child |
+        Combinator::Descendant |
+        Combinator::PseudoElement => {
+            SelectorMatchingResult::NotMatchedGlobally
+        }
+    };
+
+    let mut next_element = next_element_for_combinator(element, combinator);
+
+    loop {
+        let element = match next_element {
+            None => return candidate_not_found,
+            Some(next_element) => next_element,
+        };
+        let result = matches_complex_selector_internal(
+            selector_iter.clone(),
+            &element,
+            context,
+            relevant_link,
+            flags_setter,
+            Rightmost::No,
+        );
+
+        match (result, combinator) {
+            // Return the status immediately.
+            (SelectorMatchingResult::Matched, _) |
+            (SelectorMatchingResult::NotMatchedGlobally, _) |
+            (_, Combinator::NextSibling) => {
+                return result;
+            }
+
+            // Upgrade the failure status to
+            // NotMatchedAndRestartFromClosestDescendant.
+            (_, Combinator::PseudoElement) |
+            (_, Combinator::Child) => {
+                return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant;
+            }
+
+            // If the failure status is
+            // NotMatchedAndRestartFromClosestDescendant and combinator is
+            // Combinator::LaterSibling, give up this Combinator::LaterSibling
+            // matching and restart from the closest descendant combinator.
+            (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, Combinator::LaterSibling) => {
+                return result;
+            }
+
+            // The Combinator::Descendant combinator and the status is
+            // NotMatchedAndRestartFromClosestLaterSibling or
+            // NotMatchedAndRestartFromClosestDescendant, or the
+            // Combinator::LaterSibling combinator and the status is
+            // NotMatchedAndRestartFromClosestDescendant, we can continue to
+            // matching on the next candidate element.
+            _ => {},
+        }
+
+        next_element = next_element_for_combinator(&element, combinator);
     }
 }
 
@@ -726,7 +752,7 @@ where
             element.is_root()
         }
         Component::Empty => {
-            flags_setter(element, HAS_EMPTY_SELECTOR);
+            flags_setter(element, ElementSelectorFlags::HAS_EMPTY_SELECTOR);
             element.is_empty()
         }
         Component::Scope => {
@@ -801,9 +827,9 @@ where
     }
 
     flags_setter(element, if is_from_end {
-        HAS_SLOW_SELECTOR
+        ElementSelectorFlags::HAS_SLOW_SELECTOR
     } else {
-        HAS_SLOW_SELECTOR_LATER_SIBLINGS
+        ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS
     });
 
     // Grab a reference to the appropriate cache.
@@ -896,7 +922,7 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    flags_setter(element, HAS_EDGE_CHILD_SELECTOR);
+    flags_setter(element, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
     element.prev_sibling_element().is_none()
 }
 
@@ -906,6 +932,6 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    flags_setter(element, HAS_EDGE_CHILD_SELECTOR);
+    flags_setter(element, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
     element.next_sibling_element().is_none()
 }

@@ -4,17 +4,18 @@
 
 use dom::domexception::DOMErrorName;
 use dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
+use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
 use std::sync::Arc;
 use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
-pub struct FileReadingTaskSource(pub Box<ScriptChan + Send + 'static>);
+pub struct FileReadingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
 
 impl Clone for FileReadingTaskSource {
     fn clone(&self) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.0.clone())
+        FileReadingTaskSource(self.0.clone(), self.1.clone())
     }
 }
 
@@ -30,6 +31,7 @@ impl TaskSource for FileReadingTaskSource {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::FileRead,
             Box::new(canceller.wrap_task(task)),
+            Some(self.1),
         ))
     }
 }

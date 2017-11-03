@@ -1,0 +1,168 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test clear and clearBuffer functions have to match fbo's buffer format</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="20" height="20"> </canvas>
+<script>
+"use strict";
+description("This tests the WebGL2 specific constraint that clear or clearBuffer* functions have to be compatible with fbo's buffer format");
+
+var setupRenderbuffer = function(attachment, format) {
+  var renderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderbuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, format, canvas.width, canvas.height);
+  return renderbuffer;
+}
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  var fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+  debug("");
+  debug("Signed integer buffer");
+
+  var colorbuffer = setupRenderbuffer(gl.COLOR_ATTACHMENT0, gl.RGBA8);
+  var colorbuffer1 = setupRenderbuffer(gl.COLOR_ATTACHMENT1, gl.RGBA32I);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clear and INT buffer");
+
+  gl.clearBufferfv(gl.COLOR, 1, new Float32Array(4));
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferfv and INT buffer");
+
+  gl.clearBufferuiv(gl.COLOR, 1, new Uint32Array(4));
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferuiv and INT buffer");
+
+  debug("Set up draw buffer so INT buffer is set to NONE");
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clear and INT buffer is NONE");
+
+  gl.clearBufferfv(gl.COLOR, 1, new Float32Array(4));
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearBufferfv and INT buffer is NONE");
+
+  gl.clearBufferuiv(gl.COLOR, 0, new Uint32Array(4));
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferuiv and float buffer");
+
+  debug("");
+  debug("Unsigned integer buffer");
+
+  colorbuffer = setupRenderbuffer(gl.COLOR_ATTACHMENT0, gl.RGBA32UI);
+  colorbuffer1 = setupRenderbuffer(gl.COLOR_ATTACHMENT1, gl.RGBA8);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clear and UINT buffer");
+
+  gl.clearBufferfv(gl.COLOR, 0, new Float32Array(4));
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferfv and UINT buffer");
+
+  gl.clearBufferiv(gl.COLOR, 0, new Int32Array(4));
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferiv and UINT buffer");
+
+  debug("Set up draw buffer so INT buffer is set to NONE");
+  gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clear and UINT buffer is NONE");
+
+  gl.clearBufferfv(gl.COLOR, 0, new Float32Array(4));
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearBufferfv and UINT buffer is NONE");
+
+  gl.clearBufferiv(gl.COLOR, 1, new Int32Array(4));
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferiv and float buffer");
+
+  debug("");
+  debug("Float buffer");
+
+  colorbuffer = setupRenderbuffer(gl.COLOR_ATTACHMENT0, gl.RGBA8);
+  var numAttachments = 1;
+  var ext = gl.getExtension("EXT_color_buffer_float");
+  var bufferType = "float buffer";
+  if (ext) {
+    debug("EXT_color_buffer_float is available: testing RGBA8 + RGBA32F");
+    colorbuffer1 = setupRenderbuffer(gl.COLOR_ATTACHMENT1, gl.RGBA32F);
+    ++numAttachments;
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+  } else {
+    debug("EXT_color_buffer_float is unavailable: testing RGBA8");
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    bufferType = "RGBA8 buffer";
+  }
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clear and " + bufferType);
+
+  for (var ii = 0; ii < numAttachments; ++ii) {
+    gl.clearBufferfv(gl.COLOR, ii, new Float32Array(4));
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearBufferfv and " + bufferType);
+
+    gl.clearBufferiv(gl.COLOR, ii, new Int32Array(4));
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferiv and " + bufferType);
+
+    gl.clearBufferuiv(gl.COLOR, ii, new Uint32Array(4));
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "clearBufferuiv and " + bufferType);
+  }
+
+  gl.deleteFramebuffer(fb);
+  gl.deleteRenderbuffer(colorbuffer);
+  gl.deleteRenderbuffer(colorbuffer1);
+}
+
+debug("");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no error");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

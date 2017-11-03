@@ -1,0 +1,248 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 texture mipmap level conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="2" height="2" style="width: 2px; height: 2px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+uniform vec4 uMult;
+attribute vec4 vPosition;
+attribute vec2 texCoord0;
+varying vec2 texCoord;
+void main()
+{
+    gl_Position = vPosition * uMult;
+    texCoord = texCoord0;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 texCoord;
+void main()
+{
+    gl_FragColor = texture2D(tex, texCoord);
+}
+</script>
+
+<script id="vshader_texsize" type="x-shader/x-vertex">#version 300 es
+in vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+
+<script id="fshader_texsize_2d" type="x-shader/x-fragment">#version 300 es
+
+precision mediump float;
+uniform sampler2D tex;
+uniform int lod;
+uniform ivec2 texSize;
+out vec4 fragColor;
+void main()
+{
+    fragColor = (textureSize(tex, lod) == texSize ? vec4(255, 0, 0, 255) : vec4(0, 0, 0, 255));
+}
+</script>
+
+
+<script>
+"use strict";
+description(document.title);
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+
+(function() {
+  debug("");
+  debug("test mipmap level ranges");
+  var tex = gl.createTexture();
+  wtu.setupUnitQuad(gl, 0, 1);
+  var program = wtu.setupProgram(
+      gl, ['vshader', 'fshader'], ['vPosition', 'texCoord0'], [0, 1]);
+
+  gl.disable(gl.DEPTH_TEST);
+  gl.disable(gl.BLEND);
+  gl.uniform1i(gl.getUniformLocation(program, "tex"), 0);
+
+  var multLoc = gl.getUniformLocation(program, "uMult");
+  gl.uniform4f(multLoc, 1, 1, 1, 1);
+
+  // Test that filling partial levels is enough for mipmapping.
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  wtu.fillTexture(gl, tex, 8, 8, [255, 0, 0, 255], 2, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(8x8, level=2) should succeed");
+  wtu.fillTexture(gl, tex, 4, 4, [0, 255, 0, 255], 3, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(4x4, level=3) should succeed");
+  wtu.fillTexture(gl, tex, 2, 2, [0, 0, 255, 255], 4, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(2x2, level=4) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 2);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_BASE_LEVEL) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 4);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_MAX_LEVEL) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_MAG_FILTER) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_MIN_FILTER) should succeed");
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearAndDrawQuad should succeed");
+  wtu.checkCanvas(gl, [0, 0, 255, 255], "should draw with [0, 0, 255, 255]");
+
+  // Test that generateMipmap works with partial levels.
+  gl.generateMipmap(gl.TEXTURE_2D);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "should draw with [255, 0, 0, 255]");
+  gl.deleteTexture(tex);
+
+  // Test incompleteless for partial levels.
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  wtu.fillTexture(gl, tex, 8, 8, [255, 0, 0, 255], 2, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(8x8, level=2) should succeed");
+  wtu.fillTexture(gl, tex, 4, 4, [255, 0, 0, 255], 3, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(4x4, level=3) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 2);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_BASE_LEVEL) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 4);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_MAX_LEVEL) should succeed");
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearAndDrawQuad should succeed");
+  wtu.checkCanvas(gl, [0, 0, 0, 255], "incomplete texture should draw with [0, 0, 0, 255]");
+  gl.deleteTexture(tex);
+
+  // Test base level texture isn't specified.
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  wtu.fillTexture(gl, tex, 8, 8, [255, 0, 0, 255], 2, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(8x8, level=2) should succeed");
+  wtu.fillTexture(gl, tex, 4, 4, [255, 0, 0, 255], 3, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(4x4, level=3) should succeed");
+  wtu.fillTexture(gl, tex, 2, 2, [0, 0, 255, 255], 4, gl.RGBA, gl.UNSIGNED_BYTE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fillTexture(2x2, level=4) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 1);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_BASE_LEVEL) should succeed");
+  gl.generateMipmap(gl.TEXTURE_2D);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "generateMipmap should fail if base level texture is not specified");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 2);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
+  gl.deleteTexture(tex);
+
+  // Test 3D texture.
+  var tex3d = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_3D, tex3d);
+  gl.texImage3D( gl.TEXTURE_3D, 0, gl.RGBA, 8, 8, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(8 * 8 * 8 * 4));
+  gl.generateMipmap(gl.TEXTURE_3D);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
+  gl.texSubImage3D(gl.TEXTURE_3D, 1, 0, 0, 0, 4, 4, 4, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4 * 4 * 4 * 4));
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage3D should succeed");
+  gl.deleteTexture(tex3d);
+
+  // Test 2D array texture.
+  var tex2dArray = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex2dArray);
+  gl.texImage3D( gl.TEXTURE_2D_ARRAY, 0, gl.RGBA, 8, 8, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(8 * 8 * 4 * 4));
+  gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
+  gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 1, 0, 0, 0, 4, 4, 4, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4 * 4 * 4 * 4));
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage3D should succeed");
+  gl.deleteTexture(tex2dArray);
+
+  // Test sized internal format should be both color-renderable and texture-filterable
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed for zero-size texture");
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 8, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(8 * 8 * 4));
+  gl.generateMipmap(gl.TEXTURE_2D);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8UI, 8, 8, 0, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, new Uint8Array(8 * 8 * 4));
+  gl.generateMipmap(gl.TEXTURE_2D);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "generateMipmap should fail for non-texture-filterable format");
+  if (gl.getExtension('EXT_color_buffer_float')) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 8, 8, 0, gl.RGBA, gl.FLOAT, new Float32Array(8 * 8 * 4));
+      gl.generateMipmap(gl.TEXTURE_2D);
+      wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "generateMipmap should fail for float texture");
+  }
+  if (gl.getExtension('EXT_color_buffer_float') && gl.getExtension('OES_texture_float_linear')) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 0, 0, 0, gl.RGBA, gl.FLOAT, null);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed for zero-size texture");
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 8, 8, 0, gl.RGBA, gl.FLOAT, new Float32Array(8 * 8 * 4));
+      gl.generateMipmap(gl.TEXTURE_2D);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
+  }
+  gl.deleteTexture(tex);
+
+  // Test textureSize should work correctly with non-zero base level for texStorage2D
+  var program = wtu.setupProgram(
+      gl, ['vshader_texsize', 'fshader_texsize_2d'], ['vPosition'], [0]);
+
+  gl.uniform1i(gl.getUniformLocation(program, "tex"), 0);
+  gl.uniform1i(gl.getUniformLocation(program, "lod"), 1);
+  gl.uniform2i(gl.getUniformLocation(program, "texSize"), 7, 4);
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_MAG_FILTER) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_MIN_FILTER) should succeed");
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 1);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_BASE_LEVEL) should succeed");
+  gl.texStorage2D(gl.TEXTURE_2D, 4, gl.RGBA8, 31, 17);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texStorage2D should succeed");
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearAndDrawQuad should succeed");
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "should draw with [255, 0, 0, 255]");
+  gl.deleteTexture(tex);
+
+})();
+
+var successfullyParsed = true;
+
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -33,7 +33,7 @@ class Response(object):
         if body:
             try:
                 body = json.loads(body)
-            except:
+            except Exception:
                 raise error.UnknownErrorException("Failed to decode body as json:\n%s" % body)
 
         return cls(status, body)

@@ -45,7 +45,8 @@ def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, *
     run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=debug,
                                     extras=run_info_extras)
 
-    test_manifests = testloader.ManifestLoader(test_paths, force_manifest_update=kwargs["manifest_update"]).load()
+    test_manifests = testloader.ManifestLoader(test_paths, force_manifest_update=kwargs["manifest_update"],
+                                               manifest_download=kwargs["manifest_download"]).load()
 
     manifest_filters = []
     meta_filters = []

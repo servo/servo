@@ -1,0 +1,17 @@
+.pass {
+    font-weight: bold;
+    color: green;
+}
+.fail {
+    font-weight: bold;
+    color: red;
+}
+.warn {
+    font-weight: bold;
+    color: yellow;
+    text-shadow: 1px 1px #ff0000
+}
+#console {
+    white-space: pre-wrap;
+    font-family: monospace;
+}

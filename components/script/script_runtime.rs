@@ -22,6 +22,7 @@ use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqu
 use js::panic::wrap_panic;
 use js::rust::Runtime as RustRuntime;
 use microtask::{EnqueuedPromiseCallback, Microtask};
+use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::trace_thread;
 use servo_config::opts;
@@ -34,7 +35,7 @@ use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
-use style::thread_state;
+use style::thread_state::{self, ThreadState};
 use task::TaskBox;
 use time::{Tm, now};
 
@@ -44,14 +45,14 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    Task(ScriptThreadEventCategory, Box<TaskBox>),
+    Task(ScriptThreadEventCategory, Box<TaskBox>, Option<PipelineId>),
 }
 
 impl fmt::Debug for CommonScriptMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::Task(ref category, ref task) => {
+            CommonScriptMsg::Task(ref category, ref task, _) => {
                 f.debug_tuple("Task").field(category).field(task).finish()
             },
         }
@@ -410,8 +411,8 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
 #[allow(unsafe_code)]
 unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut os::raw::c_void) {
     match status {
-        JSGCStatus::JSGC_BEGIN => thread_state::enter(thread_state::IN_GC),
-        JSGCStatus::JSGC_END   => thread_state::exit(thread_state::IN_GC),
+        JSGCStatus::JSGC_BEGIN => thread_state::enter(ThreadState::IN_GC),
+        JSGCStatus::JSGC_END   => thread_state::exit(ThreadState::IN_GC),
     }
 }
 

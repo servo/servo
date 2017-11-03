@@ -155,14 +155,14 @@ function updateDescriptionComplete() {
 }
 
 function updateDescriptionSecondStepTouchActionElement(target, scrollReturnInterval) {
-    window.setTimeout(function() {
+    window.step_timeout(function() {
     objectScroller(target, 'up', 0);}
     , scrollReturnInterval);
     document.getElementById('desc').innerHTML = "Test Description: Try to scroll element RIGHT moving your outside of the red border";
 }
 
 function updateDescriptionThirdStepTouchActionElement(target, scrollReturnInterval) {
-    window.setTimeout(function() {
+    window.step_timeout(function() {
     objectScroller(target, 'left', 0);}
     , scrollReturnInterval);
     document.getElementById('desc').innerHTML = "Test Description: Try to scroll element DOWN then RIGHT starting your touch inside of the element. Then tap complete button";

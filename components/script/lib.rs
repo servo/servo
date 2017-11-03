@@ -16,6 +16,7 @@
 #![doc = "The script crate contains all matters DOM."]
 
 #![plugin(script_plugins)]
+#![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 
 extern crate angle;
 extern crate app_units;
@@ -34,7 +35,7 @@ extern crate devtools_traits;
 extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
-extern crate encoding;
+extern crate encoding_rs;
 extern crate euclid;
 extern crate fnv;
 extern crate gleam;
@@ -140,8 +141,7 @@ pub mod layout_exports {
     pub use dom::characterdata::LayoutCharacterDataHelpers;
     pub use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
     pub use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-    pub use dom::node::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
-    pub use dom::node::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
+    pub use dom::node::NodeFlags;
     pub use dom::node::{LayoutNodeHelpers, Node};
     pub use dom::text::Text;
 }

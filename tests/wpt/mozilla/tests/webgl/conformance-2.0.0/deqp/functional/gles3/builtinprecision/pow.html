@@ -1,0 +1,34 @@
+<!--
+
+This file is auto-generated from builtinprecision_test_generator.py
+DO NOT EDIT!
+
+-->
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>WebGL Builtin Precision Conformance Tests</title>
+<link rel="stylesheet" href="../../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../../js/js-test-pre.js"></script>
+<script src="../../../../js/webgl-test-utils.js"></script>
+
+<script src="../../../../closure-library/closure/goog/base.js"></script>
+<script src="../../../deqp-deps.js"></script>
+<script>goog.require('functional.gles3.es3fBuiltinPrecisionTests');</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="200" height="100"> </canvas>
+<script>
+var canvas = document.getElementById('canvas');
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext('canvas', null, 2);
+
+functional.gles3.es3fBuiltinPrecisionTests.run(gl, 19);
+</script>
+</body>
+</html>

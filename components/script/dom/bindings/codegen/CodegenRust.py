@@ -1198,12 +1198,12 @@ def convertConstIDLValueToJSVal(value):
     if tag == IDLType.Tags.uint32:
         return "ConstantVal::UintVal(%s)" % (value.value)
     if tag in [IDLType.Tags.int64, IDLType.Tags.uint64]:
-        return "ConstantVal::DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s as f64)" % (value.value)
     if tag == IDLType.Tags.bool:
         return "ConstantVal::BoolVal(true)" if value.value else "ConstantVal::BoolVal(false)"
     if tag in [IDLType.Tags.unrestricted_float, IDLType.Tags.float,
                IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
-        return "ConstantVal::DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s as f64)" % (value.value)
     raise TypeError("Const value of unhandled type: " + value.type)
 
 
@@ -2039,7 +2039,7 @@ DOMClass {
     interface_chain: [ %s ],
     type_id: %s,
     malloc_size_of: %s as unsafe fn(&mut _, _) -> _,
-    global: InterfaceObjectMap::%s,
+    global: InterfaceObjectMap::Globals::%s,
 }""" % (prototypeChainString, DOMClassTypeId(descriptor), mallocSizeOf, globals_)
 
 
@@ -2445,7 +2445,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         iface = self.descriptor.interface
 
         bits = " | ".join(sorted(
-            "InterfaceObjectMap::" + camel_to_upper_snake(i) for i in iface.exposureSet
+            "InterfaceObjectMap::Globals::" + camel_to_upper_snake(i) for i in iface.exposureSet
         ))
         conditions.append("is_exposed_in(aObj, %s)" % bits)
 
@@ -4077,7 +4077,17 @@ class CGConstant(CGThing):
     def define(self):
         name = self.constant.identifier.name
         value = convertConstIDLValueToRust(self.constant.value)
-        return "pub const %s: %s = %s;\n" % (name, builtinNames[self.constant.value.type.tag()], value)
+
+        tag = self.constant.value.type.tag()
+        const_type = builtinNames[self.constant.value.type.tag()]
+        # Finite<f32> or Finite<f64> cannot be used un a constant declaration.
+        # Remote the Finite type from restricted float and double tag declarations.
+        if tag == IDLType.Tags.float:
+            const_type = "f32"
+        elif tag == IDLType.Tags.double:
+            const_type = "f64"
+
+        return "pub const %s: %s = %s;\n" % (name, const_type, value)
 
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
@@ -7092,9 +7102,9 @@ class GlobalGenRoots():
             for (idx, d) in enumerate(global_descriptors)
         )
         global_flags = CGWrapper(CGIndenter(CGList([
-            CGGeneric("const %s = %#x," % args)
+            CGGeneric("const %s = %#x;" % args)
             for args in flags
-        ], "\n")), pre="pub flags Globals: u8 {\n", post="\n}")
+        ], "\n")), pre="pub struct Globals: u8 {\n", post="\n}")
         globals_ = CGWrapper(CGIndenter(global_flags), pre="bitflags! {\n", post="\n}")
 
         phf = CGGeneric("include!(concat!(env!(\"OUT_DIR\"), \"/InterfaceObjectMapPhf.rs\"));")

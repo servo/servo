@@ -1,0 +1,167 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL FramebufferTextureLayer Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var gl;
+var canvas = document.getElementById("canvas");
+
+function numLevelsFromSize(size) {
+    var levels = 0;
+    while ((size >> levels) > 0) {
+        ++levels;
+    }
+    return levels;
+}
+
+function checkFramebuffer(expected) {
+    var actual = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (expected.indexOf(actual) < 0) {
+        var msg = "checkFramebufferStatus expects [";
+        for (var index = 0; index < expected.length; ++index) {
+            msg += wtu.glEnumToString(gl, expected[index]);
+            if (index + 1 < expected.length)
+                msg += ", ";
+        }
+        msg += "], was " + wtu.glEnumToString(gl, actual);
+        testFailed(msg);
+    } else {
+        var msg = "checkFramebufferStatus got " + wtu.glEnumToString(gl, actual) +
+                  " as expected";
+        testPassed(msg);
+    }
+}
+
+function testFramebufferTextureLayer() {
+    debug("");
+    debug("Checking FramebufferTextureLayer stuff.");
+
+    var tex3d = gl.createTexture();
+    var fb = gl.createFramebuffer();
+    gl.bindTexture(gl.TEXTURE_3D, tex3d);
+    gl.texImage3D(gl.TEXTURE_3D,
+                  0,                                          // level
+                  gl.RGBA,                                    // internalFormat
+                  1,                                          // width
+                  1,                                          // height
+                  1,                                          // depth
+                  0,                                          // border
+                  gl.RGBA,                                    // format
+                  gl.UNSIGNED_BYTE,                           // type
+                  new Uint8Array([0xff, 0x00, 0x00, 0x00]));  // data
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3d, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+        "attaching a texture to default framebuffer should generate INVALID_OPERATION.");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3d, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "attaching a texture to a framebuffer should succeed.");
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, null, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "detaching a texture from a framebuffer should succeed.");
+
+    var maxTexSize = gl.getParameter(gl.MAX_3D_TEXTURE_SIZE);
+    var maxLevels = numLevelsFromSize(maxTexSize);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3d, maxLevels - 1, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "calling framebufferTextureLayer with an appropriate mipmap level should succeed.");
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT]);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3d, maxLevels, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling framebufferTextureLayer with a mipmap level out of range should generate INVALID_VALUE.");
+
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3d, 0, -1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling framebufferTextureLayer with a negative texture layer should generate INVALID_VALUE.");
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3d, 0, maxTexSize);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "calling framebufferTextureLayer with a texture layer out of range should generate INVALID_VALUE.");
+
+    var tex2d = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex2d);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex2d, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+        "attaching a 2d texture to a framebuffer should generate INVALID_OPERATION.");
+
+    var texDepthStencil = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, texDepthStencil);
+    var fbDepthStencil = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbDepthStencil);
+    gl.texImage3D(gl.TEXTURE_2D_ARRAY,
+                  0,                                          // level
+                  gl.DEPTH24_STENCIL8,                        // internalFormat
+                  1,                                          // width
+                  1,                                          // height
+                  1,                                          // depth
+                  0,                                          // border
+                  gl.DEPTH_STENCIL,                           // format
+                  gl.UNSIGNED_INT_24_8,                       // type
+                  new Uint32Array([0]));                      // data
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, texDepthStencil, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "attaching a depth_stencil texture to a framebuffer should succeed.");
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    // Clean up
+    gl.deleteTexture(tex3d);
+    gl.deleteTexture(texDepthStencil);
+    gl.deleteTexture(tex2d);
+    gl.deleteFramebuffer(fb);
+    gl.deleteFramebuffer(fbDepthStencil);
+}
+
+description("This tests framebufferTextureLayer.");
+
+shouldBeNonNull("gl = wtu.create3DContext(undefined, undefined, 2)");
+
+testFramebufferTextureLayer();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

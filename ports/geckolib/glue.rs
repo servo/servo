@@ -19,7 +19,7 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
 use style::data::{ElementStyles, self};
-use style::dom::{ShowSubtreeData, TElement, TNode};
+use style::dom::{ShowSubtreeData, TDocument, TElement, TNode};
 use style::driver;
 use style::element_state::{DocumentState, ElementState};
 use style::error_reporting::{NullReporter, ParseErrorReporter};
@@ -67,6 +67,7 @@ use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
+use style::gecko_bindings::bindings::RawServoAnimationValueBorrowedOrNull;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoAnimationValueTableBorrowed;
@@ -78,7 +79,7 @@ use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
-use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
+use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsAtom, nsCSSPropertyID};
@@ -115,11 +116,9 @@ use style::invalidation::element::restyle_hints;
 use style::media_queries::{Device, MediaList, parse_media_query_list};
 use style::parser::{Parse, ParserContext, self};
 use style::properties::{CascadeFlags, ComputedValues, DeclarationSource, Importance};
-use style::properties::{IS_FIELDSET_CONTENT, IS_LINK, IS_VISITED_LINK, LonghandIdSet};
-use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
-use style::properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, SourcePropertyDeclaration, StyleBuilder};
-use style::properties::PROHIBIT_DISPLAY_CONTENTS;
+use style::properties::{SourcePropertyDeclaration, StyleBuilder};
 use style::properties::animated_properties::AnimationValue;
 use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
@@ -141,14 +140,14 @@ use style::thread_state;
 use style::timer::Timer;
 use style::traversal::DomTraversal;
 use style::traversal::resolve_style;
-use style::traversal_flags::{TraversalFlags, self};
+use style::traversal_flags::{self, TraversalFlags};
 use style::values::{CustomIdent, KeyframesName};
 use style::values::animated::{Animate, Procedure, ToAnimatedZero};
 use style::values::computed::{Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style::values::specified;
 use style::values::specified::gecko::IntersectionObserverRootMargin;
-use style_traits::{PARSING_MODE_DEFAULT, ToCss};
+use style_traits::{ParsingMode, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -177,7 +176,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     };
 
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
-    thread_state::initialize(thread_state::LAYOUT);
+    thread_state::initialize(thread_state::ThreadState::LAYOUT);
 
     // Perform some debug-only runtime assertions.
     restyle_hints::assert_restyle_hints_match();
@@ -192,7 +191,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
 #[no_mangle]
 pub extern "C" fn Servo_InitializeCooperativeThread() {
     // Pretend that we're a Servo Layout thread to make some assertions happy.
-    thread_state::initialize(thread_state::LAYOUT);
+    thread_state::initialize(thread_state::ThreadState::LAYOUT);
 }
 
 #[no_mangle]
@@ -262,7 +261,7 @@ fn traverse_subtree(element: GeckoElement,
     debug!("Traversing subtree from {:?}", element);
 
     let thread_pool_holder = &*STYLE_THREAD_POOL;
-    let thread_pool = if traversal_flags.contains(traversal_flags::ParallelTraversal) {
+    let thread_pool = if traversal_flags.contains(TraversalFlags::ParallelTraversal) {
         thread_pool_holder.style_thread_pool.as_ref()
     } else {
         None
@@ -292,7 +291,7 @@ pub extern "C" fn Servo_TraverseSubtree(
     debug!("{:?}", ShowSubtreeData(element.as_node()));
     // It makes no sense to do an animation restyle when we're styling
     // newly-inserted content.
-    if !traversal_flags.contains(traversal_flags::UnstyledOnly) {
+    if !traversal_flags.contains(TraversalFlags::UnstyledOnly) {
         let needs_animation_only_restyle =
             element.has_animation_only_dirty_descendants() ||
             element.has_animation_restyle_hints();
@@ -302,7 +301,7 @@ pub extern "C" fn Servo_TraverseSubtree(
                    element.has_animation_only_dirty_descendants());
             traverse_subtree(element,
                              raw_data,
-                             traversal_flags | traversal_flags::AnimationOnly,
+                             traversal_flags | TraversalFlags::AnimationOnly,
                              unsafe { &*snapshots });
         }
     }
@@ -411,6 +410,157 @@ pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationV
     from_value.compute_squared_distance(to_value).map(|d| d.sqrt()).unwrap_or(-1.0)
 }
 
+/// Compute one of the endpoints for the interpolation interval, compositing it with the
+/// underlying value if needed.
+/// An None returned value means, "Just use endpoint_value as-is."
+/// It is the responsibility of the caller to ensure that |underlying_value| is provided
+/// when it will be used.
+fn composite_endpoint(
+    endpoint_value: Option<&RawOffsetArc<AnimationValue>>,
+    composite: CompositeOperation,
+    underlying_value: Option<&AnimationValue>,
+) -> Option<AnimationValue> {
+    match endpoint_value {
+        Some(endpoint_value) => {
+            match composite {
+                CompositeOperation::Add => {
+                    underlying_value
+                        .expect("We should have an underlying_value")
+                        .animate(endpoint_value, Procedure::Add).ok()
+                },
+                CompositeOperation::Accumulate => {
+                    underlying_value
+                        .expect("We should have an underlying value")
+                        .animate(endpoint_value, Procedure::Accumulate { count: 1 })
+                        .ok()
+                },
+                _ => None,
+            }
+        },
+        None => underlying_value.map(|v| v.clone()),
+    }
+}
+
+/// Accumulate one of the endpoints of the animation interval.
+/// A returned value of None means, "Just use endpoint_value as-is."
+fn accumulate_endpoint(
+    endpoint_value: Option<&RawOffsetArc<AnimationValue>>,
+    composited_value: Option<AnimationValue>,
+    last_value: &AnimationValue,
+    current_iteration: u64
+) -> Option<AnimationValue> {
+    debug_assert!(endpoint_value.is_some() || composited_value.is_some(),
+                  "Should have a suitable value to use");
+
+    let count = current_iteration;
+    match composited_value {
+        Some(endpoint) => {
+            last_value
+                .animate(&endpoint, Procedure::Accumulate { count })
+                .ok()
+                .or(Some(endpoint))
+        },
+        None => {
+            last_value
+                .animate(endpoint_value.unwrap(), Procedure::Accumulate { count })
+                .ok()
+        },
+    }
+}
+
+/// Compose the animation segment. We composite it with the underlying_value and last_value if
+/// needed.
+/// The caller is responsible for providing an underlying value and last value
+/// in all situations where there are needed.
+fn compose_animation_segment(
+    segment: RawGeckoAnimationPropertySegmentBorrowed,
+    underlying_value: Option<&AnimationValue>,
+    last_value: Option<&AnimationValue>,
+    iteration_composite: IterationCompositeOperation,
+    current_iteration: u64,
+    total_progress: f64,
+    segment_progress: f64,
+) -> AnimationValue {
+    // Extract keyframe values.
+    let raw_from_value;
+    let keyframe_from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
+        raw_from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
+        Some(AnimationValue::as_arc(&raw_from_value))
+    } else {
+        None
+    };
+
+    let raw_to_value;
+    let keyframe_to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
+        raw_to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
+        Some(AnimationValue::as_arc(&raw_to_value))
+    } else {
+        None
+    };
+
+    let mut composited_from_value = composite_endpoint(keyframe_from_value,
+                                                       segment.mFromComposite,
+                                                       underlying_value);
+    let mut composited_to_value = composite_endpoint(keyframe_to_value,
+                                                     segment.mToComposite,
+                                                     underlying_value);
+
+    debug_assert!(keyframe_from_value.is_some() || composited_from_value.is_some(),
+                  "Should have a suitable from value to use");
+    debug_assert!(keyframe_to_value.is_some() || composited_to_value.is_some(),
+                  "Should have a suitable to value to use");
+
+    // Apply iteration composite behavior.
+    if iteration_composite == IterationCompositeOperation::Accumulate && current_iteration > 0 {
+        let last_value = last_value.unwrap_or_else(|| {
+            underlying_value.expect("Should have a valid underlying value")
+        });
+
+        composited_from_value = accumulate_endpoint(keyframe_from_value,
+                                                    composited_from_value,
+                                                    last_value,
+                                                    current_iteration);
+        composited_to_value = accumulate_endpoint(keyframe_to_value,
+                                                  composited_to_value,
+                                                  last_value,
+                                                  current_iteration);
+    }
+
+    // Use the composited value if there is one, otherwise, use the original keyframe value.
+    let from = composited_from_value.as_ref().unwrap_or_else(|| keyframe_from_value.unwrap());
+    let to   = composited_to_value.as_ref().unwrap_or_else(|| keyframe_to_value.unwrap());
+
+    if segment.mToKey == segment.mFromKey {
+        return if total_progress < 0. { from.clone() } else { to.clone() };
+    }
+
+    match from.animate(to, Procedure::Interpolate { progress: segment_progress }) {
+        Ok(value) => value,
+        _ => if segment_progress < 0.5 { from.clone() } else { to.clone() },
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ComposeAnimationSegment(
+    segment: RawGeckoAnimationPropertySegmentBorrowed,
+    underlying_value: RawServoAnimationValueBorrowedOrNull,
+    last_value: RawServoAnimationValueBorrowedOrNull,
+    iteration_composite: IterationCompositeOperation,
+    progress: f64,
+    current_iteration: u64
+) -> RawServoAnimationValueStrong {
+    let underlying_value = AnimationValue::arc_from_borrowed(&underlying_value).map(|v| &**v);
+    let last_value = AnimationValue::arc_from_borrowed(&last_value).map(|v| &**v);
+    let result = compose_animation_segment(segment,
+                                           underlying_value,
+                                           last_value,
+                                           iteration_composite,
+                                           current_iteration,
+                                           progress,
+                                           progress);
+    Arc::new(result).into_strong()
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowedMut,
                                          base_values: RawServoAnimationValueTableBorrowed,
@@ -461,125 +611,31 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         return;
     }
 
-    // Extract keyframe values.
-    let raw_from_value;
-    let keyframe_from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
-        raw_from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
-        Some(AnimationValue::as_arc(&raw_from_value))
+    let raw_last_value;
+    let last_value = if !last_segment.mToValue.mServo.mRawPtr.is_null() {
+        raw_last_value = unsafe { &*last_segment.mToValue.mServo.mRawPtr };
+        Some(&**AnimationValue::as_arc(&raw_last_value))
     } else {
         None
     };
-
-    let raw_to_value;
-    let keyframe_to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
-        raw_to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
-        Some(AnimationValue::as_arc(&raw_to_value))
-    } else {
-        None
-    };
-
-    // Composite with underlying value.
-    // A return value of None means, "Just use keyframe_value as-is."
-    let composite_endpoint = |keyframe_value: Option<&RawOffsetArc<AnimationValue>>,
-                              composite_op: CompositeOperation| -> Option<AnimationValue> {
-        match keyframe_value {
-            Some(keyframe_value) => {
-                match composite_op {
-                    CompositeOperation::Add => {
-                        debug_assert!(need_underlying_value,
-                                      "Should have detected we need an underlying value");
-                        underlying_value.as_ref().unwrap().animate(keyframe_value, Procedure::Add).ok()
-                    },
-                    CompositeOperation::Accumulate => {
-                        debug_assert!(need_underlying_value,
-                                      "Should have detected we need an underlying value");
-                        underlying_value
-                            .as_ref()
-                            .unwrap()
-                            .animate(keyframe_value, Procedure::Accumulate { count: 1 })
-                            .ok()
-                    },
-                    _ => None,
-                }
-            },
-            None => {
-                debug_assert!(need_underlying_value,
-                              "Should have detected we need an underlying value");
-                underlying_value.clone()
-            },
-        }
-    };
-    let mut composited_from_value = composite_endpoint(keyframe_from_value, segment.mFromComposite);
-    let mut composited_to_value = composite_endpoint(keyframe_to_value, segment.mToComposite);
-
-    debug_assert!(keyframe_from_value.is_some() || composited_from_value.is_some(),
-                  "Should have a suitable from value to use");
-    debug_assert!(keyframe_to_value.is_some() || composited_to_value.is_some(),
-                  "Should have a suitable to value to use");
-
-    // Apply iteration composite behavior.
-    if iteration_composite == IterationCompositeOperation::Accumulate &&
-       computed_timing.mCurrentIteration > 0 {
-        let raw_last_value;
-        let last_value = if !last_segment.mToValue.mServo.mRawPtr.is_null() {
-            raw_last_value = unsafe { &*last_segment.mToValue.mServo.mRawPtr };
-            &*AnimationValue::as_arc(&raw_last_value)
-        } else {
-            debug_assert!(need_underlying_value,
-                          "Should have detected we need an underlying value");
-            underlying_value.as_ref().unwrap()
-        };
-
-        // As with composite_endpoint, a return value of None means, "Use keyframe_value as-is."
-        let apply_iteration_composite = |keyframe_value: Option<&RawOffsetArc<AnimationValue>>,
-                                         composited_value: Option<AnimationValue>|
-                                        -> Option<AnimationValue> {
-            let count = computed_timing.mCurrentIteration;
-            match composited_value {
-                Some(endpoint) => {
-                    last_value
-                        .animate(&endpoint, Procedure::Accumulate { count })
-                        .ok()
-                        .or(Some(endpoint))
-                },
-                None => {
-                    last_value
-                        .animate(keyframe_value.unwrap(), Procedure::Accumulate { count })
-                        .ok()
-                },
-            }
-        };
-
-        composited_from_value = apply_iteration_composite(keyframe_from_value,
-                                                          composited_from_value);
-        composited_to_value = apply_iteration_composite(keyframe_to_value,
-                                                        composited_to_value);
-    }
-
-    // Use the composited value if there is one, otherwise, use the original keyframe value.
-    let from_value = composited_from_value.as_ref().unwrap_or_else(|| keyframe_from_value.unwrap());
-    let to_value   = composited_to_value.as_ref().unwrap_or_else(|| keyframe_to_value.unwrap());
 
     let progress = unsafe { Gecko_GetProgressFromComputedTiming(computed_timing) };
-    if segment.mToKey == segment.mFromKey {
-        if progress < 0. {
-            value_map.insert(property, from_value.clone());
-        } else {
-            value_map.insert(property, to_value.clone());
-        }
-        return;
-    }
-
-    let pos = unsafe {
-        Gecko_GetPositionInSegment(segment, progress, computed_timing.mBeforeFlag)
-    };
-    if let Ok(value) = from_value.animate(to_value, Procedure::Interpolate { progress: pos }) {
-        value_map.insert(property, value);
-    } else if pos < 0.5 {
-        value_map.insert(property, from_value.clone());
+    let position = if segment.mToKey == segment.mFromKey {
+        // Note: compose_animation_segment doesn't use this value
+        // if segment.mFromKey == segment.mToKey, so assigning |progress| directly is fine.
+        progress
     } else {
-        value_map.insert(property, to_value.clone());
-    }
+        unsafe { Gecko_GetPositionInSegment(segment, progress, computed_timing.mBeforeFlag) }
+    };
+
+    let result = compose_animation_segment(segment,
+                                           underlying_value.as_ref(),
+                                           last_value,
+                                           iteration_composite,
+                                           computed_timing.mCurrentIteration,
+                                           progress,
+                                           position);
+    value_map.insert(property, result);
 }
 
 macro_rules! get_property_id_from_nscsspropertyid {
@@ -634,9 +690,9 @@ pub extern "C" fn Servo_Shorthand_AnimationValues_Serialize(shorthand_property: 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_GetOpacity(value: RawServoAnimationValueBorrowed)
-     -> f32
-{
+pub extern "C" fn Servo_AnimationValue_GetOpacity(
+    value: RawServoAnimationValueBorrowed
+) -> f32 {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Opacity(opacity) = **value {
         opacity
@@ -646,23 +702,39 @@ pub extern "C" fn Servo_AnimationValue_GetOpacity(value: RawServoAnimationValueB
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValueBorrowed,
-                                                    list: *mut structs::RefPtr<nsCSSValueSharedList>)
-{
+pub extern "C" fn Servo_AnimationValue_Opacity(
+    opacity: f32
+) -> RawServoAnimationValueStrong {
+    Arc::new(AnimationValue::Opacity(opacity)).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_GetTransform(
+    value: RawServoAnimationValueBorrowed,
+    list: *mut structs::RefPtr<nsCSSValueSharedList>
+) {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Transform(ref servo_list) = **value {
         let list = unsafe { &mut *list };
-        match servo_list.0 {
-            Some(ref servo_list) => {
-                style_structs::Box::convert_transform(servo_list, list);
-            },
-            None => unsafe {
+        if servo_list.0.is_empty() {
+            unsafe {
                 list.set_move(RefPtr::from_addrefed(Gecko_NewNoneTransform()));
             }
+        } else {
+            style_structs::Box::convert_transform(&servo_list.0, list);
         }
     } else {
         panic!("The AnimationValue should be transform");
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_Transform(
+    list: *const nsCSSValueSharedList
+) -> RawServoAnimationValueStrong {
+    let list = unsafe { (&*list).mHead.as_ref() };
+    let transform = style_structs::Box::clone_transform_from_list(list);
+    Arc::new(AnimationValue::Transform(transform)).into_strong()
 }
 
 #[no_mangle]
@@ -892,7 +964,6 @@ pub extern "C" fn Servo_Element_GetPrimaryComputedValues(element: RawGeckoElemen
 {
     let element = GeckoElement(element);
     let data = element.borrow_data().expect("Getting CVs on unstyled element");
-    assert!(data.has_styles(), "Getting CVs on unstyled element");
     data.styles.primary().clone().into()
 }
 
@@ -927,7 +998,7 @@ pub extern "C" fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element: RawGeck
     let element = GeckoElement(element);
     let data = element.borrow_data()
                       .expect("Invoking Servo_Element_IsPrimaryStyleReusedViaRuleNode on unstyled element");
-    data.flags.contains(data::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
+    data.flags.contains(data::ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
 }
 
 #[no_mangle]
@@ -1577,7 +1648,9 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
         };
 
         let element = GeckoElement(element);
-        let mut ctx = MatchingContext::new(matching_mode, None, None, element.owner_document_quirks_mode());
+        let quirks_mode = element.as_node().owner_doc().quirks_mode();
+        let mut ctx =
+            MatchingContext::new(matching_mode, None, None, quirks_mode);
         matches_selector(selector, 0, None, &element, &mut ctx, &mut |_, _| {})
     })
 }
@@ -1591,9 +1664,10 @@ pub unsafe extern "C" fn Servo_SelectorList_Closest(
     use style::dom_apis;
 
     let element = GeckoElement(element);
+    let quirks_mode = element.as_node().owner_doc().quirks_mode();
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
 
-    dom_apis::element_closest(element, &selectors, element.owner_document_quirks_mode())
+    dom_apis::element_closest(element, &selectors, quirks_mode)
         .map_or(ptr::null(), |e| e.0)
 }
 
@@ -1606,11 +1680,12 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
     use style::dom_apis;
 
     let element = GeckoElement(element);
+    let quirks_mode = element.as_node().owner_doc().quirks_mode();
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
     dom_apis::element_matches(
         &element,
         &selectors,
-        element.owner_document_quirks_mode(),
+        quirks_mode,
     )
 }
 
@@ -1618,18 +1693,27 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
 pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
     node: RawGeckoNodeBorrowed,
     selectors: RawServoSelectorListBorrowed,
+    may_use_invalidation: bool,
 ) -> *const structs::RawGeckoElement {
     use std::borrow::Borrow;
-    use style::dom_apis::{self, QueryFirst};
+    use style::dom_apis::{self, MayUseInvalidation, QueryFirst};
 
     let node = GeckoNode(node);
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
     let mut result = None;
+
+    let may_use_invalidation =
+        if may_use_invalidation {
+            MayUseInvalidation::Yes
+        } else {
+            MayUseInvalidation::No
+        };
+
     dom_apis::query_selector::<GeckoElement, QueryFirst>(
         node,
         &selectors,
         &mut result,
-        node.owner_document_quirks_mode(),
+        may_use_invalidation,
     );
 
     result.map_or(ptr::null(), |e| e.0)
@@ -1640,20 +1724,28 @@ pub unsafe extern "C" fn Servo_SelectorList_QueryAll(
     node: RawGeckoNodeBorrowed,
     selectors: RawServoSelectorListBorrowed,
     content_list: *mut structs::nsSimpleContentList,
+    may_use_invalidation: bool,
 ) {
     use smallvec::SmallVec;
     use std::borrow::Borrow;
-    use style::dom_apis::{self, QueryAll};
+    use style::dom_apis::{self, MayUseInvalidation, QueryAll};
 
     let node = GeckoNode(node);
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
     let mut result = SmallVec::new();
 
+    let may_use_invalidation =
+        if may_use_invalidation {
+            MayUseInvalidation::Yes
+        } else {
+            MayUseInvalidation::No
+        };
+
     dom_apis::query_selector::<GeckoElement, QueryAll>(
         node,
         &selectors,
         &mut result,
-        node.owner_document_quirks_mode(),
+        may_use_invalidation,
     );
 
     if !result.is_empty() {
@@ -1870,9 +1962,9 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon box pseudo?");
 
-    let mut cascade_flags = SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
+    let mut cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     if pseudo.is_fieldset_content() {
-        cascade_flags.insert(IS_FIELDSET_CONTENT);
+        cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
     }
     let metrics = get_metrics_provider_for_product();
 
@@ -2213,26 +2305,26 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBorrowed) -> u64 {
-    use style::properties::computed_value_flags::*;
+    use style::properties::computed_value_flags::ComputedValueFlags;
     // FIXME(emilio): We could do this more efficiently I'm quite sure.
     let flags = values.flags;
     let mut result = 0;
-    if flags.contains(IS_RELEVANT_LINK_VISITED) {
+    if flags.contains(ComputedValueFlags::IS_RELEVANT_LINK_VISITED) {
         result |= structs::NS_STYLE_RELEVANT_LINK_VISITED as u64;
     }
-    if flags.contains(HAS_TEXT_DECORATION_LINES) {
+    if flags.contains(ComputedValueFlags::HAS_TEXT_DECORATION_LINES) {
         result |= structs::NS_STYLE_HAS_TEXT_DECORATION_LINES as u64;
     }
-    if flags.contains(SHOULD_SUPPRESS_LINEBREAK) {
+    if flags.contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK) {
         result |= structs::NS_STYLE_SUPPRESS_LINEBREAK as u64;
     }
-    if flags.contains(IS_TEXT_COMBINED) {
+    if flags.contains(ComputedValueFlags::IS_TEXT_COMBINED) {
         result |= structs::NS_STYLE_IS_TEXT_COMBINED as u64;
     }
-    if flags.contains(IS_IN_PSEUDO_ELEMENT_SUBTREE) {
+    if flags.contains(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE) {
         result |= structs::NS_STYLE_HAS_PSEUDO_ELEMENT_DATA as u64;
     }
-    if flags.contains(IS_IN_DISPLAY_NONE_SUBTREE) {
+    if flags.contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE) {
         result |= structs::NS_STYLE_IN_DISPLAY_NONE_SUBTREE as u64;
     }
     result
@@ -2393,7 +2485,7 @@ pub extern "C" fn Servo_ParseEasing(
     let context = ParserContext::new(Origin::Author,
                                      url_data,
                                      Some(CssRuleType::Style),
-                                     PARSING_MODE_DEFAULT,
+                                     ParsingMode::DEFAULT,
                                      QuirksMode::NoQuirks);
     let easing = unsafe { (*easing).to_string() };
     let mut input = ParserInput::new(&easing);
@@ -2448,10 +2540,10 @@ pub extern "C" fn Servo_MatrixTransform_Operate(matrix_operator: MatrixTransform
                                                 progress: f64,
                                                 output: *mut RawGeckoGfxMatrix4x4) {
     use self::MatrixTransformOperator::{Accumulate, Interpolate};
-    use style::properties::longhands::transform::computed_value::ComputedMatrix;
+    use style::values::computed::transform::Matrix3D;
 
-    let from = ComputedMatrix::from(unsafe { from.as_ref() }.expect("not a valid 'from' matrix"));
-    let to = ComputedMatrix::from(unsafe { to.as_ref() }.expect("not a valid 'to' matrix"));
+    let from = Matrix3D::from(unsafe { from.as_ref() }.expect("not a valid 'from' matrix"));
+    let to = Matrix3D::from(unsafe { to.as_ref() }.expect("not a valid 'to' matrix"));
     let result = match matrix_operator {
         Interpolate => from.animate(&to, Procedure::Interpolate { progress }),
         Accumulate => from.animate(&to, Procedure::Accumulate { count: progress as u64 }),
@@ -2793,16 +2885,41 @@ pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, resul
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
-    let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
+pub unsafe extern "C" fn Servo_MediaList_SetText(
+    list: RawServoMediaListBorrowed,
+    text: *const nsACString,
+    caller_type: CallerType,
+) {
+    let text = (*text).as_str_unchecked();
+
     let mut input = ParserInput::new(&text);
     let mut parser = Parser::new(&mut input);
-    let url_data = unsafe { dummy_url_data() };
-    let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
-                                               QuirksMode::NoQuirks);
-     write_locked_arc(list, |list: &mut MediaList| {
-        *list = parse_media_query_list(&context, &mut parser, &NullReporter);
+    let url_data = dummy_url_data();
+
+    // TODO(emilio): If the need for `CallerType` appears in more places,
+    // consider adding an explicit member in `ParserContext` instead of doing
+    // this (or adding a dummy "chrome://" url data).
+    //
+    // For media query parsing it's effectively the same, so for now...
+    let origin = match caller_type {
+        CallerType::System => Origin::UserAgent,
+        CallerType::NonSystem => Origin::Author,
+    };
+
+    let context = ParserContext::new(
+        origin,
+        url_data,
+        Some(CssRuleType::Media),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    write_locked_arc(list, |list: &mut MediaList| {
+        *list = parse_media_query_list(
+            &context,
+            &mut parser,
+            &NullReporter,
+        );
     })
 }
 
@@ -2835,7 +2952,7 @@ pub extern "C" fn Servo_MediaList_AppendMedium(
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
+                                               ParsingMode::DEFAULT,
                                                QuirksMode::NoQuirks);
     write_locked_arc(list, |list: &mut MediaList| {
         list.append_medium(&context, new_medium);
@@ -2850,7 +2967,7 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
     let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               PARSING_MODE_DEFAULT,
+                                               ParsingMode::DEFAULT,
                                                QuirksMode::NoQuirks);
     write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
 }
@@ -3236,7 +3353,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     let string = unsafe { (*value).to_string() };
     let context = ParserContext::new(Origin::Author, url_data,
-                                     Some(CssRuleType::Style), PARSING_MODE_DEFAULT,
+                                     Some(CssRuleType::Style), ParsingMode::DEFAULT,
                                      QuirksMode::NoQuirks);
     if let Ok(mut url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
         url.build_image_value();
@@ -3257,7 +3374,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(
     use style::properties::longhands::text_decoration_line;
 
     let mut decoration = text_decoration_line::computed_value::none;
-    decoration |= text_decoration_line::COLOR_OVERRIDE;
+    decoration |= text_decoration_line::SpecifiedValue::COLOR_OVERRIDE;
     let decl = PropertyDeclaration::TextDecorationLine(decoration);
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(decl, Importance::Normal, DeclarationSource::CssOm);
@@ -3297,7 +3414,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
             ParserContext::new_for_cssom(
                 url_data,
                 Some(CssRuleType::Style),
-                PARSING_MODE_DEFAULT,
+                ParsingMode::DEFAULT,
                 QuirksMode::NoQuirks,
             );
         cond.eval(&context)
@@ -3355,8 +3472,6 @@ pub extern "C" fn Servo_ResolveStyle(
     let data =
         element.borrow_data().expect("Resolving style on unstyled element");
 
-    // TODO(emilio): Downgrade to debug assertions when close to release.
-    assert!(data.has_styles(), "Resolving style on unstyled element");
     debug_assert!(element.has_current_styles(&*data),
                   "Resolving style on {:?} without current styles: {:?}", element, data);
     data.styles.primary().clone().into()
@@ -3465,25 +3580,25 @@ pub extern "C" fn Servo_ReparentStyle(
 
     let mut cascade_flags = CascadeFlags::empty();
     if style_to_reparent.is_anon_box() {
-        cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
+        cascade_flags.insert(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
     }
     if let Some(element) = element {
         if element.is_link() {
-            cascade_flags.insert(IS_LINK);
+            cascade_flags.insert(CascadeFlags::IS_LINK);
             if element.is_visited_link() &&
                 doc_data.visited_styles_enabled() {
-                cascade_flags.insert(IS_VISITED_LINK);
+                cascade_flags.insert(CascadeFlags::IS_VISITED_LINK);
             }
         };
 
         if element.is_native_anonymous() {
-            cascade_flags.insert(PROHIBIT_DISPLAY_CONTENTS);
+            cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
         }
     }
     if let Some(pseudo) = pseudo.as_ref() {
-        cascade_flags.insert(PROHIBIT_DISPLAY_CONTENTS);
+        cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
         if pseudo.is_fieldset_content() {
-            cascade_flags.insert(IS_FIELDSET_CONTENT);
+            cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
         }
     }
 
@@ -4370,11 +4485,23 @@ pub extern "C" fn Servo_ProcessInvalidations(
 pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrowed) -> bool {
     let mut element = Some(GeckoElement(element));
     while let Some(e) = element {
+        if e.has_animations() {
+            return true;
+        }
+
+        // If the element needs a frame, it means that we haven't styled it yet
+        // after it got inserted in the document, and thus we may need to do
+        // that for transitions and animations to trigger.
+        if e.needs_frame() {
+            return true;
+        }
+
         if let Some(data) = e.borrow_data() {
             if !data.hint.is_empty() {
                 return true;
             }
         }
+
         element = e.traversal_parent();
     }
     false
@@ -4481,7 +4608,7 @@ pub extern "C" fn Servo_ParseIntersectionObserverRootMargin(
         Origin::Author,
         url_data,
         Some(CssRuleType::Style),
-        PARSING_MODE_DEFAULT,
+        ParsingMode::DEFAULT,
         QuirksMode::NoQuirks,
     );
 

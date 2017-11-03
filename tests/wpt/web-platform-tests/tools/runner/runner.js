@@ -654,7 +654,8 @@ Results.prototype = {
 };
 
 function Runner(manifest_path) {
-    this.server = location.protocol + "//" + location.host;
+    this.server = get_host_info().HTTP_ORIGIN;
+    this.https_server = get_host_info().HTTPS_ORIGIN;
     this.manifest = new Manifest(manifest_path);
     this.path = null;
     this.test_types = null;
@@ -832,7 +833,10 @@ Runner.prototype = {
 
     load: function(path) {
         this.ensure_test_window();
-        this.test_window.location.href = this.server + path;
+        if (path.match(/\.https\./))
+          this.test_window.location.href = this.https_server + path;
+        else
+          this.test_window.location.href = this.server + path;
     },
 
     progress: function() {
@@ -844,8 +848,26 @@ Runner.prototype = {
             this.num_tests = this.manifest_iterator.count();
         }
         return this.num_tests;
-    }
+    },
 
+    on_complete: function(tests, status) {
+      var harness_status_map = {0:"OK", 1:"ERROR", 2:"TIMEOUT", 3:"NOTRUN"};
+      var subtest_status_map = {0:"PASS", 1:"FAIL", 2:"TIMEOUT", 3:"NOTRUN"};
+
+      // this ugly hack is because IE really insists on holding on to the objects it creates in
+      // other windows, and on losing track of them when the window gets closed
+      var subtest_results = JSON.parse(JSON.stringify(
+          tests.map(function (test) {
+              return {name: test.name,
+                      status: subtest_status_map[test.status],
+                      message: test.message};
+          })
+      ));
+
+      runner.on_result(harness_status_map[status.status],
+                       status.message,
+                       subtest_results);
+    }
 };
 
 
@@ -883,26 +905,12 @@ function setup() {
                      test_control.get_use_regex());
         return;
     }
+
+    window.addEventListener("message", function(e) {
+      if (e.data.type === "complete")
+        runner.on_complete(e.data.tests, e.data.status);
+    });
 }
-
-window.completion_callback = function(tests, status) {
-    var harness_status_map = {0:"OK", 1:"ERROR", 2:"TIMEOUT", 3:"NOTRUN"};
-    var subtest_status_map = {0:"PASS", 1:"FAIL", 2:"TIMEOUT", 3:"NOTRUN"};
-
-    // this ugly hack is because IE really insists on holding on to the objects it creates in
-    // other windows, and on losing track of them when the window gets closed
-    var subtest_results = JSON.parse(JSON.stringify(
-        tests.map(function (test) {
-            return {name: test.name,
-                    status: subtest_status_map[test.status],
-                    message: test.message};
-        })
-    ));
-
-    runner.on_result(harness_status_map[status.status],
-                     status.message,
-                     subtest_results);
-};
 
 window.addEventListener("DOMContentLoaded", setup, false);
 })();

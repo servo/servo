@@ -4,7 +4,7 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError};
+use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError, WebGLVersion};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
@@ -136,10 +136,10 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(JSTraceable, MallocSizeOf)]
-    flags TextureUnpacking: u8 {
-        const FLIP_Y_AXIS = 0x01,
-        const PREMULTIPLY_ALPHA = 0x02,
-        const CONVERT_COLORSPACE = 0x04,
+    struct TextureUnpacking: u8 {
+        const FLIP_Y_AXIS = 0x01;
+        const PREMULTIPLY_ALPHA = 0x02;
+        const CONVERT_COLORSPACE = 0x04;
     }
 }
 
@@ -186,6 +186,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     share_mode: WebGLContextShareMode,
+    webgl_version: WebGLVersion,
     #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
     limits: GLLimits,
     canvas: Dom<HTMLCanvasElement>,
@@ -211,18 +212,20 @@ pub struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
-    fn new_inherited(window: &Window,
-                     canvas: &HTMLCanvasElement,
-                     size: Size2D<i32>,
-                     attrs: GLContextAttributes)
-                     -> Result<WebGLRenderingContext, String> {
+    pub fn new_inherited(
+        window: &Window,
+        canvas: &HTMLCanvasElement,
+        webgl_version: WebGLVersion,
+        size: Size2D<i32>,
+        attrs: GLContextAttributes
+    ) -> Result<WebGLRenderingContext, String> {
         if let Some(true) = PREFS.get("webgl.testing.context_creation_error").as_boolean() {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
         let webgl_chan = window.webgl_chan();
-        webgl_chan.send(WebGLMsg::CreateContext(size, attrs, sender))
+        webgl_chan.send(WebGLMsg::CreateContext(webgl_version, size, attrs, sender))
                   .unwrap();
         let result = receiver.recv().unwrap();
 
@@ -232,10 +235,11 @@ impl WebGLRenderingContext {
                 webgl_sender: ctx_data.sender,
                 webrender_image: Cell::new(None),
                 share_mode: ctx_data.share_mode,
+                webgl_version,
                 limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
-                texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
+                texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
                 texture_unpacking_alignment: Cell::new(4),
                 bound_framebuffer: MutNullableDom::new(None),
                 bound_textures: DomRefCell::new(Default::default()),
@@ -248,15 +252,20 @@ impl WebGLRenderingContext {
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
-                extension_manager: WebGLExtensions::new()
+                extension_manager: WebGLExtensions::new(webgl_version)
             }
         })
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
-               -> Option<DomRoot<WebGLRenderingContext>> {
-        match WebGLRenderingContext::new_inherited(window, canvas, size, attrs) {
+    pub fn new(
+        window: &Window,
+        canvas: &HTMLCanvasElement,
+        webgl_version: WebGLVersion,
+        size: Size2D<i32>,
+        attrs: GLContextAttributes
+    ) -> Option<DomRoot<WebGLRenderingContext>> {
+        match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
             Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
@@ -878,7 +887,7 @@ impl WebGLRenderingContext {
                        width: usize,
                        height: usize,
                        unpacking_alignment: usize) -> Vec<u8> {
-        if !self.texture_unpacking_settings.get().contains(FLIP_Y_AXIS) {
+        if !self.texture_unpacking_settings.get().contains(TextureUnpacking::FLIP_Y_AXIS) {
             return pixels;
         }
 
@@ -906,7 +915,7 @@ impl WebGLRenderingContext {
                           format: TexFormat,
                           data_type: TexDataType,
                           pixels: Vec<u8>) -> Vec<u8> {
-        if !self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
+        if !self.texture_unpacking_settings.get().contains(TextureUnpacking::PREMULTIPLY_ALPHA) {
             return pixels;
         }
 
@@ -990,7 +999,7 @@ impl WebGLRenderingContext {
                       source_premultiplied: bool,
                       source_from_image_or_canvas: bool,
                       mut pixels: Vec<u8>) -> Vec<u8> {
-        let dest_premultiply = self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA);
+        let dest_premultiply = self.texture_unpacking_settings.get().contains(TextureUnpacking::PREMULTIPLY_ALPHA);
         if !source_premultiplied && dest_premultiply {
             if source_from_image_or_canvas {
                 // When the pixels come from image or canvas or imagedata, use RGBA8 format
@@ -1123,7 +1132,7 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    fn layout_handle(&self) -> webrender_api::ImageKey {
+    pub fn layout_handle(&self) -> webrender_api::ImageKey {
         match self.share_mode {
             WebGLContextShareMode::SharedTexture => {
                 // WR using ExternalTexture requires a single update message.
@@ -1905,7 +1914,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
-            shader.compile(&self.extension_manager)
+            shader.compile(self.webgl_version, &self.extension_manager)
         }
     }
 
@@ -2450,9 +2459,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match param_name {
             constants::UNPACK_FLIP_Y_WEBGL => {
                if param_value != 0 {
-                    texture_settings.insert(FLIP_Y_AXIS)
+                    texture_settings.insert(TextureUnpacking::FLIP_Y_AXIS)
                 } else {
-                    texture_settings.remove(FLIP_Y_AXIS)
+                    texture_settings.remove(TextureUnpacking::FLIP_Y_AXIS)
                 }
 
                 self.texture_unpacking_settings.set(texture_settings);
@@ -2460,9 +2469,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
             constants::UNPACK_PREMULTIPLY_ALPHA_WEBGL => {
                 if param_value != 0 {
-                    texture_settings.insert(PREMULTIPLY_ALPHA)
+                    texture_settings.insert(TextureUnpacking::PREMULTIPLY_ALPHA)
                 } else {
-                    texture_settings.remove(PREMULTIPLY_ALPHA)
+                    texture_settings.remove(TextureUnpacking::PREMULTIPLY_ALPHA)
                 }
 
                 self.texture_unpacking_settings.set(texture_settings);
@@ -2471,9 +2480,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::UNPACK_COLORSPACE_CONVERSION_WEBGL => {
                 match param_value as u32 {
                     constants::BROWSER_DEFAULT_WEBGL
-                        => texture_settings.insert(CONVERT_COLORSPACE),
+                        => texture_settings.insert(TextureUnpacking::CONVERT_COLORSPACE),
                     constants::NONE
-                        => texture_settings.remove(CONVERT_COLORSPACE),
+                        => texture_settings.remove(TextureUnpacking::CONVERT_COLORSPACE),
                     _ => return self.webgl_error(InvalidEnum),
                 }
 

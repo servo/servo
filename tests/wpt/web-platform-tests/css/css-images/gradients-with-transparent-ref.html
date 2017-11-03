@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Linear gradient with transparent reference</title>
+<style>
+    .test {
+        width: 200px;
+        height: 100px;
+        margin-left: 90px;
+    }
+    .gradient {
+        background-image: linear-gradient(to left, blue 0%, blue 20%, rgba(0,0,255,0));
+    }
+</style>
+
+<body>
+    <p>Gradient using 'transparent'</p>
+    <div id="gradient1" class="test gradient"></div>
+    <br />
+    <p>Gradient using rgba(0,0,255,0)</p>
+    <div id="gradient2" class="test gradient"></div>
+</body>

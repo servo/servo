@@ -36,7 +36,8 @@ pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
-pub use self::box_::{AnimationIterationCount, AnimationName, VerticalAlign};
+pub use self::font::{FontWeight, MozScriptLevel, MozScriptMinSize, XTextZoom};
+pub use self::box_::{AnimationIterationCount, AnimationName, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -52,7 +53,8 @@ pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPer
 pub use self::percentage::Percentage;
 pub use self::position::Position;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
+pub use self::table::XSpan;
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, TransformOrigin};
 
@@ -76,6 +78,7 @@ pub mod percentage;
 pub mod position;
 pub mod rect;
 pub mod svg;
+pub mod table;
 pub mod text;
 pub mod time;
 pub mod transform;

@@ -32,7 +32,6 @@ use dom::vrstageparameters::VRStageParameters;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSContext;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
 use std::cell::Cell;
@@ -299,7 +298,7 @@ impl VRDisplayMethods for VRDisplay {
         }
 
         // Parse and validate received VRLayer
-        let layer = validate_layer(self.global().get_cx(), &layers[0]);
+        let layer = validate_layer(&layers[0]);
 
         let layer_bounds;
         let layer_ctx;
@@ -494,6 +493,7 @@ impl VRDisplay {
         let address = Trusted::new(&*self);
         let near_init = self.depth_near.get();
         let far_init = self.depth_far.get();
+        let pipeline_id = self.global().pipeline_id();
 
         // The render loop at native headset frame rate is implemented using a dedicated thread.
         // Every loop iteration syncs pose data with the HMD, submits the pixels to the display and waits for Vsync.
@@ -515,7 +515,7 @@ impl VRDisplay {
                 let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
-                js_sender.send(CommonScriptMsg::Task(WebVREvent, task)).unwrap();
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, Some(pipeline_id))).unwrap();
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
@@ -628,10 +628,8 @@ fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<()
     }
 }
 
-fn validate_layer(cx: *mut JSContext,
-                  layer: &VRLayer)
-                  -> Result<(WebVRLayer, DomRoot<WebGLRenderingContext>), &'static str> {
-    let ctx = layer.source.as_ref().map(|ref s| s.get_or_init_webgl_context(cx, None)).unwrap_or(None);
+fn validate_layer(layer: &VRLayer) -> Result<(WebVRLayer, DomRoot<WebGLRenderingContext>), &'static str> {
+    let ctx = layer.source.as_ref().map(|ref s| s.get_base_webgl_context()).unwrap_or(None);
     if let Some(ctx) = ctx {
         let mut data = WebVRLayer::default();
         parse_bounds(&layer.leftBounds, &mut data.left_bounds)?;

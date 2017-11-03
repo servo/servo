@@ -26,9 +26,9 @@ use style_resolver::{PrimaryStyle, ResolvedElementStyles, ResolvedStyle};
 bitflags! {
     /// Various flags stored on ElementData.
     #[derive(Default)]
-    pub flags ElementDataFlags: u8 {
+    pub struct ElementDataFlags: u8 {
         /// Whether the styles changed for this restyle.
-        const WAS_RESTYLED = 1 << 0,
+        const WAS_RESTYLED = 1 << 0;
         /// Whether the last traversal of this element did not do
         /// any style computation. This is not true during the initial
         /// styling pass, nor is it true when we restyle (in which case
@@ -37,16 +37,16 @@ bitflags! {
         /// This bit always corresponds to the last time the element was
         /// traversed, so each traversal simply updates it with the appropriate
         /// value.
-        const TRAVERSED_WITHOUT_STYLING = 1 << 1,
+        const TRAVERSED_WITHOUT_STYLING = 1 << 1;
         /// Whether we reframed/reconstructed any ancestor or self.
-        const ANCESTOR_WAS_RECONSTRUCTED = 1 << 2,
+        const ANCESTOR_WAS_RECONSTRUCTED = 1 << 2;
         /// Whether the primary style of this element data was reused from another
         /// element via a rule node comparison. This allows us to differentiate
         /// between elements that shared styles because they met all the criteria
         /// of the style sharing cache, compared to elements that reused style
         /// structs via rule node identity. The former gives us stronger transitive
         /// guarantees that allows us to apply the style sharing cache to cousins.
-        const PRIMARY_STYLE_REUSED_VIA_RULE_NODE = 1 << 3,
+        const PRIMARY_STYLE_REUSED_VIA_RULE_NODE = 1 << 3;
     }
 }
 
@@ -304,7 +304,7 @@ impl ElementData {
     /// Returns this element's primary style as a resolved style to use for sharing.
     pub fn share_primary_style(&self) -> PrimaryStyle {
         let reused_via_rule_node =
-            self.flags.contains(PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+            self.flags.contains(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
 
         PrimaryStyle {
             style: ResolvedStyle(self.styles.primary().clone()),
@@ -315,9 +315,9 @@ impl ElementData {
     /// Sets a new set of styles, returning the old ones.
     pub fn set_styles(&mut self, new_styles: ResolvedElementStyles) -> ElementStyles {
         if new_styles.primary.reused_via_rule_node {
-            self.flags.insert(PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+            self.flags.insert(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
         } else {
-            self.flags.remove(PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+            self.flags.remove(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
         }
         mem::replace(&mut self.styles, new_styles.into())
     }
@@ -405,7 +405,7 @@ impl ElementData {
     #[inline]
     pub fn clear_restyle_flags_and_damage(&mut self) {
         self.damage = RestyleDamage::empty();
-        self.flags.remove(WAS_RESTYLED | ANCESTOR_WAS_RECONSTRUCTED)
+        self.flags.remove(ElementDataFlags::WAS_RESTYLED | ElementDataFlags::ANCESTOR_WAS_RECONSTRUCTED)
     }
 
     /// Returns whether this element or any ancestor is going to be
@@ -422,7 +422,7 @@ impl ElementData {
     /// Returns whether any ancestor of this element is going to be
     /// reconstructed.
     fn reconstructed_ancestor(&self) -> bool {
-        self.flags.contains(ANCESTOR_WAS_RECONSTRUCTED)
+        self.flags.contains(ElementDataFlags::ANCESTOR_WAS_RECONSTRUCTED)
     }
 
     /// Sets the flag that tells us whether we've reconstructed an ancestor.
@@ -430,34 +430,34 @@ impl ElementData {
         if reconstructed {
             // If it weren't for animation-only traversals, we could assert
             // `!self.reconstructed_ancestor()` here.
-            self.flags.insert(ANCESTOR_WAS_RECONSTRUCTED);
+            self.flags.insert(ElementDataFlags::ANCESTOR_WAS_RECONSTRUCTED);
         } else {
-            self.flags.remove(ANCESTOR_WAS_RECONSTRUCTED);
+            self.flags.remove(ElementDataFlags::ANCESTOR_WAS_RECONSTRUCTED);
         }
     }
 
     /// Mark this element as restyled, which is useful to know whether we need
     /// to do a post-traversal.
     pub fn set_restyled(&mut self) {
-        self.flags.insert(WAS_RESTYLED);
-        self.flags.remove(TRAVERSED_WITHOUT_STYLING);
+        self.flags.insert(ElementDataFlags::WAS_RESTYLED);
+        self.flags.remove(ElementDataFlags::TRAVERSED_WITHOUT_STYLING);
     }
 
     /// Returns true if this element was restyled.
     #[inline]
     pub fn is_restyle(&self) -> bool {
-        self.flags.contains(WAS_RESTYLED)
+        self.flags.contains(ElementDataFlags::WAS_RESTYLED)
     }
 
     /// Mark that we traversed this element without computing any style for it.
     pub fn set_traversed_without_styling(&mut self) {
-        self.flags.insert(TRAVERSED_WITHOUT_STYLING);
+        self.flags.insert(ElementDataFlags::TRAVERSED_WITHOUT_STYLING);
     }
 
     /// Returns whether the element was traversed without computing any style for
     /// it.
     pub fn traversed_without_styling(&self) -> bool {
-        self.flags.contains(TRAVERSED_WITHOUT_STYLING)
+        self.flags.contains(ElementDataFlags::TRAVERSED_WITHOUT_STYLING)
     }
 
     /// Returns whether this element has been part of a restyle.
@@ -499,7 +499,8 @@ impl ElementData {
     /// happens later in the styling pipeline. The former gives us the stronger guarantees
     /// we need for style sharing, the latter does not.
     pub fn safe_for_cousin_sharing(&self) -> bool {
-        !self.flags.intersects(TRAVERSED_WITHOUT_STYLING | PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
+        !self.flags.intersects(ElementDataFlags::TRAVERSED_WITHOUT_STYLING |
+                               ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
     }
 
     /// Measures memory usage.

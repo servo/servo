@@ -1,0 +1,156 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="testbed" width="16" height="16"></canvas>
+<canvas id="c" width="16" height="16"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Tests texSubImage2D with bad arguments');
+
+var wtu = WebGLTestUtils;
+var contextVersion = wtu.getDefault3DContextVersion();
+var c = document.getElementById("c");
+
+var gl = wtu.create3DContext("testbed");
+var tex = gl.createTexture();
+var maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+var maxTextureLevel = Math.floor(Math.log2(maxTextureSize)) + 1;
+
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 1, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "no previously defined texture image");
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup should succeed");
+
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 1, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "y + height > texture height");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "x + width > texture width");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, -1, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "negative x");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, -1, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "negative y");
+gl.texSubImage2D(gl.TEXTURE_2D, -1, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "negative level");
+shouldThrow("gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "null pixels");
+
+// GL_INVALID_VALUE may be generated if level is greater than log 2 max, where max is the returned value of GL_MAX_TEXTURE_SIZE.
+// GL_INVALID_OPERATION is generated if the texture array has not been defined by a previous  glTexImage2D or glCopyTexImage2D operation whose internalformat matches the format of glTexSubImage2D.
+gl.texSubImage2D(gl.TEXTURE_2D, maxTextureLevel + 1, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, [gl.INVALID_VALUE, gl.INVALID_OPERATION], "too high level");
+
+gl.texSubImage2D(gl.FLOAT, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "bad target");
+if (contextVersion > 1) {
+    gl.texSubImage2D(gl.TEXTURE_3D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "bad target");
+}
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "good args");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "format not same as original");
+if (contextVersion < 2) {
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, c);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type not same as original");
+}
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "make texture RGB");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "format same as original RGB");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "format not same as original RGB");
+if (contextVersion < 2) {
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_SHORT_5_6_5, c);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type not same as original RGB");
+}
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "make texture RGBA UNSIGNED_BYTE");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "format same as original");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "format not same as original");
+if (contextVersion < 2) {
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, c);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type not same as original");
+}
+
+// Large canvas will trigger GPU-to-GPU fast path in chrome,
+// while small canvas will go into normal path, i.e. read pixles from canvas then upload to texture.
+var largeCanvas = document.createElement("canvas");
+largeCanvas.width = 257;
+largeCanvas.height = 257;
+var largeCanvasContext = largeCanvas.getContext("2d");
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, largeCanvas);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "make texture RGBA UNSIGNED_BYTE");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "format same as original");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "format not same as original");
+if (contextVersion < 2) {
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, c);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type not same as original");
+}
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, largeCanvas);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "format same as original");
+gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, largeCanvas);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "format not same as original");
+if (contextVersion < 2) {
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4, largeCanvas);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type not same as original");
+}
+
+var maxCubeMapTextureSize = gl.getParameter(gl.MAX_CUBE_MAP_TEXTURE_SIZE);
+var maxCubeMapTextureLevel = Math.floor(Math.log2(maxCubeMapTextureSize)) + 1;
+for (var f = 0; f < 6; f++) {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + f, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, c);
+    gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + f, maxCubeMapTextureLevel + 1, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, c);
+    wtu.glErrorShouldBe(gl, [gl.INVALID_VALUE, gl.INVALID_OPERATION], "too high level");
+    gl.deleteTexture(tex);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

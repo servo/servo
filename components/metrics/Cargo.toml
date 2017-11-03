@@ -14,7 +14,10 @@ gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.9"
 log = "0.3.5"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 msg = {path = "../msg"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
+time = "0.1"

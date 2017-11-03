@@ -22,7 +22,7 @@ use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use rule_tree::CascadeLevel;
 use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
 use selectors::Element as SelectorsElement;
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
@@ -32,7 +32,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
 use stylist::Stylist;
-use traversal_flags::{TraversalFlags, self};
+use traversal_flags::TraversalFlags;
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
 /// back into a non-opaque representation. The only safe operation that can be
@@ -122,6 +122,7 @@ where
 {
     type Item = N;
 
+    #[inline]
     fn next(&mut self) -> Option<N> {
         let prev = match self.previous.take() {
             None => return None,
@@ -133,11 +134,41 @@ where
     }
 }
 
+/// The `TDocument` trait, to represent a document node.
+pub trait TDocument : Sized + Copy + Clone {
+    /// The concrete `TNode` type.
+    type ConcreteNode: TNode<ConcreteDocument = Self>;
+
+    /// Get this document as a `TNode`.
+    fn as_node(&self) -> Self::ConcreteNode;
+
+    /// Returns whether this document is an HTML document.
+    fn is_html_document(&self) -> bool;
+
+    /// Returns the quirks mode of this document.
+    fn quirks_mode(&self) -> QuirksMode;
+
+    /// Get a list of elements with a given ID in this document, sorted by
+    /// document position.
+    ///
+    /// Can return an error to signal that this list is not available, or also
+    /// return an empty slice.
+    fn elements_with_id(
+        &self,
+        _id: &Atom,
+    ) -> Result<&[<Self::ConcreteNode as TNode>::ConcreteElement], ()> {
+        Err(())
+    }
+}
+
 /// The `TNode` trait. This is the main generic trait over which the style
 /// system can be implemented.
 pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// The concrete `TElement` type.
     type ConcreteElement: TElement<ConcreteNode = Self>;
+
+    /// The concrete `TDocument` type.
+    type ConcreteDocument: TDocument<ConcreteNode = Self>;
 
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
@@ -154,10 +185,16 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// Get this node's next sibling.
     fn next_sibling(&self) -> Option<Self>;
 
+    /// Get the owner document of this node.
+    fn owner_doc(&self) -> Self::ConcreteDocument;
+
     /// Iterate over the DOM children of a node.
     fn dom_children(&self) -> DomChildren<Self> {
         DomChildren(self.first_child())
     }
+
+    /// Returns whether the node is attached to a document.
+    fn is_in_document(&self) -> bool;
 
     /// Iterate over the DOM children of a node, in preorder.
     fn dom_descendants(&self) -> DomDescendants<Self> {
@@ -169,6 +206,7 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
 
     /// Returns the next children in pre-order, optionally scoped to a subtree
     /// root.
+    #[inline]
     fn next_in_preorder(&self, scoped_to: Option<Self>) -> Option<Self> {
         if let Some(c) = self.first_child() {
             return Some(c);
@@ -211,30 +249,15 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// Get this node as an element, if it's one.
     fn as_element(&self) -> Option<Self::ConcreteElement>;
 
+    /// Get this node as a document, if it's one.
+    fn as_document(&self) -> Option<Self::ConcreteDocument>;
+
     /// Whether this node can be fragmented. This is used for multicol, and only
     /// for Servo.
     fn can_be_fragmented(&self) -> bool;
 
     /// Set whether this node can be fragmented.
     unsafe fn set_can_be_fragmented(&self, value: bool);
-}
-
-/// Wrapper to output the ElementData along with the node when formatting for
-/// Debug.
-pub struct ShowData<N: TNode>(pub N);
-impl<N: TNode> Debug for ShowData<N> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt_with_data(f, self.0)
-    }
-}
-
-/// Wrapper to output the primary computed values along with the node when
-/// formatting for Debug. This is very verbose.
-pub struct ShowDataAndPrimaryValues<N: TNode>(pub N);
-impl<N: TNode> Debug for ShowDataAndPrimaryValues<N> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt_with_data_and_primary_values(f, self.0)
-    }
 }
 
 /// Wrapper to output the subtree rather than the single node when formatting
@@ -259,7 +282,9 @@ impl<N: TNode> Debug for ShowSubtreeData<N> {
 
 /// Wrapper to output the subtree along with the ElementData and primary
 /// ComputedValues when formatting for Debug. This is extremely verbose.
+#[cfg(feature = "servo")]
 pub struct ShowSubtreeDataAndPrimaryValues<N: TNode>(pub N);
+#[cfg(feature = "servo")]
 impl<N: TNode> Debug for ShowSubtreeDataAndPrimaryValues<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "DOM Subtree:")?;
@@ -281,6 +306,7 @@ fn fmt_with_data<N: TNode>(f: &mut fmt::Formatter, n: N) -> fmt::Result {
     }
 }
 
+#[cfg(feature = "servo")]
 fn fmt_with_data_and_primary_values<N: TNode>(f: &mut fmt::Formatter, n: N) -> fmt::Result {
     if let Some(el) = n.as_element() {
         let dd = el.has_dirty_descendants();
@@ -311,16 +337,6 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     Ok(())
 }
 
-/// A trait used to synthesize presentational hints for HTML element attributes.
-pub trait PresentationalHintsSynthesizer {
-    /// Generate the proper applicable declarations due to presentational hints,
-    /// and insert them into `hints`.
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
-                                                                visited_handling: VisitedHandlingMode,
-                                                                hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock>;
-}
-
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement
     : Eq
@@ -331,7 +347,6 @@ pub trait TElement
     + Copy
     + Clone
     + SelectorsElement<Impl = SelectorImpl>
-    + PresentationalHintsSynthesizer
 {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
@@ -373,6 +388,15 @@ pub trait TElement
         }
 
         depth
+    }
+
+    /// The style scope of this element is a node that represents which rules
+    /// apply to the element.
+    ///
+    /// In Servo, where we don't know about Shadow DOM or XBL, the style scope
+    /// is always the document.
+    fn style_scope(&self) -> Self::ConcreteNode {
+        self.as_node().owner_doc().as_node()
     }
 
     /// Get this node's parent element from the perspective of a restyle
@@ -533,7 +557,7 @@ pub trait TElement
                    !data.hint.has_animation_hint_or_recascade();
         }
 
-        if traversal_flags.contains(traversal_flags::UnstyledOnly) {
+        if traversal_flags.contains(TraversalFlags::UnstyledOnly) {
             // We don't process invalidations in UnstyledOnly mode.
             return data.has_styles();
         }
@@ -725,14 +749,16 @@ pub trait TElement
         None
     }
 
-    /// Returns the rule hash target given an element.
+    /// Return the element which we can use to look up rules in the selector
+    /// maps.
+    ///
+    /// This is always the element itself, except in the case where we are an
+    /// element-backed pseudo-element, in which case we return the originating
+    /// element.
     fn rule_hash_target(&self) -> Self {
         let is_implemented_pseudo =
             self.implemented_pseudo_element().is_some();
 
-        // NB: This causes use to rule has pseudo selectors based on the
-        // properties of the originating element (which is fine, given the
-        // find_first_from_right usage).
         if is_implemented_pseudo {
             self.closest_non_native_anonymous_ancestor().unwrap()
         } else {
@@ -808,6 +834,16 @@ pub trait TElement
     /// Returns whether this element is the main body element of the HTML
     /// document it is on.
     fn is_html_document_body_element(&self) -> bool;
+
+    /// Generate the proper applicable declarations due to presentational hints,
+    /// and insert them into `hints`.
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(
+        &self,
+        visited_handling: VisitedHandlingMode,
+        hints: &mut V,
+    )
+    where
+        V: Push<ApplicableDeclarationBlock>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

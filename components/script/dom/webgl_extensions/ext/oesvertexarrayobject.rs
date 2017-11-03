@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError};
+use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLVersion};
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::{self, OESVertexArrayObjectMethods};
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -14,7 +14,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use std::iter;
-use super::{WebGLExtension, WebGLExtensions};
+use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 #[dom_struct]
 pub struct OESVertexArrayObject {
@@ -136,6 +136,10 @@ impl WebGLExtension for OESVertexArrayObject {
         reflect_dom_object(Box::new(OESVertexArrayObject::new_inherited(ctx)),
                            &*ctx.global(),
                            OESVertexArrayObjectBinding::Wrap)
+    }
+
+    fn spec() -> WebGLExtensionSpec {
+        WebGLExtensionSpec::Specific(WebGLVersion::WebGL1)
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {

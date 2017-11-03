@@ -38,20 +38,18 @@ use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use nonzero::NonZero;
 use range::Range;
-use script::layout_exports::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
-use script::layout_exports::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
 use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
-use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers};
-use script::layout_exports::LayoutDom;
+use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, LayoutDom, RawLayoutElementHelpers};
+use script::layout_exports::NodeFlags;
 use script::layout_exports::PendingRestyle;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, QuirksMode, RelevantLinkStatus};
 use selectors::matching::VisitedHandlingMode;
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
@@ -69,7 +67,7 @@ use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{PresentationalHintsSynthesizer, TElement, TNode};
+use style::dom::{TDocument, TElement, TNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -139,10 +137,6 @@ impl<'ln> ServoLayoutNode<'ln> {
             self.node.type_id_for_layout()
         }
     }
-
-    pub fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
-        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
-    }
 }
 
 impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
@@ -158,6 +152,7 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
+    type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteElement = ServoLayoutElement<'ln>;
 
     fn parent_node(&self) -> Option<Self> {
@@ -190,6 +185,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         }
     }
 
+    fn owner_doc(&self) -> Self::ConcreteDocument {
+        ServoLayoutDocument::from_layout_js(unsafe { self.node.owner_doc_for_layout() })
+    }
+
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'ln>> {
         self.parent_element()
     }
@@ -206,12 +205,20 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         as_element(self.node)
     }
 
+    fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
+        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
+    }
+
     fn can_be_fragmented(&self) -> bool {
-        unsafe { self.node.get_flag(CAN_BE_FRAGMENTED) }
+        unsafe { self.node.get_flag(NodeFlags::CAN_BE_FRAGMENTED) }
+    }
+
+    fn is_in_document(&self) -> bool {
+        unsafe { self.node.get_flag(NodeFlags::IS_IN_DOC) }
     }
 
     unsafe fn set_can_be_fragmented(&self, value: bool) {
-        self.node.set_flag(CAN_BE_FRAGMENTED, value)
+        self.node.set_flag(NodeFlags::CAN_BE_FRAGMENTED, value)
     }
 }
 
@@ -287,11 +294,23 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> ServoLayoutDocument<'ld> {
-    fn as_node(&self) -> ServoLayoutNode<'ld> {
+impl<'ld> TDocument for ServoLayoutDocument<'ld> {
+    type ConcreteNode = ServoLayoutNode<'ld>;
+
+    fn as_node(&self) -> Self::ConcreteNode {
         ServoLayoutNode::from_layout_js(self.document.upcast())
     }
 
+    fn quirks_mode(&self) -> QuirksMode {
+        unsafe { self.document.quirks_mode() }
+    }
+
+    fn is_html_document(&self) -> bool {
+        unsafe { self.document.is_html_document_for_layout() }
+    }
+}
+
+impl<'ld> ServoLayoutDocument<'ld> {
     pub fn root_element(&self) -> Option<ServoLayoutElement<'ld>> {
         self.as_node().dom_children().flat_map(|n| n.as_element()).next()
     }
@@ -335,18 +354,6 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
             write!(f, " id={}", id)?;
         }
         write!(f, "> ({:#x})", self.as_node().opaque().0)
-    }
-}
-
-impl<'le> PresentationalHintsSynthesizer for ServoLayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
-                                                                _visited_handling: VisitedHandlingMode,
-                                                                hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock>
-    {
-        unsafe {
-            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
-        }
     }
 }
 
@@ -398,28 +405,28 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn has_dirty_descendants(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(HAS_DIRTY_DESCENDANTS) }
+        unsafe { self.as_node().node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) }
     }
 
     fn has_snapshot(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(HAS_SNAPSHOT) }
+        unsafe { self.as_node().node.get_flag(NodeFlags::HAS_SNAPSHOT) }
     }
 
     fn handled_snapshot(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(HANDLED_SNAPSHOT) }
+        unsafe { self.as_node().node.get_flag(NodeFlags::HANDLED_SNAPSHOT) }
     }
 
     unsafe fn set_handled_snapshot(&self) {
-        self.as_node().node.set_flag(HANDLED_SNAPSHOT, true);
+        self.as_node().node.set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
     }
 
     unsafe fn set_dirty_descendants(&self) {
-        debug_assert!(self.as_node().node.get_flag(IS_IN_DOC));
-        self.as_node().node.set_flag(HAS_DIRTY_DESCENDANTS, true)
+        debug_assert!(self.as_node().is_in_document());
+        self.as_node().node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.as_node().node.set_flag(HAS_DIRTY_DESCENDANTS, false)
+        self.as_node().node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
     }
 
     fn store_children_to_process(&self, n: isize) {
@@ -520,6 +527,19 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         // FIXME(emilio): We should be able to give the right answer though!
         false
     }
+
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(
+        &self,
+        _visited_handling: VisitedHandlingMode,
+        hints: &mut V,
+    )
+    where
+        V: Push<ApplicableDeclarationBlock>,
+    {
+        unsafe {
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+        }
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
@@ -565,11 +585,11 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     pub unsafe fn unset_snapshot_flags(&self) {
-        self.as_node().node.set_flag(HAS_SNAPSHOT | HANDLED_SNAPSHOT, false);
+        self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
     }
 
     pub unsafe fn set_has_snapshot(&self) {
-        self.as_node().node.set_flag(HAS_SNAPSHOT, true);
+        self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
     }
 
     pub unsafe fn note_dirty_descendant(&self) {
@@ -772,8 +792,12 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     fn is_html_element_in_html_document(&self) -> bool {
         unsafe {
-            self.element.html_element_in_html_document_for_layout()
+            if !self.element.is_html_element() {
+                return false;
+            }
         }
+
+        self.as_node().owner_doc().is_html_document()
     }
 }
 
@@ -1244,11 +1268,4 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         warn!("ServoThreadSafeLayoutElement::is_root called");
         false
     }
-}
-
-impl<'le> PresentationalHintsSynthesizer for ServoThreadSafeLayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
-                                                                _visited_handling: VisitedHandlingMode,
-                                                                _hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock> {}
 }

@@ -728,7 +728,7 @@ malloc_size_of_is_0!(webrender_api::ScrollPolicy);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ScrollSensitivity);
 #[cfg(feature = "servo")]
-malloc_size_of_is_0!(webrender_api::StickySideConstraint);
+malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::TransformStyle);
 

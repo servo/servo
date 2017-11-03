@@ -1,6 +1,0 @@
-[submodule "tools"]
-	path = tools
-	url = https://github.com/w3c/wpt-tools.git
-[submodule "resources"]
-	path = resources
-	url = https://github.com/w3c/testharness.js.git

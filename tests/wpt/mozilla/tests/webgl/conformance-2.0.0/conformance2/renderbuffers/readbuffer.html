@@ -1,0 +1,197 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test readBuffer Against WebGL 2</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="20" height="20"> </canvas>
+<script>
+"use strict";
+description("This tests reading from fbo");
+
+var clearDrawingbuffer = function(color) {
+  gl.clearColor(color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
+var validateReadingFromFramebuffer = function(color, expected, msg) {
+  var pixels = new Uint8Array(1 * 1 * 4);
+  gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  wtu.glErrorShouldBe(gl, expected, msg);
+  if (expected == gl.NO_ERROR)
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, color,
+    "the color should be [" + color + "]");
+}
+
+var setupRenderbuffer = function(attachment) {
+  var renderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderbuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, canvas.width, canvas.height);
+  return renderbuffer;
+}
+
+var testReadBufferOnDefaultFB = function() {
+  gl.readBuffer(gl.NONE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling readBuffer with GL_NONE on the default framebuffer should succeed.");
+  var pixels = new Uint8Array(1 * 1 * 4);
+  gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "should generate INVALID_OPERATION when reading from framebuffer and read buffer is GL_NONE.");
+  gl.readBuffer(gl.BACK);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling readBuffer with GL_BACK on the default framebuffer should succeed.");
+
+  gl.readBuffer(gl.COLOR_ATTACHMENT0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "calling readBuffer with GL_COLOR_ATTACHMENT0 on the default framebuffer should generate INVALID_OPERATION.");
+}
+
+var testReadBufferOnFBO = function() {
+  gl.readBuffer(gl.BACK);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "calling readBuffer with GL_BACK on fbo should generate INVALID_OPERATION.");
+
+  gl.readBuffer(gl.NONE);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling readBuffer with GL_NONE on fbo should succeed.");
+  var pixels = new Uint8Array(1 * 1 * 4);
+  gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "should generate INVALID_OPERATION when reading from framebuffer and read buffer is GL_NONE.");
+  gl.readBuffer(gl.COLOR_ATTACHMENT0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling readBuffer with GL_COLOR_ATTACHMENT0 on fbo should succeed.");
+
+  var maxColorAttachments = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
+  gl.readBuffer(gl.COLOR_ATTACHMENT0 + maxColorAttachments);
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+      "calling readBuffer with GL_COLOR_ATTACHMENTi that exceeds MAX_COLOR_ATTACHMENT on fbo should generate INVALID_ENUM.");
+  gl.readBuffer(gl.COLOR_ATTACHMENT1);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling readBuffer with GL_COLOR_ATTACHMENT1 on the fbo should succeed.");
+  shouldBe('gl.getParameter(gl.READ_BUFFER)', 'gl.COLOR_ATTACHMENT1');
+}
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking reading from framebuffer.");
+
+  // Test on the default framebuffer. Read buffer is GL_BACK by default.
+  var backColor = [0, 0, 0, 255];
+  clearDrawingbuffer(backColor);
+  validateReadingFromFramebuffer(backColor, gl.NO_ERROR,
+      "should be no errors when reading from GL_BACK on the default framebuffer.");
+
+  shouldBe('gl.getParameter(gl.READ_BUFFER)', 'gl.BACK');
+  testReadBufferOnDefaultFB();
+
+  // Test on fbo. Read buffer is GL_COLOR_ATTACHMENT0 by default
+  var fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  var colorbuffer = setupRenderbuffer(gl.COLOR_ATTACHMENT0);
+  var red = [255, 0, 0, 255];
+  clearDrawingbuffer(red);
+  validateReadingFromFramebuffer(red, gl.NO_ERROR,
+      "should be no errors when reading from GL_COLOR_ATTACHMENT0 on fbo.");
+
+  shouldBe('gl.getParameter(gl.READ_BUFFER)', 'gl.COLOR_ATTACHMENT0');
+  testReadBufferOnFBO();
+
+  // Test on user defined read buffer (GL_COLOR_ATTACHMENT1) with or without corresponding image on fbo.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  var colorbuffer1 = setupRenderbuffer(gl.COLOR_ATTACHMENT1);
+  var green = [0, 255, 0, 255];
+  gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+  clearDrawingbuffer(green);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no error after setup and clear render buffer");
+  gl.readBuffer(gl.COLOR_ATTACHMENT1);
+  validateReadingFromFramebuffer(green, gl.NO_ERROR,
+      "should be no errors when reading from GL_COLOR_ATTACHMENT1 on fbo.");
+  shouldBe('gl.getParameter(gl.READ_BUFFER)', 'gl.COLOR_ATTACHMENT1');
+  // Need to reset draw buffers, otherwise it triggers a mac driver bug.
+  // We add a separate test for that bug: conformance2/rendering/framebuffer-completeness-unaffected.html
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, null)
+  gl.readBuffer(gl.COLOR_ATTACHMENT1);
+  validateReadingFromFramebuffer(null, gl.INVALID_OPERATION,
+      "should generate INVALID_OPERATION when reading from GL_COLOR_ATTACHMENT1 but this attachment has no image currently.");
+
+  // switch to another fbo, read buffer is GL_COLOR_ATTACHMENT0, not GL_COLOR_ATTACHMENT1
+  var fb1 = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb1);
+  var buffer = setupRenderbuffer(gl.COLOR_ATTACHMENT0);
+  shouldBe('gl.getParameter(gl.READ_BUFFER)', 'gl.COLOR_ATTACHMENT0');
+  var blue = [0, 0, 255, 255];
+  clearDrawingbuffer(blue);
+  validateReadingFromFramebuffer(blue, gl.NO_ERROR,
+      "should be no errors when reading from GL_COLOR_ATTACHMENT0 on another fbo.");
+
+  // switch from fbo to default fb, read buffer will switch to GL_BACK from GL_COLOR_ATTACHMENT0
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  shouldBe('gl.getParameter(gl.READ_BUFFER)', 'gl.BACK');
+  validateReadingFromFramebuffer(backColor, gl.NO_ERROR,
+      "should be no errors when reading from GL_BACK on the default framebuffer.");
+
+  gl.deleteFramebuffer(fb);
+  gl.deleteRenderbuffer(colorbuffer);
+  gl.deleteRenderbuffer(colorbuffer1);
+  gl.deleteFramebuffer(fb1);
+  gl.deleteRenderbuffer(buffer);
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

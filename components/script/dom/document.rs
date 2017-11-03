@@ -66,7 +66,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, IS_IN_DOC, LayoutNodeHelpers};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, NodeFlags, LayoutNodeHelpers};
 use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
@@ -90,8 +90,7 @@ use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
-use encoding::EncodingRef;
-use encoding::all::UTF_8;
+use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
@@ -99,7 +98,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::JS_GetRuntime;
-use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
+use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
@@ -108,6 +107,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
+use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
@@ -130,7 +130,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
-use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
@@ -239,7 +239,7 @@ pub struct Document {
     implementation: MutNullableDom<DOMImplementation>,
     content_type: DOMString,
     last_modified: Option<String>,
-    encoding: Cell<EncodingRef>,
+    encoding: Cell<&'static Encoding>,
     has_browsing_context: bool,
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
@@ -360,6 +360,8 @@ pub struct Document {
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
     form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
+    interactive_time: DomRefCell<InteractiveMetrics>,
+    tti_window: DomRefCell<InteractiveWindow>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -573,11 +575,11 @@ impl Document {
         }
     }
 
-    pub fn encoding(&self) -> EncodingRef {
+    pub fn encoding(&self) -> &'static Encoding {
         self.encoding.get()
     }
 
-    pub fn set_encoding(&self, encoding: EncodingRef) {
+    pub fn set_encoding(&self, encoding: &'static Encoding) {
         self.encoding.set(encoding);
     }
 
@@ -1292,10 +1294,10 @@ impl Document {
             (&None, &None) => self.window.upcast(),
         };
 
-        let ctrl = modifiers.contains(CONTROL);
-        let alt = modifiers.contains(ALT);
-        let shift = modifiers.contains(SHIFT);
-        let meta = modifiers.contains(SUPER);
+        let ctrl = modifiers.contains(KeyModifiers::CONTROL);
+        let alt = modifiers.contains(KeyModifiers::ALT);
+        let shift = modifiers.contains(KeyModifiers::SHIFT);
+        let meta = modifiers.contains(KeyModifiers::SUPER);
 
         let is_composing = false;
         let is_repeating = state == KeyState::Repeated;
@@ -1834,6 +1836,9 @@ impl Document {
         window.reflow(ReflowGoal::Full, ReflowReason::DOMContentLoaded);
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
 
+        // html parsing has finished - set dom content loaded
+        self.interactive_time.borrow().maybe_set_tti(self, InteractiveFlag::DOMContentLoaded);
+
         // Step 4.2.
         // TODO: client message queue.
     }
@@ -1916,6 +1921,14 @@ impl Document {
         self.dom_interactive.get()
     }
 
+    pub fn get_interactive_metrics(&self) -> Ref<InteractiveMetrics> {
+        self.interactive_time.borrow()
+    }
+
+    pub fn has_recorded_tti_metric(&self) -> bool {
+        self.get_interactive_metrics().get_tti().is_some()
+    }
+
     pub fn get_dom_content_loaded_event_start(&self) -> u64 {
         self.dom_content_loaded_event_start.get()
     }
@@ -1934,6 +1947,22 @@ impl Document {
 
     pub fn get_load_event_end(&self) -> u64 {
         self.load_event_end.get()
+    }
+
+    pub fn start_tti(&self) {
+        self.tti_window.borrow_mut().start_window();
+    }
+
+    /// check tti for this document
+    /// if it's been 10s since this doc encountered a task over 50ms, then we consider the
+    /// main thread available and try to set tti
+    pub fn record_tti_if_necessary(&self) {
+        if self.has_recorded_tti_metric() { return; }
+
+        if self.tti_window.borrow().needs_check() {
+            self.get_interactive_metrics().maybe_set_tti(self,
+                InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start()));
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
@@ -2035,7 +2064,7 @@ impl LayoutDocumentHelpers for LayoutDom<Document> {
         // may no longer be true when the next layout occurs.
         let result = elements.drain()
             .map(|(k, v)| (k.to_layout(), v))
-            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(IS_IN_DOC))
+            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(NodeFlags::IS_IN_DOC))
             .collect();
         result
     }
@@ -2145,6 +2174,8 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
+        let interactive_time = InteractiveMetrics::new(window.time_profiler_chan().clone());
+
         Document {
             node: Node::new_document_node(),
             window: Dom::from_ref(window),
@@ -2236,6 +2267,8 @@ impl Document {
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
+            interactive_time: DomRefCell::new(interactive_time),
+            tti_window: DomRefCell::new(InteractiveWindow::new()),
         }
     }
 
@@ -2477,11 +2510,11 @@ impl Document {
             entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
         }
         if attr.local_name() == &local_name!("style") {
-            entry.hint.insert(RESTYLE_STYLE_ATTRIBUTE);
+            entry.hint.insert(RestyleHint::RESTYLE_STYLE_ATTRIBUTE);
         }
 
         if vtable_for(el.upcast()).attribute_affects_presentational_hints(attr) {
-            entry.hint.insert(RESTYLE_SELF);
+            entry.hint.insert(RestyleHint::RESTYLE_SELF);
         }
 
         let snapshot = entry.snapshot.as_mut().unwrap();
@@ -2579,11 +2612,13 @@ impl Document {
             self.send_to_constellation(event);
         }
 
+        let pipeline_id = self.window().pipeline_id();
+
         // Step 7
         let trusted_pending = Trusted::new(pending);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenEnter::new(trusted_pending, trusted_promise, error);
-        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler);
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler, pipeline_id);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -2615,7 +2650,8 @@ impl Document {
         let trusted_element = Trusted::new(element.r());
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler);
+        let pipeline_id = Some(global.pipeline_id());
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler, pipeline_id);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -2670,6 +2706,16 @@ impl Element {
                 if self.disabled_state() => true,
             _ => false,
         }
+    }
+}
+
+impl ProfilerMetadataFactory for Document {
+    fn new_metadata(&self) -> Option<TimerMetadata> {
+        Some(TimerMetadata {
+            url: String::from(self.url().as_str()),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::Incremental,
+        })
     }
 }
 
@@ -2781,34 +2827,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(&self) -> DOMString {
-        DOMString::from(match self.encoding.get().name() {
-            "utf-8"         => "UTF-8",
-            "ibm866"        => "IBM866",
-            "iso-8859-2"    => "ISO-8859-2",
-            "iso-8859-3"    => "ISO-8859-3",
-            "iso-8859-4"    => "ISO-8859-4",
-            "iso-8859-5"    => "ISO-8859-5",
-            "iso-8859-6"    => "ISO-8859-6",
-            "iso-8859-7"    => "ISO-8859-7",
-            "iso-8859-8"    => "ISO-8859-8",
-            "iso-8859-8-i"  => "ISO-8859-8-I",
-            "iso-8859-10"   => "ISO-8859-10",
-            "iso-8859-13"   => "ISO-8859-13",
-            "iso-8859-14"   => "ISO-8859-14",
-            "iso-8859-15"   => "ISO-8859-15",
-            "iso-8859-16"   => "ISO-8859-16",
-            "koi8-r"        => "KOI8-R",
-            "koi8-u"        => "KOI8-U",
-            "gbk"           => "GBK",
-            "big5"          => "Big5",
-            "euc-jp"        => "EUC-JP",
-            "iso-2022-jp"   => "ISO-2022-JP",
-            "shift_jis"     => "Shift_JIS",
-            "euc-kr"        => "EUC-KR",
-            "utf-16be"      => "UTF-16BE",
-            "utf-16le"      => "UTF-16LE",
-            name            => name
-        })
+        DOMString::from(self.encoding.get().name())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-charset

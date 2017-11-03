@@ -25,7 +25,9 @@ pub fn derive(input: DeriveInput) -> Tokens {
             }
             quote! { ::std::clone::Clone::clone(#binding) }
         } else {
-            where_clause.add_trait_bound(&binding.field.ty);
+            if !attrs.ignore_bound {
+                where_clause.add_trait_bound(&binding.field.ty);
+            }
             quote! {
                 ::values::computed::ToComputedValue::to_computed_value(#binding, context)
             }
@@ -68,4 +70,5 @@ pub fn derive(input: DeriveInput) -> Tokens {
 #[derive(Default, FromField)]
 struct ComputedValueAttrs {
     clone: bool,
+    ignore_bound: bool,
 }

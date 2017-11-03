@@ -1,6 +1,7 @@
 import argparse
-import os
 import json
+import logging
+import os
 import sys
 
 from tools import localpaths
@@ -89,6 +90,8 @@ def setup_virtualenv(path, props):
 
 
 def main(prog=None, argv=None):
+    logging.basicConfig(level=logging.INFO)
+
     if prog is None:
         prog = sys.argv[0]
     if argv is None:

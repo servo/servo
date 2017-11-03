@@ -108,7 +108,7 @@ use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
-use style_traits::PARSING_MODE_DEFAULT;
+use style_traits::ParsingMode;
 use task::TaskCanceller;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
@@ -186,7 +186,7 @@ pub struct Window {
     custom_element_registry: MutNullableDom<CustomElementRegistry>,
     performance: MutNullableDom<Performance>,
     navigation_start: Cell<u64>,
-    navigation_start_precise: Cell<f64>,
+    navigation_start_precise: Cell<u64>,
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
@@ -302,6 +302,11 @@ impl Window {
             self.current_state.set(WindowState::Zombie);
             self.ignore_further_async_events.borrow().store(true, Ordering::Relaxed);
         }
+    }
+
+    /// Get a sender to the time profiler thread.
+    pub fn time_profiler_chan(&self) -> &TimeProfilerChan {
+        self.globalscope.time_profiler_chan()
     }
 
     pub fn origin(&self) -> &MutableOrigin {
@@ -1007,7 +1012,7 @@ impl WindowMethods for Window {
         let url = self.get_url();
         let quirks_mode = self.Document().quirks_mode();
         let context = CssParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                      PARSING_MODE_DEFAULT,
+                                                      ParsingMode::DEFAULT,
                                                       quirks_mode);
         let media_query_list = media_queries::parse_media_query_list(&context, &mut parser,
                                                                      self.css_error_reporter());
@@ -1038,6 +1043,10 @@ impl Window {
         TaskCanceller {
             cancelled: Some(self.ignore_further_async_events.borrow().clone()),
         }
+    }
+
+    pub fn get_navigation_start(&self) -> u64 {
+        self.navigation_start_precise.get()
     }
 
     /// Cancels all the tasks associated with that window.
@@ -1725,7 +1734,7 @@ impl Window {
         let current_time = time::get_time();
         let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64;
         self.navigation_start.set(now);
-        self.navigation_start_precise.set(time::precise_time_ns() as f64);
+        self.navigation_start_precise.set(time::precise_time_ns());
     }
 
     fn send_to_constellation(&self, msg: ScriptMsg) {
@@ -1768,7 +1777,7 @@ impl Window {
         window_size: Option<WindowSizeData>,
         origin: MutableOrigin,
         navigation_start: u64,
-        navigation_start_precise: f64,
+        navigation_start_precise: u64,
         webgl_chan: WebGLChan,
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         microtask_queue: Rc<MicrotaskQueue>,
@@ -1853,6 +1862,10 @@ impl Window {
         unsafe {
             WindowBinding::Wrap(runtime.cx(), win)
         }
+    }
+
+    pub fn pipeline_id(&self) -> Option<PipelineId> {
+        Some(self.upcast::<GlobalScope>().pipeline_id())
     }
 }
 
@@ -1962,6 +1975,7 @@ impl Window {
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
             Box::new(self.task_canceller().wrap_task(task)),
+            self.pipeline_id()
         ));
     }
 }

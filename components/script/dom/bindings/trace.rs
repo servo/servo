@@ -33,7 +33,7 @@ use app_units::Au;
 use canvas_traits::canvas::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use canvas_traits::webgl::{WebGLBufferId, WebGLFramebufferId, WebGLProgramId, WebGLRenderbufferId};
-use canvas_traits::webgl::{WebGLChan, WebGLContextShareMode, WebGLError, WebGLPipeline, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLChan, WebGLContextShareMode, WebGLError, WebGLPipeline, WebGLMsgSender, WebGLVersion};
 use canvas_traits::webgl::{WebGLReceiver, WebGLSender, WebGLShaderId, WebGLTextureId, WebGLVertexArrayId};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
@@ -46,7 +46,7 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
-use encoding::types::EncodingRef;
+use encoding_rs::Encoding;
 use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, ScaleFactor};
 use euclid::Length as EuclidLength;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
@@ -61,6 +61,7 @@ use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
+use metrics::{InteractiveMetrics, InteractiveWindow};
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, TopLevelBrowsingContextId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
@@ -121,7 +122,7 @@ pub unsafe trait JSTraceable {
 
 unsafe_no_jsmanaged_fields!(CSSError);
 
-unsafe_no_jsmanaged_fields!(EncodingRef);
+unsafe_no_jsmanaged_fields!(&'static Encoding);
 
 unsafe_no_jsmanaged_fields!(Reflector);
 
@@ -283,7 +284,7 @@ unsafe impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
 unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
     where K: Hash + Eq + JSTraceable,
           V: JSTraceable,
-          S: BuildHasher
+          S: BuildHasher,
 {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
@@ -296,7 +297,7 @@ unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
 
 unsafe impl<T, S> JSTraceable for HashSet<T, S>
     where T: Hash + Eq + JSTraceable,
-          S: BuildHasher
+          S: BuildHasher,
 {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
@@ -410,9 +411,12 @@ unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
 unsafe_no_jsmanaged_fields!(WebGLShaderId);
 unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
+unsafe_no_jsmanaged_fields!(WebGLVersion);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
+unsafe_no_jsmanaged_fields!(InteractiveMetrics);
+unsafe_no_jsmanaged_fields!(InteractiveWindow);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
