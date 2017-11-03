@@ -213,10 +213,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         unsafe { self.node.get_flag(NodeFlags::CAN_BE_FRAGMENTED) }
     }
 
-    fn is_in_document(&self) -> bool {
-        unsafe { self.node.get_flag(NodeFlags::IS_IN_DOC) }
-    }
-
     unsafe fn set_can_be_fragmented(&self, value: bool) {
         self.node.set_flag(NodeFlags::CAN_BE_FRAGMENTED, value)
     }
@@ -421,7 +417,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     unsafe fn set_dirty_descendants(&self) {
-        debug_assert!(self.as_node().is_in_document());
+        debug_assert!(self.as_node().node.get_flag(NodeFlags::IS_IN_DOC));
         self.as_node().node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
     }
 

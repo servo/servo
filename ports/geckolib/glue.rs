@@ -1693,27 +1693,17 @@ pub unsafe extern "C" fn Servo_SelectorList_Matches(
 pub unsafe extern "C" fn Servo_SelectorList_QueryFirst(
     node: RawGeckoNodeBorrowed,
     selectors: RawServoSelectorListBorrowed,
-    may_use_invalidation: bool,
 ) -> *const structs::RawGeckoElement {
     use std::borrow::Borrow;
-    use style::dom_apis::{self, MayUseInvalidation, QueryFirst};
+    use style::dom_apis::{self, QueryFirst};
 
     let node = GeckoNode(node);
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
     let mut result = None;
-
-    let may_use_invalidation =
-        if may_use_invalidation {
-            MayUseInvalidation::Yes
-        } else {
-            MayUseInvalidation::No
-        };
-
     dom_apis::query_selector::<GeckoElement, QueryFirst>(
         node,
         &selectors,
         &mut result,
-        may_use_invalidation,
     );
 
     result.map_or(ptr::null(), |e| e.0)
@@ -1724,28 +1714,19 @@ pub unsafe extern "C" fn Servo_SelectorList_QueryAll(
     node: RawGeckoNodeBorrowed,
     selectors: RawServoSelectorListBorrowed,
     content_list: *mut structs::nsSimpleContentList,
-    may_use_invalidation: bool,
 ) {
     use smallvec::SmallVec;
     use std::borrow::Borrow;
-    use style::dom_apis::{self, MayUseInvalidation, QueryAll};
+    use style::dom_apis::{self, QueryAll};
 
     let node = GeckoNode(node);
     let selectors = ::selectors::SelectorList::from_ffi(selectors).borrow();
     let mut result = SmallVec::new();
 
-    let may_use_invalidation =
-        if may_use_invalidation {
-            MayUseInvalidation::Yes
-        } else {
-            MayUseInvalidation::No
-        };
-
     dom_apis::query_selector::<GeckoElement, QueryAll>(
         node,
         &selectors,
         &mut result,
-        may_use_invalidation,
     );
 
     if !result.is_empty() {

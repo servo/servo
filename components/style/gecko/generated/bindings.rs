@@ -30,7 +30,6 @@ use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
-use gecko_bindings::structs::Element;
 use gecko_bindings::structs::RawGeckoKeyframeList;
 use gecko_bindings::structs::RawGeckoPropertyValuePairList;
 use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
@@ -1211,9 +1210,9 @@ extern "C" {
 } extern "C" {
  pub fn Servo_SelectorList_Closest ( arg1 : RawGeckoElementBorrowed , arg2 : RawServoSelectorListBorrowed , ) -> * const RawGeckoElement ; 
 } extern "C" {
- pub fn Servo_SelectorList_QueryFirst ( arg1 : RawGeckoNodeBorrowed , arg2 : RawServoSelectorListBorrowed , may_use_invalidation : bool , ) -> * const RawGeckoElement ; 
+ pub fn Servo_SelectorList_QueryFirst ( arg1 : RawGeckoNodeBorrowed , arg2 : RawServoSelectorListBorrowed , ) -> * const RawGeckoElement ; 
 } extern "C" {
- pub fn Servo_SelectorList_QueryAll ( arg1 : RawGeckoNodeBorrowed , arg2 : RawServoSelectorListBorrowed , content_list : * mut nsSimpleContentList , may_use_invalidation : bool , ) ; 
+ pub fn Servo_SelectorList_QueryAll ( arg1 : RawGeckoNodeBorrowed , arg2 : RawServoSelectorListBorrowed , content_list : * mut nsSimpleContentList , ) ; 
 } extern "C" {
  pub fn Servo_StyleSet_AddSizeOfExcludingThis ( malloc_size_of : MallocSizeOf , malloc_enclosing_size_of : MallocSizeOf , sizes : * mut ServoStyleSetSizes , set : RawServoStyleSetBorrowed , ) ; 
 } extern "C" {
@@ -1226,8 +1225,6 @@ extern "C" {
  pub fn Servo_StyleSet_MightHaveAttributeDependency ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , local_name : * mut nsAtom , ) -> bool ; 
 } extern "C" {
  pub fn Servo_StyleSet_HasStateDependency ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , state : u64 , ) -> bool ; 
-} extern "C" {
- pub fn Servo_StyleSet_HasDocumentStateDependency ( set : RawServoStyleSetBorrowed , state : u64 , ) -> bool ; 
 } extern "C" {
  pub fn Servo_CssRules_ListTypes ( rules : ServoCssRulesBorrowed , result : nsTArrayBorrowed_uintptr_t , ) ; 
 } extern "C" {
@@ -1576,6 +1573,4 @@ extern "C" {
  pub fn Gecko_ReportUnexpectedCSSError ( reporter : * mut ErrorReporter , message : * const :: std :: os :: raw :: c_char , param : * const :: std :: os :: raw :: c_char , paramLen : u32 , prefix : * const :: std :: os :: raw :: c_char , prefixParam : * const :: std :: os :: raw :: c_char , prefixParamLen : u32 , suffix : * const :: std :: os :: raw :: c_char , source : * const :: std :: os :: raw :: c_char , sourceLen : u32 , lineNumber : u32 , colNumber : u32 , ) ; 
 } extern "C" {
  pub fn Gecko_ContentList_AppendAll ( aContentList : * mut nsSimpleContentList , aElements : * mut * const RawGeckoElement , aLength : usize , ) ; 
-} extern "C" {
- pub fn Gecko_GetElementsWithId ( aDocument : * const nsIDocument , aId : * mut nsAtom , ) -> * const nsTArray < * mut Element > ; 
 }

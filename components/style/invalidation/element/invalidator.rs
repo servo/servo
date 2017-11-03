@@ -317,7 +317,7 @@ where
     fn invalidate_pseudo_element_or_nac(
         &mut self,
         child: E,
-        invalidations: &[Invalidation<'b>],
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         let mut sibling_invalidations = InvalidationVector::new();
 
@@ -342,7 +342,7 @@ where
     fn invalidate_child(
         &mut self,
         child: E,
-        invalidations: &[Invalidation<'b>],
+        invalidations: &InvalidationVector<'b>,
         sibling_invalidations: &mut InvalidationVector<'b>,
     ) -> bool {
         let mut invalidations_for_descendants = InvalidationVector::new();
@@ -389,7 +389,7 @@ where
 
     fn invalidate_nac(
         &mut self,
-        invalidations: &[Invalidation<'b>],
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         let mut any_nac_root = false;
 
@@ -407,7 +407,7 @@ where
     fn invalidate_dom_descendants_of(
         &mut self,
         parent: E::ConcreteNode,
-        invalidations: &[Invalidation<'b>],
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         let mut any_descendant = false;
 
@@ -441,7 +441,7 @@ where
     /// descendants, and invalidate style on them.
     fn invalidate_descendants(
         &mut self,
-        invalidations: &[Invalidation<'b>],
+        invalidations: &InvalidationVector<'b>,
     ) -> bool {
         if invalidations.is_empty() {
             return false;
@@ -546,7 +546,7 @@ where
     /// Returns whether our style was invalidated as a result.
     fn process_descendant_invalidations(
         &mut self,
-        invalidations: &[Invalidation<'b>],
+        invalidations: &InvalidationVector<'b>,
         descendant_invalidations: &mut InvalidationVector<'b>,
         sibling_invalidations: &mut InvalidationVector<'b>,
     ) -> bool {
