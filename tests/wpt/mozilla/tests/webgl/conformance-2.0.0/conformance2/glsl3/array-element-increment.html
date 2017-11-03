@@ -1,0 +1,154 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL initialized array element increment/decrement test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderFloatArrayIncrement" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    float A[2] = float[2](0.0, 1.0);
+    A[0]++;
+    my_FragColor = vec4(1.0 - A[0], A[0], 0.0, 1.0);
+}
+</script>
+<script id="fshaderVectorArrayIncrement" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    vec4 V[2] = vec4[2](vec4(0.0, 2.0, 3.0, 4.0), vec4(5.0, 6.0, 7.0, 8.0));
+    V[0][0]++;
+    my_FragColor = vec4(1.0 - V[0][0], V[0][0], 0.0, 1.0);
+}
+</script>
+<script id="fshaderVectorElementIncrement" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    vec4 v = vec4(0.0, 2.0, 3.0, 4.0);
+    v[0]++;
+    my_FragColor = vec4(1.0 - v[0], v[0], 0.0, 1.0);
+}
+</script>
+<script id="fshaderFloatArrayDecrement" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    float A[2] = float[2](2.0, 1.0);
+    A[0]--;
+    my_FragColor = vec4(1.0 - A[0], A[0], 0.0, 1.0);
+}
+</script>
+<script id="fshaderVectorArrayDecrement" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    vec4 V[2] = vec4[2](vec4(2.0, 2.0, 3.0, 4.0), vec4(5.0, 6.0, 7.0, 8.0));
+    V[0][0]--;
+    my_FragColor = vec4(1.0 - V[0][0], V[0][0], 0.0, 1.0);
+}
+</script>
+<script id="fshaderVectorElementDecrement" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    vec4 v = vec4(2.0, 2.0, 3.0, 4.0);
+    v[0]--;
+    my_FragColor = vec4(1.0 - v[0], v[0], 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Incrementing or decrementing elements of arrays with initializers should work.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderFloatArrayIncrement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Increment an element of a vector array'
+},
+{
+  fShaderId: 'fshaderVectorArrayIncrement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Increment an element of a vector array'
+},
+{
+  fShaderId: 'fshaderVectorElementIncrement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Increment an element of a vector'
+},
+{
+  fShaderId: 'fshaderFloatArrayDecrement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Decrement an element of a vector array'
+},
+{
+  fShaderId: 'fshaderVectorArrayDecrement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Decrement an element of a vector array'
+},
+{
+  fShaderId: 'fshaderVectorElementDecrement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Decrement an element of a vector'
+}
+], 2);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,584 @@
+﻿<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Conformance Tests: Vertex Attribute Type Match</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<!-- Shaders for testing instanced draws -->
+<script id="outputVertexShader" type="x-shader/x-vertex">#version 300 es
+in vec4 aPosition;
+in ivec2 aOffsetI;
+in uvec2 aOffsetU;
+in vec4 aColor;
+out vec4 vColor;
+void main() {
+    vColor = aColor;
+    vec2 offset = vec2(float(aOffsetI.x) + float(aOffsetU.x),
+                       float(aOffsetI.y) + float(aOffsetU.y));
+    gl_Position = aPosition + vec4(offset, 0.0, 0.0);
+}
+</script>
+
+<script id="outputFragmentShader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+in vec4 vColor;
+out vec4 fragColor;
+void main() {
+    fragColor = vColor;
+}
+</script>
+
+<script id='vshader_inactive_attrib' type='x-shader/x-vertex'>#version 300 es
+in ivec4 p;
+in ivec4 a;
+void main()
+{
+    gl_Position = vec4(p);
+}
+</script>
+<script id='vshader_active_attrib_int' type='x-shader/x-vertex'>#version 300 es
+in ivec4 p;
+in ivec4 a;
+in uvec4 b;
+void main()
+{
+    gl_Position = vec4(p) + vec4(a) + vec4(b);
+}
+</script>
+<script id='vshader_active_attrib_float' type='x-shader/x-vertex'>#version 300 es
+in vec4 p;
+in vec4 a;
+in vec4 c;
+void main()
+{
+    gl_Position = vec4(p) + vec4(a) + vec4(c);
+}
+</script>
+<script id='fshader' type='x-shader/x-fragment'>#version 300 es
+precision mediump float;
+layout(location=0) out vec4 oColor;
+void main()
+{
+    oColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+
+<script>
+"use strict";
+description("This test verifies an active vertex attribute's base type has to match the verexAttrib function type.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    testGenericAttribs();
+    runTests();
+}
+
+function testGenericAttribs() {
+    debug("");
+    debug("Test Generic Vertex Attributes for some corner cases");
+
+    var pIndex = 2;
+    var aIndex = 3;
+    var bIndex = 4;
+    var cIndex = 5;
+    var program0 = wtu.setupProgram(gl, ["vshader_inactive_attrib", "fshader"],
+        ['p', 'a'], [pIndex, aIndex]);
+    var program1 = wtu.setupProgram(gl, ["vshader_active_attrib_int", "fshader"],
+        ['p', 'a', 'b'], [pIndex, aIndex, bIndex]);
+    var program2 = wtu.setupProgram(gl, ["vshader_active_attrib_float", "fshader"],
+        ['p', 'a', 'c'], [pIndex, aIndex, cIndex]);
+    if (!program0 || !program1 || !program2) {
+      testFailed("Set up program failed");
+      return;
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from set up");
+
+    wtu.setupUnitQuad(gl, 0);
+
+    debug("Inactive input in vertex shader");
+    gl.useProgram(program0);
+    gl.vertexAttribI4i(pIndex, 1, 0, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArrays succeeds: type in shader mismatch default vertex type is valid for inactive attrib");
+
+    gl.vertexAttrib4f(aIndex, 0.0, 1.0, 0.0, 0.0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArrays succeeds: type in shader mismatch vertexAttrib type is valid for inactive attrib");
+
+    debug("active int/uint inputs in vertex shader");
+    gl.useProgram(program1);
+    gl.vertexAttribI4i(pIndex, 1, 0, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Type mismatch: type in shader mismatch the default type for a vertex attrib");
+    gl.vertexAttribI4i(aIndex, 0, 1, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Type mismatch: type in shader mismatch the default type for a vertex attrib");
+    gl.vertexAttribI4ui(bIndex, 0, 0, 1, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArrays succeeds");
+
+    debug("active float input in vertex shader");
+    gl.useProgram(program2);
+    gl.vertexAttrib4f(pIndex, 1.0, 0.0, 0.0, 0.0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Type mismatch: generic attrib is valid per context. 'a' is set to int type by previous test case");
+    gl.vertexAttrib4f(aIndex, 0.0, 1.0, 0.0, 0.0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArrays succeeds: default type of generic attrib is float");
+}
+
+function setupAttribValues(offsetILoc, offsetULoc, colorLoc) {
+    gl.vertexAttribI4i(offsetILoc, -1, -2, 0, 0);
+    gl.vertexAttribI4ui(offsetULoc, 1, 2, 0, 0);
+    gl.vertexAttrib4f(colorLoc, 1.0, 0, 0, 1.0);
+}
+
+function setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                             offsetIBuffer, offsetUBuffer, colorBuffer) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetIBuffer);
+    gl.vertexAttribIPointer(offsetILoc, 2, gl.INT, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetUBuffer);
+    gl.vertexAttribIPointer(offsetULoc, 2, gl.UNSIGNED_INT, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
+}
+
+function runTests() {
+    debug("");
+    debug("Test vertexAttrib with drawArrays and drawArraysInstanced");
+
+    var instanceCount = 4;
+
+    var positionLoc = 0;
+    var offsetILoc = 2;
+    var offsetULoc = 3;
+    var colorLoc = 4;
+    var program = wtu.setupProgram(gl, ["outputVertexShader", "outputFragmentShader"],
+        ['aPosition', 'aOffsetI', 'aOffsetU','aColor'],
+        [positionLoc, offsetILoc, offsetULoc, colorLoc]);
+    if (!program) {
+      testFailed("Set up program failed");
+      return;
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from set up");
+
+    wtu.setupUnitQuad(gl, 0);
+
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArrays succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [255, 0, 0, 255]);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [255, 0, 0, 255]);
+
+    debug("int type function on uint type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4i(offsetULoc, 1, 2, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("float type function on uint type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttrib4f(offsetULoc, 1.0, 2.0, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("uint type function on int type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4ui(offsetILoc, 1, 2, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("float type function on int type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttrib4f(offsetILoc, 1.0, 2.0, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("int type function on float type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4i(colorLoc, 1, 0, 0, 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("uint type function on float type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4ui(colorLoc, 1, 0, 0, 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("");
+    debug("Test vertexAttrib with drawElements, drawRangeElements, and drawElementsInstanced");
+    wtu.setupIndexedQuad(gl, 1, 0);
+
+    debug("Correct setup");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElements succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [255, 0, 0, 255]);
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawRangeElements succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [255, 0, 0, 255]);
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [255, 0, 0, 255]);
+
+    debug("int type function on uint type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4i(offsetULoc, 1, 2, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("float type function on uint type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttrib4f(offsetULoc, 1.0, 2.0, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("uint type function on int type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4ui(offsetILoc, 1, 2, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("float type function on int type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttrib4f(offsetILoc, 1.0, 2.0, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("int type function on float type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4i(colorLoc, 1, 0, 0, 1);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("uint type function on float type attrib");
+    setupAttribValues(offsetILoc, offsetULoc, colorLoc);
+    gl.vertexAttribI4ui(colorLoc, 1, 0, 0, 1);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+
+    var offsetIBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetIBuffer);
+    var offsetI = new Int32Array([-1, -2,
+                                  -1, -2,
+                                  -1, -2,
+                                  -1, -2,
+                                  -1, -2,
+                                  -1, -2]);
+    gl.bufferData(gl.ARRAY_BUFFER, offsetI, gl.STATIC_DRAW);
+
+    var offsetUBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetUBuffer);
+    var offsetU = new Uint32Array([1, 2,
+                                   1, 2,
+                                   1, 2,
+                                   1, 2,
+                                   1, 2,
+                                   1, 2]);
+    gl.bufferData(gl.ARRAY_BUFFER, offsetU, gl.STATIC_DRAW);
+
+    var offsetFBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetFBuffer);
+    var offsetF = new Float32Array([1.0, 2.0,
+                                    1.0, 2.0,
+                                    1.0, 2.0,
+                                    1.0, 2.0,
+                                    1.0, 2.0,
+                                    1.0, 2.0]);
+    gl.bufferData(gl.ARRAY_BUFFER, offsetF, gl.STATIC_DRAW);
+
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    var colors = new Float32Array([0.0, 1.0, 0.0, 1.0,
+                                   0.0, 1.0, 0.0, 1.0,
+                                   0.0, 1.0, 0.0, 1.0,
+                                   0.0, 1.0, 0.0, 1.0,
+                                   0.0, 1.0, 0.0, 1.0,
+                                   0.0, 1.0, 0.0, 1.0]);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+
+    var colorUBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorUBuffer);
+    var colorsU = new Uint32Array([0, 1, 0, 1,
+                                   0, 1, 0, 1,
+                                   0, 1, 0, 1,
+                                   0, 1, 0, 1,
+                                   0, 1, 0, 1,
+                                   0, 1, 0, 1]);
+    gl.bufferData(gl.ARRAY_BUFFER, colorsU, gl.STATIC_DRAW);
+
+    gl.enableVertexAttribArray(offsetILoc);
+    gl.enableVertexAttribArray(offsetULoc);
+    gl.enableVertexAttribArray(colorLoc);
+
+    debug("");
+    debug("Test vertexAttrib{I}Pointer with drawArrays and drawArraysInstanced");
+    wtu.setupUnitQuad(gl, 0);
+
+    debug("Correct setup");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArrays succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [0, 255, 0, 255]);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [0, 255, 0, 255]);
+
+    debug("vertexAttribIPointer with int type on uint type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetIBuffer);
+    gl.vertexAttribIPointer(offsetULoc, 2, gl.INT, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribPointer on uint type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetFBuffer);
+    gl.vertexAttribPointer(offsetULoc, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("VertexAttribIPointer with uint type on int type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetUBuffer);
+    gl.vertexAttribIPointer(offsetILoc, 2, gl.UNSIGNED_INT, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribPointer on int type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetFBuffer);
+    gl.vertexAttribPointer(offsetILoc, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribIPointer with uint type on float type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorUBuffer);
+    gl.vertexAttribIPointer(colorLoc, 4, gl.UNSIGNED_INT, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribIPointer with int type on float type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorUBuffer);
+    gl.vertexAttribIPointer(colorLoc, 4, gl.INT, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("");
+    debug("Test vertexAttrib{I}Pointer with drawElements, drawRangeElements, and drawElementsInstanced");
+    wtu.setupIndexedQuad(gl, 1, 0);
+
+    debug("Correct setup");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up succeeds");
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElements succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [0, 255, 0, 255]);
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawRangeElements succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [0, 255, 0, 255]);
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced succeeds");
+    wtu.checkCanvasRect(gl, 0, 0, canvas.width, canvas.height, [0, 255, 0, 255]);
+
+    debug("vertexAttribIPointer with int type on uint type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetIBuffer);
+    gl.vertexAttribIPointer(offsetULoc, 2, gl.INT, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribPointer on uint type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetFBuffer);
+    gl.vertexAttribPointer(offsetULoc, 2, gl.FLOAT, false, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("VertexAttribIPointer with uint type on int type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetUBuffer);
+    gl.vertexAttribIPointer(offsetILoc, 2, gl.UNSIGNED_INT, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribPointer on int type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetFBuffer);
+    gl.vertexAttribPointer(offsetILoc, 2, gl.FLOAT, false, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribIPointer with uint type on float type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorUBuffer);
+    gl.vertexAttribIPointer(colorLoc, 4, gl.UNSIGNED_INT, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+
+    debug("vertexAttribIPointer with int type on float type attrib");
+    setupAttribPointers(offsetILoc, offsetULoc, colorLoc,
+                        offsetIBuffer, offsetUBuffer, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorUBuffer);
+    gl.vertexAttribIPointer(colorLoc, 4, gl.INT, 0, 0);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "type mismatch");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

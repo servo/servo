@@ -1,5 +1,0 @@
-
-   generic { background: green; border: lime 1em solid; margin: 1em; padding: 1em; color: yellow; }
-   generic, p { display: block; }
-   a[*|href] { color: inherit; background: transparent; text-decoration: underline; cursor: pointer; }
-   * { margin: 1em; padding: 1em; }

@@ -1,0 +1,89 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 specific sync object behaviors</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("This test checks WebGL2 specific sync object behaviors");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas", null, 2);
+var sync = null;
+
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  shouldBe("gl.TIMEOUT_IGNORED", "-1");
+  shouldBe("gl.MAX_CLIENT_WAIT_TIMEOUT_WEBGL", "0x9247");
+  var max = gl.getParameter(gl.MAX_CLIENT_WAIT_TIMEOUT_WEBGL);
+  debug("Querying gl.MAX_CLIENT_WAIT_TIMEOUT_WEBGL");
+  shouldBe("gl.getError()", "gl.NO_ERROR");
+  debug("gl.MAX_CLIENT_WAIT_TIMEOUT_WEBGL returns " + max + "ns");
+  if (max < 0) {
+    testFailed("gl.MAX_CLIENT_WAIT_TIMEOUT_WEBGL < 0");
+  } else if (max > 1000 * 1000 * 1000) {
+    // This is not demanded by the WebGL2 spec, but anything larger than 1000ms
+    // is bad idea and no implementation should allow it.
+    testFailed("gl.MAX_CLIENT_WAIT_TIMEOUT_WEBGL should not exceed 1000ms");
+  } else {
+    testPassed("gl.MAX_CLIENT_WAIT_TIMEOUT_WEBGL returns a valid value");
+  }
+  sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+  shouldBeNonNull("sync");
+  shouldBe("gl.getError()", "gl.NO_ERROR");
+  gl.clientWaitSync(sync, 0, max);
+  shouldBe("gl.getError()", "gl.NO_ERROR");
+  gl.clientWaitSync(sync, 0, max + 1);
+  shouldBe("gl.getError()", "gl.INVALID_OPERATION");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

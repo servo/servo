@@ -1,0 +1,76 @@
+
+case invalid_assign_to_1
+	version 100 es
+	expect compile_fail
+	vertex ""
+		void main (void)
+		{
+			gl_Position = vec4(1.0);
+		}
+	""
+	fragment ""
+		void main (void)
+		{
+			gl_FragData[1] = vec4(1.0);
+		}
+	""
+end
+
+case write_fragcolor_and_fragdata_simple
+	version 100 es
+	expect compile_fail
+	vertex ""
+		void main (void)
+		{
+			gl_Position = vec4(1.0);
+		}
+	""
+	fragment ""
+		void main (void)
+		{
+			gl_FragColor = vec4(1.0);
+			gl_FragData[0] = vec4(1.0);
+		}
+	""
+end
+
+case write_fragcolor_and_fragdata_static_if
+	version 100 es
+	expect compile_fail
+	vertex ""
+		void main (void)
+		{
+			gl_Position = vec4(1.0);
+		}
+	""
+	fragment ""
+		void main (void)
+		{
+			if (false)
+				gl_FragColor = vec4(1.0);
+			else
+				gl_FragData[0] = vec4(1.0);
+		}
+	""
+end
+
+case write_fragcolor_and_fragdata_unused_func
+	version 100 es
+	expect compile_fail
+	vertex ""
+		void main (void)
+		{
+			gl_Position = vec4(1.0);
+		}
+	""
+	fragment ""
+		void unused (void)
+		{
+			gl_FragData[0] = vec4(1.0);
+		}
+		void main (void)
+		{
+			gl_FragColor = vec4(1.0);
+		}
+	""
+end

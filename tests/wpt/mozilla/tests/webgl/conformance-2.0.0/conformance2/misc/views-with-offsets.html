@@ -1,0 +1,343 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Tests texture uploads with ArrayBufferView+offsets");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(null, undefined, 2);
+console.log(gl.getParameter(gl.VERSION));
+
+////
+
+function arrToStr(arr) {
+  return "[" + arr.map(x => x.toString()).join(", ") + "]";
+}
+
+function shouldBeWas(shouldBe, was, info) {
+  var text = "Should be " + shouldBe + ", was " + was + ".";
+  if (info) {
+    text = info + ": " + text;
+  }
+
+  if (shouldBe == was) {
+    testPassed(text);
+    return true;
+  } else {
+    testFailed(text);
+    return false;
+  }
+}
+
+function shouldBeWasArr(shouldBe, was, info) {
+  if (shouldBe.length != was.length) {
+    testFailed("Length should be " + shouldBe.length + ", was " + was.length + ".");
+    return false;
+  }
+
+  return shouldBeWas(arrToStr(shouldBe), arrToStr(was), info);
+}
+
+////
+
+// Textures
+
+var fibArr = [
+  0, 1, 1, 2,
+  3, 5, 8, 13,
+  21, 34, 55, 89,
+  144, 233,
+];
+
+var fb = gl.createFramebuffer();
+
+function probeWithBadOffset(fnTest, info) {
+  fnTest(+(-1|0));
+  if (!gl.getError()) {
+    testFailed("Does not support " + info + " with offsets into views.");
+    return false;
+  }
+  return true;
+}
+
+// fn(view, offset, expectedError, expectedResult)
+
+do {
+  var readPixelView = new Uint8Array(4);
+  var testView = new Uint8Array(fibArr);
+
+  function testTexOrSubImage(funcName, fnTexOrSubImage) {
+    debug("");
+    debug(funcName);
+
+    var fnProbe = function(viewOffset) {
+      fnTexOrSubImage(gl.RGBA, gl.UNSIGNED_BYTE, testView, viewOffset);
+    };
+
+    if (!probeWithBadOffset(fnProbe, funcName))
+      return;
+
+    for (var i = 0; i <= testView.length+1; i++) {
+      debug("offset=" + i);
+
+      fnTexOrSubImage(gl.RGBA, gl.UNSIGNED_BYTE, testView, i);
+
+      var effectiveViewLen = testView.length - i;
+
+      if (effectiveViewLen >= 4) {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, readPixelView);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+        shouldBeWasArr(testView.slice(i, i+4), readPixelView);
+
+      } else {
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+      }
+    }
+
+    debug("");
+
+    var yellow565 = (0x1f << 11) | (0x3f << 5);
+    var cyan565 = (0x3f << 5) | 0x1f;
+    var arr565 = [yellow565, cyan565];
+    var view565 = new Uint16Array(arr565);
+
+    function rgb888to565(arr888) {
+      return ((arr888[0] >> 3) << 11) | ((arr888[1] >> 2) << 5) | (arr888[2] >> 3);
+    }
+
+    for (var i = 0; i <= arr565.length+1; i++) {
+      debug("rgb565, offset=" + i);
+
+      fnTexOrSubImage(gl.RGB, gl.UNSIGNED_SHORT_5_6_5, view565, i);
+
+      var effectiveViewLen = arr565.length - i;
+
+      if (effectiveViewLen >= 1) {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, readPixelView);
+        debug(arrToStr(readPixelView));
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+        shouldBeWas(arr565[i], rgb888to565(readPixelView));
+
+      } else {
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+      }
+    }
+  }
+
+  var fn2D = function(format, type, view, viewOffset) {
+    gl.texImage2D(gl.TEXTURE_2D, 0, format, 1, 1, 0, format, type, view, viewOffset);
+  }
+
+  var fnSub2D = function(format, type, view, viewOffset) {
+    gl.texImage2D(gl.TEXTURE_2D, 0, format, 1, 1, 0, format, type, null);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, format, type, view, viewOffset);
+  }
+
+  var fn3D = function(format, type, view, viewOffset) {
+    gl.texImage3D(gl.TEXTURE_3D, 0, format, 1, 1, 1, 0, format, type, view, viewOffset);
+  }
+
+  var fnSub3D = function(format, type, view, viewOffset) {
+    gl.texImage3D(gl.TEXTURE_3D, 0, format, 1, 1, 1, 0, format, type, null);
+    gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 1, 1, 1, format, type, view, viewOffset);
+  }
+
+  ////
+
+  var tex2d = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex2d);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex2d, 0);
+
+  testTexOrSubImage("texImage2D", fn2D);
+  testTexOrSubImage("texSubImage2D", fnSub2D);
+
+  ////
+
+  var tex3d = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_3D, tex3d);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA, 1, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3d, 0, 0);
+
+  testTexOrSubImage("texImage3D", fn3D);
+  testTexOrSubImage("texSubImage3D", fnSub3D);
+} while (false);
+
+
+do {
+  var compressedFormat = 0;
+  var compressedByteCount;
+
+  if (gl.getExtension("WEBGL_compressed_texture_s3tc")) {
+    var e = gl.getExtension("WEBGL_compressed_texture_s3tc");
+    compressedFormat = e.COMPRESSED_RGB_S3TC_DXT1_EXT;
+    compressedByteCount = 8;
+  } else if (gl.getExtension("WEBGL_compressed_texture_etc")) {
+    var e = gl.getExtension("WEBGL_compressed_texture_etc");
+    compressedFormat = e.COMPRESSED_RGB8_ETC2;
+    compressedByteCount = 8;
+  } else {
+    debug("No compressed texture format found. Skipping compressedTex(Sub)Image tests.");
+    break;
+  }
+
+  ////
+
+  var view = new Uint8Array(compressedByteCount+1);
+
+  var fn2D = function(viewOffset) {
+    gl.compressedTexImage2D(gl.TEXTURE_2D, 0, compressedFormat, 4, 4, 0,
+                            view, viewOffset, compressedByteCount);
+  };
+
+  var fnSub2D = function(viewOffset) {
+    gl.compressedTexImage2D(gl.TEXTURE_2D, 0, compressedFormat, 4, 4, 0,
+                            view, 0, compressedByteCount);
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 4, 4, compressedFormat,
+                               view, viewOffset, compressedByteCount);
+  };
+
+  var fn3D = function(viewOffset) {
+    gl.compressedTexImage3D(gl.TEXTURE_2D_ARRAY, 0, compressedFormat, 4, 4, 1, 0,
+                            view, viewOffset, compressedByteCount);
+  };
+
+  var fnSub3D = function(viewOffset) {
+    gl.compressedTexImage3D(gl.TEXTURE_2D_ARRAY, 0, compressedFormat, 4, 4, 1, 0,
+                            view, 0, compressedByteCount);
+    gl.compressedTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, 4, 4, 1, compressedFormat,
+                               view, viewOffset, compressedByteCount);
+  };
+
+  ////
+
+  var testFunc = function(funcName, fnToTest) {
+    debug("");
+    debug(funcName);
+
+    if (!probeWithBadOffset(fnToTest, funcName))
+      return;
+
+    var viewLength = view.length;
+    var subViewLength = compressedByteCount;
+
+    for (var i = 0; i <= viewLength+1; i++) {
+      debug("offset=" + i);
+
+      fnToTest(i);
+      var effectiveViewLen = viewLength - i;
+
+      if (effectiveViewLen >= subViewLength) {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+      } else {
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+      }
+    }
+  };
+
+  var tex2d = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex2d);
+  testFunc("compressedTexImage2D"   , fn2D   );
+  testFunc("compressedTexSubImage2D", fnSub2D);
+
+  var tex3d = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex3d);
+  testFunc("compressedTexImage3D"   , fn3D   );
+  testFunc("compressedTexSubImage3D", fnSub3D);
+} while (false);
+
+do {
+  debug("");
+  debug("readPixels");
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  var testColor = [10, 20, 30, 40];
+  gl.clearColor(testColor[0]/255.0,
+                testColor[1]/255.0,
+                testColor[2]/255.0,
+                testColor[3]/255.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  var readPixelView = new Uint8Array(6);
+
+  function doReadPixels(viewOffset) {
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, readPixelView, viewOffset);
+    return readPixelView;
+  }
+
+  if (!probeWithBadOffset(doReadPixels, "doReadPixels"))
+    break;
+
+  for (var i = 0; i <= readPixelView.length+1; i++) {
+    debug("offset=" + i);
+    var res = doReadPixels(i);
+    var effectiveViewLen = readPixelView.length - i;
+
+    if (effectiveViewLen >= 4) {
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+      shouldBeWasArr(testColor, res.slice(i,i+4));
+
+    } else if (effectiveViewLen >= 0) {
+      wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+
+    } else {
+      wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+    }
+  }
+} while (false);
+
+debug("")
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

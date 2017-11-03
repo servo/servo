@@ -716,13 +716,12 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Transform(ref servo_list) = **value {
         let list = unsafe { &mut *list };
-        match servo_list.0 {
-            Some(ref servo_list) => {
-                style_structs::Box::convert_transform(servo_list, list);
-            },
-            None => unsafe {
+        if servo_list.0.is_empty() {
+            unsafe {
                 list.set_move(RefPtr::from_addrefed(Gecko_NewNoneTransform()));
             }
+        } else {
+            style_structs::Box::convert_transform(&servo_list.0, list);
         }
     } else {
         panic!("The AnimationValue should be transform");
@@ -2522,10 +2521,10 @@ pub extern "C" fn Servo_MatrixTransform_Operate(matrix_operator: MatrixTransform
                                                 progress: f64,
                                                 output: *mut RawGeckoGfxMatrix4x4) {
     use self::MatrixTransformOperator::{Accumulate, Interpolate};
-    use style::properties::longhands::transform::computed_value::ComputedMatrix;
+    use style::values::computed::transform::Matrix3D;
 
-    let from = ComputedMatrix::from(unsafe { from.as_ref() }.expect("not a valid 'from' matrix"));
-    let to = ComputedMatrix::from(unsafe { to.as_ref() }.expect("not a valid 'to' matrix"));
+    let from = Matrix3D::from(unsafe { from.as_ref() }.expect("not a valid 'from' matrix"));
+    let to = Matrix3D::from(unsafe { to.as_ref() }.expect("not a valid 'to' matrix"));
     let result = match matrix_operator {
         Interpolate => from.animate(&to, Procedure::Interpolate { progress }),
         Accumulate => from.animate(&to, Procedure::Accumulate { count: progress as u64 }),

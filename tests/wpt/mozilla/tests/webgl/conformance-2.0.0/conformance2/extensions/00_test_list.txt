@@ -1,0 +1,4 @@
+ext-color-buffer-float.html
+ext-disjoint-timer-query-webgl2.html
+promoted-extensions.html
+promoted-extensions-in-shaders.html

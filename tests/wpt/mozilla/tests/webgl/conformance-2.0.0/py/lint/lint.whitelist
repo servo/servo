@@ -1,0 +1,46 @@
+# File containing whiteslist for lint errors
+# Format is:
+# ERROR TYPE:file/name/pattern[:line number]
+# e.g.
+# TRAILING WHITESPACE:example/file.html:128
+# to allow trailing whitespace on example/file.html line 128
+
+## Whitespace rules that we can't enforce yet ##
+
+TRAILING WHITESPACE:*.md
+TRAILING WHITESPACE:*.txt
+TRAILING WHITESPACE:*.frag
+TRAILING WHITESPACE:*.vert
+
+## Accept executable permission ##
+
+UNNECESSARY EXECUTABLE PERMISSION:*.cgi
+UNNECESSARY EXECUTABLE PERMISSION:.git/*
+
+## Ignore INDENT TABS ##
+ 
+INDENT TABS:*.frag
+INDENT TABS:*.vert
+#The original dEQP tests used tabs throughout.
+INDENT TABS:deqp/functional/gles3/*.js
+
+## File types that should never be checked ##
+
+*:*.pdf
+*:*.jpg
+*:*.png
+*:*.gif
+*:*.pdf
+*:*.wav
+*:*.mp3
+*:*.m4a
+*:*.oga
+*:*.ogv
+*:*.webm
+*:*.mp4
+*:*.m4v
+*:*.ttf
+*:*.woff
+*:*.eot
+*:*.sfd
+*:*.swf

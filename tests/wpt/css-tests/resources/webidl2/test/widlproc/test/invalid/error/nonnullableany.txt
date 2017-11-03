@@ -1,1 +1,0 @@
-invalid/idl/nonnullableany.widl: 2: at '?': expected identifier

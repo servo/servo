@@ -1,5 +1,0 @@
-p {
-  color: red;
-  --a: green;
-  color: var(--a);
-}

@@ -1,0 +1,271 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>Unary minus operator on int or uint variables in a dynamic loop in vertex shader should work</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+
+<body>
+<canvas id="canvas" style="border: none;" width="1024" height="128"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="shader-vs-int" type="x-shader/x-vertex">#version 300 es
+in highp vec4 pos;
+
+uniform int u_one;
+uniform int u_two;
+uniform int u_three;
+
+out mediump vec4 v_color;
+void main() {
+  int array[3];
+  array[0] = u_one; // array[0] should be 1
+  array[1] = -u_two; // array[1] should be -2
+  array[2] = u_three; // array[2] should be 3
+  int result = 0;
+  for (int i = 0; i < u_three; i++) {
+    result += array[i];
+  }
+  v_color = (result == 2) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+  gl_Position = pos;
+}
+</script>
+
+<script id="shader-vs-uint" type="x-shader/x-vertex">#version 300 es
+in highp vec4 pos;
+
+uniform uint u_one;
+uniform uint u_two;
+uniform uint u_three;
+
+out mediump vec4 v_color;
+void main() {
+  uint array[3];
+  array[0] = u_one; // array[0] should be 1u
+  array[1] = -u_two; // array[1] should be -2u
+  array[2] = u_three; // array[2] should be 3u
+  uint result = 0u;
+  for (uint i = 0u; i < u_three; i++) {
+    result += array[i];
+  }
+  v_color = (result == 2u) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+  gl_Position = pos;
+}
+</script>
+
+<script id="shader-vs-int-multiple-brackets" type="x-shader/x-vertex">#version 300 es
+in highp vec4 pos;
+
+uniform int u_one;
+uniform int u_two;
+uniform int u_three;
+
+out mediump vec4 v_color;
+void main() {
+  int array[3];
+  array[0] = u_one; // array[0] should be 1
+  array[1] = -(-(-u_two + 1) + 1); // array[1] should be -2
+  array[2] = u_three; // array[2] should be 3
+  int result = 0;
+  for (int i = 0; i < u_three; i++) {
+    result += array[i];
+  }
+  v_color = (result == 2) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+  gl_Position = pos;
+}
+</script>
+
+<script id="shader-vs-uint-multiple-brackets" type="x-shader/x-vertex">#version 300 es
+in highp vec4 pos;
+
+uniform uint u_one;
+uniform uint u_two;
+uniform uint u_three;
+
+out mediump vec4 v_color;
+void main() {
+  uint array[3];
+  array[0] = u_one; // array[0] should be 1u
+  array[1] = -(-(-u_two + 1u) + 1u); // array[1] should be -2u
+  array[2] = u_three; // array[2] should be 3u
+  uint result = 0u;
+  for (uint i = 0u; i < u_three; i++) {
+    result += array[i];
+  }
+  v_color = (result == 2u) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+  gl_Position = pos;
+}
+</script>
+
+<script id="shader-vs-int-implicit-unary-minus" type="x-shader/x-vertex">#version 300 es
+in highp vec4 pos;
+
+uniform int u_one;
+uniform int u_two;
+uniform int u_three;
+
+out mediump vec4 v_color;
+void main() {
+  int array[3];
+  array[0] = u_one; // array[0] should be 1
+  array[1] = 1 - u_two;
+  array[2] = u_three; // array[2] should be 3
+  int result = 0;
+  array[1] -= 1; // array[1] should be -u_two == -2
+  for (int i = 0; i < u_three; i++) {
+    result += array[i];
+  }
+  v_color = (result == 2) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+  gl_Position = pos;
+}
+</script>
+
+<script id="shader-vs-uint-implicit-unary-minus" type="x-shader/x-vertex">#version 300 es
+in highp vec4 pos;
+
+uniform uint u_one;
+uniform uint u_two;
+uniform uint u_three;
+
+out mediump vec4 v_color;
+void main() {
+  uint array[3];
+  array[0] = u_one; // array[0] should be 1u
+  array[1] = 1u - u_two;
+  array[2] = u_three; // array[2] should be 3u
+  uint result = 0u;
+  array[1] -= 1u; // array[1] should be -u_two == -2u
+  for (uint i = 0u; i < u_three; i++) {
+    result += array[i];
+  }
+  v_color = (result == 2u) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+  gl_Position = pos;
+}
+</script>
+
+<script id="shader-fs" type="x-shader/x-fragment">#version 300 es
+in mediump vec4 v_color;
+out mediump vec4 o_color;
+
+void main() {
+  o_color = v_color;
+}
+</script>
+
+<script>
+"use strict";
+
+function test() {
+  description();
+  debug("This test exposes an Intel driver bug on Windows.");
+  debug("");
+
+  var wtu = WebGLTestUtils;
+  var gl = wtu.create3DContext("canvas", undefined, 2);
+  if (!gl) {
+    testFailed("WebGL 2 context does not exist");
+    return;
+  }
+
+  var testNum = 0;
+  var border = 10; // border between test squares for visibility
+  var squareSize = 128;
+  var expectedColor = [0, 255, 0, 255]; // green
+
+  function subTest_int(message, VertexShader) {
+    debug(message);
+    var startX = (squareSize + border) * testNum;
+    var program = wtu.setupProgram(
+      gl, [VertexShader, "shader-fs"], ["pos"], null, true);
+    gl.viewport(startX, 0, squareSize, squareSize);
+
+    var one = gl.getUniformLocation(program, "u_one");
+    var two = gl.getUniformLocation(program, "u_two");
+    var three = gl.getUniformLocation(program, "u_three");
+    gl.uniform1i(one, 1);
+    gl.uniform1i(two, 2);
+    gl.uniform1i(three, 3);
+
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(
+      gl, startX, 0, squareSize, squareSize,
+      expectedColor, "square should be green", 1);
+    debug("");
+    testNum++;
+  }
+
+  function subTest_uint(message, VertexShader) {
+    debug(message);
+    var startX = (squareSize + border) * testNum;
+    var program = wtu.setupProgram(
+      gl, [VertexShader, "shader-fs"], ["pos"], null, true);
+    gl.viewport(startX, 0, squareSize, squareSize);
+
+    var one = gl.getUniformLocation(program, "u_one");
+    var two = gl.getUniformLocation(program, "u_two");
+    var three = gl.getUniformLocation(program, "u_three");
+    gl.uniform1ui(one, 1);
+    gl.uniform1ui(two, 2);
+    gl.uniform1ui(three, 3);
+
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(
+      gl, startX, 0, squareSize, squareSize,
+      expectedColor, "square should be green", 1);
+    debug("");
+    testNum++;
+  }
+
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    wtu.setupUnitQuad(gl);
+    subTest_int("Test unary minus operator on int.", "shader-vs-int");
+    subTest_uint("Test unary minus operator on unsigned int.", "shader-vs-uint");
+    subTest_int("Test unary minus operator on int with multiple brackets.", "shader-vs-int-multiple-brackets");
+    subTest_uint("Test unary minus operator on unsigned int with multiple brackets.", "shader-vs-uint-multiple-brackets");
+    subTest_int("Test implicit unary minus operator on int.", "shader-vs-int-implicit-unary-minus");
+    subTest_uint("Test implicit unary minus operator on unsigned int.", "shader-vs-uint-implicit-unary-minus");
+  }
+}
+
+test();
+var successfullyParsed = true;
+finishTest();
+</script>
+</body>
+</html>

@@ -11,14 +11,248 @@ use style_traits::{ParseError, StyleParseErrorKind};
 use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
-use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
+use values::generics::transform::{Matrix3D, Transform as GenericTransform};
+use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, Matrix};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
-use values::specified::{Integer, Number};
-use values::specified::length::{Length, LengthOrPercentage};
+use values::generics::transform::TransformOperation as GenericTransformOperation;
+use values::specified::{self, Angle, Number, Length, Integer};
+use values::specified::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
 use values::specified::position::{Side, X, Y};
+
+/// A single operation in a specified CSS `transform`
+pub type TransformOperation = GenericTransformOperation<
+    Angle,
+    Number,
+    Length,
+    Integer,
+    LengthOrNumber,
+    LengthOrPercentage,
+    LengthOrPercentageOrNumber,
+>;
+/// A specified CSS `transform`
+pub type Transform = GenericTransform<TransformOperation>;
 
 /// The specified value of a CSS `<transform-origin>`
 pub type TransformOrigin = GenericTransformOrigin<OriginComponent<X>, OriginComponent<Y>, Length>;
+
+
+impl Transform {
+    /// Internal parse function for deciding if we wish to accept prefixed values or not
+    // Allow unitless zero angle for rotate() and skew() to align with gecko
+    pub fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        prefixed: bool,
+    ) -> Result<Self, ParseError<'i>> {
+        use style_traits::{Separator, Space};
+
+        if input
+            .try(|input| input.expect_ident_matching("none"))
+            .is_ok()
+        {
+            return Ok(GenericTransform(Vec::new()));
+        }
+
+        Ok(GenericTransform(Space::parse(input, |input| {
+            let function = input.expect_function()?.clone();
+            input.parse_nested_block(|input| {
+                let location = input.current_source_location();
+                let result =
+                    match_ignore_ascii_case! { &function,
+                    "matrix" => {
+                        let a = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let b = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let c = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let d = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        if !prefixed {
+                            // Standard matrix parsing.
+                            let e = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let f = specified::parse_number(context, input)?;
+                            Ok(GenericTransformOperation::Matrix(Matrix { a, b, c, d, e, f }))
+                        } else {
+                            // Non-standard prefixed matrix parsing for -moz-transform.
+                            let e = LengthOrPercentageOrNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let f = LengthOrPercentageOrNumber::parse(context, input)?;
+                            Ok(GenericTransformOperation::PrefixedMatrix(Matrix { a, b, c, d, e, f }))
+                        }
+                    },
+                    "matrix3d" => {
+                        let m11 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m12 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m13 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m14 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m21 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m22 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m23 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m24 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m31 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m32 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m33 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m34 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        if !prefixed {
+                            // Standard matrix3d parsing.
+                            let m41 = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let m42 = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let m43 = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let m44 = specified::parse_number(context, input)?;
+                            Ok(GenericTransformOperation::Matrix3D(Matrix3D {
+                                m11, m12, m13, m14,
+                                m21, m22, m23, m24,
+                                m31, m32, m33, m34,
+                                m41, m42, m43, m44,
+                            }))
+                        } else {
+                            // Non-standard prefixed matrix parsing for -moz-transform.
+                            let m41 = LengthOrPercentageOrNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m42 = LengthOrPercentageOrNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m43 = LengthOrNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m44 = specified::parse_number(context, input)?;
+                            Ok(GenericTransformOperation::PrefixedMatrix3D(Matrix3D {
+                                m11, m12, m13, m14,
+                                m21, m22, m23, m24,
+                                m31, m32, m33, m34,
+                                m41, m42, m43, m44,
+                            }))
+                        }
+                    },
+                    "translate" => {
+                        let sx = specified::LengthOrPercentage::parse(context, input)?;
+                        if input.try(|input| input.expect_comma()).is_ok() {
+                            let sy = specified::LengthOrPercentage::parse(context, input)?;
+                            Ok(GenericTransformOperation::Translate(sx, Some(sy)))
+                        } else {
+                            Ok(GenericTransformOperation::Translate(sx, None))
+                        }
+                    },
+                    "translatex" => {
+                        let tx = specified::LengthOrPercentage::parse(context, input)?;
+                        Ok(GenericTransformOperation::TranslateX(tx))
+                    },
+                    "translatey" => {
+                        let ty = specified::LengthOrPercentage::parse(context, input)?;
+                        Ok(GenericTransformOperation::TranslateY(ty))
+                    },
+                    "translatez" => {
+                        let tz = specified::Length::parse(context, input)?;
+                        Ok(GenericTransformOperation::TranslateZ(tz))
+                    },
+                    "translate3d" => {
+                        let tx = specified::LengthOrPercentage::parse(context, input)?;
+                        input.expect_comma()?;
+                        let ty = specified::LengthOrPercentage::parse(context, input)?;
+                        input.expect_comma()?;
+                        let tz = specified::Length::parse(context, input)?;
+                        Ok(GenericTransformOperation::Translate3D(tx, ty, tz))
+                    },
+                    "scale" => {
+                        let sx = specified::parse_number(context, input)?;
+                        if input.try(|input| input.expect_comma()).is_ok() {
+                            let sy = specified::parse_number(context, input)?;
+                            Ok(GenericTransformOperation::Scale(sx, Some(sy)))
+                        } else {
+                            Ok(GenericTransformOperation::Scale(sx, None))
+                        }
+                    },
+                    "scalex" => {
+                        let sx = specified::parse_number(context, input)?;
+                        Ok(GenericTransformOperation::ScaleX(sx))
+                    },
+                    "scaley" => {
+                        let sy = specified::parse_number(context, input)?;
+                        Ok(GenericTransformOperation::ScaleY(sy))
+                    },
+                    "scalez" => {
+                        let sz = specified::parse_number(context, input)?;
+                        Ok(GenericTransformOperation::ScaleZ(sz))
+                    },
+                    "scale3d" => {
+                        let sx = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let sy = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let sz = specified::parse_number(context, input)?;
+                        Ok(GenericTransformOperation::Scale3D(sx, sy, sz))
+                    },
+                    "rotate" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(GenericTransformOperation::Rotate(theta))
+                    },
+                    "rotatex" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(GenericTransformOperation::RotateX(theta))
+                    },
+                    "rotatey" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(GenericTransformOperation::RotateY(theta))
+                    },
+                    "rotatez" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(GenericTransformOperation::RotateZ(theta))
+                    },
+                    "rotate3d" => {
+                        let ax = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let ay = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let az = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        // TODO(gw): Check that the axis can be normalized.
+                        Ok(GenericTransformOperation::Rotate3D(ax, ay, az, theta))
+                    },
+                    "skew" => {
+                        let ax = specified::Angle::parse_with_unitless(context, input)?;
+                        if input.try(|input| input.expect_comma()).is_ok() {
+                            let ay = specified::Angle::parse_with_unitless(context, input)?;
+                            Ok(GenericTransformOperation::Skew(ax, Some(ay)))
+                        } else {
+                            Ok(GenericTransformOperation::Skew(ax, None))
+                        }
+                    },
+                    "skewx" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(GenericTransformOperation::SkewX(theta))
+                    },
+                    "skewy" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(GenericTransformOperation::SkewY(theta))
+                    },
+                    "perspective" => {
+                        let d = specified::Length::parse_non_negative(context, input)?;
+                        Ok(GenericTransformOperation::Perspective(d))
+                    },
+                    _ => Err(()),
+                };
+                result
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone())))
+            })
+        })?))
+    }
+}
 
 /// The specified value of a component of a CSS `<transform-origin>`.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
@@ -37,7 +271,9 @@ pub type TimingFunction = GenericTimingFunction<Integer, Number>;
 impl Parse for TransformOrigin {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let parse_depth = |input: &mut Parser| {
-            input.try(|i| Length::parse(context, i)).unwrap_or(Length::from_px(0.))
+            input.try(|i| Length::parse(context, i)).unwrap_or(
+                Length::from_px(0.),
+            )
         };
         match input.try(|i| OriginComponent::parse(context, i)) {
             Ok(x_origin @ OriginComponent::Center) => {
@@ -84,7 +320,8 @@ impl Parse for TransformOrigin {
 }
 
 impl<S> Parse for OriginComponent<S>
-    where S: Parse,
+where
+    S: Parse,
 {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
@@ -99,18 +336,15 @@ impl<S> Parse for OriginComponent<S>
 }
 
 impl<S> ToComputedValue for OriginComponent<S>
-    where S: Side,
+where
+    S: Side,
 {
     type ComputedValue = ComputedLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            OriginComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(ComputedPercentage(0.5))
-            },
-            OriginComponent::Length(ref length) => {
-                length.to_computed_value(context)
-            },
+            OriginComponent::Center => ComputedLengthOrPercentage::Percentage(ComputedPercentage(0.5)),
+            OriginComponent::Length(ref length) => length.to_computed_value(context),
             OriginComponent::Side(ref keyword) => {
                 let p = ComputedPercentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
@@ -139,7 +373,9 @@ fn allow_frames_timing() -> bool {
 
 #[cfg(feature = "servo")]
 #[inline]
-fn allow_frames_timing() -> bool { true }
+fn allow_frames_timing() -> bool {
+    true
+}
 
 impl Parse for TimingFunction {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -147,7 +383,8 @@ impl Parse for TimingFunction {
             return Ok(GenericTimingFunction::Keyword(keyword));
         }
         if let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
-            let position = match_ignore_ascii_case! { &ident,
+            let position =
+                match_ignore_ascii_case! { &ident,
                 "step-start" => StepPosition::Start,
                 "step-end" => StepPosition::End,
                 _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))),
@@ -201,10 +438,13 @@ impl ToComputedValue for TimingFunction {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            GenericTimingFunction::Keyword(keyword) => {
-                GenericTimingFunction::Keyword(keyword)
-            },
-            GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
+            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
+            GenericTimingFunction::CubicBezier {
+                x1,
+                y1,
+                x2,
+                y2,
+            } => {
                 GenericTimingFunction::CubicBezier {
                     x1: x1.to_computed_value(context),
                     y1: y1.to_computed_value(context),
@@ -213,15 +453,10 @@ impl ToComputedValue for TimingFunction {
                 }
             },
             GenericTimingFunction::Steps(steps, position) => {
-                GenericTimingFunction::Steps(
-                    steps.to_computed_value(context) as u32,
-                    position,
-                )
+                GenericTimingFunction::Steps(steps.to_computed_value(context) as u32, position)
             },
             GenericTimingFunction::Frames(frames) => {
-                GenericTimingFunction::Frames(
-                    frames.to_computed_value(context) as u32,
-                )
+                GenericTimingFunction::Frames(frames.to_computed_value(context) as u32)
             },
         }
     }
@@ -229,10 +464,13 @@ impl ToComputedValue for TimingFunction {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            GenericTimingFunction::Keyword(keyword) => {
-                GenericTimingFunction::Keyword(keyword)
-            },
-            GenericTimingFunction::CubicBezier { ref x1, ref y1, ref x2, ref y2 } => {
+            GenericTimingFunction::Keyword(keyword) => GenericTimingFunction::Keyword(keyword),
+            GenericTimingFunction::CubicBezier {
+                ref x1,
+                ref y1,
+                ref x2,
+                ref y2,
+            } => {
                 GenericTimingFunction::CubicBezier {
                     x1: Number::from_computed_value(x1),
                     y1: Number::from_computed_value(y1),
@@ -241,15 +479,10 @@ impl ToComputedValue for TimingFunction {
                 }
             },
             GenericTimingFunction::Steps(steps, position) => {
-                GenericTimingFunction::Steps(
-                    Integer::from_computed_value(&(steps as i32)),
-                    position,
-                )
+                GenericTimingFunction::Steps(Integer::from_computed_value(&(steps as i32)), position)
             },
             GenericTimingFunction::Frames(frames) => {
-                GenericTimingFunction::Frames(
-                    Integer::from_computed_value(&(frames as i32)),
-                )
+                GenericTimingFunction::Frames(Integer::from_computed_value(&(frames as i32)))
             },
         }
     }

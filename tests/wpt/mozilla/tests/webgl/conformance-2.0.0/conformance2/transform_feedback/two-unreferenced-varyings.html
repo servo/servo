@@ -1,0 +1,159 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Transform Feedback Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec3 position;
+out vec3 outAttrib1;
+out vec3 outAttrib2;
+void main()
+{
+    outAttrib1 = position;
+    outAttrib2 = position;
+    gl_Position = vec4(position, 1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color;
+in vec3 outAttrib1;
+in vec3 outAttrib2;
+void main()
+{
+    color = vec4(0);
+}
+</script>
+<script>
+"use strict";
+description("This test covers an ANGLE bug with two transform feedback varyings. When the two are declared, but not referenced in the fragment shader, ANGLE would fail capture.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var quadVB;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    debug("");
+    debug("Testing transform feedback with two unreferenced outputs");
+    runTest();
+}
+
+function getQuadVerts(depth) {
+  var quadVerts = new Float32Array(3 * 6);
+  quadVerts[0] = -1.0; quadVerts[1] =   1.0; quadVerts[2] = depth;
+  quadVerts[3] = -1.0; quadVerts[4] =  -1.0; quadVerts[5] = depth;
+  quadVerts[6] =  1.0; quadVerts[7] =  -1.0; quadVerts[8] = depth;
+  quadVerts[9] = -1.0; quadVerts[10] =  1.0; quadVerts[11] = depth;
+  quadVerts[12] = 1.0; quadVerts[13] = -1.0; quadVerts[14] = depth;
+  quadVerts[15] = 1.0; quadVerts[16] =  1.0; quadVerts[17] = depth;
+  return quadVerts;
+}
+
+function drawQuad(depth) {
+  if (!quadVB) {
+    quadVB = gl.createBuffer()
+  }
+
+  var quadVerts = getQuadVerts(depth);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVB);
+  gl.bufferData(gl.ARRAY_BUFFER, quadVerts, gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0, 0);
+  gl.enableVertexAttribArray(0);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+function runTest() {
+
+    // Create the transform feedback program
+    var program = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+        ["outAttrib1", "outAttrib2"], gl.INTERLEAVED_ATTRIBS,
+        ["position"]);
+    if (!program) {
+        testFailed("Fail to set up the program");
+        return;
+    }
+
+    // Init transform feedback buffers
+    var out_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_buffer);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, Float32Array.BYTES_PER_ELEMENT * 3 * 2 * 6,
+                  gl.STREAM_DRAW);
+
+    var tf = gl.createTransformFeedback();
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, out_buffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Init transform feedback should succeed");
+
+    // Draw the quad
+    gl.useProgram(program)
+    gl.beginTransformFeedback(gl.TRIANGLES);
+    drawQuad(0.5);
+    gl.endTransformFeedback();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Draw with transform feedback should succeed");
+
+    // Verify the output buffer contents
+    var quadVerts = getQuadVerts(0.5);
+    var expected_data = [];
+    for (var i = 0; i < quadVerts.length; i += 3) {
+        for (var count = 0; count < 2; count++) {
+            expected_data[expected_data.length] = quadVerts[i];
+            expected_data[expected_data.length] = quadVerts[i+1];
+            expected_data[expected_data.length] = quadVerts[i+2];
+        }
+    }
+    wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, expected_data);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

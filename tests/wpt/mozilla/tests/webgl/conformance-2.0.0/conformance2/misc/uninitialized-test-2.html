@@ -1,0 +1,606 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 Uninitialized GL Resources Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+description("Tests to check user code cannot access uninitialized data from GL resources.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas", undefined, 2);
+if (!gl)
+  testFailed("Context created.");
+else
+  testPassed("Context created.");
+
+// This is the maximum size that will end up being allocated with the tests
+// currently written as they are. It could need to be increased later.
+var scratchBuffer = new ArrayBuffer(1024 * 1024 * 8 * 4);
+function zeroArrayBuffer(arr) {
+    for (var i = 0; i < arr.length; ++i) {
+        arr[i] = 0;
+    }
+}
+function getUint32Array(length) {
+  var arr = new Uint32Array(scratchBuffer, 0, length);
+  zeroArrayBuffer(arr);
+  return arr;
+}
+function getInt32Array(length) {
+  var arr = new Int32Array(scratchBuffer, 0, length);
+  zeroArrayBuffer(arr);
+  return arr;
+}
+function getUint8Array(length) {
+  var arr = new Uint8Array(scratchBuffer, 0, length);
+  zeroArrayBuffer(arr);
+  return arr;
+}
+function getInt8Array(length) {
+  var arr = new Int8Array(scratchBuffer, 0, length);
+  zeroArrayBuffer(arr);
+  return arr;
+}
+
+function setupTexture(target, texWidth, texHeight, texDepth) {
+    var is3d = (target == gl.TEXTURE_3D || target == gl.TEXTURE_2D_ARRAY);
+    var texture = gl.createTexture();
+    gl.bindTexture(target, texture);
+    if (is3d) {
+        gl.texImage3D(target, 0, gl.RGBA8, texWidth, texHeight, texDepth, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    } else if (target == gl.TEXTURE_2D) {
+        gl.texImage2D(target, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    } else {
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA8, texWidth, texHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
+
+    // this can be quite undeterministic so to improve odds of seeing uninitialized data write bits
+    // into tex then delete texture then re-create one with same characteristics (driver will likely reuse mem)
+    // with this trick on r59046 WebKit/OSX I get FAIL 100% of the time instead of ~15% of the time.
+
+    var badData = getUint8Array(texWidth * texHeight * texDepth * 4);
+    for (var i = 0; i < badData.length; ++i)
+        badData[i] = i % 255;
+
+    if (is3d) {
+        gl.texSubImage3D(target, 0, 0, 0, 0, texWidth, texHeight, texDepth, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+    } else if (target == gl.TEXTURE_2D) {
+        gl.texSubImage2D(target, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+    } else {
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+        gl.texSubImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, 0, 0, texWidth, texHeight, gl.RGBA, gl.UNSIGNED_BYTE, badData);
+    }
+    gl.finish(); // make sure it has been uploaded
+
+    gl.deleteTexture(texture);
+    gl.finish(); // make sure it has been deleted
+
+    var texture = gl.createTexture();
+    gl.bindTexture(target, texture);
+    return texture;
+}
+
+function checkNonZeroPixels(texture, target, format, type, texWidth, texHeight, level, layer, exceptions) {
+    var tol = 2;
+    var is3d = (target == gl.TEXTURE_3D || target == gl.TEXTURE_2D_ARRAY);
+    switch (target) {
+      case gl.TEXTURE_CUBE_MAP_POSITIVE_X:
+      case gl.TEXTURE_CUBE_MAP_NEGATIVE_X:
+      case gl.TEXTURE_CUBE_MAP_POSITIVE_Y:
+      case gl.TEXTURE_CUBE_MAP_NEGATIVE_Y:
+      case gl.TEXTURE_CUBE_MAP_POSITIVE_Z:
+      case gl.TEXTURE_CUBE_MAP_NEGATIVE_Z:
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+        break;
+      default:
+        gl.bindTexture(target, null);
+        break;
+    }
+    var fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    if (is3d) {
+        gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, texture, level, layer);
+    } else {
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, target, texture, level);
+    }
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+
+    var data;
+    switch (type) {
+      case gl.UNSIGNED_INT:
+        data = getUint32Array(texWidth * texHeight * 4);
+        break;
+      case gl.INT:
+        data = getInt32Array(texWidth * texHeight * 4);
+        break;
+      case gl.UNSIGNED_BYTE:
+      default:
+        data = getUint8Array(texWidth * texHeight * 4);
+        break;
+    }
+    gl.readPixels(0, 0, texWidth, texHeight, format, type, data);
+
+    var k = 0;
+    var failed_exceptions = 0;
+    for (var y = 0; y < texHeight; ++y) {
+        for (var x = 0; x < texWidth; ++x) {
+            var index = (y * texWidth + x) * 4;
+            var is_exception = false;
+            for (var ii = 0; ii < exceptions.length; ++ii) {
+                if (exceptions[ii].x == x && exceptions[ii].y == y) {
+                    is_exception = true;
+                    if (Math.abs(data[index] - exceptions[ii].r) > tol ||
+                        Math.abs(data[index + 1] - exceptions[ii].g) > tol ||
+                        Math.abs(data[index + 2] - exceptions[ii].b) > tol ||
+                        Math.abs(data[index + 3] - exceptions[ii].a) > tol) {
+                        failed_exceptions++;
+                    }
+                }
+            }
+            if (is_exception)
+                continue;
+            for (var i = 0; i < 4; ++i) {
+                if (data[index + i] != 0) {
+                    k++;
+                }
+            }
+        }
+    }
+    var info = "Level = " + level;
+    if (is3d)
+        info  += ", layer = " + layer;
+    info += " : ";
+    if (k) {
+        testFailed(info + "found " + k + " non-zero elements");
+    } else {
+        testPassed(info + "all data initialized");
+    }
+    if (exceptions.length > 0) {
+        if (failed_exceptions) {
+            testFailed(info + "found " + failed_exceptions + " elements incorrectly overwritten");
+        } else {
+            testPassed(info + "all initialized elements stay untouched");
+        }
+    }
+}
+
+function testTexImage3D() {
+
+    var max_3d_texture_size = Math.min(gl.getParameter(gl.MAX_3D_TEXTURE_SIZE), 1024);
+
+    var test_cases = [
+      // TEXTURE_3D + RGBA8
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: 256, // minimum MAX_3D_TEXTURE_SIZE is 256
+        height: 256,
+        depth: 8,
+        exceptions: [ { x: 0, y: 0, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: 256, // minimum MAX_3D_TEXTURE_SIZE is 256
+        height: 256,
+        depth: 8,
+        exceptions: [],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: max_3d_texture_size,
+        height: max_3d_texture_size,
+        depth: 4,
+        exceptions: [ { x: 0, y: 128, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: max_3d_texture_size,
+        height: max_3d_texture_size,
+        depth: 4,
+        exceptions: [],
+      },
+
+      // TEXTURE_3D + RGBA8UI
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: 256, // minimum MAX_3D_TEXTURE_SIZE is 256
+        height: 256,
+        depth: 8,
+        exceptions: [ { x: 0, y: 255, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: 256, // minimum MAX_3D_TEXTURE_SIZE is 256
+        height: 256,
+        depth: 8,
+        exceptions: [],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: max_3d_texture_size,
+        height: max_3d_texture_size,
+        depth: 4,
+        exceptions: [ { x: 128, y: 0, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: max_3d_texture_size,
+        height: max_3d_texture_size,
+        depth: 4,
+        exceptions: [],
+      },
+
+      // TEXTURE_3D + RGBA8I
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: 256, // minimum MAX_3D_TEXTURE_SIZE is 256
+        height: 256,
+        depth: 8,
+        exceptions: [ { x: 128, y: 255, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: 256, // minimum MAX_3D_TEXTURE_SIZE is 256
+        height: 256,
+        depth: 8,
+        exceptions: [],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: max_3d_texture_size,
+        height: max_3d_texture_size,
+        depth: 4,
+        exceptions: [ { x: 128, y: 128, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_3D",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: max_3d_texture_size,
+        height: max_3d_texture_size,
+        depth: 4,
+        exceptions: [],
+      },
+
+      // TEXTURE_2D_ARRAY + RGBA8
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: 1024,
+        height: 1024,
+        depth: 8,
+        exceptions: [ { x: 1023, y: 0, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: 1024,
+        height: 1024,
+        depth: 8,
+        exceptions: [],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: 64,
+        height: 64,
+        depth: 256,  // minimum MAX_ARRAY_TEXTURE_LAYERS is 256
+        exceptions: [ { x: 63, y: 32, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8",
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_BYTE,
+        width: 64,
+        height: 64,
+        depth: 256,  // minimum MAX_ARRAY_TEXTURE_LAYERS is 256
+        exceptions: [],
+      },
+
+      // TEXTURE_2D_ARRAY + RGBA8UI
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: 1024,
+        height: 1024,
+        depth: 8,
+        exceptions: [ { x: 1023, y: 1023, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: 1024,
+        height: 1024,
+        depth: 8,
+        exceptions: [],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: 64,
+        height: 64,
+        depth: 256,  // minimum MAX_ARRAY_TEXTURE_LAYERS is 256
+        exceptions: [ { x: 0, y: 0, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8UI",
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        read_type: gl.UNSIGNED_INT,
+        width: 64,
+        height: 64,
+        depth: 256,  // minimum MAX_ARRAY_TEXTURE_LAYERS is 256
+        exceptions: [],
+      },
+
+      // TEXTURE_2D_ARRAY + RGBA8I
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: 1024,
+        height: 1024,
+        depth: 8,
+        exceptions: [ { x: 512, y: 1023, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: 1024,
+        height: 1024,
+        depth: 8,
+        exceptions: [],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: 64,
+        height: 64,
+        depth: 256,  // minimum MAX_ARRAY_TEXTURE_LAYERS is 256
+        exceptions: [ { x: 63, y: 32, r: 108, g: 72, b: 36, a: 9 } ],
+      },
+      {
+        target: "TEXTURE_2D_ARRAY",
+        internal_format: "RGBA8I",
+        format: gl.RGBA_INTEGER,
+        type: gl.BYTE,
+        read_type: gl.INT,
+        width: 64,
+        height: 64,
+        depth: 256,  // minimum MAX_ARRAY_TEXTURE_LAYERS is 256
+        exceptions: [],
+      },
+
+      // If more tests are added here, make sure to increase the size of
+      // scratchBuffer above, if needed.
+    ];
+
+    for (var ii = 0; ii < test_cases.length; ++ii) {
+        debug("");
+        var test = test_cases[ii];
+        debug("TexImage3D with target = " + test.target + ", internal_format = " + test.internal_format +
+              ", width = " + test.width + ", height = " + test.height + ", depth = " + test.depth);
+        var tex = setupTexture(gl[test.target], test.width, test.height, test.depth);
+        gl.texImage3D(gl[test.target], 0, gl[test.internal_format], test.width, test.height, test.depth, 0, test.format, test.type, null);
+        for (var jj = 0; jj < test.exceptions.length; ++jj) {
+            var exception = test.exceptions[jj];
+            var data;
+            switch (test.type) {
+              case gl.BYTE:
+                data = getInt8Array(4 * test.depth);
+                break;
+              case gl.UNSIGNED_BYTE:
+                data = getUint8Array(4 * test.depth);
+                break;
+              default:
+                assert(false);
+            }
+            for (var pixel = 0; pixel < test.depth; ++pixel) {
+                data[pixel * 4] = exception.r;
+                data[pixel * 4 + 1] = exception.g;
+                data[pixel * 4 + 2] = exception.b;
+                data[pixel * 4 + 3] = exception.a;
+            }
+            gl.texSubImage3D(gl[test.target], 0, exception.x, exception.y, 0, 1, 1, test.depth, test.format, test.type, data);
+        }
+        for (var layer = 0; layer < test.depth; ++layer)
+            checkNonZeroPixels(tex, gl[test.target], test.format, test.read_type, test.width, test.height, 0, layer, test.exceptions);
+        gl.deleteTexture(tex);
+        gl.finish();
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    }
+}
+
+function testTexStorage2D() {
+    var targets = [ "TEXTURE_2D", "TEXTURE_CUBE_MAP" ];
+    var width = 512;
+    var height = 512;
+    var levels = 5;
+
+    for (var ii = 0; ii < targets.length; ++ii) {
+        debug("");
+        debug("Reading an uninitialized texture (texStorage2D) should succeed with all bytes set to 0 : target = " + targets[ii]);
+        var tex = setupTexture(gl[targets[ii]], width, height, 1);
+        gl.texStorage2D(gl[targets[ii]], levels, gl.RGBA8, width, height);
+        for (var level = 0; level < levels; ++level) {
+            if (gl[targets[ii]] == gl.TEXTURE_2D) {
+                checkNonZeroPixels(tex, gl[targets[ii]], gl.RGBA, gl.UNSIGNED_BYTE, width, height, level, 0, []);
+            } else {
+                checkNonZeroPixels(tex, gl.TEXTURE_CUBE_MAP_POSITIVE_X, gl.RGBA, gl.UNSIGNED_BYTE, width, height, level, 0, []);
+                checkNonZeroPixels(tex, gl.TEXTURE_CUBE_MAP_NEGATIVE_X, gl.RGBA, gl.UNSIGNED_BYTE, width, height, level, 0, []);
+                checkNonZeroPixels(tex, gl.TEXTURE_CUBE_MAP_POSITIVE_Y, gl.RGBA, gl.UNSIGNED_BYTE, width, height, level, 0, []);
+                checkNonZeroPixels(tex, gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, gl.RGBA, gl.UNSIGNED_BYTE, width, height, level, 0, []);
+                checkNonZeroPixels(tex, gl.TEXTURE_CUBE_MAP_POSITIVE_Z, gl.RGBA, gl.UNSIGNED_BYTE, width, height, level, 0, []);
+                checkNonZeroPixels(tex, gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, gl.RGBA, gl.UNSIGNED_BYTE, width, height, level, 0, []);
+            }
+        }
+        gl.deleteTexture(tex);
+        gl.finish();
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    }
+}
+
+function testTexStorage3D() {
+    var targets = [ "TEXTURE_3D", "TEXTURE_2D_ARRAY" ];
+    var internal_formats = [ "RGBA8", "RGBA8UI", "RGBA8I" ];
+    var formats = [ gl.RGBA, gl.RGBA_INTEGER, gl.RGBA_INTEGER ];
+    var read_types = [ gl.UNSIGNED_BYTE, gl.UNSIGNED_INT, gl.INT ];
+    var width = 256;  // minimum MAX_3D_TEXTURE_SIZE is 256
+    var height = 256;  // minimum MAX_3D_TEXTURE_SIZE is 256
+    var depth = 8;
+    var levels = 5;
+
+    for (var ii = 0; ii < targets.length; ++ii) {
+        debug("");
+        debug("Reading an uninitialized texture (texStorage3D) should succeed with all bytes set to 0 : target = " + targets[ii]);
+        for (var jj = 0; jj < internal_formats.length; ++jj) {
+            debug("");
+            debug("Internal format : " + internal_formats[jj]);
+            var tex = setupTexture(gl[targets[ii]], width, height, depth);
+            gl.texStorage3D(gl[targets[ii]], levels, gl[internal_formats[jj]], width, height, depth);
+            var level_depth = depth;
+            for (var level = 0; level < levels; ++level) {
+                for (var layer = 0; layer < level_depth; ++layer) {
+                    checkNonZeroPixels(tex, gl[targets[ii]], formats[jj], read_types[jj], width, height, level, layer, []);
+                }
+                if (gl[targets[ii]] == gl.TEXTURE_3D)
+                    level_depth = Math.max(1, level_depth >> 1);
+            }
+            gl.deleteTexture(tex);
+            gl.finish();
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+        }
+    }
+}
+
+testTexImage3D();
+testTexStorage2D();
+testTexStorage3D();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>
+
