@@ -5,7 +5,7 @@ dependencies = [
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "rust-webvr-api 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -87,6 +87,12 @@ dependencies = [
 name = "atomic_refcell"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "atty"
@@ -300,7 +306,7 @@ dependencies = [
 [[package]]
 name = "browserhtml"
 version = "0.1.17"
-source = "git+https://github.com/browserhtml/browserhtml?branch=crate#7c66ae9a3e29d35230d5b9f16d19a562b1312c87"
+source = "git+https://github.com/browserhtml/browserhtml?branch=crate#84913eafd817c92fbb6bdbb8a8f7480baddee3d3"
 
 [[package]]
 name = "byteorder"
@@ -332,8 +338,8 @@ dependencies = [
  "num-traits 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
- "webrender 0.53.0 (git+https://github.com/servo/webrender)",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender 0.53.1 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -350,7 +356,7 @@ dependencies = [
  "offscreen_gl_context 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -506,6 +512,7 @@ dependencies = [
  "servo_url 0.0.1",
  "style_traits 0.0.1",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
  "webrender 0.53.0 (git+https://github.com/servo/webrender)",
@@ -517,6 +524,11 @@ dependencies = [
  "webrender 0.53.1 (git+https://github.com/servo/webrender)",
  "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
+=======
+ "time 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender 0.53.1 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 ]
 
 [[package]]
@@ -552,7 +564,7 @@ dependencies = [
  "servo_remutex 0.0.1",
  "servo_url 0.0.1",
  "style_traits 0.0.1",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
 ]
 
@@ -827,6 +839,7 @@ dependencies = [
  "servo_url 0.0.1",
  "style_traits 0.0.1",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
 =======
  "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
@@ -836,6 +849,10 @@ dependencies = [
 =======
  "x11 2.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
+ "x11 2.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 ]
 
 [[package]]
@@ -1141,6 +1158,7 @@ dependencies = [
 <<<<<<< HEAD
 <<<<<<< HEAD
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+<<<<<<< HEAD
 =======
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
@@ -1149,6 +1167,9 @@ dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+ "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
  "core-foundation 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 7.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1184,7 +1205,7 @@ dependencies = [
  "truetype 0.26.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
  "xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "xml5ever 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1265,7 +1286,7 @@ dependencies = [
  "servo_url 0.0.1",
  "style_traits 0.0.1",
  "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1518,6 +1539,7 @@ dependencies = [
 <<<<<<< HEAD
 <<<<<<< HEAD
  "jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+<<<<<<< HEAD
 =======
  "jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
@@ -1526,6 +1548,9 @@ dependencies = [
  "jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+ "libc 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 ]
 
 [[package]]
@@ -1584,8 +1609,12 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
+=======
+ "atomic_refcell 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
  "bitflags 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
 =======
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1626,7 +1655,7 @@ dependencies = [
  "style_traits 0.0.1",
  "unicode-bidi 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -1676,7 +1705,7 @@ dependencies = [
  "servo_url 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -1691,7 +1720,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "servo_url 0.0.1",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -1783,8 +1812,8 @@ dependencies = [
  "style 0.0.1",
  "style_traits 0.0.1",
  "webdriver_server 0.0.1",
- "webrender 0.53.0 (git+https://github.com/servo/webrender)",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender 0.53.1 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
  "webvr 0.0.1",
  "webvr_traits 0.0.1",
 ]
@@ -1844,7 +1873,7 @@ dependencies = [
  "smallvec 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
  "xml5ever 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2017,6 +2046,7 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "nonzero 0.0.1",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "serde 1.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
  "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
@@ -2026,6 +2056,10 @@ dependencies = [
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
  "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
+=======
+ "serde 1.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 ]
 
 [[package]]
@@ -2083,6 +2117,7 @@ dependencies = [
  "unicase 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "uuid 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
  "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
@@ -2092,6 +2127,10 @@ dependencies = [
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
  "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
+=======
+ "uuid 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 ]
 
 [[package]]
@@ -2148,6 +2187,7 @@ dependencies = [
  "servo_url 0.0.1",
  "url 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "uuid 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
  "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
@@ -2157,6 +2197,10 @@ dependencies = [
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
  "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
+=======
+ "uuid 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 ]
 
 [[package]]
@@ -2497,6 +2541,7 @@ dependencies = [
 <<<<<<< HEAD
 <<<<<<< HEAD
  "jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+<<<<<<< HEAD
 =======
  "jemalloc-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
@@ -2505,6 +2550,9 @@ dependencies = [
  "jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+ "libc 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2790,6 +2838,7 @@ dependencies = [
  "url 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "utf-8 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "uuid 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
  "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
@@ -2799,6 +2848,10 @@ dependencies = [
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
  "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
+=======
+ "uuid 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
  "webvr_traits 0.0.1",
  "xml5ever 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2831,7 +2884,7 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "style 0.0.1",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2875,7 +2928,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
 ]
 
@@ -3280,6 +3333,7 @@ dependencies = [
 <<<<<<< HEAD
 <<<<<<< HEAD
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+<<<<<<< HEAD
 =======
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
@@ -3288,6 +3342,9 @@ dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+ "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
  "cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3378,7 +3435,7 @@ dependencies = [
  "serde 1.0.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_arc 0.0.1",
  "servo_atoms 0.0.1",
- "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -3763,6 +3820,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 <<<<<<< HEAD
+<<<<<<< HEAD
 version = "0.53.0"
 source = "git+https://github.com/servo/webrender#1cb8e7f016ef3c4dcd579e8c1b3350abcf39d331"
 =======
@@ -3773,6 +3831,10 @@ source = "git+https://github.com/servo/webrender#f80760ffc8d073f90c7b2b29ded28a6
 =======
 source = "git+https://github.com/servo/webrender#4b8493d6bdc64d2d83202ac15b06b0d4b14c6e76"
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+version = "0.53.1"
+source = "git+https://github.com/servo/webrender#4b8493d6bdc64d2d83202ac15b06b0d4b14c6e76"
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 dependencies = [
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3794,6 +3856,7 @@ dependencies = [
  "rayon 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "thread_profiler 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
+<<<<<<< HEAD
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 <<<<<<< HEAD
  "webrender_api 0.53.0 (git+https://github.com/servo/webrender)",
@@ -3803,10 +3866,15 @@ dependencies = [
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
  "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
+=======
+ "time 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.53.1 (git+https://github.com/servo/webrender)",
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 ]
 
 [[package]]
 name = "webrender_api"
+<<<<<<< HEAD
 <<<<<<< HEAD
 version = "0.53.0"
 source = "git+https://github.com/servo/webrender#1cb8e7f016ef3c4dcd579e8c1b3350abcf39d331"
@@ -3818,6 +3886,10 @@ source = "git+https://github.com/servo/webrender#f80760ffc8d073f90c7b2b29ded28a6
 =======
 source = "git+https://github.com/servo/webrender#4b8493d6bdc64d2d83202ac15b06b0d4b14c6e76"
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+version = "0.53.1"
+source = "git+https://github.com/servo/webrender#4b8493d6bdc64d2d83202ac15b06b0d4b14c6e76"
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 dependencies = [
  "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4052,6 +4124,7 @@ dependencies = [
 <<<<<<< HEAD
 <<<<<<< HEAD
 "checksum gamma-lut 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "dd65074503368cef99b98844012adfed8d7f99ff3e1e6d05e9055232f2d59dc9"
+<<<<<<< HEAD
 =======
 "checksum gamma-lut 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "250cfe9e6ad3057a290c2107a60c1c6c74ac57b5095e46b8a5c0bc5626d72857"
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
@@ -4062,6 +4135,10 @@ dependencies = [
 "checksum gaol 0.2.0 (git+https://github.com/servo/gaol)" = "<none>"
 "checksum gcc 0.3.54 (registry+https://github.com/rust-lang/crates.io-index)" = "5e33ec290da0d127825013597dbdfc28bee4964690c7ce1166cbc2a7bd08b1bb"
 >>>>>>> c326b089c8... Revert "Conflicts removed from master, OffscreenCanvas changes ready for merge"
+=======
+"checksum gaol 0.2.0 (git+https://github.com/servo/gaol)" = "<none>"
+"checksum gcc 0.3.54 (registry+https://github.com/rust-lang/crates.io-index)" = "5e33ec290da0d127825013597dbdfc28bee4964690c7ce1166cbc2a7bd08b1bb"
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 "checksum gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0912515a8ff24ba900422ecda800b52f4016a56251922d397c576bf92c690518"
 "checksum getopts 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)" = "65922871abd2f101a2eb0eaebadc66668e54a87ad9c3dd82520b5f86ede5eff9"
 "checksum gif 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2e41945ba23db3bf51b24756d73d81acb4f28d85c3dccc32c6fae904438c25f"
@@ -4091,6 +4168,7 @@ dependencies = [
 "checksum ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c10ed089b1921b01ef342c736a37ee0788eeb9a5f373bb2df1ba88d01125064f"
 "checksum itertools 0.5.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4833d6978da405305126af4ac88569b5d71ff758581ce5a987dbfa3755f694fc"
 <<<<<<< HEAD
+<<<<<<< HEAD
 "checksum itoa 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "eb2f404fbc66fd9aac13e998248505e7ecb2ad8e44ab6388684c5fb11c6c251c"
 <<<<<<< HEAD
 "checksum jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "94fb624d7e8345e5c42caab8d1db6ec925fdadff3fd0cb7dd781b41be8442828"
@@ -4100,6 +4178,8 @@ dependencies = [
 "checksum jemallocator 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "28b211ca65c440322b6d4d9b5b850b01e8e298393b7ebcb8205b7cbb14ea6329"
 >>>>>>> 7357f2e544... Conflicts removed from master, OffscreenCanvas changes ready for merge
 =======
+=======
+>>>>>>> 90bec670b4675bd3fbabc288a2f7738822e6a815
 "checksum itoa 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8324a32baf01e2ae060e9de58ed0bc2320c9a2833491ee36cd3b4c414de4db8c"
 "checksum jemalloc-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "94fb624d7e8345e5c42caab8d1db6ec925fdadff3fd0cb7dd781b41be8442828"
 "checksum jemallocator 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "1850725977c344d63af66e8fd00857646e3ec936c490cd63667860b7b03ab5c1"
@@ -4263,8 +4343,8 @@ dependencies = [
 "checksum void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 "checksum walkdir 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "bb08f9e670fab86099470b97cd2b252d6527f0b3cc1401acdb595ffc9dd288ff"
 "checksum webdriver 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d548aabf87411b1b4ba91fd07eacd8b238135c7131a452b8a9f6386209167e18"
-"checksum webrender 0.53.0 (git+https://github.com/servo/webrender)" = "<none>"
-"checksum webrender_api 0.53.0 (git+https://github.com/servo/webrender)" = "<none>"
+"checksum webrender 0.53.1 (git+https://github.com/servo/webrender)" = "<none>"
+"checksum webrender_api 0.53.1 (git+https://github.com/servo/webrender)" = "<none>"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
 "checksum winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
 "checksum ws 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f995c8c9594ab21039510248d9cfed3fc8a935b0d50f14c5fa7b353e5f12d7bf"
