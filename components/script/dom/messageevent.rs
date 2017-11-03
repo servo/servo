@@ -17,7 +17,8 @@ use dom::globalscope::GlobalScope;
 use dom::messageport::MessagePort;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::{Heap, JS_FreezeObject, JSContext};
+use js::jsapi::HandleObject as RawHandleObject;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use servo_atoms::Atom;
@@ -146,6 +147,9 @@ impl MessageEventMethods for MessageEvent {
     unsafe fn Ports(&self, cx: *mut JSContext) -> JSVal {
         rooted!(in(cx) let mut ports = UndefinedValue());
         self.ports.to_jsval(cx, ports.handle_mut());
+
+        rooted!(in(cx) let obj = ports.to_object());
+        JS_FreezeObject(cx, RawHandleObject::from(obj.handle()));
         *ports
     }
 }
