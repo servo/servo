@@ -219,9 +219,16 @@ impl EventSourceContext {
                                              event_source.reflector().get_jsobject().get());
             rooted!(in(event_source.global().get_cx()) let mut data = UndefinedValue());
             unsafe { self.data.to_jsval(event_source.global().get_cx(), data.handle_mut()) };
-            MessageEvent::new(&*event_source.global(), type_, false, false, data.handle(),
-                              DOMString::from(self.origin.clone()),
-                              event_source.last_event_id.borrow().clone())
+            MessageEvent::new(
+                &*event_source.global(),
+                type_,
+                false,
+                false,
+                data.handle(),
+                DOMString::from(self.origin.clone()),
+                event_source.last_event_id.borrow().clone(),
+                vec![]
+            )
         };
         // Step 7
         self.event_type.clear();

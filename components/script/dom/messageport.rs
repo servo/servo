@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::MessagePortBinding::{MessagePortMethods, Wrap};
 use dom::bindings::conversions::{ToJSValConvertible, root_from_object};
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::inheritance::Castable;
+use dom::bindings::inheritance::{Castable, HasParent};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
@@ -39,6 +39,7 @@ struct PortMessageTask {
 
 pub struct MessagePortInternal {
     dom_port: Option<Trusted<MessagePort>>,
+    origin: String,
     port_message_queue: PortMessageQueue,
     enabled: bool,
     has_been_shipped: bool,
@@ -47,9 +48,10 @@ pub struct MessagePortInternal {
 }
 
 impl MessagePortInternal {
-    fn new(port_message_queue: PortMessageQueue) -> MessagePortInternal {
+    fn new(port_message_queue: PortMessageQueue, origin: String) -> MessagePortInternal {
         MessagePortInternal {
             dom_port: None,
+            origin,
             port_message_queue,
             enabled: false,
             has_been_shipped: false,
@@ -73,7 +75,7 @@ impl MessagePortInternal {
             rooted!(in(target_global.get_cx()) let mut message_clone = UndefinedValue());
             let deserialize_result = StructuredCloneData::Vector(task.data).read(
                 &target_global,
-                message_clone.handle_mut()
+                message_clone.handle_mut(),
             );
             if !deserialize_result {
                 return;
@@ -88,7 +90,9 @@ impl MessagePortInternal {
             MessageEvent::dispatch_jsval(
                 final_target_port.upcast(),
                 &target_global,
-                message_clone.handle()
+                message_clone.handle(),
+                Some(&self.origin),
+                new_ports,
             );
         }
     }
@@ -114,17 +118,36 @@ unsafe impl JSTraceable for MessagePort {
     }
 }
 
+impl HasParent for MessagePort {
+    type Parent = EventTarget;
+
+    fn as_parent(&self) -> &EventTarget {
+        &self.eventtarget
+    }
+}
+
 impl MessagePort {
-    fn new_inherited(global: &GlobalScope) -> MessagePort {
+    fn new_inherited(global: &GlobalScope, origin: String) -> MessagePort {
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
-            message_port_internal:
-                Arc::new(Mutex::new(MessagePortInternal::new(global.port_message_queue().clone()))),
+            message_port_internal: Arc::new(
+                Mutex::new(
+                    MessagePortInternal::new(global.port_message_queue().clone(), origin)
+                )
+            ),
         }
     }
 
-    fn new_transferred(message_port_internal: Arc<Mutex<MessagePortInternal>>) -> MessagePort {
+    fn new_transferred(
+        message_port_internal: Arc<Mutex<MessagePortInternal>>,
+        origin: String,
+    ) -> MessagePort {
+        {
+            let mut internal = message_port_internal.lock().unwrap();
+            internal.origin = origin;
+        }
+
         MessagePort {
             eventtarget: EventTarget::new_inherited(),
             detached: Cell::new(false),
@@ -134,7 +157,8 @@ impl MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
-        let message_port = reflect_dom_object(Box::new(MessagePort::new_inherited(owner)), owner, Wrap);
+        let origin = owner.origin().immutable().ascii_serialization();
+        let message_port = reflect_dom_object(Box::new(MessagePort::new_inherited(owner, origin)), owner, Wrap);
         {
             let mut internal = message_port.message_port_internal.lock().unwrap();
             internal.dom_port = Some(Trusted::new(&*message_port));
@@ -203,11 +227,12 @@ impl Transferable for MessagePort {
         _extra_data: u64,
         return_object: MutableHandleObject
     ) -> bool {
+        let owner = unsafe { GlobalScope::from_context(cx) };
+
         let internal = unsafe { Arc::from_raw(content as *const Mutex<MessagePortInternal>) };
-        let value = MessagePort::new_transferred(internal);
+        let value = MessagePort::new_transferred(internal, owner.origin().immutable().ascii_serialization());
 
         // Step 2
-        let owner = unsafe { GlobalScope::from_context(cx) };
         let message_port = reflect_dom_object(Box::new(value), &*owner, Wrap);
 
         {
