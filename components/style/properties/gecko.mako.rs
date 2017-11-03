@@ -1323,6 +1323,50 @@ pub fn clone_transform_from_list(
     }
 </%def>
 
+<%def name="impl_transform_origin(ident, gecko_ffi_name)">
+    <% has_depth = ident == "transform" %>
+
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: values::computed::TransformOrigin) {
+        self.gecko.${gecko_ffi_name}[0].set(v.horizontal);
+        self.gecko.${gecko_ffi_name}[1].set(v.vertical);
+        % if has_depth:
+        self.gecko.${gecko_ffi_name}[2].set(v.depth);
+        % endif
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name}[0].copy_from(&other.gecko.${gecko_ffi_name}[0]);
+        self.gecko.${gecko_ffi_name}[1].copy_from(&other.gecko.${gecko_ffi_name}[1]);
+        % if has_depth:
+        self.gecko.${gecko_ffi_name}[2].copy_from(&other.gecko.${gecko_ffi_name}[2]);
+        % endif
+    }
+
+    #[allow(non_snake_case)]
+    pub fn reset_${ident}(&mut self, other: &Self) {
+        self.copy_${ident}_from(other)
+    }
+
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> values::computed::TransformOrigin {
+        use values::computed::{Length, LengthOrPercentage, TransformOrigin};
+        TransformOrigin {
+            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[0])
+                .expect("clone for LengthOrPercentage failed"),
+            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[1])
+                .expect("clone for LengthOrPercentage failed"),
+            % if has_depth:
+            depth: Length::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[2])
+                .expect("clone for Length failed"),
+            % else:
+            depth: Length::new(0.)
+            % endif
+        }
+    }
+</%def>
+
 <%def name="impl_logical(name, **kwargs)">
     ${helpers.logical_setter(name)}
 </%def>
@@ -1476,6 +1520,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "SVGPaint": impl_svg_paint,
         "SVGWidth": impl_svg_length,
         "Transform": impl_transform,
+        "TransformOrigin": impl_transform_origin,
         "UrlOrNone": impl_css_url,
     }
 
@@ -3046,7 +3091,7 @@ fn static_assert() {
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
-                          perspective-origin transform-origin -moz-binding will-change
+                          perspective-origin -moz-binding will-change
                           shape-outside contain touch-action""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
@@ -3456,35 +3501,6 @@ fn static_assert() {
                 .expect("Expected length or percentage for horizontal value of perspective-origin"),
             vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[1])
                 .expect("Expected length or percentage for vertical value of perspective-origin"),
-        }
-    }
-
-    pub fn set_transform_origin(&mut self, v: longhands::transform_origin::computed_value::T) {
-        self.gecko.mTransformOrigin[0].set(v.horizontal);
-        self.gecko.mTransformOrigin[1].set(v.vertical);
-        self.gecko.mTransformOrigin[2].set(v.depth);
-    }
-
-    pub fn copy_transform_origin_from(&mut self, other: &Self) {
-        self.gecko.mTransformOrigin[0].copy_from(&other.gecko.mTransformOrigin[0]);
-        self.gecko.mTransformOrigin[1].copy_from(&other.gecko.mTransformOrigin[1]);
-        self.gecko.mTransformOrigin[2].copy_from(&other.gecko.mTransformOrigin[2]);
-    }
-
-    pub fn reset_transform_origin(&mut self, other: &Self) {
-        self.copy_transform_origin_from(other)
-    }
-
-    pub fn clone_transform_origin(&self) -> longhands::transform_origin::computed_value::T {
-        use properties::longhands::transform_origin::computed_value::T;
-        use values::computed::{Length, LengthOrPercentage};
-        T {
-            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[0])
-                .expect("clone for LengthOrPercentage failed"),
-            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[1])
-                .expect("clone for LengthOrPercentage failed"),
-            depth: Length::from_gecko_style_coord(&self.gecko.mTransformOrigin[2])
-                .expect("clone for Length failed"),
         }
     }
 
