@@ -52,6 +52,15 @@ ${helpers.predefined_type("-moz-window-transform", "Transform", "Default::defaul
                           internal=True,
                           spec="None (Nonstandard internal property)")}
 
+${helpers.predefined_type("-moz-window-transform-origin",
+                          "TransformOrigin",
+                          "computed::TransformOrigin::initial_value()",
+                          animation_value_type="ComputedValue",
+                          gecko_ffi_name="mWindowTransformOrigin",
+                          products="gecko",
+                          boxed=True,
+                          spec="https://drafts.csswg.org/css-transforms/#transform-origin-property")}
+
 <%helpers:longhand name="-moz-force-broken-image-icon"
                    products="gecko"
                    animation_value_type="discrete"
