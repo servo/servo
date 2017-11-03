@@ -31,6 +31,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::ascii::AsciiExt;
+use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use style::attr::AttrValue;
@@ -49,12 +50,14 @@ impl HTMLElement {
         HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
-                                    prefix: Option<Prefix>, document: &Document)
-                                    -> HTMLElement {
+    pub fn new_inherited_with_state(
+        state: ElementState,
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLElement {
         HTMLElement {
-            element:
-                Element::new_inherited_with_state(state, tag_name, ns!(html), prefix, document),
+            element: Element::new_inherited_with_state(state, tag_name, ns!(html), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }
@@ -62,9 +65,11 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> DomRoot<HTMLElement> {
-        Node::reflect_node(Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
-                           document,
-                           HTMLElementBinding::Wrap)
+        Node::reflect_node(
+            Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
+            document,
+            HTMLElementBinding::Wrap,
+        )
     }
 
     fn is_body_or_frameset(&self) -> bool {
@@ -114,10 +119,12 @@ impl HTMLElementMethods for HTMLElement {
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
-            CSSStyleDeclaration::new(&global,
-                                     CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
-                                     None,
-                                     CSSModificationAccess::ReadWrite)
+            CSSStyleDeclaration::new(
+                &global,
+                CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
+                None,
+                CSSModificationAccess::ReadWrite,
+            )
         })
     }
 
@@ -157,7 +164,9 @@ impl HTMLElementMethods for HTMLElement {
                 None
             }
         } else {
-            self.upcast::<EventTarget>().get_event_handler_common("load")
+            self.upcast::<EventTarget>().get_event_handler_common(
+                "load",
+            )
         }
     }
 
@@ -169,7 +178,10 @@ impl HTMLElementMethods for HTMLElement {
                 document.window().SetOnload(listener)
             }
         } else {
-            self.upcast::<EventTarget>().set_event_handler_common("load", listener)
+            self.upcast::<EventTarget>().set_event_handler_common(
+                "load",
+                listener,
+            )
         }
     }
 
@@ -183,7 +195,9 @@ impl HTMLElementMethods for HTMLElement {
                 None
             }
         } else {
-            self.upcast::<EventTarget>().get_event_handler_common("resize")
+            self.upcast::<EventTarget>().get_event_handler_common(
+                "resize",
+            )
         }
     }
 
@@ -195,7 +209,10 @@ impl HTMLElementMethods for HTMLElement {
                 document.window().SetOnresize(listener);
             }
         } else {
-            self.upcast::<EventTarget>().set_event_handler_common("resize", listener)
+            self.upcast::<EventTarget>().set_event_handler_common(
+                "resize",
+                listener,
+            )
         }
     }
 
@@ -209,7 +226,9 @@ impl HTMLElementMethods for HTMLElement {
                 None
             }
         } else {
-            self.upcast::<EventTarget>().get_event_handler_common("blur")
+            self.upcast::<EventTarget>().get_event_handler_common(
+                "blur",
+            )
         }
     }
 
@@ -221,7 +240,10 @@ impl HTMLElementMethods for HTMLElement {
                 document.window().SetOnblur(listener)
             }
         } else {
-            self.upcast::<EventTarget>().set_event_handler_common("blur", listener)
+            self.upcast::<EventTarget>().set_event_handler_common(
+                "blur",
+                listener,
+            )
         }
     }
 
@@ -235,7 +257,9 @@ impl HTMLElementMethods for HTMLElement {
                 None
             }
         } else {
-            self.upcast::<EventTarget>().get_event_handler_common("focus")
+            self.upcast::<EventTarget>().get_event_handler_common(
+                "focus",
+            )
         }
     }
 
@@ -247,7 +271,10 @@ impl HTMLElementMethods for HTMLElement {
                 document.window().SetOnfocus(listener)
             }
         } else {
-            self.upcast::<EventTarget>().set_event_handler_common("focus", listener)
+            self.upcast::<EventTarget>().set_event_handler_common(
+                "focus",
+                listener,
+            )
         }
     }
 
@@ -261,7 +288,9 @@ impl HTMLElementMethods for HTMLElement {
                 None
             }
         } else {
-            self.upcast::<EventTarget>().get_event_handler_common("scroll")
+            self.upcast::<EventTarget>().get_event_handler_common(
+                "scroll",
+            )
         }
     }
 
@@ -273,19 +302,80 @@ impl HTMLElementMethods for HTMLElement {
                 document.window().SetOnscroll(listener)
             }
         } else {
-            self.upcast::<EventTarget>().set_event_handler_common("scroll", listener)
+            self.upcast::<EventTarget>().set_event_handler_common(
+                "scroll",
+                listener,
+            )
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#attr-itemtype
+    fn Itemtypes(&self) -> Option<Vec<DOMString>> {
+        let item_attr: AttrValue = self.parse_plain_attribute(
+            &local_name!("itemtype"),
+            self.upcast::<Element>()
+                .GetAttribute(DOMString::from(String::from("itemtype")))
+                .unwrap_or(DOMString::from(String::from(""))),
+        );
+
+        if item_attr.is_empty() {
+            return None;
+        }
+
+        let mut item_attrs = HashSet::new();
+        let vals = item_attr.split_whitespace();
+
+        vals.for_each(|f| {
+            item_attrs.insert(DOMString::from(String::from(f)));
+        });
+
+        let mut item_attr_vector: Vec<DOMString> = Vec::new();
+        for item_attr in item_attrs.drain() {
+            item_attr_vector.push(item_attr);
+        }
+        let opt: Option<Vec<DOMString>> = Some(item_attr_vector);
+        return opt;
+    }
+
+    // https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute
+    fn PropertyNames(&self) -> Option<Vec<DOMString>> {
+        let item_attr: AttrValue = self.parse_plain_attribute(
+            &local_name!("itemprop"),
+            self.upcast::<Element>()
+                .GetAttribute(DOMString::from(String::from("itemprop")))
+                .unwrap_or(DOMString::from(String::from(""))),
+        );
+
+        if item_attr.is_empty() {
+            return None;
+        }
+
+        let mut item_attrs = HashSet::new();
+        let vals = item_attr.split_whitespace();
+
+        vals.for_each(|f| {
+            item_attrs.insert(DOMString::from(String::from(f)));
+        });
+
+        let mut item_attr_vector: Vec<DOMString> = Vec::new();
+        for item_attr in item_attrs.drain() {
+            item_attr_vector.push(item_attr);
+        }
+        let opt: Option<Vec<DOMString>> = Some(item_attr_vector);
+        return opt;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
         if !self.upcast::<Element>().disabled_state() {
-            synthetic_click_activation(self.upcast::<Element>(),
-                                       false,
-                                       false,
-                                       false,
-                                       false,
-                                       ActivationSource::FromClick)
+            synthetic_click_activation(
+                self.upcast::<Element>(),
+                false,
+                false,
+                false,
+                false,
+                ActivationSource::FromClick,
+            )
         }
     }
 
@@ -437,43 +527,55 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
 impl HTMLElement {
     pub fn set_custom_attr(&self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.chars()
-               .skip_while(|&ch| ch != '\u{2d}')
-               .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
+            .skip_while(|&ch| ch != '\u{2d}')
+            .nth(1)
+            .map_or(false, |ch| ch >= 'a' && ch <= 'z')
+        {
             return Err(Error::Syntax);
         }
-        self.upcast::<Element>().set_custom_attribute(to_snake_case(name), value)
+        self.upcast::<Element>().set_custom_attribute(
+            to_snake_case(name),
+            value,
+        )
     }
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
-        self.upcast::<Element>().get_attribute(&ns!(), &local_name).map(|attr| {
-            DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
-        })
+        self.upcast::<Element>()
+            .get_attribute(&ns!(), &local_name)
+            .map(|attr| {
+                DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
+            })
     }
 
     pub fn delete_custom_attr(&self, local_name: DOMString) {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
-        self.upcast::<Element>().remove_attribute(&ns!(), &local_name);
+        self.upcast::<Element>().remove_attribute(
+            &ns!(),
+            &local_name,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#category-label
     pub fn is_labelable_element(&self) -> bool {
         // Note: HTMLKeygenElement is omitted because Servo doesn't currently implement it
         match self.upcast::<Node>().type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => {
                 match type_id {
-                    HTMLElementTypeId::HTMLInputElement =>
-                        self.downcast::<HTMLInputElement>().unwrap().type_() != atom!("hidden"),
+                    HTMLElementTypeId::HTMLInputElement => {
+                        self.downcast::<HTMLInputElement>().unwrap().type_() != atom!("hidden")
+                    },
                     HTMLElementTypeId::HTMLButtonElement |
-                        HTMLElementTypeId::HTMLMeterElement |
-                        HTMLElementTypeId::HTMLOutputElement |
-                        HTMLElementTypeId::HTMLProgressElement |
-                        HTMLElementTypeId::HTMLSelectElement |
-                        HTMLElementTypeId::HTMLTextAreaElement => true,
+                    HTMLElementTypeId::HTMLMeterElement |
+                    HTMLElementTypeId::HTMLOutputElement |
+                    HTMLElementTypeId::HTMLProgressElement |
+                    HTMLElementTypeId::HTMLSelectElement |
+                    HTMLElementTypeId::HTMLTextAreaElement => true,
                     _ => false,
-                },
+                }
+            },
             _ => false,
         }
     }
@@ -487,27 +589,32 @@ impl HTMLElement {
         }
 
         match self.upcast::<Node>().type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => {
                 match type_id {
                     HTMLElementTypeId::HTMLButtonElement |
-                        HTMLElementTypeId::HTMLFieldSetElement |
-                        HTMLElementTypeId::HTMLInputElement |
-                        HTMLElementTypeId::HTMLObjectElement |
-                        HTMLElementTypeId::HTMLOutputElement |
-                        HTMLElementTypeId::HTMLSelectElement |
-                        HTMLElementTypeId::HTMLTextAreaElement => true,
+                    HTMLElementTypeId::HTMLFieldSetElement |
+                    HTMLElementTypeId::HTMLInputElement |
+                    HTMLElementTypeId::HTMLObjectElement |
+                    HTMLElementTypeId::HTMLOutputElement |
+                    HTMLElementTypeId::HTMLSelectElement |
+                    HTMLElementTypeId::HTMLTextAreaElement => true,
                     _ => false,
-                },
+                }
+            },
             _ => false,
         }
     }
 
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = self.upcast::<Element>();
-        element.attrs().iter().filter_map(|attr| {
-            let raw_name = attr.local_name();
-            to_camel_case(&raw_name)
-        }).collect()
+        element
+            .attrs()
+            .iter()
+            .filter_map(|attr| {
+                let raw_name = attr.local_name();
+                to_camel_case(&raw_name)
+            })
+            .collect()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -519,8 +626,7 @@ impl HTMLElement {
 
         // Traverse ancestors for implicitly associated <label> elements
         // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
-        let ancestors =
-            self.upcast::<Node>()
+        let ancestors = self.upcast::<Node>()
                 .ancestors()
                 .filter_map(DomRoot::downcast::<HTMLElement>)
                 // If we reach a labelable element, we have a guarantee no ancestors above it
@@ -540,11 +646,12 @@ impl HTMLElement {
         // Traverse entire tree for <label> elements with `for` attribute matching `id`
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
-        let children = root_node.traverse_preorder()
-                                .filter_map(DomRoot::downcast::<Element>)
-                                .filter(|elem| elem.is::<HTMLLabelElement>())
-                                .filter(|elem| elem.get_string_attribute(&local_name!("for")) == id)
-                                .map(DomRoot::upcast::<Node>);
+        let children = root_node
+            .traverse_preorder()
+            .filter_map(DomRoot::downcast::<Element>)
+            .filter(|elem| elem.is::<HTMLLabelElement>())
+            .filter(|elem| elem.get_string_attribute(&local_name!("for")) == id)
+            .map(DomRoot::upcast::<Node>);
 
         NodeList::new_simple_list(&window, children.chain(ancestors))
     }
@@ -561,13 +668,15 @@ impl VirtualMethods for HTMLElement {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let evtarget = self.upcast::<EventTarget>();
                 let source_line = 1; //TODO(#9604) get current JS execution line
-                evtarget.set_event_handler_uncompiled(window_from_node(self).get_url(),
-                                                      source_line,
-                                                      &name[2..],
-                                                      // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
-                                                      DOMString::from(&**attr.value()));
+                evtarget.set_event_handler_uncompiled(
+                    window_from_node(self).get_url(),
+                    source_line,
+                    &name[2..],
+                    // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
+                    DOMString::from(&**attr.value()),
+                );
             },
-            _ => {}
+            _ => {},
         }
     }
 
@@ -576,5 +685,18 @@ impl VirtualMethods for HTMLElement {
             s.bind_to_tree(tree_in_doc);
         }
         self.update_sequentially_focusable_status();
+    }
+
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match name {
+            &local_name!("itemprop") => AttrValue::from_serialized_tokenlist(value.into()),
+            &local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),
+            _ => {
+                self.super_type().unwrap().parse_plain_attribute(
+                    name,
+                    value,
+                )
+            },
+        }
     }
 }

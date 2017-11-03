@@ -33350,6 +33350,36 @@
      {}
     ]
    ],
+   "mozilla/microdata/dup_prop_type_test.html": [
+    [
+     "/_mozilla/mozilla/microdata/dup_prop_type_test.html",
+     {}
+    ]
+   ],
+   "mozilla/microdata/extra_space_test.html": [
+    [
+     "/_mozilla/mozilla/microdata/extra_space_test.html",
+     {}
+    ]
+   ],
+   "mozilla/microdata/none_check.html": [
+    [
+     "/_mozilla/mozilla/microdata/none_check.html",
+     {}
+    ]
+   ],
+   "mozilla/microdata/regular_prop_type_test.html": [
+    [
+     "/_mozilla/mozilla/microdata/regular_prop_type_test.html",
+     {}
+    ]
+   ],
+   "mozilla/microdata/single_prop_type_test.html": [
+    [
+     "/_mozilla/mozilla/microdata/single_prop_type_test.html",
+     {}
+    ]
+   ],
    "mozilla/mime_sniffing_font_context.html": [
     [
      "/_mozilla/mozilla/mime_sniffing_font_context.html",
@@ -66383,6 +66413,26 @@
   ],
   "mozilla/media_query_list_gc.html": [
    "4e0b6d4c416e2e3f26de64e9364f0a8c7a6dc5cb",
+   "testharness"
+  ],
+  "mozilla/microdata/dup_prop_type_test.html": [
+   "4837cf896419aba6d1df6e89c5849a786d4e4be0",
+   "testharness"
+  ],
+  "mozilla/microdata/extra_space_test.html": [
+   "0a941e2eb10013ab55049d4d6007d8301149f651",
+   "testharness"
+  ],
+  "mozilla/microdata/none_check.html": [
+   "5addb47e08bdb4ad8293f22dffe95e4760336e08",
+   "testharness"
+  ],
+  "mozilla/microdata/regular_prop_type_test.html": [
+   "8e67711c47afe50edaa9b6baaa1349862e639e2e",
+   "testharness"
+  ],
+  "mozilla/microdata/single_prop_type_test.html": [
+   "63deb361025469951f74cfbb96be3166ae997edc",
    "testharness"
   ],
   "mozilla/mime_sniffing_font_context.html": [
