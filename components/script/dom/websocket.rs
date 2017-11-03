@@ -541,7 +541,7 @@ impl TaskOnce for MessageReceivedTask {
                     }
                 },
             }
-            MessageEvent::dispatch_jsval(ws.upcast(), &global, message.handle());
+            MessageEvent::dispatch_jsval(ws.upcast(), &global, message.handle(), vec![]);
         }
     }
 }

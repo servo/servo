@@ -1993,6 +1993,7 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
+                vec![]
             );
         });
         // FIXME(nox): Why are errors silenced here?

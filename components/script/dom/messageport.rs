@@ -88,7 +88,8 @@ impl MessagePortInternal {
             MessageEvent::dispatch_jsval(
                 final_target_port.upcast(),
                 &target_global,
-                message_clone.handle()
+                message_clone.handle(),
+                new_ports
             );
         }
     }
