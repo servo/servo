@@ -450,3 +450,9 @@ impl<T: ToCss> ToCss for Transform<T> {
         Ok(())
     }
 }
+
+impl<T> Default for Transform<T> {
+    fn default() -> Self {
+        Transform(vec![])
+    }
+}
