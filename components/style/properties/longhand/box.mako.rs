@@ -571,6 +571,7 @@ ${helpers.predefined_type("transform", "Transform",
                           "Default::default()",
                           extra_prefixes="webkit",
                           animation_value_type="ComputedValue",
+                          gecko_ffi_name="mSpecifiedTransform",
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           spec="https://drafts.csswg.org/css-transforms/#propdef-transform")}
 
