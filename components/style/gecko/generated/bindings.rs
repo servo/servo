@@ -30,6 +30,7 @@ use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
+use gecko_bindings::structs::Element;
 use gecko_bindings::structs::RawGeckoKeyframeList;
 use gecko_bindings::structs::RawGeckoPropertyValuePairList;
 use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
@@ -1226,6 +1227,8 @@ extern "C" {
 } extern "C" {
  pub fn Servo_StyleSet_HasStateDependency ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , state : u64 , ) -> bool ; 
 } extern "C" {
+ pub fn Servo_StyleSet_HasDocumentStateDependency ( set : RawServoStyleSetBorrowed , state : u64 , ) -> bool ; 
+} extern "C" {
  pub fn Servo_CssRules_ListTypes ( rules : ServoCssRulesBorrowed , result : nsTArrayBorrowed_uintptr_t , ) ; 
 } extern "C" {
  pub fn Servo_CssRules_InsertRule ( rules : ServoCssRulesBorrowed , sheet : RawServoStyleSheetContentsBorrowed , rule : * const nsACString , index : u32 , nested : bool , loader : * mut Loader , gecko_stylesheet : * mut ServoStyleSheet , rule_type : * mut u16 , ) -> nsresult ; 
@@ -1573,4 +1576,6 @@ extern "C" {
  pub fn Gecko_ReportUnexpectedCSSError ( reporter : * mut ErrorReporter , message : * const :: std :: os :: raw :: c_char , param : * const :: std :: os :: raw :: c_char , paramLen : u32 , prefix : * const :: std :: os :: raw :: c_char , prefixParam : * const :: std :: os :: raw :: c_char , prefixParamLen : u32 , suffix : * const :: std :: os :: raw :: c_char , source : * const :: std :: os :: raw :: c_char , sourceLen : u32 , lineNumber : u32 , colNumber : u32 , ) ; 
 } extern "C" {
  pub fn Gecko_ContentList_AppendAll ( aContentList : * mut nsSimpleContentList , aElements : * mut * const RawGeckoElement , aLength : usize , ) ; 
+} extern "C" {
+ pub fn Gecko_GetElementsWithId ( aDocument : * const nsIDocument , aId : * mut nsAtom , ) -> * const nsTArray < * mut Element > ; 
 }
