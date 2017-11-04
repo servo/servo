@@ -18,7 +18,7 @@ e.g. To enable `flex` and `flex-direction` css properties:
 ./mach run -d -- --pref layout.flex.enabled --pref layout.flex-direction.enabled ...
 ```
 
-You can find all the available preferences at [resources/prefs.json](http://mxr.mozilla.org/servo/source/resources/prefs.json).
+You can find all the available preferences at [resources/prefs.json](https://dxr.mozilla.org/servo/source/resources/prefs.json).
 
 # Debugging
 ## Remote Debugging
