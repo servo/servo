@@ -43,7 +43,6 @@ use servo::servo_url::ServoUrl;
 use std::env;
 use std::panic;
 use std::process;
-use std::rc::Rc;
 use std::thread;
 
 pub mod platform {
@@ -118,11 +117,13 @@ fn main() {
         let current_thread = thread::current();
         let name = current_thread.name().unwrap_or("<unnamed>");
         if let Some(location) = info.location() {
-            println!("{} (thread {}, at {}:{})",
-                     msg,
-                     name,
-                     location.file(),
-                     location.line());
+            println!(
+                "{} (thread {}, at {}:{})",
+                msg,
+                name,
+                location.file(),
+                location.line()
+            );
         } else {
             println!("{} (thread {})", msg, name);
         }
@@ -150,8 +151,9 @@ fn main() {
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
     let cmdline_url = opts::get().url.clone();
-    let pref_url = PREFS.get("shell.homepage").as_string()
-        .and_then(|str| parse_url_or_filename(&cwd, str).ok());
+    let pref_url = PREFS.get("shell.homepage").as_string().and_then(|str| {
+        parse_url_or_filename(&cwd, str).ok()
+    });
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
@@ -159,18 +161,25 @@ fn main() {
     // Our wrapper around `ServoWrapper` that also implements some
     // callbacks required by the glutin window implementation.
     let mut servo_wrapper = ServoWrapper {
-        servo: Servo::new(window.clone())
+        servo: Servo::new(window.clone()),
     };
 
     let (sender, receiver) = ipc::channel().unwrap();
-    servo_wrapper.servo.handle_events(vec![WindowEvent::NewBrowser(target_url, sender)]);
+    servo_wrapper.servo.handle_events(vec![
+        WindowEvent::NewBrowser(
+            target_url,
+            sender
+        ),
+    ]);
     let browser_id = receiver.recv().unwrap();
     window.set_browser_id(browser_id);
-    servo_wrapper.servo.handle_events(vec![WindowEvent::SelectBrowser(browser_id)]);
+    servo_wrapper.servo.handle_events(vec![
+        WindowEvent::SelectBrowser(
+            browser_id
+        ),
+    ]);
 
     servo_wrapper.servo.setup_logging();
-
-    register_glutin_resize_handler(&window, &mut servo_wrapper);
 
     // Feed events from the window to the browser until the browser
     // says to stop.
@@ -181,43 +190,13 @@ fn main() {
         }
     }
 
-    unregister_glutin_resize_handler(&window);
-
     servo_wrapper.servo.deinit();
 
     platform::deinit()
 }
 
-fn register_glutin_resize_handler(window: &Rc<app::window::Window>, browser: &mut ServoWrapper) {
-    unsafe {
-        window.set_nested_event_loop_listener(browser);
-    }
-}
-
-fn unregister_glutin_resize_handler(window: &Rc<app::window::Window>) {
-    unsafe {
-        window.remove_nested_event_loop_listener();
-    }
-}
-
 struct ServoWrapper {
     servo: Servo<app::window::Window>,
-}
-
-impl app::NestedEventLoopListener for ServoWrapper {
-    fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool {
-        let is_resize = match event {
-            WindowEvent::Resize => true,
-            _ => false,
-        };
-        if !self.servo.handle_events(vec![event]) {
-            return false;
-        }
-        if is_resize {
-            self.servo.repaint_synchronously()
-        }
-        true
-    }
 }
 
 #[cfg(target_os = "android")]
@@ -259,10 +238,15 @@ fn args() -> Vec<String> {
             vec
         },
         Err(e) => {
-            debug!("Failed to open params file '{}': {}",
-                   params_file.to_str().unwrap(),
-                   Error::description(&e));
-            vec!["servo".to_owned(), "http://en.wikipedia.org/wiki/Rust".to_owned()]
+            debug!(
+                "Failed to open params file '{}': {}",
+                params_file.to_str().unwrap(),
+                Error::description(&e)
+            );
+            vec![
+                "servo".to_owned(),
+                "http://en.wikipedia.org/wiki/Rust".to_owned(),
+            ]
         },
     }
 }
