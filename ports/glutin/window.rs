@@ -37,7 +37,7 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time;
 use style_traits::DevicePixel;
@@ -167,7 +167,7 @@ impl HeadlessContext {
 }
 
 enum WindowKind {
-    Window(glutin::GlWindow, Arc<glutin::EventsLoop>),
+    Window(glutin::GlWindow, Arc<Mutex<glutin::EventsLoop>>),
     Headless(HeadlessContext),
 }
 
@@ -269,7 +269,7 @@ impl Window {
             unsafe { glutin_window.make_current().unwrap() };
 
 
-            WindowKind::Window(glutin_window, Arc::new(events_loop))
+            WindowKind::Window(glutin_window, Arc::new(Mutex::new(events_loop)))
         };
 
         let gl = match window_kind {
@@ -673,6 +673,7 @@ impl Window {
             WindowKind::Window(_, ref events_loop) => {
                 let mut close = false;
 
+                let mut events_loop = events_loop.lock().unwrap();
                 events_loop.run_forever(|event| {
                     close = self.handle_window_event(event);
                     glutin::ControlFlow::Break
@@ -704,6 +705,7 @@ impl Window {
         if poll {
             match self.kind {
                 WindowKind::Window(_, ref events_loop) => {
+                    let mut events_loop = events_loop.lock().unwrap();
                     events_loop.poll_events(|event| {
                         close_event = self.handle_window_event(event) || close_event;
                     });
@@ -988,7 +990,7 @@ impl Window {
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers, browser_id: BrowserId) {}
 }
 
-fn create_window_proxy(window: &Window) -> Option<Arc<glutin::EventsLoop>> {
+fn create_window_proxy(window: &Window) -> Option<Arc<Mutex<glutin::EventsLoop>>> {
     match window.kind {
         WindowKind::Window(_, ref events_loop) => Some(events_loop.clone()),
         WindowKind::Headless(..) => None,
@@ -1094,13 +1096,13 @@ impl WindowMethods for Window {
 
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
         struct GlutinEventLoopWaker {
-            events_loop: Option<Arc<glutin::EventsLoop>>,
+            events_loop: Option<Arc<Mutex<glutin::EventsLoop>>>,
         }
         impl EventLoopWaker for GlutinEventLoopWaker {
             fn wake(&self) {
                 // kick the OS event loop awake.
                 if let Some(ref events_loop) = self.events_loop {
-                    events_loop.create_proxy().wakeup();
+                    events_loop.lock().unwrap().create_proxy().wakeup();
                 }
             }
             fn clone(&self) -> Box<EventLoopWaker + Send> {
