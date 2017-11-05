@@ -59,6 +59,7 @@ use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{self, Auto, CustomIdent, Either, KeyframesName, None_};
 use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
+use values::computed::font::FontSize;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use computed_values::border_style;
 
@@ -2088,7 +2089,7 @@ fn static_assert() {
         self.gecko.mFont.size = device.unzoom_text(Au(self.gecko.mFont.size)).0;
     }
 
-    pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
+    pub fn set_font_size(&mut self, v: FontSize) {
         use values::specified::font::KeywordSize;
         self.gecko.mSize = v.size().0;
         self.gecko.mScriptUnconstrainedSize = v.size().0;
@@ -2114,7 +2115,7 @@ fn static_assert() {
 
     /// Set font size, taking into account scriptminsize and scriptlevel
     /// Returns Some(size) if we have to recompute the script unconstrained size
-    pub fn apply_font_size(&mut self, v: longhands::font_size::computed_value::T,
+    pub fn apply_font_size(&mut self, v: FontSize,
                            parent: &Self,
                            device: &Device) -> Option<NonNegativeLength> {
         let (adjusted_size, adjusted_unconstrained_size) =
@@ -2297,7 +2298,7 @@ fn static_assert() {
         self.fixup_font_min_size(device);
     }
 
-    pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
+    pub fn clone_font_size(&self) -> FontSize {
         use values::computed::font::KeywordInfo;
         use values::specified::font::KeywordSize;
         let size = Au(self.gecko.mSize).into();
@@ -2311,14 +2312,14 @@ fn static_assert() {
             structs::NS_STYLE_FONT_SIZE_XXLARGE => KeywordSize::XXLarge,
             structs::NS_STYLE_FONT_SIZE_XXXLARGE => KeywordSize::XXXLarge,
             structs::NS_STYLE_FONT_SIZE_NO_KEYWORD => {
-                return longhands::font_size::computed_value::T {
+                return FontSize {
                     size: size,
                     keyword_info: None,
                 }
             }
             _ => unreachable!("mFontSizeKeyword should be an absolute keyword or NO_KEYWORD")
         };
-        longhands::font_size::computed_value::T {
+        FontSize {
             size: size,
             keyword_info: Some(KeywordInfo {
                 kw: kw,

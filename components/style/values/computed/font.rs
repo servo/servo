@@ -139,6 +139,50 @@ impl FontSize {
     pub fn size(self) -> Au {
         self.size.into()
     }
+
+    #[inline]
+    /// Get default value of font size.
+    pub fn medium() -> Self {
+        Self {
+            size: Au::from_px(specified::FONT_MEDIUM_PX).into(),
+            keyword_info: Some(KeywordInfo::medium())
+        }
+    }
+
+    /// FIXME(emilio): This is very complex. Also, it should move to
+    /// StyleBuilder.
+    pub fn cascade_inherit_font_size(context: &mut Context) {
+        // If inheriting, we must recompute font-size in case of language
+        // changes using the font_size_keyword. We also need to do this to
+        // handle mathml scriptlevel changes
+        let kw_inherited_size = context.builder.get_parent_font()
+                                       .clone_font_size()
+                                       .keyword_info.map(|info| {
+            specified::FontSize::Keyword(info).to_computed_value(context).size
+        });
+        let mut font = context.builder.take_font();
+        font.inherit_font_size_from(context.builder.get_parent_font(),
+                                    kw_inherited_size,
+                                    context.builder.device);
+        context.builder.put_font(font);
+    }
+
+    /// Cascade the initial value for the `font-size` property.
+    ///
+    /// FIXME(emilio): This is the only function that is outside of the
+    /// `StyleBuilder`, and should really move inside!
+    ///
+    /// Can we move the font stuff there?
+    pub fn cascade_initial_font_size(context: &mut Context) {
+        // font-size's default ("medium") does not always
+        // compute to the same value and depends on the font
+        let computed = specified::FontSize::medium().to_computed_value(context);
+        context.builder.mutate_font().set_font_size(computed);
+        #[cfg(feature = "gecko")] {
+            let device = context.builder.device;
+            context.builder.mutate_font().fixup_font_min_size(device);
+        }
+    }
 }
 
 impl ToCss for FontSize {

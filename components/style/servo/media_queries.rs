@@ -11,13 +11,13 @@ use euclid::{ScaleFactor, Size2D, TypedSize2D};
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::ComputedValues;
-use properties::longhands::font_size;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::{CSSPixel, DevicePixel, ToCss, ParseError};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
+use values::computed::font::FontSize;
 use values::specified;
 
 /// A device is a structure that represents the current media a given document
@@ -64,7 +64,7 @@ impl Device {
             viewport_size,
             device_pixel_ratio,
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(font_size::get_initial_value().size().0 as isize),
+            root_font_size: AtomicIsize::new(FontSize::medium().size().0 as isize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_units: AtomicBool::new(false),
         }
