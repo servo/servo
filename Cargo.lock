@@ -4218,4 +4218,4 @@ dependencies = [
 "checksum xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "12ea8eda4b1eb72f02d148402e23832d56a33f55d8c1b2d5bcdde91d79d47cb1"
 "checksum xml-rs 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "7ec6c39eaa68382c8e31e35239402c0a9489d4141a8ceb0c716099a0b515b562"
 "checksum xml-rs 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e1945e12e16b951721d7976520b0832496ef79c31602c7a29d950de79ba74621"
-"checksum xml5ever 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c48ce5543b6396e3cd5f52e25a492857853bba3a93d457c76b9eaaca57a07e03"
+"checksum xml5ever 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7ea36cbec2df63ed95e07861d0868a12fb8cb73c88f4c0b0ebf36f2dfc86b6eb"
