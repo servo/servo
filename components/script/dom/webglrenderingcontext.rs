@@ -180,6 +180,12 @@ impl TextureUnitBindings {
 #[derive(JSTraceable)]
 pub struct WebGLRenderingContextLimits {
     pub max_vertex_attribs: u32,
+    pub max_vertex_uniform_vectors: u32,
+    pub max_varying_vectors: u32,
+    pub max_vertex_texture_image_units: u32,
+    pub max_combined_texture_image_units: u32,
+    pub max_texture_image_units: u32,
+    pub max_fragment_uniform_vectors: u32,
     pub max_tex_size: u32,
     pub max_cube_map_tex_size: u32,
 }
@@ -198,6 +204,12 @@ impl WebGLRenderingContextLimits {
 
         WebGLRenderingContextLimits {
             max_vertex_attribs: get_param(constants::MAX_VERTEX_ATTRIBS),
+            max_vertex_uniform_vectors: get_param(constants::MAX_VERTEX_UNIFORM_VECTORS),
+            max_varying_vectors: get_param(constants::MAX_VARYING_VECTORS),
+            max_vertex_texture_image_units: get_param(constants::MAX_VERTEX_TEXTURE_IMAGE_UNITS),
+            max_combined_texture_image_units: get_param(constants::MAX_COMBINED_TEXTURE_IMAGE_UNITS),
+            max_texture_image_units: get_param(constants::MAX_TEXTURE_IMAGE_UNITS),
+            max_fragment_uniform_vectors: get_param(constants::MAX_FRAGMENT_UNIFORM_VECTORS),
             max_tex_size: get_param(constants::MAX_TEXTURE_SIZE),
             max_cube_map_tex_size: get_param(constants::MAX_CUBE_MAP_TEXTURE_SIZE),
         }
@@ -1940,7 +1952,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
-            shader.compile(self.webgl_version, &self.extension_manager)
+            shader.compile(self.webgl_version, &self.extension_manager, &self.limits)
         }
     }
 

@@ -14,6 +14,7 @@ use dom::bindings::str::DOMString;
 use dom::webgl_extensions::WebGLExtensions;
 use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use dom::webglobject::WebGLObject;
+use dom::webglrenderingcontext::WebGLRenderingContextLimits;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -100,7 +101,8 @@ impl WebGLShader {
     }
 
     /// glCompileShader
-    pub fn compile(&self, version: WebGLVersion, ext: &WebGLExtensions) {
+    pub fn compile(&self, version: WebGLVersion, ext: &WebGLExtensions,
+                   limits: &WebGLRenderingContextLimits) {
         if self.compilation_status.get() != ShaderCompilationStatus::NotCompiled {
             debug!("Compiling already compiled shader {}", self.id);
         }
@@ -109,6 +111,15 @@ impl WebGLShader {
             let mut params = BuiltInResources::default();
             params.FragmentPrecisionHigh = 1;
             params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
+
+            params.MaxVertexAttribs = limits.max_vertex_attribs as i32;
+            params.MaxVertexUniformVectors = limits.max_vertex_uniform_vectors as i32;
+            params.MaxVaryingVectors = limits.max_varying_vectors as i32;
+            params.MaxVertexTextureImageUnits = limits.max_vertex_texture_image_units as i32;
+            params.MaxCombinedTextureImageUnits = limits.max_combined_texture_image_units as i32;
+            params.MaxTextureImageUnits = limits.max_texture_image_units as i32;
+            params.MaxFragmentUniformVectors = limits.max_fragment_uniform_vectors as i32;
+
             let validator = match version {
                 WebGLVersion::WebGL1 => {
                     ShaderValidator::for_webgl(self.gl_type,
