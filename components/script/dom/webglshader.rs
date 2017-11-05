@@ -4,7 +4,7 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
+use canvas_traits::webgl::{WebGLContextLimits, WebGLResult, WebGLSLVersion, WebGLShaderId};
 use canvas_traits::webgl::{WebGLVersion, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
@@ -100,6 +100,7 @@ impl WebGLShader {
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
         ext: &WebGLExtensions,
+        limits: &WebGLContextLimits,
     ) -> WebGLResult<()> {
         if self.is_deleted.get() && !self.is_attached() {
             return Err(WebGLError::InvalidValue);
@@ -117,6 +118,14 @@ impl WebGLShader {
         let mut params = BuiltInResources::default();
         params.FragmentPrecisionHigh = 1;
         params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
+
+        params.MaxVertexAttribs = limits.max_vertex_attribs as i32;
+        params.MaxVertexUniformVectors = limits.max_vertex_uniform_vectors as i32;
+        params.MaxVaryingVectors = limits.max_varying_vectors as i32;
+        params.MaxVertexTextureImageUnits = limits.max_vertex_texture_image_units as i32;
+        params.MaxCombinedTextureImageUnits = limits.max_combined_texture_image_units as i32;
+        params.MaxTextureImageUnits = limits.max_texture_image_units as i32;
+        params.MaxFragmentUniformVectors = limits.max_fragment_uniform_vectors as i32;
         let validator = match webgl_version {
             WebGLVersion::WebGL1 => {
                 let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
