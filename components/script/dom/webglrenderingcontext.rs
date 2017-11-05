@@ -1917,7 +1917,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
-            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
+            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager, &self.limits)
         }
     }
 

@@ -551,6 +551,12 @@ impl fmt::Debug for WebGLCommand {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct WebGLContextLimits {
     pub max_vertex_attribs: u32,
+    pub max_vertex_uniform_vectors: u32,
+    pub max_varying_vectors: u32,
+    pub max_vertex_texture_image_units: u32,
+    pub max_combined_texture_image_units: u32,
+    pub max_texture_image_units: u32,
+    pub max_fragment_uniform_vectors: u32,
     pub max_tex_size: u32,
     pub max_cube_map_tex_size: u32,
 }
@@ -563,6 +569,12 @@ impl WebGLContextLimits {
 
         WebGLContextLimits {
             max_vertex_attribs: get_param(gl::MAX_VERTEX_ATTRIBS),
+            max_vertex_uniform_vectors: get_param(gl::MAX_VERTEX_UNIFORM_VECTORS),
+            max_varying_vectors: get_param(gl::MAX_VARYING_VECTORS),
+            max_vertex_texture_image_units: get_param(gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS),
+            max_combined_texture_image_units: get_param(gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS),
+            max_texture_image_units: get_param(gl::MAX_TEXTURE_IMAGE_UNITS),
+            max_fragment_uniform_vectors: get_param(gl::MAX_FRAGMENT_UNIFORM_VECTORS),
             max_tex_size: get_param(gl::MAX_TEXTURE_SIZE),
             max_cube_map_tex_size: get_param(gl::MAX_CUBE_MAP_TEXTURE_SIZE),
         }
