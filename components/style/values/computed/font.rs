@@ -139,6 +139,15 @@ impl FontSize {
     pub fn size(self) -> Au {
         self.size.into()
     }
+
+    #[inline]
+    /// Get default value of font size.
+    pub fn get_initial_value() -> Self {
+        Self {
+            size: Au::from_px(specified::FONT_MEDIUM_PX).into(),
+            keyword_info: Some(KeywordInfo::medium())
+        }
+    }
 }
 
 impl ToCss for FontSize {

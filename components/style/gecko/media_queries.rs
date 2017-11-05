@@ -21,7 +21,6 @@ use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
-use properties::longhands::font_size;
 use rule_cache::RuleCacheConditions;
 use servo_arc::Arc;
 use std::cell::RefCell;
@@ -35,6 +34,7 @@ use style_traits::viewport::ViewportConstraints;
 use stylesheets::Origin;
 use values::{CSSFloat, CustomIdent, serialize_dimension};
 use values::computed::{self, ToComputedValue};
+use values::computed::font::FontSize;
 use values::specified::Length;
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
@@ -78,7 +78,7 @@ impl Device {
             pres_context: pres_context,
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(font_size::get_initial_value().size().0 as isize),
+            root_font_size: AtomicIsize::new(FontSize::get_initial_value().size().0 as isize),
             body_text_color: AtomicUsize::new(unsafe { &*pres_context }.mDefaultColor as usize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),

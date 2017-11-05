@@ -13,7 +13,7 @@ use properties::longhands::system_font::SystemFont;
 use std::fmt;
 use style_traits::{ToCss, StyleParseErrorKind, ParseError};
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
-use values::specified::{LengthOrPercentage, NoCalcLength};
+use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
@@ -465,6 +465,110 @@ impl FontSize {
         } else {
             None
         }
+    }
+
+    #[inline]
+    /// Get initial value for specified font size.
+    pub fn get_initial_specified_value() -> Self {
+        FontSize::Keyword(computed::KeywordInfo::medium())
+    }
+
+    /// Parses a font-size, with quirks.
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<FontSize, ParseError<'i>> {
+        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks)) {
+            return Ok(FontSize::Length(lop))
+        }
+
+        if let Ok(kw) = input.try(KeywordSize::parse) {
+            return Ok(FontSize::Keyword(kw.into()))
+        }
+
+        try_match_ident_ignore_ascii_case! { input,
+            "smaller" => Ok(FontSize::Smaller),
+            "larger" => Ok(FontSize::Larger),
+        }
+    }
+
+    #[allow(unused_mut)]
+    /// Cascade `font-size` with specified value
+    pub fn cascade_specified_font_size(context: &mut Context,
+                                       specified_value: &FontSize,
+                                       mut computed: computed::FontSize) {
+        // we could use clone_language and clone_font_family() here but that's
+        // expensive. Do it only in gecko mode for now.
+        #[cfg(feature = "gecko")] {
+            // if the language or generic changed, we need to recalculate
+            // the font size from the stored font-size origin information.
+            if context.builder.get_font().gecko().mLanguage.mRawPtr !=
+               context.builder.get_parent_font().gecko().mLanguage.mRawPtr ||
+               context.builder.get_font().gecko().mGenericID !=
+               context.builder.get_parent_font().gecko().mGenericID {
+                if let Some(info) = computed.keyword_info {
+                    computed.size = info.to_computed_value(context);
+                }
+            }
+        }
+
+        let device = context.builder.device;
+        let mut font = context.builder.take_font();
+        let parent_unconstrained = {
+            let parent_font = context.builder.get_parent_font();
+            font.apply_font_size(computed, parent_font, device)
+        };
+        context.builder.put_font(font);
+
+        if let Some(parent) = parent_unconstrained {
+            let new_unconstrained =
+                specified_value.to_computed_value_against(context, FontBaseSize::Custom(Au::from(parent)));
+            context.builder
+                   .mutate_font()
+                   .apply_unconstrained_font_size(new_unconstrained.size);
+        }
+    }
+
+    /// FIXME(emilio): This is very complex. Also, it should move to
+    /// StyleBuilder.
+    pub fn cascade_inherit_font_size(context: &mut Context) {
+        // If inheriting, we must recompute font-size in case of language
+        // changes using the font_size_keyword. We also need to do this to
+        // handle mathml scriptlevel changes
+        let kw_inherited_size = context.builder.get_parent_font()
+                                       .clone_font_size()
+                                       .keyword_info.map(|info| {
+            FontSize::Keyword(info).to_computed_value(context).size
+        });
+        let mut font = context.builder.take_font();
+        font.inherit_font_size_from(context.builder.get_parent_font(),
+                                    kw_inherited_size,
+                                    context.builder.device);
+        context.builder.put_font(font);
+    }
+
+    /// Cascade the initial value for the `font-size` property.
+    ///
+    /// FIXME(emilio): This is the only function that is outside of the
+    /// `StyleBuilder`, and should really move inside!
+    ///
+    /// Can we move the font stuff there?
+    pub fn cascade_initial_font_size(context: &mut Context) {
+        // font-size's default ("medium") does not always
+        // compute to the same value and depends on the font
+        let computed = FontSize::get_initial_specified_value().to_computed_value(context);
+        context.builder.mutate_font().set_font_size(computed);
+        #[cfg(feature = "gecko")] {
+            let device = context.builder.device;
+            context.builder.mutate_font().fixup_font_min_size(device);
+        }
+    }
+}
+
+impl Parse for FontSize {
+    /// <length> | <percentage> | <absolute-size> | <relative-size>
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontSize, ParseError<'i>> {
+        FontSize::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
