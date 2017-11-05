@@ -952,14 +952,14 @@ impl WebGLImpl {
             //gl::IMPLEMENTATION_COLOR_READ_TYPE |
             gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS |
             gl::MAX_CUBE_MAP_TEXTURE_SIZE |
-            //gl::MAX_FRAGMENT_UNIFORM_VECTORS |
+            gl::MAX_FRAGMENT_UNIFORM_VECTORS |
             gl::MAX_RENDERBUFFER_SIZE |
             gl::MAX_TEXTURE_IMAGE_UNITS |
             gl::MAX_TEXTURE_SIZE |
-            //gl::MAX_VARYING_VECTORS |
+            gl::MAX_VARYING_VECTORS |
             gl::MAX_VERTEX_ATTRIBS |
             gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS |
-            //gl::MAX_VERTEX_UNIFORM_VECTORS |
+            gl::MAX_VERTEX_UNIFORM_VECTORS |
             gl::PACK_ALIGNMENT |
             gl::RED_BITS |
             gl::SAMPLE_BUFFERS |
