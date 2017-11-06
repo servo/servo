@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>Duplicate ItemProperty and ItemType test</title>
+</head>
+
+<body id="body" itemprop="hello world world" itemtype="hello world world">
+
+  <h1 id="h1" itemprop="hello world world" itemtype="hello world world">Header H1</h1>
+  <h2 id="h2" itemprop="hello world world" itemtype="hello world world">Header H2</h2>
+
+  <p id="p" itemprop="hello world world" itemtype="hello world world">Paragraph</p>
+
+  <form id="form" itemprop="hello world world" itemtype="hello world world">
+    <input id="input" itemprop="hello world world" itemtype="hello world world">Input Field in form</input>
+  </form>
+
+  <ul id="ul" itemprop="hello world world" itemtype="hello world world">
+    <li id="li" itemprop="hello world world" itemtype="hello world world">Unordered List Item</li>
+  </ul>
+
+  <meta id="meta" itemprop="hello world world" itemtype="hello world world">Meta Tag</meta>
+
+  <table id="table" itemprop="hello world world" itemtype="hello world world">Table</table>
+
+  <div id="div" itemprop="hello world world" itemtype="hello world world">Hi</div>
+
+  <a id="anchor" itemprop="hello world world" itemtype="hello world world"></a>
+
+</body>
+
+<script>
+  test(function() {
+    // Test all elements
+    var ids = ["body", "h1", "h2", "p", "input", "form", "li", "ul", "meta", "table", "div", "anchor"];
+    for (let id of ids) {
+      var elem = document.getElementById(id);
+      assert_array_equals(elem.propertyNames().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
+      assert_array_equals(elem.itemtypes().sort(), ["hello", "world"].sort(), "The method should return 'hello world' ");
+    }
+  });
+</script>
+
+</html>

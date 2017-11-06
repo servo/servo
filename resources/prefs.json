@@ -6,6 +6,7 @@
   "dom.customelements.enabled": true,
   "dom.forcetouch.enabled": false,
   "dom.gamepad.enabled": false,
+  "dom.microdata.testing.enabled": true,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,
   "dom.mutation_observer.enabled": false,
