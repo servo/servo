@@ -8,14 +8,11 @@ use app_units::Au;
 use context::QuirksMode;
 use cssparser::{Parser, RGBA};
 use euclid::{ScaleFactor, Size2D, TypedSize2D};
-use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
 use parser::ParserContext;
-use properties::{ComputedValues, StyleBuilder};
+use properties::ComputedValues;
 use properties::longhands::font_size;
-use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseErrorKind;
-use std::cell::RefCell;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::{CSSPixel, DevicePixel, ToCss, ParseError};
@@ -252,29 +249,12 @@ pub enum Range<T> {
 
 impl Range<specified::Length> {
     fn to_computed_range(&self, device: &Device, quirks_mode: QuirksMode) -> Range<Au> {
-        let default_values = device.default_computed_values();
-        let mut conditions = RuleCacheConditions::default();
-        // http://dev.w3.org/csswg/mediaqueries3/#units
-        // em units are relative to the initial font-size.
-        let context = computed::Context {
-            is_root_element: false,
-            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
-            // Servo doesn't support font metrics
-            // A real provider will be needed here once we do; since
-            // ch units can exist in media queries.
-            font_metrics_provider: &ServoMetricsProvider,
-            in_media_query: true,
-            cached_system_font: None,
-            quirks_mode,
-            for_smil_animation: false,
-            for_non_inherited_property: None,
-            rule_cache_conditions: RefCell::new(&mut conditions),
-        };
-
-        match *self {
-            Range::Min(ref width) => Range::Min(Au::from(width.to_computed_value(&context))),
-            Range::Max(ref width) => Range::Max(Au::from(width.to_computed_value(&context))),
-            Range::Eq(ref width) => Range::Eq(Au::from(width.to_computed_value(&context)))
-        }
+        computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
+            match *self {
+                Range::Min(ref width) => Range::Min(Au::from(width.to_computed_value(&context))),
+                Range::Max(ref width) => Range::Max(Au::from(width.to_computed_value(&context))),
+                Range::Eq(ref width) => Range::Eq(Au::from(width.to_computed_value(&context)))
+            }
+        })
     }
 }
