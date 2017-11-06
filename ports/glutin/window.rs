@@ -12,7 +12,7 @@ use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, ScaleFactor, TypedSiz
 use gdi32;
 use gleam::gl;
 use glutin;
-use glutin::{Api, ElementState, Event, GlContext, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
+use glutin::{ElementState, Event, GlContext, MouseButton, MouseScrollDelta, VirtualKeyCode};
 #[cfg(not(target_os = "windows"))]
 use glutin::ScanCode;
 use glutin::TouchPhase;
@@ -75,8 +75,6 @@ const CMD_OR_ALT: KeyModifiers = KeyModifiers::ALT;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 const LINE_HEIGHT: f32 = 38.0;
-
-const MULTISAMPLES: u16 = 16;
 
 #[cfg(target_os = "macos")]
 fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
@@ -339,16 +337,6 @@ impl Window {
                 (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize);
             }
         }
-    }
-
-    #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
-    fn gl_version() -> GlRequest {
-        return GlRequest::Specific(Api::OpenGl, (3, 2));
-    }
-
-    #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
-    fn gl_version() -> GlRequest {
-        GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -1138,7 +1126,9 @@ impl WindowMethods for Window {
             fn wake(&self) {
                 // kick the OS event loop awake.
                 if let Some(ref proxy) = self.proxy {
-                    proxy.wakeup();
+                    if let Err(err) = proxy.wakeup() {
+                        warn!("Failed to wake up event loop ({}).", err);
+                    }
                 }
             }
             fn clone(&self) -> Box<EventLoopWaker + Send> {
