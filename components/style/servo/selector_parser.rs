@@ -20,7 +20,6 @@ use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, 
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::parser::{SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
-use std::ascii::AsciiExt;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};

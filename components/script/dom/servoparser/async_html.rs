@@ -27,7 +27,6 @@ use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerR
 use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode, TreeSink};
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashMap;

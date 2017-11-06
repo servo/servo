@@ -15,7 +15,6 @@ use dom::element::Element;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
-use std::ascii::AsciiExt;
 
 #[dom_struct]
 pub struct NamedNodeMap {
