@@ -171,6 +171,7 @@ partial interface Document {
 
   [SameObject]
   readonly attribute HTMLCollection anchors;
+
   [SameObject]
   readonly attribute HTMLCollection applets;
 
