@@ -109,7 +109,8 @@ use style::dom_apis;
 use style::element_state::ElementState;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
-use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
+use style::properties::longhands::{overflow_x, overflow_y};
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser};
 use style::selector_parser::extended_filtering;
@@ -373,7 +374,7 @@ impl Element {
     fn overflow_y_is_visible(&self) -> bool {
         let window = window_from_node(self);
         let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.y != overflow_x::computed_value::T::visible
+        overflow_pair.y == overflow_y::computed_value::T::visible
     }
 }
 
