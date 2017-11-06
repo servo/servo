@@ -996,9 +996,14 @@ impl Window {
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers, browser_id: BrowserId) {}
 }
 
-fn create_window_proxy(window: &Window) -> Option<Arc<Mutex<glutin::EventsLoop>>> {
+fn create_window_proxy(window: &Window) -> Option<Arc<glutin::EventsLoopProxy>> {
     match window.kind {
-        WindowKind::Window(_, ref events_loop) => Some(events_loop.clone()),
+        WindowKind::Window(_, ref events_loop) => {
+            match events_loop.lock() {
+                Ok(events_loop) => Some(Arc::new(events_loop.create_proxy())),
+                Err(_) => None,
+            }
+        },
         WindowKind::Headless(..) => None,
     }
 }
@@ -1127,24 +1132,24 @@ impl WindowMethods for Window {
 
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
         struct GlutinEventLoopWaker {
-            events_loop: Option<Arc<Mutex<glutin::EventsLoop>>>,
+            proxy: Option<Arc<glutin::EventsLoopProxy>>,
         }
         impl EventLoopWaker for GlutinEventLoopWaker {
             fn wake(&self) {
                 // kick the OS event loop awake.
-                if let Some(ref events_loop) = self.events_loop {
-                    events_loop.lock().unwrap().create_proxy().wakeup();
+                if let Some(ref proxy) = self.proxy {
+                    proxy.wakeup();
                 }
             }
             fn clone(&self) -> Box<EventLoopWaker + Send> {
                 Box::new(GlutinEventLoopWaker {
-                    events_loop: self.events_loop.clone(),
+                    proxy: self.proxy.clone(),
                 })
             }
         }
-        let events_loop = create_window_proxy(self);
+        let proxy = create_window_proxy(self);
         Box::new(GlutinEventLoopWaker {
-            events_loop: events_loop,
+            proxy: proxy,
         })
     }
 
