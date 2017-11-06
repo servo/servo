@@ -10,7 +10,6 @@ use context::QuirksMode;
 use cssparser::{CssStringWriter, Parser, RGBA, Token, BasicParseErrorKind};
 use euclid::ScaleFactor;
 use euclid::Size2D;
-use font_metrics::get_metrics_provider_for_product;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
@@ -20,11 +19,9 @@ use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType
 use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
 use parser::ParserContext;
-use properties::{ComputedValues, StyleBuilder};
+use properties::ComputedValues;
 use properties::longhands::font_size;
-use rule_cache::RuleCacheConditions;
 use servo_arc::Arc;
-use std::cell::RefCell;
 use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
 use str::starts_with_ignore_ascii_case;
@@ -722,26 +719,8 @@ impl Expression {
                       self.feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed,
                       "Whoops, wrong range");
 
-        let default_values = device.default_computed_values();
-
-
-        let provider = get_metrics_provider_for_product();
-
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
-        let mut conditions = RuleCacheConditions::default();
-        let context = computed::Context {
-            is_root_element: false,
-            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
-            font_metrics_provider: &provider,
-            cached_system_font: None,
-            in_media_query: true,
-            quirks_mode,
-            for_smil_animation: false,
-            for_non_inherited_property: None,
-            rule_cache_conditions: RefCell::new(&mut conditions),
-        };
-
         let required_value = match self.value {
             Some(ref v) => v,
             None => {
@@ -750,7 +729,13 @@ impl Expression {
                 return match *actual_value {
                     BoolInteger(v) => v,
                     Integer(v) => v != 0,
-                    Length(ref l) => l.to_computed_value(&context).px() != 0.,
+                    Length(ref l) => {
+                        computed::Context::for_media_query_evaluation(
+                            device,
+                            quirks_mode,
+                            |context| l.to_computed_value(&context).px() != 0.,
+                        )
+                    },
                     _ => true,
                 }
             }
@@ -759,8 +744,10 @@ impl Expression {
         // FIXME(emilio): Handle the possible floating point errors?
         let cmp = match (required_value, actual_value) {
             (&Length(ref one), &Length(ref other)) => {
-                one.to_computed_value(&context).to_i32_au()
-                    .cmp(&other.to_computed_value(&context).to_i32_au())
+                computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
+                    one.to_computed_value(&context).to_i32_au()
+                        .cmp(&other.to_computed_value(&context).to_i32_au())
+                })
             }
             (&Integer(one), &Integer(ref other)) => one.cmp(other),
             (&BoolInteger(one), &BoolInteger(ref other)) => one.cmp(other),

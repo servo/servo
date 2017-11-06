@@ -76,6 +76,7 @@ pub mod length;
 pub mod percentage;
 pub mod position;
 pub mod rect;
+pub mod source_size_list;
 pub mod svg;
 pub mod table;
 pub mod text;
