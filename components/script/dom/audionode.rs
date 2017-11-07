@@ -1,0 +1,166 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::baseaudiocontext::BaseAudioContext;
+use dom::bindings::codegen::Bindings::AudioNodeBinding;
+use dom::bindings::codegen::Bindings::AudioNodeBinding::{AudioNodeMethods, AudioNodeOptions};
+use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
+use dom::audioparam::AudioParam;
+use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
+use std::cell::Cell;
+
+// 32 is the minimum required by the spec for createBuffer() and
+// createScriptProcessor() and matches what is used by Blink and Gecko.
+// The limit protects against large memory allocations.
+pub static MAX_CHANNEL_COUNT: u32 = 32;
+
+#[dom_struct]
+pub struct AudioNode {
+    reflector_: Reflector,
+    context: DomRoot<BaseAudioContext>,
+    number_of_inputs: u32,
+    number_of_outputs: u32,
+    channel_count: Cell<u32>,
+    channel_count_mode: Cell<ChannelCountMode>,
+    channel_interpretation: Cell<ChannelInterpretation>,
+}
+
+impl AudioNode {
+    pub fn new_inherited(context: &BaseAudioContext,
+                         options: &AudioNodeOptions,
+                         number_of_inputs: u32,
+                         number_of_outputs: u32) -> AudioNode {
+        AudioNode {
+            reflector_: Reflector::new(),
+            context: DomRoot::from_ref(context),
+            number_of_inputs,
+            number_of_outputs,
+            channel_count: Cell::new(options.channelCount.unwrap_or(2)),
+            channel_count_mode: Cell::new(options.channelCountMode.unwrap_or_default()),
+            channel_interpretation: Cell::new(options.channelInterpretation.unwrap_or_default()),
+        }
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn new(global: &GlobalScope,
+               context: &BaseAudioContext,
+               options: &AudioNodeOptions) -> DomRoot<AudioNode> {
+        let audio_node = AudioNode::new_inherited(context, options, 1, 1);
+        reflect_dom_object(Box::new(audio_node), global, AudioNodeBinding::Wrap)
+    }
+}
+
+impl AudioNodeMethods for AudioNode {
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
+    fn Connect(&self,
+               _destinationNode: &AudioNode,
+               _output: u32,
+               _input: u32) -> Fallible<DomRoot<AudioNode>> {
+        // TODO
+        let options = AudioNodeOptions {
+            channelCount: Some(self.channel_count.get()),
+            channelCountMode: Some(self.channel_count_mode.get()),
+            channelInterpretation: Some(self.channel_interpretation.get()),
+        };
+        Ok(AudioNode::new(&self.global(), &self.context, &options))
+    }
+
+    fn Connect_(&self,
+                _: &AudioParam,
+                _: u32) -> Fallible<()> {
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    fn Disconnect(&self) -> ErrorResult {
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    fn Disconnect_(&self, _: u32) -> ErrorResult {
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    fn Disconnect__(&self, _: &AudioNode) -> ErrorResult {
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    fn Disconnect___(&self, _: &AudioNode, _: u32) -> ErrorResult{
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    fn Disconnect____(&self, _: &AudioNode, _: u32, _: u32) -> ErrorResult {
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    fn Disconnect_____(&self, _: &AudioParam) -> ErrorResult {
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    fn Disconnect______(&self, _: &AudioParam, _: u32) -> ErrorResult {
+        // TODO
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-context
+    fn Context(&self) -> DomRoot<BaseAudioContext> {
+        DomRoot::from_ref(&self.context)
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-numberofinputs
+    fn NumberOfInputs(&self) -> u32 {
+        self.number_of_inputs
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-numberofoutputs
+    fn NumberOfOutputs(&self) -> u32 {
+        self.number_of_outputs
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount
+    fn ChannelCount(&self) -> u32 {
+        self.channel_count.get()
+    }
+
+    fn SetChannelCount(&self, value: u32) -> ErrorResult {
+        if value == 0 || value > MAX_CHANNEL_COUNT {
+            return Err(Error::NotSupported);
+        }
+        self.channel_count.set(value);
+        Ok(())
+    }
+
+    fn ChannelCountMode(&self) -> ChannelCountMode {
+        self.channel_count_mode.get()
+    }
+
+    fn SetChannelCountMode(&self, value: ChannelCountMode) -> ErrorResult {
+        self.channel_count_mode.set(value);
+        Ok(())
+    }
+
+    fn ChannelInterpretation(&self) -> ChannelInterpretation {
+        self.channel_interpretation.get()
+    }
+
+    fn SetChannelInterpretation(&self, value: ChannelInterpretation) {
+        self.channel_interpretation.set(value);
+    }
+}
