@@ -48,6 +48,7 @@
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use parser::Parse;
     use values::specified::NonNegativeNumber;
+    use properties::longhands::flex_basis::SpecifiedValue as FlexBasis;
 
     fn parse_flexibility<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                  -> Result<(NonNegativeNumber, Option<NonNegativeNumber>),ParseError<'i>> {
@@ -66,7 +67,7 @@
             return Ok(expanded! {
                 flex_grow: NonNegativeNumber::new(0.0),
                 flex_shrink: NonNegativeNumber::new(0.0),
-                flex_basis: longhands::flex_basis::SpecifiedValue::auto(),
+                flex_basis: FlexBasis::auto(),
             })
         }
         loop {
@@ -78,7 +79,7 @@
                 }
             }
             if basis.is_none() {
-                if let Ok(value) = input.try(|input| longhands::flex_basis::parse_specified(context, input)) {
+                if let Ok(value) = input.try(|input| FlexBasis::parse(context, input)) {
                     basis = Some(value);
                     continue
                 }
@@ -96,7 +97,7 @@
             // browsers currently agree on using `0%`. This is a spec
             // change which hasn't been adopted by browsers:
             // https://github.com/w3c/csswg-drafts/commit/2c446befdf0f686217905bdd7c92409f6bd3921b
-            flex_basis: basis.unwrap_or(longhands::flex_basis::SpecifiedValue::zero_percent()),
+            flex_basis: basis.unwrap_or(FlexBasis::zero_percent()),
         })
     }
 </%helpers:shorthand>
