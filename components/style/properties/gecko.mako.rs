@@ -978,395 +978,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%
-transform_functions = [
-    ("Matrix3D", "matrix3d", ["number"] * 16),
-    ("PrefixedMatrix3D", "matrix3d", ["number"] * 12 + ["lopon"] * 2
-                                        + ["lon"] + ["number"]),
-    ("Matrix", "matrix", ["number"] * 6),
-    ("PrefixedMatrix", "matrix", ["number"] * 4 + ["lopon"] * 2),
-    ("Translate", "translate", ["lop", "optional_lop"]),
-    ("Translate3D", "translate3d", ["lop", "lop", "length"]),
-    ("TranslateX", "translatex", ["lop"]),
-    ("TranslateY", "translatey", ["lop"]),
-    ("TranslateZ", "translatez", ["length"]),
-    ("Scale3D", "scale3d", ["number"] * 3),
-    ("Scale", "scale", ["number", "optional_number"]),
-    ("ScaleX", "scalex", ["number"]),
-    ("ScaleY", "scaley", ["number"]),
-    ("ScaleZ", "scalez", ["number"]),
-    ("Rotate", "rotate", ["angle"]),
-    ("Rotate3D", "rotate3d", ["number"] * 3 + ["angle"]),
-    ("RotateX", "rotatex", ["angle"]),
-    ("RotateY", "rotatey", ["angle"]),
-    ("RotateZ", "rotatez", ["angle"]),
-    ("Skew", "skew", ["angle", "optional_angle"]),
-    ("SkewX", "skewx", ["angle"]),
-    ("SkewY", "skewy", ["angle"]),
-    ("Perspective", "perspective", ["length"]),
-    ("InterpolateMatrix", "interpolatematrix", ["list"] * 2 + ["percentage"]),
-    ("AccumulateMatrix", "accumulatematrix", ["list"] * 2 + ["integer_to_percentage"])
-]
-%>
-
-<%def name="transform_function_arm(name, keyword, items)">
-    <%
-        has_optional = items[-1].startswith("optional_")
-        pattern = None
-        if keyword == "matrix3d":
-            # m11: number1, m12: number2, ..
-            single_patterns = ["m%s: %s" % (str(a / 4 + 1) + str(a % 4 + 1), b + str(a + 1)) for (a, b)
-                                in enumerate(items)]
-            pattern = "(Matrix3D { %s })" % ", ".join(single_patterns)
-        elif keyword == "matrix":
-            # a: number1, b: number2, ..
-            single_patterns = ["%s: %s" % (chr(ord('a') + a), b + str(a + 1)) for (a, b)
-                                in enumerate(items)]
-            pattern = "(Matrix { %s })" % ", ".join(single_patterns)
-        elif keyword == "interpolatematrix":
-            pattern = " { from_list: ref list1, to_list: ref list2, progress: percentage3 }"
-        elif keyword == "accumulatematrix":
-            pattern = " { from_list: ref list1, to_list: ref list2, count: integer_to_percentage3 }"
-        else:
-            # Generate contents of pattern from items
-            pattern = "(%s)" % ", ".join([b + str(a+1) for (a,b) in enumerate(items)])
-
-        # First %s substituted with the call to GetArrayItem, the second
-        # %s substituted with the corresponding variable
-        css_value_setters = {
-            "length" : "bindings::Gecko_CSSValue_SetPixelLength(%s, %s.px())",
-            "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s.0)",
-            # Note: This is an integer type, but we use it as a percentage value in Gecko, so
-            #       need to cast it to f32.
-            "integer_to_percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s as f32)",
-            "lop" : "%s.set_lop(%s)",
-            "lopon" : "set_lopon(%s, %s)",
-            "lon" : "set_lon(%s, %s)",
-            "angle" : "%s.set_angle(%s)",
-            "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
-            # Note: We use nsCSSValueSharedList here, instead of nsCSSValueList_heap
-            #       because this function is not called on the main thread and
-            #       nsCSSValueList_heap is not thread safe.
-            "list" : "%s.set_shared_list(%s.0.iter().map(&convert_to_ns_css_value));",
-        }
-    %>
-    ::values::generics::transform::TransformOperation::${name}${pattern} => {
-        % if has_optional:
-            let optional_present = ${items[-1] + str(len(items))}.is_some();
-            let len = if optional_present {
-                ${len(items) + 1}
-            } else {
-                ${len(items)}
-            };
-        % else:
-            let len = ${len(items) + 1};
-        % endif
-        bindings::Gecko_CSSValue_SetFunction(gecko_value, len);
-        bindings::Gecko_CSSValue_SetKeyword(
-            bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
-            structs::nsCSSKeyword::eCSSKeyword_${keyword}
-        );
-        % for index, item in enumerate(items):
-            <% replaced_item = item.replace("optional_", "") %>
-            % if item.startswith("optional"):
-                if let Some(${replaced_item + str(index + 1)}) = ${item + str(index + 1)} {
-            % endif
-            % if item == "list":
-                debug_assert!(!${item}${index + 1}.0.is_empty());
-            % endif
-            ${css_value_setters[replaced_item] % (
-                "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
-                replaced_item + str(index + 1)
-            )};
-            % if item.startswith("optional"):
-                }
-            % endif
-        % endfor
-    }
-</%def>
-
-<%def name="computed_operation_arm(name, keyword, items)">
-    <%
-        # %s is substituted with the call to GetArrayItem.
-        css_value_getters = {
-            "length" : "Length::new(bindings::Gecko_CSSValue_GetNumber(%s))",
-            "lop" : "%s.get_lop()",
-            "lopon" : "Either::Second(%s.get_lop())",
-            "lon" : "Either::First(%s.get_length())",
-            "angle" : "%s.get_angle()",
-            "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
-            "percentage" : "Percentage(bindings::Gecko_CSSValue_GetPercentage(%s))",
-            "integer_to_percentage" : "bindings::Gecko_CSSValue_GetPercentage(%s) as i32",
-            "list" : "Transform(convert_shared_list_to_operations(%s))",
-        }
-        pre_symbols = "("
-        post_symbols = ")"
-        if keyword == "interpolatematrix" or keyword == "accumulatematrix":
-            # We generate this like: "TransformOperation::InterpolateMatrix {", so the space is
-            # between "InterpolateMatrix"/"AccumulateMatrix" and '{'
-            pre_symbols = " {"
-            post_symbols = "}"
-        elif keyword == "matrix3d":
-            pre_symbols = "(Matrix3D {"
-            post_symbols = "})"
-        elif keyword == "matrix":
-            pre_symbols = "(Matrix {"
-            post_symbols = "})"
-        field_names = None
-        if keyword == "interpolatematrix":
-            field_names = ["from_list", "to_list", "progress"]
-        elif keyword == "accumulatematrix":
-            field_names = ["from_list", "to_list", "count"]
-
-    %>
-    <%
-
-        guard = ""
-        if name == "Matrix3D" or name == "Matrix":
-            guard = "if !needs_prefix "
-        elif name == "PrefixedMatrix3D" or name == "PrefixedMatrix":
-            guard = "if needs_prefix "
-
-    %>
-    structs::nsCSSKeyword::eCSSKeyword_${keyword} ${guard}=> {
-        ::values::generics::transform::TransformOperation::${name}${pre_symbols}
-        % for index, item in enumerate(items):
-            % if keyword == "matrix3d":
-                m${index / 4 + 1}${index % 4 + 1}:
-            % elif keyword == "matrix":
-                ${chr(ord('a') + index)}:
-            % elif keyword == "interpolatematrix" or keyword == "accumulatematrix":
-                ${field_names[index]}:
-            % endif
-            <%
-                getter = css_value_getters[item.replace("optional_", "")] % (
-                    "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
-                )
-            %>
-            % if item.startswith("optional_"):
-                if (**gecko_value.mValue.mArray.as_ref()).mCount == ${index + 1} {
-                    None
-                } else {
-                    Some(${getter})
-                }
-            % else:
-                ${getter}
-            % endif
-,
-        % endfor
-        ${post_symbols}
-    },
-</%def>
-
-fn set_single_transform_function(
-    servo_value: &values::computed::TransformOperation,
-    gecko_value: &mut structs::nsCSSValue /* output */
-) {
-    use values::computed::{Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
-    use values::computed::TransformOperation;
-    use values::generics::transform::{Matrix, Matrix3D};
-
-    let convert_to_ns_css_value = |item: &TransformOperation| -> structs::nsCSSValue {
-        let mut value = structs::nsCSSValue::null();
-        set_single_transform_function(item, &mut value);
-        value
-    };
-
-    unsafe fn set_lopon(css: &mut structs::nsCSSValue, lopon: LengthOrPercentageOrNumber) {
-        let lop = match lopon {
-            Either::First(number) => LengthOrPercentage::Length(Length::new(number)),
-            Either::Second(lop) => lop,
-        };
-        css.set_lop(lop);
-    }
-
-    unsafe fn set_lon(css: &mut structs::nsCSSValue, lopon: LengthOrNumber) {
-        let length = match lopon {
-            Either::Second(number) => Length::new(number),
-            Either::First(l) => l,
-        };
-        bindings::Gecko_CSSValue_SetPixelLength(css, length.px())
-    }
-
-    unsafe {
-        match *servo_value {
-            % for servo, gecko, format in transform_functions:
-                ${transform_function_arm(servo, gecko, format)}
-            % endfor
-        }
-    }
-}
-
-pub fn convert_transform(
-    input: &[values::computed::TransformOperation],
-    output: &mut structs::root::RefPtr<structs::root::nsCSSValueSharedList>
-) {
-    use gecko_bindings::sugar::refptr::RefPtr;
-
-    unsafe { output.clear() };
-
-    let list = unsafe {
-        RefPtr::from_addrefed(bindings::Gecko_NewCSSValueSharedList(input.len() as u32))
-    };
-    let value_list = unsafe { list.mHead.as_mut() };
-    if let Some(value_list) = value_list {
-        for (gecko, servo) in value_list.into_iter().zip(input.into_iter()) {
-            set_single_transform_function(servo, gecko);
-        }
-    }
-    unsafe { output.set_move(list) };
-}
-
-fn clone_single_transform_function(
-    gecko_value: &structs::nsCSSValue
-) -> values::computed::TransformOperation {
-    use values::computed::{Length, Percentage, TransformOperation};
-    use values::generics::transform::{Matrix, Matrix3D};
-    use values::generics::transform::Transform;
-
-    let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
-                                            -> Vec<TransformOperation> {
-        debug_assert!(value.mUnit == structs::nsCSSUnit::eCSSUnit_SharedList);
-        let value_list = unsafe {
-            value.mValue.mSharedList.as_ref()
-                    .as_mut().expect("List pointer should be non-null").mHead.as_ref()
-        };
-        debug_assert!(value_list.is_some(), "An empty shared list is not allowed");
-        value_list.unwrap().into_iter()
-                            .map(|item| clone_single_transform_function(item))
-                            .collect()
-    };
-
-    let transform_function = unsafe {
-        bindings::Gecko_CSSValue_GetKeyword(bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 0))
-    };
-
-    let needs_prefix = if transform_function == structs::nsCSSKeyword::eCSSKeyword_matrix3d {
-        unsafe {
-            bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 13).mUnit
-                    != structs::nsCSSUnit::eCSSUnit_Number ||
-            bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 14).mUnit
-                    != structs::nsCSSUnit::eCSSUnit_Number ||
-            bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 15).mUnit
-                    != structs::nsCSSUnit::eCSSUnit_Number
-        }
-    } else {
-        false
-    };
-
-    unsafe {
-        match transform_function {
-            % for servo, gecko, format in transform_functions:
-                ${computed_operation_arm(servo, gecko, format)}
-            % endfor
-            _ => panic!("{:?} is not an acceptable transform function", transform_function),
-        }
-    }
-}
-
-pub fn clone_transform_from_list(
-    list: Option< &structs::root::nsCSSValueList>
-) -> values::computed::Transform {
-    use values::generics::transform::Transform;
-
-    let result = match list {
-        Some(list) => {
-            list.into_iter()
-                .filter_map(|value| {
-                    // Handle none transform.
-                    if value.is_none() {
-                        None
-                    } else {
-                        Some(clone_single_transform_function(value))
-                    }
-                })
-                .collect::<Vec<_>>()
-        },
-        _ => vec![],
-    };
-    Transform(result)
-}
-
-<%def name="impl_transform(ident, gecko_ffi_name)">
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, other: values::computed::Transform) {
-        use gecko_properties::convert_transform;
-        if other.0.is_empty() {
-            unsafe {
-                self.gecko.${gecko_ffi_name}.clear();
-            }
-            return;
-        };
-        convert_transform(&other.0, &mut self.gecko.${gecko_ffi_name});
-    }
-
-    #[allow(non_snake_case)]
-    pub fn copy_${ident}_from(&mut self, other: &Self) {
-        unsafe { self.gecko.${gecko_ffi_name}.set(&other.gecko.${gecko_ffi_name}); }
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset_${ident}(&mut self, other: &Self) {
-        self.copy_${ident}_from(other)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> values::computed::Transform {
-        use gecko_properties::clone_transform_from_list;
-        use values::generics::transform::Transform;
-
-        if self.gecko.${gecko_ffi_name}.mRawPtr.is_null() {
-            return Transform(vec!());
-        }
-        let list = unsafe { (*self.gecko.${gecko_ffi_name}.to_safe().get()).mHead.as_ref() };
-        clone_transform_from_list(list)
-    }
-</%def>
-
-<%def name="impl_transform_origin(ident, gecko_ffi_name)">
-    <% has_depth = ident == "transform" %>
-
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: values::computed::TransformOrigin) {
-        self.gecko.${gecko_ffi_name}[0].set(v.horizontal);
-        self.gecko.${gecko_ffi_name}[1].set(v.vertical);
-        % if has_depth:
-        self.gecko.${gecko_ffi_name}[2].set(v.depth);
-        % endif
-    }
-
-    #[allow(non_snake_case)]
-    pub fn copy_${ident}_from(&mut self, other: &Self) {
-        self.gecko.${gecko_ffi_name}[0].copy_from(&other.gecko.${gecko_ffi_name}[0]);
-        self.gecko.${gecko_ffi_name}[1].copy_from(&other.gecko.${gecko_ffi_name}[1]);
-        % if has_depth:
-        self.gecko.${gecko_ffi_name}[2].copy_from(&other.gecko.${gecko_ffi_name}[2]);
-        % endif
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset_${ident}(&mut self, other: &Self) {
-        self.copy_${ident}_from(other)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> values::computed::TransformOrigin {
-        use values::computed::{Length, LengthOrPercentage, TransformOrigin};
-        TransformOrigin {
-            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[0])
-                .expect("clone for LengthOrPercentage failed"),
-            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[1])
-                .expect("clone for LengthOrPercentage failed"),
-            % if has_depth:
-            depth: Length::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[2])
-                .expect("clone for Length failed"),
-            % else:
-            depth: Length::new(0.)
-            % endif
-        }
-    }
-</%def>
-
 <%def name="impl_logical(name, **kwargs)">
     ${helpers.logical_setter(name)}
 </%def>
@@ -1519,8 +1130,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "SVGOpacity": impl_svg_opacity,
         "SVGPaint": impl_svg_paint,
         "SVGWidth": impl_svg_length,
-        "Transform": impl_transform,
-        "TransformOrigin": impl_transform_origin,
         "UrlOrNone": impl_css_url,
     }
 
@@ -3089,9 +2698,9 @@ fn static_assert() {
                           transition-duration transition-delay
                           transition-timing-function transition-property
                           page-break-before page-break-after
-                          scroll-snap-points-x scroll-snap-points-y
+                          scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
-                          perspective-origin -moz-binding will-change
+                          perspective-origin transform-origin -moz-binding will-change
                           shape-outside contain touch-action""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
@@ -3284,6 +2893,331 @@ fn static_assert() {
     }
 
     ${impl_css_url('_moz_binding', 'mBinding.mPtr')}
+    <%
+    transform_functions = [
+        ("Matrix3D", "matrix3d", ["number"] * 16),
+        ("PrefixedMatrix3D", "matrix3d", ["number"] * 12 + ["lopon"] * 2
+                                         + ["lon"] + ["number"]),
+        ("Matrix", "matrix", ["number"] * 6),
+        ("PrefixedMatrix", "matrix", ["number"] * 4 + ["lopon"] * 2),
+        ("Translate", "translate", ["lop", "optional_lop"]),
+        ("Translate3D", "translate3d", ["lop", "lop", "length"]),
+        ("TranslateX", "translatex", ["lop"]),
+        ("TranslateY", "translatey", ["lop"]),
+        ("TranslateZ", "translatez", ["length"]),
+        ("Scale3D", "scale3d", ["number"] * 3),
+        ("Scale", "scale", ["number", "optional_number"]),
+        ("ScaleX", "scalex", ["number"]),
+        ("ScaleY", "scaley", ["number"]),
+        ("ScaleZ", "scalez", ["number"]),
+        ("Rotate", "rotate", ["angle"]),
+        ("Rotate3D", "rotate3d", ["number"] * 3 + ["angle"]),
+        ("RotateX", "rotatex", ["angle"]),
+        ("RotateY", "rotatey", ["angle"]),
+        ("RotateZ", "rotatez", ["angle"]),
+        ("Skew", "skew", ["angle", "optional_angle"]),
+        ("SkewX", "skewx", ["angle"]),
+        ("SkewY", "skewy", ["angle"]),
+        ("Perspective", "perspective", ["length"]),
+        ("InterpolateMatrix", "interpolatematrix", ["list"] * 2 + ["percentage"]),
+        ("AccumulateMatrix", "accumulatematrix", ["list"] * 2 + ["integer_to_percentage"])
+    ]
+    %>
+    <%def name="transform_function_arm(name, keyword, items)">
+        <%
+            has_optional = items[-1].startswith("optional_")
+            pattern = None
+            if keyword == "matrix3d":
+                # m11: number1, m12: number2, ..
+                single_patterns = ["m%s: %s" % (str(a / 4 + 1) + str(a % 4 + 1), b + str(a + 1)) for (a, b)
+                                   in enumerate(items)]
+                pattern = "(Matrix3D { %s })" % ", ".join(single_patterns)
+            elif keyword == "matrix":
+                # a: number1, b: number2, ..
+                single_patterns = ["%s: %s" % (chr(ord('a') + a), b + str(a + 1)) for (a, b)
+                                   in enumerate(items)]
+                pattern = "(Matrix { %s })" % ", ".join(single_patterns)
+            elif keyword == "interpolatematrix":
+                pattern = " { from_list: ref list1, to_list: ref list2, progress: percentage3 }"
+            elif keyword == "accumulatematrix":
+                pattern = " { from_list: ref list1, to_list: ref list2, count: integer_to_percentage3 }"
+            else:
+                # Generate contents of pattern from items
+                pattern = "(%s)" % ", ".join([b + str(a+1) for (a,b) in enumerate(items)])
+
+            # First %s substituted with the call to GetArrayItem, the second
+            # %s substituted with the corresponding variable
+            css_value_setters = {
+                "length" : "bindings::Gecko_CSSValue_SetPixelLength(%s, %s.px())",
+                "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s.0)",
+                # Note: This is an integer type, but we use it as a percentage value in Gecko, so
+                #       need to cast it to f32.
+                "integer_to_percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s as f32)",
+                "lop" : "%s.set_lop(%s)",
+                "lopon" : "set_lopon(%s, %s)",
+                "lon" : "set_lon(%s, %s)",
+                "angle" : "%s.set_angle(%s)",
+                "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
+                # Note: We use nsCSSValueSharedList here, instead of nsCSSValueList_heap
+                #       because this function is not called on the main thread and
+                #       nsCSSValueList_heap is not thread safe.
+                "list" : "%s.set_shared_list(%s.0.iter().map(&convert_to_ns_css_value));",
+            }
+        %>
+        ::values::generics::transform::TransformOperation::${name}${pattern} => {
+            % if has_optional:
+                let optional_present = ${items[-1] + str(len(items))}.is_some();
+                let len = if optional_present {
+                    ${len(items) + 1}
+                } else {
+                    ${len(items)}
+                };
+            % else:
+                let len = ${len(items) + 1};
+            % endif
+            bindings::Gecko_CSSValue_SetFunction(gecko_value, len);
+            bindings::Gecko_CSSValue_SetKeyword(
+                bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
+                structs::nsCSSKeyword::eCSSKeyword_${keyword}
+            );
+            % for index, item in enumerate(items):
+                <% replaced_item = item.replace("optional_", "") %>
+                % if item.startswith("optional"):
+                    if let Some(${replaced_item + str(index + 1)}) = ${item + str(index + 1)} {
+                % endif
+                % if item == "list":
+                    debug_assert!(!${item}${index + 1}.0.is_empty());
+                % endif
+                ${css_value_setters[replaced_item] % (
+                    "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
+                    replaced_item + str(index + 1)
+                )};
+                % if item.startswith("optional"):
+                    }
+                % endif
+            % endfor
+        }
+    </%def>
+    fn set_single_transform_function(servo_value: &longhands::transform::computed_value::ComputedOperation,
+                                     gecko_value: &mut structs::nsCSSValue /* output */) {
+        use properties::longhands::transform::computed_value::ComputedOperation;
+        use values::computed::{Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
+        use values::generics::transform::{Matrix, Matrix3D};
+
+        let convert_to_ns_css_value = |item: &ComputedOperation| -> structs::nsCSSValue {
+            let mut value = structs::nsCSSValue::null();
+            Self::set_single_transform_function(item, &mut value);
+            value
+        };
+
+        unsafe fn set_lopon(css: &mut structs::nsCSSValue, lopon: LengthOrPercentageOrNumber) {
+            let lop = match lopon {
+                Either::First(number) => LengthOrPercentage::Length(Length::new(number)),
+                Either::Second(lop) => lop,
+            };
+            css.set_lop(lop);
+        }
+
+        unsafe fn set_lon(css: &mut structs::nsCSSValue, lopon: LengthOrNumber) {
+            let length = match lopon {
+                Either::Second(number) => Length::new(number),
+                Either::First(l) => l,
+            };
+            bindings::Gecko_CSSValue_SetPixelLength(css, length.px())
+        }
+
+        unsafe {
+            match *servo_value {
+                % for servo, gecko, format in transform_functions:
+                    ${transform_function_arm(servo, gecko, format)}
+                % endfor
+            }
+        }
+    }
+    pub fn convert_transform(input: &[longhands::transform::computed_value::ComputedOperation],
+                             output: &mut structs::root::RefPtr<structs::root::nsCSSValueSharedList>) {
+        use gecko_bindings::sugar::refptr::RefPtr;
+
+        unsafe { output.clear() };
+
+        let list = unsafe {
+            RefPtr::from_addrefed(bindings::Gecko_NewCSSValueSharedList(input.len() as u32))
+        };
+        let value_list = unsafe { list.mHead.as_mut() };
+        if let Some(value_list) = value_list {
+            for (gecko, servo) in value_list.into_iter().zip(input.into_iter()) {
+                Self::set_single_transform_function(servo, gecko);
+            }
+        }
+        unsafe { output.set_move(list) };
+    }
+
+    pub fn set_transform(&mut self, other: longhands::transform::computed_value::T) {
+        if other.0.is_empty() {
+            unsafe {
+                self.gecko.mSpecifiedTransform.clear();
+            }
+            return;
+        };
+        Self::convert_transform(&other.0, &mut self.gecko.mSpecifiedTransform);
+    }
+
+    pub fn copy_transform_from(&mut self, other: &Self) {
+        unsafe { self.gecko.mSpecifiedTransform.set(&other.gecko.mSpecifiedTransform); }
+    }
+
+    pub fn reset_transform(&mut self, other: &Self) {
+        self.copy_transform_from(other)
+    }
+
+    <%def name="computed_operation_arm(name, keyword, items)">
+        <%
+            # %s is substituted with the call to GetArrayItem.
+            css_value_getters = {
+                "length" : "Length::new(bindings::Gecko_CSSValue_GetNumber(%s))",
+                "lop" : "%s.get_lop()",
+                "lopon" : "Either::Second(%s.get_lop())",
+                "lon" : "Either::First(%s.get_length())",
+                "angle" : "%s.get_angle()",
+                "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
+                "percentage" : "Percentage(bindings::Gecko_CSSValue_GetPercentage(%s))",
+                "integer_to_percentage" : "bindings::Gecko_CSSValue_GetPercentage(%s) as i32",
+                "list" : "Transform(convert_shared_list_to_operations(%s))",
+            }
+            pre_symbols = "("
+            post_symbols = ")"
+            if keyword == "interpolatematrix" or keyword == "accumulatematrix":
+                # We generate this like: "ComputedOperation::InterpolateMatrix {", so the space is
+                # between "InterpolateMatrix"/"AccumulateMatrix" and '{'
+                pre_symbols = " {"
+                post_symbols = "}"
+            elif keyword == "matrix3d":
+                pre_symbols = "(Matrix3D {"
+                post_symbols = "})"
+            elif keyword == "matrix":
+                pre_symbols = "(Matrix {"
+                post_symbols = "})"
+            field_names = None
+            if keyword == "interpolatematrix":
+                field_names = ["from_list", "to_list", "progress"]
+            elif keyword == "accumulatematrix":
+                field_names = ["from_list", "to_list", "count"]
+
+        %>
+        <%
+
+            guard = ""
+            if name == "Matrix3D" or name == "Matrix":
+                guard = "if !needs_prefix "
+            elif name == "PrefixedMatrix3D" or name == "PrefixedMatrix":
+                guard = "if needs_prefix "
+
+        %>
+        structs::nsCSSKeyword::eCSSKeyword_${keyword} ${guard}=> {
+            ::values::generics::transform::TransformOperation::${name}${pre_symbols}
+            % for index, item in enumerate(items):
+                % if keyword == "matrix3d":
+                    m${index / 4 + 1}${index % 4 + 1}:
+                % elif keyword == "matrix":
+                    ${chr(ord('a') + index)}:
+                % elif keyword == "interpolatematrix" or keyword == "accumulatematrix":
+                    ${field_names[index]}:
+                % endif
+                <%
+                    getter = css_value_getters[item.replace("optional_", "")] % (
+                        "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
+                    )
+                %>
+                % if item.startswith("optional_"):
+                    if (**gecko_value.mValue.mArray.as_ref()).mCount == ${index + 1} {
+                        None
+                    } else {
+                        Some(${getter})
+                    }
+                % else:
+                    ${getter}
+                % endif
+,
+            % endfor
+            ${post_symbols}
+        },
+    </%def>
+    fn clone_single_transform_function(gecko_value: &structs::nsCSSValue)
+                                       -> longhands::transform::computed_value::ComputedOperation {
+        use properties::longhands::transform::computed_value::ComputedOperation;
+        use values::computed::{Length, Percentage};
+        use values::generics::transform::{Matrix, Matrix3D};
+        use values::generics::transform::Transform;
+
+        let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
+                                                -> Vec<ComputedOperation> {
+            debug_assert!(value.mUnit == structs::nsCSSUnit::eCSSUnit_SharedList);
+            let value_list = unsafe {
+                value.mValue.mSharedList.as_ref()
+                     .as_mut().expect("List pointer should be non-null").mHead.as_ref()
+            };
+            debug_assert!(value_list.is_some(), "An empty shared list is not allowed");
+            value_list.unwrap().into_iter()
+                               .map(|item| Self::clone_single_transform_function(item))
+                               .collect()
+        };
+
+        let transform_function = unsafe {
+            bindings::Gecko_CSSValue_GetKeyword(bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 0))
+        };
+
+        let needs_prefix = if transform_function == structs::nsCSSKeyword::eCSSKeyword_matrix3d {
+            unsafe {
+                bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 13).mUnit
+                        != structs::nsCSSUnit::eCSSUnit_Number ||
+                bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 14).mUnit
+                        != structs::nsCSSUnit::eCSSUnit_Number ||
+                bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 15).mUnit
+                        != structs::nsCSSUnit::eCSSUnit_Number
+            }
+        } else {
+            false
+        };
+
+        unsafe {
+            match transform_function {
+                % for servo, gecko, format in transform_functions:
+                    ${computed_operation_arm(servo, gecko, format)}
+                % endfor
+                _ => panic!("{:?} is not an acceptable transform function", transform_function),
+            }
+        }
+    }
+    pub fn clone_transform(&self) -> longhands::transform::computed_value::T {
+        use values::generics::transform::Transform;
+
+        if self.gecko.mSpecifiedTransform.mRawPtr.is_null() {
+            return Transform(vec!());
+        }
+        let list = unsafe { (*self.gecko.mSpecifiedTransform.to_safe().get()).mHead.as_ref() };
+        Self::clone_transform_from_list(list)
+    }
+    pub fn clone_transform_from_list(list: Option< &structs::root::nsCSSValueList>)
+                                     -> longhands::transform::computed_value::T {
+        use values::generics::transform::Transform;
+
+        let result = match list {
+            Some(list) => {
+                list.into_iter()
+                    .filter_map(|value| {
+                        // Handle none transform.
+                        if value.is_none() {
+                            None
+                        } else {
+                            Some(Self::clone_single_transform_function(value))
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            },
+            _ => vec![],
+        };
+        Transform(result)
+    }
 
     ${impl_transition_time_value('delay', 'Delay')}
     ${impl_transition_time_value('duration', 'Duration')}
@@ -3501,6 +3435,35 @@ fn static_assert() {
                 .expect("Expected length or percentage for horizontal value of perspective-origin"),
             vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mPerspectiveOrigin[1])
                 .expect("Expected length or percentage for vertical value of perspective-origin"),
+        }
+    }
+
+    pub fn set_transform_origin(&mut self, v: longhands::transform_origin::computed_value::T) {
+        self.gecko.mTransformOrigin[0].set(v.horizontal);
+        self.gecko.mTransformOrigin[1].set(v.vertical);
+        self.gecko.mTransformOrigin[2].set(v.depth);
+    }
+
+    pub fn copy_transform_origin_from(&mut self, other: &Self) {
+        self.gecko.mTransformOrigin[0].copy_from(&other.gecko.mTransformOrigin[0]);
+        self.gecko.mTransformOrigin[1].copy_from(&other.gecko.mTransformOrigin[1]);
+        self.gecko.mTransformOrigin[2].copy_from(&other.gecko.mTransformOrigin[2]);
+    }
+
+    pub fn reset_transform_origin(&mut self, other: &Self) {
+        self.copy_transform_origin_from(other)
+    }
+
+    pub fn clone_transform_origin(&self) -> longhands::transform_origin::computed_value::T {
+        use properties::longhands::transform_origin::computed_value::T;
+        use values::computed::{Length, LengthOrPercentage};
+        T {
+            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[0])
+                .expect("clone for LengthOrPercentage failed"),
+            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[1])
+                .expect("clone for LengthOrPercentage failed"),
+            depth: Length::from_gecko_style_coord(&self.gecko.mTransformOrigin[2])
+                .expect("clone for Length failed"),
         }
     }
 

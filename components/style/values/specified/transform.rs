@@ -37,9 +37,9 @@ pub type TransformOrigin = GenericTransformOrigin<OriginComponent<X>, OriginComp
 
 
 impl Transform {
-    // Internal parse function for deciding if we wish to accept prefixed values or not
+    /// Internal parse function for deciding if we wish to accept prefixed values or not
     // Allow unitless zero angle for rotate() and skew() to align with gecko
-    fn parse_internal<'i, 't>(
+    pub fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         prefixed: bool,
@@ -251,25 +251,6 @@ impl Transform {
                     .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function.clone())))
             })
         })?))
-    }
-
-    /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
-    /// in the nondiagonal homogeneous components of matrix and matrix3d.
-    #[inline]
-    pub fn parse_prefixed<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        Transform::parse_internal(context, input, true)
-    }
-}
-
-impl Parse for Transform {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>
-    ) -> Result<Self, ParseError<'i>> {
-        Transform::parse_internal(context, input, false)
     }
 }
 

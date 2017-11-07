@@ -567,13 +567,42 @@ ${helpers.predefined_type(
     allow_empty="NotInitial"
 )}
 
-${helpers.predefined_type("transform", "Transform",
-                          "generics::transform::Transform::none()",
-                          extra_prefixes="webkit",
-                          animation_value_type="ComputedValue",
-                          gecko_ffi_name="mSpecifiedTransform",
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          spec="https://drafts.csswg.org/css-transforms/#propdef-transform")}
+<%helpers:longhand name="transform" extra_prefixes="webkit"
+                   animation_value_type="ComputedValue"
+                   flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
+                   spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
+    use values::generics::transform::Transform;
+
+
+    pub mod computed_value {
+        pub use values::computed::transform::Transform as T;
+        pub use values::computed::transform::TransformOperation as ComputedOperation;
+    }
+
+    pub use values::specified::transform::Transform as SpecifiedValue;
+    pub use values::specified::transform::TransformOperation as SpecifiedOperation;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Transform(vec![])
+    }
+
+
+    /// Parses `transform` property.
+    #[inline]
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
+        SpecifiedValue::parse_internal(context, input, false)
+    }
+
+    /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
+    /// in the nondiagonal homogeneous components of matrix and matrix3d.
+    #[inline]
+    pub fn parse_prefixed<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<SpecifiedValue,ParseError<'i>> {
+        SpecifiedValue::parse_internal(context, input, true)
+    }
+</%helpers:longhand>
 
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
@@ -684,7 +713,6 @@ ${helpers.predefined_type("transform-origin",
                           "computed::TransformOrigin::initial_value()",
                           animation_value_type="ComputedValue",
                           extra_prefixes="moz webkit",
-                          gecko_ffi_name="mTransformOrigin",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-transforms/#transform-origin-property")}
 
