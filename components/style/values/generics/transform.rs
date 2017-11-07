@@ -450,3 +450,10 @@ impl<T: ToCss> ToCss for Transform<T> {
         Ok(())
     }
 }
+
+impl<T> Transform<T> {
+    /// `none`
+    pub fn none() -> Self {
+        Transform(vec![])
+    }
+}
