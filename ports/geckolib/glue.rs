@@ -111,7 +111,7 @@ use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
-use style::gecko_properties;
+use style::gecko_properties::style_structs;
 use style::invalidation::element::restyle_hints;
 use style::media_queries::{Device, MediaList, parse_media_query_list};
 use style::parser::{Parse, ParserContext, self};
@@ -721,7 +721,7 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(
                 list.set_move(RefPtr::from_addrefed(Gecko_NewNoneTransform()));
             }
         } else {
-            gecko_properties::convert_transform(&servo_list.0, list);
+            style_structs::Box::convert_transform(&servo_list.0, list);
         }
     } else {
         panic!("The AnimationValue should be transform");
@@ -733,7 +733,7 @@ pub extern "C" fn Servo_AnimationValue_Transform(
     list: *const nsCSSValueSharedList
 ) -> RawServoAnimationValueStrong {
     let list = unsafe { (&*list).mHead.as_ref() };
-    let transform = gecko_properties::clone_transform_from_list(list);
+    let transform = style_structs::Box::clone_transform_from_list(list);
     Arc::new(AnimationValue::Transform(transform)).into_strong()
 }
 

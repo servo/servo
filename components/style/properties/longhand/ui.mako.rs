@@ -46,23 +46,6 @@ ${helpers.predefined_type("-moz-window-opacity", "Opacity", "1.0", products="gec
                           internal=True,
                           spec="None (Nonstandard internal property)")}
 
-${helpers.predefined_type("-moz-window-transform", "Transform",
-                          "generics::transform::Transform::none()",
-                          products="gecko", gecko_ffi_name="mSpecifiedWindowTransform",
-                          animation_value_type="ComputedValue",
-                          internal=True,
-                          spec="None (Nonstandard internal property)")}
-
-${helpers.predefined_type("-moz-window-transform-origin",
-                          "TransformOrigin",
-                          "computed::TransformOrigin::initial_value()",
-                          animation_value_type="ComputedValue",
-                          gecko_ffi_name="mWindowTransformOrigin",
-                          products="gecko",
-                          boxed=True,
-                          internal=True,
-                          spec="None (Nonstandard internal property)")}
-
 <%helpers:longhand name="-moz-force-broken-image-icon"
                    products="gecko"
                    animation_value_type="discrete"

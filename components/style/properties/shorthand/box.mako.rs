@@ -363,11 +363,12 @@ macro_rules! try_parse_one {
                     flags="SHORTHAND_ALIAS_PROPERTY"
                     derive_serialize="True"
                     spec="Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/transform">
+    use properties::longhands::transform;
+
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        use values::specified::transform::Transform;
         Ok(expanded! {
-            transform: Transform::parse_prefixed(context, input)?,
+            transform: transform::parse_prefixed(context, input)?,
         })
     }
 </%helpers:shorthand>

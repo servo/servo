@@ -56,7 +56,7 @@ pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDash
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin};
+pub use self::transform::{TimingFunction, TransformOrigin};
 
 #[cfg(feature = "gecko")]
 pub mod align;
