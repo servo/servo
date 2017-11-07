@@ -49,7 +49,7 @@ pub enum WindowEvent {
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
     /// Sent when the window is resized.
-    Resize(DeviceUintSize),
+    Resize,
     /// Touchpad Pressure
     TouchpadPressure(TypedPoint2D<f32, DevicePixel>, f32, TouchpadPressurePhase),
     /// Sent when a new URL is to be loaded.
@@ -93,7 +93,7 @@ impl Debug for WindowEvent {
         match *self {
             WindowEvent::Idle => write!(f, "Idle"),
             WindowEvent::Refresh => write!(f, "Refresh"),
-            WindowEvent::Resize(..) => write!(f, "Resize"),
+            WindowEvent::Resize => write!(f, "Resize"),
             WindowEvent::TouchpadPressure(..) => write!(f, "TouchpadPressure"),
             WindowEvent::KeyEvent(..) => write!(f, "Key"),
             WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),

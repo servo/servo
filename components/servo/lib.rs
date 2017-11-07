@@ -265,8 +265,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 self.compositor.composite();
             }
 
-            WindowEvent::Resize(size) => {
-                self.compositor.on_resize_window_event(size);
+            WindowEvent::Resize => {
+                self.compositor.on_resize_window_event();
             }
 
             WindowEvent::LoadUrl(top_level_browsing_context_id, url) => {
