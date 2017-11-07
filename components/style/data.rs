@@ -466,20 +466,6 @@ impl ElementData {
         self.is_restyle() || !self.hint.is_empty() || !self.damage.is_empty()
     }
 
-    /// If an ancestor is already getting reconstructed by Gecko's top-down
-    /// frame constructor, no need to apply damage.  Similarly if we already
-    /// have an explicitly stored ReconstructFrame hint.
-    ///
-    /// See https://bugzilla.mozilla.org/show_bug.cgi?id=1301258#c12
-    /// for followup work to make the optimization here more optimal by considering
-    /// each bit individually.
-    #[cfg(feature = "gecko")]
-    pub fn skip_applying_damage(&self) -> bool { self.reconstructed_self_or_ancestor() }
-
-    /// N/A in Servo.
-    #[cfg(feature = "servo")]
-    pub fn skip_applying_damage(&self) -> bool { false }
-
     /// Returns whether it is safe to perform cousin sharing based on the ComputedValues
     /// identity of the primary style in this ElementData. There are a few subtle things
     /// to check.
