@@ -12,7 +12,7 @@ use webrender_api::ScrollLocation;
 use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
-use euclid::{TypedPoint2D, TypedVector2D, TypedSize2D};
+use euclid::{TypedPoint2D, TypedVector2D};
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::{MouseButton, TouchEventType};
@@ -384,8 +384,7 @@ full_cef_class_impl! {
                     .get_render_handler()
                     .get_view_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
                }
-            let size = TypedSize2D::new(rect.width as u32, rect.height as u32);
-            this.downcast().send_window_event(WindowEvent::Resize(size));
+            this.downcast().send_window_event(WindowEvent::Resize);
         }}
 
         fn close_browser(&this, _force: c_int [c_int],) -> () {{
