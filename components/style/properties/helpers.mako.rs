@@ -402,22 +402,30 @@
             % endif
         }
         % if not property.derived_from:
-            pub fn parse_specified<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                % if property.boxed:
-                                   -> Result<Box<SpecifiedValue>, ParseError<'i>> {
-                    parse(context, input).map(|result| Box::new(result))
+            pub fn parse_specified<'i, 't>(
+                context: &ParserContext,
+                input: &mut Parser<'i, 't>,
+            % if property.boxed:
+            ) -> Result<Box<SpecifiedValue>, ParseError<'i>> {
+            % else:
+            ) -> Result<SpecifiedValue, ParseError<'i>> {
+            % endif
+                % if property.allow_quirks:
+                    parse_quirky(context, input, specified::AllowQuirks::Yes)
                 % else:
-                                   -> Result<SpecifiedValue, ParseError<'i>> {
-                    % if property.allow_quirks:
-                        parse_quirky(context, input, specified::AllowQuirks::Yes)
-                    % else:
-                        parse(context, input)
-                    % endif
+                    parse(context, input)
+                % endif
+                % if property.boxed:
+                    .map(Box::new)
                 % endif
             }
-            pub fn parse_declared<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                          -> Result<PropertyDeclaration, ParseError<'i>> {
-                parse_specified(context, input).map(PropertyDeclaration::${property.camel_case})
+
+            pub fn parse_declared<'i, 't>(
+                context: &ParserContext,
+                input: &mut Parser<'i, 't>,
+            ) -> Result<PropertyDeclaration, ParseError<'i>> {
+                parse_specified(context, input)
+                    .map(PropertyDeclaration::${property.camel_case})
             }
         % endif
     }
