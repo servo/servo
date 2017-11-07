@@ -390,6 +390,7 @@ impl TestBindingMethods for TestBinding {
             octetValue: None,
             requiredValue: true,
             seqDict: None,
+            elementSequence: None,
             shortValue: None,
             stringValue: None,
             type_: Some(DOMString::from("success")),
