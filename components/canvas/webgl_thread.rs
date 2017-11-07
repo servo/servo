@@ -7,7 +7,7 @@ use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use offscreen_gl_context::{GLContext, GLContextAttributes, NativeGLContextMethods};
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -187,7 +187,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                             version: WebGLVersion,
                             size: Size2D<i32>,
                             attributes: GLContextAttributes)
-                            -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
+                            -> Result<(WebGLContextId, WebGLContextLimits, WebGLContextShareMode), String> {
         // First try to create a shared context for the best performance.
         // Fallback to readback mode if the shared context creation fails.
         let result = self.gl_factory.new_shared_context(version, size, attributes)
@@ -204,7 +204,8 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         match result {
             Ok((ctx, share_mode)) => {
                 let id = WebGLContextId(self.next_webgl_id);
-                let (size, texture_id, limits) = ctx.get_info();
+                let (size, texture_id) = ctx.get_info();
+                let limits = WebGLContextLimits::new(ctx.gl());
                 self.next_webgl_id += 1;
                 self.contexts.insert(id, ctx);
                 self.cached_context_info.insert(id, WebGLContextInfo {
@@ -234,7 +235,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         let ctx = Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id);
         match ctx.resize(size) {
             Ok(_) => {
-                let (real_size, texture_id, _) = ctx.get_info();
+                let (real_size, texture_id) = ctx.get_info();
                 self.observer.on_context_resize(context_id, texture_id, real_size);
 
                 let info = self.cached_context_info.get_mut(&context_id).unwrap();

@@ -12,6 +12,7 @@ path = "lib.rs"
 [dependencies]
 cssparser = "0.22.0"
 euclid = "0.15"
+gleam = "0.4"
 ipc-channel = "0.9"
 lazy_static = "0.2"
 malloc_size_of = { path = "../malloc_size_of" }

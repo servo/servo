@@ -6,8 +6,7 @@ use canvas_traits::webgl::{WebGLCommand, WebGLVersion};
 use compositing::compositor_thread::{CompositorProxy, self};
 use euclid::Size2D;
 use gleam::gl;
-use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher};
-use offscreen_gl_context::{GLLimits, GLVersion};
+use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, GLContextDispatcher, GLVersion};
 use offscreen_gl_context::{NativeGLContext, NativeGLContextHandle, NativeGLContextMethods};
 use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use std::sync::{Arc, Mutex};
@@ -163,7 +162,7 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn get_info(&self) -> (Size2D<i32>, u32, GLLimits) {
+    pub fn get_info(&self) -> (Size2D<i32>, u32) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 let (real_size, texture_id) = {
@@ -171,9 +170,7 @@ impl GLContextWrapper {
                     (draw_buffer.size(), draw_buffer.get_bound_texture_id().unwrap())
                 };
 
-                let limits = ctx.borrow_limits().clone();
-
-                (real_size, texture_id, limits)
+                (real_size, texture_id)
             }
             GLContextWrapper::OSMesa(ref ctx) => {
                 let (real_size, texture_id) = {
@@ -181,9 +178,7 @@ impl GLContextWrapper {
                     (draw_buffer.size(), draw_buffer.get_bound_texture_id().unwrap())
                 };
 
-                let limits = ctx.borrow_limits().clone();
-
-                (real_size, texture_id, limits)
+                (real_size, texture_id)
             }
         }
     }

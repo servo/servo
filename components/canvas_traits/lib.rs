@@ -9,6 +9,7 @@
 
 extern crate cssparser;
 extern crate euclid;
+extern crate gleam;
 extern crate ipc_channel;
 #[macro_use] extern crate lazy_static;
 extern crate malloc_size_of;

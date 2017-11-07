@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::Size2D;
+use gleam::gl;
 use nonzero::NonZero;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use offscreen_gl_context::GLContextAttributes;
 use std::fmt;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
@@ -59,8 +60,8 @@ pub enum WebGLMsg {
 pub struct WebGLCreateContextResult {
     /// Sender instance to send commands to the specific WebGLContext
     pub sender: WebGLMsgSender,
-    /// Information about the internal GL Context.
-    pub limits: GLLimits,
+    // Context limit constants queried at context creation time and used by the WebGLRenderingContext
+    pub limits: WebGLContextLimits,
     /// How the WebGLContext is shared with WebRender.
     pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
@@ -544,5 +545,26 @@ impl fmt::Debug for WebGLCommand {
         };
 
         write!(f, "CanvasWebGLMsg::{}(..)", name)
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WebGLContextLimits {
+    pub max_vertex_attribs: u32,
+    pub max_tex_size: u32,
+    pub max_cube_map_tex_size: u32,
+}
+
+impl WebGLContextLimits {
+    pub fn new(gl: &gl::Gl) -> WebGLContextLimits {
+        let get_param = |param| {
+            gl.get_integer_v(param) as u32
+        };
+
+        WebGLContextLimits {
+            max_vertex_attribs: get_param(gl::MAX_VERTEX_ATTRIBS),
+            max_tex_size: get_param(gl::MAX_TEXTURE_SIZE),
+            max_cube_map_tex_size: get_param(gl::MAX_CUBE_MAP_TEXTURE_SIZE),
+        }
     }
 }
