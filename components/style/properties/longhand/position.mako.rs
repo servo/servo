@@ -160,6 +160,11 @@ ${helpers.predefined_type("order", "Integer", "0",
                           animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
+// FIXME(emilio): All the sizes stuff, and the MozLength values should be
+// unified with Servo, or at least be less hacky.
+//
+// The block direction ones don't even accept extremum lengths during parsing,
+// and should be converted to just LengthOrPercentage.
 % if product == "gecko":
     // FIXME: Gecko doesn't support content value yet.
     ${helpers.gecko_size_type("flex-basis", "MozLength", "auto()",
