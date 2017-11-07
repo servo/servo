@@ -48,7 +48,7 @@ extern crate cssparser;
 extern crate euclid;
 extern crate hashglobe;
 #[cfg(feature = "servo")]
-extern crate js;
+extern crate mozjs as js;
 extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
