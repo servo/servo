@@ -331,14 +331,6 @@ impl Window {
         }
     }
 
-    fn nested_window_resize(_width: u32, _height: u32) {
-        unsafe {
-            if let Some(listener) = G_NESTED_EVENT_LOOP_LISTENER {
-                (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize);
-            }
-        }
-    }
-
     #[cfg(not(target_os = "windows"))]
     fn handle_received_character(&self, ch: char) {
         if !ch.is_control() {
