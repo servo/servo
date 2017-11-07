@@ -160,12 +160,11 @@ impl PseudoElement {
 
     /// Whether this pseudo-element should actually exist if it has
     /// the given styles.
-    pub fn should_exist(&self, style: &ComputedValues) -> bool
-    {
-        let display = style.get_box().clone_display();
-        if display == display::T::none {
+    pub fn should_exist(&self, style: &ComputedValues) -> bool {
+        if style.get_box().clone_display() == display::T::none {
             return false;
         }
+
         if self.is_before_or_after() && style.ineffective_content_property() {
             return false;
         }
