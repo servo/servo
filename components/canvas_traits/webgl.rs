@@ -4,7 +4,7 @@
 
 use euclid::Size2D;
 use nonzero::NonZero;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use offscreen_gl_context::GLContextAttributes;
 use std::fmt;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
@@ -59,8 +59,6 @@ pub enum WebGLMsg {
 pub struct WebGLCreateContextResult {
     /// Sender instance to send commands to the specific WebGLContext
     pub sender: WebGLMsgSender,
-    /// Information about the internal GL Context.
-    pub limits: GLLimits,
     /// How the WebGLContext is shared with WebRender.
     pub share_mode: WebGLContextShareMode,
 }

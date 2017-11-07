@@ -52,7 +52,7 @@ use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, Undefin
 use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
@@ -177,6 +177,32 @@ impl TextureUnitBindings {
     }
 }
 
+#[derive(JSTraceable)]
+pub struct WebGLRenderingContextLimits {
+    pub max_vertex_attribs: u32,
+    pub max_tex_size: u32,
+    pub max_cube_map_tex_size: u32,
+}
+
+impl WebGLRenderingContextLimits {
+    pub fn new(renderer: &WebGLMsgSender) -> WebGLRenderingContextLimits {
+        let get_param = |param| {
+            let (sender, receiver) = webgl_channel().unwrap();
+
+            renderer.send(WebGLCommand::GetParameter(param, sender)).unwrap();
+            match receiver.recv().unwrap() {
+                Ok(WebGLParameter::Int(x)) => x as u32,
+                _ => 0,
+            }
+        };
+
+        WebGLRenderingContextLimits {
+            max_vertex_attribs: get_param(constants::MAX_VERTEX_ATTRIBS),
+            max_tex_size: get_param(constants::MAX_TEXTURE_SIZE),
+            max_cube_map_tex_size: get_param(constants::MAX_CUBE_MAP_TEXTURE_SIZE),
+        }
+    }
+}
 
 #[dom_struct]
 pub struct WebGLRenderingContext {
@@ -188,7 +214,7 @@ pub struct WebGLRenderingContext {
     share_mode: WebGLContextShareMode,
     webgl_version: WebGLVersion,
     #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
-    limits: GLLimits,
+    limits: WebGLRenderingContextLimits,
     canvas: Dom<HTMLCanvasElement>,
     #[ignore_malloc_size_of = "Defined in canvas_traits"]
     last_error: Cell<Option<WebGLError>>,
@@ -231,12 +257,12 @@ impl WebGLRenderingContext {
 
         result.map(|ctx_data| {
             WebGLRenderingContext {
+                limits: WebGLRenderingContextLimits::new(&ctx_data.sender),
                 reflector_: Reflector::new(),
                 webgl_sender: ctx_data.sender,
                 webrender_image: Cell::new(None),
                 share_mode: ctx_data.share_mode,
                 webgl_version,
-                limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
@@ -280,7 +306,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn limits(&self) -> &GLLimits {
+    pub fn limits(&self) -> &WebGLRenderingContextLimits {
         &self.limits
     }
 

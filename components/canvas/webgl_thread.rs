@@ -7,7 +7,7 @@ use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use offscreen_gl_context::{GLContext, GLContextAttributes, NativeGLContextMethods};
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -91,10 +91,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         match msg {
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
                 let result = self.create_webgl_context(version, size, attributes);
-                result_sender.send(result.map(|(id, limits, share_mode)|
+                result_sender.send(result.map(|(id, share_mode)|
                     WebGLCreateContextResult {
                         sender: WebGLMsgSender::new(id, webgl_chan.clone()),
-                        limits: limits,
                         share_mode: share_mode,
                     }
                 )).unwrap();
@@ -182,7 +181,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                             version: WebGLVersion,
                             size: Size2D<i32>,
                             attributes: GLContextAttributes)
-                            -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
+                            -> Result<(WebGLContextId, WebGLContextShareMode), String> {
         // First try to create a shared context for the best performance.
         // Fallback to readback mode if the shared context creation fails.
         let result = self.gl_factory.new_shared_context(version, size, attributes)
@@ -199,7 +198,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         match result {
             Ok((ctx, share_mode)) => {
                 let id = WebGLContextId(self.next_webgl_id);
-                let (size, texture_id, limits) = ctx.get_info();
+                let (size, texture_id, _) = ctx.get_info();
                 self.next_webgl_id += 1;
                 self.contexts.insert(id, ctx);
                 self.cached_context_info.insert(id, WebGLContextInfo {
@@ -213,7 +212,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
                 self.observer.on_context_create(id, texture_id, size);
 
-                Ok((id, limits, share_mode))
+                Ok((id, share_mode))
             },
             Err(msg) => {
                 Err(msg.to_owned())
