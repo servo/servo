@@ -6,7 +6,7 @@ use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, ProgramParameter};
 use canvas_traits::webgl::{ShaderParameter, VertexAttrib, WebGLCommand};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{WebGLContextShareMode, WebGLError, WebGLContextLimits};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
 use canvas_traits::webgl::{WebVRCommand, webgl_channel};
@@ -56,7 +56,7 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
@@ -180,7 +180,7 @@ pub struct WebGLRenderingContext {
     webgl_version: WebGLVersion,
     glsl_version: WebGLSLVersion,
     #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
-    limits: GLLimits,
+    limits: WebGLContextLimits,
     canvas: Dom<HTMLCanvasElement>,
     #[ignore_malloc_size_of = "Defined in canvas_traits"]
     last_error: Cell<Option<WebGLError>>,
@@ -277,7 +277,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn limits(&self) -> &GLLimits {
+    pub fn limits(&self) -> &WebGLContextLimits {
         &self.limits
     }
 

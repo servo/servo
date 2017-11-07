@@ -5,7 +5,7 @@
 use euclid::Size2D;
 use gleam::gl;
 use nonzero::NonZeroU32;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use offscreen_gl_context::GLContextAttributes;
 use serde_bytes::ByteBuf;
 use std::fmt;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
@@ -61,8 +61,8 @@ pub enum WebGLMsg {
 pub struct WebGLCreateContextResult {
     /// Sender instance to send commands to the specific WebGLContext
     pub sender: WebGLMsgSender,
-    /// Information about the internal GL Context.
-    pub limits: GLLimits,
+    // Context limit constants queried at context creation time and used by the WebGLRenderingContext
+    pub limits: WebGLContextLimits,
     /// How the WebGLContext is shared with WebRender.
     pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
@@ -699,4 +699,11 @@ parameters! {
             CurrentVertexAttrib = gl::CURRENT_VERTEX_ATTRIB,
         }),
     }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WebGLContextLimits {
+    pub max_vertex_attribs: u32,
+    pub max_tex_size: u32,
+    pub max_cube_map_tex_size: u32,
 }
