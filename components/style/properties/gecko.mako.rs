@@ -2999,13 +2999,13 @@ fn static_assert() {
             % endfor
         }
     </%def>
-    fn set_single_transform_function(servo_value: &longhands::transform::computed_value::ComputedOperation,
+    fn set_single_transform_function(servo_value: &values::computed::TransformOperation,
                                      gecko_value: &mut structs::nsCSSValue /* output */) {
-        use properties::longhands::transform::computed_value::ComputedOperation;
         use values::computed::{Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrNumber};
+        use values::computed::TransformOperation;
         use values::generics::transform::{Matrix, Matrix3D};
 
-        let convert_to_ns_css_value = |item: &ComputedOperation| -> structs::nsCSSValue {
+        let convert_to_ns_css_value = |item: &TransformOperation| -> structs::nsCSSValue {
             let mut value = structs::nsCSSValue::null();
             Self::set_single_transform_function(item, &mut value);
             value
@@ -3035,7 +3035,7 @@ fn static_assert() {
             }
         }
     }
-    pub fn convert_transform(input: &[longhands::transform::computed_value::ComputedOperation],
+    pub fn convert_transform(input: &[values::computed::TransformOperation],
                              output: &mut structs::root::RefPtr<structs::root::nsCSSValueSharedList>) {
         use gecko_bindings::sugar::refptr::RefPtr;
 
@@ -3088,7 +3088,7 @@ fn static_assert() {
             pre_symbols = "("
             post_symbols = ")"
             if keyword == "interpolatematrix" or keyword == "accumulatematrix":
-                # We generate this like: "ComputedOperation::InterpolateMatrix {", so the space is
+                # We generate this like: "TransformOperation::InterpolateMatrix {", so the space is
                 # between "InterpolateMatrix"/"AccumulateMatrix" and '{'
                 pre_symbols = " {"
                 post_symbols = "}"
@@ -3144,14 +3144,13 @@ fn static_assert() {
         },
     </%def>
     fn clone_single_transform_function(gecko_value: &structs::nsCSSValue)
-                                       -> longhands::transform::computed_value::ComputedOperation {
-        use properties::longhands::transform::computed_value::ComputedOperation;
-        use values::computed::{Length, Percentage};
+                                       -> values::computed::TransformOperation {
+        use values::computed::{Length, Percentage, TransformOperation};
         use values::generics::transform::{Matrix, Matrix3D};
         use values::generics::transform::Transform;
 
         let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
-                                                -> Vec<ComputedOperation> {
+                                                -> Vec<TransformOperation> {
             debug_assert!(value.mUnit == structs::nsCSSUnit::eCSSUnit_SharedList);
             let value_list = unsafe {
                 value.mValue.mSharedList.as_ref()
