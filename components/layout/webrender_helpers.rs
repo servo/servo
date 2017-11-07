@@ -549,6 +549,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             sticky_data.margins,
                             sticky_data.vertical_offset_bounds,
                             sticky_data.horizontal_offset_bounds,
+                            webrender_api::LayoutVector2D::zero(),
                         );
                         builder.pop_clip_id();
                         id
