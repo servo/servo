@@ -13,7 +13,7 @@ use properties::longhands::system_font::SystemFont;
 use std::fmt;
 use style_traits::{ToCss, StyleParseErrorKind, ParseError};
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
-use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength};
+use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength, Number};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
@@ -148,6 +148,76 @@ impl ToCss for FontSize {
 impl From<LengthOrPercentage> for FontSize {
     fn from(other: LengthOrPercentage) -> Self {
         FontSize::Length(other)
+    }
+}
+
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// Preserve the readability of text when font fallback occurs
+pub enum FontSizeAdjust {
+    /// None variant
+    None,
+    /// Number variant
+    Number(Number),
+    /// system font
+    System(SystemFont),
+}
+
+impl FontSizeAdjust {
+    #[inline]
+    /// Default value of font-size-adjust
+    pub fn none() -> Self {
+        FontSizeAdjust::None
+    }
+
+    /// Get font-size-adjust with SystemFont
+    pub fn system_font(f: SystemFont) -> Self {
+        FontSizeAdjust::System(f)
+    }
+
+    /// Get SystemFont variant
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontSizeAdjust::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontSizeAdjust {
+    type ComputedValue = computed::FontSizeAdjust;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            FontSizeAdjust::None => computed::FontSizeAdjust::None,
+            FontSizeAdjust::Number(ref n) => computed::FontSizeAdjust::Number(n.to_computed_value(context)),
+            FontSizeAdjust::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    context.cached_system_font.as_ref().unwrap().font_size_adjust
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(computed: &computed::FontSizeAdjust) -> Self {
+        match *computed {
+            computed::FontSizeAdjust::None => FontSizeAdjust::None,
+            computed::FontSizeAdjust::Number(ref v) => FontSizeAdjust::Number(Number::from_computed_value(v)),
+        }
+    }
+}
+
+impl Parse for FontSizeAdjust {
+    /// none | <number>
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontSizeAdjust, ParseError<'i>> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(FontSizeAdjust::None);
+        }
+
+        Ok(FontSizeAdjust::Number(Number::parse_non_negative(context, input)?))
     }
 }
 

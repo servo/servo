@@ -7,7 +7,8 @@
 use app_units::Au;
 use std::fmt;
 use style_traits::ToCss;
-use values::animated::ToAnimatedValue;
+use values::CSSFloat;
+use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
 use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
@@ -208,6 +209,58 @@ impl ToAnimatedValue for FontSize {
         FontSize {
             size: animated.clamp(),
             keyword_info: None,
+        }
+    }
+}
+
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// Preserve the readability of text when font fallback occurs
+pub enum FontSizeAdjust {
+    #[animation(error)]
+    /// None variant
+    None,
+    /// Number variant
+    Number(CSSFloat),
+}
+
+impl FontSizeAdjust {
+    #[inline]
+    /// Default value of font-size-adjust
+    pub fn none() -> Self {
+        FontSizeAdjust::None
+    }
+
+    /// Get font-size-adjust with float number
+    pub fn from_gecko_adjust(gecko: f32) -> Self {
+        if gecko == -1.0 {
+            FontSizeAdjust::None
+        } else {
+            FontSizeAdjust::Number(gecko)
+        }
+    }
+}
+
+impl ToAnimatedZero for FontSizeAdjust {
+    #[inline]
+    // FIXME(emilio): why?
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
+    }
+}
+
+impl ToAnimatedValue for FontSizeAdjust {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        match animated {
+            FontSizeAdjust::Number(number) => FontSizeAdjust::Number(number.max(0.)),
+            _ => animated
         }
     }
 }
