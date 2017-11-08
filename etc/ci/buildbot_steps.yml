@@ -1,6 +1,6 @@
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --debug-mozjs --release
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
@@ -10,20 +10,20 @@ mac-rel-wpt1:
 
 mac-rel-wpt2:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --debug-mozjs --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build-geckolib --release
 
 mac-rel-wpt3:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --debug-mozjs --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt4:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --debug-mozjs --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - ./mach test-wpt --release --pref dom.servoparser.async_html_tokenizer.enabled --processes=8 --log-raw test-async-parsing.log --log-errorsummary async-parsing-errorsummary.log --always-succeed domparsing html/syntax html/dom/documents html/dom/dynamic-markup-insertion
@@ -41,7 +41,7 @@ mac-dev-unit:
 
 mac-rel-css1:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --debug-mozjs --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 5 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - bash ./etc/ci/lockfile_changed.sh
@@ -49,7 +49,7 @@ mac-rel-css1:
 
 mac-rel-css2:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --debug-mozjs --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
@@ -61,17 +61,17 @@ mac-nightly:
 
 linux-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - ./mach build --debug-mozjs --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-rel-nogate:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - ./mach build --debug-mozjs --release
   - python ./etc/ci/chaos_monkey_test.py
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --debug-mozjs --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-dev:
@@ -92,7 +92,7 @@ linux-dev:
 
 linux-rel-wpt:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release --with-debug-assertions
+  - ./mach build --debug-mozjs --release --with-debug-assertions
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
@@ -100,7 +100,7 @@ linux-rel-wpt:
 
 linux-rel-css:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release --with-debug-assertions
+  - ./mach build --debug-mozjs --release --with-debug-assertions
   - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - ./mach build-geckolib --release
