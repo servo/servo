@@ -61,4 +61,4 @@ def mutation_test(file_name, tests):
             subprocess.call('git checkout {0}'.format(file_name), shell=True)
         else:
             print "Cannot mutate {0}".format(file_name)
-        print "-----------------------------------------------------------------\n"
+        print "-"*80 + "\n"
