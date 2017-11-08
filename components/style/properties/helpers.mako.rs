@@ -356,7 +356,7 @@
                             let computed = specified_value.to_computed_value(context);
                             % endif
                             % if property.ident == "font_size":
-                                 longhands::font_size::cascade_specified_font_size(
+                                 specified::FontSize::cascade_specified_font_size(
                                      context,
                                      &specified_value,
                                      computed,
@@ -373,7 +373,7 @@
                         % endif
                         CSSWideKeyword::Initial => {
                             % if property.ident == "font_size":
-                                longhands::font_size::cascade_initial_font_size(context);
+                                computed::FontSize::cascade_initial_font_size(context);
                             % else:
                                 context.builder.reset_${property.ident}();
                             % endif
@@ -386,7 +386,7 @@
                                 context.rule_cache_conditions.borrow_mut().set_uncacheable();
                             % endif
                             % if property.ident == "font_size":
-                                longhands::font_size::cascade_inherit_font_size(context);
+                                computed::FontSize::cascade_inherit_font_size(context);
                             % else:
                                 context.builder.inherit_${property.ident}();
                             % endif

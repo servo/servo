@@ -624,137 +624,14 @@ ${helpers.predefined_type("font-weight",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight")}
 
-<%helpers:longhand name="font-size" animation_value_type="NonNegativeLength"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
-                   allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
-    use app_units::Au;
-    use values::specified::AllowQuirks;
-    use values::specified::length::FontBaseSize;
-    use values::specified::font::{FONT_MEDIUM_PX, KeywordSize};
-    use values::computed::font::{KeywordInfo};
-
-    pub mod computed_value {
-        use values::computed::font;
-        pub type T = font::FontSize;
-    }
-
-    pub use values::specified::font::FontSize as SpecifiedValue;
-
-    #[inline]
-    #[allow(missing_docs)]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T {
-            size: Au::from_px(FONT_MEDIUM_PX).into(),
-            keyword_info: Some(KeywordInfo::medium())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Keyword(KeywordInfo::medium())
-    }
-
-
-    /// <length> | <percentage> | <absolute-size> | <relative-size>
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        parse_quirky(context, input, AllowQuirks::No)
-    }
-
-    /// Parses a font-size, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<SpecifiedValue, ParseError<'i>> {
-        use self::specified::LengthOrPercentage;
-        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks)) {
-            return Ok(SpecifiedValue::Length(lop))
-        }
-
-        if let Ok(kw) = input.try(KeywordSize::parse) {
-            return Ok(SpecifiedValue::Keyword(kw.into()))
-        }
-
-        try_match_ident_ignore_ascii_case! { input,
-            "smaller" => Ok(SpecifiedValue::Smaller),
-            "larger" => Ok(SpecifiedValue::Larger),
-        }
-    }
-
-    #[allow(unused_mut)]
-    pub fn cascade_specified_font_size(context: &mut Context,
-                                       specified_value: &SpecifiedValue,
-                                       mut computed: computed_value::T) {
-        // we could use clone_language and clone_font_family() here but that's
-        // expensive. Do it only in gecko mode for now.
-        % if product == "gecko":
-            // if the language or generic changed, we need to recalculate
-            // the font size from the stored font-size origin information.
-            if context.builder.get_font().gecko().mLanguage.mRawPtr !=
-               context.builder.get_parent_font().gecko().mLanguage.mRawPtr ||
-               context.builder.get_font().gecko().mGenericID !=
-               context.builder.get_parent_font().gecko().mGenericID {
-                if let Some(info) = computed.keyword_info {
-                    computed.size = info.to_computed_value(context);
-                }
-            }
-        % endif
-
-        let device = context.builder.device;
-        let mut font = context.builder.take_font();
-        let parent_unconstrained = {
-            let parent_font = context.builder.get_parent_font();
-            font.apply_font_size(computed, parent_font, device)
-        };
-        context.builder.put_font(font);
-
-        if let Some(parent) = parent_unconstrained {
-            let new_unconstrained =
-                specified_value
-                    .to_computed_value_against(context, FontBaseSize::Custom(Au::from(parent)));
-            context.builder
-                   .mutate_font()
-                   .apply_unconstrained_font_size(new_unconstrained.size);
-        }
-    }
-
-    /// FIXME(emilio): This is very complex. Also, it should move to
-    /// StyleBuilder.
-    pub fn cascade_inherit_font_size(context: &mut Context) {
-        // If inheriting, we must recompute font-size in case of language
-        // changes using the font_size_keyword. We also need to do this to
-        // handle mathml scriptlevel changes
-        let kw_inherited_size = context.builder.get_parent_font()
-                                       .clone_font_size()
-                                       .keyword_info.map(|info| {
-            SpecifiedValue::Keyword(info).to_computed_value(context).size
-        });
-        let mut font = context.builder.take_font();
-        font.inherit_font_size_from(context.builder.get_parent_font(),
-                                    kw_inherited_size,
-                                    context.builder.device);
-        context.builder.put_font(font);
-    }
-
-    /// Cascade the initial value for the `font-size` property.
-    ///
-    /// FIXME(emilio): This is the only function that is outside of the
-    /// `StyleBuilder`, and should really move inside!
-    ///
-    /// Can we move the font stuff there?
-    pub fn cascade_initial_font_size(context: &mut Context) {
-        // font-size's default ("medium") does not always
-        // compute to the same value and depends on the font
-        let computed =
-            longhands::font_size::get_initial_specified_value()
-                .to_computed_value(context);
-        context.builder.mutate_font().set_font_size(computed);
-        % if product == "gecko":
-            let device = context.builder.device;
-            context.builder.mutate_font().fixup_font_min_size(device);
-        % endif
-    }
-</%helpers:longhand>
+${helpers.predefined_type("font-size",
+                          "FontSize",
+                          initial_value="computed::FontSize::medium()",
+                          initial_specified_value="specified::FontSize::medium()",
+                          animation_value_type="NonNegativeLength",
+                          allow_quirks=True,
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-size")}
 
 <%helpers:longhand products="gecko" name="font-size-adjust"
                    animation_value_type="longhands::font_size_adjust::computed_value::T"
@@ -2051,6 +1928,7 @@ ${helpers.predefined_type("-x-text-zoom",
                 use gecko_bindings::bindings;
                 use gecko_bindings::structs::{LookAndFeel_FontID, nsFont};
                 use std::mem;
+                use values::computed::font::FontSize;
 
                 let id = match *self {
                     % for font in system_fonts:
@@ -2076,7 +1954,7 @@ ${helpers.predefined_type("-x-text-zoom",
                             unsafe { system.fontlist.mFontlist.mBasePtr.to_safe() }
                         )
                     ),
-                    font_size: longhands::font_size::computed_value::T {
+                    font_size: FontSize {
                             size: Au(system.size).into(),
                             keyword_info: None
                     },
