@@ -633,123 +633,14 @@ ${helpers.predefined_type("font-size",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts/#propdef-font-size")}
 
-<%helpers:longhand products="gecko" name="font-size-adjust"
-                   animation_value_type="longhands::font_size_adjust::computed_value::T"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
-                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
-    use properties::longhands::system_font::SystemFont;
-
-
-    #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
-    pub enum SpecifiedValue {
-        None,
-        Number(specified::Number),
-        System(SystemFont),
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-            match *self {
-                SpecifiedValue::None => computed_value::T::None,
-                SpecifiedValue::Number(ref n) => computed_value::T::Number(n.to_computed_value(context)),
-                SpecifiedValue::System(_) => {
-                    <%self:nongecko_unreachable>
-                        context.cached_system_font.as_ref().unwrap().font_size_adjust
-                    </%self:nongecko_unreachable>
-                }
-            }
-        }
-
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                computed_value::T::None => SpecifiedValue::None,
-                computed_value::T::Number(ref v) => SpecifiedValue::Number(specified::Number::from_computed_value(v)),
-            }
-        }
-    }
-
-    impl SpecifiedValue {
-        pub fn system_font(f: SystemFont) -> Self {
-            SpecifiedValue::System(f)
-        }
-        pub fn get_system(&self) -> Option<SystemFont> {
-            if let SpecifiedValue::System(s) = *self {
-                Some(s)
-            } else {
-                None
-            }
-        }
-    }
-
-    pub mod computed_value {
-        use values::CSSFloat;
-        use values::animated::{ToAnimatedValue, ToAnimatedZero};
-
-        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-                 ToCss)]
-        pub enum T {
-            #[animation(error)]
-            None,
-            Number(CSSFloat),
-        }
-
-        impl T {
-            pub fn from_gecko_adjust(gecko: f32) -> Self {
-                if gecko == -1.0 {
-                    T::None
-                } else {
-                    T::Number(gecko)
-                }
-            }
-        }
-
-        impl ToAnimatedZero for T {
-            #[inline]
-            fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
-        }
-
-        impl ToAnimatedValue for T {
-            type AnimatedValue = Self;
-
-            #[inline]
-            fn to_animated_value(self) -> Self {
-                self
-            }
-
-            #[inline]
-            fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-                match animated {
-                    T::Number(number) => T::Number(number.max(0.)),
-                    _ => animated
-                }
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::None
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::None
-    }
-
-    /// none | <number>
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        use values::specified::Number;
-
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue::None);
-        }
-
-        Ok(SpecifiedValue::Number(Number::parse_non_negative(context, input)?))
-    }
-</%helpers:longhand>
+${helpers.predefined_type("font-size-adjust",
+                          "FontSizeAdjust",
+                          products="gecko",
+                          initial_value="computed::FontSizeAdjust::none()",
+                          initial_specified_value="specified::FontSizeAdjust::none()",
+                          animation_value_type="ComputedValue",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust")}
 
 <%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="discrete"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
