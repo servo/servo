@@ -9,14 +9,14 @@ publish = false
 path = "lib.rs"
 
 [features]
-servo = ["js", "string_cache", "url", "webrender_api", "xml5ever"]
+servo = ["mozjs", "string_cache", "url", "webrender_api", "xml5ever"]
 
 [dependencies]
 app_units = "0.5.5"
 cssparser = "0.22.0"
 euclid = "0.15"
 hashglobe = { path = "../hashglobe" }
-js = { git = "https://github.com/servo/rust-mozjs", features = ["promises"], optional = true }
+mozjs = { version = "0.1.7", features = ["promises"], optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
 smallvec = "0.4"

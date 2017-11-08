@@ -12,7 +12,7 @@ name = "script"
 path = "lib.rs"
 
 [features]
-debugmozjs = ['js/debugmozjs']
+debugmozjs = ['mozjs/debugmozjs']
 unstable = ["servo_allocator/unstable"]
 unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
 default = ["unrooted_must_root_lint"]
@@ -51,7 +51,7 @@ hyper = "0.10"
 hyper_serde = "0.7"
 image = "0.16"
 ipc-channel = "0.9"
-js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
+mozjs = { version = "0.1.7", features = ["promises"]}
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "0.2"
 libc = "0.2"
