@@ -35,6 +35,10 @@ num = []
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
+  "mime",
+  "semver",
+  "toml",
+  "unicase",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
