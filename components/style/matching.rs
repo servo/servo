@@ -340,12 +340,7 @@ trait PrivateMatchMethods: TElement {
         pseudo: Option<&PseudoElement>,
     ) -> ChildCascadeRequirement {
         debug!("accumulate_damage_for: {:?}", self);
-
-        // Don't accumulate damage if we're in a forgetful traversal.
-        if shared_context.traversal_flags.contains(TraversalFlags::Forgetful) {
-            debug!(" > forgetful traversal");
-            return ChildCascadeRequirement::MustCascadeChildren;
-        }
+        debug_assert!(!shared_context.traversal_flags.contains(TraversalFlags::Forgetful));
 
         let difference =
             self.compute_style_difference(old_values, new_values, pseudo);
