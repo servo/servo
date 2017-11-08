@@ -4,7 +4,7 @@
 
 import os
 
-from WebIDL import IDLExternalInterface, IDLSequenceType, IDLWrapperType, WebIDLError
+from WebIDL import IDLExternalInterface, IDLWrapperType, WebIDLError
 
 
 class Configuration:
@@ -457,7 +457,7 @@ def getTypesFromDictionary(dictionary):
     types = []
     curDict = dictionary
     while curDict:
-        types.extend([getUnwrappedType(m.type) for m in curDict.members])
+        types.extend([m.type for m in curDict.members])
         curDict = curDict.parent
     return types
 
@@ -471,12 +471,6 @@ def getTypesFromCallback(callback):
     types = [sig[0]]  # Return type
     types.extend(arg.type for arg in sig[1])  # Arguments
     return types
-
-
-def getUnwrappedType(type):
-    if isinstance(type, IDLSequenceType):
-        return type.inner
-    return type
 
 
 def iteratorNativeType(descriptor, infer=False):
