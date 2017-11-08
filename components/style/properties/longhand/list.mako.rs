@@ -135,76 +135,11 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="quotes" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-content/#propdef-quotes">
-    use cssparser::serialize_string;
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub use self::computed_value::T as SpecifiedValue;
-
-    pub mod computed_value {
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-        pub struct T(pub Vec<(String, String)>);
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.0.is_empty() {
-                return dest.write_str("none")
-            }
-
-            let mut first = true;
-            for pair in &self.0 {
-                if !first {
-                    dest.write_str(" ")?;
-                }
-                first = false;
-                serialize_string(&*pair.0, dest)?;
-                dest.write_str(" ")?;
-                serialize_string(&*pair.1, dest)?;
-            }
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![
-            ("\u{201c}".to_owned(), "\u{201d}".to_owned()),
-            ("\u{2018}".to_owned(), "\u{2019}".to_owned()),
-        ])
-    }
-
-    pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue(Vec::new()))
-        }
-
-        let mut quotes = Vec::new();
-        loop {
-            let location = input.current_source_location();
-            let first = match input.next() {
-                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
-                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-                Err(_) => break,
-            };
-            let location = input.current_source_location();
-            let second = match input.next() {
-                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
-                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-                Err(e) => return Err(e.into()),
-            };
-            quotes.push((first, second))
-        }
-        if !quotes.is_empty() {
-            Ok(SpecifiedValue(quotes))
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("quotes",
+                          "Quotes",
+                          "computed::Quotes::get_initial_value()",
+                          animation_value_type="discrete",
+                          spec="https://drafts.csswg.org/css-content/#propdef-quotes")}
 
 ${helpers.predefined_type("-moz-image-region",
                           "ClipRectOrAuto",
