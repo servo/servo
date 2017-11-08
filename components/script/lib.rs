@@ -38,6 +38,8 @@ extern crate domobject_derive;
 extern crate encoding_rs;
 extern crate euclid;
 extern crate fnv;
+#[allow(unused_extern_crates)]
+extern crate gecko_media;
 extern crate gleam;
 extern crate half;
 #[macro_use] extern crate html5ever;
