@@ -34,8 +34,6 @@ dictionary TestDictionary {
   object objectValue;
   TestDictionaryDefaults dict;
   sequence<TestDictionaryDefaults> seqDict;
-  // Testing codegen to import Element correctly, ensure no other code references Element directly
-  sequence<Element> elementSequence;
   // Reserved rust keyword
   DOMString type;
   // These are used to test bidirectional conversion
