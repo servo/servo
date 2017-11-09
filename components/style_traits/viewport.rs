@@ -7,7 +7,7 @@
 use {CSSPixel, PinchZoomFactor, ParseError, ToCss};
 use cssparser::Parser;
 use euclid::TypedSize2D;
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt;
 
 define_css_keyword_enum!(UserZoom:

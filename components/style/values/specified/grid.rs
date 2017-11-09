@@ -7,7 +7,7 @@
 
 use cssparser::{Parser, Token, ParseError as CssParseError};
 use parser::{Parse, ParserContext};
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::mem;
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::{CSSFloat, CustomIdent};

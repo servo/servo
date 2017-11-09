@@ -10,7 +10,7 @@ use cssparser::Parser;
 use gecko_bindings::structs;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 

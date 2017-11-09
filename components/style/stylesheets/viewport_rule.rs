@@ -20,7 +20,7 @@ use properties::StyleBuilder;
 use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::fmt;
