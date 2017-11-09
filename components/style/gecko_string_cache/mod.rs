@@ -13,7 +13,7 @@ use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::{nsAtom, nsAtom_AtomKind, nsStaticAtom};
 use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
