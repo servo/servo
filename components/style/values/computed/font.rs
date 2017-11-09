@@ -265,6 +265,17 @@ impl ToAnimatedValue for FontSizeAdjust {
     }
 }
 
+/// Use VariantAlternatesList as computed type of FontVariantAlternates
+pub type FontVariantAlternates = specified::VariantAlternatesList;
+
+impl FontVariantAlternates {
+    #[inline]
+    /// Get initial value with VariantAlternatesList
+    pub fn get_initial_value() -> Self {
+        specified::VariantAlternatesList(vec![].into_boxed_slice())
+    }
+}
+
 impl ToComputedValue for specified::MozScriptMinSize {
     type ComputedValue = MozScriptMinSize;
 
