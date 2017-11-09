@@ -2402,7 +2402,7 @@ fn static_assert() {
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
 
     pub fn set_font_variant_alternates(&mut self,
-                                       v: longhands::font_variant_alternates::computed_value::T,
+                                       v: values::computed::font::FontVariantAlternates,
                                        device: &Device) {
         use gecko_bindings::bindings::{Gecko_ClearAlternateValues, Gecko_AppendAlternateValues};
         use gecko_bindings::bindings::Gecko_nsFont_ResetFontFeatureValuesLookup;
@@ -2410,7 +2410,7 @@ fn static_assert() {
         % for value in "normal swash stylistic ornaments annotation styleset character_variant historical".split():
             use gecko_bindings::structs::NS_FONT_VARIANT_ALTERNATES_${value.upper()};
         % endfor
-        use self::longhands::font_variant_alternates::VariantAlternates;
+        use values::specified::font::VariantAlternates;
 
         unsafe {
             Gecko_ClearAlternateValues(&mut self.gecko.mFont, v.len());
@@ -2471,13 +2471,13 @@ fn static_assert() {
         self.copy_font_variant_alternates_from(other)
     }
 
-    pub fn clone_font_variant_alternates(&self) -> longhands::font_variant_alternates::computed_value::T {
+    pub fn clone_font_variant_alternates(&self) -> values::computed::font::FontVariantAlternates {
         use Atom;
         % for value in "normal swash stylistic ornaments annotation styleset character_variant historical".split():
             use gecko_bindings::structs::NS_FONT_VARIANT_ALTERNATES_${value.upper()};
         % endfor
-        use properties::longhands::font_variant_alternates::VariantAlternates;
-        use properties::longhands::font_variant_alternates::VariantAlternatesList;
+        use values::specified::font::VariantAlternates;
+        use values::specified::font::VariantAlternatesList;
         use values::CustomIdent;
 
         if self.gecko.mFont.variantAlternates == NS_FONT_VARIANT_ALTERNATES_NORMAL as u16 {
