@@ -159,13 +159,6 @@ pub trait DomTraversal<E: TElement> : Sync {
         let parent_data = parent.as_ref().and_then(|p| p.borrow_data());
 
         if let Some(ref mut data) = data {
-            // Make sure we don't have any stale RECONSTRUCTED_ANCESTOR bits
-            // from the last traversal (at a potentially-higher root).
-            //
-            // From the perspective of this traversal, the root cannot have
-            // reconstructed ancestors.
-            data.set_reconstructed_ancestor(false);
-
             if !traversal_flags.for_animation_only() {
                 // Invalidate our style, and that of our siblings and
                 // descendants as needed.
@@ -246,48 +239,6 @@ pub trait DomTraversal<E: TElement> : Sync {
             Some(d) if d.has_styles() => d,
             _ => return true,
         };
-
-        // If the element is native-anonymous and an ancestor frame will be
-        // reconstructed, the child and all its descendants will be destroyed.
-        // In that case, we wouldn't need to traverse the subtree...
-        //
-        // Except if there could be transitions of pseudo-elements, in which
-        // case we still need to process them, unfortunately.
-        //
-        // We need to conservatively continue the traversal to style the
-        // pseudo-element in order to properly process potentially-new
-        // transitions that we won't see otherwise.
-        //
-        // But it may be that we no longer match, so detect that case and act
-        // appropriately here.
-        if el.is_native_anonymous() {
-            if let Some(parent_data) = parent_data {
-                let going_to_reframe =
-                    parent_data.reconstructed_self_or_ancestor();
-
-                let mut is_before_or_after_pseudo = false;
-                if let Some(pseudo) = el.implemented_pseudo_element() {
-                    if pseudo.is_before_or_after() {
-                        is_before_or_after_pseudo = true;
-                        let still_match =
-                            parent_data.styles.pseudos.get(&pseudo).is_some();
-
-                        if !still_match {
-                            debug_assert!(going_to_reframe,
-                                          "We're removing a pseudo, so we \
-                                           should reframe!");
-                            return false;
-                        }
-                    }
-                }
-
-                if going_to_reframe && !is_before_or_after_pseudo {
-                    debug!("Element {:?} is in doomed NAC subtree, \
-                            culling traversal", el);
-                    return false;
-                }
-            }
-        }
 
         // If the dirty descendants bit is set, we need to traverse no matter
         // what. Skip examining the ElementData.
@@ -584,7 +535,6 @@ where
             data,
             propagated_hint,
             child_cascade_requirement,
-            data.reconstructed_self_or_ancestor(),
             note_child
         );
     }
@@ -826,7 +776,6 @@ fn note_children<E, D, F>(
     data: &ElementData,
     propagated_hint: RestyleHint,
     cascade_requirement: ChildCascadeRequirement,
-    reconstructed_ancestor: bool,
     mut note_child: F,
 )
 where
@@ -866,10 +815,6 @@ where
         }
 
         if let Some(ref mut child_data) = child_data {
-            // Propagate the parent restyle hint, that may make us restyle the whole
-            // subtree.
-            child_data.set_reconstructed_ancestor(reconstructed_ancestor);
-
             let mut child_hint = propagated_hint;
             match cascade_requirement {
                 ChildCascadeRequirement::CanSkipCascade => {}
