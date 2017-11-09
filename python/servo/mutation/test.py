@@ -15,6 +15,20 @@ import os
 import random
 from enum import Enum
 DEVNULL = open(os.devnull, 'wb')
+strategies = [
+    {
+        'regex': r'\s&&\s',
+        'replaceString': ' || '
+    },
+    {
+        'regex': r'(?<=if\s)(.*)(?=\s\{)',
+        'replaceString': 'true'
+    },
+    {
+        'regex': r'(?<=if\s)(.*)(?=\s\{)',
+        'replaceString': 'false'
+    }
+]
 
 
 class Status(Enum):
@@ -24,8 +38,9 @@ class Status(Enum):
     UNEXPECTED = 3
 
 
-def mutate_random_line(file_name, strategy):
+def mutate_random_line(file_name):
     line_numbers = []
+    strategy = strategies[random.randint(0, len(strategies) - 1)]
     for line in fileinput.input(file_name):
         if re.search(strategy['regex'], line):
             line_numbers.append(fileinput.lineno())
@@ -47,8 +62,7 @@ def mutation_test(file_name, tests):
         status = Status.SKIPPED
         print "{0} has local changes, please commit/remove changes before running the test".format(file_name)
     else:
-        strategy = {'regex': r'\s&&\s', 'replaceString': ' || '}
-        mutated_line = mutate_random_line(file_name, strategy)
+        mutated_line = mutate_random_line(file_name)
         if mutated_line != -1:
             print "Mutating {0} at line {1}".format(file_name, mutated_line)
             print "compiling mutant {0}:{1}".format(file_name, mutated_line)
