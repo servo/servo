@@ -18,6 +18,7 @@ matrix:
         - sudo apt-get update -q
         - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime -y
         - export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
+        - export CC=gcc-5 CXX=g++-5
       script:
          - ./mach build -d --verbose
          - ./mach test-compiletest
@@ -37,12 +38,24 @@ matrix:
       env: CCACHE=/usr/bin/ccache
       addons:
         apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'ppa:jonathonf/ffmpeg-3'
           packages:
             - cmake
+            - dbus-x11
             - freeglut3-dev
+            - gcc-5
+            - g++-5
             - gperf
+            - libavcodec-dev
+            - libavformat-dev
             - libosmesa6-dev
+            - libpulse-dev
             - libgles2-mesa-dev
+            - libswscale-dev
+            - libswresample-dev
+            - pulseaudio
             - python-virtualenv
             - xorg-dev
             - ccache
