@@ -22,7 +22,6 @@ use html5ever::{LocalName, Prefix};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_config::prefs::PREFS;
-use std::ascii::AsciiExt;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;

@@ -133,7 +133,6 @@ macro_rules! make_enumerated_getter(
         fn $attr(&self) -> DOMString {
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
-            use std::ascii::AsciiExt;
             let element = self.upcast::<Element>();
             let mut val = element.get_string_attribute(&local_name!($htmlname));
             val.make_ascii_lowercase();

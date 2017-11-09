@@ -26,7 +26,6 @@ use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use script_traits::{MozBrowserEvent, ScriptMsg};
 use servo_arc::Arc;
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;

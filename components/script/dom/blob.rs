@@ -16,7 +16,6 @@ use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress, RelativePos};
-use std::ascii::AsciiExt;
 use std::mem;
 use std::ops::Index;
 use std::path::PathBuf;

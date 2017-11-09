@@ -10,7 +10,6 @@ use platform::font::{FontHandle, FontTable};
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use smallvec::SmallVec;
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;

@@ -9,7 +9,6 @@ use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
