@@ -508,23 +508,20 @@ where
     // Before examining each child individually, try to prove that our children
     // don't need style processing. They need processing if any of the following
     // conditions hold:
-    // * We have the dirty descendants bit.
-    // * We're propagating a hint.
-    // * This is the initial style.
-    // * We generated a reconstruct hint on self (which could mean that we
-    //   switched from display:none to something else, which means the children
-    //   need initial styling).
-    // * This is a servo non-incremental traversal.
+    //
+    //  * We have the dirty descendants bit.
+    //  * We're propagating a restyle hint.
+    //  * We can't skip the cascade.
+    //  * This is a servo non-incremental traversal.
     //
     // Additionally, there are a few scenarios where we avoid traversing the
     // subtree even if descendant styles are out of date. These cases are
     // enumerated in should_cull_subtree().
-    let mut traverse_children = has_dirty_descendants_for_this_restyle ||
-                                !propagated_hint.is_empty() ||
-                                !child_cascade_requirement.can_skip_cascade() ||
-                                context.thread_local.is_initial_style() ||
-                                data.reconstructed_self() ||
-                                is_servo_nonincremental_layout();
+    let mut traverse_children =
+        has_dirty_descendants_for_this_restyle ||
+        !propagated_hint.is_empty() ||
+        !child_cascade_requirement.can_skip_cascade() ||
+        is_servo_nonincremental_layout();
 
     traverse_children =
         traverse_children &&
