@@ -266,8 +266,6 @@ impl Node {
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
             vtable_for(&&*node).bind_to_tree(parent_in_doc);
         }
-        let document = new_child.owner_doc();
-        document.content_and_heritage_changed(new_child, NodeDamage::OtherNodeDamage);
     }
 
     /// Removes the given child from this node's list of children.
@@ -318,9 +316,6 @@ impl Node {
                 ScriptThread::enqueue_callback_reaction(&*element, CallbackReaction::Disconnected, None);
             }
         }
-
-        self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
-        child.owner_doc().content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
     }
 
     pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -2504,6 +2499,7 @@ impl VirtualMethods for Node {
         if let Some(list) = self.child_list.get() {
             list.as_children_list().children_changed(mutation);
         }
+        self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
     }
 
     // This handles the ranges mentioned in steps 2-3 when removing a node.
