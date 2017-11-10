@@ -70,56 +70,56 @@ impl ValidityState {
 impl ValidityStateMethods for ValidityState {
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing
     fn ValueMissing(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(VALUE_MISSING))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-typemismatch
     fn TypeMismatch(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(TYPE_MISMATCH))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-patternmismatch
     fn PatternMismatch(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(PATTERN_MISMATCH))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-toolong
     fn TooLong(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(TOO_LONG))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-tooshort
     fn TooShort(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(TOO_SHORT))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-rangeunderflow
     fn RangeUnderflow(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(RANGE_UNDERFLOW))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-rangeoverflow
     fn RangeOverflow(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(RANGE_OVERFLOW))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-stepmismatch
     fn StepMismatch(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(STEP_MISMATCH))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-badinput
     fn BadInput(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(BAD_INPUT))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-customerror
     fn CustomError(&self) -> bool {
-        false
+        self.element.as_maybe_validatable().map_or(false, |e| e.validate(CUSTOM_ERROR))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valid
     fn Valid(&self) -> bool {
-        false
+        !self.element.as_maybe_validatable().map_or(false, |e| e.validate(ValidationFlags::all()))
     }
 }
