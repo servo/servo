@@ -601,6 +601,8 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableStringWithNonNullDefault(&self, _: Option<DOMString>) {}
     fn PassOptionalNullableUsvstringWithNonNullDefault(&self, _: Option<USVString>) {}
     // fn PassOptionalNullableEnumWithNonNullDefault(self, _: Option<TestEnum>) {}
+    fn PassOptionalOverloaded(&self, a: &TestBinding, _: u32, _: u32) -> DomRoot<TestBinding> { DomRoot::from_ref(a) }
+    fn PassOptionalOverloaded_(&self, _: &Blob,  _: u32) { }
 
     fn PassVariadicBoolean(&self, _: Vec<bool>) {}
     fn PassVariadicBooleanAndDefault(&self, _: bool, _: Vec<bool>) {}
