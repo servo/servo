@@ -1009,7 +1009,7 @@ dependencies = [
 [[package]]
 name = "gecko-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/gecko-media.git#72e51100c5f477061cb7dd197a352a0038227e8a"
+source = "git+https://github.com/servo/gecko-media.git#0299b455a062bcbfe038bfd90bb173ad9b98d5c7"
 dependencies = [
  "bindgen 0.31.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cmake 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
