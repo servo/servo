@@ -439,7 +439,8 @@ impl MediaExpressionValue {
 }
 
 fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
-    where F: FnMut(&'static nsMediaFeature) -> bool,
+where
+    F: FnMut(&'static nsMediaFeature) -> bool,
 {
     unsafe {
         let mut features = structs::nsMediaFeatures_features.as_ptr();
@@ -453,10 +454,12 @@ fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
     None
 }
 
-unsafe fn find_in_table<F>(mut current_entry: *const nsCSSProps_KTableEntry,
-                           mut f: F)
-                           -> Option<(nsCSSKeyword, i16)>
-    where F: FnMut(nsCSSKeyword, i16) -> bool
+unsafe fn find_in_table<F>(
+    mut current_entry: *const nsCSSProps_KTableEntry,
+    mut f: F,
+) -> Option<(nsCSSKeyword, i16)>
+where
+    F: FnMut(nsCSSKeyword, i16) -> bool
 {
     loop {
         let value = (*current_entry).mValue;
@@ -474,66 +477,69 @@ unsafe fn find_in_table<F>(mut current_entry: *const nsCSSProps_KTableEntry,
     }
 }
 
-fn parse_feature_value<'i, 't>(feature: &nsMediaFeature,
-                               feature_value_type: nsMediaFeature_ValueType,
-                               context: &ParserContext,
-                               input: &mut Parser<'i, 't>)
-                               -> Result<MediaExpressionValue, ParseError<'i>> {
+fn parse_feature_value<'i, 't>(
+    feature: &nsMediaFeature,
+    feature_value_type: nsMediaFeature_ValueType,
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+) -> Result<MediaExpressionValue, ParseError<'i>> {
     let value = match feature_value_type {
         nsMediaFeature_ValueType::eLength => {
-           let length = Length::parse_non_negative(context, input)?;
-           // FIXME(canaltinova): See bug 1396057. Gecko doesn't support calc
-           // inside media queries. This check is for temporarily remove it
-           // for parity with gecko. We should remove this check when we want
-           // to support it.
-           if let Length::Calc(_) = length {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::Length(length)
+            let length = Length::parse_non_negative(context, input)?;
+            // FIXME(canaltinova): See bug 1396057. Gecko doesn't support calc
+            // inside media queries. This check is for temporarily remove it
+            // for parity with gecko. We should remove this check when we want
+            // to support it.
+            if let Length::Calc(_) = length {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
+            MediaExpressionValue::Length(length)
         },
         nsMediaFeature_ValueType::eInteger => {
-           // FIXME(emilio): We should use `Integer::parse` to handle `calc`
-           // properly in integer expressions. Note that calc is still not
-           // supported in media queries per FIXME above.
-           let i = input.expect_integer()?;
-           if i < 0 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::Integer(i as u32)
+            // FIXME(emilio): We should use `Integer::parse` to handle `calc`
+            // properly in integer expressions. Note that calc is still not
+            // supported in media queries per FIXME above.
+            let i = input.expect_integer()?;
+            if i < 0 {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
+            MediaExpressionValue::Integer(i as u32)
         }
         nsMediaFeature_ValueType::eBoolInteger => {
-           let i = input.expect_integer()?;
-           if i < 0 || i > 1 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::BoolInteger(i == 1)
+            let i = input.expect_integer()?;
+            if i < 0 || i > 1 {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
+            MediaExpressionValue::BoolInteger(i == 1)
         }
         nsMediaFeature_ValueType::eFloat => {
-           MediaExpressionValue::Float(input.expect_number()?)
+            MediaExpressionValue::Float(input.expect_number()?)
         }
         nsMediaFeature_ValueType::eIntRatio => {
-           let a = input.expect_integer()?;
-           if a <= 0 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
+            let a = input.expect_integer()?;
+            if a <= 0 {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
 
-           input.expect_delim('/')?;
+            input.expect_delim('/')?;
 
-           let b = input.expect_integer()?;
-           if b <= 0 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::IntRatio(a as u32, b as u32)
+            let b = input.expect_integer()?;
+            if b <= 0 {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
+            MediaExpressionValue::IntRatio(a as u32, b as u32)
         }
         nsMediaFeature_ValueType::eResolution => {
-           MediaExpressionValue::Resolution(Resolution::parse(input)?)
+            MediaExpressionValue::Resolution(Resolution::parse(input)?)
         }
         nsMediaFeature_ValueType::eEnumerated => {
             let location = input.current_source_location();
             let keyword = input.expect_ident()?;
             let keyword = unsafe {
-                bindings::Gecko_LookupCSSKeyword(keyword.as_bytes().as_ptr(),
-                keyword.len() as u32)
+                bindings::Gecko_LookupCSSKeyword(
+                    keyword.as_bytes().as_ptr(),
+                    keyword.len() as u32,
+                )
             };
 
             let first_table_entry: *const nsCSSProps_KTableEntry = unsafe {
@@ -557,14 +563,12 @@ fn parse_feature_value<'i, 't>(feature: &nsMediaFeature,
 
 impl Expression {
     /// Trivially construct a new expression.
-    fn new(feature: &'static nsMediaFeature,
-           value: Option<MediaExpressionValue>,
-           range: nsMediaExpression_Range) -> Self {
-        Expression {
-            feature: feature,
-            value: value,
-            range: range,
-        }
+    fn new(
+        feature: &'static nsMediaFeature,
+        value: Option<MediaExpressionValue>,
+        range: nsMediaExpression_Range,
+    ) -> Self {
+        Self { feature, value, range }
     }
 
     /// Parse a media expression of the form:
