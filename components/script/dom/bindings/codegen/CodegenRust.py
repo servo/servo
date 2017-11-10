@@ -4794,6 +4794,13 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
 
+# "//let mut this;\n"
+# "//let mut %s;\n"
+# "//match jsid_to_string(cx, id) {\n"
+# "//   None => return false,\n"
+# "//   Some(str_name) => {\n"
+# "    },\n"
+# "//}\n" % argName +
 
 class CGProxyNamedGetter(CGProxyNamedOperation):
     """
