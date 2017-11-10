@@ -10,8 +10,11 @@ use app_units::Au;
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
+#[allow(unused_imports)]
+use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use values::CustomIdent;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
 use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength, Number};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
@@ -607,6 +610,292 @@ impl Parse for FontSize {
     /// <length> | <percentage> | <absolute-size> | <relative-size>
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontSize, ParseError<'i>> {
         FontSize::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+bitflags! {
+    #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+    /// Flags of variant alternates in bit
+    struct VariantAlternatesParsingFlags: u8 {
+        /// None of variant alternates enabled
+        const NORMAL = 0;
+        /// Historical forms
+        const HISTORICAL_FORMS = 0x01;
+        /// Stylistic Alternates
+        const STYLISTIC = 0x02;
+        /// Stylistic Sets
+        const STYLESET = 0x04;
+        /// Character Variant
+        const CHARACTER_VARIANT = 0x08;
+        /// Swash glyphs
+        const SWASH = 0x10;
+        /// Ornaments glyphs
+        const ORNAMENTS = 0x20;
+        /// Annotation forms
+        const ANNOTATION = 0x40;
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+/// Set of variant alternates
+pub enum VariantAlternates {
+    /// Enables display of stylistic alternates
+    Stylistic(CustomIdent),
+    /// Enables display with stylistic sets
+    Styleset(Box<[CustomIdent]>),
+    /// Enables display of specific character variants
+    CharacterVariant(Box<[CustomIdent]>),
+    /// Enables display of swash glyphs
+    Swash(CustomIdent),
+    /// Enables replacement of default glyphs with ornaments
+    Ornaments(CustomIdent),
+    /// Enables display of alternate annotation forms
+    Annotation(CustomIdent),
+    /// Enables display of historical forms
+    HistoricalForms,
+}
+
+impl ToCss for VariantAlternates {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            VariantAlternates::Swash(ref atom) => {
+                dest.write_str("swash")?;
+                dest.write_str("(")?;
+                atom.to_css(dest)?;
+                dest.write_str(")")
+            },
+            VariantAlternates::Stylistic(ref atom) => {
+                dest.write_str("stylistic")?;
+                dest.write_str("(")?;
+                atom.to_css(dest)?;
+                dest.write_str(")")
+            },
+            VariantAlternates::Ornaments(ref atom) => {
+                dest.write_str("ornaments")?;
+                dest.write_str("(")?;
+                atom.to_css(dest)?;
+                dest.write_str(")")
+            },
+            VariantAlternates::Annotation(ref atom) => {
+                dest.write_str("annotation")?;
+                dest.write_str("(")?;
+                atom.to_css(dest)?;
+                dest.write_str(")")
+            },
+            VariantAlternates::Styleset(ref vec) => {
+                dest.write_str("styleset")?;
+                dest.write_str("(")?;
+                let mut iter = vec.iter();
+                iter.next().unwrap().to_css(dest)?;
+                for c in iter {
+                    dest.write_str(", ")?;
+                    c.to_css(dest)?;
+                }
+                dest.write_str(")")
+            },
+            VariantAlternates::CharacterVariant(ref vec) => {
+                dest.write_str("character-variant")?;
+                dest.write_str("(")?;
+                let mut iter = vec.iter();
+                iter.next().unwrap().to_css(dest)?;
+                for c in iter {
+                    dest.write_str(", ")?;
+                    c.to_css(dest)?;
+                }
+                dest.write_str(")")
+            },
+            VariantAlternates::HistoricalForms => {
+                dest.write_str("historical-forms")
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+/// List of Variant Alternates
+pub struct VariantAlternatesList(pub Box<[VariantAlternates]>);
+
+impl VariantAlternatesList {
+    /// Returns the length of all variant alternates.
+    pub fn len(&self) -> usize {
+        self.0.iter().fold(0, |acc, alternate| {
+            match *alternate {
+                VariantAlternates::Swash(_) | VariantAlternates::Stylistic(_) |
+                VariantAlternates::Ornaments(_) | VariantAlternates::Annotation(_) => {
+                    acc + 1
+                },
+                VariantAlternates::Styleset(ref slice) |
+                VariantAlternates::CharacterVariant(ref slice) => {
+                    acc + slice.len()
+                },
+                _ => acc,
+            }
+        })
+    }
+}
+
+impl ToCss for VariantAlternatesList {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.0.is_empty() {
+            return dest.write_str("normal");
+        }
+
+        let mut iter = self.0.iter();
+        iter.next().unwrap().to_css(dest)?;
+        for alternate in iter {
+            dest.write_str(" ")?;
+            alternate.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+/// Control over the selection of these alternate glyphs
+pub enum FontVariantAlternates {
+    /// Use alternative glyph from value
+    Value(VariantAlternatesList),
+    /// Use system font glyph
+    System(SystemFont)
+}
+
+impl FontVariantAlternates {
+    #[inline]
+    /// Get initial specified value with VariantAlternatesList
+    pub fn get_initial_specified_value() -> Self {
+        FontVariantAlternates::Value(VariantAlternatesList(vec![].into_boxed_slice()))
+    }
+
+    /// Get FontVariantAlternates with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontVariantAlternates::System(f)
+    }
+
+    /// Get SystemFont of FontVariantAlternates
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontVariantAlternates::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontVariantAlternates {
+    type ComputedValue = computed::FontVariantAlternates;
+
+    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantAlternates {
+        match *self {
+            FontVariantAlternates::Value(ref v) => v.clone(),
+            FontVariantAlternates::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    _context.cached_system_font.as_ref().unwrap().font_variant_alternates.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontVariantAlternates) -> Self {
+        FontVariantAlternates::Value(other.clone())
+    }
+}
+
+impl Parse for FontVariantAlternates {
+    /// normal |
+    ///  [ stylistic(<feature-value-name>)           ||
+    ///    historical-forms                          ||
+    ///    styleset(<feature-value-name> #)          ||
+    ///    character-variant(<feature-value-name> #) ||
+    ///    swash(<feature-value-name>)               ||
+    ///    ornaments(<feature-value-name>)           ||
+    ///    annotation(<feature-value-name>) ]
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontVariantAlternates, ParseError<'i>> {
+        let mut alternates = Vec::new();
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(FontVariantAlternates::Value(VariantAlternatesList(alternates.into_boxed_slice())));
+        }
+
+        let mut parsed_alternates = VariantAlternatesParsingFlags::empty();
+        macro_rules! check_if_parsed(
+            ($input:expr, $flag:path) => (
+                if parsed_alternates.contains($flag) {
+                    return Err($input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                }
+                parsed_alternates |= $flag;
+            )
+        );
+        while let Ok(_) = input.try(|input| {
+            // FIXME: remove clone() when lifetimes are non-lexical
+            match input.next()?.clone() {
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
+                    check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
+                    alternates.push(VariantAlternates::HistoricalForms);
+                    Ok(())
+                },
+                Token::Function(ref name) => {
+                    input.parse_nested_block(|i| {
+                        match_ignore_ascii_case! { &name,
+                            "swash" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
+                                let location = i.current_source_location();
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Swash(ident));
+                                Ok(())
+                            },
+                            "stylistic" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::STYLISTIC);
+                                let location = i.current_source_location();
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Stylistic(ident));
+                                Ok(())
+                            },
+                            "ornaments" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::ORNAMENTS);
+                                let location = i.current_source_location();
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Ornaments(ident));
+                                Ok(())
+                            },
+                            "annotation" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::ANNOTATION);
+                                let location = i.current_source_location();
+                                let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::Annotation(ident));
+                                Ok(())
+                            },
+                            "styleset" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::STYLESET);
+                                let idents = i.parse_comma_separated(|i| {
+                                    let location = i.current_source_location();
+                                    CustomIdent::from_ident(location, i.expect_ident()?, &[])
+                                })?;
+                                alternates.push(VariantAlternates::Styleset(idents.into_boxed_slice()));
+                                Ok(())
+                            },
+                            "character-variant" => {
+                                check_if_parsed!(i, VariantAlternatesParsingFlags::CHARACTER_VARIANT);
+                                let idents = i.parse_comma_separated(|i| {
+                                    let location = i.current_source_location();
+                                    CustomIdent::from_ident(location, i.expect_ident()?, &[])
+                                })?;
+                                alternates.push(VariantAlternates::CharacterVariant(idents.into_boxed_slice()));
+                                Ok(())
+                            },
+                            _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                        }
+                    })
+                },
+                _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            }
+        }) { }
+
+        if parsed_alternates.is_empty() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        Ok(FontVariantAlternates::Value(VariantAlternatesList(alternates.into_boxed_slice())))
     }
 }
 
