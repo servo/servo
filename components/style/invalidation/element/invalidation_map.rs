@@ -342,8 +342,8 @@ impl SelectorVisitor for CompoundSelectorDependencyCollector {
                 self.other_attributes |= pc.is_attr_based();
                 self.state |= match *pc {
                     #[cfg(feature = "gecko")]
-                    NonTSPseudoClass::Dir(ref s) => {
-                        dir_selector_to_state(s)
+                    NonTSPseudoClass::Dir(ref dir) => {
+                        dir_selector_to_state(&Box::<[u16]>::from(dir))
                     }
                     _ => pc.state_flag(),
                 };

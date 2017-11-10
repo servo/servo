@@ -6,10 +6,18 @@
 //! types in components/style/gecko/selector_parser.rs
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Direction {
+    Rtl,
+    Ltr,
+    Other(String),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum PseudoClass {
     Bare,
     String(Box<[u16]>),
+    Dir(Direction),
     MozAny(Box<[()]>),
 }
 

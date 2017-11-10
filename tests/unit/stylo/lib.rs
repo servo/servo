@@ -23,6 +23,7 @@ extern crate smallvec;
 #[macro_use] extern crate style;
 extern crate style_traits;
 
+mod dir_repr;
 #[cfg(target_pointer_width = "64")]
 mod size_of;
 mod specified_values;

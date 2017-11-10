@@ -2056,13 +2056,21 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Lang(ref lang_arg) => {
                 self.match_element_lang(None, lang_arg)
             }
-            NonTSPseudoClass::MozLocaleDir(ref s) |
-            NonTSPseudoClass::Dir(ref s) => {
+            NonTSPseudoClass::MozLocaleDir(ref s) => {
                 unsafe {
                     Gecko_MatchStringArgPseudo(
                         self.0,
                         pseudo_class.to_gecko_pseudoclasstype().unwrap(),
                         s.as_ptr(),
+                    )
+                }
+            }
+            NonTSPseudoClass::Dir(ref dir) => {
+                unsafe {
+                    Gecko_MatchStringArgPseudo(
+                        self.0,
+                        pseudo_class.to_gecko_pseudoclasstype().unwrap(),
+                        Box::<[u16]>::from(dir).as_ptr(),
                     )
                 }
             }

@@ -34,6 +34,52 @@ bitflags! {
 /// The type used for storing pseudo-class string arguments.
 pub type PseudoClassStringArg = Box<[u16]>;
 
+/// Values for the :dir() pseudo class
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Direction {
+    /// right-to-left semantic directionality
+    Rtl,
+    /// left-to-right semantic directionality
+    Ltr,
+    /// Some other provided directionality value
+    Other(String),
+}
+
+impl <'a> From<&'a str> for Direction {
+    fn from(string: &'a str) -> Direction {
+        match string.to_lowercase().as_str() {
+            "rtl" => Direction::Rtl,
+            "ltr" => Direction::Ltr,
+            other => Direction::Other(other.to_owned()),
+        }
+    }
+}
+
+impl<'a> From<&'a Direction> for Box<[u16]> {
+    fn from(dir: &'a Direction) -> Self {
+        let dir_str = match dir {
+            &Direction::Rtl => "rtl",
+            &Direction::Ltr => "ltr",
+            &Direction::Other(ref other) => other,
+        };
+
+        let utf16: Vec<u16> = dir_str.encode_utf16()
+            .map(utf16_to_ascii_lowercase)
+            .chain(Some(0u16)).collect();
+        utf16.into_boxed_slice()
+    }
+}
+
+impl<'a> From<&'a Direction> for String {
+    fn from(dir: &'a Direction) -> Self {
+        match dir {
+            &Direction::Rtl => "rtl",
+            &Direction::Ltr => "ltr",
+            &Direction::Other(ref other) => other,
+        }.to_owned()
+    }
+}
+
 macro_rules! pseudo_class_name {
     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
      string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
@@ -53,6 +99,8 @@ macro_rules! pseudo_class_name {
                 #[doc = $k_css]
                 $k_name(Box<[u16]>),
             )*
+            /// The `:dir` pseudo-class.
+            Dir(Direction),
             /// The non-standard `:-moz-any` pseudo-class.
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
@@ -92,6 +140,12 @@ impl ToCss for NonTSPseudoClass {
                         dest.write_str(&value)?;
                         return dest.write_char(')')
                     }, )*
+                    NonTSPseudoClass::Dir(ref dir) => {
+                        let value: String = dir.into();
+                        dest.write_str(concat!(":dir("))?;
+                        dest.write_str(&value)?;
+                        return dest.write_char(')')
+                    },
                     NonTSPseudoClass::MozAny(ref selectors) => {
                         dest.write_str(":-moz-any(")?;
                         let mut iter = selectors.iter();
@@ -145,6 +199,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
                     $(NonTSPseudoClass::$s_name(..) => check_flag!($s_flags),)*
                     $(NonTSPseudoClass::$k_name(..) => check_flag!($k_flags),)*
+                    NonTSPseudoClass::Dir(_) => false,
                     NonTSPseudoClass::MozAny(_) => false,
                 }
             }
@@ -189,6 +244,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
                     $(NonTSPseudoClass::$k_name(..) => flag!($k_state),)*
+                    NonTSPseudoClass::Dir(..) => ElementState::empty(),
                     NonTSPseudoClass::MozAny(..) => ElementState::empty(),
                 }
             }
@@ -253,6 +309,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
                     $(NonTSPseudoClass::$s_name(..) => gecko_type!($s_gecko_type),)*
                     $(NonTSPseudoClass::$k_name(..) => gecko_type!($k_gecko_type),)*
+                    NonTSPseudoClass::Dir(_) => gecko_type!(dir),
                     NonTSPseudoClass::MozAny(_) => gecko_type!(any),
                 }
             }
@@ -360,6 +417,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                             .chain(Some(0u16)).collect();
                         NonTSPseudoClass::$k_name(utf16.into_boxed_slice())
                     }, )*
+                    "dir" => {
+                        let name: &str = parser.expect_ident()?;
+                        NonTSPseudoClass::Dir(Direction::from(name))
+                    },
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {
                             Selector::parse(self, input)
