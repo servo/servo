@@ -37,6 +37,7 @@ use request::{Request, RequestInit};
 use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
+use std::fmt::{self, Display, Formatter};
 use storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
@@ -524,6 +525,22 @@ impl NetworkError {
 
     pub fn from_ssl_error(url: &ServoUrl, error: &Error) -> Self {
         NetworkError::SslValidation(url.clone(), error.description().to_owned())
+    }
+}
+
+impl Display for NetworkError {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl Error for NetworkError {
+    fn description(&self) -> &str {
+        match *self {
+            NetworkError::Internal(ref s) => s.as_str(),
+            NetworkError::LoadCancelled => "Fetch cancelled",
+            NetworkError::SslValidation(_, ref s) => s.as_str(),
+        }
     }
 }
 

@@ -28,6 +28,7 @@ use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::request::RequestInit as NetTraitsRequestInit;
 use network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
+use std::error::Error as StdError;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -134,8 +135,8 @@ impl FetchResponseListener for FetchContext {
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         match fetch_metadata {
             // Step 4.1
-            Err(_) => {
-                promise.reject_error(Error::Type("Network error occurred".to_string()));
+            Err(e) => {
+                promise.reject_error(Error::Type(e.description().to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 self.response_object.root().set_type(DOMResponseType::Error);
                 return;
