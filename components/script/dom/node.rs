@@ -483,6 +483,24 @@ impl Node {
         self.flags.set(flags);
     }
 
+    // FIXME(emilio): This and the function below should move to Element.
+    pub fn note_dirty_descendants(&self) {
+        debug_assert!(self.is_in_doc());
+
+        // FIXME(emilio): Is there a safe way to do this without the overhead of
+        // rooting? I'm pretty sure this cannot GC!
+        let mut current = Some(DomRoot::from_ref(self));
+
+        while let Some(node) = current.take() {
+            if node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
+                return;
+            }
+
+            node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            current = node.GetParentNode();
+        }
+    }
+
     pub fn has_dirty_descendants(&self) -> bool {
         self.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS)
     }
@@ -2499,7 +2517,7 @@ impl VirtualMethods for Node {
         if let Some(list) = self.child_list.get() {
             list.as_children_list().children_changed(mutation);
         }
-        self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
+        self.owner_doc().content_and_heritage_changed(self);
     }
 
     // This handles the ranges mentioned in steps 2-3 when removing a node.
