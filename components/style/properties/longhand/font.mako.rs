@@ -642,92 +642,13 @@ ${helpers.predefined_type("font-size-adjust",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust")}
 
-<%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
-                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-    pub struct SpecifiedValue {
-        pub weight: bool,
-        pub style: bool,
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.weight && self.style {
-                dest.write_str("weight style")
-            } else if self.style {
-                dest.write_str("style")
-            } else if self.weight {
-                dest.write_str("weight")
-            } else {
-                dest.write_str("none")
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue { weight: true, style: true }
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        let mut result = SpecifiedValue { weight: false, style: false };
-        // FIXME: remove clone() when lifetimes are non-lexical
-        try_match_ident_ignore_ascii_case! { input,
-            "none" => Ok(result),
-            "weight" => {
-                result.weight = true;
-                if input.try(|input| input.expect_ident_matching("style")).is_ok() {
-                    result.style = true;
-                }
-                Ok(result)
-            },
-            "style" => {
-                result.style = true;
-                if input.try(|input| input.expect_ident_matching("weight")).is_ok() {
-                    result.weight = true;
-                }
-                Ok(result)
-            },
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    impl From<u8> for SpecifiedValue {
-        fn from(bits: u8) -> SpecifiedValue {
-            use gecko_bindings::structs;
-
-            SpecifiedValue {
-                weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
-                style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0
-            }
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    impl From<SpecifiedValue> for u8 {
-        fn from(v: SpecifiedValue) -> u8 {
-            use gecko_bindings::structs;
-
-            let mut bits: u8 = 0;
-            if v.weight {
-                bits |= structs::NS_FONT_SYNTHESIS_WEIGHT as u8;
-            }
-            if v.style {
-                bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
-            }
-            bits
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("font-synthesis",
+                          "FontSynthesis",
+                          products="gecko",
+                          initial_value="specified::FontSynthesis::get_initial_value()",
+                          animation_value_type="discrete",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis")}
 
 ${helpers.single_keyword_system("font-stretch",
                                 "normal ultra-condensed extra-condensed condensed \

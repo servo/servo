@@ -611,6 +611,95 @@ impl Parse for FontSize {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+/// Whether user agents are allowed to synthesize bold or oblique font faces
+/// when a font family lacks bold or italic faces
+pub struct FontSynthesis {
+    /// If a `font-weight` is requested that the font family does not contain,
+    /// the user agent may synthesize the requested weight from the weights
+    /// that do exist in the font family.
+    pub weight: bool,
+    /// If a font-style is requested that the font family does not contain,
+    /// the user agent may synthesize the requested style from the normal face in the font family.
+    pub style: bool,
+}
+
+impl FontSynthesis {
+    #[inline]
+    /// Get the default value of font-synthesis
+    pub fn get_initial_value() -> Self {
+        FontSynthesis {
+            weight: true,
+            style: true
+        }
+    }
+}
+
+impl Parse for FontSynthesis {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontSynthesis, ParseError<'i>> {
+        let mut result = FontSynthesis { weight: false, style: false };
+        try_match_ident_ignore_ascii_case! { input,
+            "none" => Ok(result),
+            "weight" => {
+                result.weight = true;
+                if input.try(|input| input.expect_ident_matching("style")).is_ok() {
+                    result.style = true;
+                }
+                Ok(result)
+            },
+            "style" => {
+                result.style = true;
+                if input.try(|input| input.expect_ident_matching("weight")).is_ok() {
+                    result.weight = true;
+                }
+                Ok(result)
+            },
+        }
+    }
+}
+
+impl ToCss for FontSynthesis {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.weight && self.style {
+            dest.write_str("weight style")
+        } else if self.style {
+            dest.write_str("style")
+        } else if self.weight {
+            dest.write_str("weight")
+        } else {
+            dest.write_str("none")
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u8> for FontSynthesis {
+    fn from(bits: u8) -> FontSynthesis {
+        use gecko_bindings::structs;
+
+        FontSynthesis {
+            weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
+            style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<FontSynthesis> for u8 {
+    fn from(v: FontSynthesis) -> u8 {
+        use gecko_bindings::structs;
+
+        let mut bits: u8 = 0;
+        if v.weight {
+            bits |= structs::NS_FONT_SYNTHESIS_WEIGHT as u8;
+        }
+        if v.style {
+            bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
+        }
+        bits
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// text-zoom. Enable if true, disable if false
 pub struct XTextZoom(pub bool);
 
