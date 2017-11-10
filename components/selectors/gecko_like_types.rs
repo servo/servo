@@ -10,6 +10,7 @@
 pub enum PseudoClass {
     Bare,
     String(Box<[u16]>),
+    Dir(Box<()>),
     MozAny(Box<[()]>),
 }
 
