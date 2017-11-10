@@ -267,7 +267,7 @@ impl Node {
             vtable_for(&&*node).bind_to_tree(parent_in_doc);
         }
         let document = new_child.owner_doc();
-        document.content_and_heritage_changed(new_child, NodeDamage::OtherNodeDamage);
+        document.content_and_heritage_changed(new_child);
     }
 
     /// Removes the given child from this node's list of children.
@@ -319,8 +319,8 @@ impl Node {
             }
         }
 
-        self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
-        child.owner_doc().content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
+        self.owner_doc().content_and_heritage_changed(self);
+        child.owner_doc().content_and_heritage_changed(child);
     }
 
     pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -486,6 +486,24 @@ impl Node {
         }
 
         self.flags.set(flags);
+    }
+
+    // FIXME(emilio): This and the function below should move to Element.
+    pub fn note_dirty_descendants(&self) {
+        debug_assert!(self.is_in_doc());
+
+        // FIXME(emilio): Is there a safe way to do this without the overhead of
+        // rooting? I'm pretty sure this cannot GC!
+        let mut current = Some(DomRoot::from_ref(self));
+
+        while let Some(node) = current.take() {
+            if node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
+                return;
+            }
+
+            node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            current = node.GetParentNode();
+        }
     }
 
     pub fn has_dirty_descendants(&self) -> bool {
