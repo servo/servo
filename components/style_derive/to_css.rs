@@ -21,13 +21,27 @@ pub fn derive(input: DeriveInput) -> Tokens {
         let separator = if variant_attrs.comma { ", " } else { " " };
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
-            for binding in bindings {
-                where_clause.add_trait_bound(&binding.field.ty);
+
+            if variant_attrs.function && variant_attrs.iterable {
+                assert_eq!(bindings.len(), 1);
+                let binding = &bindings[0];
                 expr = quote! {
                     #expr
-                    writer.item(#binding)?;
+
+                    for item in #binding.iter() {
+                        writer.item(item)?;
+                    }
                 };
+            } else {
+                for binding in bindings {
+                    where_clause.add_trait_bound(&binding.field.ty);
+                    expr = quote! {
+                        #expr
+                        writer.item(#binding)?;
+                    };
+                }
             }
+
             quote! {{
                 let mut writer = ::style_traits::values::SequenceWriter::new(&mut *dest, #separator);
                 #expr
@@ -89,6 +103,7 @@ struct CssInputAttrs {
 #[derive(Default, FromVariant)]
 struct CssVariantAttrs {
     function: bool,
+    iterable: bool,
     comma: bool,
 }
 
