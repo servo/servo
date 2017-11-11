@@ -483,7 +483,8 @@ class CGMethodCall(CGThing):
             else:
                 # Just throw; we have no idea what we're supposed to
                 # do with this.
-                caseBody.append(CGGeneric("return Throw(cx, NS_ERROR_XPC_BAD_CONVERT_JS);"))
+                caseBody.append(CGGeneric("throw_internal_error(cx, \"Could not convert JavaScript argument\");\n"
+                                          "return false;"))
 
             argCountCases.append(CGCase(str(argCount),
                                         CGList(caseBody, "\n")))
@@ -5591,6 +5592,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::JSCLASS_RESERVED_SLOTS_MASK',
         'js::JS_CALLEE',
         'js::error::throw_type_error',
+        'js::error::throw_internal_error',
         'js::jsapi::AutoIdVector',
         'js::jsapi::Call',
         'js::jsapi::CallArgs',
