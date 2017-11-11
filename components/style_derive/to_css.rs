@@ -19,9 +19,14 @@ pub fn derive(input: DeriveInput) -> Tokens {
         let mut identifier = to_css_identifier(variant.ident.as_ref());
         let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
         let separator = if variant_attrs.comma { ", " } else { " " };
+
+        if input_attrs.dimension {
+            assert_eq!(bindings.len(), 1);
+            assert!(!variant_attrs.function, "That makes no sense");
+        }
+
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
-
             if variant_attrs.function && variant_attrs.iterable {
                 assert_eq!(bindings.len(), 1);
                 let binding = &bindings[0];
@@ -52,7 +57,18 @@ pub fn derive(input: DeriveInput) -> Tokens {
                 ::std::fmt::Write::write_str(dest, #identifier)
             }
         };
-        if variant_attrs.function {
+
+        if input_attrs.dimension {
+            // FIXME(emilio): Remove when bug 1416564 lands.
+            if identifier == "-mozmm" {
+                identifier = "mozmm".into();
+            }
+
+            expr = quote! {
+                #expr?;
+                ::std::fmt::Write::write_str(dest, #identifier)
+            }
+        } else if variant_attrs.function {
             identifier.push_str("(");
             expr = quote! {
                 ::std::fmt::Write::write_str(dest, #identifier)?;
@@ -96,6 +112,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
 struct CssInputAttrs {
     derive_debug: bool,
     function: bool,
+    dimension: bool,
     comma: bool,
 }
 

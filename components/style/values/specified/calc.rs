@@ -400,7 +400,13 @@ impl CalcNode {
                     NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
                     #[cfg(feature = "gecko")]
                     NoCalcLength::Physical(physical) => {
-                        ret.mozmm = Some(ret.mozmm.unwrap_or(0.) + physical.0 * factor);
+                        use values::specified::length::PhysicalLength;
+
+                        match physical {
+                            PhysicalLength::Mozmm(mozmm) => {
+                                ret.mozmm = Some(ret.mozmm.unwrap_or(0.) + mozmm * factor);
+                            }
+                        }
                     }
                 }
             }

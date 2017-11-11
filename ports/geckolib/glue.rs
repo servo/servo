@@ -3171,7 +3171,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
         structs::nsCSSUnit::eCSSUnit_Inch => NoCalcLength::Absolute(AbsoluteLength::In(value)),
         structs::nsCSSUnit::eCSSUnit_Centimeter => NoCalcLength::Absolute(AbsoluteLength::Cm(value)),
         structs::nsCSSUnit::eCSSUnit_Millimeter => NoCalcLength::Absolute(AbsoluteLength::Mm(value)),
-        structs::nsCSSUnit::eCSSUnit_PhysicalMillimeter => NoCalcLength::Physical(PhysicalLength(value)),
+        structs::nsCSSUnit::eCSSUnit_PhysicalMillimeter => NoCalcLength::Physical(PhysicalLength::Mozmm(value)),
         structs::nsCSSUnit::eCSSUnit_Point => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
         structs::nsCSSUnit::eCSSUnit_Pica => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
         structs::nsCSSUnit::eCSSUnit_Quarter => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
