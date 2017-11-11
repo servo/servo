@@ -1300,7 +1300,12 @@ impl BlockFlow {
             self.base.position.start.b = solution.block_start + self.fragment.margin.block_start
         }
 
-        let block_size = solution.block_size + self.fragment.border_padding.block_start_end();
+        let block_size = if self.fragment.is_replaced() {
+            solution.block_size
+        } else {
+            (solution.block_size + self.fragment.border_padding.block_start_end())
+        };
+
         self.fragment.border_box.size.block = block_size;
         self.base.position.size.block = block_size;
 
