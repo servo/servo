@@ -977,31 +977,23 @@ impl Parse for MozScriptMinSize {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 /// Changes the scriptlevel in effect for the children.
 /// Ref: https://wiki.mozilla.org/MathML:mstyle
 ///
 /// The main effect of scriptlevel is to control the font size.
 /// https://www.w3.org/TR/MathML3/chapter3.html#presm.scriptlevel
 pub enum MozScriptLevel {
-    /// Change `font-size` relatively
+    /// Change `font-size` relatively.
     Relative(i32),
-    /// Change `font-size` absolutely
+    /// Change `font-size` absolutely.
+    ///
+    /// Should only be serialized by presentation attributes, so even though
+    /// serialization for this would look the same as for the `Relative`
+    /// variant, it is unexposed, so no big deal.
     Absolute(i32),
-    /// Change `font-size` automatically
+    /// Change `font-size` automatically.
     Auto
-}
-
-impl ToCss for MozScriptLevel {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            MozScriptLevel::Auto => dest.write_str("auto"),
-            MozScriptLevel::Relative(rel) => rel.to_css(dest),
-            // can only be specified by pres attrs; should not
-            // serialize to anything else
-            MozScriptLevel::Absolute(_) => Ok(()),
-        }
-    }
 }
 
 impl Parse for MozScriptLevel {
