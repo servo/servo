@@ -82,7 +82,11 @@ impl Cookie {
         };
 
         // Step 7
-        let mut path = cookie.path().unwrap_or("").to_owned();
+        let mut has_path_specified = true;
+        let mut path = cookie.path().unwrap_or_else(|| {
+            has_path_specified = false;
+            ""
+        }).to_owned();
         if path.chars().next() != Some('/') {
             path = Cookie::default_path(&request.path().to_owned()).to_string();
         }
@@ -94,10 +98,25 @@ impl Cookie {
             return None;
         }
 
+        // https://tools.ietf.org/html/draft-west-cookie-prefixes-04#section-4
+        // Step 1 of cookie prefixes
+        if (cookie.name().starts_with("__Secure-") || cookie.name().starts_with("__Host-")) &&
+           !(cookie.secure() && request.is_secure_scheme())
+        {
+            return None;
+        }
+
+        // Step 2 of cookie prefixes
+        if cookie.name().starts_with("__Host-") &&
+           !(host_only && has_path_specified && cookie.path().unwrap() == "/")
+        {
+            return None;
+        }
+
         Some(Cookie {
-            cookie: cookie,
-            host_only: host_only,
-            persistent: persistent,
+            cookie,
+            host_only,
+            persistent,
             creation_time: now(),
             last_access: now(),
             expiry_time: expiry_time.map(Serde),

@@ -100,6 +100,72 @@ fn fn_cookie_constructor() {
     assert!(Cookie::new_wrapped(cookie, u, CookieSource::HTTP).is_some());
 }
 
+#[test]
+fn test_cookie_secure_prefix() {
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Secure-SID=12345").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("http://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Secure-SID=12345; Secure").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Secure-SID=12345; Secure").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Secure-SID=12345; Domain=example.com").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("http://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Secure-SID=12345; Secure; Domain=example.com").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Secure-SID=12345; Secure; Domain=example.com").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
+}
+
+#[test]
+fn test_cookie_host_prefix() {
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("http://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Secure").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Secure").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Domain=example.com").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Domain=example.com; Path=/").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("http://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Secure; Domain=example.com").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Secure; Domain=example.com").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Secure; Domain=example.com; Path=/").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+
+    let url = &ServoUrl::parse("https://example.com").unwrap();
+    let cookie = cookie_rs::Cookie::parse("__Host-SID=12345; Secure; Path=/").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
+}
+
 #[cfg(target_os = "windows")]
 fn delay_to_ensure_different_timestamp() {
     use std::thread;
