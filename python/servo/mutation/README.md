@@ -30,7 +30,7 @@ A sample of test_mapping.json is as shown below:
 }
 ```
 
-Please ensure that each folder that requires a mutant to be generated consists of test_mapping.json file so that the script can function as expected.
+Please ensure that each folder that requires a mutant to be generated consists of test_mapping.json file so that the script can function as expected. Wildcards are not allowed in test_mapping.json.
 
 If we want to run mutation test for a source path then there should be test_mapping.json in that path and all the subdirectories which has source files.
 
