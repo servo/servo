@@ -57,12 +57,12 @@ impl ToComputedValue for Angle {
 impl Angle {
     /// Creates an angle with the given value in degrees.
     pub fn from_degrees(value: CSSFloat, was_calc: bool) -> Self {
-        Angle { value: ComputedAngle::Degree(value), was_calc }
+        Angle { value: ComputedAngle::Deg(value), was_calc }
     }
 
     /// Creates an angle with the given value in gradians.
     pub fn from_gradians(value: CSSFloat, was_calc: bool) -> Self {
-        Angle { value: ComputedAngle::Gradian(value), was_calc }
+        Angle { value: ComputedAngle::Grad(value), was_calc }
     }
 
     /// Creates an angle with the given value in turns.
@@ -72,7 +72,7 @@ impl Angle {
 
     /// Creates an angle with the given value in radians.
     pub fn from_radians(value: CSSFloat, was_calc: bool) -> Self {
-        Angle { value: ComputedAngle::Radian(value), was_calc }
+        Angle { value: ComputedAngle::Rad(value), was_calc }
     }
 
     /// Returns the amount of radians this angle represents.
@@ -89,7 +89,7 @@ impl Angle {
     /// Returns an `Angle` parsed from a `calc()` expression.
     pub fn from_calc(radians: CSSFloat) -> Self {
         Angle {
-            value: ComputedAngle::Radian(radians),
+            value: ComputedAngle::Rad(radians),
             was_calc: true,
         }
     }
