@@ -13,8 +13,6 @@ use gdi32;
 use gleam::gl;
 use glutin;
 use glutin::{ElementState, Event, GlContext, MouseButton, MouseScrollDelta, VirtualKeyCode};
-#[cfg(not(target_os = "windows"))]
-use glutin::ScanCode;
 use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
@@ -185,17 +183,7 @@ pub struct Window {
     key_modifiers: Cell<GlutinKeyModifiers>,
     current_url: RefCell<Option<ServoUrl>>,
 
-    #[cfg(not(target_os = "windows"))]
-    /// The contents of the last ReceivedCharacter event for use in a subsequent KeyEvent.
-    pending_key_event_char: Cell<Option<char>>,
-
-    #[cfg(target_os = "windows")]
     last_pressed_key: Cell<Option<constellation_msg::Key>>,
-
-    /// The list of keys that have been pressed but not yet released, to allow providing
-    /// the equivalent ReceivedCharacter data as was received for the press event.
-    #[cfg(not(target_os = "windows"))]
-    pressed_key_map: RefCell<Vec<(ScanCode, char)>>,
 
     animation_state: Cell<AnimationState>,
 
@@ -304,11 +292,6 @@ impl Window {
             key_modifiers: Cell::new(GlutinKeyModifiers::empty()),
             current_url: RefCell::new(None),
 
-            #[cfg(not(target_os = "windows"))]
-            pending_key_event_char: Cell::new(None),
-            #[cfg(not(target_os = "windows"))]
-            pressed_key_map: RefCell::new(vec![]),
-            #[cfg(target_os = "windows")]
             last_pressed_key: Cell::new(None),
             gl: gl.clone(),
             animation_state: Cell::new(AnimationState::Idle),
@@ -331,14 +314,6 @@ impl Window {
         }
     }
 
-    #[cfg(not(target_os = "windows"))]
-    fn handle_received_character(&self, ch: char) {
-        if !ch.is_control() {
-            self.pending_key_event_char.set(Some(ch));
-        }
-    }
-
-    #[cfg(target_os = "windows")]
     fn handle_received_character(&self, ch: char) {
         let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
         if let Some(last_pressed_key) = self.last_pressed_key.get() {
@@ -373,54 +348,7 @@ impl Window {
         }
     }
 
-    #[cfg(not(target_os = "windows"))]
-    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u32, virtual_key_code: VirtualKeyCode) {
-        self.toggle_keyboard_modifiers(virtual_key_code);
-
-        let ch = match element_state {
-            ElementState::Pressed => {
-                // Retrieve any previously stored ReceivedCharacter value.
-                // Store the association between the scan code and the actual
-                // character value, if there is one.
-                let ch = self.pending_key_event_char.get().and_then(|ch| {
-                    filter_nonprintable(ch, virtual_key_code)
-                });
-                self.pending_key_event_char.set(None);
-                if let Some(ch) = ch {
-                    self.pressed_key_map.borrow_mut().push((_scan_code, ch));
-                }
-                ch
-            },
-
-            ElementState::Released => {
-                // Retrieve the associated character value for this release key,
-                // if one was previously stored.
-                let idx = self.pressed_key_map.borrow().iter().position(
-                    |&(code, _)| {
-                        code == _scan_code
-                    },
-                );
-                idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
-            },
-        };
-
-        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
-            let state = match element_state {
-                ElementState::Pressed => KeyState::Pressed,
-                ElementState::Released => KeyState::Released,
-            };
-            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(
-                ch,
-                key,
-                state,
-                modifiers,
-            ));
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u8, virtual_key_code: VirtualKeyCode) {
+    fn set_key(&self, element_state: ElementState, virtual_key_code: VirtualKeyCode) {
         self.toggle_keyboard_modifiers(virtual_key_code);
 
         if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
@@ -441,6 +369,16 @@ impl Window {
                 modifiers,
             ));
         }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u32, virtual_key_code: VirtualKeyCode) {
+        self.set_key(element_state, virtual_key_code);
+    }
+
+    #[cfg(target_os = "windows")]
+    fn handle_keyboard_input(&self, element_state: ElementState, _scan_code: u8, virtual_key_code: VirtualKeyCode) {
+        self.set_key(element_state, virtual_key_code);
     }
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
@@ -718,7 +656,6 @@ impl Window {
         events
     }
 
-    #[cfg(target_os = "windows")]
     fn char_to_script_key(c: char) -> Option<constellation_msg::Key> {
         match c {
             ' ' => Some(Key::Space),
@@ -1433,15 +1370,6 @@ fn is_printable(key_code: VirtualKeyCode) -> bool {
         RControl | RMenu | RShift | RWin | Sleep | Stop | VolumeDown | VolumeUp | Wake | WebBack | WebFavorites |
         WebForward | WebHome | WebRefresh | WebSearch | WebStop => false,
         _ => true,
-    }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
-    if is_printable(key_code) {
-        Some(ch)
-    } else {
-        None
     }
 }
 
