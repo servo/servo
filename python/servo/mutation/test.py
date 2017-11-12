@@ -13,7 +13,15 @@ import subprocess
 import sys
 import os
 import random
+from enum import Enum
 DEVNULL = open(os.devnull, 'wb')
+
+
+class Status(Enum):
+    PASSED = 0
+    FAILED = 1
+    SKIPPED = 2
+    UNEXPECTED = 3
 
 
 def mutate_random_line(file_name):
@@ -33,8 +41,10 @@ def mutate_random_line(file_name):
 
 
 def mutation_test(file_name, tests):
+    status = Status.UNEXPECTED
     local_changes_present = subprocess.call('git diff --quiet {0}'.format(file_name), shell=True)
     if local_changes_present == 1:
+        status = Status.SKIPPED
         print "{0} has local changes, please commit/remove changes before running the test".format(file_name)
     else:
         mutated_line = mutate_random_line(file_name)
@@ -53,8 +63,10 @@ def mutation_test(file_name, tests):
                     print "mutated file {0} diff".format(file_name)
                     sys.stdout.flush()
                     subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
+                    status = Status.FAILED
                 else:
                     print("Success: Mutation killed by {0}".format(test.encode('utf-8')))
+                    status = Status.PASSED
                     break
             print "reverting mutant {0}:{1}".format(file_name, mutated_line)
             sys.stdout.flush()
@@ -62,3 +74,4 @@ def mutation_test(file_name, tests):
         else:
             print "Cannot mutate {0}".format(file_name)
         print "-" * 80 + "\n"
+    return status

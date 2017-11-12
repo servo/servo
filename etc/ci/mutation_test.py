@@ -8,5 +8,8 @@
 # except according to those terms.
 
 import subprocess
+import sys
 
-subprocess.call('python python/servo/mutation/init.py components/script/dom', shell=True)
+mutation_path = 'components/script/dom'
+status = subprocess.call('python python/servo/mutation/init.py %s' % mutation_path, shell=True)
+sys.exit(status)

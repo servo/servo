@@ -12,6 +12,12 @@ from os.path import isfile, isdir, join
 import json
 import sys
 import test
+test_summary = {
+    test.Status.PASSED: 0,
+    test.Status.FAILED: 0,
+    test.Status.SKIPPED: 0,
+    test.Status.UNEXPECTED: 0
+}
 
 
 def get_folders_list(path):
@@ -30,11 +36,18 @@ def mutation_test_for(mutation_path):
         test_mapping = json.loads(json_data)
         # Run mutation test for all source files in mapping file.
         for src_file in test_mapping.keys():
-            test.mutation_test(join(mutation_path, src_file.encode('utf-8')), test_mapping[src_file])
+            status = test.mutation_test(join(mutation_path, src_file.encode('utf-8')), test_mapping[src_file])
+            test_summary[status] += 1
         # Run mutation test in all folder in the path.
         for folder in get_folders_list(mutation_path):
             mutation_test_for(folder)
     else:
         print("This folder {0} has no test mapping file.".format(mutation_path))
 
+
 mutation_test_for(sys.argv[1])
+print "\nTest Summary:"
+for test_status in test_summary:
+    print "{0} : {1}".format(test_status.name, test_summary[test_status])
+if test_summary[test.Status.FAILED] or test_summary[test.Status.UNEXPECTED]:
+    sys.exit(1)
