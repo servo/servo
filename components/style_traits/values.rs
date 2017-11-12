@@ -24,6 +24,12 @@ use std::fmt::{self, Write};
 ///   commas, otherwise, by spaces;
 /// * if `#[css(function)]` is found on a variant, the variant name gets
 ///   serialised like unit variants and its fields are surrounded by parentheses;
+/// * if `#[css(iterable)]` is found on a function variant, that variant needs
+///   to have a single member, and that member needs to be iterable. The
+///   iterable will be serialized as the arguments for the function.
+/// * if `#[css(dimension)]` is found on a variant, that variant needs
+///   to have a single member. The variant would be serialized as a CSS
+///   dimension token, like: <member><identifier>.
 /// * finally, one can put `#[css(derive_debug)]` on the whole type, to
 ///   implement `Debug` by a single call to `ToCss::to_css`.
 pub trait ToCss {
