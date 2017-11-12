@@ -59,11 +59,6 @@ pub fn derive(input: DeriveInput) -> Tokens {
         };
 
         if variant_attrs.dimension {
-            // FIXME(emilio): Remove when bug 1416564 lands.
-            if identifier == "-mozmm" {
-                identifier = "mozmm".into();
-            }
-
             expr = quote! {
                 #expr?;
                 ::std::fmt::Write::write_str(dest, #identifier)
