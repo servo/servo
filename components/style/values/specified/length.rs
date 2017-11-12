@@ -11,15 +11,14 @@ use cssparser::{Parser, Token};
 use euclid::Size2D;
 use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
-use std::{cmp, fmt, mem};
+use std::{cmp, mem};
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::ops::{Add, Mul};
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use style_traits::{ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
-use values::{Auto, CSSFloat, Either, None_, Normal};
-use values::{ExtremumLength, serialize_dimension};
+use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal};
 use values::computed::{self, CSSPixelLength, Context};
 use values::generics::NonNegative;
 use values::specified::NonNegativeNumber;
@@ -52,30 +51,21 @@ pub fn au_to_int_px(au: f32) -> i32 {
     (au / AU_PER_PX).round() as i32
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 /// A font relative length.
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum FontRelativeLength {
     /// A "em" value: https://drafts.csswg.org/css-values/#em
+    #[css(dimension)]
     Em(CSSFloat),
     /// A "ex" value: https://drafts.csswg.org/css-values/#ex
+    #[css(dimension)]
     Ex(CSSFloat),
     /// A "ch" value: https://drafts.csswg.org/css-values/#ch
+    #[css(dimension)]
     Ch(CSSFloat),
     /// A "rem" value: https://drafts.csswg.org/css-values/#rem
+    #[css(dimension)]
     Rem(CSSFloat)
-}
-
-impl ToCss for FontRelativeLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
-    {
-        match *self {
-            FontRelativeLength::Em(length) => serialize_dimension(length, "em", dest),
-            FontRelativeLength::Ex(length) => serialize_dimension(length, "ex", dest),
-            FontRelativeLength::Ch(length) => serialize_dimension(length, "ch", dest),
-            FontRelativeLength::Rem(length) => serialize_dimension(length, "rem", dest)
-        }
-    }
 }
 
 /// A source to resolve font-relative units against
@@ -206,30 +196,23 @@ impl FontRelativeLength {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 /// A viewport-relative length.
 ///
 /// <https://drafts.csswg.org/css-values/#viewport-relative-lengths>
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum ViewportPercentageLength {
     /// A vw unit: https://drafts.csswg.org/css-values/#vw
+    #[css(dimension)]
     Vw(CSSFloat),
     /// A vh unit: https://drafts.csswg.org/css-values/#vh
+    #[css(dimension)]
     Vh(CSSFloat),
     /// <https://drafts.csswg.org/css-values/#vmin>
+    #[css(dimension)]
     Vmin(CSSFloat),
     /// <https://drafts.csswg.org/css-values/#vmax>
+    #[css(dimension)]
     Vmax(CSSFloat)
-}
-
-impl ToCss for ViewportPercentageLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ViewportPercentageLength::Vw(length) => serialize_dimension(length, "vw", dest),
-            ViewportPercentageLength::Vh(length) => serialize_dimension(length, "vh", dest),
-            ViewportPercentageLength::Vmin(length) => serialize_dimension(length, "vmin", dest),
-            ViewportPercentageLength::Vmax(length) => serialize_dimension(length, "vmax", dest)
-        }
-    }
 }
 
 impl ViewportPercentageLength {
@@ -255,7 +238,7 @@ impl ViewportPercentageLength {
 }
 
 /// HTML5 "character width", as defined in HTML5 § 14.5.4.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub struct CharacterWidth(pub i32);
 
 impl CharacterWidth {
@@ -273,21 +256,28 @@ impl CharacterWidth {
 }
 
 /// Represents an absolute length with its unit
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum AbsoluteLength {
     /// An absolute length in pixels (px)
+    #[css(dimension)]
     Px(CSSFloat),
     /// An absolute length in inches (in)
+    #[css(dimension)]
     In(CSSFloat),
     /// An absolute length in centimeters (cm)
+    #[css(dimension)]
     Cm(CSSFloat),
     /// An absolute length in millimeters (mm)
+    #[css(dimension)]
     Mm(CSSFloat),
     /// An absolute length in quarter-millimeters (q)
+    #[css(dimension)]
     Q(CSSFloat),
     /// An absolute length in points (pt)
+    #[css(dimension)]
     Pt(CSSFloat),
     /// An absolute length in pica (pc)
+    #[css(dimension)]
     Pc(CSSFloat),
 }
 
@@ -334,20 +324,6 @@ impl ToComputedValue for AbsoluteLength {
     }
 }
 
-impl ToCss for AbsoluteLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            AbsoluteLength::Px(length) => serialize_dimension(length, "px", dest),
-            AbsoluteLength::In(length) => serialize_dimension(length, "in", dest),
-            AbsoluteLength::Cm(length) => serialize_dimension(length, "cm", dest),
-            AbsoluteLength::Mm(length) => serialize_dimension(length, "mm", dest),
-            AbsoluteLength::Q(length) => serialize_dimension(length, "q", dest),
-            AbsoluteLength::Pt(length) => serialize_dimension(length, "pt", dest),
-            AbsoluteLength::Pc(length) => serialize_dimension(length, "pc", dest),
-        }
-    }
-}
-
 impl Mul<CSSFloat> for AbsoluteLength {
     type Output = AbsoluteLength;
 
@@ -383,19 +359,27 @@ impl Add<AbsoluteLength> for AbsoluteLength {
     }
 }
 
-/// Represents a physical length (mozmm) based on DPI
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg(feature = "gecko")]
+/// Represents a physical length based on DPI.
+///
+/// FIXME(emilio): Unship (https://bugzilla.mozilla.org/show_bug.cgi?id=1416564)
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 #[derive(MallocSizeOf)]
-pub struct PhysicalLength(pub CSSFloat);
+pub enum PhysicalLength {
+    /// A physical length in millimetres.
+    #[css(dimension)]
+    Mozmm(CSSFloat),
+}
 
-#[cfg(feature = "gecko")]
 impl PhysicalLength {
-    fn is_zero(&self) -> bool {
-        self.0 == 0.
+    /// Checks whether the length value is zero.
+    pub fn is_zero(&self) -> bool {
+        match *self {
+            PhysicalLength::Mozmm(v) => v == 0.,
+        }
     }
 
     /// Computes the given character width.
+    #[cfg(feature = "gecko")]
     pub fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
         use gecko_bindings::bindings;
         use std::f32;
@@ -408,32 +392,31 @@ impl PhysicalLength {
         };
 
         let px_per_physical_inch = au_per_physical_inch / AU_PER_PX;
-        let pixel = self.0 * px_per_physical_inch * INCH_PER_MM;
+
+        let mm = match *self {
+            PhysicalLength::Mozmm(v) => v,
+        };
+
+        let pixel = mm * px_per_physical_inch * INCH_PER_MM;
         CSSPixelLength::new(pixel.min(f32::MAX).max(f32::MIN))
     }
 }
 
-#[cfg(feature = "gecko")]
-impl ToCss for PhysicalLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        serialize_dimension(self.0, "mozmm", dest)
-    }
-}
-
-#[cfg(feature = "gecko")]
 impl Mul<CSSFloat> for PhysicalLength {
-    type Output = PhysicalLength;
+    type Output = Self ;
 
     #[inline]
-    fn mul(self, scalar: CSSFloat) -> PhysicalLength {
-        PhysicalLength(self.0 * scalar)
+    fn mul(self, scalar: CSSFloat) -> Self {
+        match self {
+            PhysicalLength::Mozmm(v) => PhysicalLength::Mozmm(v * scalar),
+        }
     }
 }
 
 /// A `<length>` without taking `calc` expressions into account
 ///
 /// <https://drafts.csswg.org/css-values/#lengths>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum NoCalcLength {
     /// An absolute length
     ///
@@ -454,29 +437,12 @@ pub enum NoCalcLength {
     ///
     /// This cannot be specified by the user directly and is only generated by
     /// `Stylist::synthesize_rules_for_legacy_attributes()`.
+    #[css(function)]
     ServoCharacterWidth(CharacterWidth),
 
     /// A physical length (mozmm) based on DPI
     #[cfg(feature = "gecko")]
     Physical(PhysicalLength),
-}
-
-impl ToCss for NoCalcLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            NoCalcLength::Absolute(length) => length.to_css(dest),
-            NoCalcLength::FontRelative(length) => length.to_css(dest),
-            NoCalcLength::ViewportPercentage(length) => length.to_css(dest),
-            /* This should only be reached from style dumping code */
-            NoCalcLength::ServoCharacterWidth(CharacterWidth(i)) => {
-                dest.write_str("CharWidth(")?;
-                i.to_css(dest)?;
-                dest.write_char(')')
-            }
-            #[cfg(feature = "gecko")]
-            NoCalcLength::Physical(length) => length.to_css(dest),
-        }
-    }
 }
 
 impl Mul<CSSFloat> for NoCalcLength {
@@ -539,7 +505,7 @@ impl NoCalcLength {
                 Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value)))
             },
             #[cfg(feature = "gecko")]
-            "mozmm" => Ok(NoCalcLength::Physical(PhysicalLength(value))),
+            "mozmm" => Ok(NoCalcLength::Physical(PhysicalLength::Mozmm(value))),
             _ => Err(())
         }
     }

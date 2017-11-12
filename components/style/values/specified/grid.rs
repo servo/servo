@@ -33,7 +33,7 @@ impl Parse for TrackBreadth<LengthOrPercentage> {
         }
 
         if let Ok(f) = input.try(parse_flex) {
-            return Ok(TrackBreadth::Flex(f))
+            return Ok(TrackBreadth::Fr(f))
         }
 
         TrackKeyword::parse(input).map(TrackBreadth::Keyword)

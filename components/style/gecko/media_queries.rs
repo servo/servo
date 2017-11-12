@@ -29,7 +29,7 @@ use style_traits::{CSSPixel, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::Origin;
-use values::{CSSFloat, CustomIdent, serialize_dimension};
+use values::{CSSFloat, CustomIdent};
 use values::computed::{self, ToComputedValue};
 use values::computed::font::FontSize;
 use values::specified::Length;
@@ -262,13 +262,16 @@ impl PartialEq for Expression {
 }
 
 /// A resolution.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum Resolution {
     /// Dots per inch.
+    #[css(dimension)]
     Dpi(CSSFloat),
     /// Dots per pixel.
+    #[css(dimension)]
     Dppx(CSSFloat),
     /// Dots per centimeter.
+    #[css(dimension)]
     Dpcm(CSSFloat),
 }
 
@@ -300,18 +303,6 @@ impl Resolution {
             "dpcm" => Ok(Resolution::Dpcm(value)),
             _ => Err(())
         }).map_err(|()| location.new_custom_error(StyleParseErrorKind::UnexpectedDimension(unit.clone())))
-    }
-}
-
-impl ToCss for Resolution {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            Resolution::Dpi(v) => serialize_dimension(v, "dpi", dest),
-            Resolution::Dppx(v) => serialize_dimension(v, "dppx", dest),
-            Resolution::Dpcm(v) => serialize_dimension(v, "dpcm", dest),
-        }
     }
 }
 

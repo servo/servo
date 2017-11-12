@@ -214,7 +214,7 @@ impl<L: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for TrackBreadth<
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
             TrackBreadth::Breadth(ref lop) => lop.to_gecko_style_coord(coord),
-            TrackBreadth::Flex(fr) => coord.set_value(CoordDataValue::FlexFraction(fr)),
+            TrackBreadth::Fr(fr) => coord.set_value(CoordDataValue::FlexFraction(fr)),
             TrackBreadth::Keyword(TrackKeyword::Auto) => coord.set_value(CoordDataValue::Auto),
             TrackBreadth::Keyword(TrackKeyword::MinContent) =>
                 coord.set_value(CoordDataValue::Enumerated(StyleGridTrackBreadth::MinContent as u32)),
@@ -235,7 +235,7 @@ impl<L: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for TrackBreadth<
                         None
                     }
                 },
-                CoordDataValue::FlexFraction(fr) => Some(TrackBreadth::Flex(fr)),
+                CoordDataValue::FlexFraction(fr) => Some(TrackBreadth::Fr(fr)),
                 CoordDataValue::Auto => Some(TrackBreadth::Keyword(TrackKeyword::Auto)),
                 _ => L::from_gecko_style_coord(coord).map(TrackBreadth::Breadth),
             }
@@ -291,9 +291,9 @@ impl GeckoStyleCoordConvertible for Angle {
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
-            CoordDataValue::Degree(val) => Some(Angle::Degree(val)),
-            CoordDataValue::Grad(val) => Some(Angle::Gradian(val)),
-            CoordDataValue::Radian(val) => Some(Angle::Radian(val)),
+            CoordDataValue::Degree(val) => Some(Angle::Deg(val)),
+            CoordDataValue::Grad(val) => Some(Angle::Grad(val)),
+            CoordDataValue::Radian(val) => Some(Angle::Rad(val)),
             CoordDataValue::Turn(val) => Some(Angle::Turn(val)),
             _ => None,
         }

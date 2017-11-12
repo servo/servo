@@ -41,14 +41,6 @@ pub fn serialize_percentage<W>(value: CSSFloat, dest: &mut W)
     dest.write_str("%")
 }
 
-/// Serialize a value with given unit into dest.
-pub fn serialize_dimension<W>(value: CSSFloat, unit: &str, dest: &mut W)
-    -> fmt::Result where W: fmt::Write
-{
-    value.to_css(dest)?;
-    dest.write_str(unit)
-}
-
 /// Convenience void type to disable some properties and values through types.
 #[cfg_attr(feature = "servo", derive(Deserialize, MallocSizeOf, Serialize))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]

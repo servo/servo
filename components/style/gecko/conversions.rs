@@ -116,9 +116,9 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
 impl From<Angle> for CoordDataValue {
     fn from(reference: Angle) -> Self {
         match reference {
-            Angle::Degree(val) => CoordDataValue::Degree(val),
-            Angle::Gradian(val) => CoordDataValue::Grad(val),
-            Angle::Radian(val) => CoordDataValue::Radian(val),
+            Angle::Deg(val) => CoordDataValue::Degree(val),
+            Angle::Grad(val) => CoordDataValue::Grad(val),
+            Angle::Rad(val) => CoordDataValue::Radian(val),
             Angle::Turn(val) => CoordDataValue::Turn(val),
         }
     }
@@ -128,9 +128,9 @@ impl Angle {
     /// Converts Angle struct into (value, unit) pair.
     pub fn to_gecko_values(&self) -> (f32, nsCSSUnit) {
         match *self {
-            Angle::Degree(val) => (val, nsCSSUnit::eCSSUnit_Degree),
-            Angle::Gradian(val) => (val, nsCSSUnit::eCSSUnit_Grad),
-            Angle::Radian(val) => (val, nsCSSUnit::eCSSUnit_Radian),
+            Angle::Deg(val) => (val, nsCSSUnit::eCSSUnit_Degree),
+            Angle::Grad(val) => (val, nsCSSUnit::eCSSUnit_Grad),
+            Angle::Rad(val) => (val, nsCSSUnit::eCSSUnit_Radian),
             Angle::Turn(val) => (val, nsCSSUnit::eCSSUnit_Turn),
         }
     }
@@ -138,9 +138,9 @@ impl Angle {
     /// Converts gecko (value, unit) pair into Angle struct
     pub fn from_gecko_values(value: f32, unit: nsCSSUnit) -> Angle {
         match unit {
-            nsCSSUnit::eCSSUnit_Degree => Angle::Degree(value),
-            nsCSSUnit::eCSSUnit_Grad => Angle::Gradian(value),
-            nsCSSUnit::eCSSUnit_Radian => Angle::Radian(value),
+            nsCSSUnit::eCSSUnit_Degree => Angle::Deg(value),
+            nsCSSUnit::eCSSUnit_Grad => Angle::Grad(value),
+            nsCSSUnit::eCSSUnit_Radian => Angle::Rad(value),
             nsCSSUnit::eCSSUnit_Turn => Angle::Turn(value),
             _ => panic!("Unexpected unit {:?} for angle", unit),
         }
