@@ -339,6 +339,9 @@ impl Request {
             _ => {},
         }
 
+        // Copy the headers list onto the headers of net_traits::Request
+        r.request.borrow_mut().headers = r.Headers().get_headers_list();
+
         // Step 32
         let mut input_body = if let RequestInfo::Request(ref input_request) = input {
             let input_request_request = input_request.request.borrow();
