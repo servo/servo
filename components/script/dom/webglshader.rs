@@ -16,6 +16,7 @@ use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use servo_config::opts;
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
 
@@ -40,11 +41,20 @@ pub struct WebGLShader {
     renderer: WebGLMsgSender,
 }
 
-#[cfg(not(target_os = "android"))]
-const SHADER_OUTPUT_FORMAT: Output = Output::Glsl;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+const SHADER_OUTPUT_FORMAT_WEBGL1: Output = Output::Glsl;
+// MacOS Requires Glsl150Core because it uses a OpenGL 3.2 Core Context.
+#[cfg(target_os = "macos")]
+const SHADER_OUTPUT_FORMAT_WEBGL2: Output = Output::Glsl150Core;
+// Linux and Windows use OpenGL 3.1 Compatibility context, so Glsl140 should be used.
+#[cfg(not(any(target_os = "macos", target_os = "android", target_os = "ios")))]
+const SHADER_OUTPUT_FORMAT_WEBGL2: Output = Output::Glsl140;
 
-#[cfg(target_os = "android")]
-const SHADER_OUTPUT_FORMAT: Output = Output::Essl;
+#[cfg(any(target_os = "android", target_os = "ios"))]
+const SHADER_OUTPUT_FORMAT_WEBGL1: Output = Output::Essl;
+#[cfg(any(target_os = "android", target_os = "ios"))]
+const SHADER_OUTPUT_FORMAT_WEBGL2: Output = Output::Essl;
+
 
 static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
 
@@ -112,13 +122,19 @@ impl WebGLShader {
             let validator = match version {
                 WebGLVersion::WebGL1 => {
                     ShaderValidator::for_webgl(self.gl_type,
-                                               SHADER_OUTPUT_FORMAT,
+                                               SHADER_OUTPUT_FORMAT_WEBGL1,
                                                &params).unwrap()
                 },
                 WebGLVersion::WebGL2 => {
+                    let format = if opts::get().should_use_osmesa() {
+                        // Currently, OSMesa compat profile only supports GLSL 130
+                        Output::Glsl130
+                    } else {
+                        SHADER_OUTPUT_FORMAT_WEBGL2
+                    };
                     ShaderValidator::for_webgl2(self.gl_type,
-                                               SHADER_OUTPUT_FORMAT,
-                                               &params).unwrap()
+                                                format,
+                                                &params).unwrap()
                 },
             };
 
