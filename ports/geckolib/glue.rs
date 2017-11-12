@@ -3202,7 +3202,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(
     let prop = match_wrap_declared! { long,
         MozScriptSizeMultiplier => value,
         // Gecko uses Number values to signal that it is absolute
-        MozScriptLevel => MozScriptLevel::Absolute(value as i32),
+        MozScriptLevel => MozScriptLevel::MozAbsolute(value as i32),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal, DeclarationSource::CssOm);

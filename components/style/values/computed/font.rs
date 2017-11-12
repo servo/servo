@@ -326,12 +326,12 @@ impl ToComputedValue for specified::MozScriptLevel {
                 let parent = cx.builder.get_parent_font().clone__moz_script_level();
                 parent as i32 + rel
             }
-            specified::MozScriptLevel::Absolute(abs) => abs,
+            specified::MozScriptLevel::MozAbsolute(abs) => abs,
         };
         cmp::min(int, i8::MAX as i32) as i8
     }
 
     fn from_computed_value(other: &i8) -> Self {
-        specified::MozScriptLevel::Absolute(*other as i32)
+        specified::MozScriptLevel::MozAbsolute(*other as i32)
     }
 }

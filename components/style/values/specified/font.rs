@@ -991,7 +991,8 @@ pub enum MozScriptLevel {
     /// Should only be serialized by presentation attributes, so even though
     /// serialization for this would look the same as for the `Relative`
     /// variant, it is unexposed, so no big deal.
-    Absolute(i32),
+    #[css(function)]
+    MozAbsolute(i32),
     /// Change `font-size` automatically.
     Auto
 }
