@@ -9,7 +9,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
-use values::{CSSFloat, CustomIdent, serialize_dimension};
+use values::{CSSFloat, CustomIdent};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
 use values::specified::grid::parse_line_names;
@@ -143,12 +143,13 @@ add_impls_for_keyword_enum!(TrackKeyword);
 /// avoid re-implementing it for the computed type.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-breadth>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
 pub enum TrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
     /// A flex fraction specified in `fr` units.
-    Flex(CSSFloat),
+    #[css(dimension)]
+    Fr(CSSFloat),
     /// One of the track-sizing keywords (`auto`, `min-content`, `max-content`)
     Keyword(TrackKeyword),
 }
@@ -162,16 +163,6 @@ impl<L> TrackBreadth<L> {
         match *self {
             TrackBreadth::Breadth(ref _lop) => true,
             _ => false,
-        }
-    }
-}
-
-impl<L: ToCss> ToCss for TrackBreadth<L> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            TrackBreadth::Breadth(ref lop) => lop.to_css(dest),
-            TrackBreadth::Flex(ref value) => serialize_dimension(*value, "fr", dest),
-            TrackBreadth::Keyword(ref k) => k.to_css(dest),
         }
     }
 }
@@ -212,7 +203,7 @@ impl<L> TrackSize<L> {
                 }
 
                 match *breadth_1 {
-                    TrackBreadth::Flex(_) => false,     // should be <inflexible-breadth> at this point
+                    TrackBreadth::Fr(_) => false,     // should be <inflexible-breadth> at this point
                     _ => breadth_2.is_fixed(),
                 }
             },
@@ -242,7 +233,7 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 // According to gecko minmax(auto, <flex>) is equivalent to <flex>,
                 // and both are serialized as <flex>.
                 if let TrackBreadth::Keyword(TrackKeyword::Auto) = *min {
-                    if let TrackBreadth::Flex(_) = *max {
+                    if let TrackBreadth::Fr(_) = *max {
                         return max.to_css(dest);
                     }
                 }
@@ -268,7 +259,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            TrackSize::Breadth(TrackBreadth::Flex(ref f)) => {
+            TrackSize::Breadth(TrackBreadth::Fr(ref f)) => {
                 // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
                 // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
                 // FIXME(nox): This sounds false, the spec just says that <flex>
@@ -276,7 +267,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
                 // into `minmax` at computed value time.
                 TrackSize::Minmax(
                     TrackBreadth::Keyword(TrackKeyword::Auto),
-                    TrackBreadth::Flex(f.to_computed_value(context)),
+                    TrackBreadth::Fr(f.to_computed_value(context)),
                 )
             },
             TrackSize::Breadth(ref b) => {

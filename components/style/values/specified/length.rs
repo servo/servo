@@ -53,15 +53,18 @@ pub fn au_to_int_px(au: f32) -> i32 {
 
 /// A font relative length.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
-#[css(dimension)]
 pub enum FontRelativeLength {
     /// A "em" value: https://drafts.csswg.org/css-values/#em
+    #[css(dimension)]
     Em(CSSFloat),
     /// A "ex" value: https://drafts.csswg.org/css-values/#ex
+    #[css(dimension)]
     Ex(CSSFloat),
     /// A "ch" value: https://drafts.csswg.org/css-values/#ch
+    #[css(dimension)]
     Ch(CSSFloat),
     /// A "rem" value: https://drafts.csswg.org/css-values/#rem
+    #[css(dimension)]
     Rem(CSSFloat)
 }
 
@@ -197,15 +200,18 @@ impl FontRelativeLength {
 ///
 /// <https://drafts.csswg.org/css-values/#viewport-relative-lengths>
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
-#[css(dimension)]
 pub enum ViewportPercentageLength {
     /// A vw unit: https://drafts.csswg.org/css-values/#vw
+    #[css(dimension)]
     Vw(CSSFloat),
     /// A vh unit: https://drafts.csswg.org/css-values/#vh
+    #[css(dimension)]
     Vh(CSSFloat),
     /// <https://drafts.csswg.org/css-values/#vmin>
+    #[css(dimension)]
     Vmin(CSSFloat),
     /// <https://drafts.csswg.org/css-values/#vmax>
+    #[css(dimension)]
     Vmax(CSSFloat)
 }
 
@@ -251,21 +257,27 @@ impl CharacterWidth {
 
 /// Represents an absolute length with its unit
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
-#[css(dimension)]
 pub enum AbsoluteLength {
     /// An absolute length in pixels (px)
+    #[css(dimension)]
     Px(CSSFloat),
     /// An absolute length in inches (in)
+    #[css(dimension)]
     In(CSSFloat),
     /// An absolute length in centimeters (cm)
+    #[css(dimension)]
     Cm(CSSFloat),
     /// An absolute length in millimeters (mm)
+    #[css(dimension)]
     Mm(CSSFloat),
     /// An absolute length in quarter-millimeters (q)
+    #[css(dimension)]
     Q(CSSFloat),
     /// An absolute length in points (pt)
+    #[css(dimension)]
     Pt(CSSFloat),
     /// An absolute length in pica (pc)
+    #[css(dimension)]
     Pc(CSSFloat),
 }
 
@@ -348,11 +360,13 @@ impl Add<AbsoluteLength> for AbsoluteLength {
 }
 
 /// Represents a physical length based on DPI.
+///
+/// FIXME(emilio): Unship (https://bugzilla.mozilla.org/show_bug.cgi?id=1416564)
 #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 #[derive(MallocSizeOf)]
-#[css(dimension)]
 pub enum PhysicalLength {
     /// A physical length in millimetres.
+    #[css(dimension)]
     Mozmm(CSSFloat),
 }
 

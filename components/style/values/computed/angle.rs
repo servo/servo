@@ -16,15 +16,18 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
 #[derive(PartialOrd, ToAnimatedZero)]
-#[css(dimension)]
 pub enum Angle {
     /// An angle with degree unit.
+    #[css(dimension)]
     Deg(CSSFloat),
     /// An angle with gradian unit.
+    #[css(dimension)]
     Grad(CSSFloat),
     /// An angle with radian unit.
+    #[css(dimension)]
     Rad(CSSFloat),
     /// An angle with turn unit.
+    #[css(dimension)]
     Turn(CSSFloat),
 }
 

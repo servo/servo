@@ -20,7 +20,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
         let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
         let separator = if variant_attrs.comma { ", " } else { " " };
 
-        if input_attrs.dimension {
+        if variant_attrs.dimension {
             assert_eq!(bindings.len(), 1);
             assert!(!variant_attrs.function, "That makes no sense");
         }
@@ -58,7 +58,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
             }
         };
 
-        if input_attrs.dimension {
+        if variant_attrs.dimension {
             // FIXME(emilio): Remove when bug 1416564 lands.
             if identifier == "-mozmm" {
                 identifier = "mozmm".into();
@@ -112,7 +112,6 @@ pub fn derive(input: DeriveInput) -> Tokens {
 struct CssInputAttrs {
     derive_debug: bool,
     function: bool,
-    dimension: bool,
     comma: bool,
 }
 
@@ -122,6 +121,7 @@ struct CssVariantAttrs {
     function: bool,
     iterable: bool,
     comma: bool,
+    dimension: bool,
 }
 
 /// Transforms "FooBar" to "foo-bar".

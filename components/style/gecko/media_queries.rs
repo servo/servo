@@ -263,13 +263,15 @@ impl PartialEq for Expression {
 
 /// A resolution.
 #[derive(Clone, Debug, PartialEq, ToCss)]
-#[css(dimension)]
 pub enum Resolution {
     /// Dots per inch.
+    #[css(dimension)]
     Dpi(CSSFloat),
     /// Dots per pixel.
+    #[css(dimension)]
     Dppx(CSSFloat),
     /// Dots per centimeter.
+    #[css(dimension)]
     Dpcm(CSSFloat),
 }
 
