@@ -53,7 +53,7 @@ pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDash
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, TransformOrigin};
+pub use self::transform::{TimingFunction, Transform, TransformOrigin};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]
