@@ -5,18 +5,22 @@
 //! https://html.spec.whatwg.org/multipage/#source-size-list
 
 use app_units::Au;
-use cssparser::Parser;
+use cssparser::{Delimiter, Parser, Token};
+#[cfg(feature = "gecko")]
+use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::{Device, Expression as MediaExpression};
 use parser::{Parse, ParserContext};
 use selectors::context::QuirksMode;
 use style_traits::ParseError;
 use values::computed::{self, ToComputedValue};
-use values::specified::Length;
+use values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 
 /// A value for a `<source-size>`:
 ///
 /// https://html.spec.whatwg.org/multipage/#source-size
 pub struct SourceSize {
+    // FIXME(emilio): This should be a `MediaCondition`, and support `and` and
+    // `or`.
     condition: MediaExpression,
     value: Length,
 }
@@ -38,10 +42,18 @@ impl Parse for SourceSize {
 /// https://html.spec.whatwg.org/multipage/#source-size-list
 pub struct SourceSizeList {
     source_sizes: Vec<SourceSize>,
-    value: Length,
+    value: Option<Length>,
 }
 
 impl SourceSizeList {
+    /// Create an empty `SourceSizeList`, which can be used as a fall-back.
+    pub fn empty() -> Self {
+        Self {
+            source_sizes: vec![],
+            value: None,
+        }
+    }
+
     /// Evaluate this <source-size-list> to get the final viewport length.
     pub fn evaluate(&self, device: &Device, quirks_mode: QuirksMode) -> Au {
         let matching_source_size = self.source_sizes.iter().find(|source_size| {
@@ -54,26 +66,80 @@ impl SourceSizeList {
                     source_size.value.to_computed_value(context)
                 }
                 None => {
-                    self.value.to_computed_value(context)
+                    match self.value {
+                        Some(ref v) => v.to_computed_value(context),
+                        None => {
+                            Length::NoCalc(NoCalcLength::ViewportPercentage(
+                                ViewportPercentageLength::Vw(100.)
+                            )).to_computed_value(context)
+                        }
+                    }
                 }
             }
         }).into()
     }
 }
 
-impl Parse for SourceSizeList {
+enum SourceSizeOrLength {
+    SourceSize(SourceSize),
+    Length(Length),
+}
+
+impl Parse for SourceSizeOrLength {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let source_sizes = input.try(|input| {
-            input.parse_comma_separated(|input| {
-                SourceSize::parse(context, input)
-            })
-        }).unwrap_or(vec![]);
+        if let Ok(size) = input.try(|input| SourceSize::parse(context, input)) {
+            return Ok(SourceSizeOrLength::SourceSize(size));
+        }
 
-        let value = Length::parse_non_negative(context, input)?;
-
-        Ok(Self { source_sizes, value })
+        let length = Length::parse_non_negative(context, input)?;
+        Ok(SourceSizeOrLength::Length(length))
     }
 }
+
+impl SourceSizeList {
+    /// NOTE(emilio): This doesn't match the grammar in the spec, see:
+    ///
+    /// https://html.spec.whatwg.org/multipage/#parsing-a-sizes-attribute
+    pub fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Self {
+        let mut source_sizes = vec![];
+
+        loop {
+            let result = input.parse_until_before(Delimiter::Comma, |input| {
+                SourceSizeOrLength::parse(context, input)
+            });
+
+            match result {
+                Ok(SourceSizeOrLength::Length(value)) => {
+                    return Self { source_sizes, value: Some(value) }
+                }
+                Ok(SourceSizeOrLength::SourceSize(source_size)) => {
+                    source_sizes.push(source_size);
+                }
+                Err(..) => {}
+            }
+
+            match input.next() {
+                Ok(&Token::Comma) => {},
+                Err(..) => break,
+                _ => unreachable!(),
+            }
+        }
+
+        SourceSizeList { source_sizes, value: None }
+    }
+}
+
+#[cfg(feature = "gecko")]
+unsafe impl HasFFI for SourceSizeList {
+    type FFIType = ::gecko_bindings::structs::RawServoSourceSizeList;
+}
+#[cfg(feature = "gecko")]
+unsafe impl HasSimpleFFI for SourceSizeList {}
+#[cfg(feature = "gecko")]
+unsafe impl HasBoxFFI for SourceSizeList {}

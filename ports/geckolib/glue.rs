@@ -44,6 +44,7 @@ use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrow
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoSelectorListBorrowed, RawServoSelectorListOwned};
+use style::gecko_bindings::bindings::{RawServoSourceSizeListBorrowedOrNull, RawServoSourceSizeListOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetBorrowedOrNull, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedDataBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ServoStyleContextBorrowed};
@@ -95,6 +96,7 @@ use style::gecko_bindings::structs::OriginFlags_UserAgent;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::RawServoSelectorList;
+use style::gecko_bindings::structs::RawServoSourceSizeList;
 use style::gecko_bindings::structs::SeenPtrs;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::ServoStyleSetSizes;
@@ -147,6 +149,7 @@ use style::values::computed::{Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style::values::specified;
 use style::values::specified::gecko::IntersectionObserverRootMargin;
+use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::{ParsingMode, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
@@ -4515,7 +4518,7 @@ pub unsafe extern "C" fn Servo_SelectorList_Parse(
 
     debug_assert!(!selector_list.is_null());
 
-    let input = ::std::str::from_utf8_unchecked(&**selector_list);
+    let input = (*selector_list).as_str_unchecked();
     let selector_list = match SelectorParser::parse_author_origin_no_namespace(&input) {
         Ok(selector_list) => selector_list,
         Err(..) => return ptr::null_mut(),
@@ -4626,4 +4629,51 @@ pub extern "C" fn Servo_ParseIntersectionObserverRootMargin(
         }
         Err(..) => false,
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SourceSizeList_Parse(
+    value: *const nsACString,
+) -> *mut RawServoSourceSizeList {
+    let value = (*value).as_str_unchecked();
+    let mut input = ParserInput::new(value);
+    let mut parser = Parser::new(&mut input);
+
+    let context = ParserContext::new(
+        Origin::Author,
+        dummy_url_data(),
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    // NB: Intentionally not calling parse_entirely.
+    let list = SourceSizeList::parse(&context, &mut parser);
+    Box::into_raw(Box::new(list)) as *mut _
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SourceSizeList_Evaluate(
+    raw_data: RawServoStyleSetBorrowed,
+    list: RawServoSourceSizeListBorrowedOrNull,
+) -> i32 {
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let device = doc_data.stylist.device();
+    let quirks_mode = doc_data.stylist.quirks_mode();
+
+    let result = match list {
+        Some(list) => {
+            SourceSizeList::from_ffi(list).evaluate(device, quirks_mode)
+        }
+        None => {
+            SourceSizeList::empty().evaluate(device, quirks_mode)
+        }
+    };
+
+    result.0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_SourceSizeList_Drop(list: RawServoSourceSizeListOwned) {
+    let _ = list.into_box::<SourceSizeList>();
 }
