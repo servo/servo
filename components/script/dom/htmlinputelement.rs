@@ -574,16 +574,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
-        let selection_end = self.SelectionEnd();
-        self.textinput.borrow_mut().set_selection_range(start, selection_end);
-        let window = window_from_node(self);
-        let _ = window.user_interaction_task_source().queue_event(
-            &self.upcast(),
-            atom!("select"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            &window);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.set_selection_range(start, self.SelectionEnd(), self.selection_direction());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
@@ -593,16 +584,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
-        let selection_start = self.SelectionStart();
-        self.textinput.borrow_mut().set_selection_range(selection_start, end);
-        let window = window_from_node(self);
-        let _ = window.user_interaction_task_source().queue_event(
-            &self.upcast(),
-            atom!("select"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            &window);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.set_selection_range(self.SelectionStart(), end, self.selection_direction());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
@@ -618,16 +600,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
         let direction = direction.map_or(SelectionDirection::None, |d| SelectionDirection::from(d));
-        self.textinput.borrow_mut().selection_direction = direction;
-        self.textinput.borrow_mut().set_selection_range(start, end);
-        let window = window_from_node(self);
-        let _ = window.user_interaction_task_source().queue_event(
-            &self.upcast(),
-            atom!("select"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            &window);
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.set_selection_range(start, end, direction);
     }
 
     // Select the files based on filepaths passed in,
@@ -899,6 +872,23 @@ impl HTMLInputElement {
             // TODO: Implement more value sanitization algorithms for different types of inputs
             _ => ()
         }
+    }
+
+    fn selection_direction(&self) -> SelectionDirection {
+        self.textinput.borrow().selection_direction
+    }
+
+    fn set_selection_range(&self, start: u32, end: u32, direction: SelectionDirection) {
+        self.textinput.borrow_mut().selection_direction = direction;
+        self.textinput.borrow_mut().set_selection_range(start, end);
+        let window = window_from_node(self);
+        let _ = window.user_interaction_task_source().queue_event(
+            &self.upcast(),
+            atom!("select"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            &window);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
