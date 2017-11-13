@@ -53,7 +53,7 @@ use style::computed_values::{border_style, cursor};
 use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
-use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
+use style::properties::longhands::computed_value::RepeatKeyword;
 use style::properties::style_structs;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::{Either, RGBA};
@@ -68,6 +68,7 @@ use style::values::generics::image::{GradientItem as GenericGradientItem, Gradie
 use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::background::RepeatKeyword as BackgroundRepeatKeyword;
+use style::values::specified::border::RepeatKeyword as BorderImageRepeatKeyword;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::ToCss;
@@ -1647,8 +1648,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                       corners.3.resolve(webrender_image.width)),
                             // TODO(gw): Support border-image-outset
                             outset: SideOffsets2D::zero(),
-                            repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),
-                            repeat_vertical: convert_repeat_mode(border_style_struct.border_image_repeat.1),
+                            repeat_horizontal: convert_repeat_mode(border_style_struct.BorderImageRepeatKeyword.0),
+                            repeat_vertical: convert_repeat_mode(border_style_struct.BorderImageRepeatKeyword.1),
                         }),
                     })));
                 }
@@ -1680,8 +1681,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                           corners.3.resolve(webrender_image.width)),
                                 // TODO(gw): Support border-image-outset
                                 outset: SideOffsets2D::zero(),
-                                repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),
-                                repeat_vertical: convert_repeat_mode(border_style_struct.border_image_repeat.1),
+                                repeat_horizontal: convert_repeat_mode(border_style_struct.BorderImageRepeatKeyword.0),
+                                repeat_vertical: convert_repeat_mode(border_style_struct.BorderImageRepeatKeyword.1),
                             }),
                         })));
                     }

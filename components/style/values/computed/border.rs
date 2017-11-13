@@ -5,8 +5,10 @@
 //! Computed types for CSS values related to borders.
 
 use app_units::Au;
+use std::fmt;
+use style_traits::ToCss;
 use values::animated::ToAnimatedZero;
-use values::computed::{Number, NumberOrPercentage};
+use values::computed::{Context, Number, NumberOrPercentage, ToComputedValue};
 use values::computed::length::{LengthOrPercentage, NonNegativeLength};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
@@ -15,6 +17,7 @@ use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::border::BorderSpacing as GenericBorderSpacing;
 use values::generics::rect::Rect;
 use values::generics::size::Size;
+use values::specified::border::{BorderImageRepeat as SpecifiedBorderImageRepeat, RepeatKeyword};
 
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
@@ -24,6 +27,9 @@ pub type BorderImageSideWidth = GenericBorderImageSideWidth<LengthOrPercentage, 
 
 /// A computed value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
+
+/// A computed value for the `border-image-repeat` property.
+pub type BorderImageRepeat = GenericBorderImageRepeat<Stretch, Repeat, Round, Space>;
 
 /// A computed value for the `border-radius` property.
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
@@ -79,5 +85,61 @@ impl ToAnimatedZero for BorderCornerRadius {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         // FIXME(nox): Why?
         Err(())
+    }
+}
+
+/// https://drafts.csswg.org/css-backgrounds/#the-borderimage-repeat
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+pub struct BorderImageRepeat(RepeatKeyword, RepeatKeyword);
+
+impl BorderImageRepeat {
+    pub fn repeat() -> Self {
+        BorderImageRepeat(RepeatKeyword::Repeat, RepeatKeyword::Repeat)
+    }
+}
+
+impl ToCss for BorderImageRepeat {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match (self.0, self.1) {
+            (horizontal, vertical) => {
+                horizontal.to_css(dest)?;
+                if horizontal != vertical {
+                    dest.write_str(" ")?;
+                    vertical.to_css(dest)?;
+                }
+                Ok(())
+            },
+        }
+    }
+}
+
+impl ToComputedValue for SpecifiedBorderImageRepeat {
+    type ComputedValue = BorderImageRepeat;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        match *self {
+            SpecifiedBorderImageRepeat::Repeat => {
+                BorderImageRepeat(RepeatKeyword::Repeat, RepeatKeyword::Repeat)
+            }
+            SpecifiedBorderImageRepeat::Keywords(horizontal, vertical) => {
+                BorderImageRepeat(horizontal, vertical.unwrap_or(horizontal))
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match (computed) {
+            (RepeatKeyword::Repeat, RepeatKeyword::Repeat) => {
+                SpecifiedBackgroundRepeat::Repeat
+            }
+            (horizontal, vertical) => {
+                SpecifiedBackgroundRepeat::Keywords(horizontal, Some(vertical))
+            }
+        }
     }
 }

@@ -171,3 +171,44 @@ impl Parse for BorderSpacing {
         }).map(GenericBorderSpacing)
     }
 }
+
+define_css_keyword_enum! { RepeatKeyword:
+    "stretch" => Stretch,
+    "repeat" => Repeat,
+    "round" => Round,
+    "space" => Space
+}
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub enum BackgroundRepeat {
+    /// `[ stretch | repeat | round | space ]{1,2}`
+    Keywords(RepeatKeyword, Option<RepeatKeyword>),
+}
+
+impl BorderImageRepeat {
+    /// Returns the `repeat` value.
+    #[inline]
+    pub fn repeat() -> Self {
+        BorderImageRepeat::Keywords(RepeatKeyword::Repeat, None)
+    }
+}
+
+impl Parse for BorderImageRepeat {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let ident = input.expect_ident_cloned()?;
+        let horizontal = match RepeatKeyword::from_ident(&ident) {
+            Ok(h) => h,
+            Err(()) => {
+                return Err(input.new_custom_error(
+                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                ));
+            }
+        };
+
+        let vertical = input.try(RepeatKeyword::parse).ok();
+        Ok(BorderImageRepeat::Keywords(horizontal, vertical))
+    }
+}
