@@ -576,6 +576,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn SetSelectionStart(&self, start: u32) {
         let selection_end = self.SelectionEnd();
         self.textinput.borrow_mut().set_selection_range(start, selection_end);
+        let window = window_from_node(self);
+        let _ = window.user_interaction_task_source().queue_event(
+            &self.upcast(),
+            atom!("select"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            &window);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -588,6 +595,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn SetSelectionEnd(&self, end: u32) {
         let selection_start = self.SelectionStart();
         self.textinput.borrow_mut().set_selection_range(selection_start, end);
+        let window = window_from_node(self);
+        let _ = window.user_interaction_task_source().queue_event(
+            &self.upcast(),
+            atom!("select"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            &window);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
