@@ -590,9 +590,7 @@ impl PrevSiblingOrFreeCount {
     }
 
     unsafe fn as_free_count(&self) -> &AtomicUsize {
-        unsafe {
-            mem::transmute(&self.0)
-        }
+        mem::transmute(&self.0)
     }
 }
 
