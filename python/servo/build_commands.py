@@ -248,6 +248,13 @@ class MachCommands(CommandBase):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
         if android:
+            if "ANDROID_NDK" not in os.environ:
+                print("Please set the ANDROID_NDK environment variable.")
+                sys.exit(1)
+            if "ANDROID_SDK" not in os.environ:
+                print("Please set the ANDROID_SDK environment variable.")
+                sys.exit(1)
+
             android_platform = self.config["android"]["platform"]
             android_toolchain = self.config["android"]["toolchain_name"]
             android_arch = "arch-" + self.config["android"]["arch"]
@@ -265,6 +272,10 @@ class MachCommands(CommandBase):
             shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
 
             # Check if the NDK version is 12
+            if not os.path.isfile(path.join(env["ANDROID_NDK"], 'source.properties')):
+                print("ANDROID_NDK should have file `source.properties`.")
+                print("The environment variable ANDROID_NDK may be set at a wrong path.")
+                sys.exit(1)
             with open(path.join(env["ANDROID_NDK"], 'source.properties')) as ndk_properties:
                 lines = ndk_properties.readlines()
                 if lines[1].split(' = ')[1].split('.')[0] != '12':
