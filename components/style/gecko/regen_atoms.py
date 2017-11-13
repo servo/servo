@@ -195,13 +195,11 @@ cfg_if! {{
 '''
 
 RULE_TEMPLATE = ('("{atom}") =>\n  '
-                 '{{ '
-                 # FIXME(bholley): Uncomment this when rust 1.14 is released.
-                 # See the comment in components/style/lib.rs.
-                 # ' #[allow(unsafe_code)] #[allow(unused_unsafe)] '
+                 '{{{{ '
+                 '#[allow(unsafe_code)] #[allow(unused_unsafe)]'
                  'unsafe {{ $crate::string_cache::atom_macro::atom_from_static'
                  '($crate::string_cache::atom_macro::{name} as *mut _) }}'
-                 ' }};')
+                 ' }}}};')
 
 MACRO = '''
 #[macro_export]

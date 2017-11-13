@@ -266,9 +266,7 @@ impl Atom {
     #[inline]
     pub unsafe fn from_addrefed(ptr: *mut nsAtom) -> Self {
         assert!(!ptr.is_null());
-        unsafe {
-            Atom(WeakAtom::new(ptr))
-        }
+        Atom(WeakAtom::new(ptr))
     }
 
     /// Convert this atom into an addrefed nsAtom pointer.
