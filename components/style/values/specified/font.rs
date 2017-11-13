@@ -7,6 +7,7 @@
 #[cfg(feature = "gecko")]
 use Atom;
 use app_units::Au;
+use byteorder::{BigEndian, ByteOrder};
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
@@ -935,6 +936,102 @@ impl From<FontSynthesis> for u8 {
             bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
         }
         bits
+    }
+}
+
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+/// Allows authors to explicitly specify the language system of the font,
+/// overriding the language system implied by the content language
+pub enum FontLanguageOverride {
+    /// When rendering with OpenType fonts,
+    /// the content language of the element is
+    /// used to infer the OpenType language system
+    Normal,
+    /// Single three-letter case-sensitive OpenType language system tag,
+    /// specifies the OpenType language system to be used instead of
+    /// the language system implied by the language of the element
+    Override(Box<str>),
+    /// Use system font
+    System(SystemFont)
+}
+
+impl FontLanguageOverride {
+    #[inline]
+    /// Get default value with `normal`
+    pub fn normal() -> FontLanguageOverride {
+        FontLanguageOverride::Normal
+    }
+
+    /// Get `font-language-override` with `system font`
+    pub fn system_font(f: SystemFont) -> Self {
+        FontLanguageOverride::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontLanguageOverride::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontLanguageOverride {
+    type ComputedValue = computed::FontLanguageOverride;
+
+    #[inline]
+    fn to_computed_value(&self, _context: &Context) -> computed::FontLanguageOverride {
+        #[allow(unused_imports)] use std::ascii::AsciiExt;
+        match *self {
+            FontLanguageOverride::Normal => computed::FontLanguageOverride(0),
+            FontLanguageOverride::Override(ref lang) => {
+                if lang.is_empty() || lang.len() > 4 || !lang.is_ascii() {
+                    return computed::FontLanguageOverride(0)
+                }
+                let mut computed_lang = lang.to_string();
+                while computed_lang.len() < 4 {
+                    computed_lang.push(' ');
+                }
+                let bytes = computed_lang.into_bytes();
+                computed::FontLanguageOverride(BigEndian::read_u32(&bytes))
+            }
+            FontLanguageOverride::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    _context.cached_system_font.as_ref().unwrap().font_language_override
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &computed::FontLanguageOverride) -> Self {
+        if computed.0 == 0 {
+            return FontLanguageOverride::Normal
+        }
+        let mut buf = [0; 4];
+        BigEndian::write_u32(&mut buf, computed.0);
+        FontLanguageOverride::Override(
+            if cfg!(debug_assertions) {
+                String::from_utf8(buf.to_vec()).unwrap()
+            } else {
+                unsafe { String::from_utf8_unchecked(buf.to_vec()) }
+            }.into_boxed_str()
+        )
+    }
+}
+
+impl Parse for FontLanguageOverride {
+    /// normal | <string>
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<FontLanguageOverride, ParseError<'i>> {
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(FontLanguageOverride::Normal)
+        }
+
+        let string = input.expect_string()?;
+        Ok(FontLanguageOverride::Override(string.as_ref().to_owned().into_boxed_str()))
     }
 }
 
