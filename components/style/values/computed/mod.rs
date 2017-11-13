@@ -34,7 +34,7 @@ pub use properties::animated_properties::TransitionProperty;
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
-pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
+pub use self::border::{BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};

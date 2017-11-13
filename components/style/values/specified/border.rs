@@ -6,6 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
 use values::computed::{self, Context, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
@@ -169,5 +170,46 @@ impl Parse for BorderSpacing {
         Size::parse_with(context, input, |context, input| {
             Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes).map(From::from)
         }).map(GenericBorderSpacing)
+    }
+}
+
+define_css_keyword_enum! { RepeatKeyword:
+    "stretch" => Stretch,
+    "repeat" => Repeat,
+    "round" => Round,
+    "space" => Space
+}
+
+/// The specified value for the `border-image-repeat` property.
+///
+/// https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub struct BorderImageRepeat(pub RepeatKeyword, pub Option<RepeatKeyword>);
+
+impl BorderImageRepeat {
+    /// Returns the `repeat` value.
+    #[inline]
+    pub fn repeat() -> Self {
+        BorderImageRepeat(RepeatKeyword::Repeat, None)
+    }
+}
+
+impl Parse for BorderImageRepeat {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let ident = input.expect_ident_cloned()?;
+        let horizontal = match RepeatKeyword::from_ident(&ident) {
+            Ok(h) => h,
+            Err(()) => {
+                return Err(input.new_custom_error(
+                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                ));
+            }
+        };
+
+        let vertical = input.try(RepeatKeyword::parse).ok();
+        Ok(BorderImageRepeat(horizontal, vertical))
     }
 }
