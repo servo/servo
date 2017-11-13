@@ -20,6 +20,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -46,6 +47,7 @@ use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::messageport::TRANSFERRED_MESSAGE_PORTS;
 use crate::dom::navigator::Navigator;
 use crate::dom::node::{document_from_node, from_untrusted_node_address, Node, NodeDamage};
 use crate::dom::performance::Performance;
@@ -85,14 +87,10 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::JSContext;
-use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::JS_GC;
-use js::jsval::JSVal;
-use js::jsval::UndefinedValue;
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JSPROP_ENUMERATE, JS_GC};
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::HandleValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
@@ -928,16 +926,13 @@ impl WindowMethods for Window {
         &self,
         cx: *mut JSContext,
         message: HandleValue,
-        origin: DOMString,
+        origin: USVString,
+        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
     ) -> ErrorResult {
         // Step 3-5.
-        let origin = match &origin[..] {
+        let origin = match &origin.0[..] {
             "*" => None,
-            "/" => {
-                // TODO(#12715): Should be the origin of the incumbent settings
-                //               object, not self's.
-                Some(self.Document().origin().immutable().clone())
-            },
+            "/" => Some(GlobalScope::incumbent().unwrap().origin().immutable().clone()),
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
@@ -945,9 +940,10 @@ impl WindowMethods for Window {
         };
 
         // Step 1-2, 6-8.
-        // TODO(#12717): Should implement the `transfer` argument.
-        rooted!(in(cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(cx, message, transfer.handle())?;
+        rooted!(in(cx) let mut val = UndefinedValue());
+        (*transfer).as_ref().unwrap_or(&Vec::new()).to_jsval(cx, val.handle_mut());
+
+        let data = StructuredCloneData::write(cx, message, val.handle())?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -2307,7 +2303,9 @@ impl Window {
             ));
 
             // Step 7.6.
-            // TODO: MessagePort array.
+            let new_ports = TRANSFERRED_MESSAGE_PORTS.with(|list| {
+                mem::replace(&mut *list.borrow_mut(), vec![])
+            });
 
             // Step 7.7.
             // TODO(#12719): Set the other attributes.
@@ -2316,7 +2314,7 @@ impl Window {
                 this.upcast(),
                 message_clone.handle(),
                 None,
-                vec![],
+                new_ports,
             );
         });
         // FIXME(nox): Why are errors silenced here?
