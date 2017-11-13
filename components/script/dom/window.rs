@@ -17,6 +17,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
@@ -38,6 +39,7 @@ use dom::history::History;
 use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
+use dom::messageport::TRANSFERRED_MESSAGE_PORTS;
 use dom::navigator::Navigator;
 use dom::node::{Node, NodeDamage, document_from_node, from_untrusted_node_address};
 use dom::performance::Performance;
@@ -54,10 +56,10 @@ use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSiz
 use fetch;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
-use js::rust::HandleValue;
+use js::rust::{CustomAutoRooterGuard, HandleValue};
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
@@ -768,19 +770,17 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(&self,
-                   cx: *mut JSContext,
-                   message: HandleValue,
-                   origin: DOMString)
-                   -> ErrorResult {
+    unsafe fn PostMessage(
+        &self,
+        cx: *mut JSContext,
+        message: HandleValue,
+        origin: USVString,
+        transfer: CustomAutoRooterGuard<Option<Vec<*mut JSObject>>>,
+    ) -> ErrorResult {
         // Step 3-5.
-        let origin = match &origin[..] {
+        let origin = match &origin.0[..] {
             "*" => None,
-            "/" => {
-                // TODO(#12715): Should be the origin of the incumbent settings
-                //               object, not self's.
-                Some(self.Document().origin().immutable().clone())
-            },
+            "/" => Some(GlobalScope::incumbent().unwrap().origin().immutable().clone()),
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
@@ -788,9 +788,10 @@ impl WindowMethods for Window {
         };
 
         // Step 1-2, 6-8.
-        // TODO(#12717): Should implement the `transfer` argument.
-        rooted!(in(cx) let transfer = UndefinedValue());
-        let data = StructuredCloneData::write(cx, message, transfer.handle())?;
+        rooted!(in(cx) let mut val = UndefinedValue());
+        (*transfer).as_ref().unwrap_or(&Vec::new()).to_jsval(cx, val.handle_mut());
+
+        let data = StructuredCloneData::write(cx, message, val.handle())?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -1985,7 +1986,9 @@ impl Window {
             ));
 
             // Step 7.6.
-            // TODO: MessagePort array.
+            let new_ports = TRANSFERRED_MESSAGE_PORTS.with(|list| {
+                mem::replace(&mut *list.borrow_mut(), vec![])
+            });
 
             // Step 7.7.
             // TODO(#12719): Set the other attributes.
@@ -1993,7 +1996,7 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
-                vec![]
+                new_ports
             );
         });
         // FIXME(nox): Why are errors silenced here?
