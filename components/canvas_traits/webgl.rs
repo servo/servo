@@ -63,6 +63,8 @@ pub struct WebGLCreateContextResult {
     pub limits: GLLimits,
     /// How the WebGLContext is shared with WebRender.
     pub share_mode: WebGLContextShareMode,
+    /// The GLSL version supported by the context.
+    pub glsl_version: WebGLSLVersion
 }
 
 #[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
@@ -82,6 +84,15 @@ pub enum WebGLVersion {
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/
     /// Conforms closely to the OpenGL ES 3.0 API
     WebGL2,
+}
+
+/// Defines the GLSL version supported by the WebGL backend contexts.
+#[derive(Clone, Copy, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub struct WebGLSLVersion {
+    /// Major GLSL version
+    pub major: u32,
+    /// Minor GLSL version
+    pub minor: u32,
 }
 
 /// Helper struct to send WebGLCommands to a specific WebGLContext.

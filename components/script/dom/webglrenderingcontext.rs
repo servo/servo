@@ -4,7 +4,7 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError, WebGLVersion};
+use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError, WebGLVersion, WebGLSLVersion};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
 use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
@@ -187,6 +187,7 @@ pub struct WebGLRenderingContext {
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     share_mode: WebGLContextShareMode,
     webgl_version: WebGLVersion,
+    glsl_version: WebGLSLVersion,
     #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
     limits: GLLimits,
     canvas: Dom<HTMLCanvasElement>,
@@ -236,6 +237,7 @@ impl WebGLRenderingContext {
                 webrender_image: Cell::new(None),
                 share_mode: ctx_data.share_mode,
                 webgl_version,
+                glsl_version: ctx_data.glsl_version,
                 limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
@@ -1914,7 +1916,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
-            shader.compile(self.webgl_version, &self.extension_manager)
+            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
         }
     }
 
