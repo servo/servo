@@ -4398,6 +4398,14 @@ cfg_if! {
             pub static nsGkAtoms_menubar_drag: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms23swipe_animation_enabledE"]
             pub static nsGkAtoms_swipe_animation_enabled: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms17gtk_csd_availableE"]
+            pub static nsGkAtoms_gtk_csd_available: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms23gtk_csd_minimize_buttonE"]
+            pub static nsGkAtoms_gtk_csd_minimize_button: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms23gtk_csd_maximize_buttonE"]
+            pub static nsGkAtoms_gtk_csd_maximize_button: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms20gtk_csd_close_buttonE"]
+            pub static nsGkAtoms_gtk_csd_close_button: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms15windows_classicE"]
             pub static nsGkAtoms_windows_classic: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms18windows_theme_aeroE"]
@@ -4458,6 +4466,14 @@ cfg_if! {
             pub static nsGkAtoms__moz_is_resource_document: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms28_moz_swipe_animation_enabledE"]
             pub static nsGkAtoms__moz_swipe_animation_enabled: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms22_moz_gtk_csd_availableE"]
+            pub static nsGkAtoms__moz_gtk_csd_available: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms28_moz_gtk_csd_minimize_buttonE"]
+            pub static nsGkAtoms__moz_gtk_csd_minimize_button: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms28_moz_gtk_csd_maximize_buttonE"]
+            pub static nsGkAtoms__moz_gtk_csd_maximize_button: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms25_moz_gtk_csd_close_buttonE"]
+            pub static nsGkAtoms__moz_gtk_csd_close_button: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4BackE"]
             pub static nsGkAtoms_Back: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7ForwardE"]
@@ -9561,6 +9577,14 @@ cfg_if! {
             pub static nsGkAtoms_menubar_drag: *mut nsStaticAtom;
             #[link_name = "?swipe_animation_enabled@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_swipe_animation_enabled: *mut nsStaticAtom;
+            #[link_name = "?gtk_csd_available@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_gtk_csd_available: *mut nsStaticAtom;
+            #[link_name = "?gtk_csd_minimize_button@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_gtk_csd_minimize_button: *mut nsStaticAtom;
+            #[link_name = "?gtk_csd_maximize_button@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_gtk_csd_maximize_button: *mut nsStaticAtom;
+            #[link_name = "?gtk_csd_close_button@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_gtk_csd_close_button: *mut nsStaticAtom;
             #[link_name = "?windows_classic@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_windows_classic: *mut nsStaticAtom;
             #[link_name = "?windows_theme_aero@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -9621,6 +9645,14 @@ cfg_if! {
             pub static nsGkAtoms__moz_is_resource_document: *mut nsStaticAtom;
             #[link_name = "?_moz_swipe_animation_enabled@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms__moz_swipe_animation_enabled: *mut nsStaticAtom;
+            #[link_name = "?_moz_gtk_csd_available@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms__moz_gtk_csd_available: *mut nsStaticAtom;
+            #[link_name = "?_moz_gtk_csd_minimize_button@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms__moz_gtk_csd_minimize_button: *mut nsStaticAtom;
+            #[link_name = "?_moz_gtk_csd_maximize_button@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms__moz_gtk_csd_maximize_button: *mut nsStaticAtom;
+            #[link_name = "?_moz_gtk_csd_close_button@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms__moz_gtk_csd_close_button: *mut nsStaticAtom;
             #[link_name = "?Back@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_Back: *mut nsStaticAtom;
             #[link_name = "?Forward@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -14724,6 +14756,14 @@ cfg_if! {
             pub static nsGkAtoms_menubar_drag: *mut nsStaticAtom;
             #[link_name = "\x01?swipe_animation_enabled@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_swipe_animation_enabled: *mut nsStaticAtom;
+            #[link_name = "\x01?gtk_csd_available@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_gtk_csd_available: *mut nsStaticAtom;
+            #[link_name = "\x01?gtk_csd_minimize_button@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_gtk_csd_minimize_button: *mut nsStaticAtom;
+            #[link_name = "\x01?gtk_csd_maximize_button@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_gtk_csd_maximize_button: *mut nsStaticAtom;
+            #[link_name = "\x01?gtk_csd_close_button@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_gtk_csd_close_button: *mut nsStaticAtom;
             #[link_name = "\x01?windows_classic@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_windows_classic: *mut nsStaticAtom;
             #[link_name = "\x01?windows_theme_aero@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -14784,6 +14824,14 @@ cfg_if! {
             pub static nsGkAtoms__moz_is_resource_document: *mut nsStaticAtom;
             #[link_name = "\x01?_moz_swipe_animation_enabled@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms__moz_swipe_animation_enabled: *mut nsStaticAtom;
+            #[link_name = "\x01?_moz_gtk_csd_available@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms__moz_gtk_csd_available: *mut nsStaticAtom;
+            #[link_name = "\x01?_moz_gtk_csd_minimize_button@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms__moz_gtk_csd_minimize_button: *mut nsStaticAtom;
+            #[link_name = "\x01?_moz_gtk_csd_maximize_button@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms__moz_gtk_csd_maximize_button: *mut nsStaticAtom;
+            #[link_name = "\x01?_moz_gtk_csd_close_button@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms__moz_gtk_csd_close_button: *mut nsStaticAtom;
             #[link_name = "\x01?Back@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_Back: *mut nsStaticAtom;
             #[link_name = "\x01?Forward@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -19890,6 +19938,14 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubar_drag as *mut _) } };
 ("swipe-animation-enabled") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_swipe_animation_enabled as *mut _) } };
+("gtk-csd-available") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gtk_csd_available as *mut _) } };
+("gtk-csd-minimize-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gtk_csd_minimize_button as *mut _) } };
+("gtk-csd-maximize-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gtk_csd_maximize_button as *mut _) } };
+("gtk-csd-close-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gtk_csd_close_button as *mut _) } };
 ("windows-classic") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_classic as *mut _) } };
 ("windows-theme-aero") =>
@@ -19950,6 +20006,14 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_is_resource_document as *mut _) } };
 ("-moz-swipe-animation-enabled") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_swipe_animation_enabled as *mut _) } };
+("-moz-gtk-csd-available") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_gtk_csd_available as *mut _) } };
+("-moz-gtk-csd-minimize-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_gtk_csd_minimize_button as *mut _) } };
+("-moz-gtk-csd-maximize-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_gtk_csd_maximize_button as *mut _) } };
+("-moz-gtk-csd-close-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_gtk_csd_close_button as *mut _) } };
 ("Back") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Back as *mut _) } };
 ("Forward") =>

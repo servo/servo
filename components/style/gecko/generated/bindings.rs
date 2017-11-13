@@ -50,6 +50,7 @@ use gecko_bindings::structs::RawGeckoServoStyleRuleList;
 use gecko_bindings::structs::RawGeckoURLExtraData;
 use gecko_bindings::structs::RawGeckoXBLBinding;
 use gecko_bindings::structs::RawServoSelectorList;
+use gecko_bindings::structs::RawServoSourceSizeList;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::RustString;
 use gecko_bindings::structs::CSSPseudoClassType;
@@ -263,6 +264,12 @@ pub type RawServoSelectorListBorrowed<'a> = &'a RawServoSelectorList;
 pub type RawServoSelectorListBorrowedOrNull<'a> = Option<&'a RawServoSelectorList>;
 pub type RawServoSelectorListBorrowedMut<'a> = &'a mut RawServoSelectorList;
 pub type RawServoSelectorListBorrowedMutOrNull<'a> = Option<&'a mut RawServoSelectorList>;
+pub type RawServoSourceSizeListOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoSourceSizeList>;
+pub type RawServoSourceSizeListOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoSourceSizeList>;
+pub type RawServoSourceSizeListBorrowed<'a> = &'a RawServoSourceSizeList;
+pub type RawServoSourceSizeListBorrowedOrNull<'a> = Option<&'a RawServoSourceSizeList>;
+pub type RawServoSourceSizeListBorrowedMut<'a> = &'a mut RawServoSourceSizeList;
+pub type RawServoSourceSizeListBorrowedMutOrNull<'a> = Option<&'a mut RawServoSourceSizeList>;
 pub type ServoElementSnapshotOwned = ::gecko_bindings::sugar::ownership::Owned<ServoElementSnapshot>;
 pub type ServoElementSnapshotOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<ServoElementSnapshot>;
 pub type ServoElementSnapshotBorrowed<'a> = &'a ServoElementSnapshot;
@@ -488,6 +495,8 @@ extern "C" {
  pub fn Servo_StyleSet_Drop ( ptr : RawServoStyleSetOwned , ) ; 
 } extern "C" {
  pub fn Servo_SelectorList_Drop ( ptr : RawServoSelectorListOwned , ) ; 
+} extern "C" {
+ pub fn Servo_SourceSizeList_Drop ( ptr : RawServoSourceSizeListOwned , ) ; 
 } extern "C" {
  pub fn Gecko_IsInDocument ( node : RawGeckoNodeBorrowed , ) -> bool ; 
 } extern "C" {
@@ -1206,6 +1215,10 @@ extern "C" {
  pub fn Servo_StyleSet_ResolveForDeclarations ( set : RawServoStyleSetBorrowed , parent_style : ServoStyleContextBorrowedOrNull , declarations : RawServoDeclarationBlockBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
  pub fn Servo_SelectorList_Parse ( selector_list : * const nsACString , ) -> * mut RawServoSelectorList ; 
+} extern "C" {
+ pub fn Servo_SourceSizeList_Parse ( value : * const nsACString , ) -> * mut RawServoSourceSizeList ; 
+} extern "C" {
+ pub fn Servo_SourceSizeList_Evaluate ( set : RawServoStyleSetBorrowed , arg1 : RawServoSourceSizeListBorrowedOrNull , ) -> i32 ; 
 } extern "C" {
  pub fn Servo_SelectorList_Matches ( arg1 : RawGeckoElementBorrowed , arg2 : RawServoSelectorListBorrowed , ) -> bool ; 
 } extern "C" {
