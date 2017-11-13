@@ -18,7 +18,7 @@ use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType};
 use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
-use parser::ParserContext;
+use parser::{Parse, ParserContext};
 use properties::ComputedValues;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
@@ -32,7 +32,7 @@ use stylesheets::Origin;
 use values::{CSSFloat, CustomIdent};
 use values::computed::{self, ToComputedValue};
 use values::computed::font::FontSize;
-use values::specified::Length;
+use values::specified::{Integer, Length, Number};
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.
@@ -307,6 +307,13 @@ impl Resolution {
 }
 
 /// A value found or expected in a media expression.
+///
+/// FIXME(emilio): How should calc() serialize in the Number / Integer /
+/// BoolInteger / IntRatio case, as computed or as specified value?
+///
+/// If the first, this would need to store the relevant values.
+///
+/// See: https://github.com/w3c/csswg-drafts/issues/1968
 #[derive(Clone, Debug, PartialEq)]
 pub enum MediaExpressionValue {
     /// A length.
@@ -439,7 +446,8 @@ impl MediaExpressionValue {
 }
 
 fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
-    where F: FnMut(&'static nsMediaFeature) -> bool,
+where
+    F: FnMut(&'static nsMediaFeature) -> bool,
 {
     unsafe {
         let mut features = structs::nsMediaFeatures_features.as_ptr();
@@ -453,10 +461,12 @@ fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
     None
 }
 
-unsafe fn find_in_table<F>(mut current_entry: *const nsCSSProps_KTableEntry,
-                           mut f: F)
-                           -> Option<(nsCSSKeyword, i16)>
-    where F: FnMut(nsCSSKeyword, i16) -> bool
+unsafe fn find_in_table<F>(
+    mut current_entry: *const nsCSSProps_KTableEntry,
+    mut f: F,
+) -> Option<(nsCSSKeyword, i16)>
+where
+    F: FnMut(nsCSSKeyword, i16) -> bool
 {
     loop {
         let value = (*current_entry).mValue;
@@ -474,66 +484,50 @@ unsafe fn find_in_table<F>(mut current_entry: *const nsCSSProps_KTableEntry,
     }
 }
 
-fn parse_feature_value<'i, 't>(feature: &nsMediaFeature,
-                               feature_value_type: nsMediaFeature_ValueType,
-                               context: &ParserContext,
-                               input: &mut Parser<'i, 't>)
-                               -> Result<MediaExpressionValue, ParseError<'i>> {
+fn parse_feature_value<'i, 't>(
+    feature: &nsMediaFeature,
+    feature_value_type: nsMediaFeature_ValueType,
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+) -> Result<MediaExpressionValue, ParseError<'i>> {
     let value = match feature_value_type {
         nsMediaFeature_ValueType::eLength => {
-           let length = Length::parse_non_negative(context, input)?;
-           // FIXME(canaltinova): See bug 1396057. Gecko doesn't support calc
-           // inside media queries. This check is for temporarily remove it
-           // for parity with gecko. We should remove this check when we want
-           // to support it.
-           if let Length::Calc(_) = length {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::Length(length)
+            let length = Length::parse_non_negative(context, input)?;
+            MediaExpressionValue::Length(length)
         },
         nsMediaFeature_ValueType::eInteger => {
-           // FIXME(emilio): We should use `Integer::parse` to handle `calc`
-           // properly in integer expressions. Note that calc is still not
-           // supported in media queries per FIXME above.
-           let i = input.expect_integer()?;
-           if i < 0 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::Integer(i as u32)
+            let integer = Integer::parse_non_negative(context, input)?;
+            MediaExpressionValue::Integer(integer.value() as u32)
         }
         nsMediaFeature_ValueType::eBoolInteger => {
-           let i = input.expect_integer()?;
-           if i < 0 || i > 1 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::BoolInteger(i == 1)
+            let integer = Integer::parse_non_negative(context, input)?;
+            let value = integer.value();
+            if value > 1 {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
+            MediaExpressionValue::BoolInteger(value == 1)
         }
         nsMediaFeature_ValueType::eFloat => {
-           MediaExpressionValue::Float(input.expect_number()?)
+            let number = Number::parse(context, input)?;
+            MediaExpressionValue::Float(number.get())
         }
         nsMediaFeature_ValueType::eIntRatio => {
-           let a = input.expect_integer()?;
-           if a <= 0 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-
-           input.expect_delim('/')?;
-
-           let b = input.expect_integer()?;
-           if b <= 0 {
-               return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-           }
-           MediaExpressionValue::IntRatio(a as u32, b as u32)
+            let a = Integer::parse_positive(context, input)?;
+            input.expect_delim('/')?;
+            let b = Integer::parse_positive(context, input)?;
+            MediaExpressionValue::IntRatio(a.value() as u32, b.value() as u32)
         }
         nsMediaFeature_ValueType::eResolution => {
-           MediaExpressionValue::Resolution(Resolution::parse(input)?)
+            MediaExpressionValue::Resolution(Resolution::parse(input)?)
         }
         nsMediaFeature_ValueType::eEnumerated => {
             let location = input.current_source_location();
             let keyword = input.expect_ident()?;
             let keyword = unsafe {
-                bindings::Gecko_LookupCSSKeyword(keyword.as_bytes().as_ptr(),
-                keyword.len() as u32)
+                bindings::Gecko_LookupCSSKeyword(
+                    keyword.as_bytes().as_ptr(),
+                    keyword.len() as u32,
+                )
             };
 
             let first_table_entry: *const nsCSSProps_KTableEntry = unsafe {
@@ -557,14 +551,12 @@ fn parse_feature_value<'i, 't>(feature: &nsMediaFeature,
 
 impl Expression {
     /// Trivially construct a new expression.
-    fn new(feature: &'static nsMediaFeature,
-           value: Option<MediaExpressionValue>,
-           range: nsMediaExpression_Range) -> Self {
-        Expression {
-            feature: feature,
-            value: value,
-            range: range,
-        }
+    fn new(
+        feature: &'static nsMediaFeature,
+        value: Option<MediaExpressionValue>,
+        range: nsMediaExpression_Range,
+    ) -> Self {
+        Self { feature, value, range }
     }
 
     /// Parse a media expression of the form:
