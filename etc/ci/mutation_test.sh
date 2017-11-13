@@ -8,5 +8,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source python/_virtualenv/bin/activate
+PS1="" source python/_virtualenv/bin/activate
+# `PS1` must be defined before activating virtualenv
 python python/servo/mutation/init.py components/script/dom
