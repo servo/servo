@@ -63,9 +63,8 @@
   unsigned long requestAnimationFrame(FrameRequestCallback callback);
   void cancelAnimationFrame(unsigned long handle);
 
-  //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
   [Throws]
-  void postMessage(any message, DOMString targetOrigin);
+  void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer /*= []*/);
 
   // also has obsolete members
 };
