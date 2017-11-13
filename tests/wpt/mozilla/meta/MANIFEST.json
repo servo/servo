@@ -32592,6 +32592,12 @@
      {}
     ]
    ],
+   "css/cssom-view/dom-element-scroll.html": [
+    [
+     "/_mozilla/css/cssom-view/dom-element-scroll.html",
+     {}
+    ]
+   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -62015,6 +62021,10 @@
    "16a4dd68da41156fbdd139b4a56547f94ad4dbe7",
    "support"
   ],
+  "css/cssom-view/dom-element-scroll.html": [
+   "247b85d5988878a7b27bc9f0f7b817085725c038",
+   "testharness"
+  ],
   "css/data_img_a.html": [
    "323bf50369f98ed02acccdd3a5824e38d3f353bf",
    "reftest"
@@ -65636,7 +65646,7 @@
    "testharness"
   ],
   "mozilla/collections.html": [
-   "aa060d1e5d1364224f2c2151e5f8b9580ac4427e",
+   "d0bebe808ebb45b6c853f4b88e1a6ebbf9b91345",
    "testharness"
   ],
   "mozilla/createEvent-storageevent.html": [
@@ -66372,7 +66382,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "66e66d3bdfa3bebd5bf3d711c0737fb394efe973",
+   "ad914ab4c7a794b251c03f7b0f50aaef1ea78df0",
    "testharness"
   ],
   "mozilla/interfaces.js": [

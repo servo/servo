@@ -14,7 +14,6 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
@@ -153,9 +152,6 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
     match node.type_id() {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
             node.downcast::<HTMLAnchorElement>().unwrap() as &VirtualMethods
-        }
-        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)) => {
-            node.downcast::<HTMLAppletElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
             node.downcast::<HTMLAreaElement>().unwrap() as &VirtualMethods

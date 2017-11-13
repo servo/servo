@@ -91,13 +91,18 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         match msg {
             WebGLMsg::CreateContext(version, size, attributes, result_sender) => {
                 let result = self.create_webgl_context(version, size, attributes);
-                result_sender.send(result.map(|(id, limits, share_mode)|
+                result_sender.send(result.map(|(id, limits, share_mode)| {
+                    let ctx = Self::make_current_if_needed(id, &self.contexts, &mut self.bound_context_id)
+                                    .expect("WebGLContext not found");
+                    let glsl_version = Self::get_glsl_version(ctx);
+
                     WebGLCreateContextResult {
                         sender: WebGLMsgSender::new(id, webgl_chan.clone()),
-                        limits: limits,
-                        share_mode: share_mode,
+                        limits,
+                        share_mode,
+                        glsl_version,
                     }
-                )).unwrap();
+                })).unwrap();
             },
             WebGLMsg::ResizeContext(ctx_id, size, sender) => {
                 self.resize_webgl_context(ctx_id, size, sender);
@@ -518,6 +523,20 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         }
         byte_swap(&mut pixels);
         pixels
+    }
+
+    /// Gets the GLSL Version supported by a GLContext.
+    fn get_glsl_version(context: &GLContextWrapper) -> WebGLSLVersion {
+        let version = context.gl().get_string(gl::SHADING_LANGUAGE_VERSION);
+        // Fomat used by SHADING_LANGUAGE_VERSION query : major.minor[.release] [vendor info]
+        let mut values = version.split(&['.', ' '][..]);
+        let major = values.next().and_then(|v| v.parse::<u32>().ok()).unwrap_or(1);
+        let minor = values.next().and_then(|v| v.parse::<u32>().ok()).unwrap_or(20);
+
+        WebGLSLVersion {
+            major,
+            minor,
+        }
     }
 }
 

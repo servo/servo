@@ -139,31 +139,31 @@ hr[color], hr[noshade] { border-style: solid; }
 
 iframe[frameborder="0"], iframe[frameborder=no i] { border: none; }
 
-applet[align=left i], embed[align=left i], iframe[align=left i], img[type=image i][align=left i], object[align=left i] {
+embed[align=left i], iframe[align=left i], img[type=image i][align=left i], object[align=left i] {
   float: left;
 }
-applet[align=right i], embed[align=right i], iframe[align=right i], img[type=image i][align=right i], object[align=right i] {
+embed[align=right i], iframe[align=right i], img[type=image i][align=right i], object[align=right i] {
   float: right;
 }
-applet[align=top i], embed[align=top i], iframe[align=top i], img[type=image i][align=top i], object[align=top i] {
+embed[align=top i], iframe[align=top i], img[type=image i][align=top i], object[align=top i] {
   vertical-align: top;
 }
-applet[align=baseline i], embed[align=baseline i], iframe[align=baseline i], img[type=image i][align=baseline i], object[align=baseline i] {
+embed[align=baseline i], iframe[align=baseline i], img[type=image i][align=baseline i], object[align=baseline i] {
   vertical-align: baseline;
 }
-applet[align=texttop i], embed[align=texttop i], iframe[align=texttop i], img[type=image i][align=texttop i], object[align=texttop i] {
+embed[align=texttop i], iframe[align=texttop i], img[type=image i][align=texttop i], object[align=texttop i] {
   vertical-align: text-top;
 }
-applet[align=absmiddle i], embed[align=absmiddle i], iframe[align=absmiddle i], img[type=image i][align=absmiddle i], object[align=absmiddle i],
-applet[align=abscenter i], embed[align=abscenter i], iframe[align=abscenter i], img[type=image i][align=abscenter i], object[align=abscenter i] {
+embed[align=absmiddle i], iframe[align=absmiddle i], img[type=image i][align=absmiddle i], object[align=absmiddle i],
+embed[align=abscenter i], iframe[align=abscenter i], img[type=image i][align=abscenter i], object[align=abscenter i] {
   vertical-align: middle;
 }
-applet[align=bottom i], embed[align=bottom i], iframe[align=bottom i], img[type=image i][align=bottom i], object[align=bottom i] {
+embed[align=bottom i], iframe[align=bottom i], img[type=image i][align=bottom i], object[align=bottom i] {
   vertical-align: bottom;
 }
 /*
 FIXME:
-:matches(applet, embed, iframe, img, input[type=image i], object):matches([align=center i], [align=middle i]) {
+:matches(embed, iframe, img, input[type=image i], object):matches([align=center i], [align=middle i]) {
   vertical-align: "aligns the vertical middle of the element with the parent element's baseline."
 }
 */
@@ -235,14 +235,14 @@ hr
 legend
   align
 
-applet, embed, iframe, img, input[type=image i], object
+embed, iframe, img, input[type=image i], object
   hspace
   vspace
 
 img, input[type=image i], object
   border
 
-applet, embed, iframe, img, input[type=image i], object, video
+embed, iframe, img, input[type=image i], object, video
   width
   height
 

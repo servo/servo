@@ -80,6 +80,19 @@ impl HTMLCollection {
         }
     }
 
+    /// Returns a collection which is always empty.
+    pub fn always_empty(window: &Window, root: &Node) -> DomRoot<Self> {
+        #[derive(JSTraceable)]
+        struct NoFilter;
+        impl CollectionFilter for NoFilter {
+            fn filter<'a>(&self, _: &'a Element, _: &'a Node) -> bool {
+                false
+            }
+        }
+
+        Self::new(window, root, Box::new(NoFilter))
+    }
+
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>) -> DomRoot<HTMLCollection> {
         reflect_dom_object(Box::new(HTMLCollection::new_inherited(root, filter)),

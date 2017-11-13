@@ -47,7 +47,6 @@ use dom::forcetouchevent::ForceTouchEvent;
 use dom::globalscope::GlobalScope;
 use dom::hashchangeevent::HashChangeEvent;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlbodyelement::HTMLBodyElement;
@@ -118,7 +117,6 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -410,14 +408,6 @@ struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
         elem.is::<HTMLAnchorElement>() && elem.has_attribute(&local_name!("href"))
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct AppletsFilter;
-impl CollectionFilter for AppletsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLAppletElement>()
     }
 }
 
@@ -3373,10 +3363,8 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-applets
     fn Applets(&self) -> DomRoot<HTMLCollection> {
-        // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
-            let filter = Box::new(AppletsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::always_empty(&self.window, self.upcast())
         })
     }
 
@@ -3530,17 +3518,6 @@ impl DocumentMethods for Document {
                 None => return false,
             };
             match html_elem_type {
-                HTMLElementTypeId::HTMLAppletElement => {
-                    match elem.get_attribute(&ns!(), &local_name!("name")) {
-                        Some(ref attr) if attr.value().as_atom() == name => true,
-                        _ => {
-                            match elem.get_attribute(&ns!(), &local_name!("id")) {
-                                Some(ref attr) => attr.value().as_atom() == name,
-                                None => false,
-                            }
-                        },
-                    }
-                },
                 HTMLElementTypeId::HTMLFormElement => {
                     match elem.get_attribute(&ns!(), &local_name!("name")) {
                         Some(ref attr) => attr.value().as_atom() == name,

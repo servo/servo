@@ -20,10 +20,11 @@
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use parser::Parse;
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
-    use properties::longhands::{font_size, font_variant_caps};
+    use properties::longhands::font_variant_caps;
     #[cfg(feature = "gecko")]
     use properties::longhands::system_font::SystemFont;
     use values::specified::text::LineHeight;
+    use values::specified::FontSize;
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -50,7 +51,11 @@
             if let Ok(sys) = input.try(SystemFont::parse) {
                 return Ok(expanded! {
                      % for name in SYSTEM_FONT_LONGHANDS:
-                         ${name}: ${name}::SpecifiedValue::system_font(sys),
+                         % if name == "font_size":
+                             ${name}: FontSize::system_font(sys),
+                         % else:
+                             ${name}: ${name}::SpecifiedValue::system_font(sys),
+                         % endif
                      % endfor
                      // line-height is just reset to initial
                      line_height: LineHeight::normal(),
@@ -89,27 +94,38 @@
                     continue
                 }
             }
-            size = Some(font_size::parse(context, input)?);
+            size = Some(FontSize::parse(context, input)?);
             break
         }
-        #[inline]
-        fn count<T>(opt: &Option<T>) -> u8 {
-            if opt.is_some() { 1 } else { 0 }
-        }
-        if size.is_none() ||
-           (count(&style) + count(&weight) + count(&variant_caps) + count(&stretch) + nb_normals) > 4 {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
+
+        let size = match size {
+            Some(s) => s,
+            None => {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
+        };
+
         let line_height = if input.try(|input| input.expect_delim('/')).is_ok() {
             Some(LineHeight::parse(context, input)?)
         } else {
             None
         };
+
+        #[inline]
+        fn count<T>(opt: &Option<T>) -> u8 {
+            if opt.is_some() { 1 } else { 0 }
+        }
+
+        if (count(&style) + count(&weight) + count(&variant_caps) + count(&stretch) + nb_normals) > 4 {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+
         let family = FontFamily::parse(input)?;
         Ok(expanded! {
-            % for name in "style weight stretch size variant_caps".split():
+            % for name in "style weight stretch variant_caps".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),
             % endfor
+            font_size: size,
             line_height: line_height.unwrap_or(LineHeight::normal()),
             font_family: family,
             % if product == "gecko":

@@ -34,6 +34,8 @@ dictionary TestDictionary {
   object objectValue;
   TestDictionaryDefaults dict;
   sequence<TestDictionaryDefaults> seqDict;
+  // Testing codegen to import Element correctly, ensure no other code references Element directly
+  sequence<Element> elementSequence;
   // Reserved rust keyword
   DOMString type;
   // These are used to test bidirectional conversion
@@ -407,6 +409,9 @@ interface TestBinding {
   // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
   // void passOptionalNullableUnionWithNonNullDefault(optional (HTMLElement or long)? arg = 7);
   // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
+  TestBinding passOptionalOverloaded(TestBinding arg0, optional unsigned long arg1 = 0,
+                                     optional unsigned long arg2 = 0);
+  void passOptionalOverloaded(Blob arg0, optional unsigned long arg1 = 0);
 
   void passVariadicBoolean(boolean... args);
   void passVariadicBooleanAndDefault(optional boolean arg = true, boolean... args);

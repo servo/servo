@@ -351,11 +351,10 @@ impl Window {
         }
     }
 
-    fn nested_window_resize(width: u32, height: u32) {
+    fn nested_window_resize(_width: u32, _height: u32) {
         unsafe {
             if let Some(listener) = G_NESTED_EVENT_LOOP_LISTENER {
-                (*listener).handle_event_from_nested_event_loop(
-                    WindowEvent::Resize(TypedSize2D::new(width, height)));
+                (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize);
             }
         }
     }
@@ -485,8 +484,8 @@ impl Window {
             Event::KeyboardInput(_, _, None) => {
                 debug!("Keyboard input without virtual key.");
             }
-            Event::Resized(width, height) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D::new(width, height)));
+            Event::Resized(..) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Resize);
             }
             Event::MouseInput(element_state, mouse_button, pos) => {
                 if mouse_button == MouseButton::Left ||

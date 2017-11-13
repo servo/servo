@@ -7,7 +7,7 @@
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use style_traits::ParseError;
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;

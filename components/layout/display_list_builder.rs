@@ -1315,14 +1315,14 @@ impl FragmentDisplayListBuilding for Fragment {
             LineDirection::Angle(angle) => angle.radians(),
             LineDirection::Horizontal(x) => {
                 match x {
-                    X::Left => Angle::Degree(270.).radians(),
-                    X::Right => Angle::Degree(90.).radians(),
+                    X::Left => Angle::Deg(270.).radians(),
+                    X::Right => Angle::Deg(90.).radians(),
                 }
             },
             LineDirection::Vertical(y) => {
                 match y {
-                    Y::Top => Angle::Degree(0.).radians(),
-                    Y::Bottom => Angle::Degree(180.).radians(),
+                    Y::Top => Angle::Deg(0.).radians(),
+                    Y::Bottom => Angle::Deg(180.).radians(),
                 }
             },
             LineDirection::Corner(horizontal, vertical) => {

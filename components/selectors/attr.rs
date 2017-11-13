@@ -4,7 +4,7 @@
 
 use cssparser::ToCss;
 use parser::SelectorImpl;
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt;
 
 #[derive(Clone, Eq, PartialEq)]

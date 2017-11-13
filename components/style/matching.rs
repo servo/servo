@@ -333,26 +333,18 @@ trait PrivateMatchMethods: TElement {
     fn accumulate_damage_for(
         &self,
         shared_context: &SharedStyleContext,
-        skip_applying_damage: bool,
         damage: &mut RestyleDamage,
         old_values: &ComputedValues,
         new_values: &ComputedValues,
         pseudo: Option<&PseudoElement>,
     ) -> ChildCascadeRequirement {
         debug!("accumulate_damage_for: {:?}", self);
-
-        // Don't accumulate damage if we're in a forgetful traversal.
-        if shared_context.traversal_flags.contains(TraversalFlags::Forgetful) {
-            debug!(" > forgetful traversal");
-            return ChildCascadeRequirement::MustCascadeChildren;
-        }
+        debug_assert!(!shared_context.traversal_flags.contains(TraversalFlags::Forgetful));
 
         let difference =
             self.compute_style_difference(old_values, new_values, pseudo);
 
-        if !skip_applying_damage {
-            *damage |= difference.damage;
-        }
+        *damage |= difference.damage;
 
         debug!(" > style difference: {:?}", difference);
 
@@ -595,7 +587,6 @@ pub trait MatchMethods : TElement {
             cascade_requirement,
             self.accumulate_damage_for(
                 context.shared,
-                data.skip_applying_damage(),
                 &mut data.damage,
                 &old_primary_style,
                 new_primary_style,
@@ -617,7 +608,6 @@ pub trait MatchMethods : TElement {
                 (&Some(ref old), &Some(ref new)) => {
                     self.accumulate_damage_for(
                         context.shared,
-                        data.skip_applying_damage(),
                         &mut data.damage,
                         old,
                         new,

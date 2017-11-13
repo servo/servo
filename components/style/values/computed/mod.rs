@@ -7,7 +7,7 @@
 use {Atom, Namespace};
 use context::QuirksMode;
 use euclid::Size2D;
-use font_metrics::FontMetricsProvider;
+use font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
 use media_queries::Device;
 #[cfg(feature = "gecko")]
 use properties;
@@ -36,7 +36,8 @@ pub use self::angle::Angle;
 pub use self::background::{BackgroundSize, BackgroundRepeat};
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
-pub use self::font::{FontWeight, MozScriptLevel, MozScriptMinSize, XTextZoom};
+pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
+pub use self::font::{FontLanguageOverride, MozScriptLevel, MozScriptMinSize, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
@@ -56,7 +57,7 @@ pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDash
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
 pub use self::time::Time;
-pub use self::transform::{TimingFunction, TransformOrigin};
+pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin};
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -136,6 +137,36 @@ pub struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
+    /// Creates a suitable context for media query evaluation, in which
+    /// font-relative units compute against the system_font, and executes `f`
+    /// with it.
+    pub fn for_media_query_evaluation<F, R>(
+        device: &Device,
+        quirks_mode: QuirksMode,
+        f: F,
+    ) -> R
+    where
+        F: FnOnce(&Context) -> R
+    {
+        let mut conditions = RuleCacheConditions::default();
+        let default_values = device.default_computed_values();
+        let provider = get_metrics_provider_for_product();
+
+        let context = Context {
+            is_root_element: false,
+            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
+            font_metrics_provider: &provider,
+            cached_system_font: None,
+            in_media_query: true,
+            quirks_mode,
+            for_smil_animation: false,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(&mut conditions),
+        };
+
+        f(&context)
+    }
+
     /// Whether the current element is the root element.
     pub fn is_root_element(&self) -> bool {
         self.is_root_element

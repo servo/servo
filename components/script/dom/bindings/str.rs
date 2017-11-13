@@ -7,7 +7,6 @@
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
 use servo_atoms::Atom;
-use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow, ToOwned};
 use std::default::Default;
 use std::fmt;
@@ -185,6 +184,29 @@ impl DOMString {
     /// An iterator over the bytes of this `DOMString`.
     pub fn bytes(&self) -> Bytes {
         self.0.bytes()
+    }
+
+    /// Removes newline characters according to <https://infra.spec.whatwg.org/#strip-newlines>.
+    pub fn strip_newlines(&mut self) {
+        self.0.retain(|c| c != '\r' && c != '\n');
+    }
+
+    /// Removes leading and trailing ASCII whitespaces according to
+    /// <https://infra.spec.whatwg.org/#strip-leading-and-trailing-ascii-whitespace>.
+    pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
+        if self.0.len() == 0 { return; }
+
+        let last_non_whitespace = match self.0.rfind(|ref c| !char::is_ascii_whitespace(c)) {
+            Some(idx) => idx + 1,
+            None => {
+                self.0.clear();
+                return;
+            }
+        };
+        let first_non_whitespace = self.0.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
+
+        self.0.truncate(last_non_whitespace);
+        let _ = self.0.splice(0..first_non_whitespace, "");
     }
 }
 

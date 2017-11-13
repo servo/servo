@@ -8,7 +8,7 @@
 
 use cssparser::{Parser, Token};
 use parser::ParserContext;
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::values::specified::AllowedNumericType;
@@ -400,7 +400,13 @@ impl CalcNode {
                     NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
                     #[cfg(feature = "gecko")]
                     NoCalcLength::Physical(physical) => {
-                        ret.mozmm = Some(ret.mozmm.unwrap_or(0.) + physical.0 * factor);
+                        use values::specified::length::PhysicalLength;
+
+                        match physical {
+                            PhysicalLength::Mozmm(mozmm) => {
+                                ret.mozmm = Some(ret.mozmm.unwrap_or(0.) + mozmm * factor);
+                            }
+                        }
                     }
                 }
             }

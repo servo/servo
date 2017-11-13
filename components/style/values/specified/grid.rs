@@ -7,7 +7,7 @@
 
 use cssparser::{Parser, Token, ParseError as CssParseError};
 use parser::{Parse, ParserContext};
-use std::ascii::AsciiExt;
+#[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::mem;
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::{CSSFloat, CustomIdent};
@@ -33,7 +33,7 @@ impl Parse for TrackBreadth<LengthOrPercentage> {
         }
 
         if let Ok(f) = input.try(parse_flex) {
-            return Ok(TrackBreadth::Flex(f))
+            return Ok(TrackBreadth::Fr(f))
         }
 
         TrackKeyword::parse(input).map(TrackBreadth::Keyword)

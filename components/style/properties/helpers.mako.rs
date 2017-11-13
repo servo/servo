@@ -356,7 +356,7 @@
                             let computed = specified_value.to_computed_value(context);
                             % endif
                             % if property.ident == "font_size":
-                                 longhands::font_size::cascade_specified_font_size(
+                                 specified::FontSize::cascade_specified_font_size(
                                      context,
                                      &specified_value,
                                      computed,
@@ -373,7 +373,7 @@
                         % endif
                         CSSWideKeyword::Initial => {
                             % if property.ident == "font_size":
-                                longhands::font_size::cascade_initial_font_size(context);
+                                computed::FontSize::cascade_initial_font_size(context);
                             % else:
                                 context.builder.reset_${property.ident}();
                             % endif
@@ -386,7 +386,7 @@
                                 context.rule_cache_conditions.borrow_mut().set_uncacheable();
                             % endif
                             % if property.ident == "font_size":
-                                longhands::font_size::cascade_inherit_font_size(context);
+                                computed::FontSize::cascade_inherit_font_size(context);
                             % else:
                                 context.builder.inherit_${property.ident}();
                             % endif
@@ -402,22 +402,19 @@
             % endif
         }
         % if not property.derived_from:
-            pub fn parse_specified<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                % if property.boxed:
-                                   -> Result<Box<SpecifiedValue>, ParseError<'i>> {
-                    parse(context, input).map(|result| Box::new(result))
+            pub fn parse_declared<'i, 't>(
+                context: &ParserContext,
+                input: &mut Parser<'i, 't>,
+            ) -> Result<PropertyDeclaration, ParseError<'i>> {
+                % if property.allow_quirks:
+                    parse_quirky(context, input, specified::AllowQuirks::Yes)
                 % else:
-                                   -> Result<SpecifiedValue, ParseError<'i>> {
-                    % if property.allow_quirks:
-                        parse_quirky(context, input, specified::AllowQuirks::Yes)
-                    % else:
-                        parse(context, input)
-                    % endif
+                    parse(context, input)
                 % endif
-            }
-            pub fn parse_declared<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                          -> Result<PropertyDeclaration, ParseError<'i>> {
-                parse_specified(context, input).map(PropertyDeclaration::${property.camel_case})
+                % if property.boxed:
+                    .map(Box::new)
+                % endif
+                    .map(PropertyDeclaration::${property.camel_case})
             }
         % endif
     }
@@ -930,6 +927,8 @@
 
 // Define property that supports prefixed intrinsic size keyword values for gecko.
 // E.g. -moz-max-content, -moz-min-content, etc.
+//
+// FIXME(emilio): This feels a lot like a huge hack, get rid of this.
 <%def name="gecko_size_type(name, length_type, initial_value, logical, **kwargs)">
     <%call expr="longhand(name,
                           predefined_type=length_type,
@@ -974,20 +973,32 @@
             use values::computed::${length_type};
             ${length_type}::${initial_value}
         }
-        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-            % if logical:
-            let ret = ${length_type}::parse(context, input);
-            % else:
-            let ret = ${length_type}::parse_quirky(context, input, AllowQuirks::Yes);
-            % endif
-            // Keyword values don't make sense in the block direction; don't parse them
-            % if "block" in name:
-                if let Ok(${length_type}::ExtremumLength(..)) = ret {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-                }
-            % endif
-            ret.map(SpecifiedValue)
+
+        impl Parse for SpecifiedValue {
+            fn parse<'i, 't>(
+                context: &ParserContext,
+                input: &mut Parser<'i, 't>,
+            ) -> Result<SpecifiedValue, ParseError<'i>> {
+                % if logical:
+                let ret = ${length_type}::parse(context, input);
+                % else:
+                let ret = ${length_type}::parse_quirky(context, input, AllowQuirks::Yes);
+                % endif
+                // Keyword values don't make sense in the block direction; don't parse them
+                % if "block" in name:
+                    if let Ok(${length_type}::ExtremumLength(..)) = ret {
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                    }
+                % endif
+                ret.map(SpecifiedValue)
+            }
+        }
+
+        fn parse<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<SpecifiedValue, ParseError<'i>> {
+            SpecifiedValue::parse(context, input)
         }
 
         impl ToComputedValue for SpecifiedValue {

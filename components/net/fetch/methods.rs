@@ -21,7 +21,6 @@ use net_traits::request::{CredentialsMode, Destination, Referrer, Request, Reque
 use net_traits::request::{ResponseTainting, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::fs::File;

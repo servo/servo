@@ -34,7 +34,6 @@ use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::fs::File;
 use std::io::{Read, Write};

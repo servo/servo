@@ -19,15 +19,34 @@ pub fn derive(input: DeriveInput) -> Tokens {
         let mut identifier = to_css_identifier(variant.ident.as_ref());
         let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
         let separator = if variant_attrs.comma { ", " } else { " " };
+
+        if variant_attrs.dimension {
+            assert_eq!(bindings.len(), 1);
+            assert!(!variant_attrs.function, "That makes no sense");
+        }
+
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
-            for binding in bindings {
-                where_clause.add_trait_bound(&binding.field.ty);
+            if variant_attrs.function && variant_attrs.iterable {
+                assert_eq!(bindings.len(), 1);
+                let binding = &bindings[0];
                 expr = quote! {
                     #expr
-                    writer.item(#binding)?;
+
+                    for item in #binding.iter() {
+                        writer.item(item)?;
+                    }
                 };
+            } else {
+                for binding in bindings {
+                    where_clause.add_trait_bound(&binding.field.ty);
+                    expr = quote! {
+                        #expr
+                        writer.item(#binding)?;
+                    };
+                }
             }
+
             quote! {{
                 let mut writer = ::style_traits::values::SequenceWriter::new(&mut *dest, #separator);
                 #expr
@@ -38,7 +57,18 @@ pub fn derive(input: DeriveInput) -> Tokens {
                 ::std::fmt::Write::write_str(dest, #identifier)
             }
         };
-        if variant_attrs.function {
+
+        if variant_attrs.dimension {
+            // FIXME(emilio): Remove when bug 1416564 lands.
+            if identifier == "-mozmm" {
+                identifier = "mozmm".into();
+            }
+
+            expr = quote! {
+                #expr?;
+                ::std::fmt::Write::write_str(dest, #identifier)
+            }
+        } else if variant_attrs.function {
             identifier.push_str("(");
             expr = quote! {
                 ::std::fmt::Write::write_str(dest, #identifier)?;
@@ -89,7 +119,9 @@ struct CssInputAttrs {
 #[derive(Default, FromVariant)]
 struct CssVariantAttrs {
     function: bool,
+    iterable: bool,
     comma: bool,
+    dimension: bool,
 }
 
 /// Transforms "FooBar" to "foo-bar".
