@@ -394,7 +394,9 @@
                     }
                 }
 
-                % if property.custom_cascade:
+                % if property.custom_cascade and property.custom_cascade_function:
+                    ${property.custom_cascade_function}(declaration, context);
+                % elif property.custom_cascade:
                     cascade_property_custom(declaration, context);
                 % endif
             % else:
