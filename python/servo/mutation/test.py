@@ -24,10 +24,10 @@ class Status(Enum):
     UNEXPECTED = 3
 
 
-def mutate_random_line(file_name):
+def mutate_random_line(file_name, strategy):
     line_numbers = []
     for line in fileinput.input(file_name):
-        if re.search(r'\s&&\s', line):
+        if re.search(strategy['regex'], line):
             line_numbers.append(fileinput.lineno())
     if len(line_numbers) == 0:
         return -1
@@ -35,7 +35,7 @@ def mutate_random_line(file_name):
         mutation_line_number = line_numbers[random.randint(0, len(line_numbers) - 1)]
         for line in fileinput.input(file_name, inplace=True):
             if fileinput.lineno() == mutation_line_number:
-                line = re.sub(r'\s&&\s', ' || ', line)
+                line = re.sub(strategy['regex'], strategy['replaceString'], line)
             print line.rstrip()
         return mutation_line_number
 
@@ -47,7 +47,8 @@ def mutation_test(file_name, tests):
         status = Status.SKIPPED
         print "{0} has local changes, please commit/remove changes before running the test".format(file_name)
     else:
-        mutated_line = mutate_random_line(file_name)
+        strategy = {'regex': r'\s&&\s', 'replaceString': ' || '}
+        mutated_line = mutate_random_line(file_name, strategy)
         if mutated_line != -1:
             print "Mutating {0} at line {1}".format(file_name, mutated_line)
             print "compling mutant {0}:{1}".format(file_name, mutated_line)
