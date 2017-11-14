@@ -97,7 +97,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::JS_GetRuntime;
-use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory};
+use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
@@ -1911,6 +1911,10 @@ impl Document {
         self.dom_interactive.get()
     }
 
+    pub fn set_navigation_start(&self, navigation_start: u64) {
+        self.interactive_time.borrow_mut().set_navigation_start(navigation_start);
+    }
+
     pub fn get_interactive_metrics(&self) -> Ref<InteractiveMetrics> {
         self.interactive_time.borrow()
     }
@@ -1940,7 +1944,9 @@ impl Document {
     }
 
     pub fn start_tti(&self) {
-        self.tti_window.borrow_mut().start_window();
+        if self.get_interactive_metrics().needs_tti() {
+            self.tti_window.borrow_mut().start_window();
+        }
     }
 
     /// check tti for this document
@@ -1948,7 +1954,6 @@ impl Document {
     /// main thread available and try to set tti
     pub fn record_tti_if_necessary(&self) {
         if self.has_recorded_tti_metric() { return; }
-
         if self.tti_window.borrow().needs_check() {
             self.get_interactive_metrics().maybe_set_tti(self,
                 InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start()));

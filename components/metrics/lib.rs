@@ -40,6 +40,7 @@ pub trait ProgressiveWebMetric {
     fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: u64);
 }
 
+/// TODO make this configurable
 /// maximum task time is 50ms (in ns)
 pub const MAX_TASK_NS: u64 = 50000000;
 /// 10 second window (in ns)
@@ -84,6 +85,7 @@ fn set_metric<U: ProgressiveWebMetric>(
 
     // Print the metric to console if the print-pwm option was given.
     if opts::get().print_pwm {
+        println!("Navigation start: {}", pwm.get_navigation_start().unwrap());
         println!("{:?} {:?}", metric_type, time);
     }
 
@@ -215,6 +217,10 @@ impl InteractiveMetrics {
 
     pub fn get_tti(&self) -> Option<u64> {
         self.time_to_interactive.get()
+    }
+
+    pub fn needs_tti(&self) -> bool {
+        self.get_tti().is_none()
     }
 }
 
