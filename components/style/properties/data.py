@@ -147,7 +147,7 @@ def arg_to_bool(arg):
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
-                 need_index=False, gecko_ffi_name=None,
+                 need_index=False, custom_cascade_function=None, gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
@@ -163,6 +163,7 @@ class Longhand(object):
         self.style_struct = style_struct
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
+        self.custom_cascade_function = custom_cascade_function if custom_cascade else None
         self.internal = internal
         self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case

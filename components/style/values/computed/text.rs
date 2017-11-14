@@ -13,7 +13,7 @@ use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::Spacing;
-use values::specified::text::TextOverflowSide;
+use values::specified::text::{TextOverflowSide, TextDecorationLine};
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
@@ -71,6 +71,33 @@ impl ToCss for TextOverflow {
             dest.write_str(" ")?;
             self.second.to_css(dest)?;
         }
+        Ok(())
+    }
+}
+
+impl ToCss for TextDecorationLine {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut has_any = false;
+
+        macro_rules! write_value {
+            ($line:path => $css:expr) => {
+                if self.contains($line) {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    dest.write_str($css)?;
+                    has_any = true;
+                }
+            }
+        }
+        write_value!(TextDecorationLine::UNDERLINE => "underline");
+        write_value!(TextDecorationLine::OVERLINE => "overline");
+        write_value!(TextDecorationLine::LINE_THROUGH => "line-through");
+        write_value!(TextDecorationLine::BLINK => "blink");
+        if !has_any {
+            dest.write_str("none")?;
+        }
+
         Ok(())
     }
 }
