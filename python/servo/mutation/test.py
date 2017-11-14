@@ -51,7 +51,7 @@ def mutation_test(file_name, tests):
         mutated_line = mutate_random_line(file_name, strategy)
         if mutated_line != -1:
             print "Mutating {0} at line {1}".format(file_name, mutated_line)
-            print "compling mutant {0}:{1}".format(file_name, mutated_line)
+            print "compiling mutant {0}:{1}".format(file_name, mutated_line)
             sys.stdout.flush()
             subprocess.call('python mach build --release', shell=True, stdout=DEVNULL)
             for test in tests:
