@@ -60,6 +60,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
         redirect_mode: request.redirect_mode,
+        cache_mode: request.cache_mode,
         ..NetTraitsRequestInit::default()
     }
 }
