@@ -139,9 +139,6 @@ pub mod thread_state;
 pub mod timer;
 pub mod traversal;
 pub mod traversal_flags;
-#[macro_use]
-#[allow(non_camel_case_types)]
-pub mod values;
 
 use std::fmt;
 use style_traits::ToCss;
@@ -165,6 +162,10 @@ use style_traits::ToCss;
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
+
+#[macro_use]
+#[allow(non_camel_case_types)]
+pub mod values;
 
 #[cfg(feature = "gecko")]
 #[allow(unsafe_code, missing_docs)]

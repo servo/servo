@@ -3373,7 +3373,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(
     use style::properties::PropertyDeclaration;
     use style::properties::longhands::text_decoration_line;
 
-    let mut decoration = text_decoration_line::computed_value::none;
+    let mut decoration = text_decoration_line::get_initial_value();
     decoration |= text_decoration_line::SpecifiedValue::COLOR_OVERRIDE;
     let decl = PropertyDeclaration::TextDecorationLine(decoration);
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
