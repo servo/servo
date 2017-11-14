@@ -7,12 +7,11 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import fileinput
-import re
 import subprocess
 import sys
 import os
 import random
+from mutator import Mutator, get_strategies
 from enum import Enum
 DEVNULL = open(os.devnull, 'wb')
 
@@ -24,61 +23,6 @@ class Status(Enum):
     UNEXPECTED = 3
 
 
-class Mutator:
-    def __init__(self, strategy):
-        self._strategy = strategy
-
-    def mutate(self, file_name):
-        return self._strategy.mutate_random_line(file_name)
-
-
-class Strategy:
-    def __init__(self):
-        self._replace_strategy = {}
-
-    def mutate_random_line(self, file_name):
-        line_numbers = []
-        for line in fileinput.input(file_name):
-            if re.search(self._replace_strategy['regex'], line):
-                line_numbers.append(fileinput.lineno())
-        if len(line_numbers) == 0:
-            return -1
-        else:
-            mutation_line_number = line_numbers[random.randint(0, len(line_numbers) - 1)]
-            for line in fileinput.input(file_name, inplace=True):
-                if fileinput.lineno() == mutation_line_number:
-                    line = re.sub(self._replace_strategy['regex'], self._replace_strategy['replaceString'], line)
-                print line.rstrip()
-            return mutation_line_number
-
-
-class AndOr(Strategy):
-    def __init__(self):
-        Strategy.__init__(self)
-        self._replace_strategy = {
-            'regex': r'\s&&\s',
-            'replaceString': ' || '
-        }
-
-
-class IfTrue(Strategy):
-    def __init__(self):
-        Strategy.__init__(self)
-        self._replace_strategy = {
-            'regex': r'(?<=if\s)(.*)(?=\s\{)',
-            'replaceString': 'true'
-        }
-
-
-class IfFalse(Strategy):
-    def __init__(self):
-        Strategy.__init__(self)
-        self._replace_strategy = {
-            'regex': r'(?<=if\s)(.*)(?=\s\{)',
-            'replaceString': 'false'
-        }
-
-
 def mutation_test(file_name, tests):
     status = Status.UNEXPECTED
     local_changes_present = subprocess.call('git diff --quiet {0}'.format(file_name), shell=True)
@@ -86,8 +30,7 @@ def mutation_test(file_name, tests):
         status = Status.SKIPPED
         print "{0} has local changes, please commit/remove changes before running the test".format(file_name)
     else:
-        mutation_strategies = (AndOr, IfTrue, IfFalse)
-        strategy = random.choice(mutation_strategies)()
+        strategy = random.choice(get_strategies())()
         mutator = Mutator(strategy)
         mutated_line = mutator.mutate(file_name)
         if mutated_line != -1:
