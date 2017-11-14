@@ -10,6 +10,8 @@ use element_state::ElementState;
 use fallible::FallibleVec;
 use hashglobe::FailedAllocationError;
 use selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapEntry};
+#[cfg(feature = "gecko")]
+use selector_parser::Direction;
 use selector_parser::SelectorImpl;
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
@@ -20,7 +22,6 @@ use smallvec::SmallVec;
 #[cfg(feature = "gecko")]
 /// Gets the element state relevant to the given `:dir` pseudo-class selector.
 pub fn dir_selector_to_state(dir: &Direction) -> ElementState {
-    use selector_parser::Direction;
     match *dir {
         Direction::Ltr => ElementState::IN_LTR_STATE,
         Direction::Rtl => ElementState::IN_RTL_STATE,
