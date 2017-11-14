@@ -58,7 +58,7 @@ for key in keys:
         print("{}{:6} {:6} {:+6} {:+8.2%}   {}.{}".format(color, value1, value2, diff, change, key, END))
 
 
-print
+print()
 diff = total2 - total1
 change = diff / total1
 color = BLUE if total1 <= total2 else GREEN
