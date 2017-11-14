@@ -13,8 +13,8 @@ import json
 import sys
 import test
 test_summary = {
-    test.Status.PASSED: 0,
-    test.Status.FAILED: 0,
+    test.Status.KILLED: 0,
+    test.Status.SURVIVED: 0,
     test.Status.SKIPPED: 0,
     test.Status.UNEXPECTED: 0
 }
@@ -47,7 +47,9 @@ def mutation_test_for(mutation_path):
 
 mutation_test_for(sys.argv[1])
 print "\nTest Summary:"
-for test_status in test_summary:
-    print "{0} : {1}".format(test_status.name, test_summary[test_status])
-if test_summary[test.Status.FAILED] or test_summary[test.Status.UNEXPECTED]:
+print "Mutant Killed (Success) \t{0}".format(test_summary[test.Status.KILLED])
+print "Mutant Survived (Failure) \t{0}".format(test_summary[test.Status.SURVIVED])
+print "Mutation Skipped \t\t{0}".format(test_summary[test.Status.SKIPPED])
+print "Unexpected error in mutation \t{0}".format(test_summary[test.Status.UNEXPECTED])
+if test_summary[test.Status.SURVIVED]:
     sys.exit(1)

@@ -18,8 +18,8 @@ DEVNULL = open(os.devnull, 'wb')
 
 
 class Status(Enum):
-    PASSED = 0
-    FAILED = 1
+    KILLED = 0
+    SURVIVED = 1
     SKIPPED = 2
     UNEXPECTED = 3
 
@@ -63,10 +63,10 @@ def mutation_test(file_name, tests):
                     print "mutated file {0} diff".format(file_name)
                     sys.stdout.flush()
                     subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
-                    status = Status.FAILED
+                    status = Status.SURVIVED
                 else:
                     print("Success: Mutation killed by {0}".format(test.encode('utf-8')))
-                    status = Status.PASSED
+                    status = Status.KILLED
                     break
             print "reverting mutant {0}:{1}".format(file_name, mutated_line)
             sys.stdout.flush()

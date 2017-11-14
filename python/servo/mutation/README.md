@@ -61,3 +61,19 @@ The CI script for running mutation testing is present in /etc/ci folder. It can 
 4. The corresponding WPT tests are run for this mutant and the test results are logged.
 5. Once all WPT are run for the first source file, the mutation continues for other source files mentioned in the json file and runs their corresponding WPT tests.
 6. Once it has completed executing mutation testing for the entered path, it repeats the above procedure for sub-paths present inside the entered path.
+
+### Test Summary
+
+At the end of the test run the test summary displayed which looks like this:
+```
+Test Summary:
+Mutant Killed (Success)         25
+Mutant Survived (Failure)       10
+Mutation Skipped                1
+Unexpected error in mutation    0
+```
+
+* Mutant Killed (Success): The mutant was successfully killed by WPT test suite.
+* Mutant Survived (Failure): The mutation has survived the WPT Test Suite, tests in WPT could not catch this mutation.
+* Mutation Skipped: Files is skipped for mutation test due to the local changes in that file.
+* Unexpected error in mutation: Mutation test could not run due to unexpected failures. (example: if no && preset in the file to replace)
