@@ -77,8 +77,6 @@ pub struct CalcLengthOrPercentage {
     pub ch: Option<CSSFloat>,
     pub rem: Option<CSSFloat>,
     pub percentage: Option<computed::Percentage>,
-    #[cfg(feature = "gecko")]
-    pub mozmm: Option<CSSFloat>,
 }
 
 impl ToCss for CalcLengthOrPercentage {
@@ -142,14 +140,7 @@ impl ToCss for CalcLengthOrPercentage {
         serialize!(ch);
         serialize_abs!(Cm);
         serialize!(em, ex);
-        serialize_abs!(In);
-
-        #[cfg(feature = "gecko")]
-        {
-            serialize!(mozmm);
-        }
-
-        serialize_abs!(Mm, Pc, Pt, Px, Q);
+        serialize_abs!(In, Mm, Pc, Pt, Px, Q);
         serialize!(rem, vh, vmax, vmin, vw);
 
         dest.write_str(")")
@@ -398,16 +389,6 @@ impl CalcNode {
                         }
                     }
                     NoCalcLength::ServoCharacterWidth(..) => unreachable!(),
-                    #[cfg(feature = "gecko")]
-                    NoCalcLength::Physical(physical) => {
-                        use values::specified::length::PhysicalLength;
-
-                        match physical {
-                            PhysicalLength::Mozmm(mozmm) => {
-                                ret.mozmm = Some(ret.mozmm.unwrap_or(0.) + mozmm * factor);
-                            }
-                        }
-                    }
                 }
             }
             CalcNode::Sub(ref a, ref b) => {
