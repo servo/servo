@@ -46,12 +46,7 @@ impl ToCssWithGuard for MediaRule {
     where W: fmt::Write {
         dest.write_str("@media ")?;
         self.media_queries.read_with(guard).to_css(dest)?;
-        dest.write_str(" {")?;
-        for rule in self.rules.read_with(guard).0.iter() {
-            dest.write_str(" ")?;
-            rule.to_css(guard, dest)?;
-        }
-        dest.write_str(" }")
+        self.rules.read_with(guard).to_css_block(guard, dest)
     }
 }
 
