@@ -1199,30 +1199,14 @@ variation_spec = """\
 https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-the-font-variation-settings-property\
 """
 %>
-<%helpers:longhand name="font-variation-settings" products="gecko"
-                   animation_value_type="ComputedValue"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
-                   spec="${variation_spec}">
-    use values::generics::FontSettings;
 
-    pub type SpecifiedValue = computed_value::T;
-
-    pub mod computed_value {
-        use values::generics::{FontSettings, FontSettingTagFloat};
-        pub type T = FontSettings<FontSettingTagFloat>;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        FontSettings::Normal
-    }
-
-    /// normal | <feature-tag-value>#
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        computed_value::T::parse(context, input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("font-variation-settings",
+                          "FontVariantSettings",
+                          products="gecko",
+                          initial_value="specified::FontVariantSettings::normal()",
+                          animation_value_type="ComputedValue",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          spec="${variation_spec}")}
 
 ${helpers.predefined_type("font-language-override",
                           "FontLanguageOverride",
