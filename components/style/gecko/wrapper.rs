@@ -74,7 +74,7 @@ use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::{AttrValue, PseudoClassStringArg};
+use selector_parser::{AttrValue, Direction, PseudoClassStringArg};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -2066,12 +2066,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 }
             }
             NonTSPseudoClass::Dir(ref dir) => {
-                unsafe {
-                    Gecko_MatchStringArgPseudo(
-                        self.0,
-                        pseudo_class.to_gecko_pseudoclasstype().unwrap(),
-                        Box::<[u16]>::from(dir).as_ptr(),
-                    )
+                match *dir {
+                    Direction::Ltr => self.get_state().intersects(ElementState::IN_LTR_STATE),
+                    Direction::Rtl => self.get_state().intersects(ElementState::IN_RTL_STATE),
+                    Direction::Other(..) => false,
                 }
             }
         }

@@ -173,3 +173,26 @@ impl<T> PerPseudoElementMap<T> {
         self.entries.iter()
     }
 }
+
+/// Values for the :dir() pseudo class
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Direction {
+    /// left-to-right semantic directionality
+    Ltr,
+    /// right-to-left semantic directionality
+    Rtl,
+    /// Some other provided directionality value
+    Other(Box<[u16]>),
+}
+
+impl<'a> From<&'a Direction> for String {
+    fn from(dir: &'a Direction) -> Self {
+        match dir {
+            &Direction::Rtl => "rtl".to_owned(),
+            &Direction::Ltr => "ltr".to_owned(),
+            &Direction::Other(ref other) => {
+                String::from_utf16(&other[..other.len() - 1]).unwrap()
+            },
+        }
+    }
+}

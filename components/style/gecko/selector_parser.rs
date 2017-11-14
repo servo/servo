@@ -9,7 +9,7 @@ use element_state::{DocumentState, ElementState};
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use selector_parser::{SelectorParser, PseudoElementCascadeType};
+use selector_parser::{Direction, SelectorParser, PseudoElementCascadeType};
 use selectors::SelectorList;
 use selectors::parser::{Selector, SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
@@ -33,52 +33,6 @@ bitflags! {
 
 /// The type used for storing pseudo-class string arguments.
 pub type PseudoClassStringArg = Box<[u16]>;
-
-/// Values for the :dir() pseudo class
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Direction {
-    /// right-to-left semantic directionality
-    Rtl,
-    /// left-to-right semantic directionality
-    Ltr,
-    /// Some other provided directionality value
-    Other(String),
-}
-
-impl <'a> From<&'a str> for Direction {
-    fn from(string: &'a str) -> Direction {
-        match string.to_lowercase().as_str() {
-            "rtl" => Direction::Rtl,
-            "ltr" => Direction::Ltr,
-            other => Direction::Other(other.to_owned()),
-        }
-    }
-}
-
-impl<'a> From<&'a Direction> for Box<[u16]> {
-    fn from(dir: &'a Direction) -> Self {
-        let dir_str = match dir {
-            &Direction::Rtl => "rtl",
-            &Direction::Ltr => "ltr",
-            &Direction::Other(ref other) => other,
-        };
-
-        let utf16: Vec<u16> = dir_str.encode_utf16()
-            .map(utf16_to_ascii_lowercase)
-            .chain(Some(0u16)).collect();
-        utf16.into_boxed_slice()
-    }
-}
-
-impl<'a> From<&'a Direction> for String {
-    fn from(dir: &'a Direction) -> Self {
-        match dir {
-            &Direction::Rtl => "rtl",
-            &Direction::Ltr => "ltr",
-            &Direction::Other(ref other) => other,
-        }.to_owned()
-    }
-}
 
 macro_rules! pseudo_class_name {
     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -419,7 +373,17 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                     }, )*
                     "dir" => {
                         let name: &str = parser.expect_ident()?;
-                        NonTSPseudoClass::Dir(Direction::from(name))
+                        let direction = match_ignore_ascii_case! { name,
+                            "rtl" => Direction::Rtl,
+                            "ltr" => Direction::Ltr,
+                            _ => {
+                                let utf16: Vec<u16> = name.encode_utf16()
+                                    .map(utf16_to_ascii_lowercase)
+                                    .chain(Some(0u16)).collect();
+                                Direction::Other(utf16.into_boxed_slice())
+                            },
+                        };
+                        NonTSPseudoClass::Dir(direction)
                     },
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {

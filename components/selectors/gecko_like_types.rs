@@ -9,7 +9,7 @@
 pub enum Direction {
     Rtl,
     Ltr,
-    Other(String),
+    Other(Box<[u16]>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
