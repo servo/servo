@@ -8,7 +8,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TP5N_SOURCE="https://people.mozilla.org/~jmaher/taloszips/zips/tp5n.zip"
+TP5N_SOURCE="https://github.com/rwood-moz/talos-pagesets/raw/master/tp5n.zip"
 TP5N_PATH="page_load_test/tp5n.zip"
 
 if [[ ! -f "$(dirname "${TP5N_PATH}")/tp5n/tp5n.manifest" ]]; then
