@@ -38,6 +38,10 @@ GREEN = '\033[92m'
 WARNING = '\033[93m'
 END = '\033[0m'
 
+
+total1 = 0
+total2 = 0
+
 for key in keys:
     value1 = data1.get(key)
     value2 = data2.get(key)
@@ -49,4 +53,13 @@ for key in keys:
         diff = value2 - value1
         change = diff / value1
         color = BLUE if value1 <= value2 else GREEN
+        total1 += value1
+        total2 += value2
         print("{}{:6} {:6} {:+6} {:+8.2%}   {}.{}".format(color, value1, value2, diff, change, key, END))
+
+
+print
+diff = total2 - total1
+change = diff / total1
+color = BLUE if total1 <= total2 else GREEN
+print("{}{:6} {:6} {:+6} {:+8.2%}   {}.{}".format(color, total1, total2, diff, change, "TOTAL", END))
