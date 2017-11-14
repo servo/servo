@@ -116,6 +116,7 @@ def parse_log(log, testcase):
         if (timing is None or
                 testcase is None or
                 timing.get('title') == 'Error response' or
+                timing.get('title') == 'Error loading page' or
                 timing.get('testcase') != testcase):
             return False
         else:
