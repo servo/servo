@@ -260,19 +260,9 @@ class CommandBase(object):
         self.config["tools"].setdefault("cargo-root", "")
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
-        # https://github.com/rust-lang/rust/pull/39754
-        triples_with_rustc_alt_builds = [
-            "x86_64-unknown-linux-gnu",
-            "x86_64-apple-darwin",
-            "x86_64-pc-windows-msvc",
-        ]
-        llvm_assertions_default = ("SERVO_RUSTC_LLVM_ASSERTIONS" in os.environ
-                                   or host_triple() not in triples_with_rustc_alt_builds)
-
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
         self.config["build"].setdefault("mode", "")
-        self.config["build"].setdefault("llvm-assertions", llvm_assertions_default)
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
@@ -315,8 +305,6 @@ class CommandBase(object):
     def rust_install_dir(self):
         if self._use_stable_rust:
             return self.rust_stable_version()
-        elif not self.config["build"]["llvm-assertions"]:
-            return self.rust_nightly_date() + "-alt"
         else:
             return self.rust_nightly_date()
 

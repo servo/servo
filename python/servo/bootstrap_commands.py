@@ -29,7 +29,7 @@ from mach.decorators import (
 import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, BIN_SUFFIX, cd
 from servo.util import delete, download_bytes, download_file, extract, host_triple
-from servo.util import STATIC_RUST_LANG_ORG_DIST, URLOPEN_KWARGS
+from servo.util import STATIC_RUST_LANG_ORG_DIST
 
 
 @CommandProvider
@@ -90,15 +90,8 @@ class MachCommands(CommandBase):
             # in that directory).
             if stable:
                 base_url = STATIC_RUST_LANG_ORG_DIST
-            elif self.config["build"]["llvm-assertions"]:
-                base_url = nightly_dist
             else:
-                import toml
-                channel = nightly_dist + "/channel-rust-nightly.toml"
-                manifest = toml.load(urllib2.urlopen(channel, **URLOPEN_KWARGS))
-                nightly_commit_hash = manifest["pkg"]["rustc"]["git_commit_hash"]
-
-                base_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds-alt/" + nightly_commit_hash
+                base_url = nightly_dist
 
             rustc_url = base_url + "/rustc-%s-%s.tar.gz" % (version, host_triple())
             tgz_file = rust_dir + '-rustc.tar.gz'

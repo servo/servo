@@ -31,10 +31,10 @@ mac-rel-wpt4:
 
 mac-dev-unit:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
+  - env ./mach test-unit
+  - env ./mach package --dev
+  - env ./mach build-cef
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -78,12 +78,12 @@ linux-dev:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-compiletest
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev --no-default-features --features default-except-unstable
+  - env ./mach build --dev
+  - env ./mach test-compiletest
+  - env ./mach test-unit
+  - env ./mach package --dev
+  - env ./mach build-cef
+  - env ./mach build --dev --no-default-features --features default-except-unstable
   - ./mach build-geckolib
   - ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
@@ -116,27 +116,27 @@ linux-nightly:
 
 android:
   - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
+  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --dev
+  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
 android-nightly:
   - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --release
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --release
+  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --release
+  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --release
   - ./mach upload-nightly android
 
 arm32:
   - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - env ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 arm64:
   - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=aarch64-unknown-linux-gnu
+  - env ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
