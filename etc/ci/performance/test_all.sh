@@ -8,6 +8,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+base="http://localhost:8000"
+
 while (( "${#}" ))
 do
 case "${1}" in
@@ -21,6 +23,10 @@ case "${1}" in
     ;;
   --submit)
     submit=1
+    ;;
+  --base)
+    base="${2}"
+    shift
     ;;
   *)
     echo "Unknown option ${1}."
@@ -46,7 +52,7 @@ MANIFEST="page_load_test/example.manifest" # A manifest that excludes
 PERF_FILE="output/perf-$(date +%s).json"
 
 echo "Running tests"
-python3 runner.py ${engine} --runs 3 --timeout "${timeout}" \
+python3 runner.py ${engine} --runs 4 --timeout "${timeout}" --base "${base}" \
   "${MANIFEST}" "${PERF_FILE}"
 
 if [[ "${submit:-}" ]];

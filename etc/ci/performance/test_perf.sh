@@ -35,13 +35,4 @@ mkdir -p servo
 mkdir -p output # Test result will be saved to output/perf-<timestamp>.json
 ./git_log_to_json.sh > servo/revision.json
 
-if [[ "${#}" -eq 1 ]]; then
-  if [[ "${1}" = "--submit" ]]; then
-    ./test_all.sh --servo --submit
-  else
-    echo "Unrecognized argument: ${1}; Ignore and proceed without submitting"
-    ./test_all.sh --servo
-  fi
-else
-  ./test_all.sh --servo
-fi
+./test_all.sh --servo ${*}
