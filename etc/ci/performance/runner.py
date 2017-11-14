@@ -11,6 +11,7 @@ import os
 import subprocess
 from functools import partial
 from statistics import median, StatisticsError
+from urllib.parse import urlsplit, urlunsplit, urljoin
 
 
 def load_manifest(filename):
@@ -31,6 +32,17 @@ def parse_manifest(text):
     return output
 
 
+def testcase_url(base, testcase):
+    # The tp5 manifest hardwires http://localhost/ as the base URL,
+    # which requires running the server as root in order to open
+    # the server on port 80. To allow non-root users to run the test
+    # case, we take the URL to be relative to a base URL.
+    (scheme, netloc, path, query, fragment) = urlsplit(testcase)
+    relative_url = urlunsplit(('', '', '.' + path, query, fragment))
+    absolute_url = urljoin(base, relative_url)
+    return absolute_url
+
+
 def execute_test(url, command, timeout):
     try:
         return subprocess.check_output(
@@ -46,11 +58,11 @@ def execute_test(url, command, timeout):
     return ""
 
 
-def run_servo_test(url, timeout, is_async):
+def run_servo_test(testcase, url, timeout, is_async):
     if is_async:
         print("Servo does not support async test!")
         # Return a placeholder
-        return parse_log("", url)
+        return parse_log("", testcase, url)
 
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     command = [
@@ -71,11 +83,11 @@ def run_servo_test(url, timeout, is_async):
             ' '.join(command)
         ))
     except subprocess.TimeoutExpired:
-        print("Test FAILED due to timeout: {}".format(url))
-    return parse_log(log, url)
+        print("Test FAILED due to timeout: {}".format(testcase))
+    return parse_log(log, testcase, url)
 
 
-def parse_log(log, testcase):
+def parse_log(log, testcase, url):
     blocks = []
     block = []
     copy = False
@@ -112,11 +124,11 @@ def parse_log(log, testcase):
 
         return timing
 
-    def valid_timing(timing, testcase=None):
+    def valid_timing(timing, url=None):
         if (timing is None or
                 testcase is None or
                 timing.get('title') == 'Error response' or
-                timing.get('testcase') != testcase):
+                timing.get('testcase') != url):
             return False
         else:
             return True
@@ -152,8 +164,15 @@ def parse_log(log, testcase):
             "domComplete": -1,
         }
 
-    valid_timing_for_case = partial(valid_timing, testcase=testcase)
-    timings = list(filter(valid_timing_for_case, map(parse_block, blocks)))
+    # Set the testcase field to contain the original testcase name,
+    # rather than the url.
+    def set_testcase(timing, testcase=None):
+        timing['testcase'] = testcase
+        return timing
+
+    valid_timing_for_case = partial(valid_timing, url=url)
+    set_testcase_for_case = partial(set_testcase, testcase=testcase)
+    timings = list(map(set_testcase_for_case, filter(valid_timing_for_case, map(parse_block, blocks))))
 
     if len(timings) == 0:
         print("Didn't find any perf data in the log, test timeout?")
@@ -167,10 +186,11 @@ def parse_log(log, testcase):
         return timings
 
 
-def filter_result_by_manifest(result_json, manifest):
+def filter_result_by_manifest(result_json, manifest, base):
     filtered = []
     for name, is_async in manifest:
-        match = [tc for tc in result_json if tc['testcase'] == name]
+        url = testcase_url(base, name)
+        match = [tc for tc in result_json if tc['testcase'] == url]
         if len(match) == 0:
             raise Exception(("Missing test result: {}. This will cause a "
                              "discontinuity in the treeherder graph, "
@@ -201,9 +221,9 @@ def take_result_median(result_json, expected_runs):
     return median_results
 
 
-def save_result_json(results, filename, manifest, expected_runs):
+def save_result_json(results, filename, manifest, expected_runs, base):
 
-    results = filter_result_by_manifest(results, manifest)
+    results = filter_result_by_manifest(results, manifest, base)
     results = take_result_median(results, expected_runs)
 
     if len(results) == 0:
@@ -245,6 +265,10 @@ def main():
                         help="the test manifest in tp5 format")
     parser.add_argument("output_file",
                         help="filename for the output json")
+    parser.add_argument("--base",
+                        type=str,
+                        default='http://localhost:8000/',
+                        help="the base URL for tests. Default: http://localhost:8000/")
     parser.add_argument("--runs",
                         type=int,
                         default=20,
@@ -270,18 +294,19 @@ def main():
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase, is_async in testcases:
+            url = testcase_url(args.base, testcase)
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
-                                                        testcase))
+                                                        url))
                 # results will be a mixure of timings dict and testcase strings
                 # testcase string indicates a failed test
-                results += run_test(testcase, args.timeout, is_async)
+                results += run_test(testcase, url, args.timeout, is_async)
                 print("Finished")
                 # TODO: Record and analyze other performance.timing properties
 
         print(format_result_summary(results))
-        save_result_json(results, args.output_file, testcases, args.runs)
+        save_result_json(results, args.output_file, testcases, args.runs, args.base)
 
     except KeyboardInterrupt:
         print("Test stopped by user, saving partial result")
