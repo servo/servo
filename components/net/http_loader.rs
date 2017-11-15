@@ -670,8 +670,10 @@ pub fn http_redirect_fetch(request: &mut Request,
     request.redirect_count += 1;
 
     // Step 7
-    // FIXME: Correctly use request's origin
-    let same_origin = location_url.origin() == request.current_url().origin();
+    let same_origin = match request.origin {
+        Origin::Origin(ref origin) => *origin == location_url.origin(),
+        Origin::Client => panic!("Request origin should not be client for {}", request.current_url()),
+    };
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
@@ -690,7 +692,7 @@ pub fn http_redirect_fetch(request: &mut Request,
     }
 
     // Step 10
-    if cors_flag && !same_origin {
+    if cors_flag && location_url.origin() != request.current_url().origin() {
         request.origin = Origin::Origin(ImmutableOrigin::new_opaque());
     }
 

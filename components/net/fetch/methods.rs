@@ -118,7 +118,7 @@ pub fn main_fetch(request: &mut Request,
     // TODO: handle upgrade to a potentially secure URL.
 
     // Step 5.
-    if should_be_blocked_due_to_bad_port(&request.url()) {
+    if should_be_blocked_due_to_bad_port(&request.current_url()) {
         response = Some(Response::network_error(NetworkError::Internal("Request attempted on bad port".into())));
     }
     // TODO: handle blocking as mixed content.
