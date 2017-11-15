@@ -1159,6 +1159,7 @@ impl PropertyId {
                 default = PropertyParserContext {
                     stylesheet_origin: Origin::Author,
                     rule_type: CssRuleType::Style,
+                    in_chrome_stylesheet: false,
                 };
                 &default
             }
@@ -1290,7 +1291,8 @@ impl PropertyId {
         // control its availability in all sheets.   For properties that are
         // both experimental and internal, the pref only controls its
         // availability in non-UA sheets (and in UA sheets it is always available).
-        ${id_set("INTERNAL", lambda p: p.internal)}
+        ${id_set("CHROME_ACCESSIBLE", lambda p: p.chrome_accessible())}
+        ${id_set("CONTENT_ACCESSIBLE", lambda p: p.content_accessible())}
 
         % if product == "servo":
             ${id_set("EXPERIMENTAL", lambda p: p.experimental)}
@@ -1342,28 +1344,34 @@ impl PropertyId {
             % endif
         };
 
-        if INTERNAL.contains(id) {
-            if context.stylesheet_origin != Origin::UserAgent {
-                if EXPERIMENTAL.contains(id) {
-                    if !passes_pref_check() {
-                        return Err(())
-                    }
-                } else {
-                    return Err(())
-                }
-            }
-        } else {
-            if EXPERIMENTAL.contains(id) && !passes_pref_check() {
-                return Err(());
-            }
+        if context.stylesheet_origin == Origin::UserAgent {
+            return Ok(());
         }
 
-        Ok(())
+        if context.in_chrome_stylesheet {
+            return if CHROME_ACCESSIBLE.contains(id) {
+                Ok(())
+            } else {
+                Err(())
+            };
+        }
+
+        if EXPERIMENTAL.contains(id) && !passes_pref_check() {
+            return Err(());
+        }
+
+        if CONTENT_ACCESSIBLE.contains(id) {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 }
 
 /// Parsing Context for PropertyId.
 pub struct PropertyParserContext {
+    /// Whether the property is being parsed on a chrome:// sheet.
+    pub in_chrome_stylesheet: bool,
     /// The Origin of the stylesheet, whether it's a user,
     /// author or user-agent stylesheet.
     pub stylesheet_origin: Origin,
@@ -1375,6 +1383,7 @@ impl PropertyParserContext {
     /// Creates a PropertyParserContext with given stylesheet origin and rule type.
     pub fn new(context: &ParserContext) -> Self {
         Self {
+            in_chrome_stylesheet: context.in_chrome_stylesheet(),
             stylesheet_origin: context.stylesheet_origin,
             rule_type: context.rule_type(),
         }

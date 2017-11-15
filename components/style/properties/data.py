@@ -205,6 +205,14 @@ class Longhand(object):
             self.transitionable = False
             self.animation_type = None
 
+    def content_accessible(self):
+        return not self.internal
+
+    # TODO(emilio): We need to annotate properties that even though they're
+    # internal, are accessible by chrome sheets.
+    def chrome_accessible(self):
+        return not self.internal
+
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, experimental=False, internal=False,
@@ -251,6 +259,14 @@ class Shorthand(object):
 
     animatable = property(get_animatable)
     transitionable = property(get_transitionable)
+
+    def content_accessible(self):
+        return not self.internal
+
+    # TODO(emilio): We need to annotate properties that even though they're
+    # internal, are accessible by chrome sheets.
+    def chrome_accessible(self):
+        return not self.internal
 
 
 class Alias(object):
