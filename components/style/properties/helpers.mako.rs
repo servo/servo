@@ -680,10 +680,9 @@
     % endif
 </%def>
 
-<%def name="shorthand(name, sub_properties, experimental=False, derive_serialize=False, **kwargs)">
+<%def name="shorthand(name, sub_properties, derive_serialize=False, **kwargs)">
 <%
-    shorthand = data.declare_shorthand(name, sub_properties.split(), experimental=experimental,
-                                       **kwargs)
+    shorthand = data.declare_shorthand(name, sub_properties.split(), **kwargs)
 %>
     % if shorthand:
     /// ${shorthand.spec}
