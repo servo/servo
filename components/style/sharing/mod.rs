@@ -70,7 +70,7 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use dom::{TElement, SendElement};
-use lru_cache::{LRUCache, Entry};
+use uluru::{LRUCache, Entry};
 use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;

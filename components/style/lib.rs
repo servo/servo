@@ -57,7 +57,7 @@ extern crate itoa;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate lru_cache;
+extern crate uluru;
 #[macro_use] extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;
 #[allow(unused_extern_crates)]
