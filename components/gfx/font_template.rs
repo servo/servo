@@ -54,6 +54,7 @@ impl FontTemplateDescriptor {
 
     /// Returns a number between 1 and 9 for the stretch property.
     /// 1 is ultra_condensed, 5 is normal, and 9 is ultra_expanded
+    #[inline]
     fn stretch_number(&self) -> i32 {
         match self.stretch {
             font_stretch::T::ultra_condensed => 1,
