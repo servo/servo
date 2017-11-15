@@ -1293,7 +1293,7 @@ impl PropertyId {
         ${id_set("INTERNAL", lambda p: p.internal)}
 
         % if product == "servo":
-            ${id_set("EXPERIMENTAL", lambda p: p.experimental)}
+            ${id_set("EXPERIMENTAL", lambda p: p.servo_pref)}
         % endif
         % if product == "gecko":
             use gecko_bindings::structs::root::mozilla;
@@ -1321,8 +1321,8 @@ impl PropertyId {
             % if product == "servo":
                 static PREF_NAME: [Option< &str>; ${len(data.longhands) + len(data.shorthands)}] = [
                     % for property in data.longhands + data.shorthands:
-                        % if property.experimental:
-                            Some("${property.experimental}"),
+                        % if property.servo_pref:
+                            Some("${property.servo_pref}"),
                         % else:
                             None,
                         % endif

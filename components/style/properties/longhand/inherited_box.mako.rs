@@ -22,7 +22,7 @@ ${helpers.single_keyword("writing-mode",
                          extra_gecko_aliases="lr=horizontal-tb lr-tb=horizontal-tb \
                                               rl=horizontal-tb rl-tb=horizontal-tb \
                                               tb=vertical-rl   tb-rl=vertical-rl",
-                         experimental=True,
+                         servo_pref="layout.writing-mode.enabled",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode")}
 
