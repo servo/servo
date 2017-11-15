@@ -294,6 +294,7 @@ GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/w
 GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html
 
 # Intentional use of setTimeout
+SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/navigation-in-onload_form-submission-2.tentative.html
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
@@ -937,3 +938,5 @@ CONSOLE:payment-request/payment-request-response-id.html
 
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
+# Test that uses the same names as the WebKit/Blink testing APIs
+LAYOUTTESTS APIS: html/browsers/history/the-session-history-of-browsing-contexts/navigation-in-onload_form-submission-2.tentative.html
