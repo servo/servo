@@ -298,13 +298,11 @@ trait PrivateMatchMethods: TElement {
         use animation;
         use dom::TNode;
 
-        let possibly_expired_animations =
-            &mut context.thread_local.current_element_info.as_mut().unwrap()
-                        .possibly_expired_animations;
+        let mut possibly_expired_animations = vec![];
         let shared_context = context.shared;
         if let Some(ref mut old) = *old_values {
             self.update_animations_for_cascade(shared_context, old,
-                                               possibly_expired_animations,
+                                               &mut possibly_expired_animations,
                                                &context.thread_local.font_metrics_provider);
         }
 

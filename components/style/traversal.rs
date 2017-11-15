@@ -322,6 +322,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         &self,
         context: &mut StyleContext<E>,
         parent: E,
+        is_initial_style: bool,
         parent_data: &ElementData,
     ) -> bool {
         debug_assert!(cfg!(feature = "gecko") ||
@@ -353,7 +354,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // happens, we may just end up doing wasted work, since Gecko
         // recursively drops Servo ElementData when the XBL insertion parent of
         // an Element is changed.
-        if cfg!(feature = "gecko") && context.thread_local.is_initial_style() &&
+        if cfg!(feature = "gecko") && is_initial_style &&
             parent_data.styles.primary().has_moz_binding()
         {
             debug!("Parent {:?} has XBL binding, deferring traversal", parent);
@@ -476,7 +477,8 @@ where
     use traversal_flags::TraversalFlags;
 
     let flags = context.shared.traversal_flags;
-    context.thread_local.begin_element(element, data);
+    let is_initial_style = !data.has_styles();
+
     context.thread_local.statistics.elements_traversed += 1;
     debug_assert!(flags.intersects(TraversalFlags::AnimationOnly | TraversalFlags::UnstyledOnly) ||
                   !element.has_snapshot() || element.handled_snapshot(),
@@ -569,12 +571,13 @@ where
     let mut traverse_children = has_dirty_descendants_for_this_restyle ||
                                 !propagated_hint.is_empty() ||
                                 !child_cascade_requirement.can_skip_cascade() ||
-                                context.thread_local.is_initial_style() ||
+                                is_initial_style ||
                                 data.reconstructed_self() ||
                                 is_servo_nonincremental_layout();
 
-    traverse_children = traverse_children &&
-                        !traversal.should_cull_subtree(context, element, &data);
+    traverse_children =
+        traverse_children &&
+        !traversal.should_cull_subtree(context, element, is_initial_style, &data);
 
     // Examine our children, and enqueue the appropriate ones for traversal.
     if traverse_children {
@@ -585,6 +588,7 @@ where
             propagated_hint,
             child_cascade_requirement,
             data.reconstructed_self_or_ancestor(),
+            is_initial_style,
             note_child
         );
     }
@@ -600,8 +604,6 @@ where
                   !element.has_animation_only_dirty_descendants(),
                   "Should have cleared animation bits already");
     clear_state_after_traversing(element, data, flags);
-
-    context.thread_local.end_element(element);
 }
 
 fn clear_state_after_traversing<E>(
@@ -827,6 +829,7 @@ fn note_children<E, D, F>(
     propagated_hint: RestyleHint,
     cascade_requirement: ChildCascadeRequirement,
     reconstructed_ancestor: bool,
+    is_initial_style: bool,
     mut note_child: F,
 )
 where
@@ -836,7 +839,6 @@ where
 {
     trace!("note_children: {:?}", element);
     let flags = context.shared.traversal_flags;
-    let is_initial_style = context.thread_local.is_initial_style();
 
     // Loop over all the traversal children.
     for child_node in element.traversal_children() {
