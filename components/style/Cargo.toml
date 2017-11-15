@@ -45,7 +45,6 @@ html5ever = {version = "0.21", optional = true}
 itertools = "0.5"
 itoa = "0.3"
 lazy_static = "0.2"
-lru_cache = { path = "../lru_cache" }
 log = "0.3"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
@@ -70,6 +69,7 @@ style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
 time = "0.1"
+uluru = "0.1"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 
