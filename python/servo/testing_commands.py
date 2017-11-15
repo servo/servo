@@ -186,12 +186,6 @@ class MachCommands(CommandBase):
         if base:
             cmd += ["--base", base]
         if submit:
-            if not ("TREEHERDER_CLIENT_ID" in os.environ and
-                    "TREEHERDER_CLIENT_SECRET" in os.environ):
-                print("Please set the environment variable \"TREEHERDER_CLIENT_ID\""
-                      " and \"TREEHERDER_CLIENT_SECRET\" to submit the performance"
-                      " test result to perfherder")
-                return 1
             cmd += ["--submit"]
         return call(cmd,
                     env=env,
