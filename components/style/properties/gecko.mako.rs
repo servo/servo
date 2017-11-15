@@ -1331,13 +1331,11 @@ pub fn clone_transform_from_list(
         self.gecko.${gecko_ffi_name}[1].set(v.vertical);
         // transform-origin supports the third value for depth, while
         // -moz-window-transform-origin doesn't. The following code is
-        // for handling this difference. Rust (incorrectly) generates
-        // an unsuppressible warning, but we know it's safe here.
-        // See rust-lang/rust#45850. Also if we can have more knowledge
+        // for handling this difference. If we can have more knowledge
         // about the type here, we may want to check that the length is
         // exactly either 2 or 3 in compile time.
-        if self.gecko.${gecko_ffi_name}.len() == 3 {
-            self.gecko.${gecko_ffi_name}[2].set(v.depth);
+        if let Some(third) = self.gecko.${gecko_ffi_name}.get_mut(2) {
+            third.set(v.depth);
         }
     }
 
@@ -1345,8 +1343,10 @@ pub fn clone_transform_from_list(
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name}[0].copy_from(&other.gecko.${gecko_ffi_name}[0]);
         self.gecko.${gecko_ffi_name}[1].copy_from(&other.gecko.${gecko_ffi_name}[1]);
-        if self.gecko.${gecko_ffi_name}.len() == 3 {
-            self.gecko.${gecko_ffi_name}[2].copy_from(&other.gecko.${gecko_ffi_name}[2]);
+        if let (Some(self_third), Some(other_third)) =
+            (self.gecko.${gecko_ffi_name}.get_mut(2), other.gecko.${gecko_ffi_name}.get(2))
+        {
+            self_third.copy_from(other_third)
         }
     }
 
@@ -1363,8 +1363,8 @@ pub fn clone_transform_from_list(
                 .expect("clone for LengthOrPercentage failed"),
             vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[1])
                 .expect("clone for LengthOrPercentage failed"),
-            depth: if self.gecko.${gecko_ffi_name}.len() == 3 {
-                Length::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[2])
+            depth: if let Some(third) = self.gecko.${gecko_ffi_name}.get(2) {
+                Length::from_gecko_style_coord(third)
                     .expect("clone for Length failed")
             } else {
                 Length::new(0.)
