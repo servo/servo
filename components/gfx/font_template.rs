@@ -41,7 +41,7 @@ impl FontTemplateDescriptor {
     /// The smaller the score, the better the fonts match. 0 indicates an exact match. This must
     /// be commutative (distance(A, B) == distance(B, A)).
     ///
-    /// The policy is care most about differences in italicness, then weight, then stretch
+    /// The policy is to care most about differences in italicness, then weight, then stretch
     #[inline]
     fn distance_from(&self, other: &FontTemplateDescriptor) -> u32 {
         let italic_part = if self.italic == other.italic { 0 } else { 1000 };
