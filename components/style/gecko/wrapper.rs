@@ -2066,7 +2066,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 }
             }
             NonTSPseudoClass::Dir(ref dir) => {
-                match *dir {
+                match **dir {
                     Direction::Ltr => self.get_state().intersects(ElementState::IN_LTR_STATE),
                     Direction::Rtl => self.get_state().intersects(ElementState::IN_RTL_STATE),
                     Direction::Other(..) => false,

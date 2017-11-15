@@ -15,7 +15,7 @@ use selectors::parser::{Selector, SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use style_traits::{ParseError, StyleParseErrorKind};
+use style_traits::{ParseError, StyleParseErrorKind, ToCss as ToCss_};
 
 pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
@@ -54,7 +54,7 @@ macro_rules! pseudo_class_name {
                 $k_name(Box<[u16]>),
             )*
             /// The `:dir` pseudo-class.
-            Dir(Direction),
+            Dir(Box<Direction>),
             /// The non-standard `:-moz-any` pseudo-class.
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
@@ -95,9 +95,8 @@ impl ToCss for NonTSPseudoClass {
                         return dest.write_char(')')
                     }, )*
                     NonTSPseudoClass::Dir(ref dir) => {
-                        let value: String = dir.into();
                         dest.write_str(concat!(":dir("))?;
-                        dest.write_str(&value)?;
+                        (**dir).to_css(dest)?;
                         return dest.write_char(')')
                     },
                     NonTSPseudoClass::MozAny(ref selectors) => {
@@ -377,13 +376,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                             "rtl" => Direction::Rtl,
                             "ltr" => Direction::Ltr,
                             _ => {
-                                let utf16: Vec<u16> = name.encode_utf16()
-                                    .map(utf16_to_ascii_lowercase)
-                                    .chain(Some(0u16)).collect();
-                                Direction::Other(utf16.into_boxed_slice())
+                                Direction::Other(Box::from(name))
                             },
                         };
-                        NonTSPseudoClass::Dir(direction)
+                        NonTSPseudoClass::Dir(Box::new(direction))
                     },
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {

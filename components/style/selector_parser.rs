@@ -8,8 +8,8 @@
 
 use cssparser::{Parser as CssParser, ParserInput};
 use selectors::parser::SelectorList;
-use std::fmt::{self, Debug};
-use style_traits::ParseError;
+use std::fmt::{self, Debug, Write};
+use style_traits::{ParseError, ToCss};
 use stylesheets::{Origin, Namespaces, UrlExtraData};
 
 /// A convenient alias for the type that represents an attribute value used for
@@ -182,17 +182,16 @@ pub enum Direction {
     /// right-to-left semantic directionality
     Rtl,
     /// Some other provided directionality value
-    Other(Box<[u16]>),
+    Other(Box<str>),
 }
 
-impl<'a> From<&'a Direction> for String {
-    fn from(dir: &'a Direction) -> Self {
-        match dir {
-            &Direction::Rtl => "rtl".to_owned(),
-            &Direction::Ltr => "ltr".to_owned(),
-            &Direction::Other(ref other) => {
-                String::from_utf16(&other[..other.len() - 1]).unwrap()
-            },
-        }
+impl ToCss for Direction {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: Write {
+        let dir_str = match *self {
+            Direction::Rtl => "rtl",
+            Direction::Ltr => "ltr",
+            Direction::Other(ref other) => other,
+        };
+        dest.write_str(dir_str)
     }
 }
