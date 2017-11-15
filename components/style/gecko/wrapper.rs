@@ -99,14 +99,17 @@ pub struct GeckoDocument<'ld>(pub &'ld structs::nsIDocument);
 impl<'ld> TDocument for GeckoDocument<'ld> {
     type ConcreteNode = GeckoNode<'ld>;
 
+    #[inline]
     fn as_node(&self) -> Self::ConcreteNode {
         GeckoNode(&self.0._base)
     }
 
+    #[inline]
     fn is_html_document(&self) -> bool {
         self.0.mType == structs::root::nsIDocument_Type::eHTML
     }
 
+    #[inline]
     fn quirks_mode(&self) -> QuirksMode {
         self.0.mCompatMode.into()
     }
@@ -144,6 +147,7 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 pub struct GeckoNode<'ln>(pub &'ln RawGeckoNode);
 
 impl<'ln> PartialEq for GeckoNode<'ln> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.0 as *const _ == other.0 as *const _
     }
@@ -302,6 +306,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
         self.flattened_tree_parent().and_then(|n| n.as_element())
     }
 
+    #[inline]
     fn opaque(&self) -> OpaqueNode {
         let ptr: usize = self.0 as *const _ as usize;
         OpaqueNode(ptr)
@@ -329,6 +334,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
         }
     }
 
+    #[inline]
     fn can_be_fragmented(&self) -> bool {
         // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
         // Maybe this isn’t useful for Gecko?
@@ -397,14 +403,17 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
 pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
 
 impl<'lb> GeckoXBLBinding<'lb> {
+    #[inline]
     fn base_binding(&self) -> Option<Self> {
         unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
     }
 
+    #[inline]
     fn anon_content(&self) -> *const nsIContent {
         self.0.mContent.raw::<nsIContent>()
     }
 
+    #[inline]
     fn inherits_style(&self) -> bool {
         unsafe { bindings::Gecko_XBLBinding_InheritsStyle(self.0) }
     }
@@ -1024,6 +1033,7 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
+    #[inline]
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
     }
@@ -1080,6 +1090,7 @@ impl<'le> TElement for GeckoElement<'le> {
         get_animation_rule(self, CascadeLevel::Transitions)
     }
 
+    #[inline]
     fn get_state(&self) -> ElementState {
         ElementState::from_bits_truncate(self.get_state_internal())
     }
@@ -1750,6 +1761,7 @@ impl<'le> TElement for GeckoElement<'le> {
 }
 
 impl<'le> PartialEq for GeckoElement<'le> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.0 as *const _ == other.0 as *const _
     }
@@ -1758,6 +1770,7 @@ impl<'le> PartialEq for GeckoElement<'le> {
 impl<'le> Eq for GeckoElement<'le> {}
 
 impl<'le> Hash for GeckoElement<'le> {
+    #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         (self.0 as *const _).hash(state);
     }
@@ -1900,6 +1913,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
+    #[inline]
     fn is_root(&self) -> bool {
         unsafe {
             Gecko_IsRootElement(self.0)
