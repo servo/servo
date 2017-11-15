@@ -800,6 +800,7 @@ where
     }
 }
 
+#[inline(always)]
 fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T) -> &'a T {
     if is_html {
         local_name_lower
