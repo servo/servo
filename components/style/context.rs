@@ -471,11 +471,11 @@ impl<E: TElement> SequentialTask<E> {
             Unused(_) => unreachable!(),
             #[cfg(feature = "gecko")]
             UpdateAnimations { el, before_change_style, tasks } => {
-                unsafe { el.update_animations(before_change_style, tasks) };
+                el.update_animations(before_change_style, tasks);
             }
             #[cfg(feature = "gecko")]
             PostAnimation { el, tasks } => {
-                unsafe { el.process_post_animation(tasks) };
+                el.process_post_animation(tasks);
             }
         }
     }

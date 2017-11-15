@@ -402,7 +402,7 @@ impl<'lb> GeckoXBLBinding<'lb> {
     }
 
     fn anon_content(&self) -> *const nsIContent {
-        unsafe { self.0.mContent.raw::<nsIContent>() }
+        self.0.mContent.raw::<nsIContent>()
     }
 
     fn inherits_style(&self) -> bool {
@@ -510,8 +510,8 @@ impl<'le> GeckoElement<'le> {
         unsafe { Gecko_SetNodeFlags(self.as_node().0, flags) }
     }
 
-    fn unset_flags(&self, flags: u32) {
-        unsafe { Gecko_UnsetNodeFlags(self.as_node().0, flags) }
+    unsafe fn unset_flags(&self, flags: u32) {
+        Gecko_UnsetNodeFlags(self.as_node().0, flags)
     }
 
     /// Returns true if this element has descendants for lazy frame construction.
@@ -1224,15 +1224,13 @@ impl<'le> TElement for GeckoElement<'le> {
 
     unsafe fn clear_data(&self) {
         let ptr = self.0.mServoData.get();
-        unsafe {
-            self.unset_flags(ELEMENT_HAS_SNAPSHOT as u32 |
-                             ELEMENT_HANDLED_SNAPSHOT as u32 |
-                             structs::Element_kAllServoDescendantBits |
-                             NODE_NEEDS_FRAME as u32);
-        }
+        self.unset_flags(ELEMENT_HAS_SNAPSHOT as u32 |
+                         ELEMENT_HANDLED_SNAPSHOT as u32 |
+                         structs::Element_kAllServoDescendantBits |
+                         NODE_NEEDS_FRAME as u32);
         if !ptr.is_null() {
             debug!("Dropping ElementData for {:?}", self);
-            let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
+            let data = Box::from_raw(self.0.mServoData.get());
             self.0.mServoData.set(ptr::null_mut());
 
             // Perform a mutable borrow of the data in debug builds. This
