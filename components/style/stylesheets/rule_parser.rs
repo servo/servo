@@ -331,7 +331,7 @@ impl<'a, 'b, R: ParseErrorReporter> NestedRuleParser<'a, 'b, R> {
                 Ok(rule) => rules.push(rule),
                 Err((error, slice)) => {
                     let location = error.location;
-                    let error = ContextualParseError::UnsupportedRule(slice, error);
+                    let error = ContextualParseError::InvalidRule(slice, error);
                     self.context.log_css_error(self.error_context, location, error);
                 }
             }

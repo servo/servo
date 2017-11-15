@@ -354,9 +354,8 @@ fn test_report_error_stylesheet() {
         // When @font-feature-values is supported, this should be replaced with two errors
         (15, 25, "Invalid rule: '@font-feature-values "),
 
-        // FIXME: the message of these two should be consistent
         (16, 13, "Invalid rule: '@invalid'"),
-        (17, 29, "Unsupported rule: '@invalid'"),
+        (17, 29, "Invalid rule: '@invalid'"),
 
         (18, 34, "Invalid rule: '@supports "),
         (19, 26, "Invalid keyframe rule: 'from invalid '"),
