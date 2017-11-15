@@ -159,13 +159,6 @@ pub trait DomTraversal<E: TElement> : Sync {
         let parent_data = parent.as_ref().and_then(|p| p.borrow_data());
 
         if let Some(ref mut data) = data {
-            // Make sure we don't have any stale RECONSTRUCTED_ANCESTOR bits
-            // from the last traversal (at a potentially-higher root).
-            //
-            // From the perspective of this traversal, the root cannot have
-            // reconstructed ancestors.
-            data.set_reconstructed_ancestor(false);
-
             if !traversal_flags.for_animation_only() {
                 // Invalidate our style, and that of our siblings and
                 // descendants as needed.
@@ -247,48 +240,6 @@ pub trait DomTraversal<E: TElement> : Sync {
             _ => return true,
         };
 
-        // If the element is native-anonymous and an ancestor frame will be
-        // reconstructed, the child and all its descendants will be destroyed.
-        // In that case, we wouldn't need to traverse the subtree...
-        //
-        // Except if there could be transitions of pseudo-elements, in which
-        // case we still need to process them, unfortunately.
-        //
-        // We need to conservatively continue the traversal to style the
-        // pseudo-element in order to properly process potentially-new
-        // transitions that we won't see otherwise.
-        //
-        // But it may be that we no longer match, so detect that case and act
-        // appropriately here.
-        if el.is_native_anonymous() {
-            if let Some(parent_data) = parent_data {
-                let going_to_reframe =
-                    parent_data.reconstructed_self_or_ancestor();
-
-                let mut is_before_or_after_pseudo = false;
-                if let Some(pseudo) = el.implemented_pseudo_element() {
-                    if pseudo.is_before_or_after() {
-                        is_before_or_after_pseudo = true;
-                        let still_match =
-                            parent_data.styles.pseudos.get(&pseudo).is_some();
-
-                        if !still_match {
-                            debug_assert!(going_to_reframe,
-                                          "We're removing a pseudo, so we \
-                                           should reframe!");
-                            return false;
-                        }
-                    }
-                }
-
-                if going_to_reframe && !is_before_or_after_pseudo {
-                    debug!("Element {:?} is in doomed NAC subtree, \
-                            culling traversal", el);
-                    return false;
-                }
-            }
-        }
-
         // If the dirty descendants bit is set, we need to traverse no matter
         // what. Skip examining the ElementData.
         if el.has_dirty_descendants() {
@@ -322,6 +273,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         &self,
         context: &mut StyleContext<E>,
         parent: E,
+        is_initial_style: bool,
         parent_data: &ElementData,
     ) -> bool {
         debug_assert!(cfg!(feature = "gecko") ||
@@ -353,7 +305,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // happens, we may just end up doing wasted work, since Gecko
         // recursively drops Servo ElementData when the XBL insertion parent of
         // an Element is changed.
-        if cfg!(feature = "gecko") && context.thread_local.is_initial_style() &&
+        if cfg!(feature = "gecko") && is_initial_style &&
             parent_data.styles.primary().has_moz_binding()
         {
             debug!("Parent {:?} has XBL binding, deferring traversal", parent);
@@ -476,7 +428,8 @@ where
     use traversal_flags::TraversalFlags;
 
     let flags = context.shared.traversal_flags;
-    context.thread_local.begin_element(element, data);
+    let is_initial_style = !data.has_styles();
+
     context.thread_local.statistics.elements_traversed += 1;
     debug_assert!(flags.intersects(TraversalFlags::AnimationOnly | TraversalFlags::UnstyledOnly) ||
                   !element.has_snapshot() || element.handled_snapshot(),
@@ -555,26 +508,24 @@ where
     // Before examining each child individually, try to prove that our children
     // don't need style processing. They need processing if any of the following
     // conditions hold:
-    // * We have the dirty descendants bit.
-    // * We're propagating a hint.
-    // * This is the initial style.
-    // * We generated a reconstruct hint on self (which could mean that we
-    //   switched from display:none to something else, which means the children
-    //   need initial styling).
-    // * This is a servo non-incremental traversal.
+    //
+    //  * We have the dirty descendants bit.
+    //  * We're propagating a restyle hint.
+    //  * We can't skip the cascade.
+    //  * This is a servo non-incremental traversal.
     //
     // Additionally, there are a few scenarios where we avoid traversing the
     // subtree even if descendant styles are out of date. These cases are
     // enumerated in should_cull_subtree().
-    let mut traverse_children = has_dirty_descendants_for_this_restyle ||
-                                !propagated_hint.is_empty() ||
-                                !child_cascade_requirement.can_skip_cascade() ||
-                                context.thread_local.is_initial_style() ||
-                                data.reconstructed_self() ||
-                                is_servo_nonincremental_layout();
+    let mut traverse_children =
+        has_dirty_descendants_for_this_restyle ||
+        !propagated_hint.is_empty() ||
+        !child_cascade_requirement.can_skip_cascade() ||
+        is_servo_nonincremental_layout();
 
-    traverse_children = traverse_children &&
-                        !traversal.should_cull_subtree(context, element, &data);
+    traverse_children =
+        traverse_children &&
+        !traversal.should_cull_subtree(context, element, is_initial_style, &data);
 
     // Examine our children, and enqueue the appropriate ones for traversal.
     if traverse_children {
@@ -584,7 +535,7 @@ where
             data,
             propagated_hint,
             child_cascade_requirement,
-            data.reconstructed_self_or_ancestor(),
+            is_initial_style,
             note_child
         );
     }
@@ -600,8 +551,6 @@ where
                   !element.has_animation_only_dirty_descendants(),
                   "Should have cleared animation bits already");
     clear_state_after_traversing(element, data, flags);
-
-    context.thread_local.end_element(element);
 }
 
 fn clear_state_after_traversing<E>(
@@ -826,7 +775,7 @@ fn note_children<E, D, F>(
     data: &ElementData,
     propagated_hint: RestyleHint,
     cascade_requirement: ChildCascadeRequirement,
-    reconstructed_ancestor: bool,
+    is_initial_style: bool,
     mut note_child: F,
 )
 where
@@ -836,7 +785,6 @@ where
 {
     trace!("note_children: {:?}", element);
     let flags = context.shared.traversal_flags;
-    let is_initial_style = context.thread_local.is_initial_style();
 
     // Loop over all the traversal children.
     for child_node in element.traversal_children() {
@@ -866,10 +814,6 @@ where
         }
 
         if let Some(ref mut child_data) = child_data {
-            // Propagate the parent restyle hint, that may make us restyle the whole
-            // subtree.
-            child_data.set_reconstructed_ancestor(reconstructed_ancestor);
-
             let mut child_hint = propagated_hint;
             match cascade_requirement {
                 ChildCascadeRequirement::CanSkipCascade => {}

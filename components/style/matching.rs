@@ -13,6 +13,7 @@ use data::ElementData;
 use dom::TElement;
 use invalidation::element::restyle_hints::RestyleHint;
 use properties::ComputedValues;
+use properties::longhands::display::computed_value as display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
@@ -142,8 +143,6 @@ trait PrivateMatchMethods: TElement {
         old_values: Option<&Arc<ComputedValues>>,
         new_values: &ComputedValues,
     ) -> bool {
-        use properties::longhands::display::computed_value as display;
-
         let new_box_style = new_values.get_box();
         let has_new_animation_style = new_box_style.specifies_animations();
         let has_animations = self.has_css_animations();
@@ -182,7 +181,6 @@ trait PrivateMatchMethods: TElement {
         restyle_hints: RestyleHint
     ) {
         use context::PostAnimationTasks;
-        use properties::longhands::display::computed_value as display;
 
         if !restyle_hints.intersects(RestyleHint::RESTYLE_SMIL) {
             return;
@@ -298,13 +296,11 @@ trait PrivateMatchMethods: TElement {
         use animation;
         use dom::TNode;
 
-        let possibly_expired_animations =
-            &mut context.thread_local.current_element_info.as_mut().unwrap()
-                        .possibly_expired_animations;
+        let mut possibly_expired_animations = vec![];
         let shared_context = context.shared;
         if let Some(ref mut old) = *old_values {
             self.update_animations_for_cascade(shared_context, old,
-                                               possibly_expired_animations,
+                                               &mut possibly_expired_animations,
                                                &context.thread_local.font_metrics_provider);
         }
 
@@ -366,6 +362,16 @@ trait PrivateMatchMethods: TElement {
 
                 let old_display = old_values.get_box().clone_display();
                 let new_display = new_values.get_box().clone_display();
+
+                // If we used to be a display: none element, and no longer are,
+                // our children need to be restyled because they're unstyled.
+                //
+                // NOTE(emilio): Gecko has the special-case of -moz-binding, but
+                // that gets handled on the frame constructor when processing
+                // the reframe, so no need to handle that here.
+                if old_display == display::T::none && old_display != new_display {
+                    return ChildCascadeRequirement::MustCascadeChildren
+                }
 
                 // Blockification of children may depend on our display value,
                 // so we need to actually do the recascade. We could potentially
