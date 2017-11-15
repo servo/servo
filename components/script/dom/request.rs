@@ -462,17 +462,7 @@ fn normalize_method(m: &str) -> HttpMethod {
 
 // https://fetch.spec.whatwg.org/#concept-method
 fn is_method(m: &ByteString) -> bool {
-    match m.to_lower().as_str() {
-        Some("get") => true,
-        Some("head") => true,
-        Some("post") => true,
-        Some("put") => true,
-        Some("delete") => true,
-        Some("connect") => true,
-        Some("options") => true,
-        Some("trace") => true,
-        _ => false,
-    }
+    m.as_str().is_some()
 }
 
 // https://fetch.spec.whatwg.org/#forbidden-method
