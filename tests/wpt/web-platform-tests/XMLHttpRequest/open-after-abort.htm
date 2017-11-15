@@ -13,7 +13,7 @@
       test.step(function() {
         var client = new XMLHttpRequest(),
             result = [],
-            expected = [1,  4, 1] // open() -> 1, 
+            expected = [1,  4, 1] // open() -> 1,
                                     // abort() -> 4, open() -> 1
         client.onreadystatechange = function() {
           test.step(function() {

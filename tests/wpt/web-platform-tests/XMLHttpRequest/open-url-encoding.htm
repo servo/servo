@@ -14,14 +14,14 @@
         var client = new XMLHttpRequest()
         client.open("GET", "resources/content.py?\u00DF", false) // This is the German "eszett" character
         client.send()
-        assert_equals(client.getResponseHeader("x-request-query"), "%C3%9F")
+        assert_equals(client.getResponseHeader("x-request-query"), "%DF")
       }, "percent encode characters");
       test(function() {
         var client = new XMLHttpRequest()
         client.open("GET", "resources/content.py?\uD83D", false)
         client.send()
-        assert_equals(client.getResponseHeader("x-request-query"), "%EF%BF%BD")
-      }, "lone surrogate should return U+FFFD");
+        assert_equals(client.getResponseHeader("x-request-query"), "&%2365533;")
+      }, "lone surrogate");
     </script>
   </body>
 </html>

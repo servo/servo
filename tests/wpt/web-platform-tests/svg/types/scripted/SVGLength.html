@@ -90,6 +90,12 @@ test(function() {
   assert_equals(length.valueInSpecifiedUnits, 2);
   assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
 
+  assert_throws("SyntaxError", function() { length.valueAsString = ''; });
+  assert_equals(length.valueAsString, "2px");
+  assert_equals(length.value, 2);
+  assert_equals(length.valueInSpecifiedUnits, 2);
+  assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_PX);
+
   // Check setting invalid 'value' arguments.
   assert_throws(new TypeError(), function() { length.value = NaN; });
   assert_throws(new TypeError(), function() { length.value = Infinity; });

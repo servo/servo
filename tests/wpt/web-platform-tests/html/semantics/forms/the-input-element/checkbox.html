@@ -102,7 +102,7 @@
     */
     assert_true(checkbox5.checked);
     assert_false(checkbox5.indeterminate);
-    window.setTimeout(t5.step_func(function(e) {
+    t5.step_timeout(function() {
       /*
       The click event has finished being dispatched, so the checkedness and
       determinateness have been toggled back by now because the event
@@ -111,7 +111,7 @@
       assert_false(checkbox5.checked);
       assert_false(checkbox5.indeterminate);
       t5.done();
-    }), 0);
+    }, 0);
   });
 
   t5.step(function(){
@@ -129,7 +129,7 @@
     */
     assert_true(checkbox6.checked);
     assert_true(checkbox6.indeterminate);
-    window.setTimeout(t6.step_func(function(e) {
+    t6.step_timeout(function() {
       /*
       The click event has finished being dispatched, so the checkedness and
       determinateness have been toggled back by now because the event
@@ -138,7 +138,7 @@
       assert_false(checkbox6.checked);
       assert_false(checkbox6.indeterminate);
       t6.done();
-    }), 0);
+    }, 0);
   });
 
   t6.step(function(){

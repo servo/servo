@@ -11,7 +11,7 @@
     /*
     It's unclear what the pass condition should be for this test.
     Implementations:
-    Firefox, Opera (Presto): terminate request with no further events when IFRAME is removed. 
+    Firefox, Opera (Presto): terminate request with no further events when IFRAME is removed.
     Chrome: completes request to readyState=4 but responseText is "" so it's pretty much terminated with an extra event for "DONE" state
     Pass condition is now according to my suggested spec text in https://github.com/whatwg/xhr/pull/3 , if that's not accepted we'll have to amend this test
     */
@@ -20,7 +20,7 @@
         test.step(function() {
           var hasErrorEvent = false
           var client = new self[0].XMLHttpRequest()
-          client.onreadystatechange = function() { 
+          client.onreadystatechange = function() {
             test.step(function() {
               if(client.readyState == 4) {
                 assert_equals(client.responseText, "", "responseText is empty on inactive document error condition")

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Writing Mode test: orthogonal table cell</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow">
+<meta assert="The writing mode property applies to table cells: max-heights constrains on a vertical table cell (in a horizontal table)
+              ought to have the same effect on the cell as max-width would on horizontal ones.
+              Lines of longer than the max which have break opportunities are expected to wrap.">
+<meta flags="ahem">
+<link rel="match" href="reference/table-cell-002-ref.html">
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+
+<style>
+table, td {
+  padding: 0;
+  border-spacing: 0;
+}
+td {
+  max-height: 100px;
+  font: 50px / 50px ahem;
+  color: green;
+  writing-mode: vertical-rl;
+  background: red;
+}
+</style>
+
+<p>There should be a <strong>green square</strong> and <strong>no red</strong>.
+
+<table><tbody><tr><td>xx xx</td></tr></tbody></table>
+
+</body>
+</html>

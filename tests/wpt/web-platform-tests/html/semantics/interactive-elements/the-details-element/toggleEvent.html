@@ -111,10 +111,10 @@
       loop = true;
     }
   });
-  setTimeout(t6.step_func(function() {
+  t6.step_timeout(function() {
     assert_true(loop);
     t6.done();
-  }), 0);
+  }, 0);
 
   details7.ontoggle = t7.step_func_done(function(evt) {
     assert_true(details7.open);
@@ -139,19 +139,19 @@
   // The toggle event should be fired once when declaring details9 with open
   // attribute.
   details9.open = true; // opens details9
-  setTimeout(t9.step_func(function() {
+  t9.step_timeout(function() {
     assert_true(details9.open);
     assert_true(toggleFiredOnDetails9);
     t9.done();
-  }), 0);
+  }, 0);
 
   details10.ontoggle = t10.step_func_done(function(evt) {
     assert_unreached("toggle event fired on closed details element");
   });
   details10.open = false; // closes details10
-  setTimeout(t10.step_func(function() {
+  t10.step_timeout(function() {
     assert_false(details10.open);
     t10.done();
-  }), 0);
+  }, 0);
 
 </script>

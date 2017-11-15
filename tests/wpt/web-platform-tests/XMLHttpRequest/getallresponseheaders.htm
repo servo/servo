@@ -9,6 +9,7 @@ async_test((t) => {
   client.onload = t.step_func_done(() => {
     assert_equals(client.getAllResponseHeaders(), "foo-test: 1, 2, 3\r\n")
   })
+  client.onerror = t.unreached_func("unexpected error")
   client.open("GET", "resources/headers-basic.asis")
   client.send(null)
 })
@@ -18,7 +19,15 @@ async_test((t) => {
   client.onload = t.step_func_done(() => {
     assert_equals(client.getAllResponseHeaders(), "also-here: Mr. PB\r\newok: lego\r\nfoo-test: 1, 2\r\n")
   })
+  client.onerror = t.unreached_func("unexpected error")
   client.open("GET", "resources/headers.asis")
   client.send(null)
+})
+
+test(() => {
+  const client = new XMLHttpRequest
+  client.open("GET", "resources/header-content-length.asis", false)
+  client.send()
+  assert_equals(client.getAllResponseHeaders(), "content-length: 0\r\n")
 })
 </script>

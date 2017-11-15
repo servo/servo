@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<body>
+<div id="image"></div>
+<script>
+  const img = document.createElement('IMG');
+  img.src = 'circles.png';
+  img.onload = function() {
+    function sendPaintEntries() {
+      const paintEntries = performance.getEntriesByType('paint');
+      if (paintEntries.length < 2) {
+        setTimeout(sendPaintEntries, 20);
+        return;
+      }
+      let entryContents = paintEntries.length + '';
+      for (let i = 0; i < paintEntries.length; i++) {
+        const entry = paintEntries[i];
+        entryContents += ' ' + entry.entryType + ' '  + entry.name;
+      }
+      parent.postMessage(entryContents, '*');
+    };
+    sendPaintEntries();
+  };
+  document.getElementById('image').appendChild(img);
+</script>
+</body>
+</html>

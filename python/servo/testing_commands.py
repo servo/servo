@@ -71,7 +71,7 @@ def create_parser_wpt():
     parser = wptcommandline.create_parser()
     parser.add_argument('--release', default=False, action="store_true",
                         help="Run with a release build of servo")
-    parser.add_argument('--chaos', default=False, action="store_true",
+    parser.add_argument('--rr-chaos', default=False, action="store_true",
                         help="Run under chaos mode in rr until a failure is captured")
     parser.add_argument('--pref', default=[], action="append", dest="prefs",
                         help="Pass preferences to servo")
@@ -471,7 +471,7 @@ class MachCommands(CommandBase):
 
         os.environ["RUST_BACKTRACE"] = "1"
         kwargs["debug"] = not kwargs["release"]
-        if kwargs.pop("chaos"):
+        if kwargs.pop("rr_chaos"):
             kwargs["debugger"] = "rr"
             kwargs["debugger_args"] = "record --chaos"
             kwargs["repeat_until_unexpected"] = True

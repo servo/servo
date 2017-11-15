@@ -55,6 +55,8 @@
         var originalWidth = 0;
         var originalHeight = 0;
         var originalInnerWidth = 0;
+        var originalVisualViewportWidthExpectation = 0;
+        var originalVisualViewportHeightExpectation = 0;
 
         addManualTestStep(
             function() {},
@@ -67,14 +69,26 @@
                 originalWidth = window.visualViewport.width;
                 originalHeight = window.visualViewport.height;
                 originalInnerWidth = window.innerWidth;
+                // Remember the visualViewport size here for the next test to
+                // address an edge case where originalInnerWidth is an odd
+                // number of pixels. The test expects that at 2x browser-zoom,
+                // visualViewport.width = innerWidth - scrollbarThickness / 2.0
+                // The equality only holds if originalInnerWidth / innerWidth is
+                // exactly 2, which is not the case in the aforementioned
+                // scenario because innerWidth always has to be an integer
+                // number of CSS pixels. Ditto for the height computation.
+                originalVisualViewportWidthExpectation =
+                    window.innerWidth - scrollbarThickness;
+                originalVisualViewportHeightExpectation =
+                    window.innerHeight - scrollbarThickness;
 
                 assert_equals(
                     window.visualViewport.width,
-                    window.innerWidth - scrollbarThickness,
+                    originalVisualViewportWidthExpectation,
                     "Scrollbar width subtracted from viewport.");
                 assert_equals(
                     window.visualViewport.height,
-                    window.innerHeight - scrollbarThickness,
+                    originalVisualViewportHeightExpectation,
                     "Scrollbar height subtracted from viewport.");
             },
             'No zoom or scale applied',
@@ -92,11 +106,11 @@
                 // they'll be fewer CSS pixels as the user zooms in.
                 assert_equals(
                     window.visualViewport.width,
-                    window.innerWidth - scrollbarThickness / 2,
+                    originalVisualViewportWidthExpectation / 2,
                     "Scrollbar width subtracted from viewport.");
                 assert_equals(
                     window.visualViewport.height,
-                    window.innerHeight - scrollbarThickness / 2,
+                    originalVisualViewportHeightExpectation / 2,
                     "Scrollbar height subtracted from viewport.");
             },
             'With 200% browser zoom',

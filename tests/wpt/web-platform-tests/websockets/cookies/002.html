@@ -17,6 +17,7 @@ async_test(function(t) {
   ws.onopen = t.step_func(function(e) {
     assert_regexp_match(document.cookie, new RegExp('ws_test_'+cookie_id+'=test'));
     ws.close();
+    ws.onclose = null;
     t.done();
   });
   ws.onerror = ws.onclose = t.step_func(function(e) {assert_unreached(e.type)});

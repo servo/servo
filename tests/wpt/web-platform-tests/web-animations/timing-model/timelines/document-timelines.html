@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document timelines</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#document-timelines">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+async_test(function(t) {
+  assert_true(document.timeline.currentTime > 0,
+    'The current time is initially is positive');
+  // document.timeline.currentTime should be set even before document
+  // load fires. We expect this code to be run before document load and hence
+  // the above assertion is sufficient.
+  // If the following assertion fails, this test needs to be redesigned.
+  assert_true(document.readyState !== 'complete',
+    'Test is running prior to document load');
+
+  // Test that the document timeline's current time is measured from
+  // navigationStart.
+  //
+  // We can't just compare document.timeline.currentTime to
+  // window.performance.now() because currentTime is only updated on a sample
+  // so we use requestAnimationFrame instead.
+  window.requestAnimationFrame(function(rafTime) {
+    t.step(function() {
+      assert_equals(document.timeline.currentTime, rafTime,
+                    'The current time matches requestAnimationFrame time');
+    });
+    t.done();
+  });
+}, 'Document timelines report current time relative to navigationStart');
+
+</script>

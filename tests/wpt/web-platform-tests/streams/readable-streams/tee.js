@@ -251,4 +251,29 @@ promise_test(t => {
 
 }, 'ReadableStream teeing: erroring the original should immediately error the branches');
 
+test(t => {
+
+  // Copy original global.
+  const oldReadableStream = ReadableStream;
+  const getReader = ReadableStream.prototype.getReader;
+
+  const origRS = new ReadableStream();
+
+  // Replace the global ReadableStream constructor with one that doesn't work.
+  ReadableStream = function() {
+    throw new Error('global ReadableStream constructor called');
+  };
+  t.add_cleanup(() => {
+    ReadableStream = oldReadableStream;
+  });
+
+  // This will probably fail if the global ReadableStream constructor was used.
+  const [rs1, rs2] = origRS.tee();
+
+  // These will definitely fail if the global ReadableStream constructor was used.
+  assert_not_equals(getReader.call(rs1), undefined, 'getReader should work on rs1');
+  assert_not_equals(getReader.call(rs2), undefined, 'getReader should work on rs2');
+
+}, 'ReadableStreamTee should not use a modified ReadableStream constructor from the global object');
+
 done();

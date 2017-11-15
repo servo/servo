@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-paged">
+<title>
+  Overflowing content does not affect whether a fixed-height box fits on a page,
+  but does get printed on the next page.
+</title>
+<meta name="flags" content="may print">
+<link rel="match" href="moz-block-fragmentation-001-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#parallel-flows">
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+  body {
+    border: solid orange 10px;
+    padding: 10px;
+  }
+  div {
+    border: solid gray 10px;
+    height: 300%;
+  }
+</style>
+<div></div>

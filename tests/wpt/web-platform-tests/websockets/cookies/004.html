@@ -21,6 +21,7 @@ var t = async_test(function(t) {
   var ws = new WebSocket(url);
   ws.onopen = t.step_func(function(e) {
     ws.close();
+    ws.onclose = null;
     assert_false(new RegExp('ws_test_'+cookie_id+'=test').test(document.cookie));
     t.done();
   });

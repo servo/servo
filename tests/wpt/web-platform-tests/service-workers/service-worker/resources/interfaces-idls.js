@@ -76,6 +76,12 @@ enum ServiceWorkerState {
   "redundant"
 };
 
+enum ServiceWorkerUpdateViaCache {
+    "imports",
+    "all",
+    "none"
+};
+
 [SecureContext, Exposed=(Window,Worker)]
 interface ServiceWorkerRegistration : EventTarget {
   readonly attribute ServiceWorker? installing;
@@ -93,7 +99,7 @@ interface ServiceWorkerRegistration : EventTarget {
   attribute EventHandler onupdatefound;
 };
 
-[Exposed=(Window,Worker)]
+[Constructor(), Exposed=(Window,Worker)]
 interface EventTarget {
   void addEventListener(DOMString type, EventListener? callback, optional (AddEventListenerOptions or boolean) options);
   void removeEventListener(DOMString type, EventListener? callback, optional (EventListenerOptions or boolean) options);

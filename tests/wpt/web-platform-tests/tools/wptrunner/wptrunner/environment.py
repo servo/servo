@@ -9,8 +9,10 @@ import time
 from mozlog import get_default_logger, handlers, proxy
 
 from wptlogging import LogLevelRewriter
+from wptserve.handlers import StringHandler
 
 here = os.path.split(__file__)[0]
+repo_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir, os.pardir))
 
 serve = None
 sslutils = None
@@ -188,6 +190,14 @@ class TestEnvironment(object):
                  "/resources/testharnessreport.js")]:
             path = os.path.normpath(os.path.join(here, path))
             route_builder.add_static(path, format_args, content_type, route)
+
+        data = b""
+        with open(os.path.join(repo_root, "resources", "testdriver.js"), "rb") as fp:
+            data += fp.read()
+        with open(os.path.join(here, "testdriver-extra.js"), "rb") as fp:
+            data += fp.read()
+        route_builder.add_handler(b"GET", b"/resources/testdriver.js",
+                                  StringHandler(data, "text/javascript"))
 
         for url_base, paths in self.test_paths.iteritems():
             if url_base == "/":

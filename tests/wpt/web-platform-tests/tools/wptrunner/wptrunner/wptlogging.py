@@ -76,7 +76,10 @@ class LoggingWrapper(StringIO):
 
     def write(self, data):
         if isinstance(data, str):
-            data = data.decode("utf8")
+            try:
+                data = data.decode("utf8")
+            except UnicodeDecodeError:
+                data = data.encode("string_escape").decode("ascii")
 
         if data.endswith("\n"):
             data = data[:-1]

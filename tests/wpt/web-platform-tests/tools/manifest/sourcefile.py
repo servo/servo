@@ -383,6 +383,20 @@ class SourceFile(object):
         return rv
 
     @cached_property
+    def testdriver_nodes(self):
+        """List of ElementTree Elements corresponding to nodes representing a
+        testdriver.js script"""
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testdriver.js']")
+
+    @cached_property
+    def has_testdriver(self):
+        """Boolean indicating whether the file content represents a
+        testharness.js test"""
+        if self.root is None:
+            return None
+        return bool(self.testdriver_nodes)
+
+    @cached_property
     def reftest_nodes(self):
         """List of ElementTree Elements corresponding to nodes representing a
         to a reftest <link>"""
@@ -523,9 +537,10 @@ class SourceFile(object):
 
         elif self.content_is_testharness:
             rv = TestharnessTest.item_type, []
+            testdriver = self.has_testdriver
             for variant in self.test_variants:
                 url = self.url + variant
-                rv[1].append(TestharnessTest(self, url, timeout=self.timeout))
+                rv[1].append(TestharnessTest(self, url, timeout=self.timeout, testdriver=testdriver))
 
         elif self.content_is_ref_node:
             rv = (RefTestNode.item_type,

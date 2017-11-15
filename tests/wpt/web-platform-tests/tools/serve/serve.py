@@ -214,14 +214,14 @@ class RoutesBuilder(object):
                           ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
                           ("*", "/serve.py", handlers.ErrorHandler(404))]
 
-        self.static = []
+        self.extra = []
 
         self.mountpoint_routes = OrderedDict()
 
         self.add_mount_point("/", None)
 
     def get_routes(self):
-        routes = self.forbidden_override + self.forbidden + self.static
+        routes = self.forbidden_override + self.forbidden + self.extra
         # Using reversed here means that mount points that are added later
         # get higher priority. This makes sense since / is typically added
         # first.
@@ -229,9 +229,12 @@ class RoutesBuilder(object):
             routes.extend(item)
         return routes
 
+    def add_handler(self, method, route, handler):
+        self.extra.append((str(method), str(route), handler))
+
     def add_static(self, path, format_args, content_type, route):
         handler = handlers.StaticHandler(path, format_args, content_type)
-        self.static.append((b"GET", str(route), handler))
+        self.add_handler(b"GET", str(route), handler)
 
     def add_mount_point(self, url_base, path):
         url_base = "/%s/" % url_base.strip("/") if url_base != "/" else "/"

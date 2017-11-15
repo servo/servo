@@ -160,8 +160,13 @@ class MarionetteProtocol(Protocol):
             runner_handle = handles.pop(0)
 
         for handle in handles:
-            self.marionette.switch_to_window(handle)
-            self.marionette.close()
+            try:
+                self.marionette.switch_to_window(handle)
+                self.marionette.close()
+            except errors.NoSuchWindowException:
+                # We might have raced with the previous test to close this
+                # window, skip it.
+                pass
 
         self.marionette.switch_to_window(runner_handle)
         if runner_handle != self.runner_handle:

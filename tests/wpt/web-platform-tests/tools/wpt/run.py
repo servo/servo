@@ -224,6 +224,29 @@ class Chrome(BrowserSetup):
                 raise WptrunError("Unable to locate or install chromedriver binary")
 
 
+class Opera(BrowserSetup):
+    name = "opera"
+    browser_cls = browser.Opera
+
+    def setup_kwargs(self, kwargs):
+        if kwargs["webdriver_binary"] is None:
+            webdriver_binary = self.browser.find_webdriver()
+
+            if webdriver_binary is None:
+                install = self.prompt_install("operadriver")
+
+                if install:
+                    print("Downloading operadriver")
+                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path)
+            else:
+                print("Using webdriver binary %s" % webdriver_binary)
+
+            if webdriver_binary:
+                kwargs["webdriver_binary"] = webdriver_binary
+            else:
+                raise WptrunError("Unable to locate or install operadriver binary")
+
+
 class Edge(BrowserSetup):
     name = "edge"
     browser_cls = browser.Edge
@@ -302,6 +325,7 @@ product_setup = {
     "ie": InternetExplorer,
     "servo": Servo,
     "sauce": Sauce,
+    "opera": Opera,
 }
 
 

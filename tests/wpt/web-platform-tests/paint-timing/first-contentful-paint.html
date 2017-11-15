@@ -46,8 +46,16 @@ async_test(function (t) {
             assert_equals(moreBufferedEntries.length, 2, "FP and FCP.");
             assert_equals(moreBufferedEntries[0].entryType, "paint");
             assert_equals(moreBufferedEntries[0].name, "first-paint");
+            const fpEntriesGotByName =
+                performance.getEntriesByName('first-paint');
+            assert_equals(fpEntriesGotByName.length, 1);
+            assert_equals(moreBufferedEntries[0], fpEntriesGotByName[0]);
             assert_equals(moreBufferedEntries[1].entryType, "paint");
             assert_equals(moreBufferedEntries[1].name, "first-contentful-paint");
+            const fcpEntriesGotByName =
+                performance.getEntriesByName('first-contentful-paint');
+            assert_equals(fcpEntriesGotByName.length, 1);
+            assert_equals(moreBufferedEntries[1], fcpEntriesGotByName[0]);
             t.done();
           });
         }

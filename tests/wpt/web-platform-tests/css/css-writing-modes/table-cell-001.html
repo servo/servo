@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Writing Mode test: orthogonal table cell</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow">
+<meta assert="The writing mode property applies to table cells: two adjacent cells can have orthogonal writing modes, and the enclosing table must be laid out correctly.">
+<meta flags="ahem">
+<link rel="match" href="reference/table-cell-001-ref.html">
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+
+<style>
+table, td {
+  padding: 0;
+  border-spacing: 0;
+  font: 20px/20px ahem;
+}
+td { background: green; }
+#t2 { writing-mode: vertical-rl; }
+
+#red {
+  font: 20px/20px ahem;
+  position: absolute;
+  z-index: -1;
+  background: red;
+  height: 4em;
+  width: 5em;
+}
+
+
+</style>
+
+<p>There should be a <strong>green rectangle</strong> and <strong>no red</strong>.
+
+<div id=red></div>
+
+<table><tbody><tr><td id=t1>&nbsp;&nbsp;&nbsp;&nbsp;</td><td id=t2>&nbsp;&nbsp;&nbsp;&nbsp;</td></tr></tbody></table>
+<!--
+* Each table cell should be 4em in its inline dimention: horizontal for the first, vertical for the second.
+* The first table cell should be 4em tall, to match the height of the second one.
+* The second table cell should be 1em in its block dimention, which is horizontal.
+* Juxtaposing the two that give 4em x 5em.
+-->

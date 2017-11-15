@@ -81,7 +81,7 @@ function test_feature_in_iframe(feature_name, feature_promise_factory) {
   if (location.hash.includes(feature_name)) {
     feature_promise_factory().then(
         () => window.parent.postMessage('#OK', '*'),
-        (e) => window.parent.postMessage('#' + e.toString(), '*'));
+        (e) => window.parent.postMessage('#' + e.name, '*'));
   }
 }
 

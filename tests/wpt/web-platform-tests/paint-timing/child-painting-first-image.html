@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test(function (t) {
+    window.addEventListener('message', t.step_func(e => {
+        assert_equals(e.data, '2 paint first-paint paint first-contentful-paint');
+        const bufferedEntries = performance.getEntriesByType('paint');
+        // When only child frame paints, expect only first-paint.
+        t.step_timeout( function() {
+            assert_equals(bufferedEntries.length, 1);
+            assert_equals(bufferedEntries[0].entryType, 'paint');
+            assert_equals(bufferedEntries[0].name, 'first-paint');
+            t.done();
+        }, 50);
+    }));
+    const iframe = document.createElement('iframe');
+    iframe.id = 'child-iframe';
+    iframe.src = 'resources/subframe-painting.html';
+    document.body.appendChild(iframe);
+}, 'Parent frame ignores paint-timing events fired from child image rendering.');
+</script>
+</body>
+</html>

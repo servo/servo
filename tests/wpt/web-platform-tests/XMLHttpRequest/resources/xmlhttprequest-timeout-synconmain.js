@@ -1,2 +1,2 @@
 runTestRequests([ SyncRequestSettingTimeoutAfterOpen,
-		  SyncRequestSettingTimeoutBeforeOpen ]);
+                  SyncRequestSettingTimeoutBeforeOpen ]);

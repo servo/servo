@@ -52,7 +52,7 @@ function runGenericSensorTests(sensorType) {
   async_test(t => {
     let sensor1 = new sensorType();
     let sensor2 = new sensorType();
-    sensor1.onactivate = t.step_func_done(() => {
+    sensor1.onreading = t.step_func_done(() => {
       // Reading values are correct for both sensors.
       assert_reading_not_null(sensor1);
       assert_reading_not_null(sensor2);
@@ -67,14 +67,14 @@ function runGenericSensorTests(sensorType) {
     });
     sensor1.onerror = t.step_func_done(unreached);
     sensor2.onerror = t.step_func_done(unreached);
-    sensor1.start();
     sensor2.start();
+    sensor1.start();
   }, `${sensorType.name}: sensor reading is correct`);
 
   async_test(t => {
     let sensor = new sensorType();
     let cachedTimeStamp1;
-    sensor.onactivate = () => {
+    sensor.onreading = () => {
       cachedTimeStamp1 = sensor.timestamp;
     };
     sensor.onerror = t.step_func_done(unreached);
@@ -175,7 +175,7 @@ function runGenericSensorTests(sensorType) {
 
   async_test(t => {
     let sensor = new sensorType();
-    sensor.onactivate = t.step_func(() => {
+    sensor.onreading = t.step_func(() => {
       assert_reading_not_null(sensor);
       let cachedSensor1 = reading_to_array(sensor);
       let win = window.open('', '_blank');

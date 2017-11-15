@@ -7,7 +7,7 @@ self.getterRejects = (t, obj, getterName, target) => {
 };
 
 self.getterRejectsForAll = (t, obj, getterName, targets) => {
-  return Promise.all(targets.map(target => getterRejects(t, obj, getterName, target)));
+  return Promise.all(targets.map(target => self.getterRejects(t, obj, getterName, target)));
 };
 
 self.methodRejects = (t, obj, methodName, target, args) => {
@@ -17,8 +17,8 @@ self.methodRejects = (t, obj, methodName, target, args) => {
                          methodName + ' should reject with a TypeError');
 };
 
-self.methodRejectsForAll =  (t, obj, methodName, targets, args) => {
-  return Promise.all(targets.map(target => methodRejects(t, obj, methodName, target, args)));
+self.methodRejectsForAll = (t, obj, methodName, targets, args) => {
+  return Promise.all(targets.map(target => self.methodRejects(t, obj, methodName, target, args)));
 };
 
 self.getterThrows = (obj, getterName, target) => {
@@ -28,8 +28,8 @@ self.getterThrows = (obj, getterName, target) => {
 };
 
 self.getterThrowsForAll = (obj, getterName, targets) => {
-  targets.forEach(target => getterThrows(obj, getterName, target));
-}
+  targets.forEach(target => self.getterThrows(obj, getterName, target));
+};
 
 self.methodThrows = (obj, methodName, target, args) => {
   const method = obj[methodName];
@@ -39,8 +39,13 @@ self.methodThrows = (obj, methodName, target, args) => {
 };
 
 self.methodThrowsForAll = (obj, methodName, targets, args) => {
-  targets.forEach(target => methodThrows(obj, methodName, target, args));
-}
+  targets.forEach(target => self.methodThrows(obj, methodName, target, args));
+};
+
+self.constructorThrowsForAll = (constructor, firstArgs) => {
+  firstArgs.forEach(firstArg => assert_throws(new TypeError(), () => new constructor(firstArg),
+                                              'constructor should throw a TypeError'));
+};
 
 self.garbageCollect = () => {
   if (self.gc) {

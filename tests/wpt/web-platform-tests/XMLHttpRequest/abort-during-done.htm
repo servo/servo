@@ -76,7 +76,7 @@
             assert_equals(client.statusText, "")
             assert_equals(client.responseXML, null)
             assert_equals(client.getAllResponseHeaders(), "")
-            setTimeout(function() {
+            test.step_timeout(function() {
               assert_array_equals(result, expected)
               test.done();
             }, 100); // wait a bit in case XHR timeout causes spurious event
