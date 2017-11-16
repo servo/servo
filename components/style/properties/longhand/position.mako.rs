@@ -257,6 +257,7 @@ ${helpers.predefined_type("object-position",
                               "computed::NonNegativeLengthOrPercentage::zero()",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
                               animation_value_type="NonNegativeLengthOrPercentage",
+                              gecko_pref="layout.css.grid.enabled",
                               products="gecko")}
 
     % for range in ["start", "end"]:
@@ -266,6 +267,7 @@ ${helpers.predefined_type("object-position",
                                   animation_value_type="discrete",
                                   spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
                                   products="gecko",
+                                  gecko_pref="layout.css.grid.enabled",
                                   boxed=True)}
     % endfor
 
@@ -277,6 +279,7 @@ ${helpers.predefined_type("object-position",
                               animation_value_type="discrete",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
                               products="gecko",
+                              gecko_pref="layout.css.grid.enabled",
                               boxed=True)}
 
     ${helpers.predefined_type("grid-template-%ss" % kind,
@@ -285,6 +288,7 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
+                              gecko_pref="layout.css.grid.enabled",
                               animation_value_type="discrete")}
 
 % endfor
@@ -292,6 +296,7 @@ ${helpers.predefined_type("object-position",
 <%helpers:longhand name="grid-auto-flow"
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
         products="gecko"
+        gecko_pref="layout.css.grid.enabled"
         animation_value_type="discrete">
     use std::fmt;
     use style_traits::ToCss;
@@ -415,6 +420,7 @@ ${helpers.predefined_type("object-position",
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas"
         products="gecko"
         animation_value_type="discrete"
+        gecko_pref="layout.css.grid.enabled"
         boxed="True">
     use hash::FnvHashMap;
     use std::fmt;

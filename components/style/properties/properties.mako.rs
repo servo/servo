@@ -184,6 +184,7 @@ pub mod shorthands {
         data.declare_shorthand(
             "all",
             logical_longhands + other_longhands,
+            gecko_pref="layout.css.all-shorthand.enabled",
             spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand"
         )
     %>

@@ -462,6 +462,7 @@
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas
                                     grid-auto-rows grid-auto-columns grid-auto-flow"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
+                    gecko_pref="layout.css.grid.enabled"
                     products="gecko">
     use parser::Parse;
     use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};

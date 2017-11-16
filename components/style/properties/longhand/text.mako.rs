@@ -62,4 +62,5 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     products="gecko",
     flags="APPLIES_TO_FIRST_LETTER",
+    gecko_pref="layout.css.initial-letter.enabled",
     spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials")}

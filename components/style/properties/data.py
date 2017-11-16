@@ -146,7 +146,7 @@ def arg_to_bool(arg):
 
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
-                 predefined_type=None, custom_cascade=False, servo_pref=None, internal=False,
+                 predefined_type=None, custom_cascade=False, servo_pref=None, gecko_pref=None, internal=False,
                  need_index=False, custom_cascade_function=None, gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
@@ -162,6 +162,7 @@ class Longhand(object):
         self.camel_case = to_camel_case(self.ident)
         self.style_struct = style_struct
         self.servo_pref = servo_pref
+        self.gecko_pref = gecko_pref
         self.custom_cascade = custom_cascade
         self.custom_cascade_function = custom_cascade_function if custom_cascade else None
         self.internal = internal
@@ -207,7 +208,8 @@ class Longhand(object):
 
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties, spec=None, servo_pref=None, internal=False,
+    def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
+                 internal=False,
                  allowed_in_keyframe_block=True, alias=None, extra_prefixes=None,
                  allowed_in_page_rule=False, flags=None, gecko_pref_ident=None):
         self.name = name
@@ -218,6 +220,7 @@ class Shorthand(object):
         self.camel_case = to_camel_case(self.ident)
         self.derived_from = None
         self.servo_pref = servo_pref
+        self.gecko_pref = gecko_pref
         self.sub_properties = sub_properties
         self.internal = internal
         self.alias = alias.split() if alias else []
@@ -261,6 +264,7 @@ class Alias(object):
         self.gecko_pref_ident = to_rust_ident(name)
         self.internal = original.internal
         self.servo_pref = original.servo_pref
+        self.gecko_pref = original.gecko_pref
         self.allowed_in_page_rule = original.allowed_in_page_rule
         self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
 
