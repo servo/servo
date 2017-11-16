@@ -10,9 +10,13 @@ import itertools
 import json
 import os
 import subprocess
+from datetime import datetime
 from functools import partial
 from statistics import median, StatisticsError
 from urllib.parse import urlsplit, urlunsplit, urljoin
+
+
+DATE = datetime.now().strftime("%Y%m%d")
 
 
 def load_manifest(filename):
@@ -169,6 +173,7 @@ def parse_log(log, testcase, url):
     # rather than the url.
     def set_testcase(timing, testcase=None):
         timing['testcase'] = testcase
+        timing['date'] = DATE
         return timing
 
     valid_timing_for_case = partial(valid_timing, url=url)
@@ -240,6 +245,7 @@ def save_result_json(results, filename, manifest, expected_runs, base):
 def save_result_csv(results, filename, manifest, expected_runs, base):
 
     fieldnames = [
+        'date',
         'testcase',
         'title',
         'connectEnd',
