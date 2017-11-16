@@ -66,6 +66,7 @@ ${helpers.single_keyword("word-break",
                                   extra_specified="${'distribute' if product == 'gecko' else ''}"
                                   gecko_enum_prefix="StyleTextJustify"
                                   animation_value_type="discrete"
+                                  gecko_pref="layout.css.text-justify.enabled"
                                   flags="APPLIES_TO_PLACEHOLDER",
                                   spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
 
@@ -689,6 +690,7 @@ ${helpers.predefined_type(
     "Color",
     "computed_value::T::currentcolor()",
     products="gecko",
+    gecko_pref="layout.css.prefixes.webkit",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
@@ -703,6 +705,7 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
+    gecko_pref="layout.css.prefixes.webkit",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color",
 )}
@@ -713,6 +716,7 @@ ${helpers.predefined_type("-webkit-text-stroke-width",
                           initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
                           computed_type="::values::computed::NonNegativeLength",
                           products="gecko",
+                          gecko_pref="layout.css.prefixes.webkit",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
                           animation_value_type="discrete")}
@@ -732,6 +736,7 @@ ${helpers.single_keyword("ruby-position", "over under",
 
 ${helpers.single_keyword("text-combine-upright", "none all",
                          products="gecko", animation_value_type="discrete",
+                         gecko_pref="layout.css.text-combine-upright.enabled",
                          spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright")}
 
 // SVG 1.1: Section 11 - Painting: Filling, Stroking and Marker Symbols

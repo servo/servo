@@ -6,7 +6,7 @@
 
 <%helpers:shorthand name="columns"
                     sub_properties="column-width column-count"
-                    experimental="True"
+                    servo_pref="layout.columns.enabled",
                     derive_serialize="True"
                     extra_prefixes="moz" spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
     use properties::longhands::{column_count, column_width};

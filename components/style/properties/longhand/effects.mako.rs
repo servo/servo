@@ -52,4 +52,5 @@ ${helpers.single_keyword("mix-blend-mode",
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
                          animation_value_type="discrete",
                          flags="CREATES_STACKING_CONTEXT",
+                         gecko_pref="layout.css.mix-blend-mode.enabled",
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}

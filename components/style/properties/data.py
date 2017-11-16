@@ -146,12 +146,12 @@ def arg_to_bool(arg):
 
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
-                 predefined_type=None, custom_cascade=False, experimental=False, internal=False,
+                 predefined_type=None, custom_cascade=False, servo_pref=None, gecko_pref=None, internal=False,
                  need_index=False, custom_cascade_function=None, gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
-                 gecko_pref_ident=None, vector=False, need_animatable=False):
+                 vector=False, need_animatable=False):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -161,7 +161,8 @@ class Longhand(object):
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.style_struct = style_struct
-        self.experimental = ("layout.%s.enabled" % name) if experimental else None
+        self.servo_pref = servo_pref
+        self.gecko_pref = gecko_pref
         self.custom_cascade = custom_cascade
         self.custom_cascade_function = custom_cascade_function if custom_cascade else None
         self.internal = internal
@@ -177,7 +178,6 @@ class Longhand(object):
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
         self.allow_quirks = allow_quirks
         self.ignored_when_colors_disabled = ignored_when_colors_disabled
-        self.gecko_pref_ident = gecko_pref_ident or self.ident
         self.is_vector = vector
 
         # https://drafts.csswg.org/css-animations/#keyframes
@@ -205,11 +205,25 @@ class Longhand(object):
             self.transitionable = False
             self.animation_type = None
 
+    def experimental(self, product):
+        if product == "gecko":
+            return bool(self.gecko_pref)
+        return bool(self.servo_pref)
+
+    # FIXME(emilio): Shorthand and Longhand should really share a base class.
+    def explicitly_enabled_in_ua_sheets(self):
+        return self.internal
+
+    # TODO(emilio): Change the `internal` field to something like `enabled_in`.
+    def explicitly_enabled_in_chrome(self):
+        return False
+
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties, spec=None, experimental=False, internal=False,
+    def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
+                 internal=False,
                  allowed_in_keyframe_block=True, alias=None, extra_prefixes=None,
-                 allowed_in_page_rule=False, flags=None, gecko_pref_ident=None):
+                 allowed_in_page_rule=False, flags=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -217,14 +231,14 @@ class Shorthand(object):
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.derived_from = None
-        self.experimental = ("layout.%s.enabled" % name) if experimental else None
+        self.servo_pref = servo_pref
+        self.gecko_pref = gecko_pref
         self.sub_properties = sub_properties
         self.internal = internal
         self.alias = alias.split() if alias else []
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
         self.flags = flags.split() if flags else []
-        self.gecko_pref_ident = gecko_pref_ident or self.ident
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
@@ -252,17 +266,39 @@ class Shorthand(object):
     animatable = property(get_animatable)
     transitionable = property(get_transitionable)
 
+    def experimental(self, product):
+        if product == "gecko":
+            return bool(self.gecko_pref)
+        return bool(self.servo_pref)
+
+    def explicitly_enabled_in_ua_sheets(self):
+        return self.internal
+
+    def explicitly_enabled_in_chrome(self):
+        return False
+
 
 class Alias(object):
     def __init__(self, name, original):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
-        self.gecko_pref_ident = to_rust_ident(name)
         self.internal = original.internal
-        self.experimental = original.experimental
+        self.servo_pref = original.servo_pref
+        self.gecko_pref = original.gecko_pref
         self.allowed_in_page_rule = original.allowed_in_page_rule
         self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
+
+    def experimental(self, product):
+        if product == "gecko":
+            return bool(self.gecko_pref)
+        return bool(self.servo_pref)
+
+    def explicitly_enabled_in_ua_sheets(self):
+        return self.internal
+
+    def explicitly_enabled_in_chrome(self):
+        return False
 
 
 class Method(object):

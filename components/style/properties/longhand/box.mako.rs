@@ -239,7 +239,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                                   gecko_enum_prefix="StyleFloat"
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
-                                  gecko_pref_ident="float_"
                                   flags="APPLIES_TO_FIRST_LETTER"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
     impl ToComputedValue for SpecifiedValue {
@@ -375,6 +374,7 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
     products="gecko", animation_value_type="discrete", internal=True,
+    gecko_pref="layout.css.overflow-clip-box.enabled",
     flags="APPLIES_TO_PLACEHOLDER",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
@@ -543,6 +543,7 @@ ${helpers.predefined_type("animation-delay",
         "ScrollSnapPoint",
         "computed::ScrollSnapPoint::none()",
         animation_value_type="discrete",
+        gecko_pref="layout.css.scroll-snap.enabled",
         products="gecko",
         spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)",
     )}
@@ -552,6 +553,7 @@ ${helpers.predefined_type("scroll-snap-destination",
                           "Position",
                           "computed::Position::zero()",
                           products="gecko",
+                          gecko_pref="layout.css.scroll-snap.enabled",
                           boxed="True",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
                           animation_value_type="discrete")}
@@ -562,6 +564,7 @@ ${helpers.predefined_type(
     "computed::Position::zero()",
     vector=True,
     products="gecko",
+    gecko_pref="layout.css.scroll-snap.enabled",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
     animation_value_type="discrete",
     allow_empty="NotInitial"
@@ -579,6 +582,7 @@ ${helpers.predefined_type("transform", "Transform",
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",
                          "auto smooth",
+                         gecko_pref="layout.css.scroll-behavior.property-enabled",
                          products="gecko",
                          spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
                          animation_value_type="discrete")}
@@ -590,6 +594,7 @@ ${helpers.single_keyword("scroll-behavior",
         "computed::ScrollSnapType::None",
         products="gecko",
         needs_context=False,
+        gecko_pref="layout.css.scroll-snap.enabled",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
         animation_value_type="discrete"
     )}
@@ -600,6 +605,7 @@ ${helpers.single_keyword("scroll-behavior",
 ${helpers.single_keyword("isolation",
                          "auto isolate",
                          products="gecko",
+                         gecko_pref="layout.css.isolation.enabled",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
                          flags="CREATES_STACKING_CONTEXT",
                          animation_value_type="discrete")}
@@ -666,6 +672,7 @@ ${helpers.single_keyword("transform-box",
                          "border-box fill-box view-box",
                          gecko_enum_prefix="StyleGeometryBox",
                          products="gecko",
+                         gecko_pref="svg.transform-box.enabled",
                          spec="https://drafts.csswg.org/css-transforms/#transform-box",
                          gecko_inexhaustive="True",
                          animation_value_type="discrete")}
@@ -693,6 +700,7 @@ ${helpers.predefined_type("transform-origin",
 // also update the glue once they are implemented in gecko.
 <%helpers:longhand name="contain" animation_value_type="discrete" products="gecko"
                    flags="FIXPOS_CB"
+                   gecko_pref="layout.css.contain.enabled",
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -894,6 +902,7 @@ ${helpers.predefined_type(
     "generics::basic_shape::ShapeSource::None",
     products="gecko",
     boxed=True,
+    gecko_pref="layout.css.shape-outside.enabled",
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
@@ -902,6 +911,7 @@ ${helpers.predefined_type(
 <%helpers:longhand name="touch-action"
                    products="gecko"
                    animation_value_type="discrete"
+                   gecko_pref="layout.css.touch_action.enabled"
                    spec="https://compat.spec.whatwg.org/#touch-action">
     use gecko_bindings::structs;
     use std::fmt;

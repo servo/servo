@@ -22,7 +22,7 @@ ${helpers.single_keyword("writing-mode",
                          extra_gecko_aliases="lr=horizontal-tb lr-tb=horizontal-tb \
                                               rl=horizontal-tb rl-tb=horizontal-tb \
                                               tb=vertical-rl   tb-rl=vertical-rl",
-                         experimental=True,
+                         servo_pref="layout.writing-mode.enabled",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode")}
 
@@ -41,6 +41,7 @@ ${helpers.single_keyword("text-orientation",
 // https://drafts.csswg.org/css-color/
 ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
+                         gecko_pref="layout.css.color-adjust.enabled",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-color/#propdef-color-adjust")}
 
@@ -60,6 +61,7 @@ ${helpers.single_keyword("image-rendering",
 <%helpers:longhand name="image-orientation"
                    products="gecko"
                    animation_value_type="discrete"
+                   gecko_pref="layout.css.image-orientation.enabled"
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation, \
       /// additional values in https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation">
     use std::fmt;

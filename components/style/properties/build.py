@@ -81,7 +81,7 @@ def write(directory, filename, content):
 def write_html(properties):
     properties = dict(
         (p.name, {
-            "flag": p.experimental,
+            "flag": p.servo_pref,
             "shorthand": hasattr(p, "sub_properties")
         })
         for p in properties.longhands + properties.shorthands

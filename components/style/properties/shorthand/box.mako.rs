@@ -331,6 +331,7 @@ macro_rules! try_parse_one {
 </%helpers:shorthand>
 
 <%helpers:shorthand name="scroll-snap-type" products="gecko"
+                    gecko_pref="layout.css.scroll-snap.enabled"
                     sub_properties="scroll-snap-type-x scroll-snap-type-y"
                     spec="https://drafts.csswg.org/css-scroll-snap/#propdef-scroll-snap-type">
     use properties::longhands::scroll_snap_type_x;
@@ -360,6 +361,7 @@ macro_rules! try_parse_one {
 
 <%helpers:shorthand name="-moz-transform" products="gecko"
                     sub_properties="transform"
+                    gecko_pref="layout.css.prefixes.transforms"
                     flags="SHORTHAND_ALIAS_PROPERTY"
                     derive_serialize="True"
                     spec="Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/transform">

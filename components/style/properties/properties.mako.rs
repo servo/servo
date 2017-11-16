@@ -184,6 +184,7 @@ pub mod shorthands {
         data.declare_shorthand(
             "all",
             logical_longhands + other_longhands,
+            gecko_pref="layout.css.all-shorthand.enabled",
             spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand"
         )
     %>
@@ -238,7 +239,7 @@ impl NonCustomPropertyIdSet {
 static ${name}: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
     <%
         storage = [0] * ((len(data.longhands) + len(data.shorthands) + len(data.all_aliases()) - 1 + 32) / 32)
-        for i, property in enumerate(data.longhands + data.shorthands):
+        for i, property in enumerate(data.longhands + data.shorthands + data.all_aliases()):
             if is_member(property):
                 storage[i / 32] |= 1 << (i % 32)
     %>
@@ -1157,6 +1158,7 @@ impl PropertyId {
             Some(context) => context,
             None => {
                 default = PropertyParserContext {
+                    in_chrome_stylesheet: false,
                     stylesheet_origin: Origin::Author,
                     rule_type: CssRuleType::Style,
                 };
@@ -1286,84 +1288,76 @@ impl PropertyId {
             _ => {}
         }
 
-        // For properties that are experimental but not internal, the pref will
-        // control its availability in all sheets.   For properties that are
-        // both experimental and internal, the pref only controls its
-        // availability in non-UA sheets (and in UA sheets it is always available).
-        ${id_set("INTERNAL", lambda p: p.internal)}
-
-        % if product == "servo":
-            ${id_set("EXPERIMENTAL", lambda p: p.experimental)}
-        % endif
-        % if product == "gecko":
-            use gecko_bindings::structs::root::mozilla;
-            static EXPERIMENTAL: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
-                <%
-                    grouped = []
-                    properties = data.longhands + data.shorthands + data.all_aliases()
-                    while properties:
-                        grouped.append(properties[:32])
-                        properties = properties[32:]
-                %>
-                storage: [
-                    % for group in grouped:
-                        (0
-                        % for i, property in enumerate(group):
-                            | ((mozilla::SERVO_PREF_ENABLED_${property.gecko_pref_ident} as u32) << ${i})
-                        % endfor
-                        ),
-                    % endfor
-                ]
-            };
-        % endif
+        // The semantics of these are kinda hard to reason about, what follows
+        // is a description of the different combinations that can happen with
+        // these three sets.
+        //
+        // Experimental properties are generally controlled by prefs, but an
+        // experimental property explicitly enabled in certain context (UA or
+        // chrome sheets) is always usable in the context regardless of the
+        // pref value.
+        //
+        // Non-experimental properties are either normal properties which are
+        // usable everywhere, or internal-only properties which are only usable
+        // in certain context they are explicitly enabled in.
+        ${id_set("ENABLED_IN_UA_SHEETS", lambda p: p.explicitly_enabled_in_ua_sheets())}
+        ${id_set("ENABLED_IN_CHROME", lambda p: p.explicitly_enabled_in_chrome())}
+        ${id_set("EXPERIMENTAL", lambda p: p.experimental(product))}
+        ${id_set("ALWAYS_ENABLED", lambda p: not p.experimental(product) and not p.explicitly_enabled_in_ua_sheets())}
 
         let passes_pref_check = || {
             % if product == "servo":
                 static PREF_NAME: [Option< &str>; ${len(data.longhands) + len(data.shorthands)}] = [
                     % for property in data.longhands + data.shorthands:
-                        % if property.experimental:
-                            Some("${property.experimental}"),
+                        % if property.servo_pref:
+                            Some("${property.servo_pref}"),
                         % else:
                             None,
                         % endif
                     % endfor
                 ];
-                match PREF_NAME[id.0] {
-                    None => true,
-                    Some(pref) => PREFS.get(pref).as_boolean().unwrap_or(false)
-                }
-            % endif
-            % if product == "gecko":
+                let pref = match PREF_NAME[id.0] {
+                    None => return true,
+                    Some(pref) => pref,
+                };
+
+                PREFS.get(pref).as_boolean().unwrap_or(false)
+            % else:
                 let id = match alias {
                     Some(alias_id) => alias_id.to_nscsspropertyid().unwrap(),
                     None => self.to_nscsspropertyid().unwrap(),
                 };
+
                 unsafe { structs::nsCSSProps_gPropertyEnabled[id as usize] }
             % endif
         };
 
-        if INTERNAL.contains(id) {
-            if context.stylesheet_origin != Origin::UserAgent {
-                if EXPERIMENTAL.contains(id) {
-                    if !passes_pref_check() {
-                        return Err(())
-                    }
-                } else {
-                    return Err(())
-                }
-            }
-        } else {
-            if EXPERIMENTAL.contains(id) && !passes_pref_check() {
-                return Err(());
-            }
+        if ALWAYS_ENABLED.contains(id) {
+            return Ok(())
         }
 
-        Ok(())
+        if EXPERIMENTAL.contains(id) && passes_pref_check() {
+            return Ok(())
+        }
+
+        if context.stylesheet_origin == Origin::UserAgent &&
+            ENABLED_IN_UA_SHEETS.contains(id)
+        {
+            return Ok(())
+        }
+
+        if context.in_chrome_stylesheet && ENABLED_IN_CHROME.contains(id) {
+            return Ok(())
+        }
+
+        Err(())
     }
 }
 
 /// Parsing Context for PropertyId.
 pub struct PropertyParserContext {
+    /// Whether the property is parsed in a chrome:// stylesheet.
+    pub in_chrome_stylesheet: bool,
     /// The Origin of the stylesheet, whether it's a user,
     /// author or user-agent stylesheet.
     pub stylesheet_origin: Origin,
@@ -1375,6 +1369,7 @@ impl PropertyParserContext {
     /// Creates a PropertyParserContext with given stylesheet origin and rule type.
     pub fn new(context: &ParserContext) -> Self {
         Self {
+            in_chrome_stylesheet: context.in_chrome_stylesheet(),
             stylesheet_origin: context.stylesheet_origin,
             rule_type: context.rule_type(),
         }
