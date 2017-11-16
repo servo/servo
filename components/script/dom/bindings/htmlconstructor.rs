@@ -80,6 +80,7 @@ use js::jsapi::HandleObject;
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::MutableHandleObject;
+use script_thread::ScriptThread;
 use std::ptr;
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
@@ -310,4 +311,12 @@ pub fn get_constructor_object_from_local_name(name: LocalName,
         local_name!("xmp")        => get_constructor!(HTMLPreElementBinding),
         _                         => false,
     }
+}
+
+pub fn pop_current_element_queue() {
+    ScriptThread::pop_current_element_queue();
+}
+
+pub fn push_new_element_queue() {
+    ScriptThread::push_new_element_queue();
 }

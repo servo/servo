@@ -28,7 +28,6 @@ use js::jsapi::{TrueHandleValue, Value};
 use js::jsval::{JSVal, PrivateValue};
 use js::rust::{define_methods, define_properties, get_object_class};
 use libc;
-use script_thread::ScriptThread;
 use std::ptr;
 
 /// The class of a non-callback interface object.
@@ -157,14 +156,6 @@ pub unsafe fn create_global_object(
 
     let _ac = JSAutoCompartment::new(cx, rval.get());
     JS_FireOnNewGlobalObject(cx, rval.handle());
-}
-
-pub fn push_new_element_queue() {
-    ScriptThread::push_new_element_queue();
-}
-
-pub fn pop_current_element_queue() {
-    ScriptThread::pop_current_element_queue();
 }
 
 /// Create and define the interface object of a callback interface.
