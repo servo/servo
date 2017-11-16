@@ -875,6 +875,27 @@ impl WebGLImpl {
                 ctx.gl().delete_vertex_arrays(&[id.get()]),
             WebGLCommand::BindVertexArray(id) =>
                 ctx.gl().bind_vertex_array(id.map_or(0, WebGLVertexArrayId::get)),
+            WebGLCommand::BindBufferBase(target, index, buffer) =>
+                ctx.gl().bind_buffer_base(target, index, buffer.map_or(0, WebGLBufferId::get)),
+            WebGLCommand::BindBufferRange(target, index, buffer, offset, size) =>
+                ctx.gl().bind_buffer_range(target, index, buffer.map_or(0, WebGLBufferId::get),
+                                           offset as isize, size as isize),
+            WebGLCommand::GetIndexedParameter(target, index, sender) =>
+                Self::get_indexed_parameter(ctx.gl(), target, index, sender),
+            WebGLCommand::GetUniformIndices(program, names, sender) => {
+                let names: Vec<&str> = names.iter().map(|name| name.as_ref()).collect();
+                sender.send(ctx.gl().get_uniform_indices(program.get(), &names[..])).unwrap();
+            },
+            WebGLCommand::GetActiveUniforms(program, indices, pname, sender) =>
+                Self::get_active_uniforms(ctx.gl(), program, indices, pname, sender),
+            WebGLCommand::GetUniformBlockIndex(program, name, sender) =>
+                sender.send(ctx.gl().get_uniform_block_index(program.get(), &name)).unwrap(),
+            WebGLCommand::GetActiveUniformBlockParameter(program, index, pname, sender) =>
+                Self::get_active_uniform_block_parameter(ctx.gl(), program, index, pname, sender),
+            WebGLCommand::GetActiveUniformBlockName(program, index, sender) =>
+                sender.send(ctx.gl().get_active_uniform_block_name(program.get(), index)).unwrap(),
+            WebGLCommand::UniformBlockBinding(program, index, binding) =>
+                ctx.gl().uniform_block_binding(program.get(), index, binding),
         }
 
         // TODO: update test expectations in order to enable debug assertions
@@ -982,7 +1003,8 @@ impl WebGLImpl {
             gl::STENCIL_WRITEMASK |
             gl::SUBPIXEL_BITS |
             gl::UNPACK_ALIGNMENT |
-            gl::FRAGMENT_SHADER_DERIVATIVE_HINT =>
+            gl::FRAGMENT_SHADER_DERIVATIVE_HINT |
+            gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT =>
             //gl::UNPACK_COLORSPACE_CONVERSION_WEBGL =>
                 Ok(WebGLParameter::Int(gl.get_integer_v(param_id))),
 
@@ -1291,4 +1313,86 @@ impl WebGLImpl {
         gl.shader_source(shader_id.get(), &[source.as_bytes()]);
         gl.compile_shader(shader_id.get());
     }
+
+    fn get_indexed_parameter(
+        gl: &gl::Gl,
+        name: u32,
+        index: u32,
+        chan: WebGLSender<WebGLResult<WebGLParameter>>
+    ) {
+        let result = match name {
+            gl::TRANSFORM_FEEDBACK_BUFFER_START |
+            gl::UNIFORM_BUFFER_START =>
+                Ok(WebGLParameter::Int(gl.get_integer_iv(name, index))),
+            gl::TRANSFORM_FEEDBACK_BUFFER_SIZE |
+            gl::UNIFORM_BUFFER_SIZE =>
+                Ok(WebGLParameter::Int64(gl.get_integer_64iv(name, index))),
+            // Invalid parameters
+            _ => Err(WebGLError::InvalidEnum)
+        };
+
+        chan.send(result).unwrap();
+    }
+
+    fn get_active_uniforms(
+        gl: &gl::Gl,
+        program: WebGLProgramId,
+        indices: Vec<u32>,
+        pname: u32,
+        chan: WebGLSender<WebGLResult<WebGLParameterVec>>
+    ) {
+        let result = match pname {
+            gl::UNIFORM_BLOCK_INDEX |
+            gl::UNIFORM_OFFSET |
+            gl::UNIFORM_ARRAY_STRIDE |
+            gl::UNIFORM_MATRIX_STRIDE => {
+                let result = gl.get_active_uniforms_iv(program.get(), indices, pname);
+                Ok(WebGLParameterVec::Int(result))
+            },
+            gl::UNIFORM_TYPE |
+            gl::UNIFORM_SIZE => {
+                let result = gl.get_active_uniforms_iv(program.get(), indices, pname);
+                Ok(WebGLParameterVec::Uint(result.iter().map(|v| *v as u32).collect()))
+            },
+            gl::UNIFORM_IS_ROW_MAJOR => {
+                let result = gl.get_active_uniforms_iv(program.get(), indices, pname);
+                Ok(WebGLParameterVec::Bool(result.iter().map(|v| *v != 0).collect()))
+            },
+            // Invalid parameters
+            _ => Err(WebGLError::InvalidEnum)
+        };
+
+        chan.send(result).unwrap();
+    }
+
+    fn get_active_uniform_block_parameter(
+        gl: &gl::Gl,
+        program: WebGLProgramId,
+        index: u32,
+        pname: u32,
+        chan: WebGLSender<WebGLResult<WebGLUniformBlockParameter>>
+    ) {
+        let result = match pname {
+            gl::UNIFORM_BLOCK_BINDING |
+            gl::UNIFORM_BLOCK_DATA_SIZE |
+            gl::UNIFORM_BLOCK_ACTIVE_UNIFORMS => {
+                let result = gl.get_active_uniform_block_i(program.get(), index, pname);
+                Ok(WebGLUniformBlockParameter::Uint(result as u32))
+            },
+            gl::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => {
+                let result = gl.get_active_uniform_block_iv(program.get(), index, pname);
+                Ok(WebGLUniformBlockParameter::IntArray(result))
+            },
+            gl::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
+            gl::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {
+                let result = gl.get_active_uniform_block_i(program.get(), index, pname);
+                Ok(WebGLUniformBlockParameter::Bool(result != 0))
+            },
+            // Invalid parameters
+            _ => Err(WebGLError::InvalidEnum)
+        };
+
+        chan.send(result).unwrap();
+    }
+
 }

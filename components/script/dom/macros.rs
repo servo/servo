@@ -614,3 +614,56 @@ macro_rules! impl_performance_entry_struct(
         }
     );
 );
+
+/// Macro used in WebGLRenderingContext and WebGL2RenderingContext
+#[macro_export]
+macro_rules! object_binding_to_js_or_null {
+    ($cx: expr, $binding:expr) => {
+        {
+            rooted!(in($cx) let mut rval = ::js::jsval::NullValue());
+            if let Some(bound_object) = $binding.get() {
+                bound_object.to_jsval($cx, rval.handle_mut());
+            }
+            rval.get()
+        }
+    };
+}
+
+/// Macro used in WebGLRenderingContext and WebGL2RenderingContext
+macro_rules! handle_potential_webgl_error {
+    ($context:ident, $call:expr, $return_on_error:expr) => {
+        match $call {
+            Ok(ret) => ret,
+            Err(error) => {
+                $context.webgl_error(error);
+                $return_on_error
+            }
+        }
+    };
+    ($context:ident, $call:expr) => {
+        handle_potential_webgl_error!($context, $call, ());
+    };
+}
+
+/// Macro used in WebGLRenderingContext and WebGL2RenderingContext
+/// From the GLES 2.0.25 spec, page 85:
+///
+///     "If a texture that is currently bound to one of the targets
+///      TEXTURE_2D, or TEXTURE_CUBE_MAP is deleted, it is as though
+///      BindTexture had been executed with the same target and texture
+///      zero."
+///
+/// and similar text occurs for other object types.
+macro_rules! handle_object_deletion {
+    ($self_:expr, $binding:expr, $object:ident, $unbind_command:expr) => {
+        if let Some(bound_object) = $binding.get() {
+            if bound_object.id() == $object.id() {
+                $binding.set(None);
+            }
+
+            if let Some(command) = $unbind_command {
+                $self_.send_command(command);
+            }
+        }
+    };
+}

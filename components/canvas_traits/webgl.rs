@@ -271,6 +271,16 @@ pub enum WebGLCommand {
     CreateVertexArray(WebGLSender<Option<WebGLVertexArrayId>>),
     DeleteVertexArray(WebGLVertexArrayId),
     BindVertexArray(Option<WebGLVertexArrayId>),
+    /* Uniform Buffer Objects and Transform Feedback Buffers */
+    BindBufferBase(u32, u32, Option<WebGLBufferId>),
+    BindBufferRange(u32, u32, Option<WebGLBufferId>, i64, i64),
+    GetIndexedParameter(u32, u32, WebGLSender<WebGLResult<WebGLParameter>>),
+    GetUniformIndices(WebGLProgramId, Vec<String>, WebGLSender<Vec<u32>>),
+    GetActiveUniforms(WebGLProgramId, Vec<u32>, u32, WebGLSender<WebGLResult<WebGLParameterVec>>),
+    GetUniformBlockIndex(WebGLProgramId, String, WebGLSender<u32>),
+    GetActiveUniformBlockParameter(WebGLProgramId, u32, u32, WebGLSender<WebGLResult<WebGLUniformBlockParameter>>),
+    GetActiveUniformBlockName(WebGLProgramId, u32, WebGLSender<String>),
+    UniformBlockBinding(WebGLProgramId, u32, u32),
 }
 
 macro_rules! define_resource_id_struct {
@@ -373,10 +383,27 @@ pub enum WebGLFramebufferBindingRequest {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGLParameter {
     Int(i32),
+    Int64(i64),
     Bool(bool),
     String(String),
     Float(f32),
     FloatArray(Vec<f32>),
+    Invalid,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebGLParameterVec {
+    Int(Vec<i32>),
+    Uint(Vec<u32>),
+    Bool(Vec<bool>),
+    Invalid,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebGLUniformBlockParameter {
+    Uint(u32),
+    Bool(bool),
+    IntArray(Vec<i32>),
     Invalid,
 }
 
@@ -540,7 +567,16 @@ impl fmt::Debug for WebGLCommand {
             GenerateMipmap(..) => "GenerateMipmap",
             CreateVertexArray(..) => "CreateVertexArray",
             DeleteVertexArray(..) => "DeleteVertexArray",
-            BindVertexArray(..) => "BindVertexArray"
+            BindVertexArray(..) => "BindVertexArray",
+            BindBufferBase(..) => "BindBufferBase",
+            BindBufferRange(..) => "BindBufferRange",
+            GetIndexedParameter(..) => "GetIndexedParameter",
+            GetUniformIndices(..) => "GetUniformIndices",
+            GetActiveUniforms(..) => "GetActiveUniforms",
+            GetUniformBlockIndex(..) => "GetUniformBlockIndex",
+            GetActiveUniformBlockParameter(..) => "GetActiveUniformBlockParameter",
+            GetActiveUniformBlockName(..) => "GetActiveUniformBlockName",
+            UniformBlockBinding(..) => "UniformBlockBinding",
         };
 
         write!(f, "CanvasWebGLMsg::{}(..)", name)

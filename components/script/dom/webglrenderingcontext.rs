@@ -62,55 +62,6 @@ use webrender_api;
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
-macro_rules! handle_potential_webgl_error {
-    ($context:ident, $call:expr, $return_on_error:expr) => {
-        match $call {
-            Ok(ret) => ret,
-            Err(error) => {
-                $context.webgl_error(error);
-                $return_on_error
-            }
-        }
-    };
-    ($context:ident, $call:expr) => {
-        handle_potential_webgl_error!($context, $call, ());
-    };
-}
-
-// From the GLES 2.0.25 spec, page 85:
-//
-//     "If a texture that is currently bound to one of the targets
-//      TEXTURE_2D, or TEXTURE_CUBE_MAP is deleted, it is as though
-//      BindTexture had been executed with the same target and texture
-//      zero."
-//
-// and similar text occurs for other object types.
-macro_rules! handle_object_deletion {
-    ($self_:expr, $binding:expr, $object:ident, $unbind_command:expr) => {
-        if let Some(bound_object) = $binding.get() {
-            if bound_object.id() == $object.id() {
-                $binding.set(None);
-            }
-
-            if let Some(command) = $unbind_command {
-                $self_.send_command(command);
-            }
-        }
-    };
-}
-
-macro_rules! object_binding_to_js_or_null {
-    ($cx: expr, $binding:expr) => {
-        {
-            rooted!(in($cx) let mut rval = NullValue());
-            if let Some(bound_object) = $binding.get() {
-                bound_object.to_jsval($cx, rval.handle_mut());
-            }
-            rval.get()
-        }
-    };
-}
-
 macro_rules! optional_root_object_to_js_or_null {
     ($cx: expr, $binding:expr) => {
         {
@@ -322,6 +273,10 @@ impl WebGLRenderingContext {
 
     pub fn set_bound_attrib_buffers<'a, T>(&self, iter: T) where T: Iterator<Item=(u32, &'a WebGLBuffer)> {
         *self.bound_attrib_buffers.borrow_mut() = FnvHashMap::from_iter(iter.map(|(k,v)| (k, Dom::from_ref(v))));
+    }
+
+    pub fn bound_buffer_array(&self) -> Option<DomRoot<WebGLBuffer>> {
+        self.bound_buffer_array.get()
     }
 
     pub fn bound_buffer_element_array(&self) -> Option<DomRoot<WebGLBuffer>> {
@@ -1156,6 +1111,111 @@ impl WebGLRenderingContext {
             }
         }
     }
+
+    #[allow(unsafe_code)]
+    pub unsafe fn buffer_data(
+        &self,
+        cx: *mut JSContext,
+        target: u32,
+        bound_buffer: Option<DomRoot<WebGLBuffer>>,
+        data: *mut JSObject,
+        usage: u32
+    ) -> Fallible<()> {
+        if data.is_null() {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
+        let data_vec = match array_buffer {
+            Ok(mut data) => data.as_slice().to_vec(),
+            Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
+        };
+
+        let bound_buffer = match bound_buffer {
+            Some(bound_buffer) => bound_buffer,
+            None => return Ok(self.webgl_error(InvalidOperation)),
+        };
+
+        match usage {
+            constants::STREAM_DRAW |
+            constants::STATIC_DRAW |
+            constants::DYNAMIC_DRAW => (),
+            _ => return Ok(self.webgl_error(InvalidEnum)),
+        }
+
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
+
+        Ok(())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    pub fn buffer_data_(
+        &self,
+        target: u32,
+        bound_buffer: Option<DomRoot<WebGLBuffer>>,
+        size: i64,
+        usage: u32
+    ) -> Fallible<()> {
+        let bound_buffer = match bound_buffer {
+            Some(bound_buffer) => bound_buffer,
+            None => return Ok(self.webgl_error(InvalidOperation)),
+        };
+
+        if size < 0 {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        match usage {
+            constants::STREAM_DRAW |
+            constants::STATIC_DRAW |
+            constants::DYNAMIC_DRAW => (),
+            _ => return Ok(self.webgl_error(InvalidEnum)),
+        }
+
+        // FIXME: Allocating a buffer based on user-requested size is
+        // not great, but we don't have a fallible allocation to try.
+        let data = vec![0u8; size as usize];
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
+
+        Ok(())
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    pub unsafe fn buffer_sub_data(
+        &self,
+        cx: *mut JSContext,
+        target: u32,
+        bound_buffer: Option<DomRoot<WebGLBuffer>>,
+        offset: i64,
+        data: *mut JSObject
+        ) -> Fallible<()> {
+        if data.is_null() {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
+        let data_vec = match array_buffer {
+            Ok(mut data) => data.as_slice().to_vec(),
+            Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
+        };
+
+        let bound_buffer = match bound_buffer {
+            Some(bound_buffer) => bound_buffer,
+            None => return Ok(self.webgl_error(InvalidOperation)),
+        };
+
+        if offset < 0 {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+        self.send_command(WebGLCommand::BufferSubData(target, offset as isize, data_vec));
+
+        Ok(())
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -1248,6 +1308,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Int64(val) => DoubleValue(val as f64),
             WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
             WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
             WebGLParameter::FloatArray(_) => panic!("Buffer parameter should not be float array"),
@@ -1324,6 +1385,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Int64(val) => DoubleValue(val as f64),
             WebGLParameter::Bool(val) => BooleanValue(val),
             WebGLParameter::Float(val) => DoubleValue(val as f64),
             WebGLParameter::FloatArray(_) => panic!("Parameter should not be float array"),
@@ -1496,11 +1558,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if let Some(buffer) = buffer {
             match buffer.bind(target) {
-                Ok(_) => slot.set(Some(buffer)),
+                Ok(_) => WebGLBuffer::update_slot(slot, Some(buffer)),
                 Err(e) => return self.webgl_error(e),
             }
         } else {
-            slot.set(None);
+            WebGLBuffer::update_slot(slot, None);
             // Unbind the current buffer
             self.send_command(WebGLCommand::BindBuffer(target, None));
         }
@@ -1594,37 +1656,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
-        if data.is_null() {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
-        let data_vec = match array_buffer {
-            Ok(mut data) => data.as_slice().to_vec(),
-            Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
-        };
-
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
             _ => return Ok(self.webgl_error(InvalidEnum)),
         };
 
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidValue)),
-        };
-
-        match usage {
-            constants::STREAM_DRAW |
-            constants::STATIC_DRAW |
-            constants::DYNAMIC_DRAW => (),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        }
-
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
-
-        Ok(())
+        self.buffer_data(cx, target, bound_buffer, data, usage)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -1635,64 +1673,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return Ok(self.webgl_error(InvalidEnum)),
         };
 
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidValue)),
-        };
-
-        if size < 0 {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        match usage {
-            constants::STREAM_DRAW |
-            constants::STATIC_DRAW |
-            constants::DYNAMIC_DRAW => (),
-            _ => return Ok(self.webgl_error(InvalidEnum)),
-        }
-
-        // FIXME: Allocating a buffer based on user-requested size is
-        // not great, but we don't have a fallible allocation to try.
-        let data = vec![0u8; size as usize];
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
-
-        Ok(())
+        self.buffer_data_(target, bound_buffer, size, usage)
     }
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn BufferSubData(&self, cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
-        if data.is_null() {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
-        let data_vec = match array_buffer {
-            Ok(mut data) => data.as_slice().to_vec(),
-            Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
-        };
-
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
             _ => return Ok(self.webgl_error(InvalidEnum)),
         };
 
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidOperation)),
-        };
-
-        if offset < 0 {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-        self.send_command(WebGLCommand::BufferSubData(target, offset as isize, data_vec));
-
-        Ok(())
+        self.buffer_sub_data(cx, target, bound_buffer, offset, data)
     }
 
     #[allow(unsafe_code)]
@@ -2273,6 +2266,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if let Some(program) = program {
             match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Int64(val) => DoubleValue(val as f64),
                 WebGLParameter::Bool(val) => BooleanValue(val),
                 WebGLParameter::String(_) => panic!("Program parameter should not be string"),
                 WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
@@ -2297,6 +2291,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if let Some(shader) = shader {
             match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
+                WebGLParameter::Int64(val) => DoubleValue(val as f64),
                 WebGLParameter::Bool(val) => BooleanValue(val),
                 WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
                 WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
@@ -2365,6 +2360,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Int64(val) => DoubleValue(val as f64),
             WebGLParameter::Bool(val) => BooleanValue(val),
             WebGLParameter::String(_) => panic!("Vertex attrib should not be string"),
             WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),

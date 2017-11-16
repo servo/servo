@@ -3,8 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /// https://www.khronos.org/registry/webgl/specs/latest/2.0/webgl.idl
-use canvas_traits::webgl::WebGLVersion;
+use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLVersion};
+use canvas_traits::webgl::{WebGLParameter, WebGLParameterVec, WebGLUniformBlockParameter};
+use canvas_traits::webgl::WebGLError::*;
+use canvas_traits::webgl::webgl_channel;
 use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -12,7 +16,7 @@ use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasE
 use dom::bindings::error::Fallible;
 use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{reflect_dom_object, Reflector};
-use dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -29,8 +33,9 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSContext, JSObject};
-use js::jsval::JSVal;
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 
@@ -38,6 +43,10 @@ use script_layout_interface::HTMLCanvasDataSource;
 pub struct WebGL2RenderingContext {
     reflector_: Reflector,
     base: Dom<WebGLRenderingContext>,
+    #[ignore_malloc_size_of = "Channels are hard"]
+    webgl_sender: WebGLMsgSender,
+    bound_uniform_buffer: MutNullableDom<WebGLBuffer>,
+    bound_transform_feedback_buffer: MutNullableDom<WebGLBuffer>,
 }
 
 impl WebGL2RenderingContext {
@@ -51,6 +60,9 @@ impl WebGL2RenderingContext {
         Some(WebGL2RenderingContext {
             reflector_: Reflector::new(),
             base: Dom::from_ref(&*base),
+            webgl_sender: base.webgl_sender(),
+            bound_uniform_buffer: MutNullableDom::new(None),
+            bound_transform_feedback_buffer: MutNullableDom::new(None),
         })
     }
 
@@ -74,6 +86,16 @@ impl WebGL2RenderingContext {
 
     pub fn base_context(&self) -> DomRoot<WebGLRenderingContext> {
         DomRoot::from_ref(&*self.base)
+    }
+
+    #[inline]
+    fn send_command(&self, command: WebGLCommand) {
+        self.webgl_sender.send(command).unwrap();
+    }
+
+    #[inline]
+    fn webgl_error(&self, err: WebGLError) {
+        self.base.webgl_error(err)
     }
 }
 
@@ -112,7 +134,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     unsafe fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
-        self.base.GetParameter(cx, parameter)
+        match parameter {
+            constants::UNIFORM_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_uniform_buffer),
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_transform_feedback_buffer),
+            _ => return self.base.GetParameter(cx, parameter),
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -184,7 +212,22 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
-        self.base.BindBuffer(target, buffer)
+        let slot = match target {
+            constants::UNIFORM_BUFFER => &self.bound_uniform_buffer,
+            constants::TRANSFORM_FEEDBACK_BUFFER => &self.bound_transform_feedback_buffer,
+            _ => return self.base.BindBuffer(target, buffer),
+        };
+
+        if let Some(buffer) = buffer {
+            match buffer.bind(target) {
+                Ok(_) => WebGLBuffer::update_slot(slot, Some(buffer)),
+                Err(e) => return self.webgl_error(e),
+            }
+        } else {
+            WebGLBuffer::update_slot(slot, None);
+            // Unbind the current buffer
+            self.send_command(WebGLCommand::BindBuffer(target, None));
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -208,20 +251,44 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     #[allow(unsafe_code)]
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
-        self.base.BufferData(cx, target, data, usage)
+        let bound_buffer = match target {
+            constants::ARRAY_BUFFER => self.base.bound_buffer_array(),
+            constants::ELEMENT_ARRAY_BUFFER => self.base.bound_buffer_element_array(),
+            constants::UNIFORM_BUFFER => self.bound_uniform_buffer.get(),
+            constants::TRANSFORM_FEEDBACK_BUFFER => self.bound_transform_feedback_buffer.get(),
+            _ => return Ok(self.webgl_error(InvalidEnum)),
+        };
+
+        self.base.buffer_data(cx, target, bound_buffer, data, usage)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) -> Fallible<()> {
-        self.base.BufferData_(target, size, usage)
+        let bound_buffer = match target {
+            constants::ARRAY_BUFFER => self.base.bound_buffer_array(),
+            constants::ELEMENT_ARRAY_BUFFER => self.base.bound_buffer_element_array(),
+            constants::UNIFORM_BUFFER => self.bound_uniform_buffer.get(),
+            constants::TRANSFORM_FEEDBACK_BUFFER => self.bound_transform_feedback_buffer.get(),
+            _ => return Ok(self.webgl_error(InvalidEnum)),
+        };
+
+        self.base.buffer_data_(target, bound_buffer, size, usage)
     }
 
     #[allow(unsafe_code)]
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn BufferSubData(&self, cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
-        self.base.BufferSubData(cx, target, offset, data)
+        let bound_buffer = match target {
+            constants::ARRAY_BUFFER => self.base.bound_buffer_array(),
+            constants::ELEMENT_ARRAY_BUFFER => self.base.bound_buffer_element_array(),
+            constants::UNIFORM_BUFFER => self.bound_uniform_buffer.get(),
+            constants::TRANSFORM_FEEDBACK_BUFFER => self.bound_transform_feedback_buffer.get(),
+            _ => return Ok(self.webgl_error(InvalidEnum)),
+        };
+
+        self.base.buffer_sub_data(cx, target, bound_buffer, offset, data)
     }
 
     #[allow(unsafe_code)]
@@ -347,7 +414,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
-        self.base.DeleteBuffer(buffer)
+        self.base.DeleteBuffer(buffer);
+        if let Some(buffer) = buffer {
+            handle_object_deletion!(self, self.bound_uniform_buffer, buffer,
+                                    Some(WebGLCommand::BindBuffer(constants::UNIFORM_BUFFER, None)));
+        }
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -902,6 +973,168 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                             textarget: u32, texture: Option<&WebGLTexture>,
                             level: i32) {
         self.base.FramebufferTexture2D(target, attachment, textarget, texture, level)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn BindBufferBase(&self, target: u32, index: u32, buffer: Option<&WebGLBuffer>) {
+        let slot = match target {
+            constants::UNIFORM_BUFFER => &self.bound_uniform_buffer,
+            constants::TRANSFORM_FEEDBACK_BUFFER => &self.bound_transform_feedback_buffer,
+            // Invalid parameters
+            _ => return self.webgl_error(InvalidEnum)
+        };
+
+        if let Some(error) = buffer.and_then(|buffer| buffer.update_target(target).err()) {
+            return self.webgl_error(error);
+        }
+        WebGLBuffer::update_slot(slot, buffer);
+
+        self.send_command(WebGLCommand::BindBufferBase(target, index, buffer.map(|b| b.id())));
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn BindBufferRange(&self, target: u32, index: u32, buffer: Option<&WebGLBuffer>, offset: i64, size: i64) {
+        let slot = match target {
+            constants::UNIFORM_BUFFER => &self.bound_uniform_buffer,
+            constants::TRANSFORM_FEEDBACK_BUFFER => &self.bound_transform_feedback_buffer,
+            // Invalid parameters
+            _ => return self.webgl_error(InvalidEnum)
+        };
+
+        if let Some(error) = buffer.and_then(|buffer| buffer.update_target(target).err()) {
+            return self.webgl_error(error);
+        }
+        WebGLBuffer::update_slot(slot, buffer);
+
+        self.send_command(WebGLCommand::BindBufferRange(target, index, buffer.map(|b| b.id()), offset, size));
+    }
+
+    #[allow(unsafe_code)]
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    unsafe fn GetIndexedParameter(&self, cx: *mut JSContext, target: u32, index: u32) -> JSVal {
+        let value = match target {
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_transform_feedback_buffer),
+            constants::UNIFORM_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_uniform_buffer),
+            _ => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetIndexedParameter(target, index, sender));
+                receiver.recv().unwrap()
+            }
+        };
+
+
+        match handle_potential_webgl_error!(self, value, WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Int64(val) => DoubleValue(val as f64),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::Float(val) => DoubleValue(val as f64),
+            WebGLParameter::FloatArray(_) => panic!("Parameter should not be float array"),
+            WebGLParameter::String(val) => {
+                rooted!(in(cx) let mut rval = UndefinedValue());
+                val.to_jsval(cx, rval.handle_mut());
+                rval.get()
+            }
+            WebGLParameter::Invalid => NullValue(),
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn GetUniformIndices(&self, program: &WebGLProgram, mut uniform_names: Vec<DOMString>) -> Option<Vec<u32>> {
+        if !program.is_linked() {
+            self.webgl_error(InvalidOperation);
+            return None;
+        }
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        let uniform_names = uniform_names.drain(..).map(|name| String::from(name)).collect();
+        self.send_command(WebGLCommand::GetUniformIndices(program.id(), uniform_names, sender));
+        Some(receiver.recv().unwrap())
+    }
+
+    #[allow(unsafe_code)]
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    unsafe fn GetActiveUniforms(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        uniform_indices: Vec<u32>,
+        pname: u32
+    ) -> JSVal {
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetActiveUniforms(program.id(), uniform_indices, pname, sender));
+
+        let value = match receiver.recv().unwrap() {
+            Ok(value) => value,
+            Err(error) => {
+                self.webgl_error(error);
+                return NullValue();
+            }
+        };
+
+        match value {
+            WebGLParameterVec::Int(val) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                val.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            WebGLParameterVec::Uint(val) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                val.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            WebGLParameterVec::Bool(val) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                val.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            WebGLParameterVec::Invalid => NullValue()
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn GetUniformBlockIndex(&self, program: &WebGLProgram, block_name: DOMString) -> u32 {
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetUniformBlockIndex(program.id(), String::from(block_name), sender));
+        receiver.recv().unwrap()
+    }
+
+    #[allow(unsafe_code)]
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    unsafe fn GetActiveUniformBlockParameter(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        block_index: u32,
+        pname: u32
+    ) -> JSVal {
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetActiveUniformBlockParameter(program.id(), block_index, pname, sender));
+        let value = receiver.recv().unwrap();
+
+        match handle_potential_webgl_error!(self, value, WebGLUniformBlockParameter::Invalid) {
+            WebGLUniformBlockParameter::Uint(val) => Int32Value(val as i32),
+            WebGLUniformBlockParameter::Bool(val) => BooleanValue(val),
+            WebGLUniformBlockParameter::IntArray(val) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                val.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            WebGLUniformBlockParameter::Invalid => NullValue(),
+        }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn GetActiveUniformBlockName(&self, program: &WebGLProgram, block_index: u32) -> Option<DOMString> {
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::GetActiveUniformBlockName(program.id(), block_index, sender));
+        Some(DOMString::from(receiver.recv().unwrap()))
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    fn UniformBlockBinding(&self, program: &WebGLProgram, block_index: u32, block_binding: u32) {
+        self.send_command(WebGLCommand::UniformBlockBinding(program.id(), block_index, block_binding));
     }
 }
 

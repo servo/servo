@@ -557,15 +557,15 @@ interface WebGL2RenderingContextBase
   void resumeTransformFeedback();*/
 
   /* Uniform Buffer Objects and Transform Feedback Buffers */
-  // void bindBufferBase(GLenum target, GLuint index, WebGLBuffer? buffer);
-  // void bindBufferRange(GLenum target, GLuint index, WebGLBuffer? buffer, GLintptr offset, GLsizeiptr size);
-  // any getIndexedParameter(GLenum target, GLuint index);
-  // sequence<GLuint>? getUniformIndices(WebGLProgram program, sequence<DOMString> uniformNames);
-  // any getActiveUniforms(WebGLProgram program, sequence<GLuint> uniformIndices, GLenum pname);
-  // GLuint getUniformBlockIndex(WebGLProgram program, DOMString uniformBlockName);
-  // any getActiveUniformBlockParameter(WebGLProgram program, GLuint uniformBlockIndex, GLenum pname);
-  // DOMString? getActiveUniformBlockName(WebGLProgram program, GLuint uniformBlockIndex);
-  // void uniformBlockBinding(WebGLProgram program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+  void bindBufferBase(GLenum target, GLuint index, WebGLBuffer? buffer);
+  void bindBufferRange(GLenum target, GLuint index, WebGLBuffer? buffer, GLintptr offset, GLsizeiptr size);
+  any getIndexedParameter(GLenum target, GLuint index);
+  sequence<GLuint>? getUniformIndices(WebGLProgram program, sequence<DOMString> uniformNames);
+  any getActiveUniforms(WebGLProgram program, sequence<GLuint> uniformIndices, GLenum pname);
+  GLuint getUniformBlockIndex(WebGLProgram program, DOMString uniformBlockName);
+  any getActiveUniformBlockParameter(WebGLProgram program, GLuint uniformBlockIndex, GLenum pname);
+  DOMString? getActiveUniformBlockName(WebGLProgram program, GLuint uniformBlockIndex);
+  void uniformBlockBinding(WebGLProgram program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
 
   /* Vertex Array Objects */
   /*WebGLVertexArrayObject? createVertexArray();

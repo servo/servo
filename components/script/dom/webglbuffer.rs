@@ -6,9 +6,10 @@
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLMsgSender, WebGLResult, WebGLVertexArrayId};
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -24,6 +25,7 @@ pub struct WebGLBuffer {
     target: Cell<Option<u32>>,
     capacity: Cell<usize>,
     is_deleted: Cell<bool>,
+    currently_bound: Cell<bool>,
     // The Vertex Array Objects that are referencing this buffer
     vao_references: DomRefCell<Option<HashSet<WebGLVertexArrayId>>>,
     pending_delete: Cell<bool>,
@@ -41,6 +43,7 @@ impl WebGLBuffer {
             target: Cell::new(None),
             capacity: Cell::new(0),
             is_deleted: Cell::new(false),
+            currently_bound: Cell::new(false),
             vao_references: DomRefCell::new(None),
             pending_delete: Cell::new(false),
             renderer: renderer,
@@ -71,15 +74,36 @@ impl WebGLBuffer {
         self.id
     }
 
+    fn is_bind_allowed(&self, first: u32, second: u32) -> bool {
+        // Rebinding any target to COPY target is allowed.
+        if second == constants::COPY_READ_BUFFER || second == constants::COPY_WRITE_BUFFER {
+            return true;
+        }
+
+        if self.is_currently_bound() && first != second &&
+           (first == constants::TRANSFORM_FEEDBACK_BUFFER || second == constants::TRANSFORM_FEEDBACK_BUFFER ) {
+            // TRANSFORM_FEEDBACK_BUFFER can't be simultaneously bound with another target.
+            return false;
+        }
+
+        // Rebinding ELEMENT_ARRAY_BUFFER to/from other target types is forbidden.
+        (first == constants::ELEMENT_ARRAY_BUFFER) == (second == constants::ELEMENT_ARRAY_BUFFER)
+    }
+
+    pub fn update_target(&self, target: u32) -> WebGLResult<()> {
+        if self.target.get().map(|prev_target| self.is_bind_allowed(prev_target, target)) == Some(false) {
+            return Err(WebGLError::InvalidOperation);
+        }
+        self.target.set(Some(target));
+        Ok(())
+    }
+
     // NB: Only valid buffer targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
-        if let Some(previous_target) = self.target.get() {
-            if target != previous_target {
-                return Err(WebGLError::InvalidOperation);
-            }
-        } else {
-            self.target.set(Some(target));
+        if self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
         }
+        self.update_target(target)?;
         let msg = WebGLCommand::BindBuffer(target, Some(self.id));
         self.renderer.send(msg).unwrap();
 
@@ -113,6 +137,15 @@ impl WebGLBuffer {
         self.is_deleted.get()
     }
 
+    pub fn is_currently_bound(&self) -> bool {
+        self.currently_bound.get()
+    }
+
+    pub fn set_currently_bound(&self, value: bool) {
+        self.currently_bound.set(value);
+    }
+
+
     pub fn target(&self) -> Option<u32> {
         self.target.get()
     }
@@ -145,6 +178,18 @@ impl WebGLBuffer {
                 self.is_deleted.set(true);
             }
         }
+    }
+
+    /// Updates the slot user for storing bound buffer targets and ensures that currently_bound
+    /// flag is correctly set for both bound and unbound buffers.
+    pub fn update_slot(slot: &MutNullableDom<WebGLBuffer>, buffer: Option<&WebGLBuffer>) {
+        if let Some(b) = slot.get() {
+            b.set_currently_bound(false);
+        }
+        if let Some(b) = buffer {
+            b.set_currently_bound(true);
+        }
+        slot.set(buffer);
     }
 }
 
