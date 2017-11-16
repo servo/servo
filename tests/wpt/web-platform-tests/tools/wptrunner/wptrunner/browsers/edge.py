@@ -3,12 +3,14 @@ from ..webdriver_server import EdgeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorselenium import (SeleniumTestharnessExecutor,
                                           SeleniumRefTestExecutor)
+from ..executors.executoredge import EdgeDriverWdspecExecutor
 
 __wptrunner__ = {"product": "edge",
                  "check_args": "check_args",
                  "browser": "EdgeBrowser",
                  "executor": {"testharness": "SeleniumTestharnessExecutor",
-                              "reftest": "SeleniumRefTestExecutor"},
+                              "reftest": "SeleniumRefTestExecutor",
+                              "wdspec": "EdgeDriverWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",

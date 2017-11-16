@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>KeyframeEffect IDL</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#keyframeeffect">
+<link rel="help"
+      href="https://w3c.github.io/web-animations/#keyframeeffectreadonly">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<div id="log"></div>
+<script type="text/plain" id="AnimationEffectTimingReadOnly-IDL">
+enum FillMode { "none", "forwards", "backwards", "both", "auto" };
+enum PlaybackDirection {
+  "normal",
+  "reverse",
+  "alternate",
+  "alternate-reverse"
+};
+
+dictionary AnimationEffectTimingProperties {
+  double                             delay = 0.0;
+  double                             endDelay = 0.0;
+  FillMode                           fill = "auto";
+  double                             iterationStart = 0.0;
+  unrestricted double                iterations = 1.0;
+  (unrestricted double or DOMString) duration = "auto";
+  PlaybackDirection                  direction = "normal";
+  DOMString                          easing = "linear";
+};
+
+[Exposed=Window]
+interface AnimationEffectTimingReadOnly {
+  readonly attribute double                             delay;
+  readonly attribute double                             endDelay;
+  readonly attribute FillMode                           fill;
+  readonly attribute double                             iterationStart;
+  readonly attribute unrestricted double                iterations;
+  readonly attribute (unrestricted double or DOMString) duration;
+  readonly attribute PlaybackDirection                  direction;
+  readonly attribute DOMString                          easing;
+};
+</script>
+<script type="text/plain" id="AnimationEffectReadOnly-IDL">
+dictionary ComputedTimingProperties : AnimationEffectTimingProperties {
+  unrestricted double  endTime;
+  unrestricted double  activeDuration;
+  double?              localTime;
+  double?              progress;
+  unrestricted double? currentIteration;
+};
+
+[Exposed=Window]
+interface AnimationEffectReadOnly {
+  readonly attribute AnimationEffectTimingReadOnly timing;
+  ComputedTimingProperties getComputedTiming();
+};
+</script>
+<script type="text/plain" id="KeyframeEffectReadOnly-IDL">
+enum IterationCompositeOperation { "replace", "accumulate" };
+enum CompositeOperation { "replace", "add", "accumulate" };
+
+dictionary KeyframeEffectOptions : AnimationEffectTimingProperties {
+  IterationCompositeOperation iterationComposite = "replace";
+  CompositeOperation          composite = "replace";
+};
+
+[Exposed=Window,
+ Constructor ((Element or CSSPseudoElement)? target,
+              object? keyframes,
+              optional (unrestricted double or KeyframeEffectOptions) options),
+ Constructor (KeyframeEffectReadOnly source)]
+interface KeyframeEffectReadOnly : AnimationEffectReadOnly {
+  readonly attribute (Element or CSSPseudoElement)? target;
+  readonly attribute IterationCompositeOperation    iterationComposite;
+  readonly attribute CompositeOperation             composite;
+  sequence<object> getKeyframes ();
+};
+</script>
+<script type="text/plain" id="KeyframeEffect-IDL">
+[Exposed=Window,
+ Constructor ((Element or CSSPseudoElement)? target,
+              object? keyframes,
+              optional (unrestricted double or KeyframeEffectOptions) options),
+ Constructor (KeyframeEffectReadOnly source)]
+interface KeyframeEffect : KeyframeEffectReadOnly {
+  inherit attribute (Element or CSSPseudoElement)? target;
+  inherit attribute IterationCompositeOperation    iterationComposite;
+  inherit attribute CompositeOperation             composite;
+  void setKeyframes (object? keyframes);
+};
+</script>
+<script>
+'use strict';
+
+const idlArray = new IdlArray();
+
+idlArray.add_untested_idls('interface CSSPseudoElement {};');
+idlArray.add_untested_idls('interface Element {};');
+idlArray.add_untested_idls(
+  document.getElementById('AnimationEffectTimingReadOnly-IDL').textContent
+);
+idlArray.add_idls(
+  document.getElementById('AnimationEffectReadOnly-IDL').textContent
+);
+idlArray.add_idls(
+  document.getElementById('KeyframeEffectReadOnly-IDL').textContent
+);
+idlArray.add_idls(
+  document.getElementById('KeyframeEffect-IDL').textContent
+);
+idlArray.add_objects({
+  KeyframeEffect: ['new KeyframeEffect(null, null)'],
+  KeyframeEffectReadOnly: ['new KeyframeEffectReadOnly(null, null)'],
+});
+
+idlArray.test();
+
+</script>

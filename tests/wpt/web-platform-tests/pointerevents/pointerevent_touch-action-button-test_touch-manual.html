@@ -88,10 +88,11 @@
 
                         if(xScrollIsReceived && yScrollIsReceived) {
                             test_touchaction_div.done();
-                            updateDescriptionThirdStepTouchActionElement(target0, scrollReturnInterval);
-                            setTimeout(function() {
-                                isFirstPart = false;
-                            }, 2 * scrollReturnInterval); // avoid immediate triggering while scroll is still being performed
+                            updateDescriptionThirdStepTouchActionElement(target0, scrollReturnInterval, function () {
+                                setTimeout(function() {
+                                    isFirstPart = false;
+                                }, scrollReturnInterval); // avoid immediate triggering while scroll is still being performed
+                            });
                         }
                     }
                     else {

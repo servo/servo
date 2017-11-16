@@ -11,51 +11,82 @@
   <body>
     <div id="log"></div>
     <script>
-     var expectations = [
-      { contentType: 'application/xml;charset=UTF-8', responseText : '<\u00FF\/>' },
-      { contentType: 'text/html;charset=UTF-8', responseText : '<body>\uFFFD<\/body>' }, /*invalid character code in document turns into FFFD*/
-      { contentType: 'text/html;charset=UTF-8', responseText : '<body>\u30C6\u30b9\u30c8<\/body>' } /* correctly serialized Shift-JIS */,
-      { contentType: 'text/html;charset=UTF-8', responseText: 'top' }, /* There's some markup included, but it's not really relevant for this test suite, so we do an indexOf() test */
-      { contentType: 'text/html;charset=UTF-8' },
-      { contentType: 'text/html;charset=UTF-8', responseText: '<img>foo' },
-      { contentType: 'text/html;charset=UTF-8', responseText: '<!DOCTYPE html><html><head></head><body><div></div></body></html>' }
-     ]
+    var tests = [
+      {
+        title: 'XML document, windows-1252',
+        url: 'resources/win-1252-xml.py',
+        contentType: 'application/xml;charset=UTF-8',
+        responseText: '<\u00FF\/>'
+      },
+      // Invalid character code in document turns into U+FFFD.
+      {
+        title: 'HTML document, invalid UTF-8',
+        url: 'resources/invalid-utf8-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<body>\uFFFD<\/body>'
+      },
+      // Correctly serialized Shift-JIS.
+      {
+        title: 'HTML document, shift-jis',
+        url: 'resources/shift-jis-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<body>\u30C6\u30b9\u30c8<\/body>'
+      },
+      // There's some markup included, but it's not really relevant for this
+      // test suite, so we do an indexOf() test.
+      {
+        title: 'plain text file',
+        url: 'folder.txt',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: 'top'
+      },
+      // This test does not want to assert anything about what markup a
+      // standalone image should be wrapped in. Hence this test lacks a
+      // responseText expectation.
+      {
+        title: 'image file',
+        url: 'resources/image.gif',
+        contentType: 'text/html;charset=UTF-8'
+      },
+      {
+        title: 'img tag',
+        url: 'resources/img-utf8-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<img>foo'
+      },
+      {
+        title: 'empty div',
+        url: 'resources/empty-div-utf8-html.py',
+        contentType: 'text/html;charset=UTF-8',
+        responseText: '<!DOCTYPE html><html><head></head><body><div></div></body></html>'
+      }
+    ];
 
-
-      function request(input, number, title) {
-        test(function() {
+    tests.forEach(function(t) {
+      async_test(function() {
+        var iframe = document.createElement("iframe");
+        iframe.onload = this.step_func_done(function() {
           var client = new XMLHttpRequest()
           client.open("POST", "resources/content.py?response_charset_label=UTF-8", false)
-          client.send(input)
-          var exp = expectations[number]
-          assert_equals(client.getResponseHeader('X-Request-Content-Type'), exp.contentType, 'document should be serialized and sent as '+exp.contentType+' (TEST#'+number+')')
-          // The indexOf() assertation will overlook some stuff, i.e. XML prologues that shouldn't be there (looking at you, Presto).
-          // However, arguably these things have little to do with the XHR functionality we're testing.
-          if(exp.responseText){ // This test does not want to assert anything about what markup a standalone IMG should be wrapped in. Hence the GIF test lacks a responseText expectation.
-            assert_true(client.responseText.indexOf(exp.responseText) != -1,
-                        JSON.stringify(exp.responseText) + " not in " +
+          client.send(iframe.contentDocument)
+          assert_equals(client.getResponseHeader('X-Request-Content-Type'),
+                        t.contentType,
+                        'document should be serialized and sent as ' + t.contentType)
+          // The indexOf() assertion will overlook some stuff, e.g. XML
+          // prologues that shouldn't be there (looking at you, Presto).
+          // However, arguably these things have little to do with the XHR
+          // functionality we're testing.
+          if (t.responseText) {
+            assert_true(client.responseText.indexOf(t.responseText) != -1,
+                        JSON.stringify(t.responseText) + " not in " +
                         JSON.stringify(client.responseText));
           }
           assert_equals(client.responseXML, null)
-        }, title)
-      }
-      function init(fr, number, title) { request(fr.contentDocument, number, title) }
+        });
+        iframe.src = t.url;
+        document.body.appendChild(iframe);
+      }, t.title);
+    });
     </script>
-    <!--
-        This test also tests how documents in various encodings are serialized.
-        The below IFRAMEs contain:
-          * one XML document parsed from a windows-1252 source - content is <ÿ/>
-          * one HTML-document parsed from an invalid UTF-8 source, will contain a basic HTML DOM
-             with a U+FFFD replacement character for the invalid char
-          * one HTML document parsed from a valid Shift-JIS source
-     -->
-    <iframe src='resources/win-1252-xml.py' onload="init(this, 0, 'XML document, windows-1252')"></iframe>
-    <iframe src='resources/invalid-utf8-html.py' onload="init(this, 1, 'HTML document, invalid UTF-8')"></iframe>
-    <iframe src='resources/shift-jis-html.py' onload="init(this, 2, 'HTML document, shift-jis')"></iframe>
-    <iframe src='folder.txt' onload="init(this, 3, 'plain text file')"></iframe>
-    <iframe src='resources/image.gif' onload="init(this, 4, 'image file')"></iframe>
-    <iframe src='resources/img-utf8-html.py' onload="init(this, 5, 'img tag')"></iframe>
-    <iframe src='resources/empty-div-utf8-html.py' onload="init(this, 6, 'empty div')"></iframe>
-
   </body>
 </html>

@@ -78,10 +78,10 @@ test1.step(function(){
                 var c3 = new VTTCue(0, 2, "text3");
                 t1.addCue(c3);
                 assert_equals(t1.activeCues.length, 1, "t1.activeCues.length after adding a cue in the same script");
-                setTimeout(test3.step_func(function(){
+                test3.step_timeout(function(){
                     assert_equals(t1.activeCues.length, 2, "t1.activeCues.length after the event loop has spun");
                     test3.done();
-                }, 0));
+                }, 0);
             });
             test2.done();
         });

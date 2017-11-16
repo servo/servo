@@ -22,7 +22,7 @@
             ifr.onload = function() {
               // Again, do things async so we're not doing loads from inside
               // load events.
-              setTimeout(function() {
+              test.step_timeout(function() {
                 client = new ifr.contentWindow.XMLHttpRequest();
                 count++;
                 // Important to do a normal navigation, not a reload.

@@ -17,6 +17,10 @@ Setting Up the Repo
 
 Clone or otherwise get https://github.com/w3c/web-platform-tests.
 
+Note: because of the frequent creation and deletion of branches in this
+repo, it is recommended to "prune" stale branches when fetching updates,
+i.e. use `git pull --prune` (or `git fetch -p && git merge`).
+
 Running the Tests
 =================
 

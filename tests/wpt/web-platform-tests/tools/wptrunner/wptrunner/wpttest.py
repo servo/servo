@@ -242,6 +242,27 @@ class TestharnessTest(Test):
     subtest_result_cls = TestharnessSubtestResult
     test_type = "testharness"
 
+    def __init__(self, tests_root, url, inherit_metadata, test_metadata,
+                 timeout=None, path=None, protocol="http", testdriver=False):
+        Test.__init__(self, tests_root, url, inherit_metadata, test_metadata, timeout,
+                      path, protocol)
+
+        self.testdriver = testdriver
+
+    @classmethod
+    def from_manifest(cls, manifest_item, inherit_metadata, test_metadata):
+        timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
+        protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
+        testdriver = manifest_item.testdriver if hasattr(manifest_item, "testdriver") else False
+        return cls(manifest_item.source_file.tests_root,
+                   manifest_item.url,
+                   inherit_metadata,
+                   test_metadata,
+                   timeout=timeout,
+                   path=manifest_item.source_file.path,
+                   protocol=protocol,
+                   testdriver=testdriver)
+
     @property
     def id(self):
         return self.url

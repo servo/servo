@@ -23,12 +23,13 @@ def test_handle_prompt_dismiss(new_session, add_browser_capabilites):
     # 13.3 step 2
     _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "dismiss"})}})
     session.url = inline("<input id=foo>")
+    element = session.find.css("#foo", all=False)
 
     create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_success(result, "foo")
     assert_dialog_handled(session, "dismiss #1")
@@ -37,7 +38,7 @@ def test_handle_prompt_dismiss(new_session, add_browser_capabilites):
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_success(result, "foo")
     assert_dialog_handled(session, "dismiss #2")
@@ -46,7 +47,7 @@ def test_handle_prompt_dismiss(new_session, add_browser_capabilites):
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_success(result, "foo")
     assert_dialog_handled(session, "dismiss #3")
@@ -57,12 +58,13 @@ def test_handle_prompt_accept(new_session, add_browser_capabilites):
     # 13.3 step 2
     _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept"})}})
     session.url = inline("<input id=foo>")
+    element = session.find.css("#foo", all=False)
 
     create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_success(result, "foo")
     assert_dialog_handled(session, "dismiss #1")
@@ -71,7 +73,7 @@ def test_handle_prompt_accept(new_session, add_browser_capabilites):
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_success(result, "foo")
     assert_dialog_handled(session, "dismiss #2")
@@ -80,21 +82,22 @@ def test_handle_prompt_accept(new_session, add_browser_capabilites):
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_success(result, "foo")
     assert_dialog_handled(session, "dismiss #3")
 
 
-def test_handle_prompt_missing_value(session, create_dialog):
+def test_handle_prompt_missing_value(session):
     # 13.3 step 2
     session.url = inline("<input id=foo>")
+    element = session.find.css("#foo", all=False)
 
     create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_error(result, "unexpected alert open")
     assert_dialog_handled(session, "dismiss #1")
@@ -103,7 +106,7 @@ def test_handle_prompt_missing_value(session, create_dialog):
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_error(result, "unexpected alert open")
     assert_dialog_handled(session, "dismiss #2")
@@ -112,7 +115,7 @@ def test_handle_prompt_missing_value(session, create_dialog):
 
     result = session.transport.send("GET", "session/{session_id}/element/{element_id}/property/id"
                                     .format(session_id=session.session_id,
-                                            element_id="foo"))
+                                            element_id=element.id))
 
     assert_error(result, "unexpected alert open")
     assert_dialog_handled(session, "dismiss #3")

@@ -9,7 +9,7 @@
   <div id="log"></div>
   <script>
     test(function() {
-      element.styleMap.set('width', new CSSKeywordValue('inherit'));
-      assert_equals(element.styleMap.get('width').value, 'inherit', 'inherit should be a valid value for styleMap properties');
+      element.attributeStyleMap.set('width', new CSSKeywordValue('inherit'));
+      assert_equals(element.attributeStyleMap.get('width').value, 'inherit', 'inherit should be a valid value for styleMap properties');
     });
   </script>

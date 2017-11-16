@@ -1,0 +1,5 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test that body's style margin takes precedence over everything else in quirks mode</title>
+<link rel=match href="body-margin-1-ref.html">
+<iframe marginwidth="20" src="data:text/html,<body marginwidth='30' leftmargin='40' rightmargin='50' style='margin-left: 100px; margin-right: 100px'>100px left/right margins, default top/bottom margins</body>"></iframe>

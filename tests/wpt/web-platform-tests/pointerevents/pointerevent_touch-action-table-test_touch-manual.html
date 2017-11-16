@@ -103,10 +103,11 @@
 
                         if(xScrollIsReceived && yScrollIsReceived) {
                             test_touchaction_row.done();
-                            updateDescriptionThirdStepTable(target0, scrollReturnInterval);
-                            setTimeout(function() {
-                                isFirstPart = false;
-                            }, 2 * scrollReturnInterval); // avoid immediate triggering while scroll is still being performed
+                            updateDescriptionThirdStepTable(target0, scrollReturnInterval, function() {
+                                setTimeout(function() {
+                                    isFirstPart = false;
+                                }, scrollReturnInterval); // avoid immediate triggering while scroll is still being performed
+                            });
                         }
                     }
                     else {
@@ -123,9 +124,12 @@
                 document.getElementById('desc').innerHTML = "Test Description: Try to scroll element RIGHT staring your touch over the Row 1";
             }
 
-            function updateDescriptionThirdStepTable(target, scrollReturnInterval) {
+            function updateDescriptionThirdStepTable(target, scrollReturnInterval, callback = null) {
                 window.setTimeout(function() {
                     objectScroller(target, 'left', 0);
+                    if (callback) {
+                        callback();
+                    }
                 }
                 , scrollReturnInterval);
                 document.getElementById('desc').innerHTML = "Test Description: Try to scroll element DOWN then RIGHT starting your touch inside of the Cell 3";

@@ -96,7 +96,6 @@ anything as a result!
 
 The tests are designed to be run from your local computer. The test
 environment requires [Python 2.7+](http://www.python.org/downloads) (but not Python 3.x).
-You will also need a copy of OpenSSL.
 
 On Windows, be sure to add the Python directory (`c:\python2x`, by default) to
 your `%Path%` [Environment Variable](http://www.computerhope.com/issues/ch000549.htm),
@@ -119,16 +118,9 @@ following entries are required:
 If you are behind a proxy, you also need to make sure the domains above are
 excluded from your proxy lookups.
 
-Because web-platform-tests uses git submodules, you must ensure that
-these are up to date. In the root of your checkout, run:
-
-```
-git submodule update --init --recursive
-```
-
 The test environment can then be started using
 
-    ./serve
+    ./wpt serve
 
 This will start HTTP servers on two ports and a websockets server on
 one port. By default one web server starts on port 8000 and the other
@@ -147,44 +139,31 @@ to some port of your choice e.g.
 "http": [1234, "auto"]
 ```
 
-If you installed OpenSSL in such a way that running `openssl` at a
-command line doesn't work, you also need to adjust the path to the
-OpenSSL binary. This can be done by adding a section to `config.json`
-like:
+## Running tests automatically
+
+The `wpt run` command provides a frontend for running tests automatically
+in various browsers. The general syntax is:
 
 ```
-"ssl": {"openssl": {"binary": "/path/to/openssl"}}
+wpt run [options] <product> [test paths]
+```
+
+e.g. to run `dom/historical.html` in Firefox, the required command is:
+
+```
+wpt run firefox dom/historical.html
 ```
 
 ### Windows Notes
 
-Running wptserve with SSL enabled on Windows typically requires
-installing an OpenSSL distribution.
-[Shining Light](https://slproweb.com/products/Win32OpenSSL.html)
-provide a convenient installer that is known to work, but requires a
-little extra setup, i.e.:
+Generally Windows Subsystem for Linux will provide the smoothest user
+experience for running web-platform-tests on Windows.
 
-Run the installer for Win32_OpenSSL_v1.1.0b (30MB). During installation,
-change the default location for where to Copy OpenSSL Dlls from the
-System directory to the /bin directory.
+The standard Windows shell requires that all `wpt` commands are prefixed
+by the Python binary i.e. assuming `python` is on your path the server is
+started using:
 
-After installation, ensure that the path to OpenSSL (typically,
-this will be `C:\OpenSSL-Win32\bin`) is in your `%Path%`
-[Environment Variable](http://www.computerhope.com/issues/ch000549.htm).
-If you forget to do this part, you will most likely see a 'File Not Found'
-error when you start wptserve.
-
-Finally, set the path value in the server configuration file to the
-default OpenSSL configuration file location. To do this,
-copy `config.default.json` in the web-platform-tests root to `config.json`.
-Then edit the JSON so that the key `ssl/openssl/base_conf_path` has a
-value that is the path to the OpenSSL config file (typically this
-will be `C:\\OpenSSL-Win32\\bin\\openssl.cfg`).
-
-Alternatively, you may also use
-[Bash on Ubuntu on Windows](https://msdn.microsoft.com/en-us/commandline/wsl/about)
-in the Windows 10 Anniversary Update build, then access your windows
-partition from there to launch wptserve.
+`python wpt serve`
 
 
 [web-platform]: https://platform.html5.org

@@ -40,7 +40,7 @@ test(function() {
     assert_throws("IndexSizeError", function() {
         new ImageData(new Uint8ClampedArray(16), 4, 3);
     });
-}, "ImageData(buffer, w, h), buffer.lenght == 4 * w * h must be true");
+}, "ImageData(buffer, w, h), buffer.length == 4 * w * h must be true");
 
 test(function() {
     assert_throws(new TypeError(), function() {

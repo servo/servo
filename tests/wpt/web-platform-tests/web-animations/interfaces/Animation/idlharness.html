@@ -1,11 +1,11 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Animation interface automated IDL tests</title>
+<title>Animation IDL</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#animation">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
-<script src="../../testcommon.js"></script>
 <div id="log"></div>
 <script type="text/plain" id="Animation-IDL">
 enum AnimationPlayState { "idle", "pending", "running", "paused", "finished" };
@@ -34,18 +34,14 @@ interface Animation : EventTarget {
 <script>
 'use strict';
 
-test(function(t) {
-  const idlArray = new IdlArray();
+const idlArray = new IdlArray();
 
-  idlArray.add_untested_idls('interface AnimationTimeline {};');
-  idlArray.add_untested_idls('interface EventHandler {};');
-  idlArray.add_untested_idls('interface EventTarget {};');
-  idlArray.add_idls(
-    document.getElementById('Animation-IDL').textContent);
+idlArray.add_untested_idls('interface AnimationTimeline {};');
+idlArray.add_untested_idls('interface EventHandler {};');
+idlArray.add_untested_idls('interface EventTarget {};');
+idlArray.add_idls(document.getElementById('Animation-IDL').textContent);
+idlArray.add_objects( { Animation: ['new Animation()'] } );
 
-  // const animation = createDiv(t).animate(null);
-  idlArray.add_objects( { Animation: ['new Animation()'] } );
-  idlArray.test();
-});
+idlArray.test();
 
 </script>

@@ -25,7 +25,7 @@
 
         // 307 redirects should resend the POST data, and events and headers will be a little different..
         if(shouldResendPost) {
-            expectedHeaders = { 
+            expectedHeaders = {
                 "X-Request-Content-Length": "11988",
                 "X-Request-Content-Type": "text/plain;charset=UTF-8",
                 "X-Request-Method": "POST",
@@ -45,12 +45,12 @@
             ];
         } else {
             // setting the right expectations for POST resent as GET without request body
-            expectedHeaders = { 
+            expectedHeaders = {
                 "X-Request-Content-Length": "NO",
                 "X-Request-Content-Type": "NO",
                 "X-Request-Method": "GET",
                 "X-Request-Query": "NO"
-            }            
+            }
             expectedEvents = [
                 "xhr onreadystatechange 1",
                 "xhr loadstart 1",

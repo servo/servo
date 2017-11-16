@@ -54,7 +54,7 @@ function run_tests() {
 }
 
 if (!navigator.serviceWorker.controller)
-  window.parent.notify_done('FAIL: no controller');
+  window.parent.notify_test_done('FAIL: no controller');
 else
   run_tests();
 </script>

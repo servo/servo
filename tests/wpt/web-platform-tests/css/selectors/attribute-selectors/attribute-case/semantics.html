@@ -1,0 +1,147 @@
+<!doctype html>
+<title>Selectors: semantics of case-sensitivity attribute selector</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#attribute-case">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style></style>
+<div id=log></div>
+<iframe id="quirks" src="resources/semantics-quirks.html"></iframe>
+<iframe id="xml" src="resources/semantics-xml.xhtml"></iframe>
+<script>
+setup({explicit_done:true});
+var match = [
+  // [selector, attrs...] (each attr is [ns, name, value])
+  ["[foo='BAR'] /* sanity check (match) */", ["", "foo", "BAR"]],
+  ["[foo='bar' i]", ["", "foo", "BAR"]],
+  ["[foo='' i]", ["", "foo", ""]],
+  ["[foo='a\u0308' i] /* COMBINING in both */", ["", "foo", "A\u0308"]],
+  ["[foo='A\u0308' i] /* COMBINING in both */", ["", "foo", "a\u0308"]],
+  ["[*|foo='bar' i]", ["", "foo", "x"], ["a", "foo", "x"], ["b", "foo", "BAR"], ["c", "foo", "x"]],
+  ["[*|foo='bar' i]", ["", "foo", "BAR"], ["a", "foo", "x"], ["b", "foo", "x"], ["c", "foo", "x"]],
+  ["[align='left' i]", ["", "align", "LEFT"]],
+  ["[align='LEFT' i]", ["", "align", "left"]],
+  ["[class~='a' i]", ["", "class", "X A B"]],
+  ["[class~='A' i]", ["", "class", "x a b"]],
+  ["[id^='a' i]", ["", "id", "AB"]],
+  ["[id$='A' i]", ["", "id", "xa"]],
+  ["[lang|='a' i]", ["", "lang", "A-B"]],
+  ["[lang*='A' i]", ["", "lang", "xab"]],
+  ["[*|lang='a' i]", ["http://www.w3.org/XML/1998/namespace", "lang", "A"]],
+  ["[*|lang='A' i]", ["http://www.w3.org/XML/1998/namespace", "lang", "a"]],
+  ["@namespace x 'http://www.w3.org/XML/1998/namespace'; [x|lang='A' i]", ["http://www.w3.org/XML/1998/namespace", "lang", "a"]],
+  ["[foo='bar' i][foo='bar' i]", ["", "foo", "BAR"]],
+  ["[foo='BAR'][foo='bar' i]", ["", "foo", "BAR"]],
+  ["[foo='bar' i][foo='BAR']", ["", "foo", "BAR"]],
+];
+var nomatch = [
+  ["[missingattr] /* sanity check (no match) */", ["", "foo", "BAR"]],
+  ["[foo='' i]", ["", "foo", "BAR"]],
+  ["[foo='\u0000' i] /* \\0 in selector */", ["", "foo", ""]],
+  ["[foo='' i] /* \\0 in attribute */", ["", "foo", "\u0000"]],
+  ["[foo='\u00E4' i]", ["", "foo", "\u00C4"]],
+  ["[foo='\u00C4' i]", ["", "foo", "\u00E4"]],
+  ["[foo='a\u0308' i] /* COMBINING in selector */", ["", "foo", "\u00C4"]],
+  ["[foo~='a\u0308' i] /* COMBINING in selector */", ["", "foo", "\u00E4"]],
+  ["[foo^='A\u0308' i] /* COMBINING in selector */", ["", "foo", "\u00C4"]],
+  ["[foo$='A\u0308' i] /* COMBINING in selector */", ["", "foo", "\u00E4"]],
+  ["[foo*='\u00E4' i] /* COMBINING in attribute */", ["", "foo", "a\u0308"]],
+  ["[foo|='\u00E4' i] /* COMBINING in attribute */", ["", "foo", "A\u0308"]],
+  ["[foo='\u00C4' i] /* COMBINING in attribute */", ["", "foo", "a\u0308"]],
+  ["[foo='\u00C4' i] /* COMBINING in attribute */", ["", "foo", "A\u0308"]],
+  ["[foo='a\u0308' i] /* COMBINING in selector */", ["", "foo", "a"]],
+  ["[foo='a\u0308' i] /* COMBINING in selector */", ["", "foo", "A"]],
+  ["[foo='A\u0308' i] /* COMBINING in selector */", ["", "foo", "a"]],
+  ["[foo='A\u0308' i] /* COMBINING in selector */", ["", "foo", "A"]],
+  ["[foo='a' i] /* COMBINING in attribute */", ["", "foo", "a\u0308"]],
+  ["[foo='A' i] /* COMBINING in attribute */", ["", "foo", "a\u0308"]],
+  ["[foo='a' i] /* COMBINING in attribute */", ["", "foo", "A\u0308"]],
+  ["[foo='A' i] /* COMBINING in attribute */", ["", "foo", "A\u0308"]],
+  ["[foo='i' i]", ["", "foo", "\u0130"]],
+  ["[foo='i' i]", ["", "foo", "\u0131"]],
+  ["[foo='I' i]", ["", "foo", "\u0130"]],
+  ["[foo='I' i]", ["", "foo", "\u0131"]],
+  ["[foo='\u0130' i]", ["", "foo", "i"]],
+  ["[foo='\u0131' i]", ["", "foo", "i"]],
+  ["[foo='\u0130' i]", ["", "foo", "I"]],
+  ["[foo='\u0131' i]", ["", "foo", "I"]],
+  ["[foo='bar' i]", ["", "foo", "x"], ["a", "foo", "BAR"]],
+  ["[|foo='bar' i]", ["", "foo", "x"], ["a", "foo", "BAR"]],
+  ["[foo='bar' i]", ["", "FOO", "bar"]],
+  ["[foo='\t' i] /* tab in selector */", ["", "foo", " "]],
+  ["[foo=' ' i] /* tab in attribute */", ["", "foo", "\t"]],
+  ["@namespace x 'a'; [x|foo='' i]", ["A", "foo", ""]],
+  ["@namespace x 'A'; [x|foo='' i]", ["a", "foo", ""]],
+  ["[foo='bar' i][foo='bar']", ["", "foo", "BAR"]],
+  ["[foo='bar' i]", ["", "baz", "BAR"]],
+];
+var mode = "standards mode";
+function format_attrs(attrs) {
+  var rv = [];
+  attrs.forEach(function(attr) {
+    var str = "";
+    var ns = attr[0];
+    var name = attr[1];
+    var value = attr[2];
+    if (ns)
+      str += "{" + ns + "}";
+    str += name + "=\"" + value + "\"";
+    rv.push(str);
+  });
+  return rv.join(" ");
+}
+onload = function() {
+  var quirks = document.getElementById('quirks').contentWindow;
+  var xml = document.getElementById('xml').contentWindow;
+  [window, quirks, xml].forEach(function(global) {
+    var style = global.document.getElementsByTagName('style')[0];
+    var elm;
+    function clean_slate() {
+      style.textContent = '';
+      if (elm)
+        elm.parentNode.removeChild(elm);
+      elm = global.document.createElement('div');
+      global.document.body.appendChild(elm);
+    }
+    function set_attrs(attrs) {
+      attrs.forEach(function(attr) {
+        elm.setAttributeNS(attr[0], attr[1], attr[2]);
+      });
+    }
+    match.forEach(function(arr) {
+      var s = arr[0];
+      var attrs = arr.slice(1);
+      var ns_decl = s.substr(0, "@namespace".length) == "@namespace";
+      test(function() {
+        clean_slate();
+        set_attrs(attrs);
+        style.textContent = s + ' { visibility:hidden }';
+        assert_equals(style.sheet.cssRules.length, (ns_decl ? 2 : 1), 'rule didn\'t parse into CSSOM');
+        assert_equals(global.getComputedStyle(elm).visibility, 'hidden', 'selector didn\'t match');
+      }, s + ' <div ' + format_attrs(attrs) + '> in ' + global.mode);
+      if (!ns_decl) {
+        test(function() {
+          assert_equals(global.document.querySelector(s), elm, 'selector didn\'t match');
+        }, s + ' <div ' + format_attrs(attrs) + '> with querySelector in ' + global.mode);
+      }
+    });
+    nomatch.forEach(function(arr) {
+      var s = arr[0];
+      var attrs = arr.slice(1);
+      var ns_decl = s.substr(0, "@namespace".length) == "@namespace";
+      test(function() {
+        clean_slate();
+        set_attrs(attrs);
+        style.textContent = s + ' { visibility:hidden }';
+        assert_equals(style.sheet.cssRules.length, (ns_decl ? 2 : 1), 'rule didn\'t parse into CSSOM');
+        assert_equals(global.getComputedStyle(elm).visibility, 'visible', 'selector matched');
+      }, s + ' <div ' + format_attrs(attrs) + '> in ' + global.mode);
+      if (!ns_decl) {
+        test(function() {
+          assert_equals(global.document.querySelector(s), null, 'selector matched');
+        }, s + ' <div ' + format_attrs(attrs) + '> with querySelector in ' + global.mode);
+      }
+    });
+  });
+  done();
+};
+</script>

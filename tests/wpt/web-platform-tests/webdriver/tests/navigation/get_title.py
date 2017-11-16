@@ -55,7 +55,7 @@ def test_title_handle_prompt_dismiss(new_session, add_browser_capabilites):
 
     assert_success(result, expected_title)
     assert_dialog_handled(session, "dismiss #2")
-    assert read_global(session, "dismiss2") == None
+    assert read_global(session, "dismiss2") == False
 
     expected_title = read_global(session, "document.title")
     create_dialog(session)("prompt", text="dismiss #3", result_var="dismiss3")
@@ -101,7 +101,7 @@ def test_title_handle_prompt_accept(new_session, add_browser_capabilites):
 
     assert_success(result, expected_title)
     assert_dialog_handled(session, "accept #2")
-    assert read_global(session, "accept2"), True
+    assert read_global(session, "accept2") == True
 
     expected_title = read_global(session, "document.title")
     create_dialog(session)("prompt", text="accept #3", result_var="accept3")
@@ -111,7 +111,7 @@ def test_title_handle_prompt_accept(new_session, add_browser_capabilites):
 
     assert_success(result, expected_title)
     assert_dialog_handled(session, "accept #3")
-    assert read_global(session, "accept3") == ""
+    assert read_global(session, "accept3") == "" or read_global(session, "accept3") == "undefined"
 
 # [...]
 # 2. Handle any user prompts and return its value if it is an error.
@@ -279,4 +279,4 @@ def test_title_from_frame(session, create_frame):
     result = session.transport.send("GET",
                                     "session/%s/title" % session.session_id)
 
-    assert_success(result, read_global(session, "document.title"))
+    assert_success(result, "Parent")

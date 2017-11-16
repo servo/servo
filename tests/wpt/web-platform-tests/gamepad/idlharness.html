@@ -52,7 +52,7 @@ dictionary GamepadEventInit : EventInit
 };
 
 partial interface Navigator {
-    Gamepad[] getGamepads();
+    sequence<Gamepad?> getGamepads();
 };
 </pre>
 <script>

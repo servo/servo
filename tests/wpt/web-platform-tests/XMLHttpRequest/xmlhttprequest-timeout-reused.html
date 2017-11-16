@@ -17,15 +17,16 @@
     <div id="log"></div>
     <script type="text/javascript">
 
+var test = async_test();
+
 function startRequest() {
     xhr.open("GET", "./resources/content.py?content=Hi", true);
     xhr.timeout = 2000;
-    setTimeout(function () {
+    test.step_timeout(function () {
       xhr.send();
     }, 1000);
 }
 
-var test = async_test();
 test.step(function()
 {
     var count = 0;
@@ -40,7 +41,7 @@ test.step(function()
       assert_unreached("HTTP error should not timeout");
     }
     startRequest();
-    setTimeout(startRequest, 3500);
+    test.step_timeout(startRequest, 3500);
 });
 
     </script>

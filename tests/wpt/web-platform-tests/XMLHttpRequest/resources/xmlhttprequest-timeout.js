@@ -245,7 +245,7 @@ AbortedRequest.prototype = {
   /**
    * Check the event received, and if it's the right (and only) one we get.
    *
-   * WebKit fires abort events even for DONE and UNSENT states, which is 
+   * WebKit fires abort events even for DONE and UNSENT states, which is
    * discussed in http://webkit.org/b/98404
    * That's why we chose to accept secondary "abort" events in this test.
    *

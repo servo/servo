@@ -73,3 +73,7 @@ test(function() {
       'http://{{host}}/',
       'FetchEvent.request.url should return the value it was initialized to');
   }, 'Event constructors');
+
+test(() => {
+    assert_false('XMLHttpRequest' in self);
+  }, 'xhr is not exposed');

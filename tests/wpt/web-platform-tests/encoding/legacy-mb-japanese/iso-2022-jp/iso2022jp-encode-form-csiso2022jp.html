@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="csiso2022jp"> <!-- test breaks if the server overrides this -->
+<title>csiso2022jp encoding (form)</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="jis0208_index.js"></script>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+<link rel="help" href="https://encoding.spec.whatwg.org/#names-and-labels">
+<meta name="assert" content="The browser produces the same encoding behavior for a document labeled 'csiso2022jp' as for a document labeled 'iso-2022-jp'.">
+<style>
+ iframe { display:none }
+ form { display:none }
+</style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+var tests = [];
+var cplist = [];
+var numTests = null;
+var numFrames = 2;
+var chunkSize = 400;
+var numChunks = null;
+var frames = null;
+var frames = null;
+var forms = null;
+var seperator = "\u0019";
+var encodedSeperator = encodeURIComponent("\u0019");
+var currentChunkIndex = 0;
+
+function getByteSequence(cp) {
+    // uses the Encoding spec algorithm to derive a sequence of bytes for a character that can be encoded
+    // the result is either a percent-encoded value or null (if the character can't be encoded)
+    // cp: integer, a code point number
+
+    var cps = [cp];
+    var endofstream = 2000000;
+    cps.push(endofstream);
+    var out = "";
+    var encState = "ascii";
+    var finished = false;
+    while (!finished) {
+        cp = cps.shift();
+        if (cp == endofstream && encState != "ascii") {
+            cps.unshift(cp);
+            encState = "ascii";
+            out += "%1B%28%42";
+            continue;
+        }
+        if (cp == endofstream && encState == "ascii") {
+            finished = true;
+            break;
+        }
+        if (encState == "ascii" && cp >= 0x00 && cp <= 0x7f) {
+            out += "%" + cp.toString(16).toUpperCase();
+            continue;
+        }
+        if (
+            encState == "roman" &&
+            ((cp >= 0x00 && cp <= 0x7f && cp !== 0x5c && cp !== 0x7e) ||
+                cp == 0xa5 ||
+                cp == 0x203e)
+        ) {
+            if (cp >= 0x00 && cp <= 0x7f) {
+                // ASCII
+                out += "%" + cp.toString(16).toUpperCase();
+                continue;
+            }
+            if (cp == 0xa5) {
+                out += "%5C";
+                continue;
+            }
+            if (cp == 0x203e) {
+                out += "%7E";
+                continue;
+            }
+        }
+        if (encState != "ascii" && cp >= 0x00 && cp <= 0x7f) {
+            cps.unshift(cp);
+            encState = "ascii";
+            out += "%1B%28%42";
+            continue;
+        }
+        if ((cp == 0xa5 || cp == 0x203e) && encState != "roman") {
+            cps.unshift(cp);
+            encState = "roman";
+            out += "%1B%28%4A";
+            continue;
+        }
+        if (cp == 0x2212) cp = 0xff0d;
+        ptr = indexcodepoints[cp];
+        if (ptr == null) {
+            return null;
+        }
+        if (encState != "jis0208") {
+            cps.unshift(cp);
+            encState = "jis0208";
+            out += "%1B%24%42";
+            continue;
+        }
+        var lead = Math.floor(ptr / 94) + 0x21;
+        var trail = ptr % 94 + 0x21;
+        out +=
+            "%" +
+            lead.toString(16).toUpperCase() +
+            "%" +
+            trail.toString(16).toUpperCase();
+    }
+    return out.trim();
+}
+
+// set up a sparse array of all unicode codepoints listed in the index
+// this will be used for lookup in getByteSequence
+var indexcodepoints = []; // index is unicode cp, value is pointer
+for (p = 0; p < jis0208.length; p++) {
+    if (jis0208[p] != null && indexcodepoints[jis0208[p]] == null) {
+        indexcodepoints[jis0208[p]] = p;
+    }
+}
+
+setup(function() {
+    // create a simple list of just those code points for which there is an encoding possible
+    codepoints = [];
+    for (var i = 0x80; i < 0xffff; i++) {
+        result = getByteSequence(i);
+        if (result) {
+            var item = {};
+            codepoints.push(item);
+            item.cp = i;
+            item.expected = result;
+        }
+    }
+
+    // convert the information into a simple array of objects that can be easily traversed
+    var currentChunk = [];
+    var currentTests = [];
+    cplist = [currentChunk];
+    tests = [currentTests];
+    for (i = 0; i < codepoints.length; i++) {
+        if (currentChunk.length == chunkSize) {
+            currentChunk = [];
+            cplist.push(currentChunk);
+            currentTests = [];
+            tests.push(currentTests);
+        }
+        var item = {};
+        currentChunk.push(item);
+        item.cp = codepoints[i].cp;
+        item.expected = codepoints[i].expected;
+        currentTests.push(
+            async_test(
+                "U+" +
+                    item.cp.toString(16).toUpperCase() +
+                    " " +
+                    String.fromCodePoint(item.cp) +
+                    " " +
+                    normalizeStr(item.expected)
+            )
+        );
+    }
+
+    numChunks = cplist.length;
+
+    for (var i = 0; i < numFrames; i++) {
+        var frame = document.createElement("iframe");
+        frame.id = frame.name = "frame-" + i;
+        document.body.appendChild(frame);
+        var form = document.createElement("form");
+        form.id = "form-" + i;
+        form.method = "GET";
+        form.action = "/common/blank.html";
+        form.acceptCharset = "csiso2022jp";
+        form.target = frame.id;
+        var input = document.createElement("input");
+        input.id = input.name = "input-" + i;
+        form.appendChild(input);
+        document.body.appendChild(form);
+    }
+
+    addEventListener("load", function() {
+        frames = Array.prototype.slice.call(
+            document.getElementsByTagName("iframe")
+        );
+        forms = Array.prototype.slice.call(
+            document.getElementsByTagName("form")
+        );
+        inputs = Array.prototype.slice.call(
+            document.getElementsByTagName("input")
+        );
+        for (var i = 0; i < Math.min(numFrames, numChunks); i++) {
+            runNext(i);
+        }
+    });
+});
+
+function runNext(id) {
+    var i = currentChunkIndex;
+    currentChunkIndex += 1;
+
+    var iframe = frames[id];
+    var form = forms[id];
+    var input = inputs[id];
+
+    input.value = cplist[i]
+        .map(function(x) {
+            return String.fromCodePoint(x.cp);
+        })
+        .join(seperator);
+    form.submit();
+
+    iframe.onload = function() {
+        var url = iframe.contentWindow.location;
+        var query = url.search;
+        var result_string = query.substr(query.indexOf("=") + 1);
+        var results = result_string.split(encodedSeperator);
+
+        for (var j = 0; j < cplist[i].length; j++) {
+            var t = tests[i][j];
+            t.step(function() {
+                assert_equals(
+                    normalizeStr(results[j]),
+                    normalizeStr(cplist[i][j].expected)
+                );
+            });
+            t.done();
+        }
+        if (currentChunkIndex < numChunks) {
+            runNext(id);
+        }
+    };
+}
+</script>
+</body>
+</html>

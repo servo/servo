@@ -143,6 +143,38 @@ function define_new_custom_element(observedAttributes) {
 }
 define_new_custom_element._element_number = 1;
 
+function define_build_in_custom_element(observedAttributes, extendedElement, extendsOption) {
+    let log = [];
+    let name = 'custom-element-' + define_build_in_custom_element._element_number++;
+
+    class CustomElement extends extendedElement {
+        constructor() {
+            super();
+            log.push({type: 'constructed', element: this});
+        }
+        attributeChangedCallback(...args) {
+            log.push(create_attribute_changed_callback_log(this, ...args));
+        }
+        connectedCallback() { log.push({type: 'connected', element: this}); }
+        disconnectedCallback() { log.push({type: 'disconnected', element: this}); }
+        adoptedCallback(oldDocument, newDocument) { log.push({type: 'adopted', element: this, oldDocument: oldDocument, newDocument: newDocument}); }
+    }
+    CustomElement.observedAttributes = observedAttributes;
+    customElements.define(name, CustomElement, { extends: extendsOption});
+
+    return {
+        name: name,
+        class: CustomElement,
+        takeLog: function () {
+            let currentLog = log; log = [];
+            currentLog.types = () => currentLog.map((entry) => entry.type);
+            currentLog.last = () => currentLog[currentLog.length - 1];
+            return currentLog;
+        }
+    };
+}
+define_build_in_custom_element._element_number = 1;
+
 function document_types() {
     return [
         {

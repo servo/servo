@@ -1,0 +1,12 @@
+<script>
+"use strict";
+
+Promise.resolve().then(async () => {
+  try {
+    const wakeLock = await navigator.getWakeLock("screen");
+    window.parent.postMessage({ enabled: true }, "*");
+  } catch (e) {
+    window.parent.postMessage({ enabled: false }, "*");
+  }
+});
+</script>

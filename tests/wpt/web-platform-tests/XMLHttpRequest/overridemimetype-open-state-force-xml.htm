@@ -15,11 +15,11 @@
         var client = new XMLHttpRequest();
         client.onreadystatechange = function() {
           if (client.readyState !== 4) return;
-					try{
+          try{
             var str = client.responseXML.documentElement.tagName+client.responseXML.documentElement.firstChild.tagName+client.responseXML.documentElement.firstChild.textContent;
-					}catch(e){
-						assert_unreached('Exception when reading responseXML');
-					}
+          }catch(e){
+            assert_unreached('Exception when reading responseXML');
+          }
           assert_equals( client.responseXML.documentElement.tagName,  'test' );
           assert_equals( client.responseXML.documentElement.firstChild.tagName,  'message' );
           assert_equals( client.responseXML.documentElement.firstChild.textContent,  'Hello World！' );

@@ -9,7 +9,7 @@
 <div id=log></div>
 
 <script type=text/plain>
-[Exposed=(Window,Worker)]
+[Constructor(), Exposed=(Window,Worker)]
 interface EventTarget {
   void addEventListener(DOMString type, EventListener? listener, optional (AddEventListenerOptions or boolean) options);
   void removeEventListener(DOMString type, EventListener? listener, optional (EventListenerOptions or boolean) options);
