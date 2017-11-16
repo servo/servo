@@ -52,7 +52,7 @@ half = "1.0"
 html5ever = "0.21"
 hyper = "0.10"
 hyper_serde = "0.7"
-image = "0.16"
+image = "0.17"
 ipc-channel = "0.9"
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "0.2"
@@ -69,7 +69,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 nonzero = {path = "../nonzero"}
 num-traits = "0.1.32"
-offscreen_gl_context = { version = "0.12", features = ["serde"] }
+offscreen_gl_context = { version = "0.13", features = ["serde"] }
 open = "1.1.1"
 parking_lot = "0.4"
 phf = "0.7.18"
