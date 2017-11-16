@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
+import csv
 import itertools
 import json
 import os
@@ -236,6 +237,40 @@ def save_result_json(results, filename, manifest, expected_runs, base):
     print("Result saved to {}".format(filename))
 
 
+def save_result_csv(results, filename, manifest, expected_runs, base):
+
+    fieldnames = [
+        'testcase',
+        'title',
+        'connectEnd',
+        'connectStart',
+        'domComplete',
+        'domContentLoadedEventEnd',
+        'domContentLoadedEventStart',
+        'domInteractive',
+        'domLoading',
+        'domainLookupEnd',
+        'domainLookupStart',
+        'fetchStart',
+        'loadEventEnd',
+        'loadEventStart',
+        'navigationStart',
+        'redirectEnd',
+        'redirectStart',
+        'requestStart',
+        'responseEnd',
+        'responseStart',
+        'secureConnectionStart',
+        'unloadEventEnd',
+        'unloadEventStart',
+    ]
+
+    with open(filename, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames)
+        writer.writeheader()
+        writer.writerows(results)
+
+
 def format_result_summary(results):
     failures = list(filter(lambda x: x['domComplete'] == -1, results))
     result_log = """
@@ -306,7 +341,10 @@ def main():
                 # TODO: Record and analyze other performance.timing properties
 
         print(format_result_summary(results))
-        save_result_json(results, args.output_file, testcases, args.runs, args.base)
+        if args.output_file.endswith('.csv'):
+            save_result_csv(results, args.output_file, testcases, args.runs, args.base)
+        else:
+            save_result_json(results, args.output_file, testcases, args.runs, args.base)
 
     except KeyboardInterrupt:
         print("Test stopped by user, saving partial result")
