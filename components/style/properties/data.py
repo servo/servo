@@ -206,6 +206,12 @@ class Longhand(object):
             self.transitionable = False
             self.animation_type = None
 
+    def experimental(self, product):
+        if product == "gecko":
+            return bool(self.gecko_pref)
+        return bool(self.servo_pref)
+
+
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
@@ -254,6 +260,11 @@ class Shorthand(object):
 
     animatable = property(get_animatable)
     transitionable = property(get_transitionable)
+
+    def experimental(self, product):
+        if product == "gecko":
+            return bool(self.gecko_pref)
+        return bool(self.servo_pref)
 
 
 class Alias(object):

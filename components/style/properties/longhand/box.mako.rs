@@ -912,6 +912,7 @@ ${helpers.predefined_type(
 <%helpers:longhand name="touch-action"
                    products="gecko"
                    animation_value_type="discrete"
+                   gecko_pref="layout.css.touch_action.enabled"
                    spec="https://compat.spec.whatwg.org/#touch-action">
     use gecko_bindings::structs;
     use std::fmt;
