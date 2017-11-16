@@ -187,6 +187,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     parser::assert_parsing_mode_match();
     traversal_flags::assert_traversal_flags_match();
     specified::font::assert_variant_east_asian_matches();
+    specified::font::assert_variant_ligatures_matches();
 
     // Initialize the dummy url data
     unsafe { DUMMY_URL_DATA = dummy_url_data; }
