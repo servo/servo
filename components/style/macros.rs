@@ -4,6 +4,16 @@
 
 //! Various macro helpers.
 
+macro_rules! exclusive_value {
+    (($value:ident, $set:expr) => $ident:path) => {
+        if $value.intersects($set) {
+            return Err(())
+        } else {
+            $ident
+        }
+    }
+}
+
 macro_rules! trivial_to_computed_value {
     ($name:ty) => {
         impl $crate::values::computed::ToComputedValue for $name {

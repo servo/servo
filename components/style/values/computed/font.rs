@@ -277,6 +277,9 @@ impl FontVariantAlternates {
     }
 }
 
+/// Use VariantEastAsian as computed type of FontVariantEastAsian
+pub type FontVariantEastAsian = specified::VariantEastAsian;
+
 /// font-language-override can only have a single three-letter
 /// OpenType "language system" tag, so we should be able to compute
 /// it and store it as a 32-bit integer

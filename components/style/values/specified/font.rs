@@ -851,6 +851,250 @@ impl Parse for FontVariantAlternates {
     }
 }
 
+bitflags! {
+    #[derive(MallocSizeOf)]
+    /// Vairants for east asian variant
+    pub struct VariantEastAsian: u16 {
+        /// None of the features
+        const NORMAL = 0;
+        /// Enables rendering of JIS78 forms (OpenType feature: jp78)
+        const JIS78 = 0x01;
+        /// Enables rendering of JIS83 forms (OpenType feature: jp83).
+        const JIS83 = 0x02;
+        /// Enables rendering of JIS90 forms (OpenType feature: jp90).
+        const JIS90 = 0x04;
+        /// Enables rendering of JIS2004 forms (OpenType feature: jp04).
+        const JIS04 = 0x08;
+        /// Enables rendering of simplified forms (OpenType feature: smpl).
+        const SIMPLIFIED = 0x10;
+        /// Enables rendering of traditional forms (OpenType feature: trad).
+        const TRADITIONAL = 0x20;
+        /// Enables rendering of full-width variants (OpenType feature: fwid).
+        const FULL_WIDTH = 0x40;
+        /// Enables rendering of proportionally-spaced variants (OpenType feature: pwid).
+        const PROPORTIONAL_WIDTH = 0x80;
+        /// Enables display of ruby variant glyphs (OpenType feature: ruby).
+        const RUBY = 0x100;
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl VariantEastAsian {
+    /// Obtain a specified value from a Gecko keyword value
+    ///
+    /// Intended for use with presentation attributes, not style structs
+    pub fn from_gecko_keyword(kw: u16) -> Self {
+        Self::from_bits_truncate(kw)
+    }
+
+    /// Transform into gecko keyword
+    pub fn to_gecko_keyword(self) -> u16 {
+        self.bits()
+    }
+}
+
+impl ToCss for VariantEastAsian {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.is_empty() {
+            return dest.write_str("normal")
+        }
+
+        let mut has_any = false;
+
+        macro_rules! write_value {
+            ($ident:path => $str:expr) => {
+                if self.intersects($ident) {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    has_any = true;
+                    dest.write_str($str)?;
+                }
+            }
+        }
+
+        write_value!(VariantEastAsian::JIS78 => "jis78");
+        write_value!(VariantEastAsian::JIS83 => "jis83");
+        write_value!(VariantEastAsian::JIS90 => "jis90");
+        write_value!(VariantEastAsian::JIS04 => "jis04");
+        write_value!(VariantEastAsian::SIMPLIFIED => "simplified");
+        write_value!(VariantEastAsian::TRADITIONAL => "traditional");
+        write_value!(VariantEastAsian::FULL_WIDTH => "full-width");
+        write_value!(VariantEastAsian::PROPORTIONAL_WIDTH => "proportional-width");
+        write_value!(VariantEastAsian::RUBY => "ruby");
+
+        debug_assert!(has_any);
+        Ok(())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u16> for VariantEastAsian {
+    fn from(bits: u16) -> VariantEastAsian {
+        VariantEastAsian::from_gecko_keyword(bits)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<VariantEastAsian> for u16 {
+    fn from(v: VariantEastAsian) -> u16 {
+        v.to_gecko_keyword()
+    }
+}
+
+/// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_variant_east_asian_matches() {
+    use gecko_bindings::structs;
+
+    macro_rules! check_variant_east_asian {
+        ( $( $a:ident => $b:path),*, ) => {
+            if cfg!(debug_assertions) {
+                $(
+                    assert_eq!(structs::$a as u16, $b.bits());
+                )*
+            }
+        }
+    }
+
+    check_variant_east_asian! {
+        NS_FONT_VARIANT_EAST_ASIAN_FULL_WIDTH => VariantEastAsian::FULL_WIDTH,
+        NS_FONT_VARIANT_EAST_ASIAN_JIS04 => VariantEastAsian::JIS04,
+        NS_FONT_VARIANT_EAST_ASIAN_JIS78 => VariantEastAsian::JIS78,
+        NS_FONT_VARIANT_EAST_ASIAN_JIS83 => VariantEastAsian::JIS83,
+        NS_FONT_VARIANT_EAST_ASIAN_JIS90 => VariantEastAsian::JIS90,
+        NS_FONT_VARIANT_EAST_ASIAN_PROP_WIDTH => VariantEastAsian::PROPORTIONAL_WIDTH,
+        NS_FONT_VARIANT_EAST_ASIAN_RUBY => VariantEastAsian::RUBY,
+        NS_FONT_VARIANT_EAST_ASIAN_SIMPLIFIED => VariantEastAsian::SIMPLIFIED,
+        NS_FONT_VARIANT_EAST_ASIAN_TRADITIONAL => VariantEastAsian::TRADITIONAL,
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+/// Allows control of glyph substitution and sizing in East Asian text.
+pub enum FontVariantEastAsian {
+    /// Value variant with `variant-east-asian`
+    Value(VariantEastAsian),
+    /// System font variant
+    System(SystemFont)
+}
+
+impl FontVariantEastAsian {
+    #[inline]
+    /// Get default `font-variant-east-asian` with `empty` variant
+    pub fn empty() -> Self {
+        FontVariantEastAsian::Value(VariantEastAsian::empty())
+    }
+
+    /// Get `font-variant-east-asian` with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontVariantEastAsian::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontVariantEastAsian::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontVariantEastAsian {
+    type ComputedValue = computed::FontVariantEastAsian;
+
+    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantEastAsian {
+        match *self {
+            FontVariantEastAsian::Value(ref v) => v.clone(),
+            FontVariantEastAsian::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    _context.cached_system_font.as_ref().unwrap().font_variant_east_asian.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontVariantEastAsian) -> Self {
+        FontVariantEastAsian::Value(other.clone())
+    }
+}
+
+impl Parse for FontVariantEastAsian {
+    /// normal | [ <east-asian-variant-values> || <east-asian-width-values> || ruby ]
+    /// <east-asian-variant-values> = [ jis78 | jis83 | jis90 | jis04 | simplified | traditional ]
+    /// <east-asian-width-values>   = [ full-width | proportional-width ]
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<FontVariantEastAsian, ParseError<'i>> {
+        let mut result = VariantEastAsian::empty();
+
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(FontVariantEastAsian::Value(result))
+        }
+
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
+                "jis78" =>
+                    exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
+                                              VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
+                                              VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
+                                    ) => VariantEastAsian::JIS78),
+                "jis83" =>
+                    exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
+                                              VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
+                                              VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
+                                    ) => VariantEastAsian::JIS83),
+                "jis90" =>
+                    exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
+                                              VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
+                                              VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
+                                    ) => VariantEastAsian::JIS90),
+                "jis04" =>
+                    exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
+                                              VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
+                                              VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
+                                    ) => VariantEastAsian::JIS04),
+                "simplified" =>
+                    exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
+                                              VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
+                                              VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
+                                    ) => VariantEastAsian::SIMPLIFIED),
+                "traditional" =>
+                    exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
+                                              VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
+                                              VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
+                                    ) => VariantEastAsian::TRADITIONAL),
+                "full-width" =>
+                    exclusive_value!((result, VariantEastAsian::FULL_WIDTH |
+                                              VariantEastAsian::PROPORTIONAL_WIDTH
+                                    ) => VariantEastAsian::FULL_WIDTH),
+                "proportional-width" =>
+                    exclusive_value!((result, VariantEastAsian::FULL_WIDTH |
+                                              VariantEastAsian::PROPORTIONAL_WIDTH
+                                    ) => VariantEastAsian::PROPORTIONAL_WIDTH),
+                "ruby" =>
+                    exclusive_value!((result, VariantEastAsian::RUBY) => VariantEastAsian::RUBY),
+                _ => return Err(()),
+            })
+        }) {
+            result.insert(flag);
+        }
+
+        if !result.is_empty() {
+            Ok(FontVariantEastAsian::Value(result))
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces
