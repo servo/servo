@@ -1292,31 +1292,7 @@ impl PropertyId {
         // both experimental and internal, the pref only controls its
         // availability in non-UA sheets (and in UA sheets it is always available).
         ${id_set("INTERNAL", lambda p: p.internal)}
-
-        % if product == "servo":
-            ${id_set("EXPERIMENTAL", lambda p: p.servo_pref)}
-        % endif
-        % if product == "gecko":
-            use gecko_bindings::structs::root::mozilla;
-            static EXPERIMENTAL: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
-                <%
-                    grouped = []
-                    properties = data.longhands + data.shorthands + data.all_aliases()
-                    while properties:
-                        grouped.append(properties[:32])
-                        properties = properties[32:]
-                %>
-                storage: [
-                    % for group in grouped:
-                        (0
-                        % for i, property in enumerate(group):
-                            | ((mozilla::SERVO_PREF_ENABLED_${property.gecko_pref_ident} as u32) << ${i})
-                        % endfor
-                        ),
-                    % endfor
-                ]
-            };
-        % endif
+        ${id_set("EXPERIMENTAL", lambda p: p.experimental(product))}
 
         let passes_pref_check = || {
             % if product == "servo":
