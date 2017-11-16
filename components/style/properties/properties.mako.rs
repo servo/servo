@@ -1158,6 +1158,7 @@ impl PropertyId {
             Some(context) => context,
             None => {
                 default = PropertyParserContext {
+                    in_chrome_stylesheet: false,
                     stylesheet_origin: Origin::Author,
                     rule_type: CssRuleType::Style,
                 };
@@ -1287,12 +1288,25 @@ impl PropertyId {
             _ => {}
         }
 
-        // For properties that are experimental but not internal, the pref will
-        // control its availability in all sheets.   For properties that are
-        // both experimental and internal, the pref only controls its
-        // availability in non-UA sheets (and in UA sheets it is always available).
-        ${id_set("INTERNAL", lambda p: p.internal)}
+        // The semantics of these are kinda hard to reason about, what follows
+        // is a description of the different combinations that can happen with
+        // these three sets.
+        //
+        // By default, a property is accessible to content. If it's enabled in
+        // UA sheets or chrome, then the property is by default not-accessible
+        // to content.
+        //
+        // If a property is marked as experimental, then it is accessible to
+        // content iff the pref is on, and it won't be accessible to chrome or
+        // UA sheets if the pref is off, unless it's explicitly enabled.
+        //
+        // TODO(emilio): This is kinda messy, and makes the common path be
+        // slower than what it needs to be, should we add at least a fast-path
+        // for public, non-experimental properties?
+        ${id_set("ENABLED_IN_UA_SHEETS", lambda p: p.explicitly_enabled_in_ua_sheets())}
+        ${id_set("ENABLED_IN_CHROME", lambda p: p.explicitly_enabled_in_chrome())}
         ${id_set("EXPERIMENTAL", lambda p: p.experimental(product))}
+        ${id_set("ALWAYS_ENABLED", lambda p: not p.experimental(product) and not p.explicitly_enabled_in_ua_sheets())}
 
         let passes_pref_check = || {
             % if product == "servo":
@@ -1305,42 +1319,56 @@ impl PropertyId {
                         % endif
                     % endfor
                 ];
-                match PREF_NAME[id.0] {
-                    None => true,
-                    Some(pref) => PREFS.get(pref).as_boolean().unwrap_or(false)
+                let pref = match PREF_NAME[id.0] {
+                    None => return Ok(()),
+                    Some(pref) => pref,
+                };
+
+                if PREFS.get(pref).as_boolean().unwrap_or(false) {
+                    return Ok(())
                 }
+                return Err(());
             % endif
             % if product == "gecko":
                 let id = match alias {
                     Some(alias_id) => alias_id.to_nscsspropertyid().unwrap(),
                     None => self.to_nscsspropertyid().unwrap(),
                 };
-                unsafe { structs::nsCSSProps_gPropertyEnabled[id as usize] }
+
+                if unsafe { structs::nsCSSProps_gPropertyEnabled[id as usize] } {
+                    return Ok(())
+                }
+
+                return Err(())
             % endif
         };
 
-        if INTERNAL.contains(id) {
-            if context.stylesheet_origin != Origin::UserAgent {
-                if EXPERIMENTAL.contains(id) {
-                    if !passes_pref_check() {
-                        return Err(())
-                    }
-                } else {
-                    return Err(())
-                }
-            }
-        } else {
-            if EXPERIMENTAL.contains(id) && !passes_pref_check() {
-                return Err(());
-            }
+        if ALWAYS_ENABLED.contains(id) {
+            return Ok(())
         }
 
-        Ok(())
+        if EXPERIMENTAL.contains(id) {
+            return passes_pref_check();
+        }
+
+        if context.stylesheet_origin == Origin::UserAgent &&
+            ENABLED_IN_UA_SHEETS.contains(id)
+        {
+            return Ok(())
+        }
+
+        if context.in_chrome_stylesheet && ENABLED_IN_CHROME.contains(id) {
+            return Ok(())
+        }
+
+        Err(())
     }
 }
 
 /// Parsing Context for PropertyId.
 pub struct PropertyParserContext {
+    /// Whether the property is parsed in a chrome:// stylesheet.
+    pub in_chrome_stylesheet: bool,
     /// The Origin of the stylesheet, whether it's a user,
     /// author or user-agent stylesheet.
     pub stylesheet_origin: Origin,
@@ -1352,6 +1380,7 @@ impl PropertyParserContext {
     /// Creates a PropertyParserContext with given stylesheet origin and rule type.
     pub fn new(context: &ParserContext) -> Self {
         Self {
+            in_chrome_stylesheet: context.in_chrome_stylesheet(),
             stylesheet_origin: context.stylesheet_origin,
             rule_type: context.rule_type(),
         }

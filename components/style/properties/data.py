@@ -210,6 +210,13 @@ class Longhand(object):
             return bool(self.gecko_pref)
         return bool(self.servo_pref)
 
+    # FIXME(emilio): Shorthand and Longhand should really share a base class.
+    def explicitly_enabled_in_ua_sheets(self):
+        return self.internal
+
+    # TODO(emilio): Change the `internal` field to something like `enabled_in`.
+    def explicitly_enabled_in_chrome(self):
+        return False
 
 
 class Shorthand(object):
@@ -264,6 +271,12 @@ class Shorthand(object):
             return bool(self.gecko_pref)
         return bool(self.servo_pref)
 
+    def explicitly_enabled_in_ua_sheets(self):
+        return self.internal
+
+    def explicitly_enabled_in_chrome(self):
+        return False
+
 
 class Alias(object):
     def __init__(self, name, original):
@@ -275,6 +288,12 @@ class Alias(object):
         self.gecko_pref = original.gecko_pref
         self.allowed_in_page_rule = original.allowed_in_page_rule
         self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
+
+    def explicitly_enabled_in_ua_sheets(self):
+        return self.internal
+
+    def explicitly_enabled_in_chrome(self):
+        return False
 
 
 class Method(object):
