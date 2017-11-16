@@ -103,16 +103,7 @@ impl ToCss for BorderImageRepeat {
     where
         W: fmt::Write,
     {
-        match (self.0, self.1) {
-            (horizontal, vertical) => {
-                horizontal.to_css(dest)?;
-                if horizontal != vertical {
-                    dest.write_str(" ")?;
-                    vertical.to_css(dest)?;
-                }
-                Ok(())
-            },
-        }
+        let BorderImageRepeat(horizontal, vertical) = *self;
     }
 }
 
@@ -135,10 +126,10 @@ impl ToComputedValue for SpecifiedBorderImageRepeat {
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match (computed) {
             (RepeatKeyword::Repeat, RepeatKeyword::Repeat) => {
-                SpecifiedBackgroundRepeat::Repeat
+                SpecifiedBorderImageRepeat::Repeat
             }
             (horizontal, vertical) => {
-                SpecifiedBackgroundRepeat::Keywords(horizontal, Some(vertical))
+                SpecifiedBorderImageRepeat::Keywords(horizontal, Some(vertical))
             }
         }
     }
