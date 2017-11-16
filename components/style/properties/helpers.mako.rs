@@ -9,7 +9,7 @@
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
             needs_context=True, vector=False, computed_type=None, initial_specified_value=None,
-            allow_quirks=False, allow_empty=False, **kwargs)">
+            none_specified_value=None, allow_quirks=False, allow_empty=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
@@ -32,6 +32,9 @@
         % endif
         % if initial_specified_value:
         #[inline] pub fn get_initial_specified_value() -> SpecifiedValue { ${initial_specified_value} }
+        % endif
+        % if none_specified_value:
+        #[inline] pub fn get_none_specified_value() -> SpecifiedValue { ${none_specified_value} }
         % endif
         #[allow(unused_variables)]
         #[inline]
