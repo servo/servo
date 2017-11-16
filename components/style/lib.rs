@@ -48,7 +48,6 @@ extern crate itoa;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate lru_cache;
 #[macro_use] extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;
 #[allow(unused_extern_crates)]
@@ -77,6 +76,7 @@ extern crate style_derive;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
+extern crate uluru;
 extern crate unicode_bidi;
 #[allow(unused_extern_crates)]
 extern crate unicode_segmentation;

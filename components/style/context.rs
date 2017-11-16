@@ -14,7 +14,6 @@ use euclid::ScaleFactor;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
-use lru_cache::{Entry, LRUCache};
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
 #[cfg(feature = "servo")] use parking_lot::RwLock;
@@ -42,6 +41,7 @@ use time;
 use timer::Timer;
 use traversal::DomTraversal;
 use traversal_flags::TraversalFlags;
+use uluru::{Entry, LRUCache};
 
 pub use selectors::matching::QuirksMode;
 
