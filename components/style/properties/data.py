@@ -151,7 +151,7 @@ class Longhand(object):
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
-                 gecko_pref_ident=None, vector=False, need_animatable=False):
+                 vector=False, need_animatable=False):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -178,7 +178,6 @@ class Longhand(object):
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
         self.allow_quirks = allow_quirks
         self.ignored_when_colors_disabled = ignored_when_colors_disabled
-        self.gecko_pref_ident = gecko_pref_ident or self.ident
         self.is_vector = vector
 
         # https://drafts.csswg.org/css-animations/#keyframes
@@ -217,7 +216,7 @@ class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
                  internal=False,
                  allowed_in_keyframe_block=True, alias=None, extra_prefixes=None,
-                 allowed_in_page_rule=False, flags=None, gecko_pref_ident=None):
+                 allowed_in_page_rule=False, flags=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -233,7 +232,6 @@ class Shorthand(object):
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
         self.flags = flags.split() if flags else []
-        self.gecko_pref_ident = gecko_pref_ident or self.ident
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
@@ -272,7 +270,6 @@ class Alias(object):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
-        self.gecko_pref_ident = to_rust_ident(name)
         self.internal = original.internal
         self.servo_pref = original.servo_pref
         self.gecko_pref = original.gecko_pref
