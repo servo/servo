@@ -239,7 +239,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                                   gecko_enum_prefix="StyleFloat"
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
-                                  gecko_pref_ident="float_"
                                   flags="APPLIES_TO_FIRST_LETTER"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
     impl ToComputedValue for SpecifiedValue {
