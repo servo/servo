@@ -213,7 +213,7 @@ impl XMLHttpRequest {
     }
 
     fn sync_in_window(&self) -> bool {
-        self.sync.get() || self.global().is::<Window>()
+        self.sync.get() && self.global().is::<Window>()
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
