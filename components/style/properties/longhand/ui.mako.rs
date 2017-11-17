@@ -37,20 +37,20 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
                          gecko_ffi_name="mWindowShadow",
                          gecko_constant_prefix="NS_STYLE_WINDOW_SHADOW",
                          animation_value_type="discrete",
-                         internal=True,
+                         enabled_in="ua",
                          spec="None (Nonstandard internal property)")}
 
 ${helpers.predefined_type("-moz-window-opacity", "Opacity", "1.0", products="gecko",
                           gecko_ffi_name="mWindowOpacity",
                           animation_value_type="ComputedValue",
-                          internal=True,
+                          enabled_in="ua",
                           spec="None (Nonstandard internal property)")}
 
 ${helpers.predefined_type("-moz-window-transform", "Transform",
                           "generics::transform::Transform::none()",
                           products="gecko", gecko_ffi_name="mSpecifiedWindowTransform",
                           animation_value_type="ComputedValue",
-                          internal=True,
+                          enabled_in="ua",
                           spec="None (Nonstandard internal property)")}
 
 ${helpers.predefined_type("-moz-window-transform-origin",
@@ -60,7 +60,7 @@ ${helpers.predefined_type("-moz-window-transform-origin",
                           gecko_ffi_name="mWindowTransformOrigin",
                           products="gecko",
                           boxed=True,
-                          internal=True,
+                          enabled_in="ua",
                           spec="None (Nonstandard internal property)")}
 
 <%helpers:longhand name="-moz-force-broken-image-icon"

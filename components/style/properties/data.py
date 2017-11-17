@@ -146,8 +146,9 @@ def arg_to_bool(arg):
 
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
-                 predefined_type=None, custom_cascade=False, servo_pref=None, gecko_pref=None, internal=False,
-                 need_index=False, custom_cascade_function=None, gecko_ffi_name=None,
+                 predefined_type=None, custom_cascade=False, servo_pref=None, gecko_pref=None,
+                 enabled_in="content", need_index=False,
+                 custom_cascade_function=None, gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
@@ -165,7 +166,7 @@ class Longhand(object):
         self.gecko_pref = gecko_pref
         self.custom_cascade = custom_cascade
         self.custom_cascade_function = custom_cascade_function if custom_cascade else None
-        self.internal = internal
+        self.enabled_in = enabled_in
         self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
@@ -212,16 +213,24 @@ class Longhand(object):
 
     # FIXME(emilio): Shorthand and Longhand should really share a base class.
     def explicitly_enabled_in_ua_sheets(self):
-        return self.internal
-
-    # TODO(emilio): Change the `internal` field to something like `enabled_in`.
-    def explicitly_enabled_in_chrome(self):
+        if self.enabled_in in ["ua", "chrome"]:
+            return True
+        assert self.enabled_in in ["", "content"]
         return False
+
+    def explicitly_enabled_in_chrome(self):
+        if self.enabled_in == "chrome":
+            return True
+        assert self.enabled_in in ["", "ua", "content"]
+        return False
+
+    def enabled_in_content(self):
+        return self.enabled_in == "content"
 
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, servo_pref=None, gecko_pref=None,
-                 internal=False,
+                 enabled_in="content",
                  allowed_in_keyframe_block=True, alias=None, extra_prefixes=None,
                  allowed_in_page_rule=False, flags=None):
         self.name = name
@@ -234,7 +243,7 @@ class Shorthand(object):
         self.servo_pref = servo_pref
         self.gecko_pref = gecko_pref
         self.sub_properties = sub_properties
-        self.internal = internal
+        self.enabled_in = enabled_in
         self.alias = alias.split() if alias else []
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
@@ -271,11 +280,21 @@ class Shorthand(object):
             return bool(self.gecko_pref)
         return bool(self.servo_pref)
 
+    # FIXME(emilio): Shorthand and Longhand should really share a base class.
     def explicitly_enabled_in_ua_sheets(self):
-        return self.internal
+        if self.enabled_in in ["ua", "chrome"]:
+            return True
+        assert self.enabled_in in ["", "content"]
+        return False
 
     def explicitly_enabled_in_chrome(self):
+        if self.enabled_in == "chrome":
+            return True
+        assert self.enabled_in in ["", "ua", "content"]
         return False
+
+    def enabled_in_content(self):
+        return self.enabled_in == "content"
 
 
 class Alias(object):
@@ -283,7 +302,7 @@ class Alias(object):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
-        self.internal = original.internal
+        self.enabled_in = original.enabled_in
         self.servo_pref = original.servo_pref
         self.gecko_pref = original.gecko_pref
         self.allowed_in_page_rule = original.allowed_in_page_rule
@@ -295,10 +314,19 @@ class Alias(object):
         return bool(self.servo_pref)
 
     def explicitly_enabled_in_ua_sheets(self):
-        return self.internal
+        if self.enabled_in in ["ua", "chrome"]:
+            return True
+        assert self.enabled_in in ["", "content"]
+        return False
 
     def explicitly_enabled_in_chrome(self):
+        if self.enabled_in == "chrome":
+            return True
+        assert self.enabled_in in ["", "ua", "content"]
         return False
+
+    def enabled_in_content(self):
+        return self.enabled_in == "content"
 
 
 class Method(object):
