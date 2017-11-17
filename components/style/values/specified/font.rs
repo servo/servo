@@ -1095,6 +1095,261 @@ impl Parse for FontVariantEastAsian {
     }
 }
 
+bitflags! {
+    #[derive(MallocSizeOf)]
+    /// Variants of ligatures
+    pub struct VariantLigatures: u16 {
+        /// Specifies that common default features are enabled
+        const NORMAL = 0;
+        /// Specifies that all types of ligatures and contextual forms
+        /// covered by this property are explicitly disabled
+        const NONE = 0x01;
+        /// Enables display of common ligatures
+        const COMMON_LIGATURES = 0x02;
+        /// Disables display of common ligatures
+        const NO_COMMON_LIGATURES = 0x04;
+        /// Enables display of discretionary ligatures
+        const DISCRETIONARY_LIGATURES = 0x08;
+        /// Disables display of discretionary ligatures
+        const NO_DISCRETIONARY_LIGATURES = 0x10;
+        /// Enables display of historical ligatures
+        const HISTORICAL_LIGATURES = 0x20;
+        /// Disables display of historical ligatures
+        const NO_HISTORICAL_LIGATURES = 0x40;
+        /// Enables display of contextual alternates
+        const CONTEXTUAL = 0x80;
+        /// Disables display of contextual alternates
+        const NO_CONTEXTUAL = 0x100;
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl VariantLigatures {
+    /// Obtain a specified value from a Gecko keyword value
+    ///
+    /// Intended for use with presentation attributes, not style structs
+    pub fn from_gecko_keyword(kw: u16) -> Self {
+        Self::from_bits_truncate(kw)
+    }
+
+    /// Transform into gecko keyword
+    pub fn to_gecko_keyword(self) -> u16 {
+        self.bits()
+    }
+}
+
+impl ToCss for VariantLigatures {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.is_empty() {
+            return dest.write_str("normal")
+        }
+        if self.contains(VariantLigatures::NONE) {
+            return dest.write_str("none")
+        }
+
+        let mut has_any = false;
+
+        macro_rules! write_value {
+            ($ident:path => $str:expr) => {
+                if self.intersects($ident) {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    has_any = true;
+                    dest.write_str($str)?;
+                }
+            }
+        }
+
+        write_value!(VariantLigatures::COMMON_LIGATURES => "common-ligatures");
+        write_value!(VariantLigatures::NO_COMMON_LIGATURES => "no-common-ligatures");
+        write_value!(VariantLigatures::DISCRETIONARY_LIGATURES => "discretionary-ligatures");
+        write_value!(VariantLigatures::NO_DISCRETIONARY_LIGATURES => "no-discretionary-ligatures");
+        write_value!(VariantLigatures::HISTORICAL_LIGATURES => "historical-ligatures");
+        write_value!(VariantLigatures::NO_HISTORICAL_LIGATURES => "no-historical-ligatures");
+        write_value!(VariantLigatures::CONTEXTUAL => "contextual");
+        write_value!(VariantLigatures::NO_CONTEXTUAL => "no-contextual");
+
+        debug_assert!(has_any);
+        Ok(())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u16> for VariantLigatures {
+    fn from(bits: u16) -> VariantLigatures {
+        VariantLigatures::from_gecko_keyword(bits)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<VariantLigatures> for u16 {
+    fn from(v: VariantLigatures) -> u16 {
+        v.to_gecko_keyword()
+    }
+}
+
+/// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_variant_ligatures_matches() {
+    use gecko_bindings::structs;
+
+    macro_rules! check_variant_ligatures {
+        ( $( $a:ident => $b:path),*, ) => {
+            if cfg!(debug_assertions) {
+                $(
+                    assert_eq!(structs::$a as u16, $b.bits());
+                )*
+            }
+        }
+    }
+
+    check_variant_ligatures! {
+        NS_FONT_VARIANT_LIGATURES_NONE => VariantLigatures::NONE,
+        NS_FONT_VARIANT_LIGATURES_COMMON => VariantLigatures::COMMON_LIGATURES,
+        NS_FONT_VARIANT_LIGATURES_NO_COMMON => VariantLigatures::NO_COMMON_LIGATURES,
+        NS_FONT_VARIANT_LIGATURES_DISCRETIONARY => VariantLigatures::DISCRETIONARY_LIGATURES,
+        NS_FONT_VARIANT_LIGATURES_NO_DISCRETIONARY => VariantLigatures::NO_DISCRETIONARY_LIGATURES,
+        NS_FONT_VARIANT_LIGATURES_HISTORICAL => VariantLigatures::HISTORICAL_LIGATURES,
+        NS_FONT_VARIANT_LIGATURES_NO_HISTORICAL => VariantLigatures::NO_HISTORICAL_LIGATURES,
+        NS_FONT_VARIANT_LIGATURES_CONTEXTUAL => VariantLigatures::CONTEXTUAL,
+        NS_FONT_VARIANT_LIGATURES_NO_CONTEXTUAL => VariantLigatures::NO_CONTEXTUAL,
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+/// Ligatures and contextual forms are ways of combining glyphs
+/// to produce more harmonized forms
+pub enum FontVariantLigatures {
+    /// Value variant with `variant-ligatures`
+    Value(VariantLigatures),
+    /// System font variant
+    System(SystemFont)
+}
+
+impl FontVariantLigatures {
+    /// Get `font-variant-ligatures` with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontVariantLigatures::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontVariantLigatures::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    /// Default value of `font-variant-ligatures` as `empty`
+    pub fn empty() -> FontVariantLigatures {
+        FontVariantLigatures::Value(VariantLigatures::empty())
+    }
+
+    #[inline]
+    /// Get `none` variant of `font-variant-ligatures`
+    pub fn none() -> FontVariantLigatures {
+        FontVariantLigatures::Value(VariantLigatures::NONE)
+    }
+}
+
+impl ToComputedValue for FontVariantLigatures {
+    type ComputedValue = computed::FontVariantLigatures;
+
+    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantLigatures {
+        match *self {
+            FontVariantLigatures::Value(ref v) => v.clone(),
+            FontVariantLigatures::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    _context.cached_system_font.as_ref().unwrap().font_variant_ligatures.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontVariantLigatures) -> Self {
+        FontVariantLigatures::Value(other.clone())
+    }
+}
+
+impl Parse for FontVariantLigatures {
+    /// normal | none |
+    /// [ <common-lig-values> ||
+    ///   <discretionary-lig-values> ||
+    ///   <historical-lig-values> ||
+    ///   <contextual-alt-values> ]
+    /// <common-lig-values>        = [ common-ligatures | no-common-ligatures ]
+    /// <discretionary-lig-values> = [ discretionary-ligatures | no-discretionary-ligatures ]
+    /// <historical-lig-values>    = [ historical-ligatures | no-historical-ligatures ]
+    /// <contextual-alt-values>    = [ contextual | no-contextual ]
+    fn parse<'i, 't> (
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<FontVariantLigatures, ParseError<'i>> {
+        let mut result = VariantLigatures::empty();
+
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(FontVariantLigatures::Value(result))
+        }
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(FontVariantLigatures::Value(VariantLigatures::NONE))
+        }
+
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
+                "common-ligatures" =>
+                    exclusive_value!((result, VariantLigatures::COMMON_LIGATURES |
+                                              VariantLigatures::NO_COMMON_LIGATURES
+                                    ) => VariantLigatures::COMMON_LIGATURES),
+                "no-common-ligatures" =>
+                    exclusive_value!((result, VariantLigatures::COMMON_LIGATURES |
+                                              VariantLigatures::NO_COMMON_LIGATURES
+                                    ) => VariantLigatures::NO_COMMON_LIGATURES),
+                "discretionary-ligatures" =>
+                    exclusive_value!((result, VariantLigatures::DISCRETIONARY_LIGATURES |
+                                              VariantLigatures::NO_DISCRETIONARY_LIGATURES
+                                    ) => VariantLigatures::DISCRETIONARY_LIGATURES),
+                "no-discretionary-ligatures" =>
+                    exclusive_value!((result, VariantLigatures::DISCRETIONARY_LIGATURES |
+                                              VariantLigatures::NO_DISCRETIONARY_LIGATURES
+                                    ) => VariantLigatures::NO_DISCRETIONARY_LIGATURES),
+                "historical-ligatures" =>
+                    exclusive_value!((result, VariantLigatures::HISTORICAL_LIGATURES |
+                                              VariantLigatures::NO_HISTORICAL_LIGATURES
+                                    ) => VariantLigatures::HISTORICAL_LIGATURES),
+                "no-historical-ligatures" =>
+                    exclusive_value!((result, VariantLigatures::HISTORICAL_LIGATURES |
+                                              VariantLigatures::NO_HISTORICAL_LIGATURES
+                                    ) => VariantLigatures::NO_HISTORICAL_LIGATURES),
+                "contextual" =>
+                    exclusive_value!((result, VariantLigatures::CONTEXTUAL |
+                                              VariantLigatures::NO_CONTEXTUAL
+                                    ) => VariantLigatures::CONTEXTUAL),
+                "no-contextual" =>
+                    exclusive_value!((result, VariantLigatures::CONTEXTUAL |
+                                              VariantLigatures::NO_CONTEXTUAL
+                                    ) => VariantLigatures::NO_CONTEXTUAL),
+                _ => return Err(()),
+            })
+        }) {
+            result.insert(flag);
+        }
+
+        if !result.is_empty() {
+            Ok(FontVariantLigatures::Value(result))
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces
