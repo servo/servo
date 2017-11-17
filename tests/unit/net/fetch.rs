@@ -538,6 +538,7 @@ fn test_fetch_with_hsts() {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(),
+        cancel_chan: None,
     };
 
     {

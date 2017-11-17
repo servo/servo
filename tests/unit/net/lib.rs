@@ -61,6 +61,7 @@ fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),
+        cancel_chan: None,
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

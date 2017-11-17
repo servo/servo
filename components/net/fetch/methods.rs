@@ -15,6 +15,7 @@ use hyper::header::{Header, HeaderFormat, HeaderView, Headers, Referer as Refere
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use ipc_channel::ipc::IpcReceiver;
 use mime_guess::guess_mime_type;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
@@ -43,6 +44,7 @@ pub struct FetchContext {
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
+    pub cancel_chan: Option<IpcReceiver<()>>,
 }
 
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;

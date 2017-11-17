@@ -126,7 +126,7 @@ impl DocumentLoader {
                                   request: RequestInit,
                                   fetch_target: IpcSender<FetchResponseMsg>) {
         self.resource_threads.sender().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target))).unwrap();
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, None))).unwrap();
     }
 
     /// Mark an in-progress network request complete.
