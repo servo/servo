@@ -598,8 +598,6 @@ extern "C" {
 } extern "C" {
  pub fn Gecko_IsPrivateBrowsingEnabled ( aDoc : * const nsIDocument , ) -> bool ; 
 } extern "C" {
- pub fn Gecko_AreVisitedLinksEnabled ( ) -> bool ; 
-} extern "C" {
  pub fn Gecko_GetAnimationRule ( aElementOrPseudo : RawGeckoElementBorrowed , aCascadeLevel : EffectCompositor_CascadeLevel , aAnimationValues : RawServoAnimationValueMapBorrowedMut , ) -> bool ; 
 } extern "C" {
  pub fn Gecko_GetSMILOverrideDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
