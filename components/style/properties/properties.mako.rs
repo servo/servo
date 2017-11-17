@@ -174,7 +174,7 @@ pub mod shorthands {
         for p in data.longhands:
             if p.name in ['direction', 'unicode-bidi']:
                 continue;
-            if p.internal:
+            if not p.enabled_in_content() and not p.experimental(product):
                 continue;
             if p.logical:
                 logical_longhands.append(p.name)
@@ -1303,7 +1303,7 @@ impl PropertyId {
         ${id_set("ENABLED_IN_UA_SHEETS", lambda p: p.explicitly_enabled_in_ua_sheets())}
         ${id_set("ENABLED_IN_CHROME", lambda p: p.explicitly_enabled_in_chrome())}
         ${id_set("EXPERIMENTAL", lambda p: p.experimental(product))}
-        ${id_set("ALWAYS_ENABLED", lambda p: not p.experimental(product) and not p.explicitly_enabled_in_ua_sheets())}
+        ${id_set("ALWAYS_ENABLED", lambda p: not p.experimental(product) and p.enabled_in_content())}
 
         let passes_pref_check = || {
             % if product == "servo":
@@ -3605,13 +3605,15 @@ impl AliasId {
     }
 }
 
+// FIXME(emilio): This macro doesn't account for experimental properties, so
+// even with the pref disabled you can set them from CSSOM in Servo.
 #[macro_export]
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
             % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in props:
-                    % if not property.derived_from and not property.internal:
+                    % if not property.derived_from and property.enabled_in_content():
                         % for name in [property.name] + property.alias:
                             % if '-' in name:
                                 [${to_rust_ident(name).capitalize()}, Set${to_rust_ident(name).capitalize()},
