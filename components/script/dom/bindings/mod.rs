@@ -139,6 +139,7 @@ pub mod constant;
 pub mod conversions;
 pub mod error;
 pub mod guard;
+pub mod htmlconstructor;
 pub mod inheritance;
 pub mod interface;
 pub mod iterable;
