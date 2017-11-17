@@ -155,8 +155,6 @@ pub trait DomTraversal<E: TElement> : Sync {
 
         let mut data = root.mutate_data();
         let mut data = data.as_mut().map(|d| &mut **d);
-        let parent = root.traversal_parent();
-        let parent_data = parent.as_ref().and_then(|p| p.borrow_data());
 
         if let Some(ref mut data) = data {
             if !traversal_flags.for_animation_only() {
@@ -169,9 +167,9 @@ pub trait DomTraversal<E: TElement> : Sync {
                     data.invalidate_style_if_needed(root, shared_context, None, None);
 
                 if invalidation_result.has_invalidated_siblings() {
-                    let actual_root =
-                        parent.expect("How in the world can you invalidate \
-                                       siblings without a parent?");
+                    let actual_root = root.traversal_parent()
+                        .expect("How in the world can you invalidate \
+                                 siblings without a parent?");
                     unsafe { actual_root.set_dirty_descendants() }
                     return PreTraverseToken(Some(actual_root));
                 }
@@ -182,7 +180,6 @@ pub trait DomTraversal<E: TElement> : Sync {
             root,
             traversal_flags,
             data.as_mut().map(|d| &**d),
-            parent_data.as_ref().map(|d| &**d)
         );
 
         // If we're not going to traverse at all, we may need to clear some state
@@ -203,17 +200,13 @@ pub trait DomTraversal<E: TElement> : Sync {
     }
 
     /// Returns true if traversal is needed for the given element and subtree.
-    ///
-    /// The caller passes |parent_data|, which is only null if there is no
-    /// parent.
     fn element_needs_traversal(
         el: E,
         traversal_flags: TraversalFlags,
         data: Option<&ElementData>,
-        parent_data: Option<&ElementData>,
     ) -> bool {
-        debug!("element_needs_traversal({:?}, {:?}, {:?}, {:?})",
-               el, traversal_flags, data, parent_data);
+        debug!("element_needs_traversal({:?}, {:?}, {:?})",
+               el, traversal_flags, data);
 
         if traversal_flags.contains(TraversalFlags::UnstyledOnly) {
             return data.map_or(true, |d| !d.has_styles()) || el.has_dirty_descendants();
@@ -845,7 +838,7 @@ where
             );
         }
 
-        if D::element_needs_traversal(child, flags, child_data.map(|d| &*d), Some(data)) {
+        if D::element_needs_traversal(child, flags, child_data.map(|d| &*d)) {
             note_child(child_node);
 
             // Set the dirty descendants bit on the parent as needed, so that we
