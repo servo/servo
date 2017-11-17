@@ -294,21 +294,18 @@ pub extern "C" fn Servo_TraverseSubtree(
 
     debug!("Servo_TraverseSubtree (flags={:?})", traversal_flags);
     debug!("{:?}", ShowSubtreeData(element.as_node()));
-    // It makes no sense to do an animation restyle when we're styling
-    // newly-inserted content.
-    if !traversal_flags.contains(TraversalFlags::UnstyledOnly) {
-        let needs_animation_only_restyle =
-            element.has_animation_only_dirty_descendants() ||
-            element.has_animation_restyle_hints();
 
-        if needs_animation_only_restyle {
-            debug!("Servo_TraverseSubtree doing animation-only restyle (aodd={})",
-                   element.has_animation_only_dirty_descendants());
-            traverse_subtree(element,
-                             raw_data,
-                             traversal_flags | TraversalFlags::AnimationOnly,
-                             unsafe { &*snapshots });
-        }
+    let needs_animation_only_restyle =
+        element.has_animation_only_dirty_descendants() ||
+        element.has_animation_restyle_hints();
+
+    if needs_animation_only_restyle {
+        debug!("Servo_TraverseSubtree doing animation-only restyle (aodd={})",
+               element.has_animation_only_dirty_descendants());
+        traverse_subtree(element,
+                         raw_data,
+                         traversal_flags | TraversalFlags::AnimationOnly,
+                         unsafe { &*snapshots });
     }
 
     traverse_subtree(element,

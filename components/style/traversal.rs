@@ -146,13 +146,6 @@ pub trait DomTraversal<E: TElement> : Sync {
     ) -> PreTraverseToken<E> {
         let traversal_flags = shared_context.traversal_flags;
 
-        // If this is an unstyled-only traversal, the caller has already verified
-        // that there's something to traverse, and we don't need to do any
-        // invalidation since we're not doing any restyling.
-        if traversal_flags.contains(TraversalFlags::UnstyledOnly) {
-            return PreTraverseToken(Some(root))
-        }
-
         let mut data = root.mutate_data();
         let mut data = data.as_mut().map(|d| &mut **d);
 
@@ -208,11 +201,6 @@ pub trait DomTraversal<E: TElement> : Sync {
         debug!("element_needs_traversal({:?}, {:?}, {:?})",
                el, traversal_flags, data);
 
-        if traversal_flags.contains(TraversalFlags::UnstyledOnly) {
-            return data.map_or(true, |d| !d.has_styles()) || el.has_dirty_descendants();
-        }
-
-
         // In case of animation-only traversal we need to traverse the element
         // if the element has animation only dirty descendants bit,
         // animation-only restyle hint or recascade.
@@ -266,7 +254,6 @@ pub trait DomTraversal<E: TElement> : Sync {
         &self,
         context: &mut StyleContext<E>,
         parent: E,
-        is_initial_style: bool,
         parent_data: &ElementData,
     ) -> bool {
         debug_assert!(cfg!(feature = "gecko") ||
@@ -275,33 +262,6 @@ pub trait DomTraversal<E: TElement> : Sync {
         // If the parent computed display:none, we don't style the subtree.
         if parent_data.styles.is_display_none() {
             debug!("Parent {:?} is display:none, culling traversal", parent);
-            return true;
-        }
-
-        // Gecko-only XBL handling.
-        //
-        // If we're computing initial styles and the parent has a Gecko XBL
-        // binding, that binding may inject anonymous children and remap the
-        // explicit children to an insertion point (or hide them entirely). It
-        // may also specify a scoped stylesheet, which changes the rules that
-        // apply within the subtree. These two effects can invalidate the result
-        // of property inheritance and selector matching (respectively) within
-        // the subtree.
-        //
-        // To avoid wasting work, we defer initial styling of XBL subtrees until
-        // frame construction, which does an explicit traversal of the unstyled
-        // children after shuffling the subtree. That explicit traversal may in
-        // turn find other bound elements, which get handled in the same way.
-        //
-        // We explicitly avoid handling restyles here (explicitly removing or
-        // changing bindings), since that adds complexity and is rarer. If it
-        // happens, we may just end up doing wasted work, since Gecko
-        // recursively drops Servo ElementData when the XBL insertion parent of
-        // an Element is changed.
-        if cfg!(feature = "gecko") && is_initial_style &&
-            parent_data.styles.primary().has_moz_binding()
-        {
-            debug!("Parent {:?} has XBL binding, deferring traversal", parent);
             return true;
         }
 
@@ -424,7 +384,7 @@ where
     let is_initial_style = !data.has_styles();
 
     context.thread_local.statistics.elements_traversed += 1;
-    debug_assert!(flags.intersects(TraversalFlags::AnimationOnly | TraversalFlags::UnstyledOnly) ||
+    debug_assert!(flags.intersects(TraversalFlags::AnimationOnly) ||
                   !element.has_snapshot() || element.handled_snapshot(),
                   "Should've handled snapshots here already");
 
@@ -471,15 +431,11 @@ where
     // those operations and compute the propagated restyle hint (unless we're
     // not processing invalidations, in which case don't need to propagate it
     // and must avoid clearing it).
-    let propagated_hint = if flags.contains(TraversalFlags::UnstyledOnly) {
-        RestyleHint::empty()
-    } else {
-        debug_assert!(flags.for_animation_only() ||
-                      !data.hint.has_animation_hint(),
-                      "animation restyle hint should be handled during \
-                       animation-only restyles");
-        data.hint.propagate(&flags)
-    };
+    debug_assert!(flags.for_animation_only() ||
+                  !data.hint.has_animation_hint(),
+                  "animation restyle hint should be handled during \
+                   animation-only restyles");
+    let propagated_hint = data.hint.propagate(&flags);
 
     trace!("propagated_hint={:?}, cascade_requirement={:?}, \
             is_display_none={:?}, implementing_pseudo={:?}",
@@ -518,7 +474,7 @@ where
 
     traverse_children =
         traverse_children &&
-        !traversal.should_cull_subtree(context, element, is_initial_style, &data);
+        !traversal.should_cull_subtree(context, element, &data);
 
     // Examine our children, and enqueue the appropriate ones for traversal.
     if traverse_children {
@@ -799,12 +755,6 @@ where
                child_data.as_ref().map(|d| d.hint),
                propagated_hint,
                child.implemented_pseudo_element());
-
-        // Make sure to not run style invalidation of styled elements in an
-        // unstyled-children-only traversal.
-        if child_data.is_some() && flags.intersects(TraversalFlags::UnstyledOnly) {
-            continue;
-        }
 
         if let Some(ref mut child_data) = child_data {
             let mut child_hint = propagated_hint;
