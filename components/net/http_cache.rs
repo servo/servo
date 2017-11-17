@@ -35,7 +35,7 @@ pub struct CacheKey {
 impl CacheKey {
     fn new(request: Request) -> CacheKey {
         CacheKey {
-            url: request.url().clone()
+            url: request.current_url().clone()
         }
     }
 
@@ -57,6 +57,7 @@ struct CachedResource {
     metadata: CachedMetadata,
     request_headers: Arc<Mutex<Headers>>,
     body: Arc<Mutex<ResponseBody>>,
+    location_url: Option<Result<ServoUrl, String>>,
     https_state: HttpsState,
     status: Option<StatusCode>,
     raw_status: Option<(u16, Vec<u8>)>,
@@ -273,6 +274,7 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource, c
     let mut response = Response::new(cached_resource.metadata.final_url.clone());
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
+    response.location_url = cached_resource.location_url.clone();
     response.status = cached_resource.status.clone();
     response.raw_status = cached_resource.raw_status.clone();
     response.url_list = cached_resource.url_list.clone();
@@ -300,6 +302,7 @@ fn create_resource_with_bytes_from_resource(bytes: &[u8], resource: &CachedResou
         metadata: resource.metadata.clone(),
         request_headers: resource.request_headers.clone(),
         body: Arc::new(Mutex::new(ResponseBody::Done(bytes.to_owned()))),
+        location_url: resource.location_url.clone(),
         https_state: resource.https_state.clone(),
         status: Some(StatusCode::PartialContent),
         raw_status: Some((206, b"Partial Content".to_vec())),
@@ -606,12 +609,6 @@ impl HttpCache {
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub fn store(&mut self, request: &Request, response: &Response) {
-        if let Some(status) = response.status {
-            // Not caching redirects, for simplicity, not per the spec.
-            if is_redirect_status(status) {
-                return
-            }
-        }
         if request.method != Method::Get {
             // Only Get requests are cached.
             return
@@ -639,6 +636,7 @@ impl HttpCache {
             metadata: cacheable_metadata,
             request_headers: Arc::new(Mutex::new(request.headers.clone())),
             body: response.body.clone(),
+            location_url: response.location_url.clone(),
             https_state: response.https_state.clone(),
             status: response.status.clone(),
             raw_status: response.raw_status.clone(),
