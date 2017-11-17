@@ -78,12 +78,12 @@ pub struct HttpState {
 }
 
 impl HttpState {
-    pub fn new(ssl_client: OpensslClient) -> HttpState {
+    pub fn new(ssl_client: OpensslClient, enable_http_cache: bool) -> HttpState {
         HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::new()),
-            http_cache: RwLock::new(HttpCache::new()),
+            http_cache: RwLock::new(HttpCache::new(enable_http_cache)),
             ssl_client: ssl_client.clone(),
             connector: create_http_connector(ssl_client),
         }

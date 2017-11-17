@@ -93,6 +93,8 @@ pub struct CachedResponse {
 pub struct HttpCache {
     /// cached responses.
     entries: HashMap<CacheKey, Vec<CachedResource>>,
+    /// Enable/disable cache storage.
+    disabled: bool
 }
 
 
@@ -464,9 +466,10 @@ fn handle_range_request(request: &Request, candidates: Vec<&CachedResource>, ran
 
 impl HttpCache {
     /// Create a new memory cache instance.
-    pub fn new() -> HttpCache {
+    pub fn new(disable: bool) -> HttpCache {
         HttpCache {
-            entries: HashMap::new()
+            entries: HashMap::new(),
+            disabled: disable
         }
     }
 
@@ -609,6 +612,9 @@ impl HttpCache {
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub fn store(&mut self, request: &Request, response: &Response) {
+        if self.disabled {
+            return
+        }
         if request.method != Method::Get {
             // Only Get requests are cached.
             return

@@ -143,6 +143,9 @@ pub struct Opts {
     /// Whether we're running inside the sandbox.
     pub sandbox: bool,
 
+    /// Whether to disable the http cache.
+    pub disable_http_cache: bool,
+
     /// Probability of randomly closing a pipeline,
     /// used for testing the hardening of the constellation.
     pub random_pipeline_closure_probability: Option<f32>,
@@ -527,6 +530,7 @@ pub fn default_opts() -> Opts {
         initial_window_size: TypedSize2D::new(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
         multiprocess: false,
+        disable_http_cache: false,
         random_pipeline_closure_probability: None,
         random_pipeline_closure_seed: None,
         sandbox: false,
@@ -597,6 +601,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
+    opts.optflag("", "disable-http-cache", "Disable the HTTP cache");
     opts.optopt("",
                 "random-pipeline-closure-probability",
                 "Probability of randomly closing a pipeline (for testing constellation hardening).",
@@ -827,6 +832,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
         sandbox: opt_match.opt_present("S"),
+        disable_http_cache: opt_match.opt_present("disable-http-cache"),
         random_pipeline_closure_probability: random_pipeline_closure_probability,
         random_pipeline_closure_seed: random_pipeline_closure_seed,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
