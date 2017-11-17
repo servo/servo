@@ -596,7 +596,7 @@ pub mod basic_shape {
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use std::borrow::Borrow;
     use values::computed::ComputedUrl;
-    use values::computed::basic_shape::{BasicShape, ShapeRadius};
+    use values::computed::basic_shape::{BasicShape, ClippingShape, FloatAreaShape, ShapeRadius};
     use values::computed::border::{BorderCornerRadius, BorderRadius};
     use values::computed::length::LengthOrPercentage;
     use values::computed::position;
@@ -606,32 +606,68 @@ pub mod basic_shape {
     use values::generics::border::BorderRadius as GenericBorderRadius;
     use values::generics::rect::Rect;
 
-    impl<'a, ReferenceBox> From<&'a StyleShapeSource> for ShapeSource<BasicShape, ReferenceBox, ComputedUrl>
-    where
-        ReferenceBox: From<StyleGeometryBox>,
+    impl StyleShapeSource {
+        /// Convert StyleShapeSource to ShapeSource except URL and Image
+        /// types.
+        fn into_shape_source<ReferenceBox, ImageOrUrl>(
+            &self
+        ) -> Option<ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>>
+        where
+            ReferenceBox: From<StyleGeometryBox>
+        {
+            match self.mType {
+                StyleShapeSourceType::None => Some(ShapeSource::None),
+                StyleShapeSourceType::Box => Some(ShapeSource::Box(self.mReferenceBox.into())),
+                StyleShapeSourceType::Shape => {
+                    let other_shape = unsafe { &*self.mBasicShape.mPtr };
+                    let shape = other_shape.into();
+                    let reference_box = if self.mReferenceBox == StyleGeometryBox::NoBox {
+                        None
+                    } else {
+                        Some(self.mReferenceBox.into())
+                    };
+                    Some(ShapeSource::Shape(shape, reference_box))
+                },
+                StyleShapeSourceType::URL | StyleShapeSourceType::Image => None,
+            }
+        }
+    }
+
+    impl<'a> From<&'a StyleShapeSource> for ClippingShape
     {
         fn from(other: &'a StyleShapeSource) -> Self {
             match other.mType {
-                StyleShapeSourceType::None => ShapeSource::None,
-                StyleShapeSourceType::Box => ShapeSource::Box(other.mReferenceBox.into()),
                 StyleShapeSourceType::URL => {
                     unsafe {
                         let shape_image = &*other.mShapeImage.mPtr;
                         let other_url = &(**shape_image.__bindgen_anon_1.mURLValue.as_ref());
                         let url = ComputedUrl::from_url_value_data(&other_url._base).unwrap();
-                        ShapeSource::Url(url)
+                        ShapeSource::ImageOrUrl(url)
                     }
                 },
-                StyleShapeSourceType::Shape => {
-                    let other_shape = unsafe { &*other.mBasicShape.mPtr };
-                    let shape = other_shape.into();
-                    let reference_box = if other.mReferenceBox == StyleGeometryBox::NoBox {
-                        None
-                    } else {
-                        Some(other.mReferenceBox.into())
-                    };
-                    ShapeSource::Shape(shape, reference_box)
+                StyleShapeSourceType::Image => {
+                    unreachable!("ClippingShape doesn't support Image!");
                 }
+                _ => other.into_shape_source().expect("Couldn't convert to StyleSource!")
+            }
+        }
+    }
+
+    impl<'a> From<&'a StyleShapeSource> for FloatAreaShape
+    {
+        fn from(other: &'a StyleShapeSource) -> Self {
+            match other.mType {
+                StyleShapeSourceType::URL => {
+                    unreachable!("FloatAreaShape doesn't support URL!");
+                },
+                StyleShapeSourceType::Image => {
+                    unsafe {
+                        let shape_image = &*other.mShapeImage.mPtr;
+                        let image = shape_image.into_image().expect("Cannot convert to Image");
+                        ShapeSource::ImageOrUrl(image)
+                    }
+                }
+                _ => other.into_shape_source().expect("Couldn't convert to StyleSource!")
             }
         }
     }
