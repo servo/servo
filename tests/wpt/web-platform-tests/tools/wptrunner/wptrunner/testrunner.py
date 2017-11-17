@@ -593,7 +593,7 @@ class TestRunnerManager(threading.Thread):
         # processing
         self.logger.debug("Wait finished")
 
-        return self.after_test_end(True)
+        return self.after_test_end(self.state.test, True)
 
     def after_test_end(self, test, restart):
         assert isinstance(self.state, RunnerManagerState.running)
