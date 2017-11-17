@@ -154,6 +154,8 @@ pub struct XMLHttpRequest {
     response_status: Cell<Result<(), ()>>,
     referrer_url: Option<ServoUrl>,
     referrer_policy: Option<ReferrerPolicy>,
+    #[ignore_malloc_size_of = "channels are hard"]
+    cancellation_chan: DomRefCell<Option<ipc::IpcSender<()>>>,
 }
 
 impl XMLHttpRequest {
@@ -198,6 +200,7 @@ impl XMLHttpRequest {
             response_status: Cell::new(Ok(())),
             referrer_url: referrer_url,
             referrer_policy: referrer_policy,
+            cancellation_chan: DomRefCell::new(None),
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequest> {
@@ -218,7 +221,8 @@ impl XMLHttpRequest {
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
                           task_source: NetworkingTaskSource,
                           global: &GlobalScope,
-                          init: RequestInit) {
+                          init: RequestInit,
+                          cancellation_chan: ipc::IpcReceiver<()>) {
         impl FetchResponseListener for XHRContext {
             fn process_request_body(&mut self) {
                 // todo
@@ -255,6 +259,7 @@ impl XMLHttpRequest {
         }
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
+
         let listener = NetworkListener {
             context: context,
             task_source: task_source,
@@ -264,7 +269,7 @@ impl XMLHttpRequest {
             listener.notify_fetch(message.to().unwrap());
         }));
         global.core_resource_thread().send(
-            Fetch(init, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
+            Fetch(init, FetchChannels::ResponseMsg(action_sender, Some(cancellation_chan)))).unwrap();
     }
 }
 
@@ -1311,8 +1316,11 @@ impl XMLHttpRequest {
             (global.networking_task_source(), None)
         };
 
+        let (cancel_sender, cancel_receiver) = ipc::channel().unwrap();
+        *self.cancellation_chan.borrow_mut() = Some(cancel_sender);
+
         XMLHttpRequest::initiate_async_xhr(context.clone(), task_source,
-                                           global, init);
+                                           global, init, cancel_receiver);
 
         if let Some(script_port) = script_port {
             loop {
