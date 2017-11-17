@@ -1023,6 +1023,12 @@ impl XMLHttpRequest {
     }
 
     fn terminate_ongoing_fetch(&self) {
+        if let Some(ref cancel_chan) = *self.cancellation_chan.borrow() {
+            // The receiver will be destroyed if the request has already completed;
+            // so we throw away the error. Cancellation is a courtesy call,
+            // we don't actually care if the other side heard.
+            let _ = cancel_chan.send(());
+        }
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         self.response_status.set(Ok(()));
