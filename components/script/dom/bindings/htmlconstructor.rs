@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
@@ -73,12 +77,12 @@ use dom::customelementregistry::ConstructionStackEntry;
 use dom::element::{CustomElementState, Element, ElementCreator};
 use dom::htmlelement::HTMLElement;
 use dom::window::Window;
-use html5ever::interface::QualName;
 use html5ever::LocalName;
-use js::glue::{UnwrapObject};
-use js::jsapi::HandleObject;
+use html5ever::interface::QualName;
+use js::glue::UnwrapObject;
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
 use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::HandleObject;
 use js::jsapi::MutableHandleObject;
 use script_thread::ScriptThread;
 use std::ptr;
@@ -169,8 +173,8 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
         Some(ConstructionStackEntry::AlreadyConstructedMarker) => Err(Error::InvalidState),
     }
 }
-                                  
-                                  /// Returns the constructor object for the element associated with the given local name.
+
+/// Returns the constructor object for the element associated with the given local name.
 /// This list should only include elements marked with the [HTMLConstructor] extended attribute.
 pub fn get_constructor_object_from_local_name(name: LocalName,
                                               cx: *mut JSContext,
