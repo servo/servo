@@ -9,7 +9,7 @@ use cookie_rs;
 use cookie_storage::CookieStorage;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
-use fetch::methods::{FetchContext, fetch};
+use fetch::methods::{CancellationListener, FetchContext, fetch};
 use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::{HttpState, http_redirect_fetch};
@@ -35,7 +35,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::Sender;
 use std::thread;
 use storage_thread::StorageThreadFactory;
@@ -347,7 +347,7 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
-                cancel_chan: cancel_chan,
+                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
             };
 
             match res_init_ {
