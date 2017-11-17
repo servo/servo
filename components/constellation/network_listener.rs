@@ -57,14 +57,14 @@ impl NetworkListener {
             Some(ref res_init_) => CoreResourceMsg::FetchRedirect(
                                    self.req_init.clone(),
                                    res_init_.clone(),
-                                   ipc_sender),
+                                   ipc_sender, None),
             None => {
                 set_default_accept(Destination::Document, &mut listener.req_init.headers);
                 set_default_accept_language(&mut listener.req_init.headers);
 
                 CoreResourceMsg::Fetch(
                 listener.req_init.clone(),
-                FetchChannels::ResponseMsg(ipc_sender))
+                FetchChannels::ResponseMsg(ipc_sender, None))
             }
         };
 

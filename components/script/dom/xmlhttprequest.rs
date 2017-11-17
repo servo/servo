@@ -264,7 +264,7 @@ impl XMLHttpRequest {
             listener.notify_fetch(message.to().unwrap());
         }));
         global.core_resource_thread().send(
-            Fetch(init, FetchChannels::ResponseMsg(action_sender))).unwrap();
+            Fetch(init, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
     }
 }
 

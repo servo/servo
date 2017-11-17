@@ -157,14 +157,14 @@ impl ResourceChannelManager {
         match msg {
             CoreResourceMsg::Fetch(req_init, channels) => {
                 match channels {
-                    FetchChannels::ResponseMsg(sender) =>
-                        self.resource_manager.fetch(req_init, None, sender, http_state),
+                    FetchChannels::ResponseMsg(sender, cancel_chan) =>
+                        self.resource_manager.fetch(req_init, None, sender, http_state, cancel_chan),
                     FetchChannels::WebSocket { event_sender, action_receiver } =>
                         self.resource_manager.websocket_connect(req_init, event_sender, action_receiver, http_state),
                 }
             }
-            CoreResourceMsg::FetchRedirect(req_init, res_init, sender) =>
-                self.resource_manager.fetch(req_init, Some(res_init), sender, http_state),
+            CoreResourceMsg::FetchRedirect(req_init, res_init, sender, cancel_chan) =>
+                self.resource_manager.fetch(req_init, Some(res_init), sender, http_state, cancel_chan),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
                 self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, http_state),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
@@ -329,7 +329,8 @@ impl CoreResourceManager {
              req_init: RequestInit,
              res_init_: Option<ResponseInit>,
              mut sender: IpcSender<FetchResponseMsg>,
-             http_state: &Arc<HttpState>) {
+             http_state: &Arc<HttpState>,
+             cancel_chan: Option<IpcReceiver<()>>) {
         let http_state = http_state.clone();
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
@@ -346,6 +347,7 @@ impl CoreResourceManager {
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
+                cancel_chan: cancel_chan,
             };
 
             match res_init_ {
