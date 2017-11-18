@@ -1350,6 +1350,229 @@ impl Parse for FontVariantLigatures {
     }
 }
 
+bitflags! {
+    #[derive(MallocSizeOf)]
+    /// Vairants of numeric values
+    pub struct VariantNumeric: u8 {
+        /// None of other variants are enabled.
+        const NORMAL = 0;
+        /// Enables display of lining numerals.
+        const LINING_NUMS = 0x01;
+        /// Enables display of old-style numerals.
+        const OLDSTYLE_NUMS = 0x02;
+        /// Enables display of proportional numerals.
+        const PROPORTIONAL_NUMS = 0x04;
+        /// Enables display of tabular numerals.
+        const TABULAR_NUMS = 0x08;
+        /// Enables display of lining diagonal fractions.
+        const DIAGONAL_FRACTIONS = 0x10;
+        /// Enables display of lining stacked fractions.
+        const STACKED_FRACTIONS = 0x20;
+        /// Enables display of letter forms used with ordinal numbers.
+        const ORDINAL = 0x80;
+        /// Enables display of slashed zeros.
+        const SLASHED_ZERO = 0x40;
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl VariantNumeric {
+    /// Obtain a specified value from a Gecko keyword value
+    ///
+    /// Intended for use with presentation attributes, not style structs
+    pub fn from_gecko_keyword(kw: u8) -> Self {
+        Self::from_bits_truncate(kw)
+    }
+
+    /// Transform into gecko keyword
+    pub fn to_gecko_keyword(self) -> u8 {
+        self.bits()
+    }
+}
+
+impl ToCss for VariantNumeric {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.is_empty() {
+            return dest.write_str("normal")
+        }
+
+        let mut has_any = false;
+
+        macro_rules! write_value {
+            ($ident:path => $str:expr) => {
+                if self.intersects($ident) {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    has_any = true;
+                    dest.write_str($str)?;
+                }
+            }
+        }
+
+        write_value!(VariantNumeric::LINING_NUMS => "lining-nums");
+        write_value!(VariantNumeric::OLDSTYLE_NUMS => "oldstyle-nums");
+        write_value!(VariantNumeric::PROPORTIONAL_NUMS => "proportional-nums");
+        write_value!(VariantNumeric::TABULAR_NUMS => "tabular-nums");
+        write_value!(VariantNumeric::DIAGONAL_FRACTIONS => "diagonal-fractions");
+        write_value!(VariantNumeric::STACKED_FRACTIONS => "stacked-fractions");
+        write_value!(VariantNumeric::SLASHED_ZERO => "slashed-zero");
+        write_value!(VariantNumeric::ORDINAL => "ordinal");
+
+        debug_assert!(has_any);
+        Ok(())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl_gecko_keyword_conversions!(VariantNumeric, u8);
+
+/// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_variant_numeric_matches() {
+    use gecko_bindings::structs;
+
+    macro_rules! check_variant_numeric {
+        ( $( $a:ident => $b:path),*, ) => {
+            if cfg!(debug_assertions) {
+                $(
+                    assert_eq!(structs::$a as u8, $b.bits());
+                )*
+            }
+        }
+    }
+
+    check_variant_numeric! {
+        NS_FONT_VARIANT_NUMERIC_LINING => VariantNumeric::LINING_NUMS,
+        NS_FONT_VARIANT_NUMERIC_OLDSTYLE => VariantNumeric::OLDSTYLE_NUMS,
+        NS_FONT_VARIANT_NUMERIC_PROPORTIONAL => VariantNumeric::PROPORTIONAL_NUMS,
+        NS_FONT_VARIANT_NUMERIC_TABULAR => VariantNumeric::TABULAR_NUMS,
+        NS_FONT_VARIANT_NUMERIC_DIAGONAL_FRACTIONS => VariantNumeric::DIAGONAL_FRACTIONS,
+        NS_FONT_VARIANT_NUMERIC_STACKED_FRACTIONS => VariantNumeric::STACKED_FRACTIONS,
+        NS_FONT_VARIANT_NUMERIC_SLASHZERO => VariantNumeric::SLASHED_ZERO,
+        NS_FONT_VARIANT_NUMERIC_ORDINAL => VariantNumeric::ORDINAL,
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+/// Specifies control over numerical forms.
+pub enum FontVariantNumeric {
+    /// Value variant with `variant-numeric`
+    Value(VariantNumeric),
+    /// System font
+    System(SystemFont)
+}
+
+impl FontVariantNumeric {
+    #[inline]
+    /// Default value of `font-variant-numeric` as `empty`
+    pub fn empty() -> FontVariantNumeric {
+        FontVariantNumeric::Value(VariantNumeric::empty())
+    }
+
+    /// Get `font-variant-numeric` with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontVariantNumeric::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontVariantNumeric::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontVariantNumeric {
+    type ComputedValue = computed::FontVariantNumeric;
+
+    fn to_computed_value(&self, _context: &Context) -> computed::FontVariantNumeric {
+        match *self {
+            FontVariantNumeric::Value(ref v) => v.clone(),
+            FontVariantNumeric::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    _context.cached_system_font.as_ref().unwrap().font_variant_numeric.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontVariantNumeric) -> Self {
+        FontVariantNumeric::Value(other.clone())
+    }
+}
+
+impl Parse for FontVariantNumeric {
+    /// normal |
+    ///  [ <numeric-figure-values>   ||
+    ///    <numeric-spacing-values>  ||
+    ///    <numeric-fraction-values> ||
+    ///    ordinal                   ||
+    ///    slashed-zero ]
+    /// <numeric-figure-values>   = [ lining-nums | oldstyle-nums ]
+    /// <numeric-spacing-values>  = [ proportional-nums | tabular-nums ]
+    /// <numeric-fraction-values> = [ diagonal-fractions | stacked-fractions ]
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<FontVariantNumeric, ParseError<'i>> {
+        let mut result = VariantNumeric::empty();
+
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(FontVariantNumeric::Value(result))
+        }
+
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
+                "ordinal" =>
+                    exclusive_value!((result, VariantNumeric::ORDINAL) => VariantNumeric::ORDINAL),
+                "slashed-zero" =>
+                    exclusive_value!((result, VariantNumeric::SLASHED_ZERO) => VariantNumeric::SLASHED_ZERO),
+                "lining-nums" =>
+                    exclusive_value!((result, VariantNumeric::LINING_NUMS |
+                                              VariantNumeric::OLDSTYLE_NUMS
+                                    ) => VariantNumeric::LINING_NUMS),
+                "oldstyle-nums" =>
+                    exclusive_value!((result, VariantNumeric::LINING_NUMS |
+                                              VariantNumeric::OLDSTYLE_NUMS
+                                    ) => VariantNumeric::OLDSTYLE_NUMS),
+                "proportional-nums" =>
+                    exclusive_value!((result, VariantNumeric::PROPORTIONAL_NUMS |
+                                              VariantNumeric::TABULAR_NUMS
+                                    ) => VariantNumeric::PROPORTIONAL_NUMS),
+                "tabular-nums" =>
+                    exclusive_value!((result, VariantNumeric::PROPORTIONAL_NUMS |
+                                              VariantNumeric::TABULAR_NUMS
+                                    ) => VariantNumeric::TABULAR_NUMS),
+                "diagonal-fractions" =>
+                    exclusive_value!((result, VariantNumeric::DIAGONAL_FRACTIONS |
+                                              VariantNumeric::STACKED_FRACTIONS
+                                    ) => VariantNumeric::DIAGONAL_FRACTIONS),
+                "stacked-fractions" =>
+                    exclusive_value!((result, VariantNumeric::DIAGONAL_FRACTIONS |
+                                              VariantNumeric::STACKED_FRACTIONS
+                                    ) => VariantNumeric::STACKED_FRACTIONS),
+                _ => return Err(()),
+            })
+        }) {
+            result.insert(flag);
+        }
+
+        if !result.is_empty() {
+            Ok(FontVariantNumeric::Value(result))
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces

@@ -283,6 +283,9 @@ pub type FontVariantEastAsian = specified::VariantEastAsian;
 /// Use VariantLigatures as computed type of FontVariantLigatures
 pub type FontVariantLigatures = specified::VariantLigatures;
 
+/// Use VariantNumeric as computed type of FontVariantNumeric
+pub type FontVariantNumeric = specified::VariantNumeric;
+
 /// font-language-override can only have a single three-letter
 /// OpenType "language system" tag, so we should be able to compute
 /// it and store it as a 32-bit integer

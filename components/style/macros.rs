@@ -14,6 +14,23 @@ macro_rules! exclusive_value {
     }
 }
 
+#[cfg(feature = "gecko")]
+macro_rules! impl_gecko_keyword_conversions {
+    ($name: ident, $utype: ty) => {
+        impl From<$utype> for $name {
+            fn from(bits: $utype) -> $name {
+                $name::from_gecko_keyword(bits)
+            }
+        }
+
+        impl From<$name> for $utype {
+            fn from(v: $name) -> $utype {
+                v.to_gecko_keyword()
+            }
+        }
+    };
+}
+
 macro_rules! trivial_to_computed_value {
     ($name:ty) => {
         impl $crate::values::computed::ToComputedValue for $name {
