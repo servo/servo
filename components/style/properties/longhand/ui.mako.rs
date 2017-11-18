@@ -63,57 +63,9 @@ ${helpers.predefined_type("-moz-window-transform-origin",
                           enabled_in="ua",
                           spec="None (Nonstandard internal property)")}
 
-<%helpers:longhand name="-moz-force-broken-image-icon"
-                   products="gecko"
-                   animation_value_type="discrete"
-                   spec="None (Nonstandard Firefox-only property)">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub mod computed_value {
-        #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-        pub struct T(pub bool);
-    }
-
-    pub use self::computed_value::T as SpecifiedValue;
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            dest.write_str(if self.0 { "1" } else { "0" })
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(false)
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        computed_value::T(false)
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        match input.expect_integer()? {
-            0 => Ok(computed_value::T(false)),
-            1 => Ok(computed_value::T(true)),
-            _ => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-        }
-    }
-
-    impl From<u8> for SpecifiedValue {
-        fn from(bits: u8) -> SpecifiedValue {
-            SpecifiedValue(bits == 1)
-        }
-    }
-
-    impl From<SpecifiedValue> for u8 {
-        fn from(v: SpecifiedValue) -> u8 {
-            match v.0 {
-                true => 1u8,
-                false => 0u8,
-            }
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("-moz-force-broken-image-icon",
+                          "MozForceBrokenImageIcon",
+                          "computed::MozForceBrokenImageIcon::false_value()",
+                          animation_value_type="discrete",
+                          products="gecko",
+                          spec="None (Nonstandard Firefox-only property)")}
