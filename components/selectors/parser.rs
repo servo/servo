@@ -1365,6 +1365,9 @@ where
 {
     let namespace;
     let local_name;
+
+    input.skip_whitespace();
+
     match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
         OptionalQName::None(t) => {
             return Err(input.new_custom_error(
