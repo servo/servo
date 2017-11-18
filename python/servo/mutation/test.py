@@ -11,9 +11,13 @@ import subprocess
 import sys
 import os
 import random
+import logging
+
 from mutator import Mutator, get_strategies
 from enum import Enum
 DEVNULL = open(os.devnull, 'wb')
+
+logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.DEBUG)
 
 
 class Status(Enum):
@@ -28,38 +32,38 @@ def mutation_test(file_name, tests):
     local_changes_present = subprocess.call('git diff --quiet {0}'.format(file_name), shell=True)
     if local_changes_present == 1:
         status = Status.SKIPPED
-        print "{0} has local changes, please commit/remove changes before running the test".format(file_name)
+        logging.warning("{0} has local changes, please commit/remove changes before running the test".format(file_name))
     else:
         strategy = random.choice(get_strategies())()
         mutator = Mutator(strategy)
         mutated_line = mutator.mutate(file_name)
         if mutated_line != -1:
-            print "Mutating {0} at line {1}".format(file_name, mutated_line)
-            print "compiling mutant {0}:{1}".format(file_name, mutated_line)
+            logging.info("Mutated {0} at line {1}".format(file_name, mutated_line))
+            logging.info("compiling mutant {0}:{1}".format(file_name, mutated_line))
             sys.stdout.flush()
             if subprocess.call('python mach build --release', shell=True, stdout=DEVNULL):
-                print "Compilation Failed: Unexpected error"
+                logging.error("Compilation Failed: Unexpected error")
                 status = Status.UNEXPECTED
             else:
                 for test in tests:
                     test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
-                    print "running `{0}` test for mutant {1}:{2}".format(test, file_name, mutated_line)
+                    logging.info("running `{0}` test for mutant {1}:{2}".format(test, file_name, mutated_line))
                     sys.stdout.flush()
                     test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
                     if test_status != 0:
-                        print("Failed: while running `{0}`".format(test_command))
-                        print "mutated file {0} diff".format(file_name)
+                        logging.error("Failed: while running `{0}`".format(test_command))
+                        logging.error("mutated file {0} diff".format(file_name))
                         sys.stdout.flush()
                         subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
                         status = Status.SURVIVED
                     else:
-                        print("Success: Mutation killed by {0}".format(test.encode('utf-8')))
+                        logging.info("Success: Mutation killed by {0}".format(test.encode('utf-8')))
                         status = Status.KILLED
                         break
-            print "reverting mutant {0}:{1}".format(file_name, mutated_line)
+                logging.info("reverting mutant {0}:{1}".format(file_name, mutated_line))
             sys.stdout.flush()
             subprocess.call('git checkout {0}'.format(file_name), shell=True)
         else:
-            print "Cannot mutate {0}".format(file_name)
+            logging.info("Cannot mutate {0}".format(file_name))
         print "-" * 80 + "\n"
     return status

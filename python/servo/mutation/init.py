@@ -12,6 +12,9 @@ from os.path import isfile, isdir, join
 import json
 import sys
 import test
+
+import logging
+
 test_summary = {
     test.Status.KILLED: 0,
     test.Status.SURVIVED: 0,
@@ -42,14 +45,15 @@ def mutation_test_for(mutation_path):
         for folder in get_folders_list(mutation_path):
             mutation_test_for(folder)
     else:
-        print("This folder {0} has no test mapping file.".format(mutation_path))
+        logging.warning("This folder {0} has no test mapping file.".format(mutation_path))
 
 
 mutation_test_for(sys.argv[1])
-print "\nTest Summary:"
-print "Mutant Killed (Success) \t{0}".format(test_summary[test.Status.KILLED])
-print "Mutant Survived (Failure) \t{0}".format(test_summary[test.Status.SURVIVED])
-print "Mutation Skipped \t\t{0}".format(test_summary[test.Status.SKIPPED])
-print "Unexpected error in mutation \t{0}".format(test_summary[test.Status.UNEXPECTED])
+logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.DEBUG)
+logging.info("Test Summary:")
+logging.info("Mutant Killed (Success) \t\t{0}".format(test_summary[test.Status.KILLED]))
+logging.info("Mutant Survived (Failure) \t{0}".format(test_summary[test.Status.SURVIVED]))
+logging.info("Mutation Skipped \t\t\t{0}".format(test_summary[test.Status.SKIPPED]))
+logging.info("Unexpected error in mutation \t{0}".format(test_summary[test.Status.UNEXPECTED]))
 if test_summary[test.Status.SURVIVED]:
     sys.exit(1)
