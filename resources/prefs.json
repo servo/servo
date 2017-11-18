@@ -66,6 +66,7 @@
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
+  "network.http-cache.disabled": false,
   "network.mime.sniff": false,
   "session-history.max-length": 20,
   "shell.builtin-key-shortcuts.enabled": true,
