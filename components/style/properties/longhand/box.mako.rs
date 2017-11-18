@@ -222,7 +222,8 @@
 ${helpers.single_keyword("-moz-top-layer", "none top",
                          gecko_constant_prefix="NS_STYLE_TOP_LAYER",
                          gecko_ffi_name="mTopLayer",
-                         products="gecko", animation_value_type="none", internal=True,
+                         products="gecko", animation_value_type="none",
+                         enabled_in="ua",
                          spec="Internal (not web-exposed)")}
 
 ${helpers.single_keyword("position", "static absolute relative fixed sticky",
@@ -368,12 +369,12 @@ ${helpers.predefined_type(
 // CSS 2.1, Section 11 - Visual effects
 
 ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
-    products="servo", animation_value_type="none", internal=True,
+    products="servo", animation_value_type="none", enabled_in="ua",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
-    products="gecko", animation_value_type="discrete", internal=True,
+    products="gecko", animation_value_type="discrete", enabled_in="ua",
     gecko_pref="layout.css.overflow-clip-box.enabled",
     flags="APPLIES_TO_PLACEHOLDER",
     spec="Internal, not web-exposed, \

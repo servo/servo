@@ -16,4 +16,4 @@ ${helpers.predefined_type("-x-span",
                           products="gecko",
                           spec="Internal-only (for `<col span>` pres attr)",
                           animation_value_type="none",
-                          internal=True)}
+                          enabled_in="")}

@@ -928,7 +928,8 @@ ${helpers.predefined_type("font-language-override",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override")}
 
-<%helpers:longhand name="-x-lang" products="gecko" animation_value_type="none" internal="True"
+<%helpers:longhand name="-x-lang" products="gecko" animation_value_type="none"
+                   enabled_in=""
                    spec="Internal (not web-exposed)">
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -963,7 +964,7 @@ ${helpers.predefined_type("font-language-override",
 <%helpers:longhand name="-moz-script-size-multiplier" products="gecko" animation_value_type="none"
                    predefined_type="Number" gecko_ffi_name="mScriptSizeMultiplier"
                    spec="Internal (not web-exposed)"
-                   internal="True">
+                   enabled_in="">
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
@@ -987,7 +988,7 @@ ${helpers.predefined_type("-moz-script-level",
                           0,
                           animation_value_type="none",
                           products="gecko",
-                          internal=True,
+                          enabled_in="ua",
                           gecko_ffi_name="mScriptLevel",
                           spec="Internal (not web-exposed)")}
 
@@ -1016,7 +1017,7 @@ ${helpers.predefined_type("-moz-script-min-size",
                           "specified::MozScriptMinSize::get_initial_value()",
                           animation_value_type="none",
                           products="gecko",
-                          internal=True,
+                          enabled_in="",
                           gecko_ffi_name="mScriptMinSize",
                           spec="Internal (not web-exposed)")}
 
@@ -1025,7 +1026,7 @@ ${helpers.predefined_type("-x-text-zoom",
                           "computed::XTextZoom(true)",
                           animation_value_type="none",
                           products="gecko",
-                          internal=True,
+                          enabled_in="",
                           spec="Internal (not web-exposed)")}
 
 % if product == "gecko":
@@ -1232,7 +1233,7 @@ ${helpers.predefined_type("-moz-font-smoothing-background-color",
                           animation_value_type="AnimatedRGBA",
                           products="gecko",
                           gecko_ffi_name="mFont.fontSmoothingBackgroundColor",
-                          internal=True,
+                          enabled_in="ua",
                           spec="None (Nonstandard internal property)")}
 
 ${helpers.predefined_type("-moz-min-font-size-ratio",
@@ -1240,5 +1241,5 @@ ${helpers.predefined_type("-moz-min-font-size-ratio",
                           "computed::Percentage::hundred()",
                           animation_value_type="none",
                           products="gecko",
-                          internal=True,
+                          enabled_in="ua",
                           spec="Nonstandard (Internal-only)")}
