@@ -57,5 +57,5 @@ size_of_test!(test_size_of_specified_image, specified::image::Image, 40);
 
 // FIXME(bz): These can shrink if we move the None_ value inside the
 // enum instead of paying an extra word for the Either discriminant.
-size_of_test!(test_size_of_computed_image_layer, computed::image::ImageLayer, 48);
-size_of_test!(test_size_of_specified_image_layer, specified::image::ImageLayer, 48);
+size_of_test!(test_size_of_computed_image_layer, computed::image::ImageLayer, 40);
+size_of_test!(test_size_of_specified_image_layer, specified::image::ImageLayer, 40);
