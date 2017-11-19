@@ -12,6 +12,10 @@ import re
 import random
 
 
+def is_comment(line):
+    return re.search(r'\/\/.*', line)
+
+
 class Strategy:
     def __init__(self):
         self._replace_strategy = {}
@@ -19,7 +23,7 @@ class Strategy:
     def mutate_random_line(self, file_name):
         line_numbers = []
         for line in fileinput.input(file_name):
-            if re.search(self._replace_strategy['regex'], line):
+            if not is_comment(line) and re.search(self._replace_strategy['regex'], line):
                 line_numbers.append(fileinput.lineno())
         if len(line_numbers) == 0:
             return -1
@@ -59,8 +63,26 @@ class IfFalse(Strategy):
         }
 
 
+class MinusToPlus(Strategy):
+    def __init__(self):
+        Strategy.__init__(self)
+        self._replace_strategy = {
+            'regex': r'(?<=\s)\-(?=\s.+)|(?<=\s)\-(?=\=)',
+            'replaceString': '+'
+        }
+
+
+class PlusToMinus(Strategy):
+    def __init__(self):
+        Strategy.__init__(self)
+        self._replace_strategy = {
+            'regex': r"(?<=[^\"]\s)\+(?=\s[^A-Z'?\":\{]+)|(?<=\s)\+(?=\=)",
+            'replaceString': '-'
+        }
+
+
 def get_strategies():
-    return AndOr, IfTrue, IfFalse
+    return AndOr, IfTrue, IfFalse, MinusToPlus
 
 
 class Mutator:
