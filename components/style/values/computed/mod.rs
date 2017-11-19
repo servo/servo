@@ -59,6 +59,7 @@ pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin};
+pub use self::ui::MozForceBrokenImageIcon;
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -84,6 +85,7 @@ pub mod table;
 pub mod text;
 pub mod time;
 pub mod transform;
+pub mod ui;
 
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.

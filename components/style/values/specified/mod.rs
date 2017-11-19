@@ -55,6 +55,7 @@ pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, Transform, TransformOrigin};
+pub use self::ui::MozForceBrokenImageIcon;
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]
@@ -84,6 +85,7 @@ pub mod table;
 pub mod text;
 pub mod time;
 pub mod transform;
+pub mod ui;
 
 /// Common handling for the specified value CSS url() values.
 pub mod url {
