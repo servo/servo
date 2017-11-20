@@ -9,6 +9,7 @@ import csv
 import itertools
 import json
 import os
+import platform
 import subprocess
 from datetime import datetime
 from functools import partial
@@ -17,6 +18,8 @@ from urllib.parse import urlsplit, urlunsplit, urljoin
 
 
 DATE = datetime.now().strftime("%Y%m%d")
+MACHINE = platform.machine()
+SYSTEM = platform.system()
 
 
 def load_manifest(filename):
@@ -144,6 +147,9 @@ def parse_log(log, testcase, url):
     # able to identify failed tests (successful tests have time >=0).
     def create_placeholder(testcase):
         return {
+            "system": SYSTEM,
+            "machine": MACHINE,
+            "date": DATE,
             "testcase": testcase,
             "title": "",
             "navigationStart": 0,
@@ -173,6 +179,8 @@ def parse_log(log, testcase, url):
     # rather than the url.
     def set_testcase(timing, testcase=None):
         timing['testcase'] = testcase
+        timing['system'] = SYSTEM
+        timing['machine'] = MACHINE
         timing['date'] = DATE
         return timing
 
@@ -245,6 +253,8 @@ def save_result_json(results, filename, manifest, expected_runs, base):
 def save_result_csv(results, filename, manifest, expected_runs, base):
 
     fieldnames = [
+        'system',
+        'machine',
         'date',
         'testcase',
         'title',
