@@ -227,8 +227,10 @@ impl<'ln> GeckoNode<'ln> {
             return false;
         }
 
-        if parent_el.map_or(false, |el| el.has_shadow_root()) {
-            return false;
+        if let Some(parent) = parent_el {
+            if parent.has_shadow_root() || parent.get_xbl_binding().is_some() {
+                return false;
+            }
         }
 
         true
