@@ -15,42 +15,6 @@
     %endif
 </%def>
 
-// Define ToComputedValue, ToCss, and other boilerplate for a specified value
-// which is of the form `enum SpecifiedValue {Value(..), System(SystemFont)}`
-<%def name="simple_system_boilerplate(name)">
-    impl SpecifiedValue {
-        pub fn system_font(f: SystemFont) -> Self {
-            SpecifiedValue::System(f)
-        }
-        pub fn get_system(&self) -> Option<SystemFont> {
-            if let SpecifiedValue::System(s) = *self {
-                Some(s)
-            } else {
-                None
-            }
-        }
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Value(ref v) => v.clone(),
-                SpecifiedValue::System(_) => {
-                    <%self:nongecko_unreachable>
-                        _context.cached_system_font.as_ref().unwrap().${name}.clone()
-                    </%self:nongecko_unreachable>
-                }
-            }
-        }
-
-        fn from_computed_value(other: &computed_value::T) -> Self {
-            SpecifiedValue::Value(other.clone())
-        }
-    }
-</%def>
-
 <%helpers:longhand name="font-family" animation_value_type="discrete"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
@@ -698,43 +662,16 @@ ${helpers.single_keyword_system("font-variant-position",
                                 flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                 animation_value_type="discrete")}
 
-<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="discrete"
-                   extra_prefixes="moz" boxed="True"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
-                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
-    use properties::longhands::system_font::SystemFont;
-    use values::generics::FontSettings;
-
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(Clone, Debug, PartialEq, ToCss)]
-    pub enum SpecifiedValue {
-        Value(computed_value::T),
-        System(SystemFont)
-    }
-
-    <%self:simple_system_boilerplate name="font_feature_settings"></%self:simple_system_boilerplate>
-
-    pub mod computed_value {
-        use values::generics::{FontSettings, FontSettingTagInt};
-        pub type T = FontSettings<FontSettingTagInt>;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        FontSettings::Normal
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Value(FontSettings::Normal)
-    }
-
-    /// normal | <feature-tag-value>#
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        computed_value::T::parse(context, input).map(SpecifiedValue::Value)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("font-feature-settings",
+                          "FontFeatureSettings",
+                          products="gecko",
+                          initial_value="computed::FontFeatureSettings::normal()",
+                          initial_specified_value="specified::FontFeatureSettings::normal()",
+                          extra_prefixes="moz",
+                          boxed=True,
+                          animation_value_type="discrete",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                          spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings")}
 
 <%
 # This spec link is too long to fit elsewhere

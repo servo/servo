@@ -1551,6 +1551,71 @@ impl Parse for FontVariantNumeric {
     }
 }
 
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+/// Define initial settings that apply when the font defined
+/// by an @font-face rule is rendered.
+pub enum FontFeatureSettings {
+    /// Value of `FontSettings`
+    Value(computed::FontFeatureSettings),
+    /// System font
+    System(SystemFont)
+}
+
+impl FontFeatureSettings {
+    #[inline]
+    /// Get default value of `font-feature-settings` as normal
+    pub fn normal() -> FontFeatureSettings {
+        FontFeatureSettings::Value(FontSettings::Normal)
+    }
+
+    /// Get `font-feature-settings` with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontFeatureSettings::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontFeatureSettings::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+}
+
+impl ToComputedValue for FontFeatureSettings {
+    type ComputedValue = computed::FontFeatureSettings;
+
+    fn to_computed_value(&self, _context: &Context) -> computed::FontFeatureSettings {
+        match *self {
+            FontFeatureSettings::Value(ref v) => v.clone(),
+            FontFeatureSettings::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    _context.cached_system_font.as_ref().unwrap().font_feature_settings.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontFeatureSettings) -> Self {
+        FontFeatureSettings::Value(other.clone())
+    }
+}
+
+impl Parse for FontFeatureSettings {
+    /// normal | <feature-tag-value>#
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<FontFeatureSettings, ParseError<'i>> {
+        computed::FontFeatureSettings::parse(context, input).map(FontFeatureSettings::Value)
+    }
+}
+
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces
