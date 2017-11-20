@@ -929,18 +929,7 @@ impl ToCss for VariantEastAsian {
 }
 
 #[cfg(feature = "gecko")]
-impl From<u16> for VariantEastAsian {
-    fn from(bits: u16) -> VariantEastAsian {
-        VariantEastAsian::from_gecko_keyword(bits)
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<VariantEastAsian> for u16 {
-    fn from(v: VariantEastAsian) -> u16 {
-        v.to_gecko_keyword()
-    }
-}
+impl_gecko_keyword_conversions!(VariantEastAsian, u16);
 
 /// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
 #[cfg(feature = "gecko")]
@@ -1176,18 +1165,7 @@ impl ToCss for VariantLigatures {
 }
 
 #[cfg(feature = "gecko")]
-impl From<u16> for VariantLigatures {
-    fn from(bits: u16) -> VariantLigatures {
-        VariantLigatures::from_gecko_keyword(bits)
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<VariantLigatures> for u16 {
-    fn from(v: VariantLigatures) -> u16 {
-        v.to_gecko_keyword()
-    }
-}
+impl_gecko_keyword_conversions!(VariantLigatures, u16);
 
 /// Asserts that all variant-east-asian matches its NS_FONT_VARIANT_EAST_ASIAN_* value.
 #[cfg(feature = "gecko")]
