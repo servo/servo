@@ -48,7 +48,7 @@ python3 -m http.server > /dev/null 2>&1 &
 # MANIFEST="page_load_test/tp5n/20160509.manifest"
 MANIFEST="page_load_test/test.manifest" # A manifest that excludes
                                         # timeout test cases
-PERF_FILE="output/perf-$(date +%s).csv"
+PERF_FILE="output/perf-$(uname -s)-$(uname -m)-$(date +%s).csv"
 
 echo "Running tests"
 python3 runner.py ${engine} --runs 4 --timeout "${timeout}" --base "${base}" \
