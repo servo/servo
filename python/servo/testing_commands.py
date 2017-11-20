@@ -175,7 +175,7 @@ class MachCommands(CommandBase):
              category='testing')
     @CommandArgument('--base', default=None,
                      help="the base URL for testcases")
-    @CommandArgument('-submit', '-a', default=False, action="store_true",
+    @CommandArgument('--submit', '-a', default=False, action="store_true",
                      help="submit the data to perfherder")
     def test_perf(self, base=None, submit=False):
         self.set_software_rendering_env(True)
