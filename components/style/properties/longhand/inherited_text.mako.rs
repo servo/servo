@@ -745,6 +745,8 @@ ${helpers.single_keyword("text-rendering",
                          animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty")}
 
+// FIXME Firefox expects the initial value of this property to change depending
+// on the value of the layout.css.control-characters.visible pref.
 ${helpers.single_keyword("-moz-control-character-visibility",
                          "hidden visible",
                          gecko_constant_prefix="NS_STYLE_CONTROL_CHARACTER_VISIBILITY",
