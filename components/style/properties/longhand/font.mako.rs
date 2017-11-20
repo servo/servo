@@ -768,6 +768,7 @@ ${helpers.single_keyword("-moz-math-display",
                          gecko_constant_prefix="NS_MATHML_DISPLAYSTYLE",
                          gecko_ffi_name="mMathDisplay",
                          products="gecko",
+                         enabled_in="ua",
                          spec="Internal (not web-exposed)",
                          animation_value_type="none")}
 
@@ -781,6 +782,7 @@ ${helpers.single_keyword("-moz-math-variant",
                          products="gecko",
                          spec="Internal (not web-exposed)",
                          animation_value_type="none",
+                         enabled_in="",
                          needs_conversion=True)}
 
 ${helpers.predefined_type("-moz-script-min-size",
@@ -1004,7 +1006,7 @@ ${helpers.predefined_type("-moz-font-smoothing-background-color",
                           animation_value_type="AnimatedRGBA",
                           products="gecko",
                           gecko_ffi_name="mFont.fontSmoothingBackgroundColor",
-                          enabled_in="ua",
+                          enabled_in="chrome",
                           spec="None (Nonstandard internal property)")}
 
 ${helpers.predefined_type("-moz-min-font-size-ratio",
