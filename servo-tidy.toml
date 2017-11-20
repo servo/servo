@@ -35,6 +35,7 @@ num = []
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
+  "cookie",
   "mime",
   "semver",
   "toml",
