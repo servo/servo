@@ -102,6 +102,10 @@ enum LastChunkState {
 }
 
 impl ServoParser {
+    pub fn parser_is_not_active(&self) -> bool {
+        self.can_write() || self.tokenizer.try_borrow_mut().is_ok()
+    }
+
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
         let parser = if PREFS.get("dom.servoparser.async_html_tokenizer.enabled").as_boolean().unwrap() {
             ServoParser::new(document,
