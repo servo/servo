@@ -11,6 +11,7 @@ use style_traits::ToCss;
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
+use values::generics::{FontSettings, FontSettingTagInt};
 use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
@@ -285,6 +286,17 @@ pub type FontVariantLigatures = specified::VariantLigatures;
 
 /// Use VariantNumeric as computed type of FontVariantNumeric
 pub type FontVariantNumeric = specified::VariantNumeric;
+
+/// Use FontSettings as computed type of FontFeatureSettings
+pub type FontFeatureSettings = FontSettings<FontSettingTagInt>;
+
+impl FontFeatureSettings {
+    #[inline]
+    /// Default value of `font-feature-settings` as `normal`
+    pub fn normal() -> FontFeatureSettings {
+        FontSettings::Normal
+    }
+}
 
 /// font-language-override can only have a single three-letter
 /// OpenType "language system" tag, so we should be able to compute
