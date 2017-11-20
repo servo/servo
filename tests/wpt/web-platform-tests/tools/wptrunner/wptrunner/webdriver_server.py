@@ -195,10 +195,11 @@ class GeckoDriverServer(WebDriverServer):
 
 
 class ServoDriverServer(WebDriverServer):
-    def __init__(self, logger, binary="servo", binary_args=None, host="127.0.0.1", port=None):
+    def __init__(self, logger, binary="servo", binary_args=None, host="127.0.0.1",
+                 port=None, args=None):
         env = os.environ.copy()
         env["RUST_BACKTRACE"] = "1"
-        WebDriverServer.__init__(self, logger, binary, host=host, port=port, env=env)
+        WebDriverServer.__init__(self, logger, binary, host=host, port=port, env=env, args=args)
         self.binary_args = binary_args
 
     def make_command(self):

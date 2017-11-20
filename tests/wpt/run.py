@@ -65,6 +65,7 @@ def set_defaults(paths, kwargs):
         bin_path = servo_path("target", bin_dir, bin_name)
 
         kwargs["binary"] = bin_path
+        kwargs["webdriver_binary"] = bin_path
 
     if kwargs["processes"] is None:
         kwargs["processes"] = multiprocessing.cpu_count()
