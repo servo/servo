@@ -290,14 +290,6 @@ pub type FontVariantNumeric = specified::VariantNumeric;
 /// Use FontSettings as computed type of FontFeatureSettings
 pub type FontFeatureSettings = FontSettings<FontSettingTagInt>;
 
-impl FontFeatureSettings {
-    #[inline]
-    /// Default value of `font-feature-settings` as `normal`
-    pub fn normal() -> FontFeatureSettings {
-        FontSettings::Normal
-    }
-}
-
 /// font-language-override can only have a single three-letter
 /// OpenType "language system" tag, so we should be able to compute
 /// it and store it as a 32-bit integer
