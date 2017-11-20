@@ -1804,14 +1804,6 @@ impl Parse for FontLanguageOverride {
 /// This property provides low-level control over OpenType or TrueType font variations.
 pub type FontVariantSettings = FontSettings<FontSettingTagFloat>;
 
-impl FontVariantSettings {
-    #[inline]
-    /// Default value of `font-variant-settings`
-    pub fn normal() -> FontVariantSettings {
-        FontSettings::Normal
-    }
-}
-
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// text-zoom. Enable if true, disable if false
 pub struct XTextZoom(pub bool);
