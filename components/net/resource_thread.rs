@@ -12,6 +12,7 @@ use fetch::cors_cache::CorsCache;
 use fetch::methods::{FetchContext, fetch};
 use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
+use http_cache::HttpCache;
 use http_loader::{HttpState, http_redirect_fetch};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
@@ -91,6 +92,7 @@ struct ResourceChannelManager {
 fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::new();
+    let http_cache = HttpCache::new();
     let mut cookie_jar = CookieStorage::new(150);
     if let Some(config_dir) = config_dir {
         read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
@@ -109,6 +111,7 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
     let http_state = HttpState {
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
+        http_cache: RwLock::new(http_cache),
         hsts_list: RwLock::new(hsts_list),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client),
