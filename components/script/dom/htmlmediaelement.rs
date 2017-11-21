@@ -31,10 +31,13 @@ use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
+#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+use gecko_media::{CanPlayType, GeckoMedia};
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
+#[allow(unused_imports)]
 use mime::{Mime, SubLevel, TopLevel};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -869,6 +872,20 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
+        #[cfg(all(
+            any(target_os = "macos", target_os = "linux"),
+            not(any(target_arch = "arm", target_arch = "aarch64"))))]
+        {
+            let gecko_media = match GeckoMedia::get() {
+                Ok(gecko_media) => gecko_media,
+                Err(_error) => return CanPlayTypeResult::_empty,
+            };
+            return match gecko_media.can_play_type(&type_) {
+                CanPlayType::No => CanPlayTypeResult::_empty,
+                CanPlayType::Maybe => CanPlayTypeResult::Maybe,
+                CanPlayType::Probably => CanPlayTypeResult::Probably
+            };
+        }
         match type_.parse::<Mime>() {
             Ok(Mime(TopLevel::Application, SubLevel::OctetStream, _)) |
             Err(_) => {
