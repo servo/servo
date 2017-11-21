@@ -52,13 +52,13 @@ use webdriver::command::{AddCookieParameters, GetParameters, JavascriptCommandPa
 use webdriver::command::{LocatorParameters, Parameters};
 use webdriver::command::{SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
-use webdriver::command::WindowSizeParameters;
+use webdriver::command::WindowRectParameters;
 use webdriver::common::{Date, LocatorStrategy, Nullable, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
-use webdriver::response::{Cookie, CookieResponse};
+use webdriver::response::{Cookie, CookieResponse, CookiesResponse};
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
-use webdriver::response::{WebDriverResponse, WindowSizeResponse};
+use webdriver::response::{WebDriverResponse, WindowRectResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
@@ -402,13 +402,23 @@ impl Handler {
 
         let window_size = receiver.recv().unwrap();
         let vp = window_size.initial_viewport;
-        let window_size_response = WindowSizeResponse::new(vp.width as u64, vp.height as u64);
-        Ok(WebDriverResponse::WindowSize(window_size_response))
+        let window_size_response = WindowRectResponse {
+            x: 0, y: 0, width: vp.width as i32, height: vp.height as i32
+        };
+        Ok(WebDriverResponse::WindowRect(window_size_response))
     }
 
-    fn handle_set_window_size(&self, params: &WindowSizeParameters) -> WebDriverResult<WebDriverResponse> {
+    fn handle_set_window_size(&self, params: &WindowRectParameters) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let size = Size2D::new(params.width as u32, params.height as u32);
+        let width = match params.width {
+            Nullable::Value(v) => v,
+            Nullable::Null => 0,
+        };
+        let height = match params.height {
+            Nullable::Value(v) => v,
+            Nullable::Null => 0,
+        };
+        let size = Size2D::new(width as u32, height as u32);
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, sender.clone());
 
@@ -426,8 +436,10 @@ impl Handler {
 
         let window_size = receiver.recv().unwrap();
         let vp = window_size.initial_viewport;
-        let window_size_response = WindowSizeResponse::new(vp.width as u64, vp.height as u64);
-        Ok(WebDriverResponse::WindowSize(window_size_response))
+        let window_size_response = WindowRectResponse {
+            x: 0, y: 0, width: vp.width as i32, height: vp.height as i32
+        };
+        Ok(WebDriverResponse::WindowRect(window_size_response))
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
@@ -588,8 +600,10 @@ impl Handler {
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(rect) => {
-                let response = ElementRectResponse::new(rect.origin.x, rect.origin.y,
-                                                        rect.size.width, rect.size.height);
+                let response = ElementRectResponse {
+                    x: rect.origin.x, y: rect.origin.y,
+                    width: rect.size.width, height: rect.size.height
+                };
                 Ok(WebDriverResponse::ElementRect(response))
             },
             Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
@@ -657,7 +671,7 @@ impl Handler {
         let response = cookies.into_iter().map(|cookie| {
             cookie_msg_to_cookie(cookie.into_inner())
         }).collect::<Vec<Cookie>>();
-        Ok(WebDriverResponse::Cookie(CookieResponse::new(response)))
+        Ok(WebDriverResponse::Cookies(CookiesResponse { value: response }))
     }
 
     fn handle_get_cookie(&self, name: &str) -> WebDriverResult<WebDriverResponse> {
@@ -667,8 +681,8 @@ impl Handler {
         let cookies = receiver.recv().unwrap();
         let response = cookies.into_iter().map(|cookie| {
             cookie_msg_to_cookie(cookie.into_inner())
-        }).collect::<Vec<Cookie>>();
-        Ok(WebDriverResponse::Cookie(CookieResponse::new(response)))
+        }).next().unwrap();
+        Ok(WebDriverResponse::Cookie(CookieResponse { value: response }))
     }
 
     fn handle_add_cookie(&self, params: &AddCookieParameters) -> WebDriverResult<WebDriverResponse> {
@@ -779,7 +793,7 @@ impl Handler {
         receiver.recv().unwrap().or_else(|_| Err(WebDriverError::new(
             ErrorStatus::StaleElementReference, "Element not found or not focusable")))?;
 
-        let keys = keycodes_to_keys(&keys.value).or_else(|_|
+        let keys = keycodes_to_keys(&keys.text).or_else(|_|
             Err(WebDriverError::new(ErrorStatus::UnsupportedOperation, "Failed to convert keycodes")))?;
 
         // TODO: there's a race condition caused by the focus command and the
@@ -880,8 +894,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
-            WebDriverCommand::GetWindowSize => self.handle_window_size(),
-            WebDriverCommand::SetWindowSize(ref size) => self.handle_set_window_size(size),
+            WebDriverCommand::GetWindowRect => self.handle_window_size(),
+            WebDriverCommand::SetWindowRect(ref size) => self.handle_set_window_size(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
             WebDriverCommand::GoBack => self.handle_go_back(),

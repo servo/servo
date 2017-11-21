@@ -32,7 +32,7 @@ style_tests = {path = "../../tests/unit/style"}
 default = ["unstable", "default-except-unstable"]
 default-except-unstable = ["webdriver", "max_log_level"]
 max_log_level = ["log/release_max_level_info"]
-webdriver = ["libservo/webdriver_server"]
+webdriver = ["libservo/webdriver"]
 energy-profiling = ["libservo/energy-profiling"]
 debugmozjs = ["libservo/debugmozjs"]
 googlevr = ["libservo/googlevr"]
