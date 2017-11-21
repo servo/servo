@@ -4072,7 +4072,7 @@ fn static_assert() {
             fill_fields += " mMaskMode mComposite"
     %>
     pub fn fill_arrays(&mut self) {
-        use gecko_bindings::bindings::Gecko_FillAll${shorthand.title()}Lists;
+        use gecko_bindings::bindings::Gecko_FillAllImageLayers;
         use std::cmp;
         let mut max_len = 1;
         % for member in fill_fields.split():
@@ -4081,7 +4081,7 @@ fn static_assert() {
         unsafe {
             // While we could do this manually, we'd need to also manually
             // run all the copy constructors, so we just delegate to gecko
-            Gecko_FillAll${shorthand.title()}Lists(&mut self.gecko.${image_layers_field}, max_len);
+            Gecko_FillAllImageLayers(&mut self.gecko.${image_layers_field}, max_len);
         }
     }
 </%def>
