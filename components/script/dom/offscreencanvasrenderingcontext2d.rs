@@ -6,15 +6,15 @@ use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
-use cssparser::Color as CSSColor;
 use cssparser::{Parser, ParserInput, RGBA};
+use cssparser::Color as CSSColor;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -40,8 +40,8 @@ use net_traits::image_cache::ImageState;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
-use std::cell::Cell;
 use std::{cmp, fmt, mem};
+use std::cell::Cell;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -431,7 +431,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         DomRoot::from_ref(self.canvas.as_ref().expect("No canvas."))
     }
     fn Commit(&self) {
-
     }
 
     fn GlobalAlpha(&self) -> f64 {
@@ -439,7 +438,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         state.global_alpha
     }
     fn SetGlobalAlpha(&self, value: f64) {
-
     }
 
     fn GlobalCompositeOperation(&self) -> DOMString {
@@ -450,7 +448,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         }
     }
     fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
-
     }
     fn DrawImage(&self,
                  image: CanvasImageSource,
@@ -505,10 +502,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     fn BeginPath(&self) {
     }
     fn Fill(&self, _: CanvasFillRule) {
-
     }
     fn Stroke(&self) {
-
     }
     fn Clip(&self, _: CanvasFillRule) {
         // TODO: Process fill rule
@@ -532,7 +527,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
-
     }
     fn FillStyle(&self) -> StringOrCanvasGradientOrCanvasPattern {
         match self.state.borrow().fill_style {
@@ -682,7 +676,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>) {
-
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -694,7 +687,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                      dirty_y: Finite<f64>,
                      dirty_width: Finite<f64>,
                      dirty_height: Finite<f64>) {
-
     }
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
     fn ImageSmoothingEnabled(&self) -> bool {
@@ -710,24 +702,17 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     }
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto
     fn MoveTo(&self, x: f64, y: f64) {
-
     }
-
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-lineto
     fn LineTo(&self, x: f64, y: f64) {
-
     }
     fn QuadraticCurveTo(&self, cpx: f64, cpy: f64, x: f64, y: f64) {
-
     }
-
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto
     fn BezierCurveTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
-
     }
-
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
-        fn Arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
+    fn Arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
             if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
                 return Ok(());
             }
@@ -744,7 +729,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
             self.ipc_renderer.send(msg).unwrap();
             Ok(())
-        }
+    }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
         fn ArcTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> ErrorResult {
@@ -754,7 +739,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
             if r < 0.0 {
                 return Err(Error::IndexSize);
             }
-
             let msg = CanvasMsg::Canvas2d(Canvas2dMsg::ArcTo(Point2D::new(cp1x as f32, cp1y as f32),
                                                              Point2D::new(cp2x as f32, cp2y as f32),
                                                              r as f32));
@@ -763,10 +747,11 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         }
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-rect
         fn Rect(&self, x: f64, y: f64, width: f64, height: f64) {
-
         }
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
-        fn Ellipse(&self, x: f64, y: f64, rx: f64, ry: f64, rotation: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
+        fn Ellipse(&self, x: f64, y: f64,
+             rx: f64, ry: f64, rotation: f64, start: f64,
+              end: f64, ccw: bool) -> ErrorResult {
             if !([x, y, rx, ry, rotation, start, end].iter().all(|x| x.is_finite())) {
                 return Ok(());
             }
@@ -792,7 +777,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
         fn SetLineWidth(&self, width: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
@@ -806,7 +790,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
         fn SetLineCap(&self, cap: CanvasLineCap) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
@@ -820,7 +803,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
         fn SetLineJoin(&self, join: CanvasLineJoin) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
@@ -831,21 +813,17 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
         fn SetMiterLimit(&self, limit: f64) {
-
         }
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
         fn FillRect(&self, x: f64, y: f64, width: f64, height: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
         fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokerect
         fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
@@ -855,7 +833,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
         fn SetShadowOffsetX(&self, value: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
@@ -865,7 +842,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
         fn SetShadowOffsetY(&self, value: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
@@ -875,7 +851,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
         fn SetShadowBlur(&self, value: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
@@ -887,7 +862,6 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
         fn SetShadowColor(&self, value: DOMString) {
-
         }
         fn Save(&self) {
         }
@@ -895,42 +869,34 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         #[allow(unrooted_must_root)]
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
         fn Restore(&self) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-scale
         fn Scale(&self, x: f64, y: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-rotate
         fn Rotate(&self, angle: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-translate
         fn Translate(&self, x: f64, y: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
         fn Transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
         fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
         fn ResetTransform(&self) {
-
         }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
-
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
