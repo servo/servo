@@ -17,9 +17,9 @@ use http_loader::{HttpState, http_redirect_fetch};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
-use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
-use net_traits::{CustomResponseMediator, ResourceId};
-use net_traits::{ResourceThreads, WebSocketDomAction, WebSocketNetworkEvent};
+use net_traits::{CoreResourceMsg, CustomResponseMediator, FetchChannels};
+use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
+use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -187,12 +187,6 @@ impl ResourceChannelManager {
                 let cookies = cookie_jar.cookies_data_for_url(&url, source).map(Serde).collect();
                 consumer.send(cookies).unwrap();
             }
-            CoreResourceMsg::Cancel(res_id) => {
-                if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
-                    let _ = cancel_sender.send(());
-                }
-                self.resource_manager.cancel_load_map.remove(&res_id);
-            }
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
@@ -302,7 +296,6 @@ pub struct CoreResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
-    cancel_load_map: HashMap<ResourceId, Sender<()>>,
 }
 
 impl CoreResourceManager {
@@ -314,7 +307,6 @@ impl CoreResourceManager {
             devtools_chan: devtools_channel,
             swmanager_chan: None,
             filemanager: FileManager::new(),
-            cancel_load_map: HashMap::new(),
         }
     }
 

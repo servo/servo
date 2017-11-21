@@ -362,8 +362,6 @@ pub enum CoreResourceMsg {
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
     GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
-    /// Cancel a network request corresponding to a given `ResourceId`
-    Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
     /// Send the network sender in constellation to CoreResourceThread
@@ -499,10 +497,6 @@ pub fn load_whole_resource(request: RequestInit,
         }
     }
 }
-
-/// An unique identifier to keep track of each load message in the resource handler
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct ResourceId(pub u32);
 
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
