@@ -15,6 +15,7 @@ use hyper::header::{Header, HeaderFormat, HeaderView, Headers, Referer as Refere
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use ipc_channel::ipc::IpcReceiver;
 use mime_guess::guess_mime_type;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
@@ -27,7 +28,7 @@ use std::fs::File;
 use std::io::Read;
 use std::mem;
 use std::str;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
 
@@ -36,6 +37,7 @@ pub type Target<'a> = &'a mut (FetchTaskTarget + Send);
 pub enum Data {
     Payload(Vec<u8>),
     Done,
+    Cancelled,
 }
 
 pub struct FetchContext {
@@ -43,8 +45,37 @@ pub struct FetchContext {
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
+    pub cancellation_listener: Arc<Mutex<CancellationListener>>,
 }
 
+pub struct CancellationListener {
+    cancel_chan: Option<IpcReceiver<()>>,
+    cancelled: bool,
+}
+
+impl CancellationListener {
+    pub fn new(cancel_chan: Option<IpcReceiver<()>>) -> Self {
+        Self {
+            cancel_chan: cancel_chan,
+            cancelled: false,
+        }
+    }
+
+    pub fn cancelled(&mut self) -> bool {
+        if let Some(ref cancel_chan) = self.cancel_chan {
+            if self.cancelled {
+                true
+            } else if cancel_chan.try_recv().is_ok() {
+                self.cancelled = true;
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+}
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
@@ -317,7 +348,7 @@ pub fn main_fetch(request: &mut Request,
     };
 
     // Execute deferred rebinding of response.
-    let response = if let Some(error) = internal_error {
+    let mut response = if let Some(error) = internal_error {
         Response::network_error(error)
     } else {
         response
@@ -325,9 +356,9 @@ pub fn main_fetch(request: &mut Request,
 
     // Step 19.
     let mut response_loaded = false;
-    let response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
+    let mut response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
         // Step 19.1.
-        wait_for_response(&response, target, done_chan);
+        wait_for_response(&mut response, target, done_chan);
         response_loaded = true;
 
         // Step 19.2.
@@ -346,9 +377,9 @@ pub fn main_fetch(request: &mut Request,
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
-        target.process_response(&response);
+        target.process_response(&mut response);
         if !response_loaded {
-            wait_for_response(&response, target, done_chan);
+            wait_for_response(&mut response, target, done_chan);
         }
         // overloaded similarly to process_response
         target.process_response_eof(&response);
@@ -370,7 +401,7 @@ pub fn main_fetch(request: &mut Request,
 
     // Step 23.
     if !response_loaded {
-       wait_for_response(&response, target, done_chan);
+       wait_for_response(&mut response, target, done_chan);
     }
 
     // Step 24.
@@ -381,7 +412,7 @@ pub fn main_fetch(request: &mut Request,
     response
 }
 
-fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneChannel) {
+fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut DoneChannel) {
     if let Some(ref ch) = *done_chan {
         loop {
             match ch.1.recv()
@@ -390,6 +421,10 @@ fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneCh
                     target.process_response_chunk(vec);
                 },
                 Data::Done => break,
+                Data::Cancelled => {
+                    response.aborted = true;
+                    break;
+                }
             }
         }
     } else {

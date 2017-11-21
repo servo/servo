@@ -25,7 +25,7 @@ use hyper_openssl;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::connector::create_ssl_client;
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::FetchContext;
+use net::fetch::methods::{CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
@@ -538,6 +538,7 @@ fn test_fetch_with_hsts() {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(),
+        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
     };
 
     {

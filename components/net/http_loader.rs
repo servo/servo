@@ -1103,6 +1103,10 @@ fn http_network_fetch(request: &Request,
     let devtools_sender = context.devtools_chan.clone();
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
+    let cancellation_listener = context.cancellation_listener.clone();
+    if cancellation_listener.lock().unwrap().cancelled() {
+        return Response::network_error(NetworkError::Internal("Fetch aborted".into()))
+    }
     thread::Builder::new().name(format!("fetch worker thread")).spawn(move || {
         match StreamedResponse::from_http_response(res) {
             Ok(mut res) => {
@@ -1125,6 +1129,11 @@ fn http_network_fetch(request: &Request,
                 }
 
                 loop {
+                    if cancellation_listener.lock().unwrap().cancelled() {
+                        *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
+                        let _ = done_sender.send(Data::Cancelled);
+                        return;
+                    }
                     match read_block(&mut res) {
                         Ok(Data::Payload(chunk)) => {
                             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
@@ -1144,6 +1153,7 @@ fn http_network_fetch(request: &Request,
                             let _ = done_sender.send(Data::Done);
                             break;
                         }
+                        Ok(Data::Cancelled) => unreachable!() // read_block doesn't return Data::Cancelled
                     }
                 }
             }

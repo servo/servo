@@ -109,7 +109,7 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
         listener.notify_fetch(message.to().unwrap());
     }));
     core_resource_thread.send(
-        NetTraitsFetch(request_init, FetchChannels::ResponseMsg(action_sender))).unwrap();
+        NetTraitsFetch(request_init, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 
     promise
 }

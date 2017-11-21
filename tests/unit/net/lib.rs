@@ -36,7 +36,7 @@ use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};
 use net::connector::create_ssl_client;
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::{self, FetchContext};
+use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::test::HttpState;
 use net_traits::FetchTaskTarget;
@@ -44,7 +44,7 @@ use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, channel};
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
@@ -61,6 +61,7 @@ fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),
+        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

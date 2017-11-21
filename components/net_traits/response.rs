@@ -112,6 +112,8 @@ pub struct Response {
     pub internal_response: Option<Box<Response>>,
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
+    /// https://fetch.spec.whatwg.org/#concept-response-aborted
+    pub aborted: bool,
 }
 
 impl Response {
@@ -133,6 +135,7 @@ impl Response {
             location_url: None,
             internal_response: None,
             return_internal: true,
+            aborted: false,
         }
     }
 
@@ -162,6 +165,7 @@ impl Response {
             location_url: None,
             internal_response: None,
             return_internal: true,
+            aborted: false,
         }
     }
 
