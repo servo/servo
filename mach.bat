@@ -1,5 +1,7 @@
 @echo off
 
+pushd .
+
 IF EXIST "%ProgramFiles(x86)%" (
   set "ProgramFiles32=%ProgramFiles(x86)%"
 ) ELSE (
@@ -31,5 +33,7 @@ IF EXIST "%VS_VCVARS%" (
   ECHO Download and install Visual Studio 2015 or 2017 from https://www.visualstudio.com/
   EXIT /B
 )
+
+popd
 
 python mach %*
