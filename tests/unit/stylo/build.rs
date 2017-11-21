@@ -11,6 +11,11 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 
 fn main() {
+    if std::mem::size_of::<Option<bool>>() == 1 {
+         // https://github.com/rust-lang/rust/pull/45225
+         println!("cargo:rustc-cfg=rustc_has_pr45225")
+    }
+
     let root_path = Path::new("../../../");
     let bindings_file = root_path.join("components/style/gecko/generated/bindings.rs");
     let glue_file = root_path.join("ports/geckolib/glue.rs");

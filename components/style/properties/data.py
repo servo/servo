@@ -140,7 +140,7 @@ class Keyword(object):
 def arg_to_bool(arg):
     if isinstance(arg, bool):
         return arg
-    assert arg in ["True", "False"]
+    assert arg in ["True", "False"], "Unexpected value for boolean arguement: " + repr(arg)
     return arg == "True"
 
 

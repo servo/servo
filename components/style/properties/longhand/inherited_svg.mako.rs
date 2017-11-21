@@ -66,7 +66,7 @@ ${helpers.predefined_type(
     "stroke-width", "SVGWidth",
     "::values::computed::NonNegativeLength::new(1.).into()",
     products="gecko",
-    boxed="True",
+    boxed=not RUSTC_HAS_PR45225,
     animation_value_type="::values::computed::SVGWidth",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
@@ -101,7 +101,7 @@ ${helpers.predefined_type(
     "stroke-dashoffset", "SVGLength",
     "Au(0).into()",
     products="gecko",
-    boxed="True",
+    boxed=not RUSTC_HAS_PR45225,
     animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 

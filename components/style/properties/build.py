@@ -32,7 +32,8 @@ def main():
 
     properties = data.PropertiesData(product=product)
     template = os.path.join(BASE, "properties.mako.rs")
-    rust = render(template, product=product, data=properties, __file__=template)
+    rust = render(template, product=product, data=properties, __file__=template,
+                  RUSTC_HAS_PR45225=os.environ.get("RUSTC_HAS_PR45225"))
     if output == "style-crate":
         write(os.environ["OUT_DIR"], "properties.rs", rust)
         if product == "gecko":
