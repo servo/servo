@@ -850,9 +850,7 @@ extern "C" {
 } extern "C" {
  pub fn Gecko_ReleaseURLExtraDataArbitraryThread ( aPtr : * mut RawGeckoURLExtraData , ) ; 
 } extern "C" {
- pub fn Gecko_FillAllBackgroundLists ( layers : * mut nsStyleImageLayers , max_len : u32 , ) ; 
-} extern "C" {
- pub fn Gecko_FillAllMaskLists ( layers : * mut nsStyleImageLayers , max_len : u32 , ) ; 
+ pub fn Gecko_FillAllImageLayers ( layers : * mut nsStyleImageLayers , max_len : u32 , ) ; 
 } extern "C" {
  pub fn Gecko_AddRefCalcArbitraryThread ( aPtr : * mut nsStyleCoord_Calc , ) ; 
 } extern "C" {
