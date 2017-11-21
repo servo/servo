@@ -74,7 +74,7 @@ use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::{AttrValue, PseudoClassStringArg};
+use selector_parser::{AttrValue, Direction, PseudoClassStringArg};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -2070,14 +2070,20 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Lang(ref lang_arg) => {
                 self.match_element_lang(None, lang_arg)
             }
-            NonTSPseudoClass::MozLocaleDir(ref s) |
-            NonTSPseudoClass::Dir(ref s) => {
+            NonTSPseudoClass::MozLocaleDir(ref s) => {
                 unsafe {
                     Gecko_MatchStringArgPseudo(
                         self.0,
                         pseudo_class.to_gecko_pseudoclasstype().unwrap(),
                         s.as_ptr(),
                     )
+                }
+            }
+            NonTSPseudoClass::Dir(ref dir) => {
+                match **dir {
+                    Direction::Ltr => self.get_state().intersects(ElementState::IN_LTR_STATE),
+                    Direction::Rtl => self.get_state().intersects(ElementState::IN_RTL_STATE),
+                    Direction::Other(..) => false,
                 }
             }
         }

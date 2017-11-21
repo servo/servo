@@ -9,13 +9,13 @@ use element_state::{DocumentState, ElementState};
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use selector_parser::{SelectorParser, PseudoElementCascadeType};
+use selector_parser::{Direction, SelectorParser, PseudoElementCascadeType};
 use selectors::SelectorList;
 use selectors::parser::{Selector, SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use style_traits::{ParseError, StyleParseErrorKind};
+use style_traits::{ParseError, StyleParseErrorKind, ToCss as ToCss_};
 
 pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
@@ -53,6 +53,8 @@ macro_rules! pseudo_class_name {
                 #[doc = $k_css]
                 $k_name(Box<[u16]>),
             )*
+            /// The `:dir` pseudo-class.
+            Dir(Box<Direction>),
             /// The non-standard `:-moz-any` pseudo-class.
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
@@ -92,6 +94,12 @@ impl ToCss for NonTSPseudoClass {
                         dest.write_str(&value)?;
                         return dest.write_char(')')
                     }, )*
+                    NonTSPseudoClass::Dir(ref dir) => {
+                        dest.write_str(":dir(")?;
+                        // FIXME: This should be escaped as an identifier; see #19231
+                        (**dir).to_css(dest)?;
+                        return dest.write_char(')')
+                    },
                     NonTSPseudoClass::MozAny(ref selectors) => {
                         dest.write_str(":-moz-any(")?;
                         let mut iter = selectors.iter();
@@ -145,6 +153,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
                     $(NonTSPseudoClass::$s_name(..) => check_flag!($s_flags),)*
                     $(NonTSPseudoClass::$k_name(..) => check_flag!($k_flags),)*
+                    NonTSPseudoClass::Dir(_) => false,
                     NonTSPseudoClass::MozAny(_) => false,
                 }
             }
@@ -189,6 +198,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
                     $(NonTSPseudoClass::$k_name(..) => flag!($k_state),)*
+                    NonTSPseudoClass::Dir(..) => ElementState::empty(),
                     NonTSPseudoClass::MozAny(..) => ElementState::empty(),
                 }
             }
@@ -253,6 +263,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
                     $(NonTSPseudoClass::$s_name(..) => gecko_type!($s_gecko_type),)*
                     $(NonTSPseudoClass::$k_name(..) => gecko_type!($k_gecko_type),)*
+                    NonTSPseudoClass::Dir(_) => gecko_type!(dir),
                     NonTSPseudoClass::MozAny(_) => gecko_type!(any),
                 }
             }
@@ -360,6 +371,17 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                             .chain(Some(0u16)).collect();
                         NonTSPseudoClass::$k_name(utf16.into_boxed_slice())
                     }, )*
+                    "dir" => {
+                        let name: &str = parser.expect_ident()?;
+                        let direction = match_ignore_ascii_case! { name,
+                            "rtl" => Direction::Rtl,
+                            "ltr" => Direction::Ltr,
+                            _ => {
+                                Direction::Other(Box::from(name))
+                            },
+                        };
+                        NonTSPseudoClass::Dir(Box::new(direction))
+                    },
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {
                             Selector::parse(self, input)
