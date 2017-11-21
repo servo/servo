@@ -17,6 +17,8 @@ extern crate devtools_traits;
 extern crate euclid;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 extern crate gaol;
+#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+extern crate gecko_media;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate hyper;
