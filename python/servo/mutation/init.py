@@ -12,8 +12,8 @@ from os.path import isfile, isdir, join
 import json
 import sys
 import test
-
 import logging
+import random
 
 test_summary = {
     test.Status.KILLED: 0,
@@ -37,8 +37,10 @@ def mutation_test_for(mutation_path):
     if isfile(test_mapping_file):
         json_data = open(test_mapping_file).read()
         test_mapping = json.loads(json_data)
-        # Run mutation test for all source files in mapping file.
-        for src_file in test_mapping.keys():
+        # Run mutation test for all source files in mapping file in a random order.
+        source_files = list(test_mapping.keys())
+        random.shuffle(source_files)
+        for src_file in source_files:
             status = test.mutation_test(join(mutation_path, src_file.encode('utf-8')), test_mapping[src_file])
             test_summary[status] += 1
         # Run mutation test in all folder in the path.
