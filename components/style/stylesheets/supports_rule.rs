@@ -256,7 +256,7 @@ impl Declaration {
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
         input.parse_entirely(|input| -> Result<(), CssParseError<()>> {
-            let prop = input.expect_ident().unwrap().as_ref().to_owned();
+            let prop = input.expect_ident_cloned().unwrap();
             input.expect_colon().unwrap();
 
             let id = PropertyId::parse(&prop)
@@ -264,7 +264,7 @@ impl Declaration {
 
             let mut declarations = SourcePropertyDeclaration::new();
             input.parse_until_before(Delimiter::Bang, |input| {
-                PropertyDeclaration::parse_into(&mut declarations, id, prop.into(), &context, input)
+                PropertyDeclaration::parse_into(&mut declarations, id, prop, &context, input)
                     .map_err(|_| input.new_custom_error(()))
             })?;
             let _ = input.try(parse_important);
