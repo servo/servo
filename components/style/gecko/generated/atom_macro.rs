@@ -4058,8 +4058,6 @@ cfg_if! {
             pub static nsGkAtoms_ondevicelight: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms14ondevicechangeE"]
             pub static nsGkAtoms_ondevicechange: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms33mozinputrangeignorepreventdefaultE"]
-            pub static nsGkAtoms_mozinputrangeignorepreventdefault: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms13moz_extensionE"]
             pub static nsGkAtoms_moz_extension: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms18all_urlsPermissionE"]
@@ -9237,8 +9235,6 @@ cfg_if! {
             pub static nsGkAtoms_ondevicelight: *mut nsStaticAtom;
             #[link_name = "?ondevicechange@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_ondevicechange: *mut nsStaticAtom;
-            #[link_name = "?mozinputrangeignorepreventdefault@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_mozinputrangeignorepreventdefault: *mut nsStaticAtom;
             #[link_name = "?moz_extension@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_moz_extension: *mut nsStaticAtom;
             #[link_name = "?all_urlsPermission@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -14416,8 +14412,6 @@ cfg_if! {
             pub static nsGkAtoms_ondevicelight: *mut nsStaticAtom;
             #[link_name = "\x01?ondevicechange@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_ondevicechange: *mut nsStaticAtom;
-            #[link_name = "\x01?mozinputrangeignorepreventdefault@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_mozinputrangeignorepreventdefault: *mut nsStaticAtom;
             #[link_name = "\x01?moz_extension@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_moz_extension: *mut nsStaticAtom;
             #[link_name = "\x01?all_urlsPermission@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -19598,8 +19592,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicelight as *mut _) } }};
 ("ondevicechange") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicechange as *mut _) } }};
-("mozinputrangeignorepreventdefault") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozinputrangeignorepreventdefault as *mut _) } }};
 ("moz-extension") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz_extension as *mut _) } }};
 ("<all_urls>") =>
