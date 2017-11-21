@@ -39,7 +39,7 @@ pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
 pub use self::font::{FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
-pub use self::font::{MozScriptLevel, MozScriptMinSize, XTextZoom};
+pub use self::font::{MozScriptLevel, MozScriptMinSize, XTextZoom, XLang};
 pub use self::box_::{AnimationIterationCount, AnimationName, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};

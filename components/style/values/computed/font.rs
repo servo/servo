@@ -16,7 +16,7 @@ use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
-pub use values::specified::font::{XTextZoom, FontSynthesis, FontVariantSettings};
+pub use values::specified::font::{XTextZoom, XLang, FontSynthesis, FontVariantSettings};
 
 /// As of CSS Fonts Module Level 3, only the following values are
 /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
