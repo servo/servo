@@ -9,7 +9,7 @@ use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, Source
 use error_reporting::{NullReporter, ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
 use properties::{DeclarationSource, Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
-use properties::{PropertyDeclarationId, PropertyParserContext, LonghandId, SourcePropertyDeclaration};
+use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use servo_arc::Arc;
@@ -581,19 +581,22 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ();
     type Error = StyleParseErrorKind<'i>;
 
-    fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
-                       -> Result<(), ParseError<'i>> {
-        let property_context = PropertyParserContext::new(self.context);
-
-        let id = PropertyId::parse(&name, Some(&property_context)).map_err(|()| {
+    fn parse_value<'t>(
+        &mut self,
+        name: CowRcStr<'i>,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(), ParseError<'i>> {
+        let id = PropertyId::parse(&name).map_err(|()| {
             input.new_custom_error(StyleParseErrorKind::UnknownProperty(name.clone()))
         })?;
-        match PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input) {
-            Ok(()) => {
-                // In case there is still unparsed text in the declaration, we should roll back.
-                input.expect_exhausted().map_err(|e| e.into())
-            }
-            Err(e) => Err(e.into())
-        }
+
+        // TODO(emilio): Shouldn't this use parse_entirely?
+        PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input)?;
+
+        // In case there is still unparsed text in the declaration, we should
+        // roll back.
+        input.expect_exhausted()?;
+
+        Ok(())
     }
 }
