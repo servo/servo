@@ -1158,7 +1158,7 @@ impl PropertyId {
             Some(context) => context,
             None => {
                 default = PropertyParserContext {
-                    in_chrome_stylesheet: false,
+                    chrome_rules_enabled: false,
                     stylesheet_origin: Origin::Author,
                     rule_type: CssRuleType::Style,
                 };
@@ -1346,7 +1346,7 @@ impl PropertyId {
             return Ok(())
         }
 
-        if context.in_chrome_stylesheet && ENABLED_IN_CHROME.contains(id) {
+        if context.chrome_rules_enabled && ENABLED_IN_CHROME.contains(id) {
             return Ok(())
         }
 
@@ -1357,7 +1357,7 @@ impl PropertyId {
 /// Parsing Context for PropertyId.
 pub struct PropertyParserContext {
     /// Whether the property is parsed in a chrome:// stylesheet.
-    pub in_chrome_stylesheet: bool,
+    pub chrome_rules_enabled: bool,
     /// The Origin of the stylesheet, whether it's a user,
     /// author or user-agent stylesheet.
     pub stylesheet_origin: Origin,
@@ -1369,7 +1369,7 @@ impl PropertyParserContext {
     /// Creates a PropertyParserContext with given stylesheet origin and rule type.
     pub fn new(context: &ParserContext) -> Self {
         Self {
-            in_chrome_stylesheet: context.in_chrome_stylesheet(),
+            chrome_rules_enabled: context.chrome_rules_enabled(),
             stylesheet_origin: context.stylesheet_origin,
             rule_type: context.rule_type(),
         }

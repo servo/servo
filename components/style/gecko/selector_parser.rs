@@ -306,14 +306,27 @@ impl ::selectors::SelectorImpl for SelectorImpl {
 }
 
 impl<'a> SelectorParser<'a> {
-    fn is_pseudo_class_enabled(&self,
-                               pseudo_class: &NonTSPseudoClass)
-                               -> bool {
-        pseudo_class.is_enabled_in_content() ||
-            (self.in_user_agent_stylesheet() &&
-             pseudo_class.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS)) ||
-            (self.in_chrome_stylesheet() &&
-             pseudo_class.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_CHROME))
+    fn is_pseudo_class_enabled(
+        &self,
+        pseudo_class: &NonTSPseudoClass,
+    ) -> bool {
+        if pseudo_class.is_enabled_in_content() {
+            return true;
+        }
+
+        if self.in_user_agent_stylesheet() &&
+           pseudo_class.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS)
+        {
+            return true;
+        }
+
+        if self.chrome_rules_enabled() &&
+           pseudo_class.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_CHROME)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -326,8 +339,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             name.starts_with("-moz-tree-") // tree pseudo-elements
     }
 
-    fn parse_non_ts_pseudo_class(&self, location: SourceLocation, name: CowRcStr<'i>)
-                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
+    fn parse_non_ts_pseudo_class(
+        &self,
+        location: SourceLocation,
+        name: CowRcStr<'i>,
+    ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
@@ -348,10 +364,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         }
     }
 
-    fn parse_non_ts_functional_pseudo_class<'t>(&self,
-                                                name: CowRcStr<'i>,
-                                                parser: &mut Parser<'i, 't>)
-                                                -> Result<NonTSPseudoClass, ParseError<'i>> {
+    fn parse_non_ts_functional_pseudo_class<'t>(
+        &self,
+        name: CowRcStr<'i>,
+        parser: &mut Parser<'i, 't>,
+    ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_string_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
@@ -408,8 +425,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         }
     }
 
-    fn parse_pseudo_element(&self, location: SourceLocation, name: CowRcStr<'i>)
-                            -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_pseudo_element(
+        &self,
+        location: SourceLocation,
+        name: CowRcStr<'i>,
+    ) -> Result<PseudoElement, ParseError<'i>> {
         PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
             .or_else(|| {
                 if name.starts_with("-moz-tree-") {
@@ -421,9 +441,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             .ok_or(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())))
     }
 
-    fn parse_functional_pseudo_element<'t>(&self, name: CowRcStr<'i>,
-                                           parser: &mut Parser<'i, 't>)
-                                           -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_functional_pseudo_element<'t>(
+        &self,
+        name: CowRcStr<'i>,
+        parser: &mut Parser<'i, 't>,
+    ) -> Result<PseudoElement, ParseError<'i>> {
         if name.starts_with("-moz-tree-") {
             // Tree pseudo-elements can have zero or more arguments,
             // separated by either comma or space.
