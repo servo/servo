@@ -3,53 +3,50 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg};
-use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
-use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
-use dom::bindings::cell::DomRefCell;
-use dom::offscreencanvas::OffscreenCanvas;
-use net_traits::image_cache::CanRequestImages;
-use cssparser::Color as CSSColor;
-use std::cell::Cell;
-use net_traits::image_cache::ImageState;
-use net_traits::image_cache::ImageOrMetadataAvailable;
-use dom::bindings::str::DOMString;
-use net_traits::image_cache::UsePlaceholder;
-use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use std::{cmp, fmt, mem};
-use dom::imagedata::ImageData;
-use dom::bindings::num::Finite;
-use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
-use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle};
-use dom::canvaspattern::CanvasPattern;
-use net_traits::image_cache::ImageResponse;
-use net_traits::image::base::PixelFormat;
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
-use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
-use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
-use dom_struct::dom_struct;
+use cssparser::Color as CSSColor;
 use cssparser::{Parser, ParserInput, RGBA};
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use ipc_channel::ipc::{self, IpcSender};
-use servo_url::ServoUrl;
-use net_traits::image_cache::ImageCache;
-use euclid::{Transform2D, Point2D, Rect, Size2D};
-use script_traits::ScriptMsg;
-use dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use std::sync::Arc;
-use std::str::FromStr;
+use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
+use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use dom::bindings::str::DOMString;
+use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle};
+use dom::canvaspattern::CanvasPattern;
 use dom::globalscope::GlobalScope;
+use dom::imagedata::ImageData;
 use dom::node::{document_from_node, window_from_node};
+use dom::offscreencanvas::OffscreenCanvas;
+use dom_struct::dom_struct;
+use euclid::{Transform2D, Point2D, Rect, Size2D};
+use ipc_channel::ipc::{self, IpcSender};
+use net_traits::image::base::PixelFormat;
+use net_traits::image_cache::CanRequestImages;
+use net_traits::image_cache::ImageCache;
+use net_traits::image_cache::ImageOrMetadataAvailable;
+use net_traits::image_cache::ImageResponse;
+use net_traits::image_cache::ImageState;
+use net_traits::image_cache::UsePlaceholder;
+use script_traits::ScriptMsg;
+use servo_url::ServoUrl;
+use std::cell::Cell;
+use std::{cmp, fmt, mem};
+use std::str::FromStr;
+use std::sync::Arc;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
-
-
-
 
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -433,15 +430,15 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         // so it's OK to panic if self.canvas is None.
         DomRoot::from_ref(self.canvas.as_ref().expect("No canvas."))
     }
-    fn Commit(&self) -> (){
+    fn Commit(&self) {
 
     }
 
-    fn GlobalAlpha(&self) -> f64{
+    fn GlobalAlpha(&self) -> f64 {
         let state = self.state.borrow();
         state.global_alpha
     }
-    fn SetGlobalAlpha(&self, value: f64) -> (){
+    fn SetGlobalAlpha(&self, value: f64) {
 
     }
 
