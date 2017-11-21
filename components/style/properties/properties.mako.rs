@@ -604,7 +604,8 @@ impl LonghandId {
     /// Returns a longhand id from Gecko's nsCSSPropertyID.
     pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
         match PropertyId::from_nscsspropertyid(id) {
-            Ok(PropertyId::Longhand(id)) => Ok(id),
+            Ok(PropertyId::Longhand(id)) |
+            Ok(PropertyId::LonghandAlias(id, _)) => Ok(id),
             _ => Err(()),
         }
     }
@@ -1052,8 +1053,10 @@ impl<'a> PropertyDeclarationId<'a> {
         match *self {
             PropertyDeclarationId::Longhand(id) => {
                 match *other {
-                    PropertyId::Longhand(other_id) => id == other_id,
-                    PropertyId::Shorthand(shorthand) => self.is_longhand_of(shorthand),
+                    PropertyId::Longhand(other_id) |
+                    PropertyId::LonghandAlias(other_id, _) => id == other_id,
+                    PropertyId::Shorthand(shorthand) |
+                    PropertyId::ShorthandAlias(shorthand, _) => self.is_longhand_of(shorthand),
                     PropertyId::Custom(_) => false,
                 }
             }
@@ -1094,6 +1097,10 @@ pub enum PropertyId {
     Longhand(LonghandId),
     /// A shorthand property.
     Shorthand(ShorthandId),
+    /// An alias for a longhand property.
+    LonghandAlias(LonghandId, AliasId),
+    /// An alias for a shorthand property.
+    ShorthandAlias(ShorthandId, AliasId),
     /// A custom property.
     Custom(::custom_properties::Name),
 }
@@ -1111,6 +1118,8 @@ impl ToCss for PropertyId {
         match *self {
             PropertyId::Longhand(id) => dest.write_str(id.name()),
             PropertyId::Shorthand(id) => dest.write_str(id.name()),
+            PropertyId::LonghandAlias(id, _) => dest.write_str(id.name()),
+            PropertyId::ShorthandAlias(id, _) => dest.write_str(id.name()),
             PropertyId::Custom(_) => {
                 serialize_identifier(&self.name(), dest)
             }
@@ -1119,17 +1128,26 @@ impl ToCss for PropertyId {
 }
 
 impl PropertyId {
+    /// Return the longhand id that this property id represents.
+    #[inline]
+    pub fn longhand_id(&self) -> Option<LonghandId> {
+        Some(match *self {
+            PropertyId::Longhand(id) => id,
+            PropertyId::LonghandAlias(id, _) => id,
+            _ => return None,
+        })
+    }
+
     /// Returns a given property from the string `s`.
     ///
-    /// Returns Err(()) for unknown non-custom properties
-    /// If caller wants to provide a different context, it can be provided with
-    /// Some(context), if None is given, default setting for PropertyParserContext
-    /// will be used. It is `Origin::Author` for stylesheet_origin and
-    /// `CssRuleType::Style` for rule_type.
-    pub fn parse(property_name: &str, context: Option< &PropertyParserContext>) -> Result<Self, ()> {
-        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
-        // when stable Rust allows destructors in statics.
-        // ShorthandAlias is not used in servo build. That's why we need to allow dead_code.
+    /// Returns Err(()) for unknown non-custom properties.
+    pub fn parse(property_name: &str) -> Result<Self, ()> {
+        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
+        // enum and use PropertyId when stable Rust allows destructors in
+        // statics.
+        //
+        // ShorthandAlias is not used in the Servo build.
+        // That's why we need to allow dead_code.
         #[allow(dead_code)]
         pub enum StaticId {
             Longhand(LonghandId),
@@ -1153,42 +1171,25 @@ impl PropertyId {
             }
         }
 
-        let default;
-        let context = match context {
-            Some(context) => context,
-            None => {
-                default = PropertyParserContext {
-                    chrome_rules_enabled: false,
-                    stylesheet_origin: Origin::Author,
-                    rule_type: CssRuleType::Style,
-                };
-                &default
-            }
-        };
-        let rule_type = context.rule_type;
-        debug_assert!(matches!(rule_type, CssRuleType::Keyframe |
-                                          CssRuleType::Page |
-                                          CssRuleType::Style),
-                      "Declarations are only expected inside a keyframe, page, or style rule.");
-
-        let (id, alias) = match static_id(property_name) {
+        Ok(match static_id(property_name) {
             Some(&StaticId::Longhand(id)) => {
-                (PropertyId::Longhand(id), None)
+                PropertyId::Longhand(id)
             },
             Some(&StaticId::Shorthand(id)) => {
-                (PropertyId::Shorthand(id), None)
+                PropertyId::Shorthand(id)
             },
             Some(&StaticId::LonghandAlias(id, alias)) => {
-                (PropertyId::Longhand(id), Some(alias))
+                PropertyId::LonghandAlias(id, alias)
             },
             Some(&StaticId::ShorthandAlias(id, alias)) => {
-                (PropertyId::Shorthand(id), Some(alias))
+                PropertyId::ShorthandAlias(id, alias)
             },
-            None => return ::custom_properties::parse_name(property_name)
-                .map(|name| PropertyId::Custom(::custom_properties::Name::from(name))),
-        };
-        id.check_allowed_in(alias, context)?;
-        Ok(id)
+            None => {
+                return ::custom_properties::parse_name(property_name).map(|name| {
+                    PropertyId::Custom(::custom_properties::Name::from(name))
+                })
+            },
+        })
     }
 
     /// Returns a property id from Gecko's nsCSSPropertyID.
@@ -1203,7 +1204,10 @@ impl PropertyId {
                 }
                 % for alias in property.alias:
                     ${helpers.alias_to_nscsspropertyid(alias)} => {
-                        Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
+                        Ok(PropertyId::LonghandAlias(
+                            LonghandId::${property.camel_case},
+                            AliasId::${to_camel_case(alias)}
+                        ))
                     }
                 % endfor
             % endfor
@@ -1213,7 +1217,10 @@ impl PropertyId {
                 }
                 % for alias in property.alias:
                     ${helpers.alias_to_nscsspropertyid(alias)} => {
-                        Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
+                        Ok(PropertyId::ShorthandAlias(
+                            ShorthandId::${property.camel_case},
+                            AliasId::${to_camel_case(alias)}
+                        ))
                     }
                 % endfor
             % endfor
@@ -1228,6 +1235,8 @@ impl PropertyId {
         match *self {
             PropertyId::Longhand(id) => Ok(id.to_nscsspropertyid()),
             PropertyId::Shorthand(id) => Ok(id.to_nscsspropertyid()),
+            PropertyId::LonghandAlias(_, alias) => Ok(alias.to_nscsspropertyid()),
+            PropertyId::ShorthandAlias(_, alias) => Ok(alias.to_nscsspropertyid()),
             _ => Err(())
         }
     }
@@ -1236,7 +1245,9 @@ impl PropertyId {
     /// `PropertyDeclarationId`.
     pub fn as_shorthand(&self) -> Result<ShorthandId, PropertyDeclarationId> {
         match *self {
+            PropertyId::ShorthandAlias(id, _) |
             PropertyId::Shorthand(id) => Ok(id),
+            PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => Err(PropertyDeclarationId::Longhand(id)),
             PropertyId::Custom(ref name) => Err(PropertyDeclarationId::Custom(name)),
         }
@@ -1245,7 +1256,9 @@ impl PropertyId {
     /// Returns the name of the property without CSS escaping.
     pub fn name(&self) -> Cow<'static, str> {
         match *self {
+            PropertyId::ShorthandAlias(id, _) |
             PropertyId::Shorthand(id) => id.name().into(),
+            PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => id.name().into(),
             PropertyId::Custom(ref name) => {
                 use std::fmt::Write;
@@ -1256,34 +1269,34 @@ impl PropertyId {
         }
     }
 
-    fn check_allowed_in(
-        &self,
-        alias: Option<AliasId>,
-        context: &PropertyParserContext,
-    ) -> Result<(), ()> {
-        let id: NonCustomPropertyId;
-        if let Some(alias_id) = alias {
-            id = alias_id.into();
-        } else {
-            match *self {
-                // Custom properties are allowed everywhere
-                PropertyId::Custom(_) => return Ok(()),
+    fn allowed_in(&self, context: &ParserContext) -> bool {
+        let id: NonCustomPropertyId = match *self {
+            // Custom properties are allowed everywhere
+            PropertyId::Custom(_) => return true,
+            PropertyId::Shorthand(shorthand_id) => shorthand_id.into(),
+            PropertyId::Longhand(longhand_id) => longhand_id.into(),
+            PropertyId::ShorthandAlias(_, alias_id) => alias_id.into(),
+            PropertyId::LonghandAlias(_, alias_id) => alias_id.into(),
+        };
 
-                PropertyId::Shorthand(shorthand_id) => id = shorthand_id.into(),
-                PropertyId::Longhand(longhand_id) => id = longhand_id.into(),
-            }
-        }
+        debug_assert!(
+            matches!(
+                context.rule_type(),
+                CssRuleType::Keyframe | CssRuleType::Page | CssRuleType::Style
+            ),
+            "Declarations are only expected inside a keyframe, page, or style rule."
+        );
 
         <% id_set = static_non_custom_property_id_set %>
 
         ${id_set("DISALLOWED_IN_KEYFRAME_BLOCK", lambda p: not p.allowed_in_keyframe_block)}
         ${id_set("DISALLOWED_IN_PAGE_RULE", lambda p: not p.allowed_in_page_rule)}
-        match context.rule_type {
+        match context.rule_type() {
             CssRuleType::Keyframe if DISALLOWED_IN_KEYFRAME_BLOCK.contains(id) => {
-                return Err(());
+                return false;
             }
             CssRuleType::Page if DISALLOWED_IN_PAGE_RULE.contains(id) => {
-                return Err(())
+                return false;
             }
             _ => {}
         }
@@ -1303,7 +1316,7 @@ impl PropertyId {
         ${id_set("ENABLED_IN_UA_SHEETS", lambda p: p.explicitly_enabled_in_ua_sheets())}
         ${id_set("ENABLED_IN_CHROME", lambda p: p.explicitly_enabled_in_chrome())}
         ${id_set("EXPERIMENTAL", lambda p: p.experimental(product))}
-        ${id_set("ALWAYS_ENABLED", lambda p: not p.experimental(product) and p.enabled_in_content())}
+        ${id_set("ALWAYS_ENABLED", lambda p: (not p.experimental(product)) and p.enabled_in_content())}
 
         let passes_pref_check = || {
             % if product == "servo":
@@ -1323,56 +1336,29 @@ impl PropertyId {
 
                 PREFS.get(pref).as_boolean().unwrap_or(false)
             % else:
-                let id = match alias {
-                    Some(alias_id) => alias_id.to_nscsspropertyid().unwrap(),
-                    None => self.to_nscsspropertyid().unwrap(),
-                };
-
-                unsafe { structs::nsCSSProps_gPropertyEnabled[id as usize] }
+                unsafe { structs::nsCSSProps_gPropertyEnabled[self.to_nscsspropertyid().unwrap() as usize] }
             % endif
         };
 
         if ALWAYS_ENABLED.contains(id) {
-            return Ok(())
+            return true
         }
 
         if EXPERIMENTAL.contains(id) && passes_pref_check() {
-            return Ok(())
+            return true
         }
 
         if context.stylesheet_origin == Origin::UserAgent &&
             ENABLED_IN_UA_SHEETS.contains(id)
         {
-            return Ok(())
+            return true
         }
 
-        if context.chrome_rules_enabled && ENABLED_IN_CHROME.contains(id) {
-            return Ok(())
+        if context.chrome_rules_enabled() && ENABLED_IN_CHROME.contains(id) {
+            return true
         }
 
-        Err(())
-    }
-}
-
-/// Parsing Context for PropertyId.
-pub struct PropertyParserContext {
-    /// Whether the property is parsed in a chrome:// stylesheet.
-    pub chrome_rules_enabled: bool,
-    /// The Origin of the stylesheet, whether it's a user,
-    /// author or user-agent stylesheet.
-    pub stylesheet_origin: Origin,
-    /// The current rule type, if any.
-    pub rule_type: CssRuleType,
-}
-
-impl PropertyParserContext {
-    /// Creates a PropertyParserContext with given stylesheet origin and rule type.
-    pub fn new(context: &ParserContext) -> Self {
-        Self {
-            chrome_rules_enabled: context.chrome_rules_enabled(),
-            stylesheet_origin: context.stylesheet_origin,
-            rule_type: context.rule_type(),
-        }
+        false
     }
 }
 
@@ -1635,6 +1621,13 @@ impl PropertyDeclaration {
         input: &mut Parser<'i, 't>,
     ) -> Result<(), ParseError<'i>> {
         assert!(declarations.is_empty());
+
+        if !id.allowed_in(context) {
+            return Err(input.new_custom_error(
+                StyleParseErrorKind::UnknownProperty(name)
+            ));
+        }
+
         let start = input.state();
         match id {
             PropertyId::Custom(property_name) => {
@@ -1651,6 +1644,7 @@ impl PropertyDeclaration {
                 declarations.push(PropertyDeclaration::Custom(property_name, value));
                 Ok(())
             }
+            PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 input.try(|i| CSSWideKeyword::parse(i)).map(|keyword| {
@@ -1680,6 +1674,7 @@ impl PropertyDeclaration {
                     declarations.push(declaration)
                 })
             }
+            PropertyId::ShorthandAlias(id, _) |
             PropertyId::Shorthand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(i)) {
@@ -3592,13 +3587,13 @@ impl AliasId {
     /// Returns an nsCSSPropertyID.
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
-    pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
+    pub fn to_nscsspropertyid(&self) -> nsCSSPropertyID {
         use gecko_bindings::structs::*;
 
         match *self {
             % for property in data.all_aliases():
                 AliasId::${property.camel_case} => {
-                    Ok(${helpers.alias_to_nscsspropertyid(property.ident)})
+                    ${helpers.alias_to_nscsspropertyid(property.ident)}
                 },
             % endfor
         }

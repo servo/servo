@@ -9,7 +9,7 @@ use cssparser::{ParseError as CssParseError, ParserInput};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use parser::ParserContext;
-use properties::{PropertyId, PropertyDeclaration, PropertyParserContext, SourcePropertyDeclaration};
+use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -259,9 +259,8 @@ impl Declaration {
             let prop = input.expect_ident().unwrap().as_ref().to_owned();
             input.expect_colon().unwrap();
 
-            let property_context = PropertyParserContext::new(&context);
-            let id = PropertyId::parse(&prop, Some(&property_context))
-                        .map_err(|()| input.new_custom_error(()))?;
+            let id = PropertyId::parse(&prop)
+                .map_err(|_| input.new_custom_error(()))?;
 
             let mut declarations = SourcePropertyDeclaration::new();
             input.parse_until_before(Delimiter::Bang, |input| {
