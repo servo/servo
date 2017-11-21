@@ -48,7 +48,8 @@ python3 -m http.server > /dev/null 2>&1 &
 # MANIFEST="page_load_test/tp5n/20160509.manifest"
 MANIFEST="page_load_test/test.manifest" # A manifest that excludes
                                         # timeout test cases
-PERF_FILE="output/perf-$(uname -s)-$(uname -m)-$(date +%s).csv"
+PERF_KEY="perf-$(uname -s)-$(uname -m)-$(date +%s).csv"
+PERF_FILE="output/${PERF_KEY}"
 
 echo "Running tests"
 python3 runner.py ${engine} --runs 4 --timeout "${timeout}" --base "${base}" \
@@ -56,14 +57,8 @@ python3 runner.py ${engine} --runs 4 --timeout "${timeout}" --base "${base}" \
 
 if [[ "${submit:-}" ]];
 then
-    echo "Submitting to Perfherder"
-    # Perfherder SSL check will fail if time is not accurate,
-    # sync time before you submit
-    # TODO: we are using Servo's revision hash for Gecko's result to make both
-    # results appear on the same date. Use the correct result when Perfherder
-    # allows us to change the date.
-    python3 submit_to_perfherder.py \
-            "${engine}" "${PERF_FILE}" servo/revision.json
+    echo "Submitting to S3"
+    python3 submit_to_s3.py "${PERF_FILE}" "${PERF_KEY}"
 fi
 
 echo "Stopping the local server"

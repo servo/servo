@@ -29,7 +29,7 @@ fi
 virtualenv venv --python="$(which python3)"
 PS1="" source venv/bin/activate
 # `PS1` must be defined before activating virtualenv
-pip install "treeherder-client>=3.0.0"
+pip install "boto3>=1.4.0"
 
 mkdir -p servo
 mkdir -p output # Test result will be saved to output/perf-<timestamp>.json
