@@ -588,7 +588,7 @@ impl Expression {
 
                 let mut flags = 0;
 
-                if context.in_chrome_stylesheet() ||
+                if context.chrome_rules_enabled() ||
                     context.stylesheet_origin == Origin::UserAgent {
                     flags |= structs::nsMediaFeature_RequirementFlags_eUserAgentAndChromeOnly;
                 }
