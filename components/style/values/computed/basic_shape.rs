@@ -15,10 +15,10 @@ use values::generics::basic_shape::{Circle as GenericCircle, ClippingShape as Ge
 use values::generics::basic_shape::{Ellipse as GenericEllipse, FloatAreaShape as GenericFloatAreaShape};
 use values::generics::basic_shape::{InsetRect as GenericInsetRect, ShapeRadius as GenericShapeRadius};
 
-/// A specified clipping shape.
+/// A computed clipping shape.
 pub type ClippingShape = GenericClippingShape<BasicShape, ComputedUrl>;
 
-/// A specified float area shape.
+/// A computed float area shape.
 pub type FloatAreaShape = GenericFloatAreaShape<BasicShape, ComputedUrl>;
 
 /// A computed basic shape.
