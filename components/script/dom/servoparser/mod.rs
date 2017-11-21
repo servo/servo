@@ -175,6 +175,7 @@ impl ServoParser {
         document.set_current_parser(Some(&parser));
         if !type_.eq_ignore_ascii_case("text/html") {
             parser.parse_string_chunk("<pre>\n".to_owned());
+            assert!(parser.tokenizer.try_borrow_mut().is_ok());
             parser.tokenizer.borrow_mut().set_plaintext_state();
         }
     }
@@ -303,6 +304,7 @@ impl ServoParser {
         self.document.set_ready_state(DocumentReadyState::Interactive);
 
         // Step 3.
+        assert!(self.tokenizer.try_borrow_mut().is_ok());
         self.tokenizer.borrow_mut().end();
         self.document.set_current_parser(None);
 
@@ -428,6 +430,7 @@ impl ServoParser {
             assert!(!self.aborted.get());
 
             self.document.reflow_if_reflow_timer_expired();
+            assert!(self.tokenizer.try_borrow_mut().is_ok());
             let script = match feed(&mut *self.tokenizer.borrow_mut()) {
                 Ok(()) => return,
                 Err(script) => script,
@@ -458,6 +461,7 @@ impl ServoParser {
         self.document.set_ready_state(DocumentReadyState::Interactive);
 
         // Step 2.
+        assert!(self.tokenizer.try_borrow_mut().is_ok());
         self.tokenizer.borrow_mut().end();
         self.document.set_current_parser(None);
 
@@ -631,6 +635,7 @@ impl FetchResponseListener for ParserContext {
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
+                assert!(parser.tokenizer.try_borrow_mut().is_ok());
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {
