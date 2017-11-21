@@ -31,6 +31,7 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::textcontrol::TextControl;
 use dom::validation::Validatable;
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
@@ -289,6 +290,12 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
     #[allow(unsafe_code)]
     unsafe fn indeterminate_state_for_layout(self) -> bool {
         self.upcast::<Element>().get_state_for_layout().contains(ElementState::IN_INDETERMINATE_STATE)
+    }
+}
+
+impl TextControl for HTMLInputElement {
+    fn textinput(&self) -> &DomRefCell<TextInput<ScriptToConstellationChan>> {
+        &self.textinput
     }
 }
 
@@ -567,42 +574,39 @@ impl HTMLInputElementMethods for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-selectionstart
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SelectionStart(&self) -> u32 {
-        self.textinput.borrow().get_selection_start()
+        self.dom_selection_start()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
-        self.set_selection_range(start, self.SelectionEnd(), self.selection_direction());
+        self.set_dom_selection_start(start);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SelectionEnd(&self) -> u32 {
-        self.textinput.borrow().get_absolute_insertion_point() as u32
+        self.dom_selection_end()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
-        self.set_selection_range(self.SelectionStart(), end, self.selection_direction());
+        self.set_dom_selection_end(end)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SelectionDirection(&self) -> DOMString {
-        DOMString::from(self.textinput.borrow().selection_direction)
+        self.dom_selection_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SetSelectionDirection(&self, direction: DOMString) {
-        self.textinput.borrow_mut().selection_direction = SelectionDirection::from(direction);
+        self.set_dom_selection_direction(direction);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
-        // Step 4
-        let direction = direction.map_or(SelectionDirection::None, |d| SelectionDirection::from(d));
-
-        self.set_selection_range(start, end, direction);
+        self.set_dom_selection_range(start, end, direction);
     }
 
     // Select the files based on filepaths passed in,
@@ -874,30 +878,6 @@ impl HTMLInputElement {
             // TODO: Implement more value sanitization algorithms for different types of inputs
             _ => ()
         }
-    }
-
-    fn selection_direction(&self) -> SelectionDirection {
-        self.textinput.borrow().selection_direction
-    }
-
-    // https://html.spec.whatwg.org/multipage/#set-the-selection-range
-    fn set_selection_range(&self, start: u32, end: u32, direction: SelectionDirection) {
-        // Step 5
-        self.textinput.borrow_mut().selection_direction = direction;
-
-        // Step 3
-        self.textinput.borrow_mut().set_selection_range(start, end);
-
-        // Step 6
-        let window = window_from_node(self);
-        let _ = window.user_interaction_task_source().queue_event(
-            &self.upcast(),
-            atom!("select"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            &window);
-
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
