@@ -228,24 +228,14 @@ fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
     }
 }
 
-fn traverse_subtree(element: GeckoElement,
-                    raw_data: RawServoStyleSetBorrowed,
-                    traversal_flags: TraversalFlags,
-                    snapshots: &ServoElementSnapshotTable) {
-    // When new content is inserted in a display:none subtree, we will call into
-    // servo to try to style it. Detect that here and bail out.
-    if let Some(parent) = element.traversal_parent() {
-        if parent.borrow_data().map_or(true, |d| d.styles.is_display_none()) {
-            debug!("{:?} has unstyled parent {:?} - ignoring call to traverse_subtree", element, parent);
-            return;
-        }
-    }
-
-    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    debug_assert!(!per_doc_data.stylist.stylesheets_have_changed());
-
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
+fn traverse_subtree(
+    element: GeckoElement,
+    global_style_data: &GlobalStyleData,
+    per_doc_data: &PerDocumentStyleDataImpl,
+    guard: &SharedRwLockReadGuard,
+    traversal_flags: TraversalFlags,
+    snapshots: &ServoElementSnapshotTable,
+) {
     let shared_style_context = create_shared_context(
         &global_style_data,
         &guard,
@@ -295,23 +285,50 @@ pub extern "C" fn Servo_TraverseSubtree(
     debug!("Servo_TraverseSubtree (flags={:?})", traversal_flags);
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
+    if cfg!(debug_assertions) {
+        if let Some(parent) = element.traversal_parent() {
+            let data =
+                parent.borrow_data().expect("Styling element with unstyled parent");
+            assert!(
+                !data.styles.is_display_none(),
+                "Styling element with display: none parent"
+            );
+        }
+    }
+
     let needs_animation_only_restyle =
         element.has_animation_only_dirty_descendants() ||
         element.has_animation_restyle_hints();
 
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    debug_assert!(!per_doc_data.stylist.stylesheets_have_changed());
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    let was_initial_style = element.get_data().is_none();
+
     if needs_animation_only_restyle {
         debug!("Servo_TraverseSubtree doing animation-only restyle (aodd={})",
                element.has_animation_only_dirty_descendants());
-        traverse_subtree(element,
-                         raw_data,
-                         traversal_flags | TraversalFlags::AnimationOnly,
-                         unsafe { &*snapshots });
+        traverse_subtree(
+            element,
+            &global_style_data,
+            &per_doc_data,
+            &guard,
+            traversal_flags | TraversalFlags::AnimationOnly,
+            unsafe { &*snapshots },
+        );
     }
 
-    traverse_subtree(element,
-                     raw_data,
-                     traversal_flags,
-                     unsafe { &*snapshots });
+    traverse_subtree(
+        element,
+        &global_style_data,
+        &per_doc_data,
+        &guard,
+        traversal_flags,
+        unsafe { &*snapshots },
+    );
 
     debug!("Servo_TraverseSubtree complete (dd={}, aodd={}, lfcd={}, lfc={}, data={:?})",
            element.has_dirty_descendants(),
@@ -320,9 +337,14 @@ pub extern "C" fn Servo_TraverseSubtree(
            element.needs_frame(),
            element.borrow_data().unwrap());
 
-    let element_was_restyled =
-        element.borrow_data().unwrap().contains_restyle_data();
-    element_was_restyled
+    if was_initial_style {
+        debug_assert!(!element.borrow_data().unwrap().contains_restyle_data());
+        false
+    } else {
+        let element_was_restyled =
+            element.borrow_data().unwrap().contains_restyle_data();
+        element_was_restyled
+    }
 }
 
 /// Checks whether the rule tree has crossed its threshold for unused nodes, and
