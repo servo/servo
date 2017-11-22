@@ -1261,7 +1261,8 @@ impl XMLHttpRequest {
                       DocumentSource::FromParser,
                       docloader,
                       None,
-                      None)
+                      None,
+                      Default::default())
     }
 
     fn filter_response_headers(&self) -> Headers {

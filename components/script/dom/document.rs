@@ -91,6 +91,7 @@ use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
+use fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
@@ -360,6 +361,8 @@ pub struct Document {
     form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
     interactive_time: DomRefCell<InteractiveMetrics>,
     tti_window: DomRefCell<InteractiveWindow>,
+    /// RAII canceller for Fetch
+    canceller: FetchCanceller,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2165,7 +2168,8 @@ impl Document {
                          source: DocumentSource,
                          doc_loader: DocumentLoader,
                          referrer: Option<String>,
-                         referrer_policy: Option<ReferrerPolicy>)
+                         referrer_policy: Option<ReferrerPolicy>,
+                         canceller: FetchCanceller)
                          -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -2270,6 +2274,7 @@ impl Document {
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
             tti_window: DomRefCell::new(InteractiveWindow::new()),
+            canceller: canceller,
         }
     }
 
@@ -2288,7 +2293,8 @@ impl Document {
                          DocumentSource::NotFromParser,
                          docloader,
                          None,
-                         None))
+                         None,
+                         Default::default()))
     }
 
     pub fn new(window: &Window,
@@ -2302,7 +2308,8 @@ impl Document {
                source: DocumentSource,
                doc_loader: DocumentLoader,
                referrer: Option<String>,
-               referrer_policy: Option<ReferrerPolicy>)
+               referrer_policy: Option<ReferrerPolicy>,
+               canceller: FetchCanceller)
                -> DomRoot<Document> {
         let document = reflect_dom_object(
             Box::new(Document::new_inherited(
@@ -2317,7 +2324,8 @@ impl Document {
                 source,
                 doc_loader,
                 referrer,
-                referrer_policy
+                referrer_policy,
+                canceller
             )),
             window,
             DocumentBinding::Wrap
@@ -2474,7 +2482,8 @@ impl Document {
                                         DocumentSource::NotFromParser,
                                         DocumentLoader::new(&self.loader()),
                                         None,
-                                        None);
+                                        None,
+                                        Default::default());
             new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
         })

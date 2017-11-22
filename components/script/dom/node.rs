@@ -1814,7 +1814,7 @@ impl Node {
                                              is_html_doc, None,
                                              None, DocumentActivity::Inactive,
                                              DocumentSource::NotFromParser, loader,
-                                             None, None);
+                                             None, None, Default::default());
                 DomRoot::upcast::<Node>(document)
             },
             NodeTypeId::Element(..) => {
