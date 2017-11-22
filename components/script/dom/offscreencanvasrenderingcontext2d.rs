@@ -458,10 +458,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         self.draw_image(image, 0f64, 0f64, None, None, dx, dy, None, None)
     }
 
-    /// Reassign the focus context to the element that last requested focus during this
-    /// transaction, or none if no elements requested it.
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn Commit(&self) {
-
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

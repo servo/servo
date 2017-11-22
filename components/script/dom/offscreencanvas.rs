@@ -15,8 +15,8 @@ use dom::element::{Element, RawLayoutElementHelpers};
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
-use dom::offscreencanvasrenderingcontext2d::{OffscreenCanvasRenderingContext2D,
-     LayoutOffscreenCanvasRenderingContext2DHelpers};
+use dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
+use dom::offscreencanvasrenderingcontext2d::LayoutOffscreenCanvasRenderingContext2DHelpers;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
