@@ -59,9 +59,6 @@ TEST_SUITES = OrderedDict([
     ("unit", {"kwargs": {},
               "paths": [path.abspath(path.join("tests", "unit"))],
               "include_arg": "test_name"}),
-    ("compiletest", {"kwargs": {"release": False},
-                     "paths": [path.abspath(path.join("tests", "compiletest"))],
-                     "include_arg": "test_name"})
 ])
 
 TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.iteritems() if "paths" in v for path in v["paths"]}
@@ -117,7 +114,6 @@ class MachCommands(CommandBase):
                                     "stylo": False}
         suites["wpt"]["kwargs"] = {"release": release}
         suites["unit"]["kwargs"] = {}
-        suites["compiletest"]["kwargs"] = {"release": release}
 
         selected_suites = OrderedDict()
 
@@ -301,63 +297,6 @@ class MachCommands(CommandBase):
                 (["--release"] if release else []) + (test_name or []))
         with cd(path.join("ports", "geckolib")):
             return call(args, env=env)
-
-    @Command('test-compiletest',
-             description='Run compiletests',
-             category='testing')
-    @CommandArgument('--package', '-p', default=None, help="Specific package to test")
-    @CommandArgument('test_name', nargs=argparse.REMAINDER,
-                     help="Only run tests that match this pattern or file path")
-    @CommandArgument('--release', default=False, action="store_true",
-                     help="Run with a release build of servo")
-    def test_compiletest(self, test_name=None, package=None, release=False):
-        if test_name is None:
-            test_name = []
-
-        self.ensure_bootstrapped()
-
-        if package:
-            packages = {package}
-        else:
-            packages = set()
-
-        test_patterns = []
-        for test in test_name:
-            # add package if 'tests/compiletest/<package>'
-            match = re.search("tests/compiletest/(\\w+)/?$", test)
-            if match:
-                packages.add(match.group(1))
-            # add package & test if '<package>/<test>', 'tests/compiletest/<package>/<test>.rs', or similar
-            elif re.search("\\w/\\w", test):
-                tokens = test.split("/")
-                packages.add(tokens[-2])
-                test_prefix = tokens[-1]
-                if test_prefix.endswith(".rs"):
-                    test_prefix = test_prefix[:-3]
-                test_prefix += "::"
-                test_patterns.append(test_prefix)
-            # add test as-is otherwise
-            else:
-                test_patterns.append(test)
-
-        if not packages:
-            packages = set(os.listdir(path.join(self.context.topdir, "tests", "compiletest"))) - set(['.DS_Store'])
-
-        packages.remove("helper")
-
-        args = ["cargo", "test"]
-        for crate in packages:
-            args += ["-p", "%s_compiletest" % crate]
-        args += test_patterns
-
-        env = self.build_env()
-        if release:
-            env["BUILD_MODE"] = "release"
-            args += ["--release"]
-        else:
-            env["BUILD_MODE"] = "debug"
-
-        return call(args, env=env, cwd=self.servo_crate())
 
     @Command('test-content',
              description='Run the content tests',
