@@ -96,7 +96,6 @@ impl ToCss for NonTSPseudoClass {
                     }, )*
                     NonTSPseudoClass::Dir(ref dir) => {
                         dest.write_str(":dir(")?;
-                        // FIXME: This should be escaped as an identifier; see #19231
                         (**dir).to_css(dest)?;
                         return dest.write_char(')')
                     },
