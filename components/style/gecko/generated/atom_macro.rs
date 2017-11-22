@@ -1410,6 +1410,8 @@ cfg_if! {
             pub static nsGkAtoms_multicol: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8multipleE"]
             pub static nsGkAtoms_multiple: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms4muteE"]
+            pub static nsGkAtoms_mute: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms5mutedE"]
             pub static nsGkAtoms_muted: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms4nameE"]
@@ -1850,6 +1852,8 @@ cfg_if! {
             pub static nsGkAtoms_onmapsendmessagereq: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms21onmapmessageupdatereqE"]
             pub static nsGkAtoms_onmapmessageupdatereq: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms6onmuteE"]
+            pub static nsGkAtoms_onmute: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms13onnewrdsgroupE"]
             pub static nsGkAtoms_onnewrdsgroup: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms19onnotificationclickE"]
@@ -2032,6 +2036,8 @@ cfg_if! {
             pub static nsGkAtoms_onunderflow: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8onunloadE"]
             pub static nsGkAtoms_onunload: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms8onunmuteE"]
+            pub static nsGkAtoms_onunmute: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms13onupdatefoundE"]
             pub static nsGkAtoms_onupdatefound: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms13onupdatereadyE"]
@@ -2734,6 +2740,8 @@ cfg_if! {
             pub static nsGkAtoms_undetermined: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms6unloadE"]
             pub static nsGkAtoms_unload: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms6unmuteE"]
+            pub static nsGkAtoms_unmute: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms17unparsedEntityUriE"]
             pub static nsGkAtoms_unparsedEntityUri: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms10upperAlphaE"]
@@ -6587,6 +6595,8 @@ cfg_if! {
             pub static nsGkAtoms_multicol: *mut nsStaticAtom;
             #[link_name = "?multiple@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_multiple: *mut nsStaticAtom;
+            #[link_name = "?mute@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_mute: *mut nsStaticAtom;
             #[link_name = "?muted@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_muted: *mut nsStaticAtom;
             #[link_name = "?name@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -7027,6 +7037,8 @@ cfg_if! {
             pub static nsGkAtoms_onmapsendmessagereq: *mut nsStaticAtom;
             #[link_name = "?onmapmessageupdatereq@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_onmapmessageupdatereq: *mut nsStaticAtom;
+            #[link_name = "?onmute@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_onmute: *mut nsStaticAtom;
             #[link_name = "?onnewrdsgroup@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_onnewrdsgroup: *mut nsStaticAtom;
             #[link_name = "?onnotificationclick@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -7209,6 +7221,8 @@ cfg_if! {
             pub static nsGkAtoms_onunderflow: *mut nsStaticAtom;
             #[link_name = "?onunload@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_onunload: *mut nsStaticAtom;
+            #[link_name = "?onunmute@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_onunmute: *mut nsStaticAtom;
             #[link_name = "?onupdatefound@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_onupdatefound: *mut nsStaticAtom;
             #[link_name = "?onupdateready@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -7911,6 +7925,8 @@ cfg_if! {
             pub static nsGkAtoms_undetermined: *mut nsStaticAtom;
             #[link_name = "?unload@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_unload: *mut nsStaticAtom;
+            #[link_name = "?unmute@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_unmute: *mut nsStaticAtom;
             #[link_name = "?unparsedEntityUri@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_unparsedEntityUri: *mut nsStaticAtom;
             #[link_name = "?upperAlpha@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -11764,6 +11780,8 @@ cfg_if! {
             pub static nsGkAtoms_multicol: *mut nsStaticAtom;
             #[link_name = "\x01?multiple@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_multiple: *mut nsStaticAtom;
+            #[link_name = "\x01?mute@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_mute: *mut nsStaticAtom;
             #[link_name = "\x01?muted@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_muted: *mut nsStaticAtom;
             #[link_name = "\x01?name@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -12204,6 +12222,8 @@ cfg_if! {
             pub static nsGkAtoms_onmapsendmessagereq: *mut nsStaticAtom;
             #[link_name = "\x01?onmapmessageupdatereq@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_onmapmessageupdatereq: *mut nsStaticAtom;
+            #[link_name = "\x01?onmute@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_onmute: *mut nsStaticAtom;
             #[link_name = "\x01?onnewrdsgroup@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_onnewrdsgroup: *mut nsStaticAtom;
             #[link_name = "\x01?onnotificationclick@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -12386,6 +12406,8 @@ cfg_if! {
             pub static nsGkAtoms_onunderflow: *mut nsStaticAtom;
             #[link_name = "\x01?onunload@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_onunload: *mut nsStaticAtom;
+            #[link_name = "\x01?onunmute@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_onunmute: *mut nsStaticAtom;
             #[link_name = "\x01?onupdatefound@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_onupdatefound: *mut nsStaticAtom;
             #[link_name = "\x01?onupdateready@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -13088,6 +13110,8 @@ cfg_if! {
             pub static nsGkAtoms_undetermined: *mut nsStaticAtom;
             #[link_name = "\x01?unload@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_unload: *mut nsStaticAtom;
+            #[link_name = "\x01?unmute@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_unmute: *mut nsStaticAtom;
             #[link_name = "\x01?unparsedEntityUri@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_unparsedEntityUri: *mut nsStaticAtom;
             #[link_name = "\x01?upperAlpha@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -16944,6 +16968,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multicol as *mut _) } }};
 ("multiple") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multiple as *mut _) } }};
+("mute") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mute as *mut _) } }};
 ("muted") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_muted as *mut _) } }};
 ("name") =>
@@ -17384,6 +17410,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapsendmessagereq as *mut _) } }};
 ("onmapmessageupdatereq") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapmessageupdatereq as *mut _) } }};
+("onmute") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmute as *mut _) } }};
 ("onnewrdsgroup") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnewrdsgroup as *mut _) } }};
 ("onnotificationclick") =>
@@ -17566,6 +17594,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onunderflow as *mut _) } }};
 ("onunload") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onunload as *mut _) } }};
+("onunmute") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onunmute as *mut _) } }};
 ("onupdatefound") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdatefound as *mut _) } }};
 ("onupdateready") =>
@@ -18268,6 +18298,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_undetermined as *mut _) } }};
 ("unload") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unload as *mut _) } }};
+("unmute") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unmute as *mut _) } }};
 ("unparsed-entity-uri") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unparsedEntityUri as *mut _) } }};
 ("upper-alpha") =>

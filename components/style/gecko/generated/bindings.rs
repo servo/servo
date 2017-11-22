@@ -1550,7 +1550,7 @@ extern "C" {
 } extern "C" {
  pub fn Servo_MaybeGCRuleTree ( set : RawServoStyleSetBorrowed , ) ; 
 } extern "C" {
- pub fn Servo_StyleSet_GetBaseComputedValuesForElement ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , existing_style : ServoStyleContextBorrowed , snapshots : * const ServoElementSnapshotTable , pseudo_type : CSSPseudoElementType , ) -> ServoStyleContextStrong ; 
+ pub fn Servo_StyleSet_GetBaseComputedValuesForElement ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , existing_style : ServoStyleContextBorrowed , snapshots : * const ServoElementSnapshotTable , ) -> ServoStyleContextStrong ; 
 } extern "C" {
  pub fn Servo_StyleSet_GetComputedValuesByAddingAnimation ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , existing_style : ServoStyleContextBorrowed , snapshots : * const ServoElementSnapshotTable , animation : RawServoAnimationValueBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
