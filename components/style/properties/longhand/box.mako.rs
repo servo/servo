@@ -812,8 +812,7 @@ ${helpers.single_keyword("-moz-appearance",
                             -moz-gtk-info-bar -moz-mac-active-source-list-selection -moz-mac-disclosure-button-closed
                             -moz-mac-disclosure-button-open -moz-mac-fullscreen-button -moz-mac-help-button
                             -moz-mac-source-list -moz-mac-source-list-selection -moz-mac-vibrancy-dark
-                            -moz-mac-vibrancy-light -moz-mac-vibrant-titlebar-light -moz-mac-vibrant-titlebar-dark
-                            -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
+                            -moz-mac-vibrancy-light -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
                             -moz-win-communications-toolbox -moz-win-exclude-glass -moz-win-glass -moz-win-media-toolbox
                             -moz-window-button-box -moz-window-button-box-maximized -moz-window-button-close
                             -moz-window-button-maximize -moz-window-button-minimize -moz-window-button-restore

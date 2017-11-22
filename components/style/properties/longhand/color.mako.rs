@@ -39,9 +39,7 @@ pub mod system_colors {
                            -moz-mac-defaultbuttontext -moz-mac-focusring -moz-mac-menuselect
                            -moz-mac-menushadow -moz-mac-menutextdisable -moz-mac-menutextselect
                            -moz-mac-disabledtoolbartext -moz-mac-secondaryhighlight
-                           -moz-mac-vibrancy-light -moz-mac-vibrancy-dark
-                           -moz-mac-vibrant-titlebar-light -moz-mac-vibrant-titlebar-dark
-                           -moz-mac-menupopup
+                           -moz-mac-vibrancy-light -moz-mac-vibrancy-dark -moz-mac-menupopup
                            -moz-mac-menuitem -moz-mac-active-menuitem -moz-mac-source-list
                            -moz-mac-source-list-selection -moz-mac-active-source-list-selection
                            -moz-mac-tooltip
