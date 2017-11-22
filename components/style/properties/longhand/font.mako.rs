@@ -707,28 +707,14 @@ ${helpers.predefined_type("-x-lang",
                           enabled_in="",
                           spec="Internal (not web-exposed)")}
 
-// MathML properties
-<%helpers:longhand name="-moz-script-size-multiplier" products="gecko" animation_value_type="none"
-                   predefined_type="Number" gecko_ffi_name="mScriptSizeMultiplier"
-                   spec="Internal (not web-exposed)"
-                   enabled_in="">
-    pub use self::computed_value::T as SpecifiedValue;
-
-    pub mod computed_value {
-        pub type T = f32;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER as f32
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-    }
-</%helpers:longhand>
+${helpers.predefined_type("-moz-script-size-multiplier",
+                          "MozScriptSizeMultiplier",
+                          products="gecko",
+                          initial_value="computed::MozScriptSizeMultiplier::get_initial_value()",
+                          animation_value_type="none",
+                          gecko_ffi_name="mScriptSizeMultiplier",
+                          enabled_in="",
+                          spec="Internal (not web-exposed)")}
 
 ${helpers.predefined_type("-moz-script-level",
                           "MozScriptLevel",
