@@ -211,20 +211,21 @@ unsafe fn dummy_url_data() -> &'static RefPtr<URLExtraData> {
     RefPtr::from_ptr_ref(&DUMMY_URL_DATA)
 }
 
-fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
-                             guard: &'a SharedRwLockReadGuard,
-                             per_doc_data: &'a PerDocumentStyleDataImpl,
-                             traversal_flags: TraversalFlags,
-                             snapshot_map: &'a ServoElementSnapshotTable)
-                             -> SharedStyleContext<'a> {
+fn create_shared_context<'a>(
+    global_style_data: &GlobalStyleData,
+    guard: &'a SharedRwLockReadGuard,
+    per_doc_data: &'a PerDocumentStyleDataImpl,
+    traversal_flags: TraversalFlags,
+    snapshot_map: &'a ServoElementSnapshotTable,
+) -> SharedStyleContext<'a> {
     SharedStyleContext {
         stylist: &per_doc_data.stylist,
         visited_styles_enabled: per_doc_data.visited_styles_enabled(),
         options: global_style_data.options.clone(),
         guards: StylesheetGuards::same(guard),
         timer: Timer::new(),
-        traversal_flags: traversal_flags,
-        snapshot_map: snapshot_map,
+        traversal_flags,
+        snapshot_map,
     }
 }
 
