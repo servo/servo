@@ -191,6 +191,7 @@ impl ToCss for Direction {
         let dir_str = match *self {
             Direction::Rtl => "rtl",
             Direction::Ltr => "ltr",
+            // FIXME: This should be escaped as an identifier; see #19231
             Direction::Other(ref other) => other,
         };
         dest.write_str(dir_str)
