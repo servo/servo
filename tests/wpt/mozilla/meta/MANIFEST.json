@@ -7915,6 +7915,11 @@
      {}
     ]
    ],
+   "css/absolute_div_with_padding_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/absolute_hypothetical_float_ref.html": [
     [
      {}
@@ -60906,8 +60911,12 @@
    "support"
   ],
   "css/absolute_div_with_padding.html": [
-   "6bfd1ae130e22c3083070a3574f827ded86f6724",
+   "a3f85092cde2ff19120d95be8edb834a8db97b39",
    "reftest"
+  ],
+  "css/absolute_div_with_padding_ref.html": [
+   "794a23ea9ff6597273cad61ec9755df727d58f3f",
+   "support"
   ],
   "css/absolute_hypothetical_float.html": [
    "1abe08648b55df2390cb2b6561923aa576212fbf",
@@ -60934,7 +60943,7 @@
    "support"
   ],
   "css/absolute_img_with_padding.html": [
-   "15896a5c1c77109c26624248d3df213788eb186c",
+   "ae552f695fabf59becc33a274e5b3e2f5ad2d92e",
    "reftest"
   ],
   "css/absolute_img_with_padding_ref.html": [
