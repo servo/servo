@@ -763,10 +763,10 @@ pub extern "C" fn Servo_AnimationValue_Transform(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBorrowed,
-                                                 other: RawServoAnimationValueBorrowed)
-     -> bool
-{
+pub extern "C" fn Servo_AnimationValue_DeepEqual(
+    this: RawServoAnimationValueBorrowed,
+    other: RawServoAnimationValueBorrowed,
+) -> bool {
     let this_value = AnimationValue::as_arc(&this);
     let other_value = AnimationValue::as_arc(&other);
     this_value == other_value
