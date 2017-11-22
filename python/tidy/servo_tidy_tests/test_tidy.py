@@ -233,6 +233,24 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual(msg2, errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_lock_ignore_without_duplicates(self):
+        tidy.config["ignore"]["packages"] = ["test", "test2", "test3", "test5"]
+        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
+
+        msg = (
+            "duplicates for `test2` are allowed, but only single version found"
+            "\n\t\x1b[93mThe following packages depend on version 0.1.0 from 'https://github.com/user/test2':\x1b[0m"
+        )
+        self.assertEqual(msg, errors.next()[2])
+
+        msg2 = (
+            "duplicates for `test5` are allowed, but only single version found"
+            "\n\t\x1b[93mThe following packages depend on version 0.1.0 from 'https://github.com/':\x1b[0m"
+        )
+        self.assertEqual(msg2, errors.next()[2])
+
+        self.assertNoMoreErrors(errors)
+
     def test_lint_runner(self):
         test_path = base_path + 'lints/'
         runner = tidy.LintRunner(only_changed_files=False, progress=False)
