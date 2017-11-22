@@ -10,7 +10,6 @@
 import fileinput
 import re
 import random
-import logging
 
 
 def is_comment(line):
@@ -21,7 +20,6 @@ class Strategy:
     def __init__(self):
         self._replace_strategy = {}
         self._strategy_name = ""
-        logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.DEBUG)
 
     def mutate_random_line(self, file_name):
         line_numbers = []
@@ -35,13 +33,12 @@ class Strategy:
             for line in fileinput.input(file_name, inplace=True):
                 if fileinput.lineno() == mutation_line_number:
                     if self._replace_strategy['replaceString']:
-                        self.line = re.sub(self._replace_strategy['regex'], self._replace_strategy['replaceString'], line)
+                        line = re.sub(self._replace_strategy['regex'], self._replace_strategy['replaceString'], line)
                     else:
                         if self._strategy_name == "duplicate":
-                            replacement = line + "\n" + line
-                            self.line = re.sub(self._replace_strategy['regex'], replacement, line)
-
-                logging.info(line.rstrip())
+                            replacement = line + line
+                            line = re.sub(self._replace_strategy['regex'], replacement, line)
+                print line.rstrip()
             return mutation_line_number
 
 

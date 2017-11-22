@@ -8,7 +8,6 @@
 # except according to those terms.
 
 import subprocess
-import sys
 import os
 import random
 import logging
@@ -40,7 +39,6 @@ def mutation_test(file_name, tests):
         if mutated_line != -1:
             logging.info("Mutated {0} at line {1}".format(file_name, mutated_line))
             logging.info("compiling mutant {0}:{1}".format(file_name, mutated_line))
-            sys.stdout.flush()
             if subprocess.call('python mach build --release', shell=True, stdout=DEVNULL):
                 logging.error("Compilation Failed: Unexpected error")
                 status = Status.UNEXPECTED
@@ -48,20 +46,17 @@ def mutation_test(file_name, tests):
                 for test in tests:
                     test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
                     logging.info("running `{0}` test for mutant {1}:{2}".format(test, file_name, mutated_line))
-                    sys.stdout.flush()
                     test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
                     if test_status != 0:
                         logging.error("Failed: while running `{0}`".format(test_command))
                         logging.error("mutated file {0} diff".format(file_name))
-                        sys.stdout.flush()
                         subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
                         status = Status.SURVIVED
                     else:
                         logging.info("Success: Mutation killed by {0}".format(test.encode('utf-8')))
                         status = Status.KILLED
                         break
-                logging.info("reverting mutant {0}:{1}".format(file_name, mutated_line))
-            sys.stdout.flush()
+            logging.info("reverting mutant {0}:{1}".format(file_name, mutated_line))
             subprocess.call('git checkout {0}'.format(file_name), shell=True)
         else:
             logging.info("Cannot mutate {0}".format(file_name))
