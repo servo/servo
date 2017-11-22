@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// https://html.spec.whatwg.org/multipage/canvas.html#the-offscreencanvas-interface
 //[Pref="dom.offscreen_canvas.enabled"]
 
 typedef (OffscreenCanvasRenderingContext2D or

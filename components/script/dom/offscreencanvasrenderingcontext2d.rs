@@ -430,16 +430,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         // so it's OK to panic if self.canvas is None.
         DomRoot::from_ref(self.canvas.as_ref().expect("No canvas."))
     }
-    fn Commit(&self) {
-    }
 
-    fn GlobalAlpha(&self) -> f64 {
-        let state = self.state.borrow();
-        state.global_alpha
-    }
-    fn SetGlobalAlpha(&self, value: f64) {
-    }
-
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn GlobalCompositeOperation(&self) -> DOMString {
         let state = self.state.borrow();
         match state.global_composition {
@@ -447,8 +439,12 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
             CompositionOrBlending::Blending(op) => DOMString::from(op.to_str()),
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self,
                  image: CanvasImageSource,
                  dx: f64,
@@ -460,6 +456,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         self.draw_image(image, 0f64, 0f64, None, None, dx, dy, None, None)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage_(&self,
                   image: CanvasImageSource,
                   dx: f64,
@@ -473,6 +471,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         self.draw_image(image, 0f64, 0f64, None, None, dx, dy, Some(dw), Some(dh))
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage__(&self,
                    image: CanvasImageSource,
                    sx: f64,
@@ -499,15 +499,25 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                         Some(dw),
                         Some(dh))
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-beginpath
     fn BeginPath(&self) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
     fn Fill(&self, _: CanvasFillRule) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(&self) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
     fn Clip(&self, _: CanvasFillRule) {
         // TODO: Process fill rule
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn StrokeStyle(&self) -> StringOrCanvasGradientOrCanvasPattern {
         match self.state.borrow().stroke_style {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
@@ -528,6 +538,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn FillStyle(&self) -> StringOrCanvasGradientOrCanvasPattern {
         match self.state.borrow().fill_style {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
@@ -544,6 +556,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
     fn CreateLinearGradient(&self,
                             x0: Finite<f64>,
                             y0: Finite<f64>,
@@ -711,7 +724,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto
     fn BezierCurveTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
     }
-        // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
+    
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
     fn Arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
             if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
                 return Ok(());

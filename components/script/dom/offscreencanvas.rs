@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OffscreenCanvasBinding;
 use dom::bindings::codegen::Bindings::OffscreenCanvasBinding::OffscreenCanvasMethods;
-use dom::bindings::cell::DomRefCell;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -58,14 +57,21 @@ impl OffscreenCanvas {
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
+    // https://html.spec.whatwg.org/multipage/#dom-img-width
      fn Width(&self) -> u64 {
          let width: u64 = 300;
          width
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(&self, height: u64) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(&self, width: u64) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u64 {
         let height: u64 = 300;
          height
