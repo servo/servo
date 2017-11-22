@@ -17,7 +17,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{Read, Error as IoError};
 use std::ops::Deref;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use webrender_api::NativeFontHandle;
 
 /// Platform specific font representation for mac.
@@ -36,7 +36,7 @@ pub struct FontTemplateData {
     ctfont: CachedCTFont,
 
     pub identifier: Atom,
-    pub font_data: Option<Vec<u8>>
+    pub font_data: Option<Arc<Vec<u8>>>
 }
 
 unsafe impl Send for FontTemplateData {}
@@ -47,7 +47,7 @@ impl FontTemplateData {
         Ok(FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(HashMap::new())),
             identifier: identifier.to_owned(),
-            font_data: font_data
+            font_data: font_data.map(Arc::new)
         })
     }
 
@@ -61,7 +61,7 @@ impl FontTemplateData {
             let clamped_pt_size = pt_size.max(0.01);
             let ctfont = match self.font_data {
                 Some(ref bytes) => {
-                    let fontprov = CGDataProvider::from_buffer(bytes);
+                    let fontprov = CGDataProvider::from_buffer(bytes.clone());
                     let cgfont_result = CGFont::from_data_provider(fontprov);
                     match cgfont_result {
                         Ok(cgfont) => {
@@ -103,7 +103,7 @@ impl FontTemplateData {
     /// Returns a clone of the bytes in this font if they are in memory. This function never
     /// performs disk I/O.
     pub fn bytes_if_in_memory(&self) -> Option<Vec<u8>> {
-        self.font_data.clone()
+        self.font_data.as_ref().map(|bytes| (**bytes).clone())
     }
 
     /// Returns the native font that underlies this font template, if applicable.

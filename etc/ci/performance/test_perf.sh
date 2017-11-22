@@ -8,7 +8,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TP5N_SOURCE="https://people.mozilla.org/~jmaher/taloszips/zips/tp5n.zip"
+TP5N_SOURCE="https://github.com/rwood-moz/talos-pagesets/raw/master/tp5n.zip"
 TP5N_PATH="page_load_test/tp5n.zip"
 
 if [[ ! -f "$(dirname "${TP5N_PATH}")/tp5n/tp5n.manifest" ]]; then
@@ -29,19 +29,10 @@ fi
 virtualenv venv --python="$(which python3)"
 PS1="" source venv/bin/activate
 # `PS1` must be defined before activating virtualenv
-pip install "treeherder-client>=3.0.0"
+pip install "boto3>=1.4.0"
 
 mkdir -p servo
 mkdir -p output # Test result will be saved to output/perf-<timestamp>.json
 ./git_log_to_json.sh > servo/revision.json
 
-if [[ "${#}" -eq 1 ]]; then
-  if [[ "${1}" = "--submit" ]]; then
-    ./test_all.sh --servo --submit
-  else
-    echo "Unrecognized argument: ${1}; Ignore and proceed without submitting"
-    ./test_all.sh --servo
-  fi
-else
-  ./test_all.sh --servo
-fi
+./test_all.sh --servo ${*}

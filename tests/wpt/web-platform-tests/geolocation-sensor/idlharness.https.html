@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Geolocation Sensor IDL tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<script>
+"use strict";
+
+function doTest([generic_sensor, geolocation_sensor]) {
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls('interface EventTarget {};');
+  idl_array.add_idls(generic_sensor, { only: ['Sensor'] });
+  idl_array.add_idls(geolocation_sensor);
+  idl_array.add_objects({
+    GeolocationSensor: ['new GeolocationSensor'],
+  });
+  idl_array.test();
+}
+
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+  return Promise.all(["/interfaces/generic-sensor.idl",
+                      "/interfaces/geolocation-sensor.idl"].map(fetchText))
+    .then(doTest);
+}, "Test driver");
+</script>

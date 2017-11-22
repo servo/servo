@@ -186,6 +186,8 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     origin_flags::assert_flags_match();
     parser::assert_parsing_mode_match();
     traversal_flags::assert_traversal_flags_match();
+    specified::font::assert_variant_east_asian_matches();
+    specified::font::assert_variant_ligatures_matches();
 
     // Initialize the dummy url data
     unsafe { DUMMY_URL_DATA = dummy_url_data; }
@@ -292,21 +294,18 @@ pub extern "C" fn Servo_TraverseSubtree(
 
     debug!("Servo_TraverseSubtree (flags={:?})", traversal_flags);
     debug!("{:?}", ShowSubtreeData(element.as_node()));
-    // It makes no sense to do an animation restyle when we're styling
-    // newly-inserted content.
-    if !traversal_flags.contains(TraversalFlags::UnstyledOnly) {
-        let needs_animation_only_restyle =
-            element.has_animation_only_dirty_descendants() ||
-            element.has_animation_restyle_hints();
 
-        if needs_animation_only_restyle {
-            debug!("Servo_TraverseSubtree doing animation-only restyle (aodd={})",
-                   element.has_animation_only_dirty_descendants());
-            traverse_subtree(element,
-                             raw_data,
-                             traversal_flags | TraversalFlags::AnimationOnly,
-                             unsafe { &*snapshots });
-        }
+    let needs_animation_only_restyle =
+        element.has_animation_only_dirty_descendants() ||
+        element.has_animation_restyle_hints();
+
+    if needs_animation_only_restyle {
+        debug!("Servo_TraverseSubtree doing animation-only restyle (aodd={})",
+               element.has_animation_only_dirty_descendants());
+        traverse_subtree(element,
+                         raw_data,
+                         traversal_flags | TraversalFlags::AnimationOnly,
+                         unsafe { &*snapshots });
     }
 
     traverse_subtree(element,
@@ -790,7 +789,6 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(
     element: RawGeckoElementBorrowed,
     computed_values: ServoStyleContextBorrowed,
     snapshots: *const ServoElementSnapshotTable,
-    pseudo_type: CSSPseudoElementType
 ) -> ServoStyleContextStrong {
     debug_assert!(!snapshots.is_null());
     let computed_values = unsafe { ArcBorrow::from_ref(computed_values) };
@@ -807,21 +805,6 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(
     }
 
     let element = GeckoElement(element);
-
-    let element_data = match element.borrow_data() {
-        Some(data) => data,
-        None => return computed_values.clone_arc().into(),
-    };
-
-    if let Some(pseudo) = PseudoElement::from_pseudo_type(pseudo_type) {
-        let styles = &element_data.styles;
-        // This style already doesn't have animations.
-        return styles
-            .pseudos
-            .get(&pseudo)
-            .expect("GetBaseComputedValuesForElement for an unexisting pseudo?")
-            .clone().into();
-    }
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -2444,7 +2427,8 @@ where
         url_data,
         reporter,
         parsing_mode,
-        quirks_mode)
+        quirks_mode,
+    )
 }
 
 #[no_mangle]
@@ -2691,7 +2675,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(
 macro_rules! get_property_id_from_property {
     ($property: ident, $ret: expr) => {{
         let property = $property.as_ref().unwrap().as_str_unchecked();
-        match PropertyId::parse(property.into(), None) {
+        match PropertyId::parse(property.into()) {
             Ok(property_id) => property_id,
             Err(_) => { return $ret; }
         }
@@ -3163,7 +3147,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
     use style::properties::longhands::_moz_script_min_size::SpecifiedValue as MozScriptMinSize;
     use style::properties::longhands::width::SpecifiedValue as Width;
     use style::values::specified::MozLength;
-    use style::values::specified::length::{AbsoluteLength, FontRelativeLength, PhysicalLength};
+    use style::values::specified::length::{AbsoluteLength, FontRelativeLength};
     use style::values::specified::length::{LengthOrPercentage, NoCalcLength};
 
     let long = get_longhand_from_id!(property);
@@ -3174,7 +3158,6 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
         structs::nsCSSUnit::eCSSUnit_Inch => NoCalcLength::Absolute(AbsoluteLength::In(value)),
         structs::nsCSSUnit::eCSSUnit_Centimeter => NoCalcLength::Absolute(AbsoluteLength::Cm(value)),
         structs::nsCSSUnit::eCSSUnit_Millimeter => NoCalcLength::Absolute(AbsoluteLength::Mm(value)),
-        structs::nsCSSUnit::eCSSUnit_PhysicalMillimeter => NoCalcLength::Physical(PhysicalLength::Mozmm(value)),
         structs::nsCSSUnit::eCSSUnit_Point => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
         structs::nsCSSUnit::eCSSUnit_Pica => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
         structs::nsCSSUnit::eCSSUnit_Quarter => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
@@ -3374,10 +3357,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(
     declarations: RawServoDeclarationBlockBorrowed,
 ) {
     use style::properties::PropertyDeclaration;
-    use style::properties::longhands::text_decoration_line;
+    use style::values::specified::text::TextDecorationLine;
 
-    let mut decoration = text_decoration_line::computed_value::none;
-    decoration |= text_decoration_line::SpecifiedValue::COLOR_OVERRIDE;
+    let mut decoration = TextDecorationLine::none();
+    decoration |= TextDecorationLine::COLOR_OVERRIDE;
     let decl = PropertyDeclaration::TextDecorationLine(decoration);
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(decl, Importance::Normal, DeclarationSource::CssOm);

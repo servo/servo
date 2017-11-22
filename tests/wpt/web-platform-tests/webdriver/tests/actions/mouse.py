@@ -19,7 +19,7 @@ def get_center(rect):
 
 # TODO use pytest.approx once we upgrade to pytest > 3.0
 def approx(n, m, tolerance=1):
-    return abs(n - m) < tolerance
+    return abs(n - m) <= tolerance
 
 
 def test_click_at_coordinates(session, test_actions_page, mouse_chain):

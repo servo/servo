@@ -1,9 +1,24 @@
 import collections
+import json
 
 
 class WebDriverException(Exception):
     http_status = None
     status_code = None
+
+    def __init__(self, message, stacktrace=None):
+        super(WebDriverException, self)
+        self.stacktrace = stacktrace
+
+    def __repr__(self):
+        return "<%s http_status=%d>" % (self.__class__.__name__, self.http_status)
+
+    def __str__(self):
+        return ("%s (%d)\n"
+            "\n"
+            "Remote-end stacktrace:\n"
+            "\n"
+            "%s" % (self.status_code, self.http_status, self.stacktrace))
 
 
 class ElementNotSelectableException(WebDriverException):
@@ -131,11 +146,40 @@ class UnsupportedOperationException(WebDriverException):
     status_code = "unsupported operation"
 
 
-def get(status_code):
-    """Gets exception from `status_code`, falling back to
+def from_response(response):
+    """
+    Unmarshals an error from a ``Response``'s `body`, failing
+    if not all three required `error`, `message`, and `stacktrace`
+    fields are given.  Defaults to ``WebDriverException`` if `error`
+    is unknown.
+    """
+    if response.status == 200:
+        raise UnknownErrorException(
+            "Response is not an error:\n"
+            "%s" % json.dumps(response.body))
+
+    if "value" in response.body:
+        value = response.body["value"]
+    else:
+        raise UnknownErrorException(
+            "Expected 'value' key in response body:\n"
+            "%s" % json.dumps(response.body))
+
+    # all fields must exist, but stacktrace can be an empty string
+    code = value["error"]
+    message = value["message"]
+    stack = value["stacktrace"] or None
+
+    cls = get(code)
+    return cls(message, stacktrace=stack)
+
+
+def get(error_code):
+    """
+    Gets exception from `error_code`, falling back to
     ``WebDriverException`` if it is not found.
     """
-    return _errors.get(status_code, WebDriverException)
+    return _errors.get(error_code, WebDriverException)
 
 
 _errors = collections.defaultdict()

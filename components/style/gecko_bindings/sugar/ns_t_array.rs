@@ -99,7 +99,7 @@ impl<T> nsTArray<T> {
     /// This will not leak since it only works on POD types (and thus doesn't assert)
     pub unsafe fn set_len_pod(&mut self, len: u32) where T: Copy {
         self.ensure_capacity(len as usize);
-        let header = unsafe { self.header_mut() };
+        let header = self.header_mut();
         header.mLength = len;
     }
 }

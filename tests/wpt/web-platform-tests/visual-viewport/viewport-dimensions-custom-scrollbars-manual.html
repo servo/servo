@@ -66,6 +66,7 @@
         var originalWidth = 0;
         var originalHeight = 0;
         var originalInnerWidth = 0;
+        var originalInnerHeight = 0;
 
         addManualTestStep(
             function() {},
@@ -77,7 +78,16 @@
             function() {
                 originalWidth = window.visualViewport.width;
                 originalHeight = window.visualViewport.height;
+                // Remember the inner dimensions here for the next test to
+                // address an edge case where originalInnerWidth is an odd
+                // number of pixels. The test expects that at 2x browser-zoom,
+                // visualViewport.width = innerWidth - customScrollbarThickness
+                // The equality only holds if originalInnerWidth / innerWidth is
+                // exactly 2, which is not the case in the aforementioned
+                // scenario because innerWidth always has to be an integer
+                // number of CSS pixels. Ditto for the height computation.
                 originalInnerWidth = window.innerWidth;
+                originalInnerHeight = window.innerHeight;
 
                 assert_equals(
                     window.visualViewport.width,
@@ -100,13 +110,15 @@
                     0.1,
                     "Browser zoom to correct level");
 
+                // The custom scrollbars are also 2x larger on the screen, so
+                // the viewport is smaller than half of the original size.
                 assert_equals(
                     window.visualViewport.width,
-                    window.innerWidth - 20,
+                    originalInnerWidth / 2 - 20,
                     "Custom scrollbar width subtracted from viewport.");
                 assert_equals(
                     window.visualViewport.height,
-                    window.innerHeight - 25,
+                    originalInnerHeight / 2 - 25,
                     "Custom scrollbar height subtracted from viewport.");
             },
             'With 200% browser zoom',

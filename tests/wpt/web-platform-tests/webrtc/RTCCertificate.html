@@ -168,9 +168,9 @@
       assert_greater_than_equal(fingerprints.length, 1,
         'Expect at last one fingerprint in array');
 
-      for(const fingerprint of fingerprints[0]) {
-        assert_true(fingerprint instanceof RTCDtlsFingerprint,
-          'Expect fingerprint to be instance of RTCDtlsFingerprint');
+      for(const fingerprint of fingerprints) {
+        assert_equals(typeof fingerprint, 'object',
+          'Expect fingerprint to be an object (dictionary)');
 
         // Can only do simple test as the allowed values may be extended
         assert_true(/^[a-zA-Z\-]+$/.test(fingerprint.algorithm),

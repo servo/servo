@@ -35,7 +35,7 @@ def run_tests(paths=None, **kwargs):
     use_mach_logging = False
     if len(kwargs["test_list"]) == 1:
         file_ext = os.path.splitext(kwargs["test_list"][0])[1].lower()
-        if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht"]:
+        if file_ext in [".htm", ".html", ".js", ".xhtml", ".xht", ".py"]:
             use_mach_logging = True
 
     if use_mach_logging:
@@ -65,6 +65,7 @@ def set_defaults(paths, kwargs):
         bin_path = servo_path("target", bin_dir, bin_name)
 
         kwargs["binary"] = bin_path
+        kwargs["webdriver_binary"] = bin_path
 
     if kwargs["processes"] is None:
         kwargs["processes"] = multiprocessing.cpu_count()

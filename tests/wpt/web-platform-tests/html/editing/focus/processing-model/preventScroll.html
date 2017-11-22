@@ -67,7 +67,8 @@ onload = () => {
   test(() => {
     resetState(win);
     elm.focus({preventScroll: true});
-    assert_false(isEntirelyInView(elm, win));
+    assert_equals(win.scrollX, 0);
+    assert_equals(win.scrollY, 0);
   }, 'elm.focus({preventScroll: true})');
 
   done();

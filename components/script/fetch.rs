@@ -60,6 +60,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
         redirect_mode: request.redirect_mode,
+        cache_mode: request.cache_mode,
         ..NetTraitsRequestInit::default()
     }
 }
@@ -108,7 +109,7 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
         listener.notify_fetch(message.to().unwrap());
     }));
     core_resource_thread.send(
-        NetTraitsFetch(request_init, FetchChannels::ResponseMsg(action_sender))).unwrap();
+        NetTraitsFetch(request_init, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 
     promise
 }

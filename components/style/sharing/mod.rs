@@ -70,7 +70,6 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use dom::{TElement, SendElement};
-use lru_cache::{LRUCache, Entry};
 use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
@@ -85,6 +84,7 @@ use std::mem;
 use std::ops::Deref;
 use style_resolver::{PrimaryStyle, ResolvedElementStyles};
 use stylist::Stylist;
+use uluru::{LRUCache, Entry};
 
 mod checks;
 

@@ -71,11 +71,11 @@ def generate_placeholder(testcase):
         return [timings]
 
 
-def run_gecko_test(testcase, timeout, is_async):
+def run_gecko_test(testcase, url, timeout, is_async):
     with create_gecko_session() as driver:
         driver.set_page_load_timeout(timeout)
         try:
-            driver.get(testcase)
+            driver.get(url)
         except TimeoutException:
             print("Timeout!")
             return generate_placeholder(testcase)

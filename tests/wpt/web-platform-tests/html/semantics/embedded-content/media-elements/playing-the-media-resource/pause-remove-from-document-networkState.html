@@ -9,13 +9,13 @@
 async_test(function(t) {
   var v = document.querySelector('video');
   v.play();
-  setTimeout(t.step_func(function() {
+  t.step_timeout(function() {
     assert_equals(v.networkState, v.NETWORK_EMPTY,
                   'networkState after stable state');
     assert_false(v.paused, 'paused after stable state');
     v.parentNode.removeChild(v);
     assert_false(v.paused, 'paused after removing');
-    v.onpause = t.step_func(function() { t.done(); });
-  }), 0);
+    v.onpause = t.step_func_done();
+  }, 0);
 });
 </script>

@@ -1,7 +1,6 @@
 import pytest
 
-
-from tests.support.asserts import assert_error, assert_success
+from tests.support.asserts import assert_error, assert_same_element, assert_success
 from tests.support.inline import inline
 
 
@@ -56,3 +55,23 @@ def test_no_element(session, using, value):
     element = session.find.css("div", all=False)
     response = find_elements(session, element.id, using, value)
     assert response.body["value"] == []
+
+
+@pytest.mark.parametrize("using,value",
+                         [("css selector", "#linkText"),
+                          ("link text", "full link text"),
+                          ("partial link text", "link text"),
+                          ("tag name", "a"),
+                          ("xpath", "//*[name()='a']")])
+def test_xhtml_namespace(session, using, value):
+    session.url = inline("""<p><a href="#" id="linkText">full link text</a></p>""", doctype="xhtml")
+    from_element = session.execute_script("""return document.querySelector("p")""")
+    expected = session.execute_script("return document.links[0]")
+
+    response = find_elements(session, from_element.id, using, value)
+    value = assert_success(response)
+    assert isinstance(value, list)
+    assert len(value) == 1
+
+    found_element = value[0]
+    assert_same_element(session, found_element, expected)

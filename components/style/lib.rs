@@ -26,15 +26,6 @@
 #![deny(warnings)]
 #![deny(missing_docs)]
 
-// FIXME(bholley): We need to blanket-allow unsafe code in order to make the
-// gecko atom!() macro work. When Rust 1.14 is released [1], we can uncomment
-// the commented-out attributes in regen_atoms.py and go back to denying unsafe
-// code by default.
-//
-// [1] https://github.com/rust-lang/rust/issues/15701#issuecomment-251900615
-//#![deny(unsafe_code)]
-#![allow(unused_unsafe)]
-
 #![recursion_limit = "500"]  // For define_css_keyword_enum! in -moz-appearance
 
 extern crate app_units;
@@ -57,7 +48,6 @@ extern crate itoa;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate lru_cache;
 #[macro_use] extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;
 #[allow(unused_extern_crates)]
@@ -86,6 +76,7 @@ extern crate style_derive;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
+extern crate uluru;
 extern crate unicode_bidi;
 #[allow(unused_extern_crates)]
 extern crate unicode_segmentation;

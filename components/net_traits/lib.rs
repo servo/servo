@@ -342,7 +342,7 @@ pub enum WebSocketNetworkEvent {
 #[derive(Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseMsg(IpcSender<FetchResponseMsg>),
+    ResponseMsg(IpcSender<FetchResponseMsg>, /* cancel_chan */ Option<IpcReceiver<()>>),
     WebSocket {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
@@ -353,7 +353,7 @@ pub enum FetchChannels {
 pub enum CoreResourceMsg {
     Fetch(RequestInit, FetchChannels),
     /// Initiate a fetch in response to processing a redirection
-    FetchRedirect(RequestInit, ResponseInit, IpcSender<FetchResponseMsg>),
+    FetchRedirect(RequestInit, ResponseInit, IpcSender<FetchResponseMsg>, /* cancel_chan */ Option<IpcReceiver<()>>),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
@@ -362,8 +362,6 @@ pub enum CoreResourceMsg {
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
     GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
-    /// Cancel a network request corresponding to a given `ResourceId`
-    Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
     /// Send the network sender in constellation to CoreResourceThread
@@ -383,7 +381,7 @@ pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceT
     ROUTER.add_route(action_receiver.to_opaque(),
                      Box::new(move |message| f(message.to().unwrap())));
     core_resource_thread.send(
-        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender))).unwrap();
+        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
@@ -478,7 +476,7 @@ pub fn load_whole_resource(request: RequestInit,
                            -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     core_resource_thread.send(
-        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender))).unwrap();
+        CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
 
     let mut buf = vec![];
     let mut metadata = None;
@@ -499,10 +497,6 @@ pub fn load_whole_resource(request: RequestInit,
         }
     }
 }
-
-/// An unique identifier to keep track of each load message in the resource handler
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct ResourceId(pub u32);
 
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]

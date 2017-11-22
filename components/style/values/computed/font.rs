@@ -11,11 +11,12 @@ use style_traits::ToCss;
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
+use values::generics::{FontSettings, FontSettingTagInt};
 use values::specified::font as specified;
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
-pub use values::specified::font::{XTextZoom, FontSynthesis};
+pub use values::specified::font::{XTextZoom, XLang, FontSynthesis, FontVariantSettings};
 
 /// As of CSS Fonts Module Level 3, only the following values are
 /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
@@ -276,6 +277,18 @@ impl FontVariantAlternates {
         specified::VariantAlternatesList(vec![].into_boxed_slice())
     }
 }
+
+/// Use VariantEastAsian as computed type of FontVariantEastAsian
+pub type FontVariantEastAsian = specified::VariantEastAsian;
+
+/// Use VariantLigatures as computed type of FontVariantLigatures
+pub type FontVariantLigatures = specified::VariantLigatures;
+
+/// Use VariantNumeric as computed type of FontVariantNumeric
+pub type FontVariantNumeric = specified::VariantNumeric;
+
+/// Use FontSettings as computed type of FontFeatureSettings
+pub type FontFeatureSettings = FontSettings<FontSettingTagInt>;
 
 /// font-language-override can only have a single three-letter
 /// OpenType "language system" tag, so we should be able to compute

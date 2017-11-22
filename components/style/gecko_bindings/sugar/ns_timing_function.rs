@@ -35,7 +35,7 @@ impl nsTimingFunction {
         self.mType = function_type;
         unsafe {
             let ref mut gecko_cubic_bezier =
-                unsafe { self.__bindgen_anon_1.mFunc.as_mut() };
+                self.__bindgen_anon_1.mFunc.as_mut();
             gecko_cubic_bezier.mX1 = x1;
             gecko_cubic_bezier.mY1 = y1;
             gecko_cubic_bezier.mX2 = x2;

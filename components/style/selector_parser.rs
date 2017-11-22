@@ -8,8 +8,8 @@
 
 use cssparser::{Parser as CssParser, ParserInput};
 use selectors::parser::SelectorList;
-use std::fmt::{self, Debug};
-use style_traits::ParseError;
+use std::fmt::{self, Debug, Write};
+use style_traits::{ParseError, ToCss};
 use stylesheets::{Origin, Namespaces, UrlExtraData};
 
 /// A convenient alias for the type that represents an attribute value used for
@@ -70,8 +70,9 @@ impl<'a> SelectorParser<'a> {
 
     /// Whether we're parsing selectors in a stylesheet that has chrome
     /// privilege.
-    pub fn in_chrome_stylesheet(&self) -> bool {
-        self.url_data.map_or(false, |d| d.is_chrome())
+    pub fn chrome_rules_enabled(&self) -> bool {
+        self.url_data.map_or(false, |d| d.is_chrome()) ||
+            self.stylesheet_origin == Origin::User
     }
 }
 
@@ -171,5 +172,28 @@ impl<T> PerPseudoElementMap<T> {
     /// Get an iterator for the entries.
     pub fn iter(&self) -> ::std::slice::Iter<Option<T>> {
         self.entries.iter()
+    }
+}
+
+/// Values for the :dir() pseudo class
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Direction {
+    /// left-to-right semantic directionality
+    Ltr,
+    /// right-to-left semantic directionality
+    Rtl,
+    /// Some other provided directionality value
+    Other(Box<str>),
+}
+
+impl ToCss for Direction {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: Write {
+        let dir_str = match *self {
+            Direction::Rtl => "rtl",
+            Direction::Ltr => "ltr",
+            // FIXME: This should be escaped as an identifier; see #19231
+            Direction::Other(ref other) => other,
+        };
+        dest.write_str(dir_str)
     }
 }

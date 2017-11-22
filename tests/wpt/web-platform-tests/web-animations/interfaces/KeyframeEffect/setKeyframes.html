@@ -6,6 +6,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
 <script src="../../resources/keyframe-utils.js"></script>
+<script src="../../resources/keyframe-tests.js"></script>
 <body>
 <div id="log"></div>
 <div id="target"></div>
@@ -22,15 +23,7 @@ test(function(t) {
   });
 }, 'Keyframes can be replaced with an empty keyframe');
 
-gPropertyIndexedKeyframesTests.forEach(function(subtest) {
-  test(function(t) {
-    var effect = new KeyframeEffect(target, {});
-    effect.setKeyframes(subtest.input);
-    assert_frame_lists_equal(effect.getKeyframes(), subtest.output);
-  }, 'Keyframes can be replaced with ' + subtest.desc);
-});
-
-gKeyframeSequenceTests.forEach(function(subtest) {
+gKeyframesTests.forEach(function(subtest) {
   test(function(t) {
     var effect = new KeyframeEffect(target, {});
     effect.setKeyframes(subtest.input);
@@ -41,7 +34,7 @@ gKeyframeSequenceTests.forEach(function(subtest) {
 gInvalidKeyframesTests.forEach(function(subtest) {
   test(function(t) {
     var effect = new KeyframeEffect(target, {});
-    assert_throws(subtest.expected, function() {
+    assert_throws(new TypeError, function() {
       effect.setKeyframes(subtest.input);
     });
   }, 'KeyframeEffect constructor throws with ' + subtest.desc);

@@ -200,7 +200,9 @@ impl ToFilterOps for Vec<Filter> {
                 GenericFilter::Grayscale(amount) => result.push(webrender_api::FilterOp::Grayscale(amount.0)),
                 GenericFilter::HueRotate(angle) => result.push(webrender_api::FilterOp::HueRotate(angle.radians())),
                 GenericFilter::Invert(amount) => result.push(webrender_api::FilterOp::Invert(amount.0)),
-                GenericFilter::Opacity(amount) => result.push(webrender_api::FilterOp::Opacity(amount.0.into())),
+                GenericFilter::Opacity(amount) => {
+                    result.push(webrender_api::FilterOp::Opacity(amount.0.into(), amount.0));
+                }
                 GenericFilter::Saturate(amount) => result.push(webrender_api::FilterOp::Saturate(amount.0)),
                 GenericFilter::Sepia(amount) => result.push(webrender_api::FilterOp::Sepia(amount.0)),
                 GenericFilter::DropShadow(ref shadow) => match *shadow {},

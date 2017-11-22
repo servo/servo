@@ -15,12 +15,12 @@ window.onmessage = e => {
 
   const params = new URLSearchParams;
   params.append('referrer_policy', e.data.referrer_policy)
-  params.append('source_origin', get_host_info().HTTP_ORIGIN);
+  params.append('source_origin', get_host_info().HTTPS_ORIGIN);
 
   let script_url = '';
   if (is_cross_origin) {
     params.append('is_cross_origin', 'true')
-    script_url = get_host_info().HTTP_REMOTE_ORIGIN + '/worklets/resources/';
+    script_url = get_host_info().HTTPS_REMOTE_ORIGIN + '/worklets/resources/';
   }
   script_url += 'referrer.py?' + params;
 

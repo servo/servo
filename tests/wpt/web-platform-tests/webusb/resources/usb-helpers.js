@@ -125,5 +125,6 @@ function callWithTrustedClick(callback) {
       document.body.removeChild(button);
     };
     document.body.appendChild(button);
+    test_driver.click(button);
   });
 }

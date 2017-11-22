@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Writing Mode test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<meta flags="ahem">
+
+<style>
+div {
+  font: 50px / 50px ahem;
+  color: green;
+
+  max-height: 100px;
+  writing-mode: vertical-rl;
+  /* Doing this with a horizontal div and max-width ought to result in the same 100x100 green square,
+     but font rasterisation may (and in practice does) result in different aliasing artifacts.
+     Therefore I am using the same writing mode as the test,
+     to make sure we get identically sharp/fuzzy edges on the same sides.
+  */
+}
+</style>
+
+<p>There should be a <strong>green square</strong> and <strong>no red</strong>.
+
+<div>xx xx</div>
+
+</body>
+</html>

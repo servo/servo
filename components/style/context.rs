@@ -5,16 +5,15 @@
 //! The context within which style is calculated.
 
 #[cfg(feature = "servo")] use animation::Animation;
-#[cfg(feature = "servo")] use animation::PropertyAnimation;
 use app_units::Au;
 use bloom::StyleBloom;
 use data::{EagerPseudoStyles, ElementData};
-use dom::{OpaqueNode, TNode, TElement, SendElement};
+use dom::{TElement, SendElement};
+#[cfg(feature = "servo")] use dom::OpaqueNode;
 use euclid::ScaleFactor;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
-use lru_cache::{Entry, LRUCache};
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
 #[cfg(feature = "servo")] use parking_lot::RwLock;
@@ -42,6 +41,7 @@ use time;
 use timer::Timer;
 use traversal::DomTraversal;
 use traversal_flags::TraversalFlags;
+use uluru::{Entry, LRUCache};
 
 pub use selectors::matching::QuirksMode;
 
@@ -285,23 +285,6 @@ impl ElementCascadeInputs {
     }
 }
 
-/// Information about the current element being processed. We group this
-/// together into a single struct within ThreadLocalStyleContext so that we can
-/// instantiate and destroy it easily at the beginning and end of element
-/// processing.
-pub struct CurrentElementInfo {
-    /// The element being processed. Currently we use an OpaqueNode since we
-    /// only use this for identity checks, but we could use SendElement if there
-    /// were a good reason to.
-    element: OpaqueNode,
-    /// Whether the element is being styled for the first time.
-    is_initial_style: bool,
-    /// A Vec of possibly expired animations. Used only by Servo.
-    #[allow(dead_code)]
-    #[cfg(feature = "servo")]
-    pub possibly_expired_animations: Vec<PropertyAnimation>,
-}
-
 /// Statistics gathered during the traversal. We gather statistics on each
 /// thread and then combine them after the threads join via the Add
 /// implementation below.
@@ -488,11 +471,11 @@ impl<E: TElement> SequentialTask<E> {
             Unused(_) => unreachable!(),
             #[cfg(feature = "gecko")]
             UpdateAnimations { el, before_change_style, tasks } => {
-                unsafe { el.update_animations(before_change_style, tasks) };
+                el.update_animations(before_change_style, tasks);
             }
             #[cfg(feature = "gecko")]
             PostAnimation { el, tasks } => {
-                unsafe { el.process_post_animation(tasks) };
+                el.process_post_animation(tasks);
             }
         }
     }
@@ -712,8 +695,6 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     pub selector_flags: SelectorFlagsMap<E>,
     /// Statistics about the traversal.
     pub statistics: TraversalStatistics,
-    /// Information related to the current element, non-None during processing.
-    pub current_element_info: Option<CurrentElementInfo>,
     /// The struct used to compute and cache font metrics from style
     /// for evaluation of the font-relative em/ch units and font-size
     pub font_metrics_provider: E::FontMetricsProvider,
@@ -736,7 +717,6 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
             statistics: TraversalStatistics::default(),
-            current_element_info: None,
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
                 (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
@@ -754,55 +734,16 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
             statistics: TraversalStatistics::default(),
-            current_element_info: None,
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
                 (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
             nth_index_cache: NthIndexCache::default(),
         }
     }
-
-    #[cfg(feature = "gecko")]
-    /// Notes when the style system starts traversing an element.
-    pub fn begin_element(&mut self, element: E, data: &ElementData) {
-        debug_assert!(self.current_element_info.is_none());
-        self.current_element_info = Some(CurrentElementInfo {
-            element: element.as_node().opaque(),
-            is_initial_style: !data.has_styles(),
-        });
-    }
-
-    #[cfg(feature = "servo")]
-    /// Notes when the style system starts traversing an element.
-    pub fn begin_element(&mut self, element: E, data: &ElementData) {
-        debug_assert!(self.current_element_info.is_none());
-        self.current_element_info = Some(CurrentElementInfo {
-            element: element.as_node().opaque(),
-            is_initial_style: !data.has_styles(),
-            possibly_expired_animations: Vec::new(),
-        });
-    }
-
-    /// Notes when the style system finishes traversing an element.
-    pub fn end_element(&mut self, element: E) {
-        debug_assert!(self.current_element_info.is_some());
-        debug_assert!(self.current_element_info.as_ref().unwrap().element ==
-                      element.as_node().opaque());
-        self.current_element_info = None;
-    }
-
-    /// Returns true if the current element being traversed is being styled for
-    /// the first time.
-    ///
-    /// Panics if called while no element is being traversed.
-    pub fn is_initial_style(&self) -> bool {
-        self.current_element_info.as_ref().unwrap().is_initial_style
-    }
 }
 
 impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
     fn drop(&mut self) {
-        debug_assert!(self.current_element_info.is_none());
         debug_assert!(thread_state::get() == ThreadState::LAYOUT);
 
         // Apply any slow selector flags that need to be set on parents.

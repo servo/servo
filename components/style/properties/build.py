@@ -32,7 +32,8 @@ def main():
 
     properties = data.PropertiesData(product=product)
     template = os.path.join(BASE, "properties.mako.rs")
-    rust = render(template, product=product, data=properties, __file__=template)
+    rust = render(template, product=product, data=properties, __file__=template,
+                  RUSTC_HAS_PR45225=os.environ.get("RUSTC_HAS_PR45225"))
     if output == "style-crate":
         write(os.environ["OUT_DIR"], "properties.rs", rust)
         if product == "gecko":
@@ -81,7 +82,7 @@ def write(directory, filename, content):
 def write_html(properties):
     properties = dict(
         (p.name, {
-            "flag": p.experimental,
+            "flag": p.servo_pref,
             "shorthand": hasattr(p, "sub_properties")
         })
         for p in properties.longhands + properties.shorthands

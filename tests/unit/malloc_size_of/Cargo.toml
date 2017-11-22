@@ -1,0 +1,13 @@
+[package]
+name = "malloc_size_of_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+
+[lib]
+path = "lib.rs"
+test = false
+
+[dependencies]
+malloc_size_of = {path = "../../../components/malloc_size_of"}
+servo_arc = {path = "../../../components/servo_arc"}

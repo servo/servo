@@ -19,6 +19,8 @@ echo "About to update manifest."
 ./mach test-wpt --manifest-update --binary= SKIP_TESTS
 
 echo "Updated manifest; about to check if any changes were made to it."
+echo "If a diff is present, please run './mach update-manifest' \
+and commit the change."
 
 diff="$(git diff -- tests/*/MANIFEST.json)"
 echo "${diff}"

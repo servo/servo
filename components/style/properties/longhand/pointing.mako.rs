@@ -177,7 +177,7 @@ ${helpers.predefined_type(
     "Either::Second(Auto)",
     spec="https://drafts.csswg.org/css-ui/#caret-color",
     animation_value_type="Either<AnimatedColor, Auto>",
-    boxed=True,
+    boxed=not RUSTC_HAS_PR45225,
     ignored_when_colors_disabled=True,
     products="gecko",
 )}

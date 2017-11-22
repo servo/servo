@@ -1,0 +1,10 @@
+[Constructor(optional SensorOptions options), Exposed=Window]
+interface GeolocationSensor : Sensor {
+  readonly attribute unrestricted double? latitude;
+  readonly attribute unrestricted double? longitude;
+  readonly attribute unrestricted double? altitude;
+  readonly attribute unrestricted double? accuracy;
+  readonly attribute unrestricted double? altitudeAccuracy;
+  readonly attribute unrestricted double? heading;
+  readonly attribute unrestricted double? speed;
+};

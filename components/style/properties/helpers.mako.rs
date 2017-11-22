@@ -394,7 +394,9 @@
                     }
                 }
 
-                % if property.custom_cascade:
+                % if property.custom_cascade and property.custom_cascade_function:
+                    ${property.custom_cascade_function}(declaration, context);
+                % elif property.custom_cascade:
                     cascade_property_custom(declaration, context);
                 % endif
             % else:
@@ -678,10 +680,9 @@
     % endif
 </%def>
 
-<%def name="shorthand(name, sub_properties, experimental=False, derive_serialize=False, **kwargs)">
+<%def name="shorthand(name, sub_properties, derive_serialize=False, **kwargs)">
 <%
-    shorthand = data.declare_shorthand(name, sub_properties.split(), experimental=experimental,
-                                       **kwargs)
+    shorthand = data.declare_shorthand(name, sub_properties.split(), **kwargs)
 %>
     % if shorthand:
     /// ${shorthand.spec}

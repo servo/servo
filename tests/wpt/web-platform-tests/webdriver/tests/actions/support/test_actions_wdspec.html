@@ -1,5 +1,6 @@
-<!doctype html>
+﻿<!doctype html>
 <meta charset=utf-8>
+<html>
 <head>
     <title>Test Actions</title>
     <style>
@@ -14,7 +15,7 @@
     <script>
         "use strict";
         var els = {};
-        var allEvents = {events: []};
+        var allEvents = { events: [] };
         function displayMessage(message) {
             document.getElementById("events").innerHTML = "<p>" + message + "</p>";
         }
@@ -56,11 +57,11 @@
             "repeat": event.repeat,
             "type": event.type
           });
-          appendMessage(`${event.type}(` +
-              `code: ${event.code}, ` +
-              `key: ${key}, ` +
-              `which: ${event.which}, ` +
-              `keyCode: ${event.keyCode})`);
+          appendMessage(event.type + " " +
+              "code: " + event.code + ", " +
+              "key: " + key + ", " +
+              "which: " + event.which + ", " +
+              "keyCode: " + event.keyCode);
         }
 
         function recordPointerEvent(event) {
@@ -79,17 +80,17 @@
             "shiftKey": event.shiftKey,
             "target": event.target.id
           });
-          appendMessage(`${event.type}(` +
-              `button: ${event.button}, ` +
-              `pageX: ${event.pageX}, ` +
-              `pageY: ${event.pageY}, ` +
-              `button: ${event.button}, ` +
-              `buttons: ${event.buttons}, ` +
-              `ctrlKey: ${event.ctrlKey}, ` +
-              `altKey: ${event.altKey}, ` +
-              `metaKey: ${event.metaKey}, ` +
-              `shiftKey: ${event.shiftKey}, ` +
-              `target id: ${event.target.id})`);
+          appendMessage(event.type + " " +
+              "button: " + event.button + ", " +
+              "pageX: " + event.pageX + ", " +
+              "pageY: " + event.pageY + ", " +
+              "button: " + event.button + ", " +
+              "buttons: " + event.buttons + ", " +
+              "ctrlKey: " + event.ctrlKey + ", " +
+              "altKey: " + event.altKey + ", " +
+              "metaKey: " + event.metaKey + ", " +
+              "shiftKey: " + event.shiftKey + ", " +
+              "target id: " + event.target.id);
         }
 
         function recordFirstPointerMove(event) {
@@ -97,9 +98,21 @@
           window.removeEventListener("mousemove", recordFirstPointerMove);
         }
 
+        function grabOnce(event) {
+          grab(event);
+          els.dragTarget.removeEventListener("mousedown", grabOnce);
+        }
+
+        function dropOnce(moveHandler) {
+          return function (event) {
+            moveHandler(event);
+            els.dragArea.removeEventListener("mouseup", dropOnce);
+          }
+        }
+
         function resetEvents() {
-            allEvents.events.length = 0;
-            displayMessage("");
+          allEvents.events.length = 0;
+          displayMessage("");
         }
 
         function drop(moveHandler) {
@@ -112,8 +125,8 @@
         }
 
         function move(el, offsetX, offsetY, timeout) {
-          return (event) => {
-            setTimeout(() => {
+          return function(event) {
+            setTimeout(function() {
               el.style.top = event.clientY + offsetY + "px";
               el.style.left = event.clientX + offsetX + "px";
             }, timeout);
@@ -132,27 +145,30 @@
               -(areaRect.top + (event.clientY - boxRect.top)),
               20);
           els.dragArea.addEventListener("mousemove", moveHandler);
-          els.dragArea.addEventListener("mouseup", drop(moveHandler), {once: true});
+          els.dragArea.addEventListener("mouseup", dropOnce(drop(moveHandler)));
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", function() {
           var keyReporter = document.getElementById("keys");
-          ["keyup", "keypress", "keydown"].forEach((e) => {
-            keyReporter.addEventListener(e, recordKeyboardEvent);
-          });
+          keyReporter.addEventListener("keyup", recordKeyboardEvent);
+          keyReporter.addEventListener("keypress", recordKeyboardEvent);
+          keyReporter.addEventListener("keydown", recordKeyboardEvent);
+
           var outer = document.getElementById("outer");
-          ["click", "dblclick", "mousedown",
-              "mouseup", "contextmenu"].forEach((e) => {
-            outer.addEventListener(e, recordPointerEvent);
-          });
-          window.addEventListener("mousemove", recordPointerEvent, {once: true});
+          outer.addEventListener("click", recordPointerEvent);
+          outer.addEventListener("dblclick", recordPointerEvent);
+          outer.addEventListener("mousedown", recordPointerEvent);
+          outer.addEventListener("mouseup", recordPointerEvent);
+          outer.addEventListener("contextmenu", recordPointerEvent);
+
+          window.addEventListener("mousemove", recordFirstPointerMove);
           //visual cue for mousemove
           var pointer = document.getElementById("trackPointer");
           window.addEventListener("mousemove", move(pointer, 15, 15, 30));
           // drag and drop
           els.dragArea = document.getElementById("dragArea");
           els.dragTarget = document.getElementById("dragTarget");
-          els.dragTarget.addEventListener("mousedown", grab, {once: true});
+          els.dragTarget.addEventListener("mousedown", grabOnce);
         });
     </script>
 </head>

@@ -439,6 +439,7 @@ pub mod testrunner;
 pub mod testworklet;
 pub mod testworkletglobalscope;
 pub mod text;
+pub mod textcontrol;
 pub mod textdecoder;
 pub mod textencoder;
 pub mod touch;

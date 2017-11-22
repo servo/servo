@@ -14,7 +14,7 @@ set -o pipefail
 
 cd "$(dirname ${0})/../.."
 
-./mach doc
+env CC=gcc-5 CXX=g++-5 ./mach doc
 # etc/doc.servo.org/index.html overwrites $(mach rust-root)/doc/index.html
 # Use recursive copy here to avoid `cp` returning an error code
 # when it encounters directories.

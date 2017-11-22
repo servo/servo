@@ -204,7 +204,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         };
 
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_document = webrender_api.add_document(window.framebuffer_size());
+        let wr_document_layer = 0; //TODO
+        let webrender_document = webrender_api.add_document(window.framebuffer_size(), wr_document_layer);
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -392,6 +393,22 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                     let rect = self.compositor.window.client_window(top_level_browsing_context);
                     if let Err(e) = send.send(rect) {
                         warn!("Sending response to get client window failed ({}).", e);
+                    }
+                },
+
+                (EmbedderMsg::GetScreenSize(top_level_browsing_context, send),
+                 ShutdownState::NotShuttingDown) => {
+                    let rect = self.compositor.window.screen_size(top_level_browsing_context);
+                    if let Err(e) = send.send(rect) {
+                        warn!("Sending response to get screen size failed ({}).", e);
+                    }
+                },
+
+                (EmbedderMsg::GetScreenAvailSize(top_level_browsing_context, send),
+                 ShutdownState::NotShuttingDown) => {
+                    let rect = self.compositor.window.screen_avail_size(top_level_browsing_context);
+                    if let Err(e) = send.send(rect) {
+                        warn!("Sending response to get screen available size failed ({}).", e);
                     }
                 },
 

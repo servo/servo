@@ -249,7 +249,7 @@ RunnerManagerState = _RunnerManagerState()
 
 class TestRunnerManager(threading.Thread):
     def __init__(self, suite_name, test_queue, test_source_cls, browser_cls, browser_kwargs,
-                 executor_cls, executor_kwargs, stop_flag, pause_after_test=False,
+                 executor_cls, executor_kwargs, stop_flag, rerun=1, pause_after_test=False,
                  pause_on_unexpected=False, restart_on_unexpected=True, debug_info=None):
         """Thread that owns a single TestRunner process and any processes required
         by the TestRunner (e.g. the Firefox binary).
@@ -280,6 +280,8 @@ class TestRunnerManager(threading.Thread):
         self.parent_stop_flag = stop_flag
         self.child_stop_flag = multiprocessing.Event()
 
+        self.rerun = rerun
+        self.run_count = 0
         self.pause_after_test = pause_after_test
         self.pause_on_unexpected = pause_on_unexpected
         self.restart_on_unexpected = restart_on_unexpected
@@ -503,8 +505,8 @@ class TestRunnerManager(threading.Thread):
                     self.logger.info("No more tests")
                     return None, None, None
             test = test_group.popleft()
+        self.run_count = 0
         return test, test_group, group_metadata
-
 
     def run_test(self):
         assert isinstance(self.state, RunnerManagerState.running)
@@ -517,6 +519,9 @@ class TestRunnerManager(threading.Thread):
                                                  self.state.group_metadata)
 
         self.logger.test_start(self.state.test.id)
+        if self.rerun > 1:
+            self.logger.info("Run %d/%d" % (self.run_count, self.rerun))
+        self.run_count += 1
         self.send_message("run_test", self.state.test)
 
     def test_ended(self, test, results):
@@ -580,7 +585,7 @@ class TestRunnerManager(threading.Thread):
             self.logger.info("Pausing until the browser exits")
             self.send_message("wait")
         else:
-            return self.after_test_end(restart_before_next)
+            return self.after_test_end(test, restart_before_next)
 
     def wait_finished(self):
         assert isinstance(self.state, RunnerManagerState.running)
@@ -588,16 +593,21 @@ class TestRunnerManager(threading.Thread):
         # processing
         self.logger.debug("Wait finished")
 
-        return self.after_test_end(True)
+        return self.after_test_end(self.state.test, True)
 
-    def after_test_end(self, restart):
+    def after_test_end(self, test, restart):
         assert isinstance(self.state, RunnerManagerState.running)
-        test, test_group, group_metadata = self.get_next_test()
-        if test is None:
-            return RunnerManagerState.stop()
-        if test_group != self.state.test_group:
-            # We are starting a new group of tests, so force a restart
-            restart = True
+        if self.run_count == self.rerun:
+            test, test_group, group_metadata = self.get_next_test()
+            if test is None:
+                return RunnerManagerState.stop()
+            if test_group != self.state.test_group:
+                # We are starting a new group of tests, so force a restart
+                restart = True
+        else:
+            test = test
+            test_group = self.state.test_group
+            group_metadata = self.state.group_metadata
         if restart:
             return RunnerManagerState.restarting(test, test_group, group_metadata)
         else:
@@ -686,6 +696,7 @@ class ManagerGroup(object):
     def __init__(self, suite_name, size, test_source_cls, test_source_kwargs,
                  browser_cls, browser_kwargs,
                  executor_cls, executor_kwargs,
+                 rerun=1,
                  pause_after_test=False,
                  pause_on_unexpected=False,
                  restart_on_unexpected=True,
@@ -703,6 +714,7 @@ class ManagerGroup(object):
         self.pause_on_unexpected = pause_on_unexpected
         self.restart_on_unexpected = restart_on_unexpected
         self.debug_info = debug_info
+        self.rerun = rerun
 
         self.pool = set()
         # Event that is polled by threads so that they can gracefully exit in the face
@@ -735,6 +747,7 @@ class ManagerGroup(object):
                                         self.executor_cls,
                                         self.executor_kwargs,
                                         self.stop_flag,
+                                        self.rerun,
                                         self.pause_after_test,
                                         self.pause_on_unexpected,
                                         self.restart_on_unexpected,

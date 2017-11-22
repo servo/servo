@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script>
+  self.addEventListener('message', function(e) {
+    // Send paint-timing entries upon receiving a message.
+    const paintEntries = performance.getEntriesByType('paint');
+    let entryContents = paintEntries.length + '';
+    for (let i = 0; i < paintEntries.length; i++) {
+      const entry = paintEntries[i];
+      entryContents += ' ' + entry.entryType + ' '  + entry.name;
+    }
+    parent.postMessage(entryContents, '*');
+  });
+</script>

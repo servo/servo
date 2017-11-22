@@ -689,9 +689,11 @@ pub fn process_resolved_style_request<'a, N>(context: &LayoutContext,
     let styles = resolve_style(&mut context, element, RuleInclusion::All, false, pseudo.as_ref());
     let style = styles.primary();
     let longhand_id = match *property {
+        PropertyId::LonghandAlias(id, _) |
         PropertyId::Longhand(id) => id,
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
+        PropertyId::ShorthandAlias(..) |
         PropertyId::Shorthand(_) => return String::new(),
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
@@ -737,12 +739,12 @@ where
 
     let style = &*layout_el.resolved_style();
     let longhand_id = match *property {
+        PropertyId::LonghandAlias(id, _) |
         PropertyId::Longhand(id) => id,
-
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
+        PropertyId::ShorthandAlias(..) |
         PropertyId::Shorthand(_) => return String::new(),
-
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
         }

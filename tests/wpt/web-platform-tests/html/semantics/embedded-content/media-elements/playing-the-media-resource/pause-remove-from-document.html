@@ -26,10 +26,10 @@ async_test(function(t) {
         assert_true(v.paused, 'paused in pause event');
         // re-insert and verify that it stays paused
         document.body.appendChild(v);
-        setTimeout(t.step_func(function() {
+        t.step_timeout(function() {
           assert_true(v.paused, 'paused after re-inserting');
           t.done();
-        }), 0);
+        }, 0);
       });
     }));
   });

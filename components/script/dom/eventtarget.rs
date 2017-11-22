@@ -15,18 +15,20 @@ use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::Wrap;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::AddEventListenerOptionsOrBoolean;
 use dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use dom::globalscope::GlobalScope;
 use dom::node::document_from_node;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -289,6 +291,16 @@ impl EventTarget {
             reflector_: Reflector::new(),
             handlers: DomRefCell::new(Default::default()),
         }
+    }
+
+    fn new(global: &GlobalScope) -> DomRoot<EventTarget> {
+        reflect_dom_object(Box::new(EventTarget::new_inherited()),
+                           global,
+                           Wrap)
+    }
+
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<EventTarget>> {
+        Ok(EventTarget::new(global))
     }
 
     pub fn get_listeners_for(&self,

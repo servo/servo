@@ -258,6 +258,8 @@
 % for prop in sub_properties:
     use properties::longhands::font_variant_${prop};
 % endfor
+    #[allow(unused_imports)]
+    use values::specified::FontVariantLigatures;
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -271,7 +273,7 @@
             // The 'none' value sets 'font-variant-ligatures' to 'none' and resets all other sub properties
             // to their initial value.
         % if product == "gecko":
-            ligatures = Some(font_variant_ligatures::get_none_specified_value());
+            ligatures = Some(FontVariantLigatures::none());
         % endif
         } else {
             let mut has_custom_value: bool = false;
@@ -311,7 +313,7 @@
 
             let has_none_ligatures =
             % if product == "gecko":
-                self.font_variant_ligatures == &font_variant_ligatures::get_none_specified_value();
+                self.font_variant_ligatures == &FontVariantLigatures::none();
             % else:
                 false;
             % endif

@@ -16,6 +16,9 @@ include css21/reftest.list
 # Backgrounds and Borders
 include background/reftest.list
 
+# Fragmentation
+include break3/reftest.list
+
 # Color Level 4
 include color4/reftest.list
 

@@ -12466,6 +12466,11 @@
      {}
     ]
    ],
+   "mozilla/resources/http-cache.js": [
+    [
+     {}
+    ]
+   ],
    "mozilla/resources/iframe_contentDocument_inner.html": [
     [
      {}
@@ -33215,6 +33220,12 @@
    "mozilla/htmlspacechars.html": [
     [
      "/_mozilla/mozilla/htmlspacechars.html",
+     {}
+    ]
+   ],
+   "mozilla/http-cache.html": [
+    [
+     "/_mozilla/mozilla/http-cache.html",
      {}
     ]
    ],
@@ -66309,6 +66320,10 @@
    "592f69ee432ba5bc7a2f2649e72e083d21393496",
    "testharness"
   ],
+  "mozilla/http-cache.html": [
+   "33827dc9bdb0efcbcae4f730086693be315cfc14",
+   "testharness"
+  ],
   "mozilla/iframe-unblock-onload.html": [
    "8734756947d36b047df256f27adc56fce7e31f88",
    "testharness"
@@ -71979,6 +71994,10 @@
   ],
   "mozilla/resources/external.js": [
    "78686147f85e4146e7fc58c1f67a613f65b099a2",
+   "support"
+  ],
+  "mozilla/resources/http-cache.js": [
+   "c6b1ee9def26d4e12a1b93e551c225f82b4717c2",
    "support"
   ],
   "mozilla/resources/iframe_contentDocument_inner.html": [

@@ -8,8 +8,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::TElement;
 use gecko_bindings::bindings::{self, RawServoStyleSet};
 use gecko_bindings::structs::{RawGeckoPresContextOwned, ServoStyleSetSizes, ServoStyleSheet};
-use gecko_bindings::structs::{StyleSheetInfo, ServoStyleSheetInner};
-use gecko_bindings::structs::nsIDocument;
+use gecko_bindings::structs::{StyleSheetInfo, ServoStyleSheetInner, nsIDocument, self};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use malloc_size_of::MallocSizeOfOps;
@@ -178,7 +177,7 @@ impl PerDocumentStyleDataImpl {
 
     /// Returns whether visited links are enabled.
     fn visited_links_enabled(&self) -> bool {
-        unsafe { bindings::Gecko_AreVisitedLinksEnabled() }
+        unsafe { structs::StylePrefs_sVisitedLinksEnabled }
     }
     /// Returns whether visited styles are enabled.
     pub fn visited_styles_enabled(&self) -> bool {

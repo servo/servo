@@ -16,9 +16,6 @@ bitflags! {
         /// Traverse and update all elements with CSS animations since
         /// @keyframes rules may have changed. Triggered by CSS rule changes.
         const ForCSSRuleChanges = 1 << 1;
-        /// Styles unstyled elements, but does not handle invalidations on
-        /// already-styled elements.
-        const UnstyledOnly = 1 << 2;
         /// A forgetful traversal ignores the previous state of the frame tree, and
         /// thus does not compute damage or maintain other state describing the styles
         /// pre-traversal. A forgetful traversal is usually the right thing if you
@@ -61,7 +58,6 @@ pub fn assert_traversal_flags_match() {
     check_traversal_flags! {
         ServoTraversalFlags_AnimationOnly => TraversalFlags::AnimationOnly,
         ServoTraversalFlags_ForCSSRuleChanges => TraversalFlags::ForCSSRuleChanges,
-        ServoTraversalFlags_UnstyledOnly => TraversalFlags::UnstyledOnly,
         ServoTraversalFlags_Forgetful => TraversalFlags::Forgetful,
         ServoTraversalFlags_ClearDirtyBits => TraversalFlags::ClearDirtyBits,
         ServoTraversalFlags_ClearAnimationOnlyDirtyDescendants =>

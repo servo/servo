@@ -2,6 +2,7 @@ import argparse
 import itertools
 import logging
 import os
+import re
 import subprocess
 import sys
 
@@ -79,13 +80,21 @@ def branch_point():
     return branch_point
 
 
-def files_changed(revish, ignore_dirs=None, include_uncommitted=False, include_new=False):
-    """Get and return files changed since current branch diverged from master,
-    excluding those that are located within any directory specifed by
-    `ignore_changes`."""
-    if ignore_dirs is None:
-        ignore_dirs = []
+def compile_ignore_rule(rule):
+    rule = rule.replace(os.path.sep, "/")
+    parts = rule.split("/")
+    re_parts = []
+    for part in parts:
+        if part.endswith("**"):
+            re_parts.append(re.escape(part[:-2]) + ".*")
+        elif part.endswith("*"):
+            re_parts.append(re.escape(part[:-1]) + "[^/]*")
+        else:
+            re_parts.append(re.escape(part))
+    return re.compile("^%s$" % "/".join(re_parts))
 
+
+def repo_files_changed(revish, include_uncommitted=False, include_new=False):
     git = get_git_cmd(wpt_root)
     files = git("diff", "--name-only", "-z", revish).split("\0")
     assert not files[-1]
@@ -107,26 +116,47 @@ def files_changed(revish, ignore_dirs=None, include_uncommitted=False, include_n
                         for filename in filenames:
                             files.add(os.path.join(dirpath, filename))
 
-    if not files:
-        return [], []
+    return files
+
+
+def exclude_ignored(files, ignore_rules):
+    if ignore_rules is None:
+        ignore_rules = []
+    ignore_rules = [compile_ignore_rule(item) for item in ignore_rules]
 
     changed = []
     ignored = []
     for item in sorted(files):
         fullpath = os.path.join(wpt_root, item)
-        topmost_dir = item.split(os.sep, 1)[0]
-        if topmost_dir in ignore_dirs:
-            ignored.append(fullpath)
+        rule_path = item.replace(os.path.sep, "/")
+        for rule in ignore_rules:
+            if rule.match(rule_path):
+                ignored.append(fullpath)
+                break
         else:
             changed.append(fullpath)
 
     return changed, ignored
 
 
+def files_changed(revish, ignore_rules=None, include_uncommitted=False, include_new=False):
+    """Get and return files changed since current branch diverged from master,
+    excluding those that are located within any path matched by
+    `ignore_rules`."""
+    files = repo_files_changed(revish,
+                               include_uncommitted=include_uncommitted,
+                               include_new=include_new)
+    if not files:
+        return [], []
+
+    return exclude_ignored(files, ignore_rules)
+
+
 def _in_repo_root(full_path):
     rel_path = os.path.relpath(full_path, wpt_root)
     path_components = rel_path.split(os.sep)
     return len(path_components) < 2
+
 
 def _init_manifest_cache():
     c = {}
@@ -145,6 +175,7 @@ def _init_manifest_cache():
         c[manifest_path] = wpt_manifest
         return c[manifest_path]
     return load
+
 
 load_manifest = _init_manifest_cache()
 
@@ -171,6 +202,7 @@ def affected_testfiles(files_changed, skip_tests, manifest_path=None):
     tests_changed = set(item for item in files_changed if item in test_files)
 
     nontest_changed_paths = set()
+    rewrites = {"/resources/webidl2/lib/webidl2.js": "/resources/WebIDLParser.js"}
     for full_path in nontests_changed:
         rel_path = os.path.relpath(full_path, wpt_root)
         path_components = rel_path.split(os.sep)
@@ -178,6 +210,9 @@ def affected_testfiles(files_changed, skip_tests, manifest_path=None):
         if top_level_subdir in skip_tests:
             continue
         repo_path = "/" + os.path.relpath(full_path, wpt_root).replace(os.path.sep, "/")
+        if repo_path in rewrites:
+            repo_path = rewrites[repo_path]
+            full_path = os.path.join(wpt_root, repo_path[1:].replace("/", os.path.sep))
         nontest_changed_paths.add((full_path, repo_path))
 
     def affected_by_wdspec(test):
@@ -229,11 +264,17 @@ def affected_testfiles(files_changed, skip_tests, manifest_path=None):
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("revish", default=None, help="Commits to consider. Defaults to the commits on the current branch", nargs="?")
-    parser.add_argument("--ignore-dirs", nargs="*", type=set, default=set(["resources"]),
-                        help="Directories to exclude from the list of changes")
+    parser.add_argument("revish", default=None, help="Commits to consider. Defaults to the "
+                        "commits on the current branch", nargs="?")
+    parser.add_argument("--ignore-rules", nargs="*", type=set,
+                        default=set(["resources/testharness*"]),
+                        help="Rules for paths to exclude from lists of changes. Rules are paths "
+                        "relative to the test root, with * before a separator or the end matching "
+                        "anything other than a path separator and ** in that position matching "
+                        "anything")
     parser.add_argument("--modified", action="store_true",
-                        help="Include files under version control that have been modified or staged")
+                        help="Include files under version control that have been "
+                        "modified or staged")
     parser.add_argument("--new", action="store_true",
                         help="Include files in the worktree that are not in version control")
     parser.add_argument("--show-type", action="store_true",
@@ -250,6 +291,7 @@ def get_parser_affected():
                         help="Directory that will contain MANIFEST.json")
     return parser
 
+
 def get_revish(**kwargs):
     revish = kwargs["revish"]
     if kwargs["revish"] is None:
@@ -259,7 +301,7 @@ def get_revish(**kwargs):
 
 def run_changed_files(**kwargs):
     revish = get_revish(**kwargs)
-    changed, _ = files_changed(revish, kwargs["ignore_dirs"],
+    changed, _ = files_changed(revish, kwargs["ignore_rules"],
                                include_uncommitted=kwargs["modified"],
                                include_new=kwargs["new"])
     for item in sorted(changed):
@@ -268,7 +310,7 @@ def run_changed_files(**kwargs):
 
 def run_tests_affected(**kwargs):
     revish = get_revish(**kwargs)
-    changed, _ = files_changed(revish, kwargs["ignore_dirs"],
+    changed, _ = files_changed(revish, kwargs["ignore_rules"],
                                include_uncommitted=kwargs["modified"],
                                include_new=kwargs["new"])
     manifest_path = os.path.join(kwargs["metadata_root"], "MANIFEST.json")

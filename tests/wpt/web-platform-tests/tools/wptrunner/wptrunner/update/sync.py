@@ -81,7 +81,8 @@ def copy_wpt_tree(tree, dest, excludes=None, includes=None):
             shutil.copy2(source_path, dest_path)
 
     for source, destination in [("testharness_runner.html", ""),
-                                ("testharnessreport.js", "resources/")]:
+                                ("testharnessreport.js", "resources/"),
+                                ("testdriver-vendor.js", "resources/")]:
         source_path = os.path.join(here, os.pardir, source)
         dest_path = os.path.join(dest, destination, os.path.split(source)[1])
         shutil.copy2(source_path, dest_path)

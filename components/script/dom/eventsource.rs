@@ -491,7 +491,7 @@ impl EventSource {
             listener.notify_fetch(message.to().unwrap());
         }));
         global.core_resource_thread().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender))).unwrap();
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
         // Step 13
         Ok(ev)
     }
@@ -555,6 +555,6 @@ impl EventSourceTimeoutCallback {
         }
         // Step 5.4
         global.core_resource_thread().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(self.action_sender))).unwrap();
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(self.action_sender, None))).unwrap();
     }
 }

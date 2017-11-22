@@ -1248,6 +1248,9 @@ impl ScriptThread {
         for (doc_id, doc) in self.documents.borrow().iter() {
            if let Some(pipeline_id) = pipeline_id {
                 if pipeline_id == doc_id && end - start > MAX_TASK_NS {
+                    if opts::get().print_pwm {
+                        println!("Task took longer than max allowed ({:?}) {:?}", category, end - start);
+                    }
                     doc.start_tti();
                 }
             }
@@ -2229,6 +2232,7 @@ impl ScriptThread {
         let parse_input = DOMString::new();
 
         document.set_https_state(metadata.https_state);
+        document.set_navigation_start(incomplete.navigation_start_precise);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(&document, parse_input, final_url);

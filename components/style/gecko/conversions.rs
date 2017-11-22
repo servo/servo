@@ -17,13 +17,12 @@ use gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
-use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
+use values::computed::{Angle, CalcLengthOrPercentage, ComputedUrl, Gradient, Image};
 use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
 use values::generics::rect::Rect;
-use values::specified::url::SpecifiedUrl;
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
@@ -420,11 +419,11 @@ impl nsStyleImage {
         }
     }
 
-    unsafe fn get_image_url(self: &nsStyleImage) -> SpecifiedUrl {
+    unsafe fn get_image_url(self: &nsStyleImage) -> ComputedUrl {
         use gecko_bindings::bindings::Gecko_GetURLValue;
         let url_value = Gecko_GetURLValue(self);
-        let mut url = SpecifiedUrl::from_url_value_data(url_value.as_ref().unwrap())
-                                    .expect("Could not convert to SpecifiedUrl");
+        let mut url = ComputedUrl::from_url_value_data(url_value.as_ref().unwrap())
+                                    .expect("Could not convert to ComputedUrl");
         url.build_image_value();
         url
     }
@@ -596,6 +595,7 @@ pub mod basic_shape {
     use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use std::borrow::Borrow;
+    use values::computed::ComputedUrl;
     use values::computed::basic_shape::{BasicShape, ShapeRadius};
     use values::computed::border::{BorderCornerRadius, BorderRadius};
     use values::computed::length::LengthOrPercentage;
@@ -605,9 +605,8 @@ pub mod basic_shape {
     use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
     use values::generics::border::BorderRadius as GenericBorderRadius;
     use values::generics::rect::Rect;
-    use values::specified::url::SpecifiedUrl;
 
-    impl<'a, ReferenceBox> From<&'a StyleShapeSource> for ShapeSource<BasicShape, ReferenceBox, SpecifiedUrl>
+    impl<'a, ReferenceBox> From<&'a StyleShapeSource> for ShapeSource<BasicShape, ReferenceBox, ComputedUrl>
     where
         ReferenceBox: From<StyleGeometryBox>,
     {
@@ -619,7 +618,7 @@ pub mod basic_shape {
                     unsafe {
                         let shape_image = &*other.mShapeImage.mPtr;
                         let other_url = &(**shape_image.__bindgen_anon_1.mURLValue.as_ref());
-                        let url = SpecifiedUrl::from_url_value_data(&other_url._base).unwrap();
+                        let url = ComputedUrl::from_url_value_data(&other_url._base).unwrap();
                         ShapeSource::Url(url)
                     }
                 },

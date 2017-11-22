@@ -222,7 +222,7 @@ impl ComputedValuesInner {
         pseudo_ty: structs::CSSPseudoElementType,
         pseudo_tag: *mut structs::nsAtom
     ) -> Arc<ComputedValues> {
-        let arc = unsafe {
+        let arc = {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
             bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _,
                                                    parent, pres_context,
@@ -1215,7 +1215,7 @@ pub fn convert_transform(
             set_single_transform_function(servo, gecko);
         }
     }
-    unsafe { output.set_move(list) };
+    output.set_move(list);
 }
 
 fn clone_single_transform_function(
@@ -1331,13 +1331,11 @@ pub fn clone_transform_from_list(
         self.gecko.${gecko_ffi_name}[1].set(v.vertical);
         // transform-origin supports the third value for depth, while
         // -moz-window-transform-origin doesn't. The following code is
-        // for handling this difference. Rust (incorrectly) generates
-        // an unsuppressible warning, but we know it's safe here.
-        // See rust-lang/rust#45850. Also if we can have more knowledge
+        // for handling this difference. If we can have more knowledge
         // about the type here, we may want to check that the length is
         // exactly either 2 or 3 in compile time.
-        if self.gecko.${gecko_ffi_name}.len() == 3 {
-            self.gecko.${gecko_ffi_name}[2].set(v.depth);
+        if let Some(third) = self.gecko.${gecko_ffi_name}.get_mut(2) {
+            third.set(v.depth);
         }
     }
 
@@ -1345,8 +1343,10 @@ pub fn clone_transform_from_list(
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name}[0].copy_from(&other.gecko.${gecko_ffi_name}[0]);
         self.gecko.${gecko_ffi_name}[1].copy_from(&other.gecko.${gecko_ffi_name}[1]);
-        if self.gecko.${gecko_ffi_name}.len() == 3 {
-            self.gecko.${gecko_ffi_name}[2].copy_from(&other.gecko.${gecko_ffi_name}[2]);
+        if let (Some(self_third), Some(other_third)) =
+            (self.gecko.${gecko_ffi_name}.get_mut(2), other.gecko.${gecko_ffi_name}.get(2))
+        {
+            self_third.copy_from(other_third)
         }
     }
 
@@ -1363,8 +1363,8 @@ pub fn clone_transform_from_list(
                 .expect("clone for LengthOrPercentage failed"),
             vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[1])
                 .expect("clone for LengthOrPercentage failed"),
-            depth: if self.gecko.${gecko_ffi_name}.len() == 3 {
-                Length::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}[2])
+            depth: if let Some(third) = self.gecko.${gecko_ffi_name}.get(2) {
+                Length::from_gecko_style_coord(third)
                     .expect("clone for Length failed")
             } else {
                 Length::new(0.)
@@ -2280,7 +2280,7 @@ fn static_assert() {
             gecko.assign_utf8(&*servo);
         }
 
-        unsafe { self.gecko.mGridTemplateAreas.set_move(refptr.get()) }
+        self.gecko.mGridTemplateAreas.set_move(refptr.get())
     }
 
     pub fn copy_grid_template_areas_from(&mut self, other: &Self) {
@@ -2944,7 +2944,7 @@ fn static_assert() {
 <%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn copy_${type}_${ident}_from(&mut self, other: &Self) {
-        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(other.gecko.m${type.capitalize()}s.len()) };
+        self.gecko.m${type.capitalize()}s.ensure_len(other.gecko.m${type.capitalize()}s.len());
 
         let count = other.gecko.m${type.capitalize()}${gecko_ffi_name}Count;
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = count;
@@ -2978,7 +2978,7 @@ fn static_assert() {
         let v = v.into_iter();
         debug_assert!(v.len() != 0);
         let input_len = v.len();
-        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(input_len) };
+        self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = input_len as u32;
         for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
@@ -3003,7 +3003,7 @@ fn static_assert() {
         let v = v.into_iter();
         debug_assert!(v.len() != 0);
         let input_len = v.len();
-        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(input_len) };
+        self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
         self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
         for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
@@ -3059,7 +3059,7 @@ fn static_assert() {
 
         debug_assert!(v.len() != 0);
         let input_len = v.len();
-        unsafe { self.gecko.mAnimations.ensure_len(input_len) };
+        self.gecko.mAnimations.ensure_len(input_len);
 
         self.gecko.mAnimation${gecko_ffi_name}Count = input_len as u32;
 
@@ -3309,7 +3309,7 @@ fn static_assert() {
         let v = v.into_iter();
 
         if v.len() != 0 {
-            unsafe { self.gecko.mTransitions.ensure_len(v.len()) };
+            self.gecko.mTransitions.ensure_len(v.len());
             self.gecko.mTransitionPropertyCount = v.len() as u32;
             for (servo, gecko) in v.zip(self.gecko.mTransitions.iter_mut()) {
                 match servo {
@@ -3365,7 +3365,7 @@ fn static_assert() {
     pub fn copy_transition_property_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
-        unsafe { self.gecko.mTransitions.ensure_len(other.gecko.mTransitions.len()) };
+        self.gecko.mTransitions.ensure_len(other.gecko.mTransitions.len());
 
         let count = other.gecko.mTransitionPropertyCount;
         self.gecko.mTransitionPropertyCount = count;
@@ -3397,7 +3397,7 @@ fn static_assert() {
     {
         let v = v.into_iter();
         debug_assert!(v.len() != 0);
-        unsafe { self.gecko.mAnimations.ensure_len(v.len()) };
+        self.gecko.mAnimations.ensure_len(v.len());
 
         self.gecko.mAnimationNameCount = v.len() as u32;
         for (servo, gecko) in v.zip(self.gecko.mAnimations.iter_mut()) {
@@ -3452,7 +3452,7 @@ fn static_assert() {
 
         debug_assert_ne!(v.len(), 0);
         let input_len = v.len();
-        unsafe { self.gecko.mAnimations.ensure_len(input_len) };
+        self.gecko.mAnimations.ensure_len(input_len);
 
         self.gecko.mAnimationIterationCountCount = input_len as u32;
         for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
@@ -3560,7 +3560,7 @@ fn static_assert() {
                         Gecko_AppendWillChange(&mut self.gecko, feature.0.as_ptr());
                     }
 
-                    if let Ok(prop_id) = PropertyId::parse(&feature.0.to_string(), None) {
+                    if let Ok(prop_id) = PropertyId::parse(&feature.0.to_string()) {
                         match prop_id.as_shorthand() {
                             Ok(shorthand) => {
                                 for longhand in shorthand.longhands() {
@@ -4002,11 +4002,9 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
         unsafe {
             let count = other.gecko.${image_layers_field}.mImageCount;
-            unsafe {
-                Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
-                                              count as usize,
-                                              LayerType::${shorthand.capitalize()});
-            }
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
+                                          count as usize,
+                                          LayerType::${shorthand.capitalize()});
 
             for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                       .zip(other.gecko.${image_layers_field}.mLayers.iter())
@@ -4074,7 +4072,7 @@ fn static_assert() {
             fill_fields += " mMaskMode mComposite"
     %>
     pub fn fill_arrays(&mut self) {
-        use gecko_bindings::bindings::Gecko_FillAll${shorthand.title()}Lists;
+        use gecko_bindings::bindings::Gecko_FillAllImageLayers;
         use std::cmp;
         let mut max_len = 1;
         % for member in fill_fields.split():
@@ -4083,7 +4081,7 @@ fn static_assert() {
         unsafe {
             // While we could do this manually, we'd need to also manually
             // run all the copy constructors, so we just delegate to gecko
-            Gecko_FillAll${shorthand.title()}Lists(&mut self.gecko.${image_layers_field}, max_len);
+            Gecko_FillAllImageLayers(&mut self.gecko.${image_layers_field}, max_len);
         }
     }
 </%def>
@@ -4204,7 +4202,7 @@ fn static_assert() {
             gecko.second.assign_utf8(&servo.1);
         }
 
-        unsafe { self.gecko.mQuotes.set_move(refptr.get()) }
+        self.gecko.mQuotes.set_move(refptr.get())
     }
 
     pub fn copy_quotes_from(&mut self, other: &Self) {
@@ -5235,7 +5233,7 @@ clip-path
             } else if servo.0 == atom!("stroke-opacity") {
                 self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY as u8;
             }
-            unsafe { gecko.mRawPtr = servo.0.into_addrefed() }
+            gecko.mRawPtr = servo.0.into_addrefed();
         }
     }
 
@@ -5655,7 +5653,7 @@ clip-path
                     eStyleContentType_Image => {
                         unsafe {
                             let gecko_image_request =
-                                unsafe { &**gecko_content.mContent.mImage.as_ref() };
+                                &**gecko_content.mContent.mImage.as_ref();
                             ContentItem::Url(
                                 SpecifiedUrl::from_image_request(gecko_image_request)
                                     .expect("mContent could not convert to SpecifiedUrl")

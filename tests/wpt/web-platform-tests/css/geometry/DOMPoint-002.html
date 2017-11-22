@@ -77,6 +77,12 @@
             checkDOMPoint(result, expected);
         },'test DOMPoint matrixTransform');
         test(function() {
+            var point = new DOMPoint(42, 84);
+            assert_throws(new TypeError(), function() {
+              point.matrixTransform({ is2D: true, m33: 1.0000001 });
+            });
+        },'test DOMPoint matrixTransform with inconsistent input');
+        test(function() {
             var p = new DOMPoint(0, 0, 0, 1);
             p.x = undefined;
             p.y = undefined;

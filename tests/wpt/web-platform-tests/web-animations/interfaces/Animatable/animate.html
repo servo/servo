@@ -7,6 +7,7 @@
 <script src="../../testcommon.js"></script>
 <script src="../../resources/easing-tests.js"></script>
 <script src="../../resources/keyframe-utils.js"></script>
+<script src="../../resources/keyframe-tests.js"></script>
 <body>
 <div id="log"></div>
 <iframe width="10" height="10" id="iframe"></iframe>
@@ -81,15 +82,7 @@ gEmptyKeyframeListTests.forEach(function(subTest) {
      `(input: ${JSON.stringify(subTest)})`);
 });
 
-gPropertyIndexedKeyframesTests.forEach(function(subtest) {
-  test(function(t) {
-    var div = createDiv(t);
-    var anim = div.animate(subtest.input, 2000);
-    assert_frame_lists_equal(anim.effect.getKeyframes(), subtest.output);
-  }, 'Element.animate() accepts ' + subtest.desc);
-});
-
-gKeyframeSequenceTests.forEach(function(subtest) {
+gKeyframesTests.forEach(function(subtest) {
   test(function(t) {
     var div = createDiv(t);
     var anim = div.animate(subtest.input, 2000);
@@ -100,7 +93,7 @@ gKeyframeSequenceTests.forEach(function(subtest) {
 gInvalidKeyframesTests.forEach(function(subtest) {
   test(function(t) {
     var div = createDiv(t);
-    assert_throws(subtest.expected, function() {
+    assert_throws(new TypeError, function() {
       div.animate(subtest.input, 2000);
     });
   }, 'Element.animate() does not accept ' + subtest.desc);

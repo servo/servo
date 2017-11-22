@@ -557,11 +557,6 @@ pub trait TElement
                    !data.hint.has_animation_hint_or_recascade();
         }
 
-        if traversal_flags.contains(TraversalFlags::UnstyledOnly) {
-            // We don't process invalidations in UnstyledOnly mode.
-            return data.has_styles();
-        }
-
         if self.has_snapshot() && !self.handled_snapshot() {
             return false;
         }
@@ -756,11 +751,18 @@ pub trait TElement
     /// element-backed pseudo-element, in which case we return the originating
     /// element.
     fn rule_hash_target(&self) -> Self {
-        let is_implemented_pseudo =
-            self.implemented_pseudo_element().is_some();
-
-        if is_implemented_pseudo {
-            self.closest_non_native_anonymous_ancestor().unwrap()
+        if let Some(pseudo) = self.implemented_pseudo_element() {
+            match self.closest_non_native_anonymous_ancestor() {
+                Some(e) => e,
+                None => {
+                    panic!(
+                        "Trying to collect rules for a detached pseudo-element: \
+                        {:?} {:?}",
+                        pseudo,
+                        self,
+                    )
+                }
+            }
         } else {
             *self
         }

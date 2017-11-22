@@ -37,9 +37,7 @@ impl SnapshotMap {
         debug_assert!(element.has_snapshot());
 
         unsafe {
-            let element =
-                unsafe { ::std::mem::transmute::<&E, &GeckoElement>(element) };
-
+            let element = ::std::mem::transmute::<&E, &GeckoElement>(element);
             bindings::Gecko_GetElementSnapshot(self, element.0).as_ref()
         }
     }
@@ -171,8 +169,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
         }
 
         let ptr = unsafe {
-            bindings::Gecko_SnapshotAtomAttrValue(self,
-                                                  atom!("id").as_ptr())
+            bindings::Gecko_SnapshotAtomAttrValue(self, atom!("id").as_ptr())
         };
 
         if ptr.is_null() {

@@ -1033,6 +1033,31 @@ impl WindowMethods for Window {
 
     }
 
+    fn screen_size(&self, _: BrowserId) -> Size2D<u32> {
+        match self.kind {
+            WindowKind::Window(_) => {
+                let (width, height) = glutin::get_primary_monitor().get_dimensions();
+                Size2D::new(width, height)
+            }
+            WindowKind::Headless(ref context) => {
+                Size2D::new(context.width, context.height)
+            }
+        }
+    }
+
+    fn screen_avail_size(&self, _: BrowserId) -> Size2D<u32> {
+        // FIXME: Glutin doesn't have API for available size. Fallback to screen size
+        match self.kind {
+            WindowKind::Window(_) => {
+                let (width, height) = glutin::get_primary_monitor().get_dimensions();
+                Size2D::new(width, height)
+            }
+            WindowKind::Headless(ref context) => {
+                Size2D::new(context.width, context.height)
+            }
+        }
+    }
+
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
     }

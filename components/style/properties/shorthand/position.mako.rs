@@ -103,6 +103,7 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="grid-gap" sub_properties="grid-row-gap grid-column-gap"
+                    gecko_pref="layout.css.grid.enabled"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-gap"
                     products="gecko">
   use properties::longhands::{grid_row_gap, grid_column_gap};
@@ -134,6 +135,7 @@
 
 % for kind in ["row", "column"]:
 <%helpers:shorthand name="grid-${kind}" sub_properties="grid-${kind}-start grid-${kind}-end"
+                    gecko_pref="layout.css.grid.enabled"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-${kind}"
                     products="gecko">
     use values::specified::GridLine;
@@ -173,6 +175,7 @@
 % endfor
 
 <%helpers:shorthand name="grid-area"
+                    gecko_pref="layout.css.grid.enabled"
                     sub_properties="grid-row-start grid-row-end grid-column-start grid-column-end"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-area"
                     products="gecko">
@@ -238,6 +241,7 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="grid-template"
+                    gecko_pref="layout.css.grid.enabled"
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
                     products="gecko">
@@ -459,6 +463,7 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="grid"
+                    gecko_pref="layout.css.grid.enabled"
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas
                                     grid-auto-rows grid-auto-columns grid-auto-flow"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"

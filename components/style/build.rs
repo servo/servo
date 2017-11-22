@@ -76,6 +76,16 @@ fn generate_properties() {
         .arg(&script)
         .arg(product)
         .arg("style-crate")
+        .envs(if std::mem::size_of::<Option<bool>>() == 1 {
+            // FIXME: remove this envs() call
+            // and make unconditional code that depends on RUSTC_HAS_PR45225
+            // once Firefox requires Rust 1.23+
+
+            // https://github.com/rust-lang/rust/pull/45225
+            vec![("RUSTC_HAS_PR45225", "1")]
+        } else {
+            vec![]
+        })
         .status()
         .unwrap();
     if !status.success() {

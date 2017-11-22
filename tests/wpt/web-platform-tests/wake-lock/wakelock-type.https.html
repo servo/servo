@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WakeLockType Test</title>
+<link rel="help" href="https://w3c.github.io/wake-lock/">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<script>
+
+promise_test(async t => {
+  const wakeLock = await navigator.getWakeLock("screen");
+  assert_equals(wakeLock.type, "screen");
+}, "Test that wakeLock.type is 'screen' when screen wake lock is invoked");
+
+promise_test(async t => {
+  const wakeLock = await navigator.getWakeLock("system");
+  assert_equals(wakeLock.type, "system");
+}, "Test that wakeLock.type is 'system' when system wake lock is invoked");
+
+promise_test(t => {
+  return promise_rejects(t, new DOMException("", "WakeLockTypeNotSupported"), navigator.getWakeLock());
+}, "'WakeLockTypeNotSupported' is thrown when set an empty wake lock type");
+
+promise_test(t => {
+  return promise_rejects(t, new DOMException("", "WakeLockTypeNotSupported"), navigator.getWakeLock("unsupported"));
+}, "'WakeLockTypeNotSupported' is thrown when set an unsupported wake lock type");
+
+</script>

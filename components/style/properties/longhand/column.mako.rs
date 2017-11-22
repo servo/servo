@@ -12,7 +12,7 @@ ${helpers.predefined_type("column-width",
                           initial_specified_value="Either::Second(Auto)",
                           extra_prefixes="moz",
                           animation_value_type="NonNegativeLengthOrAuto",
-                          experimental=True,
+                          servo_pref="layout.column-width.enabled",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
 
 
@@ -20,7 +20,7 @@ ${helpers.predefined_type("column-count",
                           "PositiveIntegerOrAuto",
                           "Either::Second(Auto)",
                           initial_specified_value="Either::Second(Auto)",
-                          experimental="True",
+                          servo_pref="layout.column-count.enabled",
                           animation_value_type="PositiveIntegerOrAuto",
                           extra_prefixes="moz",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
@@ -29,7 +29,7 @@ ${helpers.predefined_type("column-gap",
                           "length::NonNegativeLengthOrNormal",
                           "Either::Second(Normal)",
                           extra_prefixes="moz",
-                          experimental=True,
+                          servo_pref="layout.column-gap.enabled",
                           animation_value_type="NonNegativeLengthOrNormal",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
@@ -62,6 +62,7 @@ ${helpers.predefined_type(
 
 ${helpers.single_keyword("column-span", "none all",
                          products="gecko", animation_value_type="discrete",
+                         gecko_pref="layout.css.column-span.enabled",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-span")}
 
 ${helpers.single_keyword("column-rule-style",

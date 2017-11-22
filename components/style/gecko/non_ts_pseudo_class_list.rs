@@ -120,7 +120,6 @@ macro_rules! apply_non_ts_list {
             ],
             keyword: [
                 ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, _),
-                ("dir", Dir, dir, _, _),
             ]
         }
     }

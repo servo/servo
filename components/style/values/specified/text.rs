@@ -6,9 +6,11 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
+#[cfg(feature = "servo")]
+use properties::{longhands, PropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use style_traits::ParseError;
+use style_traits::{ParseError, StyleParseErrorKind};
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
@@ -239,6 +241,111 @@ impl ToComputedValue for TextOverflow {
                 first: computed.first.clone(),
                 second: Some(computed.second.clone()),
             }
+        }
+    }
+}
+
+bitflags! {
+    #[derive(MallocSizeOf, ToComputedValue)]
+    /// Specified keyword values for the text-decoration-line property.
+    pub struct TextDecorationLine: u8 {
+        /// No text decoration line is specified
+        const NONE = 0;
+        /// Underline
+        const UNDERLINE = 0x01;
+        /// Overline
+        const OVERLINE = 0x02;
+        /// Line through
+        const LINE_THROUGH = 0x04;
+        /// Blink
+        const BLINK = 0x08;
+        #[cfg(feature = "gecko")]
+        /// Only set by presentation attributes
+        ///
+        /// Setting this will mean that text-decorations use the color
+        /// specified by `color` in quirks mode.
+        ///
+        /// For example, this gives <a href=foo><font color="red">text</font></a>
+        /// a red text decoration
+        const COLOR_OVERRIDE = 0x10;
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl_bitflags_conversions!(TextDecorationLine);
+
+impl TextDecorationLine {
+    #[inline]
+    /// Returns the initial value of text-decoration-line
+    pub fn none() -> Self {
+        TextDecorationLine::NONE
+    }
+
+    #[cfg(feature = "servo")]
+    #[inline]
+    /// Custom cascade for the text-decoration-line property in servo
+    pub fn cascade_property_custom(_declaration: &PropertyDeclaration, context: &mut Context) {
+        longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
+    }
+}
+
+impl Parse for TextDecorationLine {
+    /// none | [ underline || overline || line-through || blink ]
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<TextDecorationLine, ParseError<'i>> {
+        let mut result = TextDecorationLine::NONE;
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(result)
+        }
+
+        loop {
+            let result: Result<_, ParseError> = input.try(|input| {
+                try_match_ident_ignore_ascii_case! { input,
+                    "underline" => {
+                        if result.contains(TextDecorationLine::UNDERLINE) {
+                            Err(())
+                        } else {
+                            result.insert(TextDecorationLine::UNDERLINE);
+                            Ok(())
+                        }
+                    }
+                    "overline" => {
+                        if result.contains(TextDecorationLine::OVERLINE) {
+                            Err(())
+                        } else {
+                            result.insert(TextDecorationLine::OVERLINE);
+                            Ok(())
+                        }
+                    }
+                    "line-through" => {
+                        if result.contains(TextDecorationLine::LINE_THROUGH) {
+                            Err(())
+                        } else {
+                            result.insert(TextDecorationLine::LINE_THROUGH);
+                            Ok(())
+                        }
+                    }
+                    "blink" => {
+                        if result.contains(TextDecorationLine::BLINK) {
+                            Err(())
+                        } else {
+                            result.insert(TextDecorationLine::BLINK);
+                            Ok(())
+                        }
+                    }
+                }
+            });
+            if result.is_err() {
+                break;
+            }
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }

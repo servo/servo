@@ -157,18 +157,16 @@ impl Device {
 
     /// Returns the current media type of the device.
     pub fn media_type(&self) -> MediaType {
-        unsafe {
-            // Gecko allows emulating random media with mIsEmulatingMedia and
-            // mMediaEmulated.
-            let context = self.pres_context();
-            let medium_to_use = if context.mIsEmulatingMedia() != 0 {
-                context.mMediaEmulated.mRawPtr
-            } else {
-                context.mMedium
-            };
+        // Gecko allows emulating random media with mIsEmulatingMedia and
+        // mMediaEmulated.
+        let context = self.pres_context();
+        let medium_to_use = if context.mIsEmulatingMedia() != 0 {
+            context.mMediaEmulated.mRawPtr
+        } else {
+            context.mMedium
+        };
 
-            MediaType(CustomIdent(Atom::from(medium_to_use)))
-        }
+        MediaType(CustomIdent(Atom::from(medium_to_use)))
     }
 
     /// Returns the current viewport size in app units.
@@ -590,7 +588,7 @@ impl Expression {
 
                 let mut flags = 0;
 
-                if context.in_chrome_stylesheet() ||
+                if context.chrome_rules_enabled() ||
                     context.stylesheet_origin == Origin::UserAgent {
                     flags |= structs::nsMediaFeature_RequirementFlags_eUserAgentAndChromeOnly;
                 }

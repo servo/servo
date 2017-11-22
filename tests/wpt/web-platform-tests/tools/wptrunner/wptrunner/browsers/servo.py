@@ -42,6 +42,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     rv = base_executor_kwargs(test_type, server_config,
                               cache_manager, **kwargs)
     rv["pause_after_test"] = kwargs["pause_after_test"]
+    if test_type == "wdspec":
+        rv["capabilities"] = {}
     return rv
 
 

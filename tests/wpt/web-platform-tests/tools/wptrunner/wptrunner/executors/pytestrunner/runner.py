@@ -56,6 +56,7 @@ def run(path, server_config, session_config, timeout=0):
                      "--verbose",  # show each individual subtest
                      "--capture", "no",  # enable stdout/stderr from tests
                      "--basetemp", cache,  # temporary directory
+                     "--showlocals",  # display contents of variables in local scope
                      "-p", "no:mozlog",  # use the WPT result recorder
                      "-p", "no:cacheprovider",  # disable state preservation across invocations
                      path],
