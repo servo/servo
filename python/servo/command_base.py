@@ -486,7 +486,7 @@ class CommandBase(object):
         if hosts_file_path:
             env['HOST_FILE'] = hosts_file_path
 
-        env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
+        env['RUSTDOCFLAGS'] = "--document-private-items"
 
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
