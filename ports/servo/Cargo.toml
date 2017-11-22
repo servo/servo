@@ -14,16 +14,17 @@ test = false
 bench = false
 
 [dev-dependencies]
-compiletest_helper = {path = "../../tests/compiletest/helper"}
+deny_public_fields_tests = {path = "../../tests/unit/deny_public_fields"}
 gfx_tests = {path = "../../tests/unit/gfx"}
 layout_tests = {path = "../../tests/unit/layout"}
+malloc_size_of_tests = {path = "../../tests/unit/malloc_size_of"}
 metrics_tests = {path = "../../tests/unit/metrics"}
 msg_tests = {path = "../../tests/unit/msg"}
 net_tests = {path = "../../tests/unit/net"}
 net_traits_tests = {path = "../../tests/unit/net_traits"}
-plugin_compiletest = {path = "../../tests/compiletest/plugin"}
 profile_tests = {path = "../../tests/unit/profile"}
 script_tests = {path = "../../tests/unit/script"}
+script_plugins_tests = {path = "../../tests/unit/script_plugins"}
 servo_config_tests = {path = "../../tests/unit/servo_config"}
 servo_remutex_tests = {path = "../../tests/unit/servo_remutex"}
 style_tests = {path = "../../tests/unit/style"}
