@@ -789,7 +789,6 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(
     element: RawGeckoElementBorrowed,
     computed_values: ServoStyleContextBorrowed,
     snapshots: *const ServoElementSnapshotTable,
-    pseudo_type: CSSPseudoElementType
 ) -> ServoStyleContextStrong {
     debug_assert!(!snapshots.is_null());
     let computed_values = unsafe { ArcBorrow::from_ref(computed_values) };
@@ -806,21 +805,6 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(
     }
 
     let element = GeckoElement(element);
-
-    let element_data = match element.borrow_data() {
-        Some(data) => data,
-        None => return computed_values.clone_arc().into(),
-    };
-
-    if let Some(pseudo) = PseudoElement::from_pseudo_type(pseudo_type) {
-        let styles = &element_data.styles;
-        // This style already doesn't have animations.
-        return styles
-            .pseudos
-            .get(&pseudo)
-            .expect("GetBaseComputedValuesForElement for an unexisting pseudo?")
-            .clone().into();
-    }
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
