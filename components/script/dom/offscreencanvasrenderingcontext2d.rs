@@ -15,7 +15,8 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLin
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
-use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::OffscreenCanvasRenderingContext2DMethods;
+use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::
+OffscreenCanvasRenderingContext2DMethods;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::num::Finite;
@@ -457,6 +458,12 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         self.draw_image(image, 0f64, 0f64, None, None, dx, dy, None, None)
     }
 
+    /// Reassign the focus context to the element that last requested focus during this
+    /// transaction, or none if no elements requested it.
+    fn Commit(&self) {
+
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage_(&self,
                   image: CanvasImageSource,
@@ -719,30 +726,32 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-lineto
     fn LineTo(&self, x: f64, y: f64) {
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto
     fn QuadraticCurveTo(&self, cpx: f64, cpy: f64, x: f64, y: f64) {
     }
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto
     fn BezierCurveTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
     }
-    
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
     fn Arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
-            if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
-                return Ok(());
-            }
+        if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
+            return Ok(());
+        }
 
-            if r < 0.0 {
-                return Err(Error::IndexSize);
-            }
+        if r < 0.0 {
+            return Err(Error::IndexSize);
+        }
 
-            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::Arc(Point2D::new(x as f32, y as f32),
-                                                           r as f32,
-                                                           start as f32,
-                                                           end as f32,
-                                                           ccw));
+        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::Arc(Point2D::new(x as f32, y as f32),
+                                                       r as f32,
+                                                       start as f32,
+                                                       end as f32,
+                                                       ccw));
 
-            self.ipc_renderer.send(msg).unwrap();
-            Ok(())
+        self.ipc_renderer.send(msg).unwrap();
+        Ok(())
     }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
@@ -877,6 +886,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
         fn SetShadowColor(&self, value: DOMString) {
         }
+
+        // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
         fn Save(&self) {
         }
 
@@ -907,6 +918,24 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
         fn ResetTransform(&self) {
+        }
+
+        // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
+        fn GlobalAlpha(&self) -> f64 {
+            let state = self.state.borrow();
+            state.global_alpha
+        }
+
+        // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
+        fn SetGlobalAlpha(&self, alpha: f64) {
+            if !alpha.is_finite() || alpha > 1.0 || alpha < 0.0 {
+                return;
+            }
+
+            self.state.borrow_mut().global_alpha = alpha;
+            self.ipc_renderer
+                .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetGlobalAlpha(alpha as f32)))
+                .unwrap()
         }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
