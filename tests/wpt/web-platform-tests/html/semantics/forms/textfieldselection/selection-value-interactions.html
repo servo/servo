@@ -97,22 +97,31 @@ for (var tag of ['input', 'textarea']) {
     var el = document.createElement(tag);
     document.body.appendChild(el);
     this.add_cleanup(() => el.remove());
-    el.value = "";
-    assert_equals(el.selectionStart, el.value.length,
-                 "element.selectionStart should be value.length");
-    assert_equals(el.selectionEnd, el.value.length,
-                  "element.selectionEnd should be value.length");
-    el.value = "foo";
-    assert_equals(el.selectionStart, el.value.length,
-                 "element.selectionStart should be value.length");
-    assert_equals(el.selectionEnd, el.value.length,
-                  "element.selectionEnd should be value.length");
-    el.value = "foobar";
-    assert_equals(el.selectionStart, el.value.length,
-                 "element.selectionStart should be value.length");
-    assert_equals(el.selectionEnd, el.value.length,
-                  "element.selectionEnd should be value.length");
-  }, `selection is always collapsed to the end after setting values on ${tag}`);
+
+    for (let val of ["", "foo", "foobar"]) {
+      el.value = val;
+      assert_equals(el.selectionStart, val.length,
+                   "element.selectionStart should be value.length");
+      assert_equals(el.selectionEnd, val.length,
+                    "element.selectionEnd should be value.length");
+    }
+  }, `selection is collapsed to the end after changing values on ${tag}`);
+
+  test(function() {
+    var el = document.createElement(tag);
+    document.body.appendChild(el);
+    this.add_cleanup(() => el.remove());
+
+    el.value = "foobar"
+    el.selectionStart = 2
+    el.selectionEnd = 4
+    el.value = "foobar"
+
+    assert_equals(el.selectionStart, 2,
+                  "element.selectionStart should be unchanged");
+    assert_equals(el.selectionEnd, 4,
+                  "element.selectionEnd should be unchanged");
+  }, `selection is not collapsed to the end when value is set to its existing value on ${tag}`);
 }
 
 </script>
