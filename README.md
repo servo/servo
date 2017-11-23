@@ -56,8 +56,10 @@ sudo apt install git curl freeglut3-dev autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
     libssl1.0-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
-    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
-    libpulse-dev
+    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev \
+    pulseaudio dbus-x11 libavcodec-dev libavformat-dev \
+    libavutil-dev libswresample-dev  libswscale-dev libdbus-1-dev \
+    libpulse-dev clang
 ```
 
 If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
