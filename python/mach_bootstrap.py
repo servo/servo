@@ -187,7 +187,7 @@ def _activate_virtualenv(topdir, is_firefox):
         if not pip:
             sys.exit("Python pip is either not installed or not found in virtualenv.")
 
-        _process_exec([pip, "install", "-q", "-I", "-U", "pip"])
+        _process_exec([pip, "install", "-I", "-U", "pip"])
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
@@ -204,7 +204,7 @@ def _activate_virtualenv(topdir, is_firefox):
         if not pip:
             sys.exit("Python pip is either not installed or not found in virtualenv.")
 
-        _process_exec([pip, "install", "-q", "-I", "-r", req_path])
+        _process_exec([pip, "install", "-I", "-r", req_path])
 
         open(marker_path, 'w').close()
 
