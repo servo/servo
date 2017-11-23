@@ -22,6 +22,7 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::str;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use time;
 use time::{Duration, Tm};
 
@@ -63,7 +64,8 @@ struct CachedResource {
     raw_status: Option<(u16, Vec<u8>)>,
     url_list: Vec<ServoUrl>,
     expires: Duration,
-    last_validated: Tm
+    last_validated: Tm,
+    aborted: Arc<AtomicBool>,
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
@@ -281,6 +283,7 @@ fn create_cached_response(request: &Request, cached_resource: &CachedResource, c
     response.https_state = cached_resource.https_state.clone();
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy.clone();
+    response.aborted = cached_resource.aborted.clone();
     let expires = cached_resource.expires;
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
     let now = Duration::seconds(time::now().to_timespec().sec);
@@ -308,7 +311,8 @@ fn create_resource_with_bytes_from_resource(bytes: &[u8], resource: &CachedResou
         raw_status: Some((206, b"Partial Content".to_vec())),
         url_list: resource.url_list.clone(),
         expires: resource.expires.clone(),
-        last_validated: resource.last_validated.clone()
+        last_validated: resource.last_validated.clone(),
+        aborted: Arc::new(AtomicBool::new(false)),
     }
 }
 
@@ -479,9 +483,17 @@ impl HttpCache {
             return None;
         }
         let entry_key = CacheKey::new(request.clone());
-        let resources = self.entries.get(&entry_key)?.clone();
+        let resources = self.entries.get(&entry_key)?.into_iter().filter(|r| {
+            match *r.body.lock().unwrap() {
+                ResponseBody::Done(_) => !r.aborted.load(Ordering::Relaxed),
+                // TODO: use fetch::methods::DoneChannel, in order to be able to
+                // construct a response with a body in ResponseBody::Receiving mode.
+                ResponseBody::Receiving(_) => false,
+                ResponseBody::Empty => true
+            }
+        });
         let mut candidates = vec![];
-        for cached_resource in resources.iter() {
+        for cached_resource in resources {
             let mut can_be_constructed = true;
             let cached_headers = cached_resource.metadata.headers.lock().unwrap();
             let original_request_headers = cached_resource.request_headers.lock().unwrap();
@@ -642,7 +654,8 @@ impl HttpCache {
             raw_status: response.raw_status.clone(),
             url_list: response.url_list.clone(),
             expires: expiry,
-            last_validated: time::now()
+            last_validated: time::now(),
+            aborted: response.aborted.clone()
         };
         let entry = self.entries.entry(entry_key).or_insert(vec![]);
         entry.push(entry_resource);
