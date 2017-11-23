@@ -1,0 +1,50 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/http-cache.js"></script>
+<script src="resources/http-cache-trickle.py"></script>
+<script>
+  var test = async_test('The response from an aborted XHR request should not be cached');
+  test.step(function() {
+    var client = new XMLHttpRequest();
+    var requests = [
+        {
+          response_status: [200, 'OK'],
+          "response_headers": [
+            ['Expires', http_date(100000)],
+            ['Last-Modified', http_date(0)]
+          ]
+        },
+        {
+          response_status: [200, 'OK'],
+          "response_headers": [
+            ['Expires', http_date(100000)],
+            ['Last-Modified', http_date(0)]
+          ]
+        }
+    ];
+    var uuid = token();
+    var url = make_url(uuid, requests, 0);
+    url += '&trickle=true';
+    client.onprogress = test.step_func(function() {
+      var client2 = new XMLHttpRequest();
+      client2.onloadend = test.step_func(function() {
+        server_state(uuid).then(test.step_func(function(state){
+          assert_equals(state.length, 2);
+          test.done();
+        }));
+      });
+      client.onabort = test.step_func(function() {
+        client2.open("GET", url);
+        client2.send();
+      });
+      client.abort();
+    });
+    client.open("GET", url);
+    client.send();
+  });
+</script>
+</head>
+</html>

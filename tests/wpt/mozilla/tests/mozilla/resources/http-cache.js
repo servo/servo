@@ -40,11 +40,11 @@ function make_url(uuid, requests, idx) {
   if ("query_arg" in requests[idx]) {
     arg = "&target=" + requests[idx].query_arg;
   }
-  return "/fetch/http-cache/resources/http-cache.py?token=" + uuid + "&info=" + btoa(JSON.stringify(requests)) + arg;
+  return "resources/http-cache-trickle.py?token=" + uuid + "&info=" + btoa(JSON.stringify(requests)) + arg;
 }
 
 function server_state(uuid) {
-  return fetch("/fetch/http-cache/resources/http-cache.py?querystate&token=" + uuid)
+  return fetch("resources/http-cache-trickle.py?querystate&token=" + uuid)
     .then(function(response) {
       return response.text();
     }).then(function(text) {

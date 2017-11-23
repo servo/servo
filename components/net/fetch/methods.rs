@@ -29,6 +29,7 @@ use std::io::Read;
 use std::mem;
 use std::str;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
 
@@ -422,7 +423,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
                 },
                 Data::Done => break,
                 Data::Cancelled => {
-                    response.aborted = true;
+                    response.aborted.store(true, Ordering::Relaxed);
                     break;
                 }
             }
