@@ -3182,11 +3182,12 @@ pub extern "C" fn Servo_DeclarationBlock_SetNumberValue(
 ) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_moz_script_level::SpecifiedValue as MozScriptLevel;
+    use style::properties::longhands::_moz_script_size_multiplier::SpecifiedValue as MozScriptSizeMultiplier;
 
     let long = get_longhand_from_id!(property);
 
     let prop = match_wrap_declared! { long,
-        MozScriptSizeMultiplier => value,
+        MozScriptSizeMultiplier => MozScriptSizeMultiplier(value),
         // Gecko uses Number values to signal that it is absolute
         MozScriptLevel => MozScriptLevel::MozAbsolute(value as i32),
     };

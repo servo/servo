@@ -21,6 +21,7 @@ use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength, Number};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
 
 const DEFAULT_SCRIPT_MIN_SIZE_PT: u32 = 8;
+const DEFAULT_SCRIPT_SIZE_MULTIPLIER: f64 = 0.71;
 
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
 /// A specified font-weight value
@@ -1897,5 +1898,43 @@ impl Parse for MozScriptLevel {
         }
         input.expect_ident_matching("auto")?;
         Ok(MozScriptLevel::Auto)
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+/// Specifies the multiplier to be used to adjust font size
+/// due to changes in scriptlevel.
+///
+/// Ref: https://www.w3.org/TR/MathML3/chapter3.html#presm.mstyle.attrs
+pub struct MozScriptSizeMultiplier(pub f32);
+
+impl MozScriptSizeMultiplier {
+    #[inline]
+    /// Get default value of `-moz-script-size-multiplier`
+    pub fn get_initial_value() -> MozScriptSizeMultiplier {
+        MozScriptSizeMultiplier(DEFAULT_SCRIPT_SIZE_MULTIPLIER as f32)
+    }
+}
+
+impl Parse for MozScriptSizeMultiplier {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<MozScriptSizeMultiplier, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+}
+
+impl From<f32> for MozScriptSizeMultiplier {
+    fn from(v: f32) -> Self {
+        MozScriptSizeMultiplier(v)
+    }
+}
+
+impl From<MozScriptSizeMultiplier> for f32 {
+    fn from(v: MozScriptSizeMultiplier) -> f32 {
+        v.0
     }
 }
