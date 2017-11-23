@@ -1,3 +1,4 @@
+DOMContentLoaded
 abort
 activate
 beforeunload
@@ -10,13 +11,13 @@ characteristicvaluechanged
 checkbox
 click
 close
+color
 controllerchange
 cursive
 date
 datetime
 datetime-local
 dir
-DOMContentLoaded
 email
 emptied
 error

@@ -875,6 +875,26 @@ impl HTMLInputElement {
                 content.strip_newlines();
                 content.strip_leading_and_trailing_ascii_whitespace();
             }
+            atom!("color") => {
+                let mut textinput = self.textinput.borrow_mut();
+
+                let is_valid = {
+                    let content = textinput.single_line_content();
+                    let mut chars = content.chars();
+                    if content.len() == 7 && chars.next() == Some('#') {
+                        chars.all(|c| c.is_digit(16))
+                    } else {
+                        false
+                    }
+                };
+
+                if is_valid {
+                    let content = textinput.single_line_content_mut();
+                    content.make_ascii_lowercase();
+                } else {
+                    textinput.set_content("#000000".into());
+                }
+            }
             // TODO: Implement more value sanitization algorithms for different types of inputs
             _ => ()
         }
