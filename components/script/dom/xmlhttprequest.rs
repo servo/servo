@@ -14,6 +14,7 @@ use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -48,9 +49,10 @@ use hyper::mime::{self, Attr as MimeAttr, Mime, Value as MimeValue};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{Heap, JSContext, JS_ParseJSON};
+use js::jsapi::{Heap, JSContext, JSObject, JS_ParseJSON};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
+use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
@@ -64,6 +66,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
+use std::ptr;
 use std::slice;
 use std::str;
 use std::sync::{Arc, Mutex};
@@ -130,6 +133,7 @@ pub struct XMLHttpRequest {
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
     response_blob: MutNullableDom<Blob>,
+    response_arraybuffer: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     response_json: Heap<JSVal>,
     #[ignore_malloc_size_of = "Defined in hyper"]
@@ -181,6 +185,7 @@ impl XMLHttpRequest {
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
+            response_arraybuffer: Heap::default(),
             response_json: Heap::default(),
             response_headers: DomRefCell::new(Headers::new()),
             override_mime_type: DomRefCell::new(None),
@@ -789,9 +794,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestResponseType::Blob => {
                 self.blob_response().to_jsval(cx, rval.handle_mut());
             },
-            _ => {
-                // XXXManishearth handle other response types
-                self.response.borrow().to_jsval(cx, rval.handle_mut());
+            XMLHttpRequestResponseType::Arraybuffer => {
+                match self.arraybuffer_response(cx) {
+                    Some(js_object) => js_object.to_jsval(cx, rval.handle_mut()),
+                    None => return NullValue(),
+                }
             }
         }
         rval.get()
@@ -1109,6 +1116,24 @@ impl XMLHttpRequest {
         let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes), mime);
         self.response_blob.set(Some(&blob));
         blob
+    }
+
+    // https://xhr.spec.whatwg.org/#arraybuffer-response
+    #[allow(unsafe_code)]
+    unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+        // Step 1
+        let created = self.response_arraybuffer.get();
+        if !created.is_null() {
+            return Some(NonNullJSObjectPtr::new_unchecked(created));
+        }
+
+        // Step 2
+        let bytes = self.response.borrow();
+        rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+        ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut()).ok().and_then(|()| {
+            self.response_arraybuffer.set(array_buffer.get());
+            Some(NonNullJSObjectPtr::new_unchecked(array_buffer.get()))
+        })
     }
 
     // https://xhr.spec.whatwg.org/#document-response
