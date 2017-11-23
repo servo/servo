@@ -253,7 +253,7 @@ impl WebRenderDisplayListConverter for DisplayList {
 impl WebRenderDisplayItemConverter for DisplayItem {
     fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo {
         let tag = match self.base().metadata.pointing {
-            Some(cursor) => Some((self.base().metadata.node.0 as u64, cursor as u8)),
+            Some(cursor) => Some((self.base().metadata.node.0 as u64, cursor as u16)),
             None => None,
         };
         webrender_api::LayoutPrimitiveInfo {
@@ -261,7 +261,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             local_clip: self.base().local_clip,
             // TODO(gw): Make use of the WR backface visibility functionality.
             is_backface_visible: true,
-            tag: tag,
+            tag,
             edge_aa_segment_mask: webrender_api::EdgeAaSegmentMask::empty(),
         }
     }
