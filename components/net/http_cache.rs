@@ -8,7 +8,6 @@
 //! and <http://tools.ietf.org/html/rfc7232>.
 
 use fetch::methods::DoneChannel;
-use http_loader::is_redirect_status;
 use hyper::header;
 use hyper::header::ContentType;
 use hyper::header::Headers;
