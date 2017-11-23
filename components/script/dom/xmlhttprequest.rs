@@ -38,6 +38,7 @@ use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Length;
+use fetch::FetchCanceller;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use hyper::header::{ContentLength, ContentType, ContentEncoding};
@@ -154,8 +155,7 @@ pub struct XMLHttpRequest {
     response_status: Cell<Result<(), ()>>,
     referrer_url: Option<ServoUrl>,
     referrer_policy: Option<ReferrerPolicy>,
-    #[ignore_malloc_size_of = "channels are hard"]
-    cancellation_chan: DomRefCell<Option<ipc::IpcSender<()>>>,
+    canceller: DomRefCell<FetchCanceller>,
 }
 
 impl XMLHttpRequest {
@@ -200,7 +200,7 @@ impl XMLHttpRequest {
             response_status: Cell::new(Ok(())),
             referrer_url: referrer_url,
             referrer_policy: referrer_policy,
-            cancellation_chan: DomRefCell::new(None),
+            canceller: DomRefCell::new(Default::default()),
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequest> {
@@ -978,6 +978,7 @@ impl XMLHttpRequest {
                         self.sync.get());
 
                 self.cancel_timeout();
+                self.canceller.borrow_mut().ignore();
 
                 // Part of step 11, send() (processing response end of file)
                 // XXXManishearth handle errors, if any (substep 2)
@@ -994,6 +995,7 @@ impl XMLHttpRequest {
             },
             XHRProgress::Errored(_, e) => {
                 self.cancel_timeout();
+                self.canceller.borrow_mut().ignore();
 
                 self.discard_subsequent_responses();
                 self.send_flag.set(false);
@@ -1023,12 +1025,7 @@ impl XMLHttpRequest {
     }
 
     fn terminate_ongoing_fetch(&self) {
-        if let Some(ref cancel_chan) = *self.cancellation_chan.borrow() {
-            // The receiver will be destroyed if the request has already completed;
-            // so we throw away the error. Cancellation is a courtesy call,
-            // we don't actually care if the other side heard.
-            let _ = cancel_chan.send(());
-        }
+        self.canceller.borrow_mut().cancel();
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         self.response_status.set(Ok(()));
@@ -1264,7 +1261,8 @@ impl XMLHttpRequest {
                       DocumentSource::FromParser,
                       docloader,
                       None,
-                      None)
+                      None,
+                      Default::default())
     }
 
     fn filter_response_headers(&self) -> Headers {
@@ -1322,8 +1320,7 @@ impl XMLHttpRequest {
             (global.networking_task_source(), None)
         };
 
-        let (cancel_sender, cancel_receiver) = ipc::channel().unwrap();
-        *self.cancellation_chan.borrow_mut() = Some(cancel_sender);
+        let cancel_receiver = self.canceller.borrow_mut().initialize();
 
         XMLHttpRequest::initiate_async_xhr(context.clone(), task_source,
                                            global, init, cancel_receiver);

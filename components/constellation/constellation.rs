@@ -1110,9 +1110,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
             }
-            FromScriptMsg::InitiateNavigateRequest(req_init) => {
+            FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
                 debug!("constellation got initiate navigate request message");
-                self.handle_navigate_request(source_pipeline_id, req_init);
+                self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
             }
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
@@ -1689,14 +1689,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_navigate_request(&self,
                               id: PipelineId,
-                              req_init: RequestInit) {
+                              req_init: RequestInit,
+                              cancel_chan: IpcReceiver<()>) {
         let listener = NetworkListener::new(
                            req_init,
                            id,
                            self.public_resource_threads.clone(),
                            self.network_listener_sender.clone());
 
-        listener.initiate_fetch();
+        listener.initiate_fetch(Some(cancel_chan));
     }
 
     // The script thread associated with pipeline_id has loaded a URL in an iframe via script. This
