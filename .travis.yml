@@ -21,7 +21,6 @@ matrix:
         - export CC=gcc-5 CXX=g++-5
       script:
          - ./mach build -d --verbose
-         - ./mach test-compiletest
          - ./mach test-unit
          - ./mach clean
          - ./mach build-geckolib
