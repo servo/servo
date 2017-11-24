@@ -22,8 +22,12 @@ use std::ops::Range;
 use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 
-/// Parse the prelude of an @counter-style rule
-pub fn parse_counter_style_name<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CustomIdent, ParseError<'i>> {
+/// Parse a counter style name reference.
+///
+/// This allows the reserved counter style names "decimal" and "disc".
+pub fn parse_counter_style_name<'i, 't>(
+    input: &mut Parser<'i, 't>
+) -> Result<CustomIdent, ParseError<'i>> {
     macro_rules! predefined {
         ($($name: expr,)+) => {
             {
@@ -41,13 +45,27 @@ pub fn parse_counter_style_name<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Cu
                 if let Some(&lower_cased) = predefined(&ident) {
                     Ok(CustomIdent(Atom::from(lower_cased)))
                 } else {
-                    // https://github.com/w3c/csswg-drafts/issues/1295 excludes "none"
+                    // none is always an invalid <counter-style> value.
                     CustomIdent::from_ident(location, ident, &["none"])
                 }
             }
         }
     }
     include!("predefined.rs")
+}
+
+/// Parse the prelude of an @counter-style rule
+pub fn parse_counter_style_name_definition<'i, 't>(
+    input: &mut Parser<'i, 't>
+) -> Result<CustomIdent, ParseError<'i>> {
+    parse_counter_style_name(input)
+        .and_then(|ident| {
+            if ident.0 == atom!("decimal") || ident.0 == atom!("disc") {
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            } else {
+                Ok(ident)
+            }
+        })
 }
 
 /// Parse the body (inside `{}`) of an @counter-style rule

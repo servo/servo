@@ -18,6 +18,7 @@ use std::ptr;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
+use style::counter_style;
 use style::data::{ElementStyles, self};
 use style::dom::{ShowSubtreeData, TDocument, TElement, TNode};
 use style::driver;
@@ -4734,4 +4735,17 @@ pub unsafe extern "C" fn Servo_SourceSizeList_Evaluate(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_SourceSizeList_Drop(list: RawServoSourceSizeListOwned) {
     let _ = list.into_box::<SourceSizeList>();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseCounterStyleName(
+    value: *const nsACString,
+) -> *mut nsAtom {
+    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+    match parser.parse_entirely(counter_style::parse_counter_style_name_definition) {
+        Ok(name) => name.0.into_addrefed(),
+        Err(_) => ptr::null_mut(),
+    }
 }
