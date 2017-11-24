@@ -94,11 +94,11 @@
       el.selectionStart = 0;
       el.selectionEnd = 5;
       el.selectionStart = 8;
-      assert_equals(el.selectionStart, 8, `selectionStart on ${el.id}`);
-      assert_equals(el.selectionEnd, 8, `selectionEnd on ${el.id}`);
+      assert_equals(el.selectionStart, 5, `selectionStart on ${el.id}`);
+      assert_equals(el.selectionEnd, 5, `selectionEnd on ${el.id}`);
       el.remove();
     }
-  }, "Setting selectionStart to a value larger than selectionEnd should increase selectionEnd");
+  }, "Setting selectionStart to a value larger than selectionEnd should set selectionStart to selectionEnd");
 
   test(function() {
     for (let el of createTestElements(testValue)) {
