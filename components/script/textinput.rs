@@ -770,7 +770,11 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
-            content.split('\n').map(DOMString::from).collect()
+            // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
+            content.replace("\r\n", "\n")
+                   .split(|c| c == '\n' || c == '\r')
+                   .map(DOMString::from)
+                   .collect()
         } else {
             vec!(content)
         };
