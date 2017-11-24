@@ -59,7 +59,7 @@ use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{self, Auto, CustomIdent, Either, KeyframesName, None_};
 use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
-use values::computed::font::FontSize;
+use values::computed::font::{FontSize, SingleFontFamily};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use computed_values::border_style;
 
@@ -2441,7 +2441,7 @@ fn static_assert() {
         0
     }
 
-    pub fn font_family_at(&self, _: usize) -> longhands::font_family::computed_value::FontFamily {
+    pub fn font_family_at(&self, _: usize) -> SingleFontFamily {
         unimplemented!()
     }
 
@@ -2457,9 +2457,7 @@ fn static_assert() {
 
     pub fn clone_font_family(&self) -> longhands::font_family::computed_value::T {
         use gecko_bindings::structs::FontFamilyType;
-        use properties::longhands::font_family::computed_value;
-        use properties::longhands::font_family::computed_value::FontFamily;
-        use properties::longhands::font_family::computed_value::FontFamilyList;
+        use values::computed::font::{FontFamily, SingleFontFamily, FontFamilyList};
 
         let fontlist = &self.gecko.mFont.fontlist;
         let shared_fontlist = unsafe { fontlist.mFontlist.mBasePtr.to_safe() };
@@ -2467,16 +2465,16 @@ fn static_assert() {
         if shared_fontlist.mNames.is_empty() {
             let default = match fontlist.mDefaultFontType {
                 FontFamilyType::eFamily_serif => {
-                    FontFamily::Generic(atom!("serif"))
+                    SingleFontFamily::Generic(atom!("serif"))
                 }
                 FontFamilyType::eFamily_sans_serif => {
-                    FontFamily::Generic(atom!("sans-serif"))
+                    SingleFontFamily::Generic(atom!("sans-serif"))
                 }
                 _ => panic!("Default generic must be serif or sans-serif"),
             };
-            computed_value::T(FontFamilyList::new(vec![default]))
+            FontFamily(FontFamilyList::new(Box::new([default])))
         } else {
-            computed_value::T(FontFamilyList(shared_fontlist))
+            FontFamily(FontFamilyList(shared_fontlist))
         }
     }
 
