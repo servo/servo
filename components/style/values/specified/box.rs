@@ -117,3 +117,10 @@ define_css_keyword_enum! { ScrollSnapType:
     "proximity" => Proximity,
 }
 add_impls_for_keyword_enum!(ScrollSnapType);
+
+define_css_keyword_enum! { OverscrollBehavior:
+    "auto" => Auto,
+    "contain" => Contain,
+    "none" => None,
+}
+add_impls_for_keyword_enum!(OverscrollBehavior);
