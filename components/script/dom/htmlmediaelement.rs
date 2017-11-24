@@ -870,22 +870,29 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         self.media_element_load_algorithm();
     }
 
+    #[cfg(all(
+        any(target_os = "macos", target_os = "linux"),
+        not(any(target_arch = "arm", target_arch = "aarch64")),
+    ))]
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
-        #[cfg(all(
-            any(target_os = "macos", target_os = "linux"),
-            not(any(target_arch = "arm", target_arch = "aarch64"))))]
-        {
-            let gecko_media = match GeckoMedia::get() {
-                Ok(gecko_media) => gecko_media,
-                Err(_error) => return CanPlayTypeResult::_empty,
-            };
-            return match gecko_media.can_play_type(&type_) {
-                CanPlayType::No => CanPlayTypeResult::_empty,
-                CanPlayType::Maybe => CanPlayTypeResult::Maybe,
-                CanPlayType::Probably => CanPlayTypeResult::Probably
-            };
+        let gecko_media = match GeckoMedia::get() {
+            Ok(gecko_media) => gecko_media,
+            Err(_) => return CanPlayTypeResult::_empty,
+        };
+        match gecko_media.can_play_type(&type_) {
+            CanPlayType::No => CanPlayTypeResult::_empty,
+            CanPlayType::Maybe => CanPlayTypeResult::Maybe,
+            CanPlayType::Probably => CanPlayTypeResult::Probably
         }
+    }
+
+    #[cfg(not(all(
+        any(target_os = "macos", target_os = "linux"),
+        not(any(target_arch = "arm", target_arch = "aarch64")),
+    )))]
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
+    fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
             Ok(Mime(TopLevel::Application, SubLevel::OctetStream, _)) |
             Err(_) => {
