@@ -587,8 +587,8 @@ impl LayoutElementHelpers for LayoutDom<Element> {
                 shared_lock,
                 PropertyDeclaration::FontFamily(
                     font_family::SpecifiedValue::Values(
-                        font_family::computed_value::FontFamilyList::new(vec![
-                            font_family::computed_value::FontFamily::from_atom(
+                        computed::font::FontFamilyList::new(vec![
+                            computed::font::SingleFontFamily::from_atom(
                                 font_family)])))));
         }
 

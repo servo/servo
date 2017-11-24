@@ -120,7 +120,7 @@
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
-        let family = FontFamily::parse(input)?;
+        let family = FontFamily::parse_specified(input)?;
         Ok(expanded! {
             % for name in "style weight stretch variant_caps".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),

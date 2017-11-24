@@ -5,7 +5,6 @@
 //! Parsing of the stylesheet contents.
 
 use {Namespace, Prefix};
-use computed_values::font_family::FamilyName;
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{CowRcStr, SourceLocation, BasicParseError, BasicParseErrorKind};
@@ -31,6 +30,7 @@ use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
 use values::CustomIdent;
 use values::KeyframesName;
+use values::computed::font::FamilyName;
 use values::specified::url::SpecifiedUrl;
 
 /// The parser for the top-level rules in a stylesheet.

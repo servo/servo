@@ -3337,7 +3337,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(
     let string = unsafe { (*value).to_string() };
     let mut input = ParserInput::new(&string);
     let mut parser = Parser::new(&mut input);
-    let result = FontFamily::parse(&mut parser);
+    let result = FontFamily::parse_specified(&mut parser);
     if let Ok(family) = result {
         if parser.is_exhausted() {
             let decl = PropertyDeclaration::FontFamily(family);

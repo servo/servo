@@ -10,7 +10,6 @@
 
 #[cfg(feature = "gecko")]
 use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
-use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{SourceLocation, CowRcStr};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -23,6 +22,7 @@ use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
+use values::computed::font::FamilyName;
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
