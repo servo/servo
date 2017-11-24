@@ -8,7 +8,9 @@ import os
 import platform
 import sys
 from distutils.spawn import find_executable
-from subprocess import PIPE, Popen
+from subprocess import Popen
+import shutil
+from tempfile import TemporaryFile
 
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
@@ -101,6 +103,25 @@ def _get_virtualenv_script_dir():
     return "bin"
 
 
+def _process_exec(args):
+    with TemporaryFile() as out:
+        with TemporaryFile() as err:
+            process = Popen(args, stdout=out, stderr=err)
+            process.wait()
+            if process.returncode:
+                print('"%s" failed with error code %d:' % ('" "'.join(args), process.returncode))
+
+                print('Output:')
+                out.seek(0)
+                shutil.copyfileobj(out, sys.stdout)
+
+                print('Error:')
+                err.seek(0)
+                shutil.copyfileobj(err, sys.stdout)
+
+                sys.exit()
+
+
 def wpt_path(is_firefox, topdir, *paths):
     if is_firefox:
         rel = os.path.join("..", "testing", "web-platform")
@@ -135,16 +156,8 @@ def _activate_virtualenv(topdir, is_firefox):
         if not virtualenv:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
-        process = Popen(
-            [virtualenv, "-p", python, "--system-site-packages", virtualenv_path],
-            stdout=PIPE,
-            stderr=PIPE
-        )
-        process.wait()
-        if process.returncode:
-            out, err = process.communicate()
-            print('Python virtualenv failed to execute properly:')
-            sys.exit('Output: %s\nError: %s' % (out, err))
+        _process_exec([virtualenv, "-p", python, "--system-site-packages", virtualenv_path])
+
         # We want to upgrade pip when virtualenv created for the first time
         need_pip_upgrade = True
 
@@ -174,12 +187,7 @@ def _activate_virtualenv(topdir, is_firefox):
         if not pip:
             sys.exit("Python pip is either not installed or not found in virtualenv.")
 
-        process = Popen([pip, "install", "-q", "-I", "-U", "pip"], stdout=PIPE, stderr=PIPE)
-        process.wait()
-        if process.returncode:
-            out, err = process.communicate()
-            print('Pip failed to upgrade itself properly:')
-            sys.exit('Output: %s\nError: %s' % (out, err))
+        _process_exec([pip, "install", "-I", "-U", "pip"])
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
@@ -196,12 +204,7 @@ def _activate_virtualenv(topdir, is_firefox):
         if not pip:
             sys.exit("Python pip is either not installed or not found in virtualenv.")
 
-        process = Popen([pip, "install", "-q", "-I", "-r", req_path], stdout=PIPE, stderr=PIPE)
-        process.wait()
-        if process.returncode:
-            out, err = process.communicate()
-            print('Pip failed to execute properly:')
-            sys.exit('Output: %s\nError: %s' % (out, err))
+        _process_exec([pip, "install", "-I", "-r", req_path])
 
         open(marker_path, 'w').close()
 
