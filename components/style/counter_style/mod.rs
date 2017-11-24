@@ -11,7 +11,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
 use cssparser::{Parser, Token, serialize_identifier, CowRcStr};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
-#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::{ nsCSSCounterDesc, nsCSSValue };
 use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
@@ -224,6 +224,30 @@ macro_rules! counter_style_descriptors {
                 )+
                 dest.write_str("}")
             }
+        }
+
+        /// Parse a descriptor into an `nsCSSValue`.
+        #[cfg(feature = "gecko")]
+        pub fn parse_counter_style_descriptor<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+            descriptor: nsCSSCounterDesc,
+            value: &mut nsCSSValue
+        ) -> Result<(), ParseError<'i>> {
+            match descriptor {
+                $(
+                    nsCSSCounterDesc::$gecko_ident => {
+                        let v: $ty =
+                            input.parse_entirely(|i| Parse::parse(context, i))?;
+                        value.set_from(v);
+                    }
+                )*
+                nsCSSCounterDesc::eCSSCounterDesc_COUNT |
+                nsCSSCounterDesc::eCSSCounterDesc_UNKNOWN => {
+                    panic!("invalid counter descriptor");
+                }
+            }
+            Ok(())
         }
     }
 }
