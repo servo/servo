@@ -346,7 +346,7 @@ macro_rules! try_parse_one {
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        // Serializes into the single keyword value if both scroll-snap-type and scroll-snap-type-y are same.
+        // Serializes into the single keyword value if both scroll-snap-type-x and scroll-snap-type-y are same.
         // Otherwise into an empty string. This is done to match Gecko's behaviour.
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.scroll_snap_type_x == self.scroll_snap_type_y {
@@ -358,6 +358,36 @@ macro_rules! try_parse_one {
     }
 </%helpers:shorthand>
 
+<%helpers:shorthand name="overscroll-behavior" products="gecko"
+                    gecko_pref="layout.css.overscroll-behavior.enabled"
+                    sub_properties="overscroll-behavior-x overscroll-behavior-y"
+                    spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties">
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Longhands, ParseError<'i>> {
+        use values::specified::OverscrollBehavior;
+        let behavior_x = OverscrollBehavior::parse(input)?;
+        let behavior_y = input.try(OverscrollBehavior::parse).unwrap_or(behavior_x);
+        Ok(expanded! {
+            overscroll_behavior_x: behavior_x,
+            overscroll_behavior_y: behavior_y,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        // Serializes into the single keyword value if both overscroll-behavior-x and overscroll-behavior-y are same.
+        // Otherwise into two values separated by a space.
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.overscroll_behavior_x.to_css(dest)?;
+            if self.overscroll_behavior_y != self.overscroll_behavior_x {
+                dest.write_str(" ")?;
+                self.overscroll_behavior_y.to_css(dest)?;
+            }
+            Ok(())
+        }
+    }
+</%helpers:shorthand>
 
 <%helpers:shorthand name="-moz-transform" products="gecko"
                     sub_properties="transform"

@@ -601,6 +601,19 @@ ${helpers.single_keyword("scroll-behavior",
     )}
 % endfor
 
+% for axis in ["x", "y"]:
+    ${helpers.predefined_type(
+        "overscroll-behavior-" + axis,
+        "OverscrollBehavior",
+        "computed::OverscrollBehavior::Auto",
+        products="gecko",
+        needs_context=False,
+        gecko_pref="layout.css.overscroll-behavior.enabled",
+        spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
+        animation_value_type="discrete"
+    )}
+% endfor
+
 // Compositing and Blending Level 1
 // http://www.w3.org/TR/compositing-1/
 ${helpers.single_keyword("isolation",
