@@ -12,11 +12,11 @@ path = "lib.rs"
 [dependencies]
 base64 = "0.6"
 brotli = "1.0.6"
-cookie = "0.6"
+cookie = "0.10"
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.10"
-hyper_serde = "0.7"
+hyper_serde = "0.8"
 hyper-openssl = "0.2.2"
 immeta = "0.3.1"
 ipc-channel = "0.9"

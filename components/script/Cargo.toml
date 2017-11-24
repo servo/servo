@@ -38,7 +38,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
-cookie = "0.6"
+cookie = "0.10"
 cssparser = "0.22.0"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
@@ -51,7 +51,7 @@ gleam = "0.4"
 half = "1.0"
 html5ever = "0.21"
 hyper = "0.10"
-hyper_serde = "0.7"
+hyper_serde = "0.8"
 image = "0.17"
 ipc-channel = "0.9"
 jstraceable_derive = {path = "../jstraceable_derive"}
