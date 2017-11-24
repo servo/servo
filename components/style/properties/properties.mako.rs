@@ -3276,12 +3276,6 @@ where
     };
 
     let ignore_colors = !device.use_document_colors();
-    let default_background_color_decl = if ignore_colors {
-        let color = device.default_background_color();
-        Some(PropertyDeclaration::BackgroundColor(color.into()))
-    } else {
-        None
-    };
 
     // Set computed values, overwriting earlier declarations for the same
     // property.
@@ -3304,22 +3298,8 @@ where
             let mut font_family = None;
         % endif
         for (declaration, cascade_level) in iter_declarations() {
-            let mut declaration = match *declaration {
-                PropertyDeclaration::WithVariables(id, ref unparsed) => {
-                    if !id.inherited() {
-                        context.rule_cache_conditions.borrow_mut()
-                            .set_uncacheable();
-                    }
-                    Cow::Owned(unparsed.substitute_variables(
-                        id,
-                        context.builder.custom_properties.as_ref(),
-                        context.quirks_mode
-                    ))
-                }
-                ref d => Cow::Borrowed(d)
-            };
-
-            let longhand_id = match declaration.id() {
+            let declaration_id = declaration.id();
+            let longhand_id = match declaration_id {
                 PropertyDeclarationId::Longhand(id) => id,
                 PropertyDeclarationId::Custom(..) => continue,
             };
@@ -3334,31 +3314,6 @@ where
 
             if !apply_reset && !longhand_id.inherited() {
                 continue;
-            }
-
-            // When document colors are disabled, skip properties that are
-            // marked as ignored in that mode, if they come from a UA or
-            // user style sheet.
-            if ignore_colors &&
-               longhand_id.is_ignored_when_document_colors_disabled() &&
-               !matches!(cascade_level,
-                         CascadeLevel::UANormal |
-                         CascadeLevel::UserNormal |
-                         CascadeLevel::UserImportant |
-                         CascadeLevel::UAImportant) {
-                let non_transparent_background = match *declaration {
-                    PropertyDeclaration::BackgroundColor(ref color) => {
-                        // Treat background-color a bit differently.  If the specified
-                        // color is anything other than a fully transparent color, convert
-                        // it into the Device's default background color.
-                        color.is_non_transparent()
-                    }
-                    _ => continue
-                };
-                // FIXME: moving this out of `match` is a work around for borrows being lexical.
-                if non_transparent_background {
-                    declaration = Cow::Borrowed(default_background_color_decl.as_ref().unwrap());
-                }
             }
 
             if
@@ -3376,6 +3331,50 @@ where
                 continue
             }
             seen.insert(physical_longhand_id);
+
+            let mut declaration = match *declaration {
+                PropertyDeclaration::WithVariables(id, ref unparsed) => {
+                    if !id.inherited() {
+                        context.rule_cache_conditions.borrow_mut()
+                            .set_uncacheable();
+                    }
+                    Cow::Owned(unparsed.substitute_variables(
+                        id,
+                        context.builder.custom_properties.as_ref(),
+                        context.quirks_mode
+                    ))
+                }
+                ref d => Cow::Borrowed(d)
+            };
+
+            // When document colors are disabled, skip properties that are
+            // marked as ignored in that mode, unless they come from a UA or
+            // user style sheet.
+            if ignore_colors &&
+               longhand_id.is_ignored_when_document_colors_disabled() &&
+               !matches!(cascade_level,
+                         CascadeLevel::UANormal |
+                         CascadeLevel::UserNormal |
+                         CascadeLevel::UserImportant |
+                         CascadeLevel::UAImportant) {
+                let non_transparent_background = match *declaration {
+                    PropertyDeclaration::BackgroundColor(ref color) => {
+                        // Treat background-color a bit differently.  If the specified
+                        // color is anything other than a fully transparent color, convert
+                        // it into the Device's default background color.
+                        color.is_non_transparent()
+                    }
+                    _ => continue
+                };
+
+                // FIXME: moving this out of `match` is a work around for
+                // borrows being lexical.
+                if non_transparent_background {
+                    let color = device.default_background_color();
+                    declaration =
+                        Cow::Owned(PropertyDeclaration::BackgroundColor(color.into()));
+                }
+            }
 
             % if category_to_cascade_now == "early":
                 if LonghandId::FontSize == longhand_id {
