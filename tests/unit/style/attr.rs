@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_length};
+use style::attr::{is_valid_date_string, is_valid_month_string};
 use style::values::computed::{CalcLengthOrPercentage, Percentage};
 
 #[test]
@@ -85,4 +86,40 @@ pub fn test_parse_length() {
     check("5.82", LengthOrPercentageOrAuto::Length(Au::from_f64_px(5.82)));
     check("invalid", LengthOrPercentageOrAuto::Auto);
     check("12 followed by invalid", LengthOrPercentageOrAuto::Length(Au::from_px(12)));
+}
+
+#[test]
+pub fn test_is_valid_date_string() {
+    assert_eq!(is_valid_date_string("2017-07-31"), true);
+    assert_eq!(is_valid_date_string("2017-08-31"), true);
+    assert_eq!(is_valid_date_string("2017-12-31"), true);
+    assert_eq!(is_valid_date_string("2000-02-29"), true);
+    assert_eq!(is_valid_date_string("1996-02-29"), true);
+    assert_eq!(is_valid_date_string("1996-01-31"), true);
+    assert_eq!(is_valid_date_string("2017-02-29"), false);
+    assert_eq!(is_valid_date_string("1996-02-30"), false);
+    assert_eq!(is_valid_date_string("1996-02-00"), false);
+    assert_eq!(is_valid_date_string("1996-02-1"), false);
+    assert_eq!(is_valid_date_string("1996-02-99"), false);
+    assert_eq!(is_valid_date_string("2017-04-31"), false);
+    assert_eq!(is_valid_date_string("2017-06-31"), false);
+    assert_eq!(is_valid_date_string("2017-09-31"), false);
+    assert_eq!(is_valid_date_string("1996-02"), false);
+    assert_eq!(is_valid_date_string("1-9-96-02"), false);
+}
+
+#[test]
+pub fn test_is_valid_month_string() {
+    assert_eq!(is_valid_month_string("2017-07"), true);
+    assert_eq!(is_valid_month_string("1234-12"), true);
+    assert_eq!(is_valid_month_string("0004-03"), true);
+    assert_eq!(is_valid_month_string("12534-03"), true);
+    assert_eq!(is_valid_month_string("0000-03"), false);
+    assert_eq!(is_valid_month_string("1234-3"), false);
+    assert_eq!(is_valid_month_string("1234-33"), false);
+    assert_eq!(is_valid_month_string("1234-0"), false);
+    assert_eq!(is_valid_month_string("1234-00"), false);
+    assert_eq!(is_valid_month_string("1234-13"), false);
+    assert_eq!(is_valid_month_string("234-13"), false);
+    assert_eq!(is_valid_month_string("1-234-13"), false);
 }

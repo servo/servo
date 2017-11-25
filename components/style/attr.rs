@@ -603,3 +603,89 @@ pub struct AttrIdentifier {
     pub namespace: Namespace,
     pub prefix: Option<Prefix>,
 }
+
+/// Valid date string should be yyyy-mm-dd
+/// https://html.spec.whatwg.org/multipage/#valid-date-string
+pub fn is_valid_date_string(value: &str) -> bool {
+    // step 2
+    let value_vec: Vec<&str> = value.split('-').collect();
+    if !(value_vec.len() == 3) {
+        return false;
+    }
+    let year = value_vec[0];
+    let month = value_vec[1];
+    let day = value_vec[2];
+
+    // setp 1
+    let month_string = format!("{}-{}", year, month);
+    if !is_valid_month_string(&*month_string) {
+        return false;
+    }
+
+    // step 3
+    if !(day.len() == 2 && day.chars().all(|c| c.is_digit(10))) {
+        return false;
+    }
+    let year_int = year.parse::<i32>().unwrap();
+    let month_int = month.parse::<i32>().unwrap();
+    let day_int = day.parse::<i32>().unwrap();
+    if day_int == 0 {
+        return false;
+    }
+    match month_int {
+        1|3|5|7|8|10|12 => {
+            if day_int > 31 {
+                return false;
+            }
+        },
+        4|6|9|11 => {
+            if day_int > 30 {
+                return false;
+            }
+        },
+        2 => {
+            if year_int % 400 == 0 || (year_int % 4 == 0 && year_int % 100 != 0) {
+                if day_int > 29 {
+                    return false;
+                }
+            } else {
+                if day_int > 28 {
+                    return false;
+                }
+            }
+        },
+        _ => {
+            return false;
+        }
+    }
+    return true;
+}
+
+/// Valid month string should be "YYYY-MM"
+/// https://html.spec.whatwg.org/multipage/#valid-month-string
+pub fn is_valid_month_string(value: &str) -> bool {
+    // step 2
+    let value_vec: Vec<&str> = value.split('-').collect();
+    if !(value_vec.len() == 2) {
+        return false;
+    }
+    let year = value_vec[0];
+    let month = value_vec[1];
+
+    // setp 1
+    if !(year.len() >= 4 &&
+         year.chars().all(|c| c.is_digit(10)) &&
+         year.parse::<i32>().unwrap() > 0) {
+        return false;
+    }
+
+    // step 3
+    let month_int = month.parse::<i32>().unwrap();
+    if !(month.len() == 2 && month.chars().all(|c| c.is_digit(10))) {
+        return false;
+    } else if month_int > 12 || month_int < 1 {
+        return false;
+    }
+
+    return true;
+}
