@@ -208,6 +208,114 @@ impl DOMString {
         self.0.truncate(last_non_whitespace);
         let _ = self.0.splice(0..first_non_whitespace, "");
     }
+
+    /// A valid date string should be YYYY-MM-DD
+    /// YYYY must be four or more digits, MM and DD both must be two digits
+    /// https://html.spec.whatwg.org/multipage/#valid-date-string
+    pub fn is_valid_date_string(&mut self) -> bool {
+        match self.parse_date_component(&*self.0) {
+            Ok(_)  => true,
+            Err(_) => false
+        }
+    }
+
+    /// A valid month string should be "YYYY-MM"
+    /// YYYY must be four or more digits, MM both must be two digits
+    /// https://html.spec.whatwg.org/multipage/#valid-month-string
+    pub fn is_valid_month_string(&mut self) -> bool {
+        match self.parse_month_component(&*self.0) {
+            Ok(_)  => true,
+            Err(_) => false
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#parse-a-month-component
+    fn parse_month_component(&self, value: &str) -> Result<(u32, u32), ()> {
+        // Step 3
+        let value_vec: Vec<&str> = value.split('-').collect();
+        if value_vec.len() < 2 || value_vec.len() > 3 {
+            return Err(());
+        }
+        let year = value_vec[0];
+        let month = value_vec[1];
+
+        // Step 1, 2
+        if year.len() < 4 ||
+           !year.chars().all(|c| c.is_digit(10)) ||
+           year == "0000" {
+            return Err(());
+        }
+
+        // Step 4, 5
+        let month_int = month.parse::<u32>().unwrap();
+        if !(month.len() == 2 && month.chars().all(|c| c.is_digit(10))) {
+            return Err(());
+        } else if month_int > 12 || month_int < 1 {
+            return Err(());
+        }
+
+        // Step 6
+        let year_int = year.parse::<u32>().unwrap();
+        Ok((year_int, month_int))
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#parse-a-date-component
+    fn parse_date_component(&self, value: &str) -> Result<(u32, u32, u32), ()> {
+        // Step 3
+        let value_vec: Vec<&str> = value.split('-').collect();
+        if value_vec.len() != 3 {
+            return Err(());
+        }
+
+        // Step 1, 2
+        let year_int: u32;
+        let month_int: u32;
+        let day_int: u32;
+        match self.parse_month_component(value) {
+            Ok(year_month_pair) => {
+                year_int = year_month_pair.0;
+                month_int = year_month_pair.1;
+            },
+            Err(_) => return Err(()),
+        }
+
+        // Step 3, 4
+        let day = value_vec[2];
+        if !(day.len() == 2 && day.chars().all(|c| c.is_digit(10))) {
+            return Err(());
+        }
+
+        // Step 5
+        day_int = day.parse::<u32>().unwrap();
+        let max_day = match self.max_day_in_month(year_int, month_int) {
+            Ok(n) => n,
+            Err(_) => return Err(())
+        };
+        if day_int == 0 {
+            return Err(());
+        } else if day_int > max_day {
+            return Err(());
+        }
+
+        // Step 6
+        Ok((year_int, month_int, day_int))
+    }
+
+    fn max_day_in_month(&self, year_num: u32, month_num: u32) -> Result<u32, ()> {
+        let max_day = match month_num {
+            1|3|5|7|8|10|12 => 31,
+            4|6|9|11 => 30,
+            2 => {
+                if year_num % 400 == 0 || (year_num % 4 == 0 && year_num % 100 != 0) {
+                    29
+                } else {
+                    28
+                }
+            },
+            _ => return Err(())
+        };
+        Ok(max_day)
+    }
 }
 
 impl Borrow<str> for DOMString {

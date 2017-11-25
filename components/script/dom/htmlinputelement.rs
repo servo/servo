@@ -875,6 +875,18 @@ impl HTMLInputElement {
                 content.strip_newlines();
                 content.strip_leading_and_trailing_ascii_whitespace();
             }
+            atom!("date") => {
+                let mut textinput = self.textinput.borrow_mut();
+                if !textinput.single_line_content_mut().is_valid_date_string() {
+                    textinput.set_content("".into());
+                }
+            }
+            atom!("month") => {
+                let mut textinput = self.textinput.borrow_mut();
+                if !textinput.single_line_content_mut().is_valid_month_string() {
+                    textinput.set_content("".into());
+                }
+            }
             atom!("color") => {
                 let mut textinput = self.textinput.borrow_mut();
 
@@ -1110,6 +1122,10 @@ impl VirtualMethods for HTMLInputElement {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
+        // TODO: well impletment attr-input-value
+        // https://html.spec.whatwg.org/multipage/#attr-input-value
+        // sanitize when it is first parsed
+        self.sanitize_value();
 
         self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
