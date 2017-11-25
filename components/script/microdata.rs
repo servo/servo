@@ -8,7 +8,7 @@ pub struct Microdata {}
 
 impl Microdata {
     //[Pref="dom.microdata.testing.enabled"]
-    pub fn parse() -> bool {
+    pub fn parse() {
         println!("Hello");
         let mut book_reviews = HashMap::new();
         let mut rating = HashMap::new();
@@ -23,7 +23,7 @@ impl Microdata {
         let j = serde_json::to_string(&book_reviews);
 
         // Print, write to a file, or send to an HTTP server.
-        println!("from microdata module");
-        true
+        println!("printing json from Microdata module");
+        println!("{:?}", j);
     }
 }

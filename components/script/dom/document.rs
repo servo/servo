@@ -1712,6 +1712,7 @@ impl Document {
         // Step 13.
         println!("1. first point of entry");
         let event = ScriptMsg::SendMicrodata(String::from("Called from document"));
+        println!("Sending event");
         self.send_to_constellation(event);
         Microdata::parse();
     }
