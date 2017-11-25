@@ -69,6 +69,15 @@ class IfFalse(Strategy):
         }
 
 
+class ModifyComparision(Strategy):
+    def __init__(self):
+        Strategy.__init__(self)
+        self._replace_strategy = {
+            'regex': r"(?<=\s\<)\=\s|(?<=\s\>)\=\s",
+            'replaceString': ' '
+        }
+
+
 class MinusToPlus(Strategy):
     def __init__(self):
         Strategy.__init__(self)
@@ -98,7 +107,7 @@ class DuplicateLine(Strategy):
 
 
 def get_strategies():
-    return AndOr, IfTrue, IfFalse, MinusToPlus, DuplicateLine
+    return AndOr, IfTrue, IfFalse, ModifyComparision, PlusToMinus, MinusToPlus, DuplicateLine
 
 
 class Mutator:
