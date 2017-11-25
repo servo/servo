@@ -192,4 +192,7 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState) {}
+
+    /// Print Microdata on the Console
+    fn print_microdata(&self, data: String) {}
 }
