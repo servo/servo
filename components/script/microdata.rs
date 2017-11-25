@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
-//extern crate serde_json;
+
+use serde_json;
 use std::collections::HashMap;
 pub struct Microdata {}
 
@@ -20,7 +20,7 @@ impl Microdata {
 
         book_reviews.insert("Adventures of Huckleberry Finn", rating);
 
-        //let j = serde_json::to_string(&book_reviews);
+        let j = serde_json::to_string(&book_reviews);
 
         // Print, write to a file, or send to an HTTP server.
         println!("from microdata module");
