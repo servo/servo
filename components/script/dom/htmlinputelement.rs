@@ -875,6 +875,18 @@ impl HTMLInputElement {
                 content.strip_newlines();
                 content.strip_leading_and_trailing_ascii_whitespace();
             }
+            atom!("date") => {
+                let mut textinput = self.textinput.borrow_mut();
+                if !textinput.single_line_content().is_valid_date_string() {
+                    *textinput.single_line_content_mut() = "".into();
+                }
+            }
+            atom!("month") => {
+                let mut textinput = self.textinput.borrow_mut();
+                if !textinput.single_line_content().is_valid_month_string() {
+                    *textinput.single_line_content_mut() = "".into();
+                }
+            }
             atom!("color") => {
                 let mut textinput = self.textinput.borrow_mut();
 
@@ -1042,6 +1054,7 @@ impl VirtualMethods for HTMLInputElement {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
                     value.map_or(DOMString::new(), DOMString::from));
+                self.sanitize_value();
                 self.update_placeholder_shown_state();
             },
             &local_name!("name") if self.input_type.get() == InputType::InputRadio => {
@@ -1117,7 +1130,6 @@ impl VirtualMethods for HTMLInputElement {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);
         }
-
         self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
