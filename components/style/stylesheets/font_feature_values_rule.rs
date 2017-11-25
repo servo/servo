@@ -7,7 +7,6 @@
 //! [font-feature-values]: https://drafts.csswg.org/css-fonts-3/#at-font-feature-values-rule
 
 use Atom;
-use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token, serialize_identifier};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -20,6 +19,7 @@ use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRuleType;
+use values::computed::font::FamilyName;
 
 /// A @font-feature-values block declaration.
 /// It is `<ident>: <integer>+`.

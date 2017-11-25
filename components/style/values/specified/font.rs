@@ -8,6 +8,10 @@ use Atom;
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use cssparser::{Parser, Token};
+#[cfg(feature = "gecko")]
+use gecko_bindings::bindings;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use properties::longhands::system_font::SystemFont;
 #[allow(unused_imports)]
@@ -16,6 +20,7 @@ use std::fmt;
 use style_traits::{ToCss, StyleParseErrorKind, ParseError};
 use values::CustomIdent;
 use values::computed::{font as computed, Context, Length, NonNegativeLength, ToComputedValue};
+use values::computed::font::{SingleFontFamily, FontFamilyList, FamilyName};
 use values::generics::{FontSettings, FontSettingTagFloat};
 use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength, Number};
 use values::specified::length::{AU_PER_PT, AU_PER_PX, FontBaseSize};
@@ -153,6 +158,128 @@ impl ToCss for FontSize {
 impl From<LengthOrPercentage> for FontSize {
     fn from(other: LengthOrPercentage) -> Self {
         FontSize::Length(other)
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+/// Specifies a prioritized list of font family names or generic family names
+pub enum FontFamily {
+    /// List of `font-family`
+    Values(FontFamilyList),
+    /// System font
+    System(SystemFont),
+}
+
+impl FontFamily {
+    /// Get `font-family` with system font
+    pub fn system_font(f: SystemFont) -> Self {
+        FontFamily::System(f)
+    }
+
+    /// Get system font
+    pub fn get_system(&self) -> Option<SystemFont> {
+        if let FontFamily::System(s) = *self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    /// Parse a specified font-family value
+    pub fn parse_specified<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        input.parse_comma_separated(|input| SingleFontFamily::parse(input)).map(|v| {
+            FontFamily::Values(FontFamilyList::new(v.into_boxed_slice()))
+        })
+    }
+
+    #[cfg(feature = "gecko")]
+    /// Return the generic ID if it is a single generic font
+    pub fn single_generic(&self) -> Option<u8> {
+        match *self {
+            FontFamily::Values(ref values) => values.single_generic(),
+            _ => None,
+        }
+    }
+}
+
+impl ToComputedValue for FontFamily {
+    type ComputedValue = computed::FontFamily;
+
+    fn to_computed_value(&self, _cx: &Context) -> Self::ComputedValue {
+        match *self {
+            FontFamily::Values(ref v) => computed::FontFamily(v.clone()),
+            FontFamily::System(_) => {
+                #[cfg(feature = "gecko")] {
+                    _cx.cached_system_font.as_ref().unwrap().font_family.clone()
+                }
+                #[cfg(feature = "servo")] {
+                    unreachable!()
+                }
+            }
+        }
+    }
+
+    fn from_computed_value(other: &computed::FontFamily) -> Self {
+        FontFamily::Values(other.0.clone())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl MallocSizeOf for FontFamily {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        match *self {
+            FontFamily::Values(ref v) => {
+                // Although a SharedFontList object is refcounted, we always
+                // attribute its size to the specified value.
+                unsafe {
+                    bindings::Gecko_SharedFontList_SizeOfIncludingThis(
+                        v.0.get()
+                    )
+                }
+            }
+            FontFamily::System(_) => 0,
+        }
+    }
+}
+
+impl ToCss for FontFamily {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            FontFamily::Values(ref v) => {
+                let mut iter = v.iter();
+                iter.next().unwrap().to_css(dest)?;
+                for family in iter {
+                    dest.write_str(", ")?;
+                    family.to_css(dest)?;
+                }
+                Ok(())
+            }
+            FontFamily::System(sys) => sys.to_css(dest),
+        }
+    }
+}
+
+impl Parse for FontFamily {
+    /// <family-name>#
+    /// <family-name> = <string> | [ <ident>+ ]
+    /// TODO: <generic-family>
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<FontFamily, ParseError<'i>> {
+        FontFamily::parse_specified(input)
+    }
+}
+
+/// `FamilyName::parse` is based on `SingleFontFamily::parse` and not the other way around
+/// because we want the former to exclude generic family keywords.
+impl Parse for FamilyName {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        match SingleFontFamily::parse(input) {
+            Ok(SingleFontFamily::FamilyName(name)) => Ok(name),
+            Ok(SingleFontFamily::Generic(_)) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+            Err(e) => Err(e)
+        }
     }
 }
 
