@@ -279,6 +279,20 @@ impl DOMString {
             _ => false
         }
     }
+
+    /// A valid date string should be "YYYY-MM-DD"
+    /// YYYY must be four or more digits, MM and DD both must be two digits
+    /// https://html.spec.whatwg.org/multipage/#valid-date-string
+    pub fn is_valid_date_string(&self) -> bool {
+        parse_date_string(&*self.0).is_ok()
+    }
+
+    /// A valid month string should be "YYYY-MM"
+    /// YYYY must be four or more digits, MM both must be two digits
+    /// https://html.spec.whatwg.org/multipage/#valid-month-string
+    pub fn is_valid_month_string(&self) -> bool {
+        parse_month_string(&*self.0).is_ok()
+    }
 }
 
 impl Borrow<str> for DOMString {
@@ -401,5 +415,92 @@ impl<'a> Into<CowRcStr<'a>> for DOMString {
 impl Extend<char> for DOMString {
     fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
         self.0.extend(iterable)
+    }
+}
+
+/// https://html.spec.whatwg.org/multipage/#parse-a-month-string
+fn parse_month_string(value: &str) -> Result<(u32, u32), ()> {
+    // Step 1, 2, 3
+    let (year_int, month_int) = parse_month_component(value)?;
+
+    // Step 4
+    if value.split("-").nth(2).is_some() {
+        return Err(());
+    }
+    // Step 5
+    Ok((year_int, month_int))
+}
+
+/// https://html.spec.whatwg.org/multipage/#parse-a-date-string
+fn parse_date_string(value: &str) -> Result<(u32, u32, u32), ()> {
+    // Step 1, 2, 3
+    let (year_int, month_int, day_int) = parse_date_component(value)?;
+
+    // Step 4
+    if value.split('-').nth(3).is_some() {
+        return Err(());
+    }
+
+    // Step 5, 6
+    Ok((year_int, month_int, day_int))
+}
+
+/// https://html.spec.whatwg.org/multipage/#parse-a-month-component
+fn parse_month_component(value: &str) -> Result<(u32, u32), ()> {
+    // Step 3
+    let mut iterator = value.split('-');
+    let year = iterator.next().ok_or(())?;
+    let month = iterator.next().ok_or(())?;
+
+    // Step 1, 2
+    let year_int = year.parse::<u32>().map_err(|_| ())?;
+    if year.len() < 4 || year_int == 0 {
+        return Err(());
+    }
+
+    // Step 4, 5
+    let month_int = month.parse::<u32>().map_err(|_| ())?;
+    if month.len() != 2 ||  month_int > 12 || month_int < 1 {
+        return Err(());
+    }
+
+    // Step 6
+    Ok((year_int, month_int))
+}
+
+/// https://html.spec.whatwg.org/multipage/#parse-a-date-component
+fn parse_date_component(value: &str) -> Result<(u32, u32, u32), ()> {
+    // Step 1
+    let (year_int, month_int) = parse_month_component(value)?;
+
+    // Step 3, 4
+    let day = value.split('-').nth(2).ok_or(())?;
+    let day_int = day.parse::<u32>().map_err(|_| ())?;
+    if day.len() != 2 {
+        return Err(());
+    }
+
+    // Step 2, 5
+    let max_day = max_day_in_month(year_int, month_int)?;
+    if day_int == 0 || day_int > max_day {
+        return Err(());
+    }
+
+    // Step 6
+    Ok((year_int, month_int, day_int))
+}
+
+fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {
+    match month_num {
+        1|3|5|7|8|10|12 => Ok(31),
+        4|6|9|11 => Ok(30),
+        2 => {
+            if year_num % 400 == 0 || (year_num % 4 == 0 && year_num % 100 != 0) {
+                Ok(29)
+            } else {
+                Ok(28)
+            }
+        },
+        _ => Err(())
     }
 }
