@@ -3330,7 +3330,6 @@ where
             if seen.contains(physical_longhand_id) {
                 continue
             }
-            seen.insert(physical_longhand_id);
 
             let mut declaration = match *declaration {
                 PropertyDeclaration::WithVariables(id, ref unparsed) => {
@@ -3375,6 +3374,8 @@ where
                         Cow::Owned(PropertyDeclaration::BackgroundColor(color.into()));
                 }
             }
+
+            seen.insert(physical_longhand_id);
 
             % if category_to_cascade_now == "early":
                 if LonghandId::FontSize == longhand_id {
