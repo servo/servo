@@ -208,6 +208,96 @@ impl DOMString {
         self.0.truncate(last_non_whitespace);
         let _ = self.0.splice(0..first_non_whitespace, "");
     }
+
+    /// Valid date string should be YYYY-MM-DD, YYYY must be four or more
+    /// https://html.spec.whatwg.org/multipage/#valid-date-string
+    pub fn is_valid_date_string(&mut self) -> bool {
+        // Step 2
+        let value = &*(self.0);
+        let value_vec: Vec<&str> = value.split('-').collect();
+        if !(value_vec.len() == 3) {
+            return false;
+        }
+        let year = value_vec[0];
+        let month = value_vec[1];
+        let day = value_vec[2];
+
+        // Step 1
+        let month_string = format!("{}-{}", year, month);
+        if !self.check_valid_month_string(&*month_string) {
+            return false;
+        }
+
+        // Step 3
+        if !(day.len() == 2 && day.chars().all(|c| c.is_digit(10))) {
+            return false;
+        }
+        let year_int = year.parse::<i32>().unwrap();
+        let month_int = month.parse::<i32>().unwrap();
+        let day_int = day.parse::<i32>().unwrap();
+        if day_int == 0 {
+            return false;
+        } else if day_int > self.max_day_in_month(year_int, month_int) {
+            return false;
+        }
+        return true;
+    }
+
+    /// Valid month string should be "YYYY-MM"
+    /// https://html.spec.whatwg.org/multipage/#valid-month-string
+    pub fn is_valid_month_string(&mut self) -> bool {
+        return false;
+        //return self.check_valid_month_string(&*self.0);
+    }
+
+    /// for: is_valid_date_string & check_valid_month_string
+    fn check_valid_month_string(&self, value: &str) -> bool {
+        // step 2
+        let value_vec: Vec<&str> = value.split('-').collect();
+        if value_vec.len() != 2 {
+            return false;
+        }
+        let year = value_vec[0];
+        let month = value_vec[1];
+
+        // Step 1
+        if year.len() < 4 ||
+           !year.chars().all(|c| c.is_digit(10)) ||
+           year == "0000" {
+            return false;
+        }
+
+        // Step 3
+        let month_int = month.parse::<i32>().unwrap();
+        if !(month.len() == 2 && month.chars().all(|c| c.is_digit(10))) {
+            return false;
+        } else if month_int > 12 || month_int < 1 {
+            return false;
+        }
+
+        return true;
+    }
+
+    fn max_day_in_month(&self, year_num: i32, month_num: i32)-> i32{
+        match month_num {
+            1|3|5|7|8|10|12 => {
+                31
+            },
+            4|6|9|11 => {
+                30
+            },
+            2 => {
+                if year_num % 400 == 0 || (year_num % 4 == 0 && year_num % 100 != 0) {
+                    29
+                } else {
+                    28
+                }
+            },
+            _ => {
+                panic!("Month number must be in range 1~12.")
+            }
+        }
+    }
 }
 
 impl Borrow<str> for DOMString {
