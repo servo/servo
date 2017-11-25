@@ -194,5 +194,5 @@ pub trait WindowMethods {
     fn set_animation_state(&self, _state: AnimationState) {}
 
     /// Print Microdata on the Console
-    fn print_microdata(&self, data: String) {}
+    fn print_microdata(&self, _data: String) {}
 }
