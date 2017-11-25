@@ -45,19 +45,21 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
-use script_traits::DrawAPaintImageResult;
+use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::Painter;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::env;
 use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
+use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
@@ -343,7 +345,7 @@ impl PaintWorkletGlobalScope {
                                   device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
                                   properties: Vec<(Atom, String)>,
                                   arguments: Vec<String>)
-                                  -> DrawAPaintImageResult {
+                                  -> Result<DrawAPaintImageResult, PaintWorkletError> {
                 let name = self.name.clone();
                 let (sender, receiver) = mpsc::channel();
                 let task = PaintWorkletTask::DrawAPaintImage(name,
@@ -354,7 +356,13 @@ impl PaintWorkletGlobalScope {
                                                              sender);
                 self.executor.lock().expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
-                receiver.recv().expect("Worklet thread died?")
+
+                let timeout: u64 = env::var("SERVO_PAINT_WORKLET_TIMEOUT_MS")
+                    .map(|v| v.parse::<u64>().unwrap())
+                    .unwrap_or(10u64);
+
+                let timeout_duration = Duration::from_millis(timeout);
+                receiver.recv_timeout(timeout_duration).map_err(|e| PaintWorkletError::from(e))
             }
         }
         Box::new(WorkletPainter {
