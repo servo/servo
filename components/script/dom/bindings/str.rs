@@ -364,6 +364,20 @@ impl DOMString {
             _ => false
         }
     }
+
+    /// A valid date string should be "YYYY-MM-DD"
+    /// YYYY must be four or more digits, MM and DD both must be two digits
+    /// https://html.spec.whatwg.org/multipage/#valid-date-string
+    pub fn is_valid_date_string(&self) -> bool {
+        parse_date_string(&*self.0).is_ok()
+    }
+
+    /// A valid month string should be "YYYY-MM"
+    /// YYYY must be four or more digits, MM both must be two digits
+    /// https://html.spec.whatwg.org/multipage/#valid-month-string
+    pub fn is_valid_month_string(&self) -> bool {
+        parse_month_string(&*self.0).is_ok()
+    }
 }
 
 impl Borrow<str> for DOMString {
