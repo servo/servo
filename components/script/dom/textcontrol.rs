@@ -21,7 +21,16 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn set_dom_selection_start(&self, start: u32) {
-        self.set_selection_range(start, self.dom_selection_end(), self.selection_direction());
+        // Step 2
+        let mut end = self.dom_selection_end();
+
+        // Step 3
+        if end < start {
+            end = start;
+        }
+
+        // Step 4
+        self.set_selection_range(start, end, self.selection_direction());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
