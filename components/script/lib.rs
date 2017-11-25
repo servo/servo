@@ -120,6 +120,7 @@ mod dom;
 pub mod fetch;
 mod layout_image;
 mod mem;
+mod microdata;
 mod microtask;
 mod network_listener;
 pub mod script_runtime;

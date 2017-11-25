@@ -98,6 +98,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
+use microdata::Microdata;
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
@@ -1712,6 +1713,7 @@ impl Document {
         println!("1. first point of entry");
         let event = ScriptMsg::SendMicrodata(String::from("Called from document"));
         self.send_to_constellation(event);
+        Microdata::parse();
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
