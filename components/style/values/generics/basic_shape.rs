@@ -27,7 +27,7 @@ pub enum GeometryBox {
 }
 
 /// A float area shape, for `shape-outside`.
-pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, Image>;
+pub type FloatAreaShape<BasicShape, Url> = ShapeSource<BasicShape, ShapeBox, Url>;
 
 // https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 define_css_keyword_enum!(ShapeBox:
@@ -41,9 +41,9 @@ add_impls_for_keyword_enum!(ShapeBox);
 /// A shape source, for some reference box.
 #[allow(missing_docs)]
 #[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
+pub enum ShapeSource<BasicShape, ReferenceBox, Url> {
     #[animation(error)]
-    ImageOrUrl(ImageOrUrl),
+    Url(Url),
     Shape(
         BasicShape,
         #[animation(constant)]

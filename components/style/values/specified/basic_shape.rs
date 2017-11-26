@@ -22,7 +22,6 @@ use values::generics::basic_shape::{Polygon as GenericPolygon, ShapeRadius as Ge
 use values::generics::rect::Rect;
 use values::specified::LengthOrPercentage;
 use values::specified::border::BorderRadius;
-use values::specified::image::Image;
 use values::specified::position::{HorizontalPosition, Position, PositionComponent, Side, VerticalPosition};
 use values::specified::url::SpecifiedUrl;
 
@@ -30,7 +29,7 @@ use values::specified::url::SpecifiedUrl;
 pub type ClippingShape = GenericClippingShape<BasicShape, SpecifiedUrl>;
 
 /// A specified float area shape.
-pub type FloatAreaShape = GenericFloatAreaShape<BasicShape, Image>;
+pub type FloatAreaShape = GenericFloatAreaShape<BasicShape, SpecifiedUrl>;
 
 /// A specified basic shape.
 pub type BasicShape = GenericBasicShape<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
@@ -50,18 +49,14 @@ pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 /// The specified value of `Polygon`
 pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
-impl<ReferenceBox, ImageOrUrl> Parse for ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
-where
-    ReferenceBox: Parse,
-    ImageOrUrl: Parse,
-{
+impl<ReferenceBox: Parse> Parse for ShapeSource<BasicShape, ReferenceBox, SpecifiedUrl> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ShapeSource::None)
         }
 
-        if let Ok(image_or_url) = input.try(|i| ImageOrUrl::parse(context, i)) {
-            return Ok(ShapeSource::ImageOrUrl(image_or_url))
+        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+            return Ok(ShapeSource::Url(url))
         }
 
         fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
