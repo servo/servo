@@ -5008,18 +5008,32 @@ fn static_assert() {
         use gecko::conversions::basic_shape::set_corners_from_radius;
         use gecko::values::GeckoStyleCoordConvertible;
         use values::generics::basic_shape::{BasicShape, FillRule, ShapeSource};
+
         let ref mut ${ident} = self.gecko.${gecko_ffi_name};
+
         // clean up existing struct
         unsafe { Gecko_DestroyShapeSource(${ident}) };
-
         ${ident}.mType = StyleShapeSourceType::None;
 
         match v {
-            ShapeSource::Url(ref url) => {
+            % if ident == "clip_path":
+            ShapeSource::ImageOrUrl(ref url) => {
                 unsafe {
                     bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.for_ffi())
                 }
             }
+            % elif ident == "shape_outside":
+            ShapeSource::ImageOrUrl(image) => {
+                unsafe {
+                    bindings::Gecko_NewShapeImage(${ident});
+                    let style_image = &mut *${ident}.mShapeImage.mPtr;
+                    style_image.set(image);
+                }
+            }
+            % else:
+               <% raise Exception("Unknown property: %s" % ident) %>
+            }
+            % endif
             ShapeSource::None => {} // don't change the type
             ShapeSource::Box(reference) => {
                 ${ident}.mReferenceBox = reference.into();
