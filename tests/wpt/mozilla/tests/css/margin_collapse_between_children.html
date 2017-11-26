@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins between children without padding/borders/height should collapse</title>
+<link rel="match" href="margin_collapse_between_children_ref.html">
+<style>
+  .container {
+    background-color: green;
+  }
+  .a {
+    margin-bottom: 60px;
+  }
+  .b {
+    margin-top: 50px;
+  }
+</style>
+<div class="container">
+  <div class="a">Apple</div>
+  <div class="b">Banana</div>
+</div>

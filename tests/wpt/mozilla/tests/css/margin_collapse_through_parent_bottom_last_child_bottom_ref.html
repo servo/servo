@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins at bottom off last child should collapse through parent</title>
+<style>
+  .container {
+    background-color: green;
+  }
+  .c {
+      margin-top: 60px;
+  }
+</style>
+<div class="container">
+  <div class="a">Apple</div>
+  <div class="b">Banana</div>
+</div>
+<div class="c">Carrot</div>

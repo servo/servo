@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins between inline block children dont collapse</title>
+<style>
+  .container {
+    background-color: green;
+  }
+  .a {
+    margin-bottom: 60px;
+    width: 100%;
+    display: inline-block;
+  }
+  .b {
+    margin-top: 50px;
+    width: 100%;
+    display: inline-block;
+  }
+</style>
+<div class="container">
+  <div class="a">Apple</div>
+  <div class="b">Banana</div>
+</div>

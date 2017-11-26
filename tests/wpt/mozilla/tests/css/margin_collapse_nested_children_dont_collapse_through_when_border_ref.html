@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins in nested children shouldn't collapse through when border</title>
+<style>
+  .container {
+    background-color: green;
+  }
+  .a {
+    border: 1px solid blue;
+  }
+  .c {
+    margin-bottom: -400px;
+  }
+  .b {
+    margin-top: 60px;
+  }
+</style>
+<div class="container">
+    <div class="a"><div class="c">Carrot</div></div>
+  <div class="b">Banana</div>
+</div>

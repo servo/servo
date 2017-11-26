@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins between parent top and child top should collapse through</title>
+<style>
+  .container {
+    background-color: green;
+    margin-top: 100px;
+  }
+  .a {
+    padding-bottom: 60px;
+  }
+  .b {
+  }
+</style>
+<div class="container">
+  <div class="a">Apple</div>
+  <div class="b">Banana</div>
+</div>

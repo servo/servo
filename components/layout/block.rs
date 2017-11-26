@@ -964,6 +964,7 @@ impl BlockFlow {
             let can_collapse_block_end_margin_with_kids =
                 margins_may_collapse == MarginsMayCollapseFlag::MarginsMayCollapse &&
                 !self.base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
+                self.fragment.style.content_block_size() == LengthOrPercentageOrAuto::Auto &&
                 self.fragment.border_padding.block_end == Au(0);
             let (collapsible_margins, delta) =
                 margin_collapse_info.finish_and_compute_collapsible_margins(

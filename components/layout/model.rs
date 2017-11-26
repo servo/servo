@@ -184,7 +184,7 @@ impl MarginCollapseInfo {
                 }
                 FinalMarginState::BottomMarginCollapses => {
                     let advance = self.margin_in.collapse();
-                    self.margin_in.union(AdjoiningMargins::from_margin(block_end_margin));
+                    self.margin_in = AdjoiningMargins::from_margin(block_end_margin);
                     (CollapsibleMargins::Collapse(self.block_start_margin, self.margin_in),
                                                   advance)
                 }

@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins at bottom off last child should collapse through parent</title>
+<link rel="match" href="margin_collapse_through_parent_bottom_last_child_bottom_ref.html">
+<style>
+  .container {
+    background-color: green;
+  }
+  .a {
+  }
+  .b {
+    margin-bottom: 60px;
+  }
+  .c {
+    margin-top: 20px;
+  }
+</style>
+<div class="container">
+  <div class="a">Apple</div>
+  <div class="b">Banana</div>
+</div>
+<div class="c">Carrot</div>

@@ -3971,6 +3971,150 @@
      {}
     ]
    ],
+   "css/margin_collapse_between_children.html": [
+    [
+     "/_mozilla/css/margin_collapse_between_children.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_between_children_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_inline_block_children_dont_collapse.html": [
+    [
+     "/_mozilla/css/margin_collapse_inline_block_children_dont_collapse.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_inline_block_children_dont_collapse_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_nested_children.html": [
+    [
+     "/_mozilla/css/margin_collapse_nested_children.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_nested_children_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_nested_children_dont_collapse_through_when_border.html": [
+    [
+     "/_mozilla/css/margin_collapse_nested_children_dont_collapse_through_when_border.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_nested_children_dont_collapse_through_when_border_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_nested_children_dont_collapse_through_when_height.html": [
+    [
+     "/_mozilla/css/margin_collapse_nested_children_dont_collapse_through_when_height.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_nested_children_dont_collapse_through_when_height_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_border.html": [
+    [
+     "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_border.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_border_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_border_2.html": [
+    [
+     "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_border_2.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_border_2_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_height.html": [
+    [
+     "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_height.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_height_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_padding.html": [
+    [
+     "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_padding.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_parent_bottom_dont_collapse_through_when_padding_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_top_children.html": [
+    [
+     "/_mozilla/css/margin_collapse_parent_top_children.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_parent_top_children_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_through_parent_bottom_last_child_bottom.html": [
+    [
+     "/_mozilla/css/margin_collapse_through_parent_bottom_last_child_bottom.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_through_parent_bottom_last_child_bottom_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/margin_collapse_through_parent_bottom_last_child_bottom_2.html": [
+    [
+     "/_mozilla/css/margin_collapse_through_parent_bottom_last_child_bottom_2.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_through_parent_bottom_last_child_bottom_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/margin_padding_inline_block_a.html": [
     [
      "/_mozilla/css/margin_padding_inline_block_a.html",
@@ -7818,6 +7962,18 @@
      ],
      {}
     ]
+   ],
+   "css/margin_collapse_inline_block_children_dont_collapse_ref.html": [
+    [
+     "/_mozilla/css/margin_collapse_inline_block_children_dont_collapse_ref.html",
+     [
+      [
+       "/_mozilla/css/margin_collapse_inline_block_children_dont_collapse_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
    ]
   },
   "support": {
@@ -9557,6 +9713,56 @@
     ]
    ],
    "css/margin_b.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_between_children_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_nested_children_dont_collapse_through_when_border_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_nested_children_dont_collapse_through_when_height_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_nested_children_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_border_2_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_border_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_height_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_bottom_dont_collapse_through_when_padding_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_parent_top_children_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/margin_collapse_through_parent_bottom_last_child_bottom_ref.html": [
     [
      {}
     ]
@@ -63582,6 +63788,98 @@
   ],
   "css/margin_b.html": [
    "bb2098cfe893ce48aa8083973fdfa14129462bca",
+   "support"
+  ],
+  "css/margin_collapse_between_children.html": [
+   "91d69a4039883379c1e73684492a4898320e3a30",
+   "reftest"
+  ],
+  "css/margin_collapse_between_children_ref.html": [
+   "9bb5facbd627ba846a61e7dc0996e177f5903ea9",
+   "support"
+  ],
+  "css/margin_collapse_inline_block_children_dont_collapse.html": [
+   "aa47c7dac31b1db102e30ffdcc0a42c67c20fb30",
+   "reftest"
+  ],
+  "css/margin_collapse_inline_block_children_dont_collapse_ref.html": [
+   "e2932a070dd1462bd33c8452035eb0639647d990",
+   "reftest_node"
+  ],
+  "css/margin_collapse_nested_children.html": [
+   "feb7138e62ab088641bc2cfeaefe83d451659358",
+   "reftest"
+  ],
+  "css/margin_collapse_nested_children_dont_collapse_through_when_border.html": [
+   "cfa4e63059150380c4dfd44a1741d0dce09453c3",
+   "reftest"
+  ],
+  "css/margin_collapse_nested_children_dont_collapse_through_when_border_ref.html": [
+   "bc11ef88cda8356a3cab724dfb8bb46f7bf29932",
+   "support"
+  ],
+  "css/margin_collapse_nested_children_dont_collapse_through_when_height.html": [
+   "411ca389e4a090c6129e5228da23bc7035f9f720",
+   "reftest"
+  ],
+  "css/margin_collapse_nested_children_dont_collapse_through_when_height_ref.html": [
+   "e326a58886cdf4662dca4dee23331bfc0a03dfb9",
+   "support"
+  ],
+  "css/margin_collapse_nested_children_ref.html": [
+   "185cb599337ae66f6e8b57a16277b51100d49d28",
+   "support"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_border.html": [
+   "c6af9ed1f9ce2bba7f408d11655da2546f09d734",
+   "reftest"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_border_2.html": [
+   "9ef2a568d34e686bbd2c74bc5cb134161e6b587e",
+   "reftest"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_border_2_ref.html": [
+   "e487543fe20ecbce9d2c47e9ea3a322b89dbb672",
+   "support"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_border_ref.html": [
+   "8eabb447701741912cdca7b8968f20371e996661",
+   "support"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_height.html": [
+   "03e98c39a02b41ba623a1b7ebdf63e17768d8d7c",
+   "reftest"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_height_ref.html": [
+   "fd56094b7b14b94b7c147453e2586b5a098a306b",
+   "support"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_padding.html": [
+   "8b6fc25d37e26c159731d90d0dd7fbb76f20a8b7",
+   "reftest"
+  ],
+  "css/margin_collapse_parent_bottom_dont_collapse_through_when_padding_ref.html": [
+   "1e4594b68df1362d37a0c3399736db92f48e11f8",
+   "support"
+  ],
+  "css/margin_collapse_parent_top_children.html": [
+   "7606d8f47f1bc217ad22d407fbc82eb1abfeaebe",
+   "reftest"
+  ],
+  "css/margin_collapse_parent_top_children_ref.html": [
+   "27b132b999b980b85a15767489f9566e8ae349a2",
+   "support"
+  ],
+  "css/margin_collapse_through_parent_bottom_last_child_bottom.html": [
+   "177df67d26901242e67de7f9cc8d57e5770a2bf7",
+   "reftest"
+  ],
+  "css/margin_collapse_through_parent_bottom_last_child_bottom_2.html": [
+   "2d21f1640ab16786f906951b02e965766d4edcc1",
+   "reftest"
+  ],
+  "css/margin_collapse_through_parent_bottom_last_child_bottom_ref.html": [
+   "d2496c8977e6abf74e989adfdcce4c59923dda61",
    "support"
   ],
   "css/margin_padding_inline_block_a.html": [

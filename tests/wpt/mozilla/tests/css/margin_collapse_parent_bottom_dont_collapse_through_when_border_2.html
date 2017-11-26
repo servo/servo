@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins at bottom off parent do not collapse through when border is set</title>
+<link rel="match" href="margin_collapse_parent_bottom_dont_collapse_through_when_border_2_ref.html">
+<style>
+  .container {
+    background-color: green;
+    border: 1px solid blue;
+  }
+  .a {
+  }
+  .b {
+    margin-bottom: 60px;
+  }
+  .c {
+    margin-top: 50px;
+  }
+</style>
+<div class="container">
+  <div class="a">Apple</div>
+  <div class="b">Banana</div>
+</div>
+<div class="c">Carrot</div>

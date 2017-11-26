@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Margins in nested children should collapse through</title>
+<style>
+  .container {
+    background-color: green;
+  }
+  .a {
+  }
+  .c {
+  }
+  .b {
+    margin-top: -40px;
+  }
+</style>
+<div class="container">
+    <div class="a"><div class="c">Carrot</div></div>
+  <div class="b">Banana</div>
+</div>
