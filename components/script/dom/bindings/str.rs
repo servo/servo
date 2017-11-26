@@ -208,6 +208,77 @@ impl DOMString {
         self.0.truncate(last_non_whitespace);
         let _ = self.0.splice(0..first_non_whitespace, "");
     }
+
+    /// Validates this `DOMString` is a time string according to
+    /// <https://html.spec.whatwg.org/multipage/#valid-time-string>.
+    pub fn is_valid_time_string(&self) -> bool {
+        enum State {
+            HourHigh,
+            HourLow09,
+            HourLow03,
+            MinuteColon,
+            MinuteHigh,
+            MinuteLow,
+            SecondColon,
+            SecondHigh,
+            SecondLow,
+            MilliStop,
+            MilliHigh,
+            MilliMiddle,
+            MilliLow,
+            Done,
+            Error,
+        }
+        let next_state = |valid: bool, next: State| -> State { if valid { next } else { State::Error } };
+
+        let state = self.chars().fold(State::HourHigh, |state, c| {
+            match state {
+                // Step 1 "HH"
+                State::HourHigh => {
+                    match c {
+                        '0' | '1' => State::HourLow09,
+                        '2' => State::HourLow03,
+                        _ => State::Error,
+                    }
+                },
+                State::HourLow09 => next_state(c.is_digit(10), State::MinuteColon),
+                State::HourLow03 => next_state(c.is_digit(4), State::MinuteColon),
+
+                // Step 2 ":"
+                State::MinuteColon => next_state(c == ':', State::MinuteHigh),
+
+                // Step 3 "mm"
+                State::MinuteHigh => next_state(c.is_digit(6), State::MinuteLow),
+                State::MinuteLow => next_state(c.is_digit(10), State::SecondColon),
+
+                // Step 4.1 ":"
+                State::SecondColon => next_state(c == ':', State::SecondHigh),
+                // Step 4.2 "ss"
+                State::SecondHigh => next_state(c.is_digit(6), State::SecondLow),
+                State::SecondLow => next_state(c.is_digit(10), State::MilliStop),
+
+                // Step 4.3.1 "."
+                State::MilliStop => next_state(c == '.', State::MilliHigh),
+                // Step 4.3.2 "SSS"
+                State::MilliHigh => next_state(c.is_digit(6), State::MilliMiddle),
+                State::MilliMiddle => next_state(c.is_digit(10), State::MilliLow),
+                State::MilliLow => next_state(c.is_digit(10), State::Done),
+
+                _ => State::Error,
+            }
+        });
+
+        match state {
+            State::Done |
+            // Step 4 (optional)
+            State::SecondColon |
+            // Step 4.3 (optional)
+            State::MilliStop |
+            // Step 4.3.2 (only 1 digit required)
+            State::MilliMiddle | State::MilliLow => true,
+            _ => false
+        }
+    }
 }
 
 impl Borrow<str> for DOMString {
