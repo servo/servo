@@ -408,6 +408,12 @@ pub fn main_fetch(request: &mut Request,
     // Step 24.
     target.process_response_eof(&response);
 
+    if !response.is_network_error() {
+        if let Ok(mut http_cache) = context.state.http_cache.write() {
+            http_cache.update_awaiting_consumers(&request, &response);
+        }
+    }
+
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used
     response

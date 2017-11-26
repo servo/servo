@@ -24,14 +24,6 @@
             ['Last-Modified', http_date(0)]
           ],
           response_body: '12'
-        },
-        {
-          response_status: [200, 'OK'],
-          "response_headers": [
-            ['Expires', http_date(100000)],
-            ['Last-Modified', http_date(0)]
-          ],
-          response_body: '12'
         }
     ];
     var uuid = token();
@@ -45,19 +37,10 @@
           assert_equals(state.length, 2);
           // The empty, aborted response.
           assert_equals(client.response, "");
+          // The complete, non-aborted, response.
           assert_equals(client2.response, "12");
+          test.done();
         }));
-        var client3 = new XMLHttpRequest();
-        client3.onloadend = test.step_func(function(event) {
-          server_state(uuid).then(test.step_func(function(state) {
-            // No server hits, the response from client2 was cached and re-used.
-            assert_equals(state.length, 0)
-            assert_equals(client3.response, '12');
-            test.done();
-          }));
-        });
-        client3.open("GET", url);
-        client3.send();
       });
       client.onabort = test.step_func(function() {
         client2.open("GET", url);
