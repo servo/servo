@@ -895,6 +895,44 @@ impl HTMLInputElement {
                     textinput.set_content("#000000".into());
                 }
             }
+            atom!("time") => {
+                let mut textinput = self.textinput.borrow_mut();
+
+                let is_colon = |c: &str| c == ":";
+                let is_stop = |c: &str| c == ".";
+
+                let is_hour = |h: u8| h <= 23;
+                let is_minute = |m: u8| m <= 59;
+                let is_second = |s: u8| s <= 59;
+                let is_ms = |ms: u16| ms <= 999;
+
+                let is_valid = {
+                    let content = textinput.single_line_content().as_ref();
+                    let len = content.len();
+
+                    len >= 5 &&
+                        // HH:mm
+                        is_hour(content[0..2].parse().unwrap_or(99)) &&
+                        is_colon(&content[2..3]) &&
+                        is_minute(content[3..5].parse().unwrap_or(99)) &&
+
+                        // :ss
+                        (len == 5 || len >= 8 && (
+                            is_colon(&content[5..6]) &&
+                                is_second(content[6..8].parse().unwrap_or(99))
+                        )) &&
+
+                        // .SSS
+                        (len < 9 || len >= 9 && (
+                            is_stop(&content[8..9]) &&
+                                is_ms(content[9..].parse().unwrap_or(9_999))
+                        ))
+                };
+
+                if ! is_valid {
+                    textinput.set_content("".into());
+                }
+            }
             // TODO: Implement more value sanitization algorithms for different types of inputs
             _ => ()
         }
