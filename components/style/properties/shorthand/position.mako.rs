@@ -470,10 +470,10 @@
                     products="gecko">
     use parser::Parse;
     use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
-    use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
     use values::generics::grid::{GridTemplateComponent, TrackListType};
     use values::specified::{GenericGridTemplateComponent, TrackSize};
+    use values::specified::position::{AutoFlow, GridAutoFlow};
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -485,7 +485,7 @@
         let mut flow = grid_auto_flow::get_initial_value();
 
         fn parse_auto_flow<'i, 't>(input: &mut Parser<'i, 't>, is_row: bool)
-                                   -> Result<SpecifiedAutoFlow, ParseError<'i>> {
+                                   -> Result<GridAutoFlow, ParseError<'i>> {
             let mut auto_flow = None;
             let mut dense = false;
             for _ in 0..2 {
@@ -503,7 +503,7 @@
             }
 
             auto_flow.map(|flow| {
-                SpecifiedAutoFlow {
+                GridAutoFlow {
                     autoflow: flow,
                     dense: dense,
                 }

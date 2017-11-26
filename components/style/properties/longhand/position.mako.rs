@@ -293,128 +293,13 @@ ${helpers.predefined_type("object-position",
 
 % endfor
 
-<%helpers:longhand name="grid-auto-flow"
-        spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
-        products="gecko"
-        gecko_pref="layout.css.grid.enabled"
-        animation_value_type="discrete">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub type SpecifiedValue = computed_value::T;
-
-    pub mod computed_value {
-        #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
-        pub enum AutoFlow {
-            Row,
-            Column,
-        }
-
-        #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
-        pub struct T {
-            pub autoflow: AutoFlow,
-            pub dense: bool,
-        }
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            dest.write_str(match self.autoflow {
-                computed_value::AutoFlow::Column => "column",
-                computed_value::AutoFlow::Row => "row"
-            })?;
-
-            if self.dense { dest.write_str(" dense")?; }
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T {
-            autoflow: computed_value::AutoFlow::Row,
-            dense: false,
-        }
-    }
-
-    /// [ row | column ] || dense
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        use self::computed_value::AutoFlow;
-
-        let mut value = None;
-        let mut dense = false;
-
-        while !input.is_exhausted() {
-            let location = input.current_source_location();
-            let ident = input.expect_ident()?;
-            let success = match_ignore_ascii_case! { &ident,
-                "row" if value.is_none() => {
-                    value = Some(AutoFlow::Row);
-                    true
-                },
-                "column" if value.is_none() => {
-                    value = Some(AutoFlow::Column);
-                    true
-                },
-                "dense" if !dense => {
-                    dense = true;
-                    true
-                },
-                _ => false
-            };
-            if !success {
-                return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
-            }
-        }
-
-        if value.is_some() || dense {
-            Ok(computed_value::T {
-                autoflow: value.unwrap_or(AutoFlow::Row),
-                dense: dense,
-            })
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    impl From<u8> for SpecifiedValue {
-        fn from(bits: u8) -> SpecifiedValue {
-            use gecko_bindings::structs;
-            use self::computed_value::AutoFlow;
-
-            SpecifiedValue {
-                autoflow:
-                    if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
-                        AutoFlow::Row
-                    } else {
-                        AutoFlow::Column
-                    },
-                dense:
-                    bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
-            }
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    impl From<SpecifiedValue> for u8 {
-        fn from(v: SpecifiedValue) -> u8 {
-            use gecko_bindings::structs;
-            use self::computed_value::AutoFlow;
-
-            let mut result: u8 = match v.autoflow {
-                AutoFlow::Row => structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8,
-                AutoFlow::Column => structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN as u8,
-            };
-
-            if v.dense {
-                result |= structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
-            }
-            result
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("grid-auto-flow",
+                          "GridAutoFlow",
+                          initial_value="computed::GridAutoFlow::row()",
+                          products="gecko",
+                          animation_value_type="discrete",
+                          gecko_pref="layout.css.grid.enabled",
+                          spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow")}
 
 <%helpers:longhand name="grid-template-areas"
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas"
