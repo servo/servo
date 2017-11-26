@@ -1,0 +1,11 @@
+<!doctype html>
+<title>(Test #1) Stylesheet replaceData Dynamic</title>
+<link rel="match" href="stylesheet-replacedata-dynamic-ref.html">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecobos@igalia.com">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-characterdata-replacedata">
+<style>.fail { color: green }</style>
+<div class="pass">Should be green</div>
+<script>
+  document.body.offsetTop;
+  document.querySelector('style').firstChild.replaceData(1, 4, "pass");
+</script>
