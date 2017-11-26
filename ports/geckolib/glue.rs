@@ -4559,6 +4559,7 @@ pub extern "C" fn Servo_ComputeColor(
     current_color: structs::nscolor,
     value: *const nsAString,
     result_color: *mut structs::nscolor,
+    was_current_color: *mut bool,
 ) -> bool {
     use style::gecko;
 
@@ -4593,6 +4594,11 @@ pub extern "C" fn Servo_ComputeColor(
                 Some(computed_color) => {
                     let rgba = computed_color.to_rgba(current_color);
                     *result_color = gecko::values::convert_rgba_to_nscolor(&rgba);
+                    if !was_current_color.is_null() {
+                        unsafe {
+                            *was_current_color = computed_color.is_currentcolor();
+                        }
+                    }
                     true
                 }
                 None => false,
