@@ -470,54 +470,56 @@ impl PropertyDeclarationBlock {
         if !definitely_new {
             let mut index_to_remove = None;
             for (i, slot) in self.declarations.iter_mut().enumerate() {
-                if slot.id() == declaration.id() {
-                    let important = self.declarations_importance.get(i as u32);
-                    match (important, importance.important()) {
-                        (false, true) => {}
+                if slot.id() != declaration.id() {
+                    continue;
+                }
 
-                        (true, false) => {
-                            // For declarations set from the OM, less-important
-                            // declarations are overridden.
-                            if !matches!(source, DeclarationSource::CssOm) {
-                                return false
-                            }
-                        }
-                        _ => if *slot == declaration {
-                            return false;
+                let important = self.declarations_importance.get(i as u32);
+                match (important, importance.important()) {
+                    (false, true) => {}
+
+                    (true, false) => {
+                        // For declarations set from the OM, more-important
+                        // declarations are overridden.
+                        if !matches!(source, DeclarationSource::CssOm) {
+                            return false
                         }
                     }
+                    _ => if *slot == declaration {
+                        return false;
+                    }
+                }
 
-                    match source {
-                        // CSSOM preserves the declaration position, and
-                        // overrides importance.
-                        DeclarationSource::CssOm => {
-                            *slot = declaration;
-                            self.declarations_importance.set(i as u32, importance.important());
-                            return true;
-                        }
-                        DeclarationSource::Parsing => {
-                            // As a compatibility hack, specially on Android,
-                            // don't allow to override a prefixed webkit display
-                            // value with an unprefixed version from parsing
-                            // code.
-                            //
-                            // TODO(emilio): Unship.
-                            if let PropertyDeclaration::Display(old_display) = *slot {
-                                use properties::longhands::display::computed_value::T as display;
+                match source {
+                    // CSSOM preserves the declaration position, and
+                    // overrides importance.
+                    DeclarationSource::CssOm => {
+                        *slot = declaration;
+                        self.declarations_importance.set(i as u32, importance.important());
+                        return true;
+                    }
+                    DeclarationSource::Parsing => {
+                        // As a compatibility hack, specially on Android,
+                        // don't allow to override a prefixed webkit display
+                        // value with an unprefixed version from parsing
+                        // code.
+                        //
+                        // TODO(emilio): Unship.
+                        if let PropertyDeclaration::Display(old_display) = *slot {
+                            use properties::longhands::display::computed_value::T as display;
 
-                                if let PropertyDeclaration::Display(new_display) = declaration {
-                                    if display::should_ignore_parsed_value(old_display, new_display) {
-                                        return false;
-                                    }
+                            if let PropertyDeclaration::Display(new_display) = declaration {
+                                if display::should_ignore_parsed_value(old_display, new_display) {
+                                    return false;
                                 }
                             }
-
-                            // NOTE(emilio): We could avoid this and just override for
-                            // properties not affected by logical props, but it's not
-                            // clear it's worth it given the `definitely_new` check.
-                            index_to_remove = Some(i);
-                            break;
                         }
+
+                        // NOTE(emilio): We could avoid this and just override for
+                        // properties not affected by logical props, but it's not
+                        // clear it's worth it given the `definitely_new` check.
+                        index_to_remove = Some(i);
+                        break;
                     }
                 }
             }
