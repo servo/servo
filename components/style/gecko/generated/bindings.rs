@@ -1574,7 +1574,7 @@ extern "C" {
 } extern "C" {
  pub fn Servo_IsValidCSSColor ( value : * const nsAString , ) -> bool ; 
 } extern "C" {
- pub fn Servo_ComputeColor ( set : RawServoStyleSetBorrowedOrNull , current_color : nscolor , value : * const nsAString , result_color : * mut nscolor , ) -> bool ; 
+ pub fn Servo_ComputeColor ( set : RawServoStyleSetBorrowedOrNull , current_color : nscolor , value : * const nsAString , result_color : * mut nscolor , was_current_color : * mut bool , ) -> bool ; 
 } extern "C" {
  pub fn Servo_ParseIntersectionObserverRootMargin ( value : * const nsAString , result : * mut nsCSSRect , ) -> bool ; 
 } extern "C" {
