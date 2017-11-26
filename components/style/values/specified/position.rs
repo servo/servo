@@ -9,8 +9,9 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseErrorKind;
 use std::fmt;
-use style_traits::{ToCss, ParseError};
+use style_traits::{ToCss, StyleParseErrorKind, ParseError};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
@@ -364,5 +365,124 @@ impl ToCss for LegacyPosition {
         self.horizontal.to_css(dest)?;
         dest.write_str(" ")?;
         self.vertical.to_css(dest)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+/// Auto-placement algorithm Option
+pub enum AutoFlow {
+    /// The auto-placement algorithm places items by filling each row in turn,
+    /// adding new rows as necessary.
+    Row,
+    /// The auto-placement algorithm places items by filling each column in turn,
+    /// adding new columns as necessary.
+    Column,
+}
+
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+/// Controls how the auto-placement algorithm works
+/// specifying exactly how auto-placed items get flowed into the grid
+pub struct GridAutoFlow {
+    /// Specifiy how auto-placement algorithm fills each `row` or `column` in turn
+    pub autoflow: AutoFlow,
+    /// Specify use `dense` packing algorithm or not
+    pub dense: bool,
+}
+
+impl GridAutoFlow {
+    #[inline]
+    /// Get default `grid-auto-flow` as `row`
+    pub fn row() -> GridAutoFlow {
+        GridAutoFlow {
+            autoflow: AutoFlow::Row,
+            dense: false,
+        }
+    }
+}
+
+impl ToCss for GridAutoFlow {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.autoflow.to_css(dest)?;
+
+        if self.dense { dest.write_str(" dense")?; }
+        Ok(())
+    }
+}
+
+impl Parse for GridAutoFlow {
+    /// [ row | column ] || dense
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<GridAutoFlow, ParseError<'i>> {
+        let mut value = None;
+        let mut dense = false;
+
+        while !input.is_exhausted() {
+            let location = input.current_source_location();
+            let ident = input.expect_ident()?;
+            let success = match_ignore_ascii_case! { &ident,
+                "row" if value.is_none() => {
+                    value = Some(AutoFlow::Row);
+                    true
+                },
+                "column" if value.is_none() => {
+                    value = Some(AutoFlow::Column);
+                    true
+                },
+                "dense" if !dense => {
+                    dense = true;
+                    true
+                },
+                _ => false
+            };
+            if !success {
+                return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+            }
+        }
+
+        if value.is_some() || dense {
+            Ok(GridAutoFlow {
+                autoflow: value.unwrap_or(AutoFlow::Row),
+                dense: dense,
+            })
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u8> for GridAutoFlow {
+    fn from(bits: u8) -> GridAutoFlow {
+        use gecko_bindings::structs;
+
+        GridAutoFlow {
+            autoflow:
+                if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
+                    AutoFlow::Row
+                } else {
+                    AutoFlow::Column
+                },
+            dense:
+                bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<GridAutoFlow> for u8 {
+    fn from(v: GridAutoFlow) -> u8 {
+        use gecko_bindings::structs;
+
+        let mut result: u8 = match v.autoflow {
+            AutoFlow::Row => structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8,
+            AutoFlow::Column => structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN as u8,
+        };
+
+        if v.dense {
+            result |= structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
+        }
+        result
     }
 }
