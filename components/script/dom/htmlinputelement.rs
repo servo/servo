@@ -895,6 +895,13 @@ impl HTMLInputElement {
                     textinput.set_content("#000000".into());
                 }
             }
+            atom!("time") => {
+                let mut textinput = self.textinput.borrow_mut();
+
+                if ! textinput.single_line_content().is_valid_time_string() {
+                    *textinput.single_line_content_mut() = "".into();
+                }
+            }
             // TODO: Implement more value sanitization algorithms for different types of inputs
             _ => ()
         }
