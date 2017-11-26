@@ -208,6 +208,60 @@ impl DOMString {
         self.0.truncate(last_non_whitespace);
         let _ = self.0.splice(0..first_non_whitespace, "");
     }
+
+    /// Validates this `DOMString` is a time string according to
+    /// <https://html.spec.whatwg.org/multipage/#valid-time-string>.
+    pub fn is_valid_time_string(&self) -> bool {
+        let is_between = |min: char, c: u8, max: char| (c as char >= min && c as char <= max);
+        let is_digit = |c: u8| is_between('0', c, '9');
+        let is_colon = |c: u8| c as char == ':';
+        let is_stop = |c: u8| c as char == '.';
+
+        // 0 ≤ hour ≤ 23
+        let is_hour = |h: &[u8]| match h[0] as char {
+            '0' | '1' => is_digit(h[1]),
+            '2' => is_between('0', h[1], '3'),
+            _ => false,
+        };
+
+        // 0 ≤ minute/second ≤ 59
+        let is_minute = |m: &[u8]| is_between('0', m[0], '5') && is_digit(m[1]);
+        let is_second = &is_minute;
+
+        // 1-3 digits
+        let is_ms = |ms: &[u8]| {
+            for i in 0..ms.len() {
+                if !is_digit(ms[i]) {
+                    return false;
+                }
+            }
+
+            true
+        };
+
+        let bytes = self.as_bytes();
+        let len = self.len();
+
+        len >= 5 && len <= 12 &&
+            // Step 1 "HH"
+            is_hour(&bytes[0..2]) &&
+            // Step 2 ":"
+            is_colon(bytes[2]) &&
+            // Step 3 "mm"
+            is_minute(&bytes[3..5]) &&
+
+            // Step 4 (optional)
+            (len == 5 || len >= 8 && (
+                // Step 4.1 ":" && Step 4.2 "ss"
+                is_colon(bytes[5]) && is_second(&bytes[6..8]) &&
+
+                    // Step 4.3 (optional)
+                    (len < 9 || len >= 9 && (
+                        // Step 4.3.1 "." && Step 4.3.2 "SSS"
+                        is_stop(bytes[8]) && is_ms(&bytes[9..])
+                    ))
+            ))
+    }
 }
 
 impl Borrow<str> for DOMString {
