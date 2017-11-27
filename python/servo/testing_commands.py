@@ -34,7 +34,7 @@ from mach.decorators import (
 
 from servo.command_base import (
     BuildNotFound, CommandBase,
-    call, cd, check_call, set_osmesa_env,
+    call, check_call, set_osmesa_env,
 )
 from servo.util import host_triple
 
@@ -178,7 +178,6 @@ class MachCommands(CommandBase):
     def test_perf(self, base=None, date=None, submit=False):
         self.set_software_rendering_env(True)
 
-        self.ensure_bootstrapped()
         env = self.build_env()
         cmd = ["bash", "test_perf.sh"]
         if base:
@@ -204,8 +203,6 @@ class MachCommands(CommandBase):
     def test_unit(self, test_name=None, package=None, bench=False, nocapture=False):
         if test_name is None:
             test_name = []
-
-        self.ensure_bootstrapped()
 
         if package:
             packages = {package}
@@ -268,7 +265,7 @@ class MachCommands(CommandBase):
 
         features = self.servo_features()
         if len(packages) > 0:
-            args = ["cargo", "bench" if bench else "test"]
+            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.servo_manifest()]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
@@ -281,7 +278,7 @@ class MachCommands(CommandBase):
             if nocapture:
                 args += ["--", "--nocapture"]
 
-            err = call(args, env=env, cwd=self.servo_crate())
+            err = self.call_rustup_run(args, env=env)
             if err is not 0:
                 return err
 
@@ -293,17 +290,18 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
     def test_stylo(self, release=False, test_name=None):
-        self.set_use_stable_rust()
-        self.ensure_bootstrapped()
+        self.set_use_geckolib_toolchain()
 
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
-        args = (["cargo", "test", "-p", "stylo_tests"] +
-                (["--release"] if release else []) + (test_name or []))
-        with cd(path.join("ports", "geckolib")):
-            return call(args, env=env)
+        args = (
+            ["cargo", "test", "--manifest-path", self.geckolib_manifest(), "-p", "stylo_tests"] +
+            (["--release"] if release else []) +
+            (test_name or [])
+        )
+        return self.call_rustup_run(args, env=env)
 
     @Command('test-content',
              description='Run the content tests',
@@ -339,8 +337,6 @@ class MachCommands(CommandBase):
     @CommandArgument('tests', default=None, nargs="...",
                      help="Specific tests to run, relative to the tests directory")
     def test_webidl(self, quiet, tests):
-        self.ensure_bootstrapped()
-
         test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
                                                "dom", "bindings", "codegen", "parser"))
         # For the `import WebIDL` in runtests.py
@@ -358,7 +354,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=create_parser_wpt)
     def test_wpt_failure(self, **kwargs):
-        self.ensure_bootstrapped()
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
         return not self._test_wpt(**kwargs)
@@ -368,7 +363,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
-        self.ensure_bootstrapped()
         ret = self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
         if kwargs["always_succeed"]:
             return 0
@@ -441,7 +435,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=updatecommandline.create_parser())
     def update_wpt(self, **kwargs):
-        self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         patch = kwargs.get("patch", False)
 
@@ -650,7 +643,6 @@ class MachCommands(CommandBase):
                            str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
 
     def jquery_test_runner(self, cmd, release, dev):
-        self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "jquery"))
         jquery_dir = path.join(base_dir, "jquery")
         run_file = path.join(base_dir, "run_jquery.py")
@@ -670,7 +662,6 @@ class MachCommands(CommandBase):
         return call([run_file, cmd, bin_path, base_dir])
 
     def dromaeo_test_runner(self, tests, release, dev):
-        self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -885,8 +876,6 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
     @CommandArgument('--version', default='2.0.0',
                      help='WebGL conformance suite version')
     def update_webgl(self, version=None):
-        self.ensure_bootstrapped()
-
         base_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
                                 "tests", "wpt", "mozilla", "tests", "webgl"))
         run_file = path.join(base_dir, "tools", "import-conformance-tests.py")
