@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 import gzip
 import itertools
@@ -319,9 +320,18 @@ class CommandBase(object):
     def call_rustup_run(self, args, **kwargs):
         if self.config["tools"]["use-rustup"]:
             args = ["rustup" + BIN_SUFFIX, "run", "--install", self.toolchain()] + args
+            try:
+                return call(args, **kwargs)
+            except OSError as e:
+                if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
+                    print "It looks like rustup is not installed. See instructions at " \
+                          "https://github.com/servo/servo/#setting-up-your-environment"
+                    print
+                    return 1
+                raise
         else:
             args[0] += BIN_SUFFIX
-        return call(args, **kwargs)
+            return call(args, **kwargs)
 
     def get_top_dir(self):
         return self.context.topdir
