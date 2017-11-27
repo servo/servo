@@ -5,8 +5,6 @@
 //! The restyle damage is a hint that tells layout which kind of operations may
 //! be needed in presence of incremental style changes.
 
-#![deny(missing_docs)]
-
 use computed_values::display;
 use matching::{StyleChange, StyleDifference};
 use properties::ComputedValues;
