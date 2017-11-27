@@ -23,12 +23,12 @@ use std::cell::RefCell;
 use cssparser::{CowRcStr, Parser, TokenSerializationType, serialize_identifier};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
-use computed_values;
 use context::QuirksMode;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
 #[cfg(feature = "servo")] use logical_geometry::LogicalMargin;
+#[cfg(feature = "servo")] use computed_values;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::ParserContext;
@@ -687,18 +687,56 @@ impl LonghandId {
     fn is_early_property(&self) -> bool {
         matches!(*self,
             % if product == 'gecko':
-            LonghandId::TextOrientation |
+            // We need to know the number of animations / transition-properties
+            // before setting the rest of the related longhands, see #15923.
+            //
+            // FIXME(emilio): Looks to me that we could just do this in Gecko
+            // instead of making them early properties. Indeed, the spec
+            // mentions _used_ values, not computed values, so this looks wrong.
             LonghandId::AnimationName |
             LonghandId::TransitionProperty |
-            LonghandId::XLang |
+
+            // Needed to properly compute the writing mode, to resolve logical
+            // properties, and similar stuff. In this block instead of along
+            // `WritingMode` and `Direction` just for convenience, since it's
+            // Gecko-only (for now at least).
+            //
+            // see WritingMode::new.
+            LonghandId::TextOrientation |
+
+            // Needed to properly compute the zoomed font-size.
+            //
+            // FIXME(emilio): This could probably just be a cascade flag like
+            // IN_SVG_SUBTREE or such, and we could nuke this property.
             LonghandId::XTextZoom |
-            LonghandId::MozScriptLevel |
+
+            // Needed to do font-size computation in a language-dependent way.
+            LonghandId::XLang |
+            // Needed for ruby to respect language-dependent min-font-size
+            // preferences properly, see bug 1165538.
             LonghandId::MozMinFontSizeRatio |
+
+            // Needed to do font-size for MathML. :(
+            LonghandId::MozScriptLevel |
             % endif
+
+            // Needed to compute font-relative lengths correctly.
             LonghandId::FontSize |
             LonghandId::FontFamily |
+
+            // Needed to resolve currentcolor at computed value time properly.
+            //
+            // FIXME(emilio): All the properties should be moved to currentcolor
+            // as a computed-value (and thus resolving it at used-value time).
+            //
+            // This would allow this property to go away from this list.
             LonghandId::Color |
+
+            // FIXME(emilio): There's no reason for this afaict, nuke it.
             LonghandId::TextDecorationLine |
+
+            // Needed to properly compute the writing mode, to resolve logical
+            // properties, and similar stuff.
             LonghandId::WritingMode |
             LonghandId::Direction
         )
@@ -2437,57 +2475,6 @@ impl ComputedValuesInner {
     }
 }
 
-/// Return a WritingMode bitflags from the relevant CSS properties.
-pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
-    use logical_geometry;
-    let mut flags = WritingMode::empty();
-    match inheritedbox_style.clone_direction() {
-        computed_values::direction::T::ltr => {},
-        computed_values::direction::T::rtl => {
-            flags.insert(logical_geometry::WritingMode::RTL);
-        },
-    }
-    match inheritedbox_style.clone_writing_mode() {
-        computed_values::writing_mode::T::horizontal_tb => {},
-        computed_values::writing_mode::T::vertical_rl => {
-            flags.insert(logical_geometry::WritingMode::VERTICAL);
-        },
-        computed_values::writing_mode::T::vertical_lr => {
-            flags.insert(logical_geometry::WritingMode::VERTICAL);
-            flags.insert(logical_geometry::WritingMode::VERTICAL_LR);
-        },
-        % if product == "gecko":
-        computed_values::writing_mode::T::sideways_rl => {
-            flags.insert(logical_geometry::WritingMode::VERTICAL);
-            flags.insert(logical_geometry::WritingMode::SIDEWAYS);
-        },
-        computed_values::writing_mode::T::sideways_lr => {
-            flags.insert(logical_geometry::WritingMode::VERTICAL);
-            flags.insert(logical_geometry::WritingMode::VERTICAL_LR);
-            flags.insert(logical_geometry::WritingMode::LINE_INVERTED);
-            flags.insert(logical_geometry::WritingMode::SIDEWAYS);
-        },
-        % endif
-    }
-    % if product == "gecko":
-    // If FLAG_SIDEWAYS is already set, this means writing-mode is either
-    // sideways-rl or sideways-lr, and for both of these values,
-    // text-orientation has no effect.
-    if !flags.intersects(logical_geometry::WritingMode::SIDEWAYS) {
-        match inheritedbox_style.clone_text_orientation() {
-            computed_values::text_orientation::T::mixed => {},
-            computed_values::text_orientation::T::upright => {
-                flags.insert(logical_geometry::WritingMode::UPRIGHT);
-            },
-            computed_values::text_orientation::T::sideways => {
-                flags.insert(logical_geometry::WritingMode::SIDEWAYS);
-            },
-        }
-    }
-    % endif
-    flags
-}
-
 % if product == "gecko":
     pub use ::servo_arc::RawOffsetArc as BuilderArc;
     /// Clone an arc, returning a regular arc
@@ -3394,7 +3381,8 @@ where
             (CASCADE_PROPERTY[discriminant])(&*declaration, &mut context);
         }
         % if category_to_cascade_now == "early":
-            let writing_mode = get_writing_mode(context.builder.get_inheritedbox());
+            let writing_mode =
+                WritingMode::new(context.builder.get_inheritedbox());
             context.builder.writing_mode = writing_mode;
 
             let mut _skip_font_family = false;
