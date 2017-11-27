@@ -4,9 +4,16 @@
 
 //! Generic types for CSS values that are related to transformations.
 
+use app_units::Au;
+use euclid::{Radians, Rect, Transform3D};
+use num_traits::Zero;
 use std::fmt;
 use style_traits::ToCss;
 use values::{computed, CSSFloat};
+use values::computed::length::Length as ComputedLength;
+use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
+use values::specified::length::Length as SpecifiedLength;
+use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage;
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
@@ -29,6 +36,32 @@ pub struct Matrix3D<T, U = T, V = T> {
     pub m21: T, pub m22: T, pub m23: T, pub m24: T,
     pub m31: T, pub m32: T, pub m33: T, pub m34: T,
     pub m41: U, pub m42: U, pub m43: V, pub m44: T,
+}
+
+#[cfg_attr(rustfmt, rustfmt_skip)]
+impl<T: Into<f64>> From<Matrix<T>> for Transform3D<f64> {
+    #[inline]
+    fn from(m: Matrix<T>) -> Self {
+        Transform3D::row_major(
+            m.a.into(), m.b.into(), 0.0, 0.0,
+            m.c.into(), m.d.into(), 0.0, 0.0,
+            0.0,        0.0,        1.0, 0.0,
+            m.e.into(), m.f.into(), 0.0, 1.0,
+        )
+    }
+}
+
+#[cfg_attr(rustfmt, rustfmt_skip)]
+impl<T: Into<f64>> From<Matrix3D<T>> for Transform3D<f64> {
+    #[inline]
+    fn from(m: Matrix3D<T>) -> Self {
+        Transform3D::row_major(
+            m.m11.into(), m.m12.into(), m.m13.into(), m.m14.into(),
+            m.m21.into(), m.m22.into(), m.m23.into(), m.m24.into(),
+            m.m31.into(), m.m32.into(), m.m33.into(), m.m34.into(),
+            m.m41.into(), m.m42.into(), m.m43.into(), m.m44.into(),
+        )
+    }
 }
 
 /// A generic transform origin.
@@ -158,8 +191,7 @@ impl TimingKeyword {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
 /// A single operation in the list of a `transform` value
 pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
     /// Represents a 2D 2x3 matrix.
@@ -319,6 +351,194 @@ impl<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNum
     }
 }
 
+/// Convert a length type into the absolute lengths.
+pub trait ToAbsoluteLength {
+    /// Returns the absolute length as pixel value.
+    fn to_pixel_length(&self, containing_len: Option<Au>) -> Result<CSSFloat, ()>;
+}
+
+impl ToAbsoluteLength for SpecifiedLength {
+    // This returns Err(()) if there is any relative length or percentage. We use this when
+    // parsing a transform list of DOMMatrix because we want to return a DOM Exception
+    // if there is relative length.
+    #[inline]
+    fn to_pixel_length(&self, _containing_len: Option<Au>) -> Result<CSSFloat, ()> {
+        match *self {
+            SpecifiedLength::NoCalc(len) => len.to_computed_pixel_length_without_context(),
+            SpecifiedLength::Calc(ref calc) => calc.to_computed_pixel_length_without_context(),
+        }
+    }
+}
+
+impl ToAbsoluteLength for SpecifiedLengthOrPercentage {
+    // This returns Err(()) if there is any relative length or percentage. We use this when
+    // parsing a transform list of DOMMatrix because we want to return a DOM Exception
+    // if there is relative length.
+    #[inline]
+    fn to_pixel_length(&self, _containing_len: Option<Au>) -> Result<CSSFloat, ()> {
+        use self::SpecifiedLengthOrPercentage::*;
+        match *self {
+            Length(len) => len.to_computed_pixel_length_without_context(),
+            Calc(ref calc) => calc.to_computed_pixel_length_without_context(),
+            _ => Err(()),
+        }
+    }
+}
+
+impl ToAbsoluteLength for ComputedLength {
+    #[inline]
+    fn to_pixel_length(&self, _containing_len: Option<Au>) -> Result<CSSFloat, ()> {
+        Ok(self.px())
+    }
+}
+
+impl ToAbsoluteLength for ComputedLengthOrPercentage {
+    #[inline]
+    fn to_pixel_length(&self, containing_len: Option<Au>) -> Result<CSSFloat, ()> {
+        let extract_pixel_length = |lop: &ComputedLengthOrPercentage| match *lop {
+            ComputedLengthOrPercentage::Length(px) => px.px(),
+            ComputedLengthOrPercentage::Percentage(_) => 0.,
+            ComputedLengthOrPercentage::Calc(calc) => calc.length().px(),
+        };
+
+        match containing_len {
+            Some(relative_len) => Ok(self.to_pixel_length(relative_len).px()),
+            // If we don't have reference box, we cannot resolve the used value,
+            // so only retrieve the length part. This will be used for computing
+            // distance without any layout info.
+            None => Ok(extract_pixel_length(self))
+        }
+    }
+}
+
+/// Support the conversion to a 3d matrix.
+pub trait ToMatrix {
+    /// Check if it is a 3d transform function.
+    fn is_3d(&self) -> bool;
+
+    /// Return the equivalent 3d matrix.
+    fn to_3d_matrix(&self, reference_box: Option<&Rect<Au>>) -> Result<Transform3D<f64>, ()>;
+}
+
+impl<Angle, Number, Length, Integer, LoN, LoP, LoPoNumber> ToMatrix
+    for TransformOperation<Angle, Number, Length, Integer, LoN, LoP, LoPoNumber>
+where
+    Angle: Copy + AsRef<computed::angle::Angle>,
+    Number: Copy + Into<f32> + Into<f64>,
+    Length: ToAbsoluteLength,
+    LoP: ToAbsoluteLength,
+{
+    #[inline]
+    fn is_3d(&self) -> bool {
+        use self::TransformOperation::*;
+        match *self {
+            Translate3D(..) | TranslateZ(..) |
+            Rotate3D(..) | RotateX(..) | RotateY(..) | RotateZ(..) |
+            Scale3D(..) | ScaleZ(..) |
+            Perspective(..) | Matrix3D(..) | PrefixedMatrix3D(..) => true,
+            _ => false,
+        }
+    }
+
+    /// If |reference_box| is None, we will drop the percent part from translate because
+    /// we cannot resolve it without the layout info, for computed TransformOperation.
+    /// However, for specified TransformOperation, we will return Err(()) if there is any relative
+    /// lengths because the only caller, DOMMatrix, doesn't accept relative lengths.
+    #[inline]
+    fn to_3d_matrix(&self, reference_box: Option<&Rect<Au>>) -> Result<Transform3D<f64>, ()> {
+        use self::TransformOperation::*;
+        use std::f64;
+
+        const TWO_PI: f64 = 2.0f64 * f64::consts::PI;
+        let reference_width = reference_box.map(|v| v.size.width);
+        let reference_height = reference_box.map(|v| v.size.height);
+        let matrix = match *self {
+            Rotate3D(ax, ay, az, theta) => {
+                let theta = TWO_PI - theta.as_ref().radians64();
+                let (ax, ay, az, theta) =
+                    get_normalized_vector_and_angle(ax.into(), ay.into(), az.into(), theta);
+                Transform3D::create_rotation(ax as f64, ay as f64, az as f64, Radians::new(theta))
+            },
+            RotateX(theta) => {
+                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                Transform3D::create_rotation(1., 0., 0., theta)
+            },
+            RotateY(theta) => {
+                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                Transform3D::create_rotation(0., 1., 0., theta)
+            },
+            RotateZ(theta) | Rotate(theta) => {
+                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                Transform3D::create_rotation(0., 0., 1., theta)
+            },
+            Perspective(ref d) => {
+                let m = create_perspective_matrix(d.to_pixel_length(None)?);
+                m.cast().expect("Casting from f32 to f64 should be successful")
+            },
+            Scale3D(sx, sy, sz) => Transform3D::create_scale(sx.into(), sy.into(), sz.into()),
+            Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.unwrap_or(sx).into(), 1.),
+            ScaleX(s) => Transform3D::create_scale(s.into(), 1., 1.),
+            ScaleY(s) => Transform3D::create_scale(1., s.into(), 1.),
+            ScaleZ(s) => Transform3D::create_scale(1., 1., s.into()),
+            Translate3D(ref tx, ref ty, ref tz) => {
+                let tx = tx.to_pixel_length(reference_width)? as f64;
+                let ty = ty.to_pixel_length(reference_height)? as f64;
+                Transform3D::create_translation(tx, ty, tz.to_pixel_length(None)? as f64)
+            },
+            Translate(ref tx, Some(ref ty)) => {
+                let tx = tx.to_pixel_length(reference_width)? as f64;
+                let ty = ty.to_pixel_length(reference_height)? as f64;
+                Transform3D::create_translation(tx, ty, 0.)
+            },
+            TranslateX(ref t) | Translate(ref t, None) => {
+                let t = t.to_pixel_length(reference_width)? as f64;
+                Transform3D::create_translation(t, 0., 0.)
+            },
+            TranslateY(ref t) => {
+                let t = t.to_pixel_length(reference_height)? as f64;
+                Transform3D::create_translation(0., t, 0.)
+            },
+            TranslateZ(ref z) => {
+                Transform3D::create_translation(0., 0., z.to_pixel_length(None)? as f64)
+            },
+            Skew(theta_x, theta_y) => {
+                Transform3D::create_skew(
+                    Radians::new(theta_x.as_ref().radians64()),
+                    Radians::new(theta_y.map_or(0., |a| a.as_ref().radians64())),
+                )
+            },
+            SkewX(theta) => {
+                Transform3D::create_skew(
+                    Radians::new(theta.as_ref().radians64()),
+                    Radians::new(0.),
+                )
+            },
+            SkewY(theta) => {
+                Transform3D::create_skew(
+                    Radians::new(0.),
+                    Radians::new(theta.as_ref().radians64()),
+                )
+            },
+            Matrix3D(m) => m.into(),
+            Matrix(m) => m.into(),
+            PrefixedMatrix3D(_) | PrefixedMatrix(_) => {
+                unreachable!("-moz-transform` is not implemented in Servo yet, and DOMMatrix \
+                              doesn't support this")
+            },
+            InterpolateMatrix { .. } | AccumulateMatrix { .. } => {
+                // TODO: Convert InterpolateMatrix/AccumulateMatrix into a valid Transform3D by
+                // the reference box and do interpolation on these two Transform3D matrices.
+                // Both Gecko and Servo don't support this for computing distance, and Servo
+                // doesn't support animations on InterpolateMatrix/AccumulateMatrix, so
+                // return an identity matrix.
+                // Note: DOMMatrix doesn't go into this arm.
+                Transform3D::identity()
+            },
+        };
+        Ok(matrix)
+    }
+}
+
 #[cfg_attr(rustfmt, rustfmt_skip)]
 impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
      Integer: ToCss + Copy, LengthOrNumber: ToCss, LengthOrPercentage: ToCss, LoPoNumber: ToCss>
@@ -455,5 +675,81 @@ impl<T> Transform<T> {
     /// `none`
     pub fn none() -> Self {
         Transform(vec![])
+    }
+}
+
+impl<T: ToMatrix> Transform<T> {
+    /// Return the equivalent 3d matrix of this transform list.
+    /// We return a pair: the first one is the transform matrix, and the second one
+    /// indicates if there is any 3d transform function in this transform list.
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    pub fn to_transform_3d_matrix(
+        &self,
+        reference_box: Option<&Rect<Au>>
+    ) -> Result<(Transform3D<CSSFloat>, bool), ()> {
+        let cast_3d_transform = |m: Transform3D<f64>| -> Transform3D<CSSFloat> {
+            use std::{f32, f64};
+            let cast = |v: f64| { v.min(f32::MAX as f64).max(f32::MIN as f64) as f32 };
+            Transform3D::row_major(
+                cast(m.m11), cast(m.m12), cast(m.m13), cast(m.m14),
+                cast(m.m21), cast(m.m22), cast(m.m23), cast(m.m24),
+                cast(m.m31), cast(m.m32), cast(m.m33), cast(m.m34),
+                cast(m.m41), cast(m.m42), cast(m.m43), cast(m.m44),
+            )
+        };
+
+        // We intentionally use Transform3D<f64> during computation to avoid error propagation
+        // because using f32 to compute triangle functions (e.g. in create_rotation()) is not
+        // accurate enough. In Gecko, we also use "double" to compute the triangle functions.
+        // Therefore, let's use Transform3D<f64> during matrix computation and cast it into f32
+        // in the end.
+        let mut transform = Transform3D::<f64>::identity();
+        let mut contain_3d = false;
+
+        for operation in &self.0 {
+            let matrix = operation.to_3d_matrix(reference_box)?;
+            contain_3d |= operation.is_3d();
+            transform = transform.pre_mul(&matrix);
+        }
+
+        Ok((cast_3d_transform(transform), contain_3d))
+    }
+}
+
+/// Return the transform matrix from a perspective length.
+#[inline]
+pub fn create_perspective_matrix(d: CSSFloat) -> Transform3D<CSSFloat> {
+    // TODO(gw): The transforms spec says that perspective length must
+    // be positive. However, there is some confusion between the spec
+    // and browser implementations as to handling the case of 0 for the
+    // perspective value. Until the spec bug is resolved, at least ensure
+    // that a provided perspective value of <= 0.0 doesn't cause panics
+    // and behaves as it does in other browsers.
+    // See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
+    if d <= 0.0 {
+        Transform3D::identity()
+    } else {
+        Transform3D::create_perspective(d)
+    }
+}
+
+/// Return the normalized direction vector and its angle for Rotate3D.
+pub fn get_normalized_vector_and_angle<T: Zero>(
+    x: CSSFloat,
+    y: CSSFloat,
+    z: CSSFloat,
+    angle: T,
+) -> (CSSFloat, CSSFloat, CSSFloat, T) {
+    use euclid::approxeq::ApproxEq;
+    use values::computed::transform::DirectionVector;
+    let vector = DirectionVector::new(x, y, z);
+    if vector.square_length().approx_eq(&f32::zero()) {
+        // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d
+        // A direction vector that cannot be normalized, such as [0, 0, 0], will cause the
+        // rotation to not be applied, so we use identity matrix (i.e. rotate3d(0, 0, 1, 0)).
+        (0., 0., 1., T::zero())
+    } else {
+        let vector = vector.normalize();
+        (vector.x, vector.y, vector.z, angle)
     }
 }

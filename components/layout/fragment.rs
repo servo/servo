@@ -46,13 +46,13 @@ use style::computed_values::{transform_style, white_space, word_break};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
-use style::properties::longhands::transform::computed_value::T as TransformList;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
 use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::generics::box_::VerticalAlign;
+use style::values::generics::transform;
 use text;
 use text::TextRunScanner;
 use webrender_api;
@@ -2895,7 +2895,7 @@ impl Fragment {
     /// Returns the 4D matrix representing this fragment's transform.
     pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Transform3D<f32>> {
         let list = &self.style.get_box().transform;
-        let transform = list.to_transform_3d_matrix(Some(stacking_relative_border_box))?;
+        let transform = list.to_transform_3d_matrix(Some(stacking_relative_border_box)).ok()?.0;
 
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x =
@@ -2939,7 +2939,7 @@ impl Fragment {
                                                                      -perspective_origin.y,
                                                                      0.0);
 
-                let perspective_matrix = TransformList::create_perspective_matrix(length.px());
+                let perspective_matrix = transform::create_perspective_matrix(length.px());
 
                 Some(pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform))
             }
