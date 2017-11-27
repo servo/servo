@@ -101,6 +101,20 @@ enum LastChunkState {
     NotReceived,
 }
 
+pub struct ElementAttribute {
+    name: QualName,
+    value: DOMString
+}
+
+impl ElementAttribute {
+    pub fn new(name: QualName, value: DOMString) -> ElementAttribute {
+        ElementAttribute {
+            name: name,
+            value: value
+        }
+    }
+}
+
 impl ServoParser {
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
         let parser = if PREFS.get("dom.servoparser.async_html_tokenizer.enabled").as_boolean().unwrap() {
@@ -791,21 +805,17 @@ impl TreeSink for Sink {
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
             -> Dom<Node> {
-        let is = attrs.iter()
-                      .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
-                      .map(|attr| LocalName::from(&*attr.value));
-
-        let elem = Element::create(name,
-                                   is,
-                                   &*self.document,
-                                   ElementCreator::ParserCreated(self.current_line),
-                                   CustomElementCreationMode::Synchronous);
-
-        for attr in attrs {
-            elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
-        }
-
-        Dom::from_ref(elem.upcast())
+        let attrs = attrs
+            .into_iter()
+            .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
+            .collect();
+        let element = create_element_for_token(
+            name,
+            attrs,
+            &*self.document,
+            ElementCreator::ParserCreated(self.current_line)
+        );
+        Dom::from_ref(element.upcast())
     }
 
     fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
@@ -945,4 +955,62 @@ impl TreeSink for Sink {
         let node = DomRoot::from_ref(&**node);
         vtable_for(&node).pop();
     }
+}
+
+/// https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
+fn create_element_for_token(
+    name: QualName,
+    attrs: Vec<ElementAttribute>,
+    document: &Document,
+    creator: ElementCreator
+) -> DomRoot<Element> {
+    // Step 3.
+    let is = attrs.iter()
+        .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+        .map(|attr| LocalName::from(&*attr.value));
+
+    // Step 4.
+    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
+
+    // Step 5.
+    // TODO: Check if the parser was created for the HTML fragment parsing algorithm
+    let will_execute_scrtipt = definition.is_some();
+
+    // Step 6.
+    if will_execute_scrtipt {
+        // Step 6.1.
+        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        // Step 6.2
+        // TODO: If the JavaScript execution context stack is empty, then perform a microtask checkpoint.
+        // Step 6.3
+        ScriptThread::push_new_element_queue()
+    }
+
+    // Step 7.
+    let creation_mode = if will_execute_scrtipt {
+        CustomElementCreationMode::Synchronous
+    } else {
+        CustomElementCreationMode::Asynchronous
+    };
+    let element = Element::create(name, is, document, creator, creation_mode);
+
+    // Step 8.
+    for attr in attrs {
+        element.set_attribute_from_parser(attr.name, attr.value, None);
+    }
+
+    // Step 9.
+    if will_execute_scrtipt {
+        // Steps 9.1 - 9.2.
+        ScriptThread::pop_current_element_queue()
+        // Step 9.3.
+        // TODO: handle throw-on-dynamic-markup-insertion counter.
+    }
+
+    // TODO: Step 10.
+    // TODO: Step 11.
+    // TODO: Step 12.
+
+    // Step 13.
+    element
 }
