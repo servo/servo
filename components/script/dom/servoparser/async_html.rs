@@ -12,14 +12,15 @@ use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
-use dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use dom::element::{Element, ElementCreator};
 use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::servoparser::{ElementAttribute, create_element_for_token, ParsingAlgorithm};
 use dom::virtualmethods::vtable_for;
-use html5ever::{Attribute as HtmlAttribute, ExpandedName, LocalName, QualName};
+use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
 use html5ever::tendril::fmt::UTF8;
@@ -335,20 +336,18 @@ impl Tokenizer {
                 self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
             }
             ParseOperation::CreateElement { node, name, attrs, current_line } => {
-                let is = attrs.iter()
-                              .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
-                              .map(|attr| LocalName::from(&*attr.value));
-
-                let elem = Element::create(name,
-                                           is,
-                                           &*self.document,
-                                           ElementCreator::ParserCreated(current_line),
-                                           CustomElementCreationMode::Synchronous);
-                for attr in attrs {
-                    elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
-                }
-
-                self.insert_node(node, Dom::from_ref(elem.upcast()));
+                let attrs = attrs
+                    .into_iter()
+                    .map(|attr| ElementAttribute::new(attr.name, DOMString::from(attr.value)))
+                    .collect();
+                let element = create_element_for_token(
+                    name,
+                    attrs,
+                    &*self.document,
+                    ElementCreator::ParserCreated(current_line),
+                    ParsingAlgorithm::Normal
+                );
+                self.insert_node(node, Dom::from_ref(element.upcast()));
             }
             ParseOperation::CreateComment { text, node } => {
                 let comment = Comment::new(DOMString::from(text), document);

@@ -16,7 +16,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
-use dom::servoparser::Sink;
+use dom::servoparser::{ParsingAlgorithm, Sink};
 use html5ever::QualName;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::serialize::{AttrRef, Serialize, Serializer};
@@ -39,13 +39,15 @@ impl Tokenizer {
     pub fn new(
             document: &Document,
             url: ServoUrl,
-            fragment_context: Option<super::FragmentContext>)
+            fragment_context: Option<super::FragmentContext>,
+            parsing_algorithm: ParsingAlgorithm)
             -> Self {
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
             current_line: 1,
             script: Default::default(),
+            parsing_algorithm: parsing_algorithm,
         };
 
         let options = TreeBuilderOpts {
