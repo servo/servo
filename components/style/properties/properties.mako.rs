@@ -687,18 +687,54 @@ impl LonghandId {
     fn is_early_property(&self) -> bool {
         matches!(*self,
             % if product == 'gecko':
-            LonghandId::TextOrientation |
+            // We need to know the number of animations / transition-properties
+            // before setting the rest of the related longhands, see #15923.
+            //
+            // FIXME(emilio): Looks to me that we could just do this in Gecko
+            // instead of making them early properties. Indeed, the spec
+            // mentions _used_ values, not computed values, so this looks wrong.
             LonghandId::AnimationName |
             LonghandId::TransitionProperty |
-            LonghandId::XLang |
+
+            // Needed to properly compute the writing mode, to resolve logical
+            // properties, and similar stuff. In this block instead of along
+            // `WritingMode` and `Direction` just for convenience, since it's
+            // Gecko-only.
+            LonghandId::TextOrientation |
+
+            // Needed to properly compute the zoomed font-size.
+            //
+            // FIXME(emilio): This could probably just be a cascade flag like
+            // IN_SVG_SUBTREE or such, and we could nuke this property.
             LonghandId::XTextZoom |
-            LonghandId::MozScriptLevel |
+
+            // Needed to do font-size computation in a language-dependent way.
+            LonghandId::XLang |
+            // Needed for ruby to respect language-dependent min-font-size
+            // preferences properly, see bug 1165538.
             LonghandId::MozMinFontSizeRatio |
+
+            // Needed to do font-size for MathML. :(
+            LonghandId::MozScriptLevel |
             % endif
+
+            // Needed to compute font-relative lengths correctly.
             LonghandId::FontSize |
             LonghandId::FontFamily |
+
+            // Needed to resolve currentcolor at computed value time properly.
+            //
+            // FIXME(emilio): All the properties should ve moved to currentcolor
+            // as a computed-value (and thus resolving it at used-value time).
+            //
+            // This would allow this property to go away from this list.
             LonghandId::Color |
+
+            // FIXME(emilio): There's no reason for this afaict, nuke it.
             LonghandId::TextDecorationLine |
+
+            // Needed to properly compute the writing mode, to resolve logical
+            // properties, and similar stuff.
             LonghandId::WritingMode |
             LonghandId::Direction
         )
