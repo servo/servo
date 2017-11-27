@@ -954,7 +954,8 @@ impl UnparsedValue {
         ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties)
         .ok()
         .and_then(|css| {
-            // As of this writing, only the base URL is used for property values:
+            // As of this writing, only the base URL is used for property
+            // values.
             let context = ParserContext::new(
                 Origin::Author,
                 &self.url_data,
@@ -962,6 +963,7 @@ impl UnparsedValue {
                 ParsingMode::DEFAULT,
                 quirks_mode,
             );
+
             let mut input = ParserInput::new(&css);
             Parser::new(&mut input).parse_entirely(|input| {
                 match self.from_shorthand {

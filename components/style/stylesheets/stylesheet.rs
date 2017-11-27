@@ -309,13 +309,16 @@ impl StylesheetInDocument for DocumentStyleSheet {
 
 impl Stylesheet {
     /// Updates an empty stylesheet from a given string of text.
-    pub fn update_from_str<R>(existing: &Stylesheet,
-                              css: &str,
-                              url_data: UrlExtraData,
-                              stylesheet_loader: Option<&StylesheetLoader>,
-                              error_reporter: &R,
-                              line_number_offset: u32)
-        where R: ParseErrorReporter
+    pub fn update_from_str<R>(
+        existing: &Stylesheet,
+        css: &str,
+        url_data: UrlExtraData,
+        stylesheet_loader: Option<&StylesheetLoader>,
+        error_reporter: &R,
+        line_number_offset: u32,
+    )
+    where
+        R: ParseErrorReporter,
     {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, source_map_url, source_url) =
@@ -359,14 +362,14 @@ impl Stylesheet {
         let mut input = ParserInput::new_with_line_number_offset(css, line_number_offset);
         let mut input = Parser::new(&mut input);
 
-        let context =
-            ParserContext::new(
-                origin,
-                url_data,
-                None,
-                ParsingMode::DEFAULT,
-                quirks_mode
-            );
+        let context = ParserContext::new(
+            origin,
+            url_data,
+            None,
+            ParsingMode::DEFAULT,
+            quirks_mode
+        );
+
         let error_context = ParserErrorContext { error_reporter };
 
         let rule_parser = TopLevelRuleParser {

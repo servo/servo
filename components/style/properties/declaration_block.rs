@@ -1016,18 +1016,23 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 
 /// A helper to parse the style attribute of an element, in order for this to be
 /// shared between Servo and Gecko.
-pub fn parse_style_attribute<R>(input: &str,
-                                url_data: &UrlExtraData,
-                                error_reporter: &R,
-                                quirks_mode: QuirksMode)
-                                -> PropertyDeclarationBlock
-    where R: ParseErrorReporter
+pub fn parse_style_attribute<R>(
+    input: &str,
+    url_data: &UrlExtraData,
+    error_reporter: &R,
+    quirks_mode: QuirksMode,
+) -> PropertyDeclarationBlock
+where
+    R: ParseErrorReporter
 {
-    let context = ParserContext::new(Origin::Author,
-                                     url_data,
-                                     Some(CssRuleType::Style),
-                                     ParsingMode::DEFAULT,
-                                     quirks_mode);
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        quirks_mode,
+    );
+
     let error_context = ParserErrorContext { error_reporter: error_reporter };
     let mut input = ParserInput::new(input);
     parse_property_declaration_list(&context, &error_context, &mut Parser::new(&mut input))
@@ -1049,11 +1054,14 @@ pub fn parse_one_declaration_into<R>(
 where
     R: ParseErrorReporter
 {
-    let context = ParserContext::new(Origin::Author,
-                                     url_data,
-                                     Some(CssRuleType::Style),
-                                     parsing_mode,
-                                     quirks_mode);
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        parsing_mode,
+        quirks_mode,
+    );
+
     let mut input = ParserInput::new(input);
     let mut parser = Parser::new(&mut input);
     let start_position = parser.position();
