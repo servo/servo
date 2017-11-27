@@ -2,6 +2,7 @@
 <meta charset="utf-8">
 <title>CSS Test: Margins at bottom off last child should collapse through parent</title>
 <link rel="match" href="margin_collapse_through_parent_bottom_last_child_bottom_ref.html">
+<link rel="help" href="https://www.w3.org/TR/CSS2/box.html#collapsing-margins" />
 <style>
   .container {
     background-color: green;
@@ -10,6 +11,9 @@
   }
   .b {
     margin-bottom: 60px;
+  }
+  .c {
+    margin-top: 20px;
   }
 </style>
 <div class="container">

@@ -1,14 +1,15 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Test: Margins in nested children shouldn't collapse through when height</title>
-<link rel="match" href="margin_collapse_nested_children_dont_collapse_through_when_height_ref.html">
+<title>CSS Test: Margins in nested children shouldn't collapse through when border</title>
+<link rel="match" href="margin_collapse_nested_children_dont_collapse_through_when_border_ref.html">
+<link rel="help" href="https://www.w3.org/TR/CSS2/box.html#collapsing-margins" />
 <style>
   .container {
     background-color: green;
   }
   .a {
     margin-bottom: 60px;
-    height: 100px;
+    border: 1px solid blue;
   }
   .c {
     margin-bottom: -400px;
