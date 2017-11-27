@@ -74,7 +74,7 @@ impl ServoRestyleDamage {
             // optimization to skip the cascade in those cases applies.
             StyleChange::Changed { reset_only: false }
         };
-        StyleDifference::new(damage, change)
+        StyleDifference { damage, change }
     }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and

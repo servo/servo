@@ -31,16 +31,6 @@ pub struct StyleDifference {
     pub change: StyleChange,
 }
 
-impl StyleDifference {
-    /// Creates a new `StyleDifference`.
-    pub fn new(damage: RestyleDamage, change: StyleChange) -> Self {
-        StyleDifference {
-            change: change,
-            damage: damage,
-        }
-    }
-}
-
 /// Represents whether or not the style of an element has changed.
 #[derive(Clone, Copy, Debug)]
 pub enum StyleChange {
