@@ -14,6 +14,7 @@ import itertools
 import locale
 import os
 from os import path
+import re
 import contextlib
 import subprocess
 from subprocess import PIPE
@@ -319,6 +320,12 @@ class CommandBase(object):
 
     def call_rustup_run(self, args, **kwargs):
         if self.config["tools"]["use-rustup"]:
+            version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
+            version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
+            if version < (1, 8, 0):
+                print "rustup is at version %s.%s.%s, Servo requires 1.8.0 or more recent." % version
+                print "Try running 'rustup self update'."
+                return 1
             args = ["rustup" + BIN_SUFFIX, "run", "--install", self.toolchain()] + args
             try:
                 return call(args, **kwargs)
