@@ -16,6 +16,23 @@ def is_comment(line):
     return re.search(r'\/\/.*', line)
 
 
+def init_variables(if_blocks):
+    random_index = random.randint(0, len(if_blocks) - 1)
+    if_blocks.pop(random_index)
+    start_counter = 0
+    end_counter = 0
+    block_to_delete = ""
+    idx_to_del = []
+    mutation_line_number = if_blocks[random_index] - 1
+    return random_index, if_blocks, start_counter, end_counter, block_to_delete, idx_to_del, mutation_line_number
+
+
+def deleteStatements(file_name, line_numbers):
+    for line in fileinput.input(file_name, inplace=True):
+        if fileinput.lineno() not in line_numbers:
+            print line.rstrip()
+
+
 class Strategy:
     def __init__(self):
         self._replace_strategy = {}
@@ -27,21 +44,6 @@ class Strategy:
             return self.mutate_random_block(file_name)
         else:
             return self.mutate_random_line(file_name)
-
-    def deleteStatements(self, file_name, line_numbers):
-        for line in fileinput.input(file_name, inplace=True):
-            if fileinput.lineno() not in line_numbers:
-                print line.rstrip()
-
-    def init_variables(self, if_blocks, start_counter,end_counter,block_to_delete,idx_to_del):
-        random_index = random.randint(0, len(if_blocks) - 1)
-        if_blocks.pop(random_index)
-        start_counter = 0
-        end_counter = 0
-        block_to_delete = ""
-        idx_to_del=[]
-        mutation_line_number = if_blocks[random_index] - 1
-        return(random_index, if_blocks, start_counter, end_counter,block_to_delete,idx_to_del,mutation_line_number)
 
     def mutate_random_line(self, file_name):
         line_numbers = []
@@ -66,30 +68,26 @@ class Strategy:
     def mutate_random_block(self, file_name):
         code_lines = []
         if_blocks = []
-        random_index = 0
-        start_counter = 0
-        end_counter = 0
-        block_to_delete = ""
-        idx_to_del=[]
-        mutation_line_number=0
-        x=0  
         for line in fileinput.input(file_name):
                 code_lines.append(line)
                 if re.search(self._delete_strategy['ifBlock'], line):
                     if_blocks.append(fileinput.lineno())
         if len(if_blocks) == 0:
             return -1
-        random_index, if_blocks, start_counter, end_counter,block_to_delete,idx_to_del, mutation_line_number = self.init_variables(if_blocks, start_counter,end_counter,block_to_delete,idx_to_del)
-        while (mutation_line_number < len(code_lines)):
-            current_line = code_lines[mutation_line_number]
-            next_line = code_lines[mutation_line_number+1]
-            if re.search(self._delete_strategy['elseBlock'], current_line) is not None or re.search(self._delete_strategy['elseBlock'], next_line) is not None:
-                random_index, if_blocks, start_counter, end_counter,block_to_delete,idx_to_del,mutation_line_number = self.init_variables(if_blocks, start_counter,end_counter,block_to_delete,idx_to_del)
+        random_index, if_blocks, start_counter, end_counter, block_to_delete, idx_to_del, line_to_mutate = \
+            init_variables(if_blocks)
+        while line_to_mutate < len(code_lines):
+            current_line = code_lines[line_to_mutate]
+            next_line = code_lines[line_to_mutate + 1]
+            if re.search(self._delete_strategy['elseBlock'], current_line) is not None \
+                    or re.search(self._delete_strategy['elseBlock'], next_line) is not None:
+                random_index, if_blocks, start_counter, end_counter, block_to_delete, idx_to_del, line_to_mutate = \
+                    init_variables(if_blocks)
                 if len(if_blocks) == 0:
                     return -1
                 else:
                     continue
-            idx_to_del.append(mutation_line_number+1)
+            idx_to_del.append(line_to_mutate + 1)
             for ch in current_line:
                 block_to_delete += ch
                 if ch == "{":
@@ -97,9 +95,9 @@ class Strategy:
                 elif ch == "}":
                     end_counter += 1
                 if start_counter != 0 and start_counter == end_counter:
-                    self.deleteStatements(file_name, idx_to_del) 
+                    deleteStatements(file_name, idx_to_del)
                     return idx_to_del[0]
-            mutation_line_number += 1
+            line_to_mutate += 1
 
 
 class AndOr(Strategy):
@@ -177,7 +175,8 @@ class DeleteStatement(Strategy):
 
 
 def get_strategies():
-    return AndOr, IfTrue, IfFalse, ModifyComparision, PlusToMinus, MinusToPlus, DuplicateLine, DeleteStatement
+    return AndOr, IfTrue, IfFalse, ModifyComparision, PlusToMinus, MinusToPlus, \
+        DuplicateLine, DeleteStatement
 
 
 class Mutator:
