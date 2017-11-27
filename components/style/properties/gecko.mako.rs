@@ -296,7 +296,7 @@ impl ComputedValuesInner {
 
     #[allow(non_snake_case)]
     pub fn has_moz_binding(&self) -> bool {
-        !self.get_box().gecko.mBinding.mPtr.mRawPtr.is_null()
+        !self.get_box().gecko.mBinding.mRawPtr.is_null()
     }
 
     // FIXME(bholley): Implement this properly.
@@ -3290,7 +3290,7 @@ fn static_assert() {
         longhands::scroll_snap_coordinate::computed_value::T(vec)
     }
 
-    ${impl_css_url('_moz_binding', 'mBinding.mPtr')}
+    ${impl_css_url('_moz_binding', 'mBinding')}
 
     ${impl_transition_time_value('delay', 'Delay')}
     ${impl_transition_time_value('duration', 'Duration')}
