@@ -113,6 +113,7 @@ linux-nightly:
   - env CC=gcc-5 CXX=g++-5 ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly linux
+  - ./mach test-perf --submit
 
 android:
   - ./mach clean-nightlies --keep 3 --force
