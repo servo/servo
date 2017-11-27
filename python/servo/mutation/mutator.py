@@ -154,6 +154,15 @@ class PlusToMinus(Strategy):
         }
 
 
+class AtomicString(Strategy):
+    def __init__(self):
+        Strategy.__init__(self)
+        self._replace_strategy = {
+            'regex': r"(?<=\").+(?=\")",
+            'replaceString': ' '
+        }
+
+
 class DuplicateLine(Strategy):
     def __init__(self):
         Strategy.__init__(self)
@@ -176,7 +185,7 @@ class DeleteStatement(Strategy):
 
 def get_strategies():
     return AndOr, IfTrue, IfFalse, ModifyComparision, PlusToMinus, MinusToPlus, \
-        DuplicateLine, DeleteStatement
+        AtomicString, DuplicateLine, DeleteStatement
 
 
 class Mutator:
