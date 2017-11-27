@@ -41,6 +41,13 @@ cache:
   - .cargo -> rust-toolchain
   - .ccache
 
+install:
+  - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain none
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - mach rustc --version
+  - mach cargo --version
+
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:
 #  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
