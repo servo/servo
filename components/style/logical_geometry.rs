@@ -6,6 +6,7 @@
 
 use euclid::{Point2D, Rect, Size2D, SideOffsets2D};
 use euclid::num::Zero;
+use properties::style_structs;
 use std::cmp::{max, min};
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
@@ -39,6 +40,66 @@ bitflags!(
 );
 
 impl WritingMode {
+    /// Return a WritingMode bitflags from the relevant CSS properties.
+    pub fn new(inheritedbox_style: &style_structs::InheritedBox) -> Self {
+        use properties::longhands::direction::computed_value::T as direction;
+        use properties::longhands::writing_mode::computed_value::T as writing_mode;
+
+        let mut flags = WritingMode::empty();
+
+        match inheritedbox_style.clone_direction() {
+            direction::ltr => {},
+            direction::rtl => {
+                flags.insert(WritingMode::RTL);
+            },
+        }
+
+        match inheritedbox_style.clone_writing_mode() {
+            writing_mode::horizontal_tb => {},
+            writing_mode::vertical_rl => {
+                flags.insert(WritingMode::VERTICAL);
+            },
+            writing_mode::vertical_lr => {
+                flags.insert(WritingMode::VERTICAL);
+                flags.insert(WritingMode::VERTICAL_LR);
+            },
+            #[cfg(feature = "gecko")]
+            writing_mode::sideways_rl => {
+                flags.insert(WritingMode::VERTICAL);
+                flags.insert(WritingMode::SIDEWAYS);
+            },
+            #[cfg(feature = "gecko")]
+            writing_mode::sideways_lr => {
+                flags.insert(WritingMode::VERTICAL);
+                flags.insert(WritingMode::VERTICAL_LR);
+                flags.insert(WritingMode::LINE_INVERTED);
+                flags.insert(WritingMode::SIDEWAYS);
+            },
+        }
+
+        #[cfg(feature = "gecko")]
+        {
+            use properties::longhands::text_orientation::computed_value::T as text_orientation;
+
+            // If FLAG_SIDEWAYS is already set, this means writing-mode is
+            // either sideways-rl or sideways-lr, and for both of these values,
+            // text-orientation has no effect.
+            if !flags.intersects(WritingMode::SIDEWAYS) {
+                match inheritedbox_style.clone_text_orientation() {
+                    text_orientation::mixed => {},
+                    text_orientation::upright => {
+                        flags.insert(WritingMode::UPRIGHT);
+                    },
+                    text_orientation::sideways => {
+                        flags.insert(WritingMode::SIDEWAYS);
+                    },
+                }
+            }
+        }
+
+        flags
+    }
+
     #[inline]
     pub fn is_vertical(&self) -> bool {
         self.intersects(WritingMode::VERTICAL)
