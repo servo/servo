@@ -11,6 +11,23 @@ import fileinput
 import re
 import random
 
+regex = {
+    'arithmetic_plus': r'(?<=[^\"]\s)\+(?=\s[^A-Z\'?\":\{]+)',
+    'arithmetic_minus': r'(?<=\s)\-(?=\s.+)',
+    'plus_equals': r'(?<=\s)\+(?=\=)',
+    'minus_equals': r'(?<=\s)\-(?=\=)',
+    'push_statement': r'.*?push\(.*?\).*?;',
+    'remove_statement': r'.*?remove\(.*?\).*?;',
+    'append_statement': r'.*?append\(.*?\).*?;',
+    'atomic_string': r"(?<=\").+(?=\")",
+    'if_condition': r'(?<=if\s)(.*)(?=\s\{)',
+    'logical_and': r'\s&&\s',
+    'less_than_equals': r'(?<=\s\<)\=\s',
+    'greater_than_equals': r'(?<=\s\>)\=\s',
+    'if_block': r'[^a-z]\sif(.+)\{',
+    'else_block': r'\selse(.+)\{'
+}
+
 
 def is_comment(line):
     return re.search(r'\/\/.*', line)
@@ -35,12 +52,12 @@ def deleteStatements(file_name, line_numbers):
 
 class Strategy:
     def __init__(self):
-        self._replace_strategy = {}
         self._strategy_name = ""
+        self._replace_strategy = {}
         self._delete_strategy = {}
 
     def mutate(self, file_name):
-        if self._strategy_name == "delete_if_statement":
+        if self._strategy_name == "delete_if_block":
             return self.mutate_random_block(file_name)
         else:
             return self.mutate_random_line(file_name)
@@ -74,20 +91,20 @@ class Strategy:
                     if_blocks.append(fileinput.lineno())
         if len(if_blocks) == 0:
             return -1
-        random_index, if_blocks, start_counter, end_counter, block_to_delete, idx_to_del, line_to_mutate = \
+        random_index, if_blocks, start_counter, end_counter, block_to_delete, index_to_delete, line_to_mutate = \
             init_variables(if_blocks)
         while line_to_mutate < len(code_lines):
             current_line = code_lines[line_to_mutate]
             next_line = code_lines[line_to_mutate + 1]
             if re.search(self._delete_strategy['elseBlock'], current_line) is not None \
                     or re.search(self._delete_strategy['elseBlock'], next_line) is not None:
-                random_index, if_blocks, start_counter, end_counter, block_to_delete, idx_to_del, line_to_mutate = \
-                    init_variables(if_blocks)
+                random_index, if_blocks, start_counter, end_counter, block_to_delete, \
+                    index_to_delete, line_to_mutate = init_variables(if_blocks)
                 if len(if_blocks) == 0:
                     return -1
                 else:
                     continue
-            idx_to_del.append(line_to_mutate + 1)
+            index_to_delete.append(line_to_mutate + 1)
             for ch in current_line:
                 block_to_delete += ch
                 if ch == "{":
@@ -95,8 +112,8 @@ class Strategy:
                 elif ch == "}":
                     end_counter += 1
                 if start_counter != 0 and start_counter == end_counter:
-                    deleteStatements(file_name, idx_to_del)
-                    return idx_to_del[0]
+                    deleteStatements(file_name, index_to_delete)
+                    return index_to_delete[0]
             line_to_mutate += 1
 
 
@@ -104,7 +121,7 @@ class AndOr(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': r'\s&&\s',
+            'regex': regex['logical_and'],
             'replaceString': ' || '
         }
 
@@ -113,7 +130,7 @@ class IfTrue(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': r'(?<=if\s)(.*)(?=\s\{)',
+            'regex': regex['if_condition'],
             'replaceString': 'true'
         }
 
@@ -122,7 +139,7 @@ class IfFalse(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': r'(?<=if\s)(.*)(?=\s\{)',
+            'regex': regex['if_condition'],
             'replaceString': 'false'
         }
 
@@ -131,7 +148,7 @@ class ModifyComparision(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': r"(?<=\s\<)\=\s|(?<=\s\>)\=\s",
+            'regex': (regex['less_than_equals'] + '|' + regex['greater_than_equals']),
             'replaceString': ' '
         }
 
@@ -140,7 +157,7 @@ class MinusToPlus(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': r'(?<=\s)\-(?=\s.+)|(?<=\s)\-(?=\=)',
+            'regex': (regex['arithmetic_minus'] + '|' + regex['minus_equals']),
             'replaceString': '+'
         }
 
@@ -149,7 +166,7 @@ class PlusToMinus(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': r"(?<=[^\"]\s)\+(?=\s[^A-Z'?\":\{]+)|(?<=\s)\+(?=\=)",
+            'regex': (regex['arithmetic_plus'] + '|' + regex['plus_equals']),
             'replaceString': '-'
         }
 
@@ -158,7 +175,7 @@ class AtomicString(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': r"(?<=\").+(?=\")",
+            'regex': regex['atomic_string'],
             'replaceString': ' '
         }
 
@@ -168,24 +185,25 @@ class DuplicateLine(Strategy):
         Strategy.__init__(self)
         self._strategy_name = "duplicate"
         self._replace_strategy = {
-            'regex': r'.*?append\(.*?\).*?;',
+            'regex': (regex['append_statement'] + '|' + regex['remove_statement'] + '|' + regex['push_statement'] +
+                      '|' + regex['plus_equals'] + '|' + regex['minus_equals']),
             'replaceString': None,
         }
 
 
-class DeleteStatement(Strategy):
+class DeleteIfBlock(Strategy):
     def __init__(self):
         Strategy.__init__(self)
-        self._strategy_name = "delete_if_statement"
+        self._strategy_name = "delete_if_block"
         self._delete_strategy = {
-            'ifBlock': r'[^a-z]\sif(.+){',
-            'elseBlock': r'\selse(.+){'
+            'ifBlock': regex['if_block'],
+            'elseBlock': regex['else_block']
         }
 
 
 def get_strategies():
     return AndOr, IfTrue, IfFalse, ModifyComparision, PlusToMinus, MinusToPlus, \
-        AtomicString, DuplicateLine, DeleteStatement
+        AtomicString, DuplicateLine, DeleteIfBlock
 
 
 class Mutator:
