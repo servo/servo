@@ -2492,11 +2492,13 @@ pub extern "C" fn Servo_ParseEasing(
 
     // FIXME Dummy URL data would work fine here.
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    let context = ParserContext::new(Origin::Author,
-                                     url_data,
-                                     Some(CssRuleType::Style),
-                                     ParsingMode::DEFAULT,
-                                     QuirksMode::NoQuirks);
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
     let easing = unsafe { (*easing).to_string() };
     let mut input = ParserInput::new(&easing);
     let mut parser = Parser::new(&mut input);
@@ -2961,9 +2963,12 @@ pub extern "C" fn Servo_MediaList_AppendMedium(
 ) {
     let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
-    let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               ParsingMode::DEFAULT,
-                                               QuirksMode::NoQuirks);
+    let context = ParserContext::new_for_cssom(
+        url_data,
+        Some(CssRuleType::Media),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
     write_locked_arc(list, |list: &mut MediaList| {
         list.append_medium(&context, new_medium);
     })
@@ -2976,9 +2981,12 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(
 ) -> bool {
     let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { dummy_url_data() };
-    let context = ParserContext::new_for_cssom(url_data, Some(CssRuleType::Media),
-                                               ParsingMode::DEFAULT,
-                                               QuirksMode::NoQuirks);
+    let context = ParserContext::new_for_cssom(
+        url_data,
+        Some(CssRuleType::Media),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
     write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
 }
 
@@ -3362,9 +3370,13 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     let string = unsafe { (*value).to_string() };
-    let context = ParserContext::new(Origin::Author, url_data,
-                                     Some(CssRuleType::Style), ParsingMode::DEFAULT,
-                                     QuirksMode::NoQuirks);
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
     if let Ok(mut url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
         url.build_image_value();
         let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
@@ -3420,13 +3432,13 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
         let url_data = unsafe { dummy_url_data() };
         // NOTE(emilio): The supports API is not associated to any stylesheet,
         // so the fact that there are no namespace map here is fine.
-        let context =
-            ParserContext::new_for_cssom(
-                url_data,
-                Some(CssRuleType::Style),
-                ParsingMode::DEFAULT,
-                QuirksMode::NoQuirks,
-            );
+        let context = ParserContext::new_for_cssom(
+            url_data,
+            Some(CssRuleType::Style),
+            ParsingMode::DEFAULT,
+            QuirksMode::NoQuirks,
+        );
+
         cond.eval(&context)
     } else {
         false
