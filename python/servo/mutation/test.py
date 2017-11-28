@@ -26,6 +26,8 @@ class Status(Enum):
     UNEXPECTED = 3
 
 
+strategy_try_map = {}
+
 def mutation_test(file_name, tests):
     status = Status.UNEXPECTED
     local_changes_present = subprocess.call('git diff --quiet {0}'.format(file_name), shell=True)
@@ -33,32 +35,46 @@ def mutation_test(file_name, tests):
         status = Status.SKIPPED
         logging.warning("{0} has local changes, please commit/remove changes before running the test".format(file_name))
     else:
-        strategy = random.choice(get_strategies())()
-        mutator = Mutator(strategy)
-        mutated_line = mutator.mutate(file_name)
-        if mutated_line != -1:
-            logging.info("Mutated {0} at line {1}".format(file_name, mutated_line))
-            logging.info("compiling mutant {0}:{1}".format(file_name, mutated_line))
-            if subprocess.call('python mach build --release', shell=True, stdout=DEVNULL):
-                logging.error("Compilation Failed: Unexpected error")
-                status = Status.UNEXPECTED
+        strategies = list(get_strategies())
+        for item in strategies:
+            strategy_try_map[item] = False
+
+        fallback_on_failure = True
+        while fallback_on_failure:
+            strategy = random.choice(strategies)()
+            mutator = Mutator(strategy)
+            mutated_line = mutator.mutate(file_name)
+            if mutated_line != -1:
+                logging.info("Mutated {0} at line {1}".format(file_name, mutated_line))
+                logging.info("compiling mutant {0}:{1}".format(file_name, mutated_line))
+                if subprocess.call('python mach build --release', shell=True, stdout=DEVNULL):
+                    logging.error("Compilation Failed: Unexpected error")
+                    status = Status.UNEXPECTED
+                else:
+                    for test in tests:
+                        test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
+                        logging.info("running `{0}` test for mutant {1}:{2}".format(test, file_name, mutated_line))
+                        test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
+                        if test_status != 0:
+                            logging.error("Failed: while running `{0}`".format(test_command))
+                            logging.error("mutated file {0} diff".format(file_name))
+                            subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
+                            status = Status.SURVIVED
+                        else:
+                            logging.info("Success: Mutation killed by {0}".format(test.encode('utf-8')))
+                            status = Status.KILLED
+                            break
+                logging.info("reverting mutant {0}:{1}".format(file_name, mutated_line))
+                subprocess.call('git checkout {0}'.format(file_name), shell=True)
             else:
-                for test in tests:
-                    test_command = "python mach test-wpt {0} --release".format(test.encode('utf-8'))
-                    logging.info("running `{0}` test for mutant {1}:{2}".format(test, file_name, mutated_line))
-                    test_status = subprocess.call(test_command, shell=True, stdout=DEVNULL)
-                    if test_status != 0:
-                        logging.error("Failed: while running `{0}`".format(test_command))
-                        logging.error("mutated file {0} diff".format(file_name))
-                        subprocess.call('git --no-pager diff {0}'.format(file_name), shell=True)
-                        status = Status.SURVIVED
-                    else:
-                        logging.info("Success: Mutation killed by {0}".format(test.encode('utf-8')))
-                        status = Status.KILLED
-                        break
-            logging.info("reverting mutant {0}:{1}".format(file_name, mutated_line))
-            subprocess.call('git checkout {0}'.format(file_name), shell=True)
-        else:
-            logging.info("Cannot mutate {0}".format(file_name))
-        print "-" * 80 + "\n"
+                logging.info("Cannot mutate {0}".format(file_name))
+                # update map
+                strategy_try_map[strategy] = True
+                if all(try_flag is True for try_flag in strategy_try_map.itervalues()):
+                    # All strategies are tried
+                    fallback_on_failure = False
+
+            print "-" * 80 + "\n"
+
+
     return status
