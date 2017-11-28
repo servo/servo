@@ -391,10 +391,11 @@ impl AnimationValue {
     }
 
     /// Construct an AnimationValue from a property declaration.
-    pub fn from_declaration(
-        decl: &PropertyDeclaration,
+    pub fn from_declaration<'a>(
+        decl: &'a PropertyDeclaration,
         context: &mut Context,
         extra_custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
+        substitution_cache: Option<<&mut ::properties::ParsedShorthandCache<'a>>,
         initial: &ComputedValues
     ) -> Option<Self> {
         use properties::LonghandId;
@@ -474,13 +475,18 @@ impl AnimationValue {
                     unparsed.substitute_variables(
                         id,
                         custom_properties,
-                        context.quirks_mode
+                        context.quirks_mode,
+                        substitution_cache,
                     )
                 };
                 return AnimationValue::from_declaration(
                     &substituted,
                     context,
                     extra_custom_properties,
+                    // We shouldn't need cache anymore, and you cannot put
+                    // `substitution_cache` here anyway, since `substituted`
+                    // doesn't live long enough.
+                    None,
                     initial,
                 )
             },
