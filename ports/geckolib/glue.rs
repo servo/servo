@@ -4651,6 +4651,42 @@ pub extern "C" fn Servo_ParseIntersectionObserverRootMargin(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_ParseTransformIntoMatrix(
+    value: *const nsAString,
+    contain_3d: *mut bool,
+    result: *mut RawGeckoGfxMatrix4x4
+) -> bool {
+    use style::properties::longhands::transform;
+
+    let string = unsafe { (*value).to_string() };
+    let mut input = ParserInput::new(&string);
+    let mut parser = Parser::new(&mut input);
+    let context = ParserContext::new(
+        Origin::Author,
+        unsafe { dummy_url_data() },
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks
+    );
+
+    let transform = match parser.parse_entirely(|t| transform::parse(&context, t)) {
+        Ok(t) => t,
+        Err(..) => return false,
+    };
+
+    let (m, is_3d) = match transform.to_transform_3d_matrix(None) {
+        Ok(result) => result,
+        Err(..) => return false,
+    };
+
+    let result = unsafe { result.as_mut() }.expect("not a valid matrix");
+    let contain_3d = unsafe { contain_3d.as_mut() }.expect("not a valid bool");
+    *result = m.to_row_major_array();
+    *contain_3d = is_3d;
+    true
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn Servo_SourceSizeList_Parse(
     value: *const nsACString,
 ) -> *mut RawServoSourceSizeList {

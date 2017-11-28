@@ -45,7 +45,7 @@ use values::computed::ToComputedValue;
 use values::computed::transform::{DirectionVector, Matrix, Matrix3D};
 use values::computed::transform::TransformOperation as ComputedTransformOperation;
 use values::computed::transform::Transform as ComputedTransform;
-use values::generics::transform::{Transform, TransformOperation};
+use values::generics::transform::{self, Transform, TransformOperation};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
 #[cfg(feature = "gecko")] use values::generics::FontSettingTag as GenericFontSettingTag;
@@ -1147,10 +1147,8 @@ impl Animate for ComputedTransformOperation {
                 &TransformOperation::Rotate3D(fx, fy, fz, fa),
                 &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => {
-                let (fx, fy, fz, fa) =
-                    ComputedTransform::get_normalized_vector_and_angle(fx, fy, fz, fa);
-                let (tx, ty, tz, ta) =
-                    ComputedTransform::get_normalized_vector_and_angle(tx, ty, tz, ta);
+                let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(fx, fy, fz, fa);
+                let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
                     let ia = fa.animate(&ta, procedure)?;
                     Ok(TransformOperation::Rotate3D(fx, fy, fz, ia))
@@ -2416,9 +2414,9 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
                 &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => {
                 let (fx, fy, fz, angle1) =
-                    ComputedTransform::get_normalized_vector_and_angle(fx, fy, fz, fa);
+                    transform::get_normalized_vector_and_angle(fx, fy, fz, fa);
                 let (tx, ty, tz, angle2) =
-                    ComputedTransform::get_normalized_vector_and_angle(tx, ty, tz, ta);
+                    transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
                     angle1.compute_squared_distance(&angle2)
                 } else {
@@ -2509,8 +2507,8 @@ impl ComputeSquaredDistance for ComputedTransform {
         // Roll back to matrix interpolation if there is any Err(()) in the transform lists, such
         // as mismatched transform functions.
         if let Err(_) = squared_dist {
-            let matrix1: Matrix3D = self.to_transform_3d_matrix(None).ok_or(())?.into();
-            let matrix2: Matrix3D = other.to_transform_3d_matrix(None).ok_or(())?.into();
+            let matrix1: Matrix3D = self.to_transform_3d_matrix(None)?.0.into();
+            let matrix2: Matrix3D = other.to_transform_3d_matrix(None)?.0.into();
             return matrix1.compute_squared_distance(&matrix2);
         }
         squared_dist

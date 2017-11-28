@@ -270,6 +270,20 @@ impl ToCss for Number {
     }
 }
 
+impl From<Number> for f32 {
+    #[inline]
+    fn from(n: Number) -> Self {
+        n.get()
+    }
+}
+
+impl From<Number> for f64 {
+    #[inline]
+    fn from(n: Number) -> Self {
+        n.get() as f64
+    }
+}
+
 /// A Number which is >= 0.0.
 pub type NonNegativeNumber = NonNegative<Number>;
 

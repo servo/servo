@@ -266,6 +266,24 @@ impl specified::CalcLengthOrPercentage {
     pub fn to_computed_value_zoomed(&self, context: &Context, base_size: FontBaseSize) -> CalcLengthOrPercentage {
         self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs.into()).0, base_size)
     }
+
+    /// Compute the value into pixel length as CSSFloat without context,
+    /// so it returns Err(()) if there is any non-absolute unit.
+    pub fn to_computed_pixel_length_without_context(&self) -> Result<CSSFloat, ()> {
+        if self.vw.is_some() || self.vh.is_some() || self.vmin.is_some() || self.vmax.is_some() ||
+           self.em.is_some() || self.ex.is_some() || self.ch.is_some() || self.rem.is_some() ||
+           self.percentage.is_some() {
+            return Err(());
+        }
+
+        match self.absolute {
+            Some(abs) => Ok(abs.to_px()),
+            None => {
+                debug_assert!(false, "Someone forgot to handle an unit here: {:?}", self);
+                Err(())
+            }
+        }
+    }
 }
 
 impl ToComputedValue for specified::CalcLengthOrPercentage {

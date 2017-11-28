@@ -1578,6 +1578,8 @@ extern "C" {
 } extern "C" {
  pub fn Servo_ParseIntersectionObserverRootMargin ( value : * const nsAString , result : * mut nsCSSRect , ) -> bool ; 
 } extern "C" {
+ pub fn Servo_ParseTransformIntoMatrix ( value : * const nsAString , contains_3d_transform : * mut bool , result : * mut RawGeckoGfxMatrix4x4 , ) -> bool ;
+} extern "C" {
  pub fn Gecko_CreateCSSErrorReporter ( sheet : * mut ServoStyleSheet , loader : * mut Loader , uri : * mut nsIURI , ) -> * mut ErrorReporter ; 
 } extern "C" {
  pub fn Gecko_DestroyCSSErrorReporter ( reporter : * mut ErrorReporter , ) ; 
