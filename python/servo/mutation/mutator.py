@@ -35,13 +35,11 @@ def is_comment(line):
 
 def init_variables(if_blocks):
     random_index = random.randint(0, len(if_blocks) - 1)
-    if_blocks.pop(random_index)
     start_counter = 0
     end_counter = 0
-    block_to_delete = ""
-    idx_to_del = []
-    mutation_line_number = if_blocks[random_index] - 1
-    return random_index, if_blocks, start_counter, end_counter, block_to_delete, idx_to_del, mutation_line_number
+    lines_to_delete = []
+    line_to_mutate = if_blocks[random_index]
+    return random_index, start_counter, end_counter, lines_to_delete, line_to_mutate
 
 
 def deleteStatements(file_name, line_numbers):
@@ -54,15 +52,8 @@ class Strategy:
     def __init__(self):
         self._strategy_name = ""
         self._replace_strategy = {}
-        self._delete_strategy = {}
 
     def mutate(self, file_name):
-        if self._strategy_name == "delete_if_block":
-            return self.mutate_random_block(file_name)
-        else:
-            return self.mutate_random_line(file_name)
-
-    def mutate_random_line(self, file_name):
         line_numbers = []
         for line in fileinput.input(file_name):
             if not is_comment(line) and re.search(self._replace_strategy['regex'], line):
@@ -81,40 +72,6 @@ class Strategy:
                             line = re.sub(self._replace_strategy['regex'], replacement, line)
                 print line.rstrip()
             return mutation_line_number
-
-    def mutate_random_block(self, file_name):
-        code_lines = []
-        if_blocks = []
-        for line in fileinput.input(file_name):
-                code_lines.append(line)
-                if re.search(self._delete_strategy['ifBlock'], line):
-                    if_blocks.append(fileinput.lineno())
-        if len(if_blocks) == 0:
-            return -1
-        random_index, if_blocks, start_counter, end_counter, block_to_delete, index_to_delete, line_to_mutate = \
-            init_variables(if_blocks)
-        while line_to_mutate < len(code_lines):
-            current_line = code_lines[line_to_mutate]
-            next_line = code_lines[line_to_mutate + 1]
-            if re.search(self._delete_strategy['elseBlock'], current_line) is not None \
-                    or re.search(self._delete_strategy['elseBlock'], next_line) is not None:
-                random_index, if_blocks, start_counter, end_counter, block_to_delete, \
-                    index_to_delete, line_to_mutate = init_variables(if_blocks)
-                if len(if_blocks) == 0:
-                    return -1
-                else:
-                    continue
-            index_to_delete.append(line_to_mutate + 1)
-            for ch in current_line:
-                block_to_delete += ch
-                if ch == "{":
-                    start_counter += 1
-                elif ch == "}":
-                    end_counter += 1
-                if start_counter != 0 and start_counter == end_counter:
-                    deleteStatements(file_name, index_to_delete)
-                    return index_to_delete[0]
-            line_to_mutate += 1
 
 
 class AndOr(Strategy):
@@ -194,11 +151,43 @@ class DuplicateLine(Strategy):
 class DeleteIfBlock(Strategy):
     def __init__(self):
         Strategy.__init__(self)
-        self._strategy_name = "delete_if_block"
         self._delete_strategy = {
             'ifBlock': regex['if_block'],
             'elseBlock': regex['else_block']
         }
+
+    def mutate(self, file_name):
+        code_lines = []
+        if_blocks = []
+        for line in fileinput.input(file_name):
+            code_lines.append(line)
+            if re.search(self._delete_strategy['ifBlock'], line):
+                if_blocks.append(fileinput.lineno())
+        if len(if_blocks) == 0:
+            return -1
+        random_index, start_counter, end_counter, lines_to_delete, line_to_mutate = init_variables(if_blocks)
+        while line_to_mutate <= len(code_lines):
+            current_line = code_lines[line_to_mutate - 1]
+            next_line = code_lines[line_to_mutate]
+            if re.search(self._delete_strategy['elseBlock'], current_line) is not None \
+                    or re.search(self._delete_strategy['elseBlock'], next_line) is not None:
+                if_blocks.pop(random_index)
+                if len(if_blocks) == 0:
+                    return -1
+                else:
+                    random_index, start_counter, end_counter, lines_to_delete, line_to_mutate = \
+                        init_variables(if_blocks)
+                    continue
+            lines_to_delete.append(line_to_mutate)
+            for ch in current_line:
+                if ch == "{":
+                    start_counter += 1
+                elif ch == "}":
+                    end_counter += 1
+                if start_counter and start_counter == end_counter:
+                    deleteStatements(file_name, lines_to_delete)
+                    return lines_to_delete[0]
+            line_to_mutate += 1
 
 
 def get_strategies():
