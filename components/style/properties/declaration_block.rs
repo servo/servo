@@ -12,6 +12,7 @@ use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKi
 use custom_properties::CustomPropertiesBuilder;
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, ParserErrorContext};
+use properties::ParsedShorthandCache;
 use properties::animated_properties::AnimationValue;
 use shared_lock::Locked;
 use smallbitvec::{self, SmallBitVec};
@@ -160,9 +161,11 @@ pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
     default_values: &'a ComputedValues,
     /// Custom properties in a keyframe if exists.
     extra_custom_properties: Option<&'a Arc<::custom_properties::CustomPropertiesMap>>,
+    substitution_cache: ParsedShorthandCache<'a>,
 }
 
 impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
+    #[inline]
     fn new(
         declarations: &'a PropertyDeclarationBlock,
         context: &'cx mut Context<'cx_a>,
@@ -174,6 +177,7 @@ impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
             context,
             default_values,
             extra_custom_properties,
+            substitution_cache: ParsedShorthandCache::new(),
         }
     }
 }
@@ -193,6 +197,7 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
                 decl,
                 &mut self.context,
                 self.extra_custom_properties,
+                Some(&mut self.substitution_cache),
                 self.default_values,
             );
 
@@ -630,10 +635,15 @@ impl PropertyDeclarationBlock {
                         // declarations. This will be fixed properly in Gecko bug 1391537.
                         (&PropertyDeclaration::WithVariables(id, ref unparsed),
                          Some(ref _computed_values)) => {
+                            // XXX Ideally the callsite of this function should keep
+                            // this cache so that it's perserved among iterations,
+                            // and actually speeds things up.
+                            let mut substitution_cache = ParsedShorthandCache::new();
                             unparsed.substitute_variables(
                                 id,
                                 custom_properties.as_ref(),
                                 QuirksMode::NoQuirks,
+                                Some(&mut substitution_cache),
                             )
                             .to_css(dest)
                         },

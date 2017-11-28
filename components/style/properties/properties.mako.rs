@@ -18,6 +18,7 @@ use smallbitvec::SmallBitVec;
 use std::borrow::Cow;
 use std::{fmt, mem, ops};
 use std::cell::RefCell;
+use std::ptr;
 
 #[cfg(feature = "servo")] use cssparser::RGBA;
 use cssparser::{CowRcStr, Parser, TokenSerializationType, serialize_identifier};
@@ -35,7 +36,6 @@ use parser::ParserContext;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use rule_cache::{RuleCache, RuleCacheConditions};
 use selector_parser::PseudoElement;
-use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::{ParsingMode, ToCss, ParseError, StyleParseErrorKind};
@@ -969,6 +969,29 @@ impl<T> DeclaredValueOwned<T> {
     }
 }
 
+/// A cache for property declarations parsed from a shorthand.
+pub struct ParsedShorthandCache<'a> {
+    /// The unparsed value that the current cache is for.
+    unparsed: Option<<&'a UnparsedValue>,
+    /// Whether the value is parsed successfully.
+    is_valid: bool,
+    /// The cached declarations from the unparsed value.
+    decls: SourcePropertyDeclaration,
+}
+
+impl<'a> ParsedShorthandCache<'a> {
+    /// Create new ParsedShorthandCache. Since SourcePropertyDeclaration
+    /// is big, try not to move it around.
+    #[inline]
+    pub fn new() -> Self {
+        ParsedShorthandCache {
+            unparsed: None,
+            is_valid: false,
+            decls: SourcePropertyDeclaration::new(),
+        }
+    }
+}
+
 /// An unparsed property value that contains `var()` functions.
 #[derive(Debug, Eq, PartialEq)]
 pub struct UnparsedValue {
@@ -983,12 +1006,50 @@ pub struct UnparsedValue {
 }
 
 impl UnparsedValue {
-    fn substitute_variables(
-        &self,
+    fn substitute_variables<'a>(
+        &'a self,
         longhand_id: LonghandId,
         custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
         quirks_mode: QuirksMode,
+        cache: Option<<&mut ParsedShorthandCache<'a>>,
     ) -> PropertyDeclaration {
+        match self.from_shorthand {
+            None => {
+                self.substitute_variables_from_longhand(
+                    longhand_id,
+                    custom_properties,
+                    quirks_mode,
+                )
+            }
+            Some(_) => {
+                self.substitute_variables_from_shorthand(
+                    longhand_id,
+                    custom_properties,
+                    quirks_mode,
+                    cache.expect("Must provide cache for unparsed shorthand"),
+                )
+            }
+        }
+        .unwrap_or_else(|| {
+            // Invalid at computed-value time.
+            let keyword = if longhand_id.inherited() {
+                CSSWideKeyword::Inherit
+            } else {
+                CSSWideKeyword::Initial
+            };
+            PropertyDeclaration::CSSWideKeyword(longhand_id, keyword)
+        })
+    }
+
+    fn substitute_variables_and_parse<F, T>(
+        &self,
+        custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
+        quirks_mode: QuirksMode,
+        parse: F,
+    ) -> Option<T>
+    where
+        F: for<'i, 't> FnOnce(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>
+    {
         ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties)
         .ok()
         .and_then(|css| {
@@ -1003,44 +1064,78 @@ impl UnparsedValue {
             );
 
             let mut input = ParserInput::new(&css);
-            Parser::new(&mut input).parse_entirely(|input| {
-                match self.from_shorthand {
-                    None => longhand_id.parse_value(&context, input),
-                    Some(ShorthandId::All) => {
-                        // No need to parse the 'all' shorthand as anything other than a CSS-wide
-                        // keyword, after variable substitution.
-                        Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("all".into())))
+            Parser::new(&mut input)
+                .parse_entirely(|input| parse(&context, input))
+                .ok()
+        })
+    }
+
+    fn substitute_variables_from_longhand(
+        &self,
+        longhand_id: LonghandId,
+        custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
+        quirks_mode: QuirksMode,
+    ) -> Option<PropertyDeclaration> {
+        self.substitute_variables_and_parse(
+            custom_properties,
+            quirks_mode,
+            |context, input| longhand_id.parse_value(context, input)
+        )
+    }
+
+    fn substitute_variables_from_shorthand<'i, 't, 'a>(
+        &'a self,
+        longhand_id: LonghandId,
+        custom_properties: Option<<&Arc<::custom_properties::CustomPropertiesMap>>,
+        quirks_mode: QuirksMode,
+        cache: &mut ParsedShorthandCache<'a>,
+    ) -> Option<PropertyDeclaration> {
+        // Propagate the cache when cache misses.
+        if !cache.unparsed.map_or(false, |v| ptr::eq(v, self)) {
+            let shorthand_id = match self.from_shorthand {
+                Some(shorthand_id) => shorthand_id,
+                None => unreachable!("Not from shorthand?"),
+            };
+            let is_valid = self.substitute_variables_and_parse(
+                custom_properties,
+                quirks_mode,
+                |context, input| match shorthand_id {
+                    // No need to parse the 'all' shorthand as anything other than
+                    // a CSS-wide keyword, after variable substitution.
+                    ShorthandId::All => {
+                        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
                     % for shorthand in data.shorthands_except_all():
-                        Some(ShorthandId::${shorthand.camel_case}) => {
-                            shorthands::${shorthand.ident}::parse_value(&context, input)
-                            .map(|longhands| {
-                                match longhand_id {
-                                    % for property in shorthand.sub_properties:
-                                        LonghandId::${property.camel_case} => {
-                                            PropertyDeclaration::${property.camel_case}(
-                                                longhands.${property.ident}
-                                            )
-                                        }
-                                    % endfor
-                                    _ => unreachable!()
-                                }
-                            })
-                        }
+                    ShorthandId::${shorthand.camel_case} => {
+                        cache.unparsed = Some(self);
+                        cache.decls.clear();
+                        shorthands::${shorthand.ident}::
+                            parse_into(&mut cache.decls, &context, input)
+                    }
                     % endfor
                 }
-            })
-            .ok()
-        })
-        .unwrap_or_else(|| {
-            // Invalid at computed-value time.
-            let keyword = if longhand_id.inherited() {
-                CSSWideKeyword::Inherit
-            } else {
-                CSSWideKeyword::Initial
-            };
-            PropertyDeclaration::CSSWideKeyword(longhand_id, keyword)
-        })
+            ).is_some();
+            cache.is_valid = is_valid;
+        }
+        if !cache.is_valid {
+            return None;
+        }
+        let mut idx = None;
+        // In cascading, we iterate the declarations in reverse order,
+        // while subproperties of shorthand are added to declaration
+        // blocks in normal order. We use reverse order here as well,
+        // so that in common cases, each item would be visited only
+        // once. Note that not all callsites of the function does the
+        // same thing as cascading. We may want to change them if their
+        // performance matters.
+        for (i, decl) in cache.decls.declarations.iter().enumerate().rev() {
+            if decl.longhand_id().unwrap() == longhand_id {
+                idx = Some(i);
+                break;
+            }
+        }
+        let idx = idx.expect("Should always find the wanted declaration");
+        cache.decls.declarations.swap_remove(idx)
     }
 }
 
@@ -1474,19 +1569,20 @@ impl ToCss for PropertyDeclaration {
 }
 
 impl PropertyDeclaration {
-    /// Given a property declaration, return the property declaration id.
-    pub fn id(&self) -> PropertyDeclarationId {
+    /// Given a property declaration, return the longhand id.
+    /// It returns None if the declaration is a custom property.
+    pub fn longhand_id(&self) -> Option<LonghandId> {
         match *self {
-            PropertyDeclaration::Custom(ref name, _) => {
-                return PropertyDeclarationId::Custom(name)
+            PropertyDeclaration::Custom(..) => {
+                return None;
             }
             PropertyDeclaration::CSSWideKeyword(id, _) |
             PropertyDeclaration::WithVariables(id, _) => {
-                return PropertyDeclarationId::Longhand(id)
+                return Some(id);
             }
             _ => {}
         }
-        let longhand_id = match *self {
+        Some(match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(..) => {
                     LonghandId::${property.camel_case}
@@ -1501,8 +1597,21 @@ impl PropertyDeclaration {
                 // to a lookup table.
                 LonghandId::BackgroundColor
             }
-        };
-        PropertyDeclarationId::Longhand(longhand_id)
+        })
+    }
+
+    /// Given a property declaration, return the property declaration id.
+    pub fn id(&self) -> PropertyDeclarationId {
+        self.longhand_id()
+            .map(PropertyDeclarationId::Longhand)
+            .unwrap_or_else(|| {
+                match *self {
+                    PropertyDeclaration::Custom(ref name, _) => {
+                        PropertyDeclarationId::Custom(name)
+                    }
+                    _ => unreachable!("Only custom property should reach this match")
+                }
+            })
     }
 
     fn with_variables_from_shorthand(&self, shorthand: ShorthandId) -> Option< &str> {
@@ -3270,6 +3379,8 @@ where
     // property.
     let mut seen = LonghandIdSet::new();
 
+    let mut substitution_cache = ParsedShorthandCache::new();
+
     // Declaration blocks are stored in increasing precedence order, we want
     // them in decreasing order here.
     //
@@ -3329,7 +3440,8 @@ where
                     Cow::Owned(unparsed.substitute_variables(
                         id,
                         context.builder.custom_properties.as_ref(),
-                        context.quirks_mode
+                        context.quirks_mode,
+                        Some(&mut substitution_cache),
                     ))
                 }
                 ref d => Cow::Borrowed(d)

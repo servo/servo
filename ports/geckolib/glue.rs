@@ -3917,6 +3917,7 @@ pub extern "C" fn Servo_AnimationValue_Compute(
                 decl,
                 &mut context,
                 None, // No extra custom properties for devtools.
+                None,
                 default_values,
             );
             animation.map_or(RawServoAnimationValueStrong::null(), |value| {
