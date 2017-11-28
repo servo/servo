@@ -37,8 +37,9 @@ branches:
     - master
 
 cache:
+  - C:\Users\appveyor\.rustup -> rust-toolchain
+  - C:\Users\appveyor\.cargo -> rust-toolchain
   - .servo -> rust-toolchain
-  - .cargo -> rust-toolchain
   - .ccache
 
 install:
