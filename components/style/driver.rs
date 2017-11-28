@@ -25,11 +25,13 @@ use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 /// processing, until we arrive at a wide enough level in the DOM that the
 /// parallel traversal would parallelize it. If a thread pool is provided, we
 /// then transfer control over to the parallel traversal.
+///
+/// Returns true if the traversal was parallel
 pub fn traverse_dom<E, D>(
     traversal: &D,
     token: PreTraverseToken<E>,
     pool: Option<&rayon::ThreadPool>
-)
+) -> bool
 where
     E: TElement,
     D: DomTraversal<E>,
@@ -38,6 +40,7 @@ where
         token.traversal_root().expect("Should've ensured we needed to traverse");
 
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
+    let mut used_parallel = false;
     let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
 
     // Declare the main-thread context, as well as the worker-thread contexts,
@@ -84,6 +87,7 @@ where
             // moving to the next level in the dom so that we can pass the same
             // depth for all the children.
             if pool.is_some() && discovered.len() > WORK_UNIT_MAX {
+                used_parallel = true;
                 let pool = pool.unwrap();
                 maybe_tls = Some(ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool));
                 let root_opaque = root.as_node().opaque();
@@ -128,4 +132,6 @@ where
             println!("{}", aggregate);
         }
     }
+
+    used_parallel
 }

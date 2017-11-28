@@ -16,6 +16,7 @@ use media_queries::{Device, MediaList};
 use properties::ComputedValues;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use stylesheets::{StylesheetContents, StylesheetInDocument};
 use stylist::Stylist;
 
@@ -112,6 +113,10 @@ impl StylesheetInDocument for GeckoStyleSheet {
 pub struct PerDocumentStyleDataImpl {
     /// Rule processor.
     pub stylist: Stylist,
+    /// Total number of traversals that could have been parallel, for telemetry
+    pub total_traversal_count: AtomicUsize,
+    /// Number of parallel traversals
+    pub parallel_traversal_count: AtomicUsize,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
@@ -133,6 +138,8 @@ impl PerDocumentStyleData {
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Stylist::new(device, quirks_mode.into()),
+            total_traversal_count: Default::default(),
+            parallel_traversal_count: Default::default(),
         }))
     }
 
@@ -144,6 +151,14 @@ impl PerDocumentStyleData {
     /// Get an mutable reference to this style data.
     pub fn borrow_mut(&self) -> AtomicRefMut<PerDocumentStyleDataImpl> {
         self.0.borrow_mut()
+    }
+}
+
+impl Drop for PerDocumentStyleDataImpl {
+    fn drop(&mut self) {
+        let total = self.total_traversal_count.load(Ordering::Relaxed) as u32;
+        let parallel = self.parallel_traversal_count.load(Ordering::Relaxed) as u32;
+        unsafe { bindings::Gecko_RecordTraversalStatistics(total, parallel) }
     }
 }
 
@@ -208,6 +223,14 @@ impl PerDocumentStyleDataImpl {
     /// Measure heap usage.
     pub fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
         self.stylist.add_size_of(ops, sizes);
+    }
+
+    /// Record that a traversal happened for later collection as telemetry
+    pub fn record_traversal(&self, was_parallel: bool) {
+        self.total_traversal_count.fetch_add(1, Ordering::Relaxed);
+        if was_parallel {
+            self.parallel_traversal_count.fetch_add(1, Ordering::Relaxed);
+        }
     }
 }
 
