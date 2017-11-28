@@ -270,7 +270,7 @@ fn traverse_subtree(
     let is_restyle = element.get_data().is_some();
 
     let traversal = RecalcStyleOnly::new(shared_style_context);
-    let used_parallel = driver::traverse_dom(&traversal, token, thread_pool);
+    let (used_parallel, stats) = driver::traverse_dom(&traversal, token, thread_pool);
 
     if traversal_flags.contains(TraversalFlags::ParallelTraversal) &&
        !traversal_flags.contains(TraversalFlags::AnimationOnly) &&
@@ -278,7 +278,7 @@ fn traverse_subtree(
        // We turn off parallel traversal for background tabs; this
        // shouldn't count in telemetry. We're also focusing on restyles so
        // we ensure that it's a restyle.
-       per_doc_data.record_traversal(used_parallel);
+       per_doc_data.record_traversal(used_parallel, stats);
     }
 }
 
