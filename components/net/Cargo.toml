@@ -28,7 +28,6 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 openssl = "0.9"
-parse-hosts = "0.5.0"
 profile_traits = {path = "../profile_traits"}
 serde = "1.0"
 serde_json = "1.0"
