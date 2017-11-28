@@ -40,8 +40,9 @@ def mutation_test(file_name, tests):
             strategy_try_map[item] = False
 
         fallback_on_failure = True
-        while fallback_on_failure:
+        while fallback_on_failure and len(strategies):
             strategy = random.choice(strategies)()
+            strategies.remove(strategy)
             mutator = Mutator(strategy)
             mutated_line = mutator.mutate(file_name)
             if mutated_line != -1:
