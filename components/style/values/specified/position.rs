@@ -8,10 +8,14 @@
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use cssparser::Parser;
+use hash::FnvHashMap;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt;
+use std::ops::Range;
+use str::HTML_SPACE_CHARACTERS;
 use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use values::{Either, None_};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
@@ -484,5 +488,181 @@ impl From<GridAutoFlow> for u8 {
             result |= structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
         }
         result
+    }
+}
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq)]
+/// https://drafts.csswg.org/css-grid/#named-grid-area
+pub struct TemplateAreas {
+    /// `named area` containing for each template area
+    pub areas: Box<[NamedArea]>,
+    /// The original CSS string value of each template area
+    pub strings: Box<[Box<str>]>,
+    /// The number of columns of the grid.
+    pub width: u32,
+}
+
+impl TemplateAreas {
+    /// Transform `vector` of str into `template area`
+    pub fn from_vec(strings: Vec<Box<str>>) -> Result<TemplateAreas, ()> {
+        if strings.is_empty() {
+            return Err(());
+        }
+        let mut areas: Vec<NamedArea> = vec![];
+        let mut width = 0;
+        {
+            let mut row = 0u32;
+            let mut area_indices = FnvHashMap::<&str, usize>::default();
+            for string in &strings {
+                let mut current_area_index: Option<usize> = None;
+                row += 1;
+                let mut column = 0u32;
+                for token in TemplateAreasTokenizer(string) {
+                    column += 1;
+                    let token = if let Some(token) = token? {
+                        token
+                    } else {
+                        if let Some(index) = current_area_index.take() {
+                            if areas[index].columns.end != column {
+                                return Err(());
+                            }
+                        }
+                        continue;
+                    };
+                    if let Some(index) = current_area_index {
+                        if &*areas[index].name == token {
+                            if areas[index].rows.start == row {
+                                areas[index].columns.end += 1;
+                            }
+                            continue;
+                        }
+                        if areas[index].columns.end != column {
+                            return Err(());
+                        }
+                    }
+                    if let Some(index) = area_indices.get(token).cloned() {
+                        if areas[index].columns.start != column || areas[index].rows.end != row {
+                            return Err(());
+                        }
+                        areas[index].rows.end += 1;
+                        current_area_index = Some(index);
+                        continue;
+                    }
+                    let index = areas.len();
+                    areas.push(NamedArea {
+                        name: token.to_owned().into_boxed_str(),
+                        columns: column..(column + 1),
+                        rows: row..(row + 1),
+                    });
+                    assert!(area_indices.insert(token, index).is_none());
+                    current_area_index = Some(index);
+                }
+                if let Some(index) = current_area_index {
+                    if areas[index].columns.end != column + 1 {
+                        assert_ne!(areas[index].rows.start, row);
+                        return Err(());
+                    }
+                }
+                if row == 1 {
+                    width = column;
+                } else if width != column {
+                    return Err(());
+                }
+            }
+        }
+        Ok(TemplateAreas {
+            areas: areas.into_boxed_slice(),
+            strings: strings.into_boxed_slice(),
+            width: width,
+        })
+    }
+}
+
+impl ToCss for TemplateAreas {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        for (i, string) in self.strings.iter().enumerate() {
+            if i != 0 {
+                dest.write_str(" ")?;
+            }
+            string.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
+impl Parse for TemplateAreas {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let mut strings = vec![];
+        while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+            strings.push(string);
+        }
+
+        TemplateAreas::from_vec(strings)
+            .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+}
+
+trivial_to_computed_value!(TemplateAreas);
+
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Debug, PartialEq)]
+/// Not associated with any particular grid item, but can
+/// be referenced from the grid-placement properties.
+pub struct NamedArea {
+    /// Name of the `named area`
+    pub name: Box<str>,
+    /// Rows of the `named area`
+    pub rows: Range<u32>,
+    /// Columns of the `named area`
+    pub columns: Range<u32>,
+}
+
+/// Tokenize the string into a list of the tokens,
+/// using longest-match semantics
+struct TemplateAreasTokenizer<'a>(&'a str);
+
+impl<'a> Iterator for TemplateAreasTokenizer<'a> {
+    type Item = Result<Option<&'a str>, ()>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let rest = self.0.trim_left_matches(HTML_SPACE_CHARACTERS);
+        if rest.is_empty() {
+            return None;
+        }
+        if rest.starts_with('.') {
+            self.0 = &rest[rest.find(|c| c != '.').unwrap_or(rest.len())..];
+            return Some(Ok(None));
+        }
+        if !rest.starts_with(is_name_code_point) {
+            return Some(Err(()));
+        }
+        let token_len = rest.find(|c| !is_name_code_point(c)).unwrap_or(rest.len());
+        let token = &rest[..token_len];
+        self.0 = &rest[token_len..];
+        Some(Ok(Some(token)))
+    }
+}
+
+fn is_name_code_point(c: char) -> bool {
+    c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' ||
+    c >= '\u{80}' || c == '_' ||
+    c >= '0' && c <= '9' || c == '-'
+}
+
+/// This property specifies named grid areas.
+/// The syntax of this property also provides a visualization of
+/// the structure of the grid, making the overall layout of
+/// the grid container easier to understand.
+pub type GridTemplateAreas = Either<TemplateAreas, None_>;
+
+impl GridTemplateAreas {
+    #[inline]
+    /// Get default value as `none`
+    pub fn none() -> GridTemplateAreas {
+        Either::Second(None_)
     }
 }

@@ -2252,7 +2252,7 @@ fn static_assert() {
 
     ${impl_simple_type_with_conversion("grid_auto_flow")}
 
-    pub fn set_grid_template_areas(&mut self, v: longhands::grid_template_areas::computed_value::T) {
+    pub fn set_grid_template_areas(&mut self, v: values::computed::position::GridTemplateAreas) {
         use gecko_bindings::bindings::Gecko_NewGridTemplateAreasValue;
         use gecko_bindings::sugar::refptr::UniqueRefPtr;
 
@@ -2292,10 +2292,10 @@ fn static_assert() {
         self.copy_grid_template_areas_from(other)
     }
 
-    pub fn clone_grid_template_areas(&self) -> longhands::grid_template_areas::computed_value::T {
-        use properties::longhands::grid_template_areas::{NamedArea, TemplateAreas};
+    pub fn clone_grid_template_areas(&self) -> values::computed::position::GridTemplateAreas {
         use std::ops::Range;
         use values::None_;
+        use values::specified::position::{NamedArea, TemplateAreas};
 
         if self.gecko.mGridTemplateAreas.mRawPtr.is_null() {
             return Either::Second(None_);
