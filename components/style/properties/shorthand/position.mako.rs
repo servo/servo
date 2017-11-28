@@ -246,12 +246,12 @@
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
                     products="gecko">
     use parser::Parse;
-    use properties::longhands::grid_template_areas::TemplateAreas;
     use values::{Either, None_};
     use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
     use values::generics::grid::{TrackListValue, concat_serialize_idents};
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
+    use values::specified::position::TemplateAreas;
 
     /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
     pub fn parse_grid_template<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)

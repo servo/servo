@@ -11,7 +11,7 @@ use std::fmt;
 use style_traits::ToCss;
 use values::computed::{LengthOrPercentage, Percentage};
 use values::generics::position::Position as GenericPosition;
-pub use values::specified::position::GridAutoFlow;
+pub use values::specified::position::{GridAutoFlow, GridTemplateAreas};
 
 /// The computed value of a CSS `<position>`
 pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;
