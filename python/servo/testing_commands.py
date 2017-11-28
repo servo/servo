@@ -330,8 +330,6 @@ class MachCommands(CommandBase):
     @CommandArgument('tests', default=None, nargs="...",
                      help="Specific tests to run, relative to the tests directory")
     def test_webidl(self, quiet, tests):
-        self.ensure_bootstrapped()
-
         test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "components", "script",
                                                "dom", "bindings", "codegen", "parser"))
         # For the `import WebIDL` in runtests.py
@@ -349,7 +347,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=create_parser_wpt)
     def test_wpt_failure(self, **kwargs):
-        self.ensure_bootstrapped()
         kwargs["pause_after_test"] = False
         kwargs["include"] = ["infrastructure/failing-test.html"]
         return not self._test_wpt(**kwargs)
@@ -359,7 +356,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
-        self.ensure_bootstrapped()
         ret = self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
         if kwargs["always_succeed"]:
             return 0
@@ -432,7 +428,6 @@ class MachCommands(CommandBase):
              category='testing',
              parser=updatecommandline.create_parser())
     def update_wpt(self, **kwargs):
-        self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         patch = kwargs.get("patch", False)
 
@@ -641,7 +636,6 @@ class MachCommands(CommandBase):
                            str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
 
     def jquery_test_runner(self, cmd, release, dev):
-        self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "jquery"))
         jquery_dir = path.join(base_dir, "jquery")
         run_file = path.join(base_dir, "run_jquery.py")
@@ -661,7 +655,6 @@ class MachCommands(CommandBase):
         return call([run_file, cmd, bin_path, base_dir])
 
     def dromaeo_test_runner(self, tests, release, dev):
-        self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -876,8 +869,6 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
     @CommandArgument('--version', default='2.0.0',
                      help='WebGL conformance suite version')
     def update_webgl(self, version=None):
-        self.ensure_bootstrapped()
-
         base_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
                                 "tests", "wpt", "mozilla", "tests", "webgl"))
         run_file = path.join(base_dir, "tools", "import-conformance-tests.py")

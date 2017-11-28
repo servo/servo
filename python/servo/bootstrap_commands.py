@@ -26,7 +26,7 @@ from mach.decorators import (
 )
 
 import servo.bootstrap as bootstrap
-from servo.command_base import CommandBase, cd
+from servo.command_base import CommandBase, cd, check_call
 from servo.util import delete, download_bytes
 
 
@@ -37,6 +37,7 @@ class MachCommands(CommandBase):
              category='bootstrap')
     def env(self):
         env = self.build_env()
+        print("export RUSTFLAGS=%s" % env["RUSTFLAGS"])
         print("export PATH=%s" % env["PATH"])
         if sys.platform == "darwin":
             print("export DYLD_LIBRARY_PATH=%s" % env["DYLD_LIBRARY_PATH"])
@@ -139,7 +140,7 @@ class MachCommands(CommandBase):
                         ['git', 'show', '%s:%s' % (commit_hash, toolchain_file)])
                     old_toolchains.append(toolchain.strip())
 
-        remove_anything = False
+        removing_anything = False
         stdout = subprocess.check_output(['rustup', 'toolchain', 'list'])
         for toolchain_with_host in stdout.split():
             for old in old_toolchains:
