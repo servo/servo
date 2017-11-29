@@ -164,6 +164,21 @@ where
             }
         }
 
+        debug!("Collecting changes for: {:?}", element);
+        debug!(" > state: {:?}", state_changes);
+        debug!(
+            " > id changed: {:?} -> +{:?} -{:?}",
+            snapshot.id_changed(),
+            id_added,
+            id_removed
+        );
+        debug!(
+            " > class changed: {:?} -> +{:?} -{:?}",
+            snapshot.class_changed(),
+            classes_added,
+            classes_removed
+        );
+
         let lookup_element =
             if element.implemented_pseudo_element().is_some() {
                 element.pseudo_element_originating_element().unwrap()
