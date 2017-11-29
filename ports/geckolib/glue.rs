@@ -6,7 +6,7 @@ use cssparser::{Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use malloc_size_of::MallocSizeOfOps;
-use selectors::Element;
+use selectors::{Element, NthIndexCache};
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use std::cell::RefCell;
@@ -4478,15 +4478,13 @@ pub extern "C" fn Servo_ProcessInvalidations(
     let mut data = data.as_mut().map(|d| &mut **d);
 
     if let Some(ref mut data) = data {
-        // FIXME(emilio): an nth-index cache could be worth here, even
-        // if temporary?
-        //
-        // Also, ideally we could share them across all the elements?
+        // FIXME(emilio): Ideally we could share the nth-index-cache across all
+        // the elements?
         let result = data.invalidate_style_if_needed(
             element,
             &shared_style_context,
             None,
-            None,
+            &mut NthIndexCache::default(),
         );
 
         if result.has_invalidated_siblings() {

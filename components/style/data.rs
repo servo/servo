@@ -239,7 +239,7 @@ impl ElementData {
         element: E,
         shared_context: &SharedStyleContext,
         stack_limit_checker: Option<&StackLimitChecker>,
-        nth_index_cache: Option<&mut NthIndexCache>,
+        nth_index_cache: &mut NthIndexCache,
     ) -> InvalidationResult {
         // In animation-only restyle we shouldn't touch snapshot at all.
         if shared_context.traversal_flags.for_animation_only() {

@@ -71,12 +71,12 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
         cut_off_inheritance: bool,
         element: E,
         data: &'a mut ElementData,
-        nth_index_cache: Option<&'a mut NthIndexCache>,
+        nth_index_cache: &'a mut NthIndexCache,
     ) -> Self {
         let matching_context = MatchingContext::new_for_visited(
             MatchingMode::Normal,
             None,
-            nth_index_cache,
+            Some(nth_index_cache),
             VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             shared_context.quirks_mode(),
         );

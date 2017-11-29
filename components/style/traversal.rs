@@ -10,6 +10,7 @@ use dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::RestyleHint;
 use matching::{ChildCascadeRequirement, MatchMethods};
 use selector_parser::PseudoElement;
+use selectors::NthIndexCache;
 use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
 use style_resolver::{PseudoElementResolution, StyleResolverForElement};
@@ -153,11 +154,12 @@ pub trait DomTraversal<E: TElement> : Sync {
             if !traversal_flags.for_animation_only() {
                 // Invalidate our style, and that of our siblings and
                 // descendants as needed.
-                //
-                // FIXME(emilio): an nth-index cache could be worth here, even
-                // if temporary?
-                let invalidation_result =
-                    data.invalidate_style_if_needed(root, shared_context, None, None);
+                let invalidation_result = data.invalidate_style_if_needed(
+                    root,
+                    shared_context,
+                    None,
+                    &mut NthIndexCache::default(),
+                );
 
                 if invalidation_result.has_invalidated_siblings() {
                     let actual_root = root.traversal_parent()
@@ -802,7 +804,7 @@ where
                 child,
                 &context.shared,
                 Some(&context.thread_local.stack_limit_checker),
-                Some(&mut context.thread_local.nth_index_cache)
+                &mut context.thread_local.nth_index_cache,
             );
         }
 
