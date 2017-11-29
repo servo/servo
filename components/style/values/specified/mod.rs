@@ -50,7 +50,7 @@ pub use self::length::{NoCalcLength, ViewportPercentageLength};
 pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::rect::LengthOrNumberRect;
 pub use self::percentage::Percentage;
-pub use self::position::{Position, PositionComponent, GridAutoFlow};
+pub use self::position::{Position, PositionComponent, GridAutoFlow, GridTemplateAreas};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine, TextOverflow, WordSpacing};

@@ -54,7 +54,7 @@ pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNum
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPercentage};
 pub use self::percentage::Percentage;
-pub use self::position::{Position, GridAutoFlow};
+pub use self::position::{Position, GridAutoFlow, GridTemplateAreas};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
