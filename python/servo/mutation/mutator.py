@@ -12,25 +12,26 @@ import re
 import random
 
 regex = {
-    'arithmetic_plus': r'(?<=[^\"]\s)\+(?=\s[^A-Z\'?\":\{]+)',
-    'arithmetic_minus': r'(?<=\s)\-(?=\s.+)',
-    'plus_equals': r'(?<=\s)\+(?=\=)',
-    'minus_equals': r'(?<=\s)\-(?=\=)',
-    'push_statement': r'.*?push\(.*?\).*?;',
-    'remove_statement': r'.*?remove\(.*?\).*?;',
-    'append_statement': r'.*?append\(.*?\).*?;',
-    'atomic_string': r"(?<=\").+(?=\")",
-    'if_condition': r'(?<=if\s)(.*)(?=\s\{)',
-    'logical_and': r'\s&&\s',
-    'less_than_equals': r'(?<=\s\<)\=\s',
-    'greater_than_equals': r'(?<=\s\>)\=\s',
-    'if_block': r'[^a-z]\sif(.+)\{',
-    'else_block': r'\selse(.+)\{'
+    'arithmetic_plus': r"(?<=[^\"]\s)\+(?=\s[^A-Z\'?\":\{]+)",
+    'arithmetic_minus': r"(?<=\s)\-(?=\s.+)",
+    'plus_equals': r"(?<=\s)\+(?=\=)",
+    'minus_equals': r"(?<=\s)\-(?=\=)",
+    'push_statement': r".*?push\(.*?\).*?;",
+    'remove_statement': r".*?remove\(.*?\).*?;",
+    'append_statement': r".*?append\(.*?\).*?;",
+    'string_literal': r"(?<=\").+(?=\")",
+    'if_condition': r"(?<=if\s)(.*)(?=\s\{)",
+    'logical_and': r"(?<=\s)&&(?=\s)",
+    'less_than_equals': r"(?<=\s\<)\=\s",
+    'greater_than_equals': r"(?<=\s\>)\=\s",
+    'if_block': r"[^=]\sif\s(.+)\s\{",
+    'else_block': r"\selse(.+)\{",
+    "comment": r"\/\/.*"
 }
 
 
 def is_comment(line):
-    return re.search(r'\/\/.*', line)
+    return re.search(regex['comment'], line)
 
 
 def init_variables(if_blocks):
@@ -66,10 +67,9 @@ class Strategy:
                 if fileinput.lineno() == mutation_line_number:
                     if self._replace_strategy['replaceString']:
                         line = re.sub(self._replace_strategy['regex'], self._replace_strategy['replaceString'], line)
-                    else:
-                        if self._strategy_name == "duplicate":
-                            replacement = line + line
-                            line = re.sub(self._replace_strategy['regex'], replacement, line)
+                    elif self._strategy_name == "duplicate":
+                        replacement = line + line
+                        line = re.sub(self._replace_strategy['regex'], replacement, line)
                 print line.rstrip()
             return mutation_line_number
 
@@ -79,7 +79,7 @@ class AndOr(Strategy):
         Strategy.__init__(self)
         self._replace_strategy = {
             'regex': regex['logical_and'],
-            'replaceString': ' || '
+            'replaceString': '||'
         }
 
 
@@ -132,7 +132,7 @@ class AtomicString(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._replace_strategy = {
-            'regex': regex['atomic_string'],
+            'regex': regex['string_literal'],
             'replaceString': ' '
         }
 

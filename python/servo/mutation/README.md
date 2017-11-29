@@ -67,7 +67,7 @@ The CI script for running mutation testing is present in /etc/ci folder. It can 
 2. If found, it reads the json file and parses it, gets source file to tests mapping. For all source files in the mapping file, it does the following.
 3. If the source file does not have any local changes then it mutates at a random line using a random strategy. It retries with other strategies if that strategy could not produce any mutation.
 4. The code is built and the corresponding WPT tests are run for this mutant and the test results are logged.
-6. Once it has completed executing mutation testing for the entered path, it repeats the above procedure for sub-paths present inside the entered path.
+5. Once it has completed executing mutation testing for the entered path, it repeats the above procedure for sub-paths present inside the entered path.
 
 ### Test Summary
 At the end of the test run the test summary displayed which looks like this:

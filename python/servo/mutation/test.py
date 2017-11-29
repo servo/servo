@@ -34,15 +34,12 @@ def mutation_test(file_name, tests):
         logging.warning("{0} has local changes, please commit/remove changes before running the test".format(file_name))
     else:
         strategies = list(get_strategies())
-        fallback_on_failure = True
-
-        while fallback_on_failure and len(strategies):
+        while len(strategies):
             strategy = random.choice(strategies)
             strategies.remove(strategy)
             mutator = Mutator(strategy())
             mutated_line = mutator.mutate(file_name)
             if mutated_line != -1:
-                fallback_on_failure = False
                 logging.info("Mutated {0} at line {1}".format(file_name, mutated_line))
                 logging.info("compiling mutant {0}:{1}".format(file_name, mutated_line))
                 if subprocess.call('python mach build --release', shell=True, stdout=DEVNULL):
@@ -62,12 +59,10 @@ def mutation_test(file_name, tests):
                             logging.info("Success: Mutation killed by {0}".format(test.encode('utf-8')))
                             status = Status.KILLED
                             break
-                logging.info("reverting mutant {0}:{1}".format(file_name, mutated_line))
+                logging.info("reverting mutant {0}:{1}\n".format(file_name, mutated_line))
                 subprocess.call('git checkout {0}'.format(file_name), shell=True)
-            else:
-                if not len(strategies):
-                    # All strategies are tried
-                    logging.info("Cannot mutate {0}".format(file_name))
-                    fallback_on_failure = False
-            print "-" * 80 + "\n"
+                break
+            elif not len(strategies):
+                # All strategies are tried
+                logging.info("\nCannot mutate {0}\n".format(file_name))
     return status
