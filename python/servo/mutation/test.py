@@ -16,8 +16,6 @@ from mutator import Mutator, get_strategies
 from enum import Enum
 DEVNULL = open(os.devnull, 'wb')
 
-strategy_try_map = {}
-
 logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.DEBUG)
 
 
