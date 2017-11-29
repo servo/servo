@@ -1710,11 +1710,9 @@ impl Document {
         // TODO: completely loaded.
 
         // Step 13.
-        println!("1. first point of entry");
-        let event = ScriptMsg::SendMicrodata(String::from("Called from document"));
-        println!("Sending event");
+        let result = Microdata::parse(self);
+        let event = ScriptMsg::SendMicrodata(result);
         self.send_to_constellation(event);
-        Microdata::parse();
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
