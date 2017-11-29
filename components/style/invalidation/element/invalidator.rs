@@ -241,9 +241,9 @@ where
         );
 
         debug!("Collected invalidations (self: {}): ", invalidated_self);
-        debug!(" > self: {:?}", descendant_invalidations);
-        debug!(" > descendants: {:?}", descendant_invalidations);
-        debug!(" > siblings: {:?}", sibling_invalidations);
+        debug!(" > self: {}, {:?}", self_invalidations.len(), self_invalidations);
+        debug!(" > descendants: {}, {:?}", descendant_invalidations.len(), descendant_invalidations);
+        debug!(" > siblings: {}, {:?}", sibling_invalidations.len(), sibling_invalidations);
 
         let invalidated_self_from_collection = invalidated_self;
 
