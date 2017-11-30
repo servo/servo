@@ -27,9 +27,16 @@ impl Microdata {
 
         result += "BEGIN:VCARD\nPROFILE:VCARD\nVERSION:4.0\nSOURCE:";
         result += doc.url().as_str();
-        result += "\nNAME:";
-        result += doc.Title().trim();
+
+        let title = doc.Title();
+        if !title.is_empty() && !title.trim().is_empty() {
+            result += "\nNAME:";
+            result += title.trim();
+        }
+
         result += "\n";
+        let mut sex : String = String::new();
+        let mut gender_identity : String = String::new();
 
         for element in ele.traverse_preorder().filter_map(DomRoot::downcast::<Element>){
             if element.is::<HTMLElement>() {
@@ -71,37 +78,57 @@ impl Microdata {
             //println!("{} -> {:?}", info_type, detail_map);
             match info_type.as_str() {
                 "n" => {
-                    let mut given_name = "";
-                    let mut family_name = "";
-                    if detail_map.contains_key("family-name") {
-                        family_name = detail_map.get("family-name").unwrap();
+
+                    let mut n_value : String = String::new();
+
+                    let name_parts = ["family-name", "given-name", "additional-name", "honorific-prefix", "honorific-suffix"];
+                    for part in name_parts.iter() {
+                        if detail_map.contains_key(*part) {
+                            n_value += format!("{};",detail_map.get(*part).unwrap()).as_str();
+                        }
                     }
-                    if detail_map.contains_key("given-name") {
-                        given_name = detail_map.get("given-name").unwrap();
-                    }
-                    result += format!("N:{};{}\n", family_name, given_name).as_str();
-                    result += format!("FN:{} {}\n", given_name, family_name).as_str();
+                    n_value.pop();
+
+                    result += format!("{}:{}\n", info_type.as_str(), n_value).as_str();
+
                 },
                 "org" => {
-                    let mut organization_unit = "";
-                    let mut organization_name = "";
-                    if detail_map.contains_key("organization-unit"){
-                        organization_unit = detail_map.get("organization-unit").unwrap();
+
+                    let mut org_value : String = String::new();
+
+                    let org_parts = ["organization-name", "organization-unit"];
+                    for part in org_parts.iter() {
+                        if detail_map.contains_key(*part) {
+                            org_value += format!("{};",detail_map.get(*part).unwrap()).as_str();
+                        }
                     }
-                    if detail_map.contains_key("organization-name"){
-                        organization_name = detail_map.get("organization-name").unwrap();
-                    }
-                    result += format!("ORG:{};{}\n", organization_name, organization_unit).as_str();
+                    org_value.pop();
+
+                    result += format!("{}:{}\n", info_type.as_str(), org_value).as_str();
+
                 },
                 "tel" => {
-                    
+
                 },
                 "adr" => {
+
+                    let mut adr_value : String = String::new();
+
+                    let adr_parts = ["street-address", "locality", "region", "postal-code", "country-name", "post-office-box", "extended-address"];
+                    for part in adr_parts.iter() {
+                        if detail_map.contains_key(*part) {
+                            adr_value += format!("{};",detail_map.get(*part).unwrap()).as_str();
+                        }
+                    }
+                    adr_value.pop();
+
+                    result += format!("{}:{}\n", info_type.as_str(), adr_value).as_str();
 
                 },
                 _ => {},
             }
         }
+
         result += "END:VCARD";
         println!("{}", result);
         return result;
