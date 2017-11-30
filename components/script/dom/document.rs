@@ -1710,9 +1710,15 @@ impl Document {
         // TODO: completely loaded.
 
         // Step 13.
-        let result = Microdata::parse(self);
-        let event = ScriptMsg::SendMicrodata(result);
-        self.send_to_constellation(event);
+        let htmlelement = self.get_html_element();
+        let result = Microdata::parse(self, htmlelement.unwrap().upcast::<Node>()); //Chirag
+        if !result.get("vcard").unwrap().is_empty() {
+            let event = ScriptMsg::SendMicrodata(result.get("vcard").unwrap().to_string());
+            self.send_to_constellation(event);
+        } else {
+            let event = ScriptMsg::SendMicrodata(result.get("json").unwrap().to_string());
+            self.send_to_constellation(event);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
