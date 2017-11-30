@@ -35,8 +35,6 @@ impl Microdata {
         }
 
         result += "\n";
-        let mut sex : String = String::new();
-        let mut gender_identity : String = String::new();
 
         for element in ele.traverse_preorder().filter_map(DomRoot::downcast::<Element>){
             if element.is::<HTMLElement>() {
@@ -73,9 +71,9 @@ impl Microdata {
                 }
             }
         }
-        //println!("{:?}", master_map);
+
         for (info_type, detail_map) in &master_map {
-            //println!("{} -> {:?}", info_type, detail_map);
+
             match info_type.as_str() {
                 "n" => {
 
