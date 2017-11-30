@@ -33,4 +33,4 @@ style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
 
 [dev-dependencies]
-stylo_tests = {path = "../../tests/unit/stylo"}
+stylo_tests = {path = "./tests"}
