@@ -923,7 +923,7 @@ impl Element {
         &self.local_name
     }
 
-    pub fn tag_name(&self) -> DOMString{
+    pub fn tag_name(&self) -> DOMString {
         self.TagName()
     }
 
