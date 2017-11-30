@@ -103,7 +103,7 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, ServoUrl) {
     // this is a Listening server because of handle_threads()
-    let server = Server::http("0.0.0.0:0").unwrap().handle_threads(handler, 1).unwrap();
+    let server = Server::http("0.0.0.0:0").unwrap().handle_threads(handler, 2).unwrap();
     let url_string = format!("http://localhost:{}", server.socket.port());
     let url = ServoUrl::parse(&url_string).unwrap();
     (server, url)
