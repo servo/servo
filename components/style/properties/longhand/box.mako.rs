@@ -808,13 +808,13 @@ ${helpers.predefined_type("transform-origin",
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
                             button-bevel button-focus caret checkbox checkbox-container checkbox-label checkmenuitem
-                            dialog dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage
-                            menuitem menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup
-                            menuradio menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
-                            progresschunk progresschunk-vertical radio radio-container radio-label radiomenuitem range
-                            range-thumb resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal
-                            scalethumbstart scalethumbtick scalethumb-vertical scale-vertical scrollbar
-                            scrollbar-horizontal scrollbar-small scrollbar-vertical scrollbarbutton-down
+                            dialog dualbutton groupbox inner-spin-button listbox listitem menuarrow menubar menucheckbox
+                            menuimage menuitem menuitemtext menulist menulist-button menulist-text menulist-textfield
+                            menupopup menuradio menuseparator meterbar meterchunk number-input progressbar
+                            progressbar-vertical progresschunk progresschunk-vertical radio radio-container radio-label
+                            radiomenuitem range range-thumb resizer resizerpanel scale-horizontal scalethumbend
+                            scalethumb-horizontal scalethumbstart scalethumbtick scalethumb-vertical scale-vertical
+                            scrollbar scrollbar-horizontal scrollbar-small scrollbar-vertical scrollbarbutton-down
                             scrollbarbutton-left scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal
                             scrollbarthumb-vertical scrollbartrack-horizontal scrollbartrack-vertical searchfield
                             separator spinner spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar
