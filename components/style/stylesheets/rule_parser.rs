@@ -424,12 +424,27 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 }
             },
             "-moz-document" => {
-                if cfg!(feature = "gecko") {
-                    let cond = DocumentCondition::parse(self.context, input)?;
-                    Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Document(cond, location)))
-                } else {
-                    Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
+                if !cfg!(feature = "gecko") {
+                    return Err(input.new_custom_error(
+                        StyleParseErrorKind::UnsupportedAtRule(name.clone())
+                    ))
                 }
+
+                #[cfg(feature = "gecko")]
+                {
+                    use gecko_bindings::structs;
+
+                    if self.stylesheet_origin == Origin::Author &&
+                        unsafe { !structs::StylePrefs_sMozDocumentEnabledInContent }
+                    {
+                        return Err(input.new_custom_error(
+                            StyleParseErrorKind::UnsupportedAtRule(name.clone())
+                        ))
+                    }
+                }
+
+                let cond = DocumentCondition::parse(self.context, input)?;
+                Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Document(cond, location)))
             },
             _ => Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
         }
