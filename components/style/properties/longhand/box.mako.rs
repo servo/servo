@@ -384,21 +384,15 @@ ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
     overflow_custom_consts = { "-moz-hidden-unscrollable": "CLIP" }
 %>
 
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
-                         animation_value_type="discrete",
-                         extra_gecko_values="-moz-hidden-unscrollable",
-                         custom_consts=overflow_custom_consts,
-                         gecko_constant_prefix="NS_STYLE_OVERFLOW",
-                         flags="APPLIES_TO_PLACEHOLDER",
-                         spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
-
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-<%helpers:longhand name="overflow-y" animation_value_type="discrete"
-                   flags="APPLIES_TO_PLACEHOLDER",
-                   spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
-    pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
-</%helpers:longhand>
+% for axis in ["x", "y"]:
+    ${helpers.predefined_type(
+        "overflow-" + axis,
+        "Overflow",
+        "computed::Overflow::Auto",
+        spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
+        animation_value_type="discrete"
+    )}
+% endfor
 
 ${helpers.predefined_type("transition-duration",
                           "Time",

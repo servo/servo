@@ -124,3 +124,11 @@ define_css_keyword_enum! { OverscrollBehavior:
     "none" => None,
 }
 add_impls_for_keyword_enum!(OverscrollBehavior);
+
+define_css_keyword_enum! { Overflow:
+    "visible" => Visible,
+    "hidden" => Hidden,
+    "scroll" => Scroll,
+    "auto" => Auto,
+}
+add_impls_for_keyword_enum!(Overflow);
