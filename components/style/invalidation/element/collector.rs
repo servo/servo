@@ -229,6 +229,17 @@ where
             collector.invalidates_self
         };
 
+        // If we generated a ton of descendant invalidations, it's probably not
+        // worth to go ahead and try to process them.
+        //
+        // Just restyle the descendants directly.
+        //
+        // This number is completely made-up, but the page that made us add this
+        // code generated 1960+ invalidations (bug 1420741).
+        if descendant_invalidations.len() > 150 {
+            self.data.hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
+        }
+
         if invalidated_self {
             self.data.hint.insert(RestyleHint::RESTYLE_SELF);
         }
