@@ -402,8 +402,7 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
 
         ret = None
-        opts = []
-        opts += ["--manifest-path", self.cef_manifest()]
+        opts = ["-p", "embedding"]
 
         if jobs is not None:
             opts += ["-j", jobs]
@@ -458,8 +457,7 @@ class MachCommands(CommandBase):
         env = self.build_env(is_build=True, geckolib=True)
 
         ret = None
-        opts = []
-        opts += ["--manifest-path", self.geckolib_manifest()]
+        opts = ["-p", "geckoservo"]
         features = []
 
         if jobs is not None:

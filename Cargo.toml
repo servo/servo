@@ -8,6 +8,10 @@ members = [
 
     "ports/cef",
 ]
+default-members = [
+    "ports/servo",
+    "tests/unit/*",
+]
 exclude = [".cargo"]
 
 [profile.dev]
