@@ -129,12 +129,12 @@ class DuplicateLine(Strategy):
     def __init__(self):
         Strategy.__init__(self)
         self._strategy_name = "duplicate"
-        append_statement = r"(.+?append\(.+?\).*?;)"
-        remove_statement = r"(.+?remove\(.*?\).*?;)"
-        push_statement = r"(.+?push\(.+?\).*?;)"
-        pop_statement = r"(.+?pop\(.+?\).*?;)"
-        plus_equals_statement = r"(.*?\s\+\=\s.*)"
-        minus_equals_statement = r"(.*?\s\-\=\s.*)"
+        append_statement = r".+?append\(.+?\).*?;"
+        remove_statement = r".+?remove\(.*?\).*?;"
+        push_statement = r".+?push\(.+?\).*?;"
+        pop_statement = r".+?pop\(.+?\).*?;"
+        plus_equals_statement = r".+?\s\+\=\s.*"
+        minus_equals_statement = r".+?\s\-\=\s.*"
         self._replace_strategy = {
             'regex': (append_statement + '|' + remove_statement + '|' + push_statement +
                       '|' + pop_statement + '|' + plus_equals_statement + '|' + minus_equals_statement),
