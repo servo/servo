@@ -125,16 +125,17 @@ impl Color {
     /// Parse a color, with quirks.
     ///
     /// <https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk>
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         input.try(|i| Self::parse(context, i)).or_else(|e| {
             if !allow_quirks.allowed(context.quirks_mode) {
                 return Err(e);
             }
             Color::parse_quirky_color(input)
-                .map(|rgba| Color::rgba(rgba))
+                .map(Color::rgba)
                 .map_err(|_| e)
         })
     }
