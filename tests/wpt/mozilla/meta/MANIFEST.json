@@ -32567,12 +32567,6 @@
      {}
     ]
    ],
-   "css/calc-serialization.html": [
-    [
-     "/_mozilla/css/calc-serialization.html",
-     {}
-    ]
-   ],
    "css/css-position-3/position-sticky-get-bounding-client-rect.html": [
     [
      "/_mozilla/css/css-position-3/position-sticky-get-bounding-client-rect.html",
@@ -61694,10 +61688,6 @@
   ],
   "css/calc-number-serialization.html": [
    "b9e77c824d0c96e51d51fb8f1e923d3ab67be027",
-   "testharness"
-  ],
-  "css/calc-serialization.html": [
-   "d0bcbd402cb78e704dabc7f1665d40ba163e30eb",
    "testharness"
   ],
   "css/canvas_as_block_element_a.html": [
