@@ -193,6 +193,6 @@ pub trait WindowMethods {
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState) {}
 
-    /// Print Microdata on the Console
-    fn print_microdata(&self, _data: String) {}
+    /// Print Microdata on the Console or write to file
+    fn print_microdata(&self, _data: String, _datatype: String) {}
 }
