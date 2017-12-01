@@ -147,7 +147,7 @@ pub enum EmbedderMsg {
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
     /// Sends microdata
-    SendMicrodata(String),
+    SendMicrodata(String, String),
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.

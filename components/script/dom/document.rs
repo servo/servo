@@ -1711,12 +1711,12 @@ impl Document {
 
         // Step 13.
         let htmlelement = self.get_html_element();
-        let result = Microdata::parse(self, htmlelement.unwrap().upcast::<Node>()); //Chirag
+        let result = Microdata::parse(self, htmlelement.unwrap().upcast::<Node>());
         if !result.get("vcard").unwrap().is_empty() {
-            let event = ScriptMsg::SendMicrodata(result.get("vcard").unwrap().to_string());
+            let event = ScriptMsg::SendMicrodata(result.get("vcard").unwrap().to_string(), "vcard".to_string());
             self.send_to_constellation(event);
         } else {
-            let event = ScriptMsg::SendMicrodata(result.get("json").unwrap().to_string());
+            let event = ScriptMsg::SendMicrodata(result.get("json").unwrap().to_string(), "json".to_string());
             self.send_to_constellation(event);
         }
     }

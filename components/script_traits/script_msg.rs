@@ -164,7 +164,7 @@ pub enum ScriptMsg {
     /// Requests that the compositor shut down.
     Exit,
     /// Event to parse PrintMicrodata
-    SendMicrodata(String),
+    SendMicrodata(String, String),
 }
 
 /// Entities required to spawn service workers
