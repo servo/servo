@@ -163,6 +163,8 @@ pub enum ScriptMsg {
     GetScreenAvailSize(IpcSender<(Size2D<u32>)>),
     /// Requests that the compositor shut down.
     Exit,
+    /// Event to parse PrintMicrodata
+    SendMicrodata(String, String),
 }
 
 /// Entities required to spawn service workers

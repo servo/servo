@@ -33379,6 +33379,12 @@
      {}
     ]
    ],
+   "mozilla/microdata/json.html": [
+    [
+     "/_mozilla/mozilla/microdata/json.html",
+     {}
+    ]
+   ],
    "mozilla/microdata/none_check.html": [
     [
      "/_mozilla/mozilla/microdata/none_check.html",
@@ -33394,6 +33400,12 @@
    "mozilla/microdata/single_prop_type_test.html": [
     [
      "/_mozilla/mozilla/microdata/single_prop_type_test.html",
+     {}
+    ]
+   ],
+   "mozilla/microdata/vcard.html": [
+    [
+     "/_mozilla/mozilla/microdata/vcard.html",
      {}
     ]
    ],
@@ -66448,6 +66460,10 @@
    "0a941e2eb10013ab55049d4d6007d8301149f651",
    "testharness"
   ],
+  "mozilla/microdata/json.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "testharness"
+  ],
   "mozilla/microdata/none_check.html": [
    "5addb47e08bdb4ad8293f22dffe95e4760336e08",
    "testharness"
@@ -66458,6 +66474,10 @@
   ],
   "mozilla/microdata/single_prop_type_test.html": [
    "0d81eecf7e52feb0964e879ffe9450881141caa5",
+   "testharness"
+  ],
+  "mozilla/microdata/vcard.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
    "testharness"
   ],
   "mozilla/mime_sniffing_font_context.html": [
