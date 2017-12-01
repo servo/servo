@@ -315,10 +315,21 @@ impl EventTarget {
     pub fn dispatch_event_with_target(&self,
                                       target: &EventTarget,
                                       event: &Event) -> EventStatus {
+        if let Some(window) = target.global().downcast::<Window>() {
+            if window.has_document() {
+                assert!(window.Document().can_invoke_script());
+            }
+        };
+
         event.dispatch(self, Some(target))
     }
 
     pub fn dispatch_event(&self, event: &Event) -> EventStatus {
+        if let Some(window) = self.global().downcast::<Window>() {
+            if window.has_document() {
+                assert!(window.Document().can_invoke_script());
+            }
+        };
         event.dispatch(self, None)
     }
 
