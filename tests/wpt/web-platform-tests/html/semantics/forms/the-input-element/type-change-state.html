@@ -23,8 +23,8 @@
     { type: "number", sanitizedValue: "", default: true },
     { type: "range", sanitizedValue: "50", default: true },
     { type: "color", sanitizedValue: "#000000", default: true },
-    { type: "checkbox" },
-    { type: "radio" },
+    { type: "checkbox", defaultValue: "on" },
+    { type: "radio", defaultValue: "on" },
     { type: "file" },
     { type: "submit" },
     { type: "image" },
@@ -61,6 +61,11 @@
               if ((expected !== "" && !types[i].default) || types[j].default) {
                 expected = types[j].sanitizedValue;
               }
+            }
+
+            // type[j] defaultValue
+            if (expected === "" && types[j].defaultValue) {
+              expected = types[j].defaultValue;
             }
 
             assert_equals(input.value, expected, "input.value should be '" + expected + "' after change of state");
