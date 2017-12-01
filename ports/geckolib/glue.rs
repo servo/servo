@@ -4552,7 +4552,16 @@ pub unsafe extern "C" fn Servo_SelectorList_Drop(list: RawServoSelectorListOwned
 fn parse_color(value: &str) -> Result<specified::Color, ()> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
-    parser.parse_entirely(specified::Color::parse_color).map_err(|_| ())
+    let url_data = unsafe { dummy_url_data() };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    parser.parse_entirely(|i| specified::Color::parse(&context, i)).map_err(|_| ())
 }
 
 #[no_mangle]
