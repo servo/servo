@@ -15,14 +15,14 @@
     { type: "url", sanitizedValue: "foobar" },
     { type: "email", sanitizedValue: "foobar" },
     { type: "password", sanitizedValue: "  foobar  " },
-    { type: "datetime-local", sanitizedValue: "" },
-    { type: "date", sanitizedValue: "" },
-    { type: "month", sanitizedValue: "" },
-    { type: "week", sanitizedValue: "" },
-    { type: "time", sanitizedValue: "" },
-    { type: "number", sanitizedValue: "" },
-    { type: "range", sanitizedValue: "50" },
-    { type: "color", sanitizedValue: "#000000" },
+    { type: "datetime-local", sanitizedValue: "", default: true },
+    { type: "date", sanitizedValue: "", default: true },
+    { type: "month", sanitizedValue: "", default: true },
+    { type: "week", sanitizedValue: "", default: true },
+    { type: "time", sanitizedValue: "", default: true },
+    { type: "number", sanitizedValue: "", default: true },
+    { type: "range", sanitizedValue: "50", default: true },
+    { type: "color", sanitizedValue: "#000000", default: true },
     { type: "checkbox" },
     { type: "radio" },
     { type: "file" },
@@ -58,7 +58,7 @@
 
             // type[j] sanitization
             if (types[j].sanitizedValue || types[j].sanitizedValue === "") {
-              if (expected !== "" || types[j].default) {
+              if ((expected !== "" && !types[i].default) || types[j].default) {
                 expected = types[j].sanitizedValue;
               }
             }
