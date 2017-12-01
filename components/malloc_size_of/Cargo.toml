@@ -13,7 +13,7 @@ servo = ["mozjs", "string_cache", "url", "webrender_api", "xml5ever"]
 
 [dependencies]
 app_units = "0.5.5"
-cssparser = "0.22.0"
+cssparser = "0.23.0"
 euclid = "0.15"
 hashglobe = { path = "../hashglobe" }
 mozjs = { version = "0.1.8", features = ["promises"], optional = true }
