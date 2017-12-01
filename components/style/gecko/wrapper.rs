@@ -1917,6 +1917,15 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_root(&self) -> bool {
+        let parent_node = match self.as_node().parent_node() {
+            Some(parent_node) => parent_node,
+            None => return false,
+        };
+
+        if !parent_node.is_document() {
+            return false;
+        }
+
         unsafe {
             Gecko_IsRootElement(self.0)
         }
