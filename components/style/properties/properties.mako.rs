@@ -2609,11 +2609,6 @@ pub struct StyleBuilder<'a> {
     /// The pseudo-element this style will represent.
     pub pseudo: Option<<&'a PseudoElement>,
 
-    /// Whether we have mutated any reset structs since the the last time
-    /// `clear_modified_reset` was called.  This is used to tell whether the
-    /// `StyleAdjuster` did any work.
-    modified_reset: bool,
-
     /// The writing mode flags.
     ///
     /// TODO(emilio): Make private.
@@ -2674,7 +2669,6 @@ impl<'a> StyleBuilder<'a> {
             reset_style,
             pseudo,
             rules,
-            modified_reset: false,
             custom_properties,
             writing_mode,
             flags,
@@ -2715,7 +2709,6 @@ impl<'a> StyleBuilder<'a> {
             inherited_style_ignoring_first_line: inherited_style,
             reset_style,
             pseudo,
-            modified_reset: false,
             rules: None, // FIXME(emilio): Dubious...
             custom_properties: style_to_derive_from.custom_properties().cloned(),
             writing_mode: style_to_derive_from.writing_mode,
@@ -2754,7 +2747,6 @@ impl<'a> StyleBuilder<'a> {
 
         % if not property.style_struct.inherited:
         self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_RESET_STYLE);
-        self.modified_reset = true;
         % endif
 
         % if property.ident == "content":
@@ -2780,10 +2772,6 @@ impl<'a> StyleBuilder<'a> {
         let reset_struct =
             self.reset_style.get_${property.style_struct.name_lower}();
 
-        % if not property.style_struct.inherited:
-        self.modified_reset = true;
-        % endif
-
         self.${property.style_struct.ident}.mutate()
             .reset_${property.ident}(
                 reset_struct,
@@ -2800,10 +2788,6 @@ impl<'a> StyleBuilder<'a> {
         &mut self,
         value: longhands::${property.ident}::computed_value::T
     ) {
-        % if not property.style_struct.inherited:
-        self.modified_reset = true;
-        % endif
-
         <% props_need_device = ["content", "list_style_type", "font_variant_alternates"] %>
         self.${property.style_struct.ident}.mutate()
             .set_${property.ident}(
@@ -2878,17 +2862,11 @@ impl<'a> StyleBuilder<'a> {
 
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
-            % if not property.style_struct.inherited:
-            self.modified_reset = true;
-            % endif
             self.${style_struct.ident}.mutate()
         }
 
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn take_${style_struct.name_lower}(&mut self) -> UniqueArc<style_structs::${style_struct.name}> {
-            % if not property.style_struct.inherited:
-            self.modified_reset = true;
-            % endif
             self.${style_struct.ident}.take()
         }
 
@@ -2935,17 +2913,6 @@ impl<'a> StyleBuilder<'a> {
     pub fn in_top_layer(&self) -> bool {
         matches!(self.get_box().clone__moz_top_layer(),
                  longhands::_moz_top_layer::computed_value::T::top)
-    }
-
-    /// Clears the "have any reset structs been modified" flag.
-    fn clear_modified_reset(&mut self) {
-        self.modified_reset = false;
-    }
-
-    /// Returns whether we have mutated any reset structs since the the last
-    /// time `clear_modified_reset` was called.
-    fn modified_reset(&self) -> bool {
-        self.modified_reset
     }
 
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
@@ -3522,13 +3489,12 @@ where
         }
     % endif
 
-    builder.clear_modified_reset();
-
+    let mut adjustment_cacheable = true;
     StyleAdjuster::new(&mut builder)
-        .adjust(layout_parent_style, flags);
+        .adjust(layout_parent_style, flags, &mut adjustment_cacheable);
 
-    if builder.modified_reset() || !apply_reset {
-        // If we adjusted any reset structs, we can't cache this ComputedValues.
+    if !adjustment_cacheable || !apply_reset {
+        // We can't cache this ComputedValues if any adjustment is uncacheable.
         //
         // Also, if we re-used existing reset structs, don't bother caching it
         // back again. (Aside from being wasted effort, it will be wrong, since

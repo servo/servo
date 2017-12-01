@@ -19,6 +19,7 @@ use properties::longhands::position::computed_value::T as position;
 /// `ChildCascadeRequirement` code in `matching.rs`.
 pub struct StyleAdjuster<'a, 'b: 'a> {
     style: &'a mut StyleBuilder<'b>,
+    cacheable: bool,
 }
 
 impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
@@ -26,6 +27,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     pub fn new(style: &'a mut StyleBuilder<'b>) -> Self {
         StyleAdjuster {
             style: style,
+            cacheable: true,
         }
     }
 
@@ -70,6 +72,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
             blockify_if!(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
             blockify_if!(layout_parent_style.get_box().clone_display().is_item_container());
+            if blockify {
+                self.cacheable = false;
+            }
         }
 
         let is_item_or_root = blockify;
@@ -182,6 +187,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if our_writing_mode != parent_writing_mode &&
            self.style.get_box().clone_display() == display::inline {
+            self.cacheable = false;
             self.style.mutate_box().set_display(display::inline_block);
         }
     }
@@ -203,7 +209,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.mutate_box().set_adjusted_display(display::inline_block,
                                                          false);
         }
-
 
         // When 'contain: paint', update overflow from 'visible' to 'clip'.
         if self.style.get_box().clone_contain().contains(SpecifiedValue::PAINT) {
@@ -250,6 +255,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                     align_items::flex_end => align_self::flex_end,
                     align_items::center => align_self::center,
                 };
+            self.cacheable = false;
             self.style.mutate_position().set_align_self(self_align);
         }
     }
@@ -328,6 +334,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
 
+        self.cacheable = false;
         self.style.mutate_box().set_display(display::inline);
     }
 
@@ -360,6 +367,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             _ => None,
         };
         if let Some(new_display) = new_display {
+            self.cacheable = false;
             self.style.mutate_box().set_display(new_display);
         }
     }
@@ -458,6 +466,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
                 let inline_display = self_display.inlinify();
                 if self_display != inline_display {
+                    self.cacheable = false;
                     self.style.mutate_box().set_display(inline_display);
                 }
             }
@@ -539,6 +548,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
 
+        self.cacheable = false;
         self.style
             .mutate_position()
             .set_computed_justify_items(parent_justify_items.computed);
@@ -554,6 +564,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         &mut self,
         layout_parent_style: &ComputedValues,
         flags: CascadeFlags,
+        cacheable: &mut bool,
     ) {
         self.adjust_for_visited(flags);
         #[cfg(feature = "gecko")]
@@ -585,5 +596,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.adjust_for_ruby(layout_parent_style, flags);
         }
         self.set_bits();
+        *cacheable = self.cacheable;
     }
 }
