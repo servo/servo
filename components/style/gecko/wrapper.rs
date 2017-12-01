@@ -211,6 +211,7 @@ impl<'ln> GeckoNode<'ln> {
 
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
     /// Make sure to mirror any modifications in both places.
+    #[inline]
     fn flattened_tree_parent_is_parent(&self) -> bool {
         use gecko_bindings::structs::*;
         let flags = self.flags();
@@ -236,6 +237,7 @@ impl<'ln> GeckoNode<'ln> {
         true
     }
 
+    #[inline]
     fn flattened_tree_parent(&self) -> Option<Self> {
         let fast_path = self.flattened_tree_parent_is_parent();
         debug_assert!(fast_path == unsafe { bindings::Gecko_FlattenedTreeParentIsParent(self.0) });
@@ -246,6 +248,7 @@ impl<'ln> GeckoNode<'ln> {
         }
     }
 
+    #[inline]
     fn contains_non_whitespace_content(&self) -> bool {
         unsafe { Gecko_IsSignificantChild(self.0, true, false) }
     }

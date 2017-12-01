@@ -91,7 +91,7 @@ pub struct DeclarationImportanceIterator<'a> {
 }
 
 impl<'a> DeclarationImportanceIterator<'a> {
-    /// Constructor
+    /// Constructor.
     pub fn new(declarations: &'a [PropertyDeclaration], important: &'a SmallBitVec) -> Self {
         DeclarationImportanceIterator {
             iter: declarations.iter().zip(important.iter()),
@@ -102,17 +102,20 @@ impl<'a> DeclarationImportanceIterator<'a> {
 impl<'a> Iterator for DeclarationImportanceIterator<'a> {
     type Item = (&'a PropertyDeclaration, Importance);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(decl, important)|
             (decl, if important { Importance::Important } else { Importance::Normal }))
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.iter.size_hint()
     }
 }
 
 impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {
+    #[inline(always)]
     fn next_back(&mut self) -> Option<Self::Item> {
         self.iter.next_back().map(|(decl, important)|
             (decl, if important { Importance::Important } else { Importance::Normal }))
@@ -123,7 +126,8 @@ impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {
 pub struct NormalDeclarationIterator<'a>(DeclarationImportanceIterator<'a>);
 
 impl<'a> NormalDeclarationIterator<'a> {
-    /// Constructor
+    /// Constructor.
+    #[inline]
     pub fn new(declarations: &'a [PropertyDeclaration], important: &'a SmallBitVec) -> Self {
         NormalDeclarationIterator(
             DeclarationImportanceIterator::new(declarations, important)
