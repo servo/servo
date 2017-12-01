@@ -2205,7 +2205,7 @@ impl Fragment {
                 match (flow.baseline_offset_of_last_line_box_in_flow(),
                        style.get_box().overflow_y) {
                 // Case A
-                (Some(baseline_offset), overflow_x::T::visible) => baseline_offset,
+                (Some(baseline_offset), overflow_x::T::Visible) => baseline_offset,
                 // Case B
                 _ => border_box_block_size + end_margin,
             };

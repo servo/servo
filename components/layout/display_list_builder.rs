@@ -2791,8 +2791,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             self.base.overflow.scroll.origin != Point2D::zero() ||
             self.base.overflow.scroll.size.width > content_box.size.width ||
             self.base.overflow.scroll.size.height > content_box.size.height ||
-            overflow_x::T::hidden == self.fragment.style.get_box().overflow_x ||
-            overflow_x::T::hidden == self.fragment.style.get_box().overflow_y;
+            overflow_x::T::Hidden == self.fragment.style.get_box().overflow_x ||
+            overflow_x::T::Hidden == self.fragment.style.get_box().overflow_y;
 
         self.mark_scrolling_overflow(has_scrolling_overflow);
         if !has_scrolling_overflow {
@@ -2805,8 +2805,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let new_clip_scroll_node_id = ClipId::new(self.fragment.unique_id(IdType::OverflowClip),
                                                   state.pipeline_id.to_webrender());
 
-        let sensitivity = if overflow_x::T::hidden == self.fragment.style.get_box().overflow_x &&
-                             overflow_x::T::hidden == self.fragment.style.get_box().overflow_y {
+        let sensitivity = if overflow_x::T::Hidden == self.fragment.style.get_box().overflow_x &&
+                             overflow_x::T::Hidden == self.fragment.style.get_box().overflow_y {
             ScrollSensitivity::Script
         } else {
             ScrollSensitivity::ScriptAndInputEvents

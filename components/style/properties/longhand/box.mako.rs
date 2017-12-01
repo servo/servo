@@ -389,6 +389,7 @@ ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
         "overflow-" + axis,
         "Overflow",
         "computed::Overflow::Auto",
+        needs_context=False,
         spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
         animation_value_type="discrete"
     )}

@@ -1446,8 +1446,8 @@ impl BlockFlow {
             display::T::flex => {
                 FormattingContextType::Other
             }
-            _ if style.get_box().overflow_x != overflow_x::T::visible ||
-                    style.get_box().overflow_y != overflow_x::T::visible ||
+            _ if style.get_box().overflow_x != overflow_x::T::Visible ||
+                    style.get_box().overflow_y != overflow_x::T::Visible ||
                     style.is_multicol() => {
                 FormattingContextType::Block
             }
@@ -1669,8 +1669,8 @@ impl BlockFlow {
     pub fn overflow_style_may_require_clip_scroll_node(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y) {
-            (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) | (overflow_x::T::hidden, _) |
-            (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) | (_, overflow_x::T::hidden) =>
+            (overflow_x::T::Auto, _) | (overflow_x::T::Scroll, _) | (overflow_x::T::Hidden, _) |
+            (_, overflow_x::T::Auto) | (_, overflow_x::T::Scroll) | (_, overflow_x::T::Hidden) =>
                 true,
             (_, _) => false,
         }
