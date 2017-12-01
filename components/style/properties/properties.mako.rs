@@ -3129,6 +3129,9 @@ pub fn cascade(
 ) -> Arc<ComputedValues> {
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     let empty = SmallBitVec::new();
+
+    let property_restriction = pseudo.and_then(|p| p.property_restriction());
+
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
@@ -3141,8 +3144,6 @@ pub fn cascade(
                 DeclarationImportanceIterator::new(&[], &empty)
             };
             let node_importance = node.importance();
-
-            let property_restriction = pseudo.and_then(|p| p.property_restriction());
 
             declarations
                 // Yield declarations later in source order (with more precedence) first.
@@ -3168,6 +3169,7 @@ pub fn cascade(
                 })
         })
     };
+
     apply_declarations(
         device,
         pseudo,
@@ -3187,7 +3189,6 @@ pub fn cascade(
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-#[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(
     device: &Device,
     pseudo: Option<<&PseudoElement>,
