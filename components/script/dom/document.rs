@@ -1715,9 +1715,11 @@ impl Document {
         if !result.get("vcard").unwrap().is_empty() {
             let event = ScriptMsg::SendMicrodata(result.get("vcard").unwrap().to_string(), "vcard".to_string());
             self.send_to_constellation(event);
-        } else {
+            self.SetTitle(DOMString::from("Extracted vCard".to_string()));
+        } else if !result.get("json").unwrap().is_empty() {
             let event = ScriptMsg::SendMicrodata(result.get("json").unwrap().to_string(), "json".to_string());
             self.send_to_constellation(event);
+            self.SetTitle(DOMString::from("Extracted JSON".to_string()));
         }
     }
 

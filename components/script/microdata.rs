@@ -91,9 +91,14 @@ impl Microdata {
                 }
             }
         }
-
-        for (info_type, detail_map) in &master_map {
-            match info_type.as_str() {
+        let vcard_parts = ["n", "org", "tel", "adr"];
+        for info_type in vcard_parts.iter() {
+            let detail_map_val = master_map.get(*info_type);
+            if detail_map_val.is_none() {
+                continue;
+            }
+            let detail_map = detail_map_val.unwrap();
+            match *info_type {
                 "n" => {
                     let mut n_value: String = String::new();
 
@@ -106,7 +111,7 @@ impl Microdata {
                     }
                     n_value.pop();
 
-                    result += format!("{}:{}\n", info_type.as_str(), n_value).as_str();
+                    result += format!("{}:{}\n", info_type.to_ascii_uppercase(), n_value).as_str();
                 },
                 "org" => {
                     let mut org_value: String = String::new();
@@ -119,9 +124,20 @@ impl Microdata {
                     }
                     org_value.pop();
 
-                    result += format!("{}:{}\n", info_type.as_str(), org_value).as_str();
+                    result += format!("{}:{}\n", info_type.to_ascii_uppercase(), org_value).as_str();
                 },
                 "tel" => {
+                    let mut tel_value: String = String::new();
+
+                    let tel_parts = ["value"];
+                    for part in tel_parts.iter() {
+                        if detail_map.contains_key(*part) {
+                            tel_value += format!("{};", detail_map.get(*part).unwrap()).as_str();
+                        }
+                    }
+                    tel_value.pop();
+
+                    result += format!("{}:{}\n", info_type.to_ascii_uppercase(), tel_value).as_str();
                 },
                 "adr" => {
                     let mut adr_value: String = String::new();
@@ -135,22 +151,26 @@ impl Microdata {
                     }
                     adr_value.pop();
 
-                    result += format!("{}:{}\n", info_type.as_str(), adr_value).as_str();
+                    result += format!("{}:{}\n", info_type.to_ascii_uppercase(), adr_value).as_str();
                 },
                 _ => {},
             }
         }
-
         result += "END:VCARD";
-        println!("{}", result);
-        return result;
+        if start_vcard {
+            return result;
+        } else {
+            return "".to_string();
+        }
     }
 
     pub fn parse_json(node: &Node) -> String {
         let json_data: Data = Self::traverse(node).unwrap();
         let json = serde_json::to_string(&json_data);
         //println!("printing json from microdata {:?}", json);
-        return json.ok().unwrap();
+        //return json.ok().unwrap();
+
+        return "".to_string();
     }
 
     fn get_attr_value(element: &Element, property: &str) -> Option<String> {
