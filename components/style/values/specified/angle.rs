@@ -81,6 +81,13 @@ impl Angle {
         self.value.radians()
     }
 
+    /// Returns the amount of degrees this angle represents.
+    #[inline]
+    pub fn degrees(self) -> f32 {
+        use std::f32::consts::PI;
+        self.radians() * 360. / (2. * PI)
+    }
+
     /// Returns `0deg`.
     pub fn zero() -> Self {
         Self::from_degrees(0.0, false)
