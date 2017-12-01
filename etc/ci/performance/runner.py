@@ -100,7 +100,7 @@ def parse_log(log, testcase, url):
     block = []
     copy = False
     for line_bytes in log.splitlines():
-        line = line_bytes.decode()
+        line = line_bytes.decode('utf-8')
 
         if line.strip() == ("[PERF] perf block start"):
             copy = True
@@ -281,7 +281,7 @@ def save_result_csv(results, filename, manifest, expected_runs, base):
         'unloadEventStart',
     ]
 
-    with open(filename, 'w') as csvfile:
+    with open(filename, 'w', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames)
         writer.writeheader()
         writer.writerows(results)

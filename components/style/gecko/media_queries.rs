@@ -14,8 +14,7 @@ use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSValue, nsCSSUnit};
-use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
-use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType};
+use gecko_bindings::structs::{nsMediaFeature, nsMediaFeature_ValueType, nsMediaFeature_RangeType};
 use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
 use parser::{Parse, ParserContext};
@@ -216,13 +215,24 @@ impl Device {
     }
 }
 
+/// The kind of matching that should be performed on a media feature value.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Range {
+    /// At least the specified value.
+    Min,
+    /// At most the specified value.
+    Max,
+    /// Exactly the specified value.
+    Equal,
+}
+
 /// A expression for gecko contains a reference to the media feature, the value
 /// the media query contained, and the range to evaluate.
 #[derive(Clone, Debug)]
 pub struct Expression {
     feature: &'static nsMediaFeature,
     value: Option<MediaExpressionValue>,
-    range: nsMediaExpression_Range
+    range: Range,
 }
 
 impl ToCss for Expression {
@@ -235,9 +245,9 @@ impl ToCss for Expression {
             dest.write_str("-webkit-")?;
         }
         match self.range {
-            nsMediaExpression_Range::eMin => dest.write_str("min-")?,
-            nsMediaExpression_Range::eMax => dest.write_str("max-")?,
-            nsMediaExpression_Range::eEqual => {},
+            Range::Min => dest.write_str("min-")?,
+            Range::Max => dest.write_str("max-")?,
+            Range::Equal => {},
         }
 
         // NB: CssStringWriter not needed, feature names are under control.
@@ -552,7 +562,7 @@ impl Expression {
     fn new(
         feature: &'static nsMediaFeature,
         value: Option<MediaExpressionValue>,
-        range: nsMediaExpression_Range,
+        range: Range,
     ) -> Self {
         Self { feature, value, range }
     }
@@ -607,12 +617,12 @@ impl Expression {
 
                     let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
                         feature_name = &feature_name[4..];
-                        nsMediaExpression_Range::eMin
+                        Range::Min
                     } else if starts_with_ignore_ascii_case(feature_name, "max-") {
                         feature_name = &feature_name[4..];
-                        nsMediaExpression_Range::eMax
+                        Range::Max
                     } else {
-                        nsMediaExpression_Range::eEqual
+                        Range::Equal
                     };
 
                     let atom = Atom::from(feature_name);
@@ -640,7 +650,7 @@ impl Expression {
                     ))
                 }
 
-                if range != nsMediaExpression_Range::eEqual &&
+                if range != Range::Equal &&
                    feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed {
                     return Err(location.new_custom_error(
                         StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone())
@@ -654,7 +664,7 @@ impl Expression {
             // Gecko doesn't allow ranged expressions without a value, so just
             // reject them here too.
             if input.try(|i| i.expect_colon()).is_err() {
-                if range != nsMediaExpression_Range::eEqual {
+                if range != Range::Equal {
                     return Err(input.new_custom_error(StyleParseErrorKind::RangedExpressionWithNoValue))
                 }
                 return Ok(Expression::new(feature, None, range));
@@ -696,7 +706,7 @@ impl Expression {
         use self::MediaExpressionValue::*;
         use std::cmp::Ordering;
 
-        debug_assert!(self.range == nsMediaExpression_Range::eEqual ||
+        debug_assert!(self.range == Range::Equal ||
                       self.feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed,
                       "Whoops, wrong range");
 
@@ -762,9 +772,9 @@ impl Expression {
         };
 
         cmp == Ordering::Equal || match self.range {
-            nsMediaExpression_Range::eMin => cmp == Ordering::Less,
-            nsMediaExpression_Range::eEqual => false,
-            nsMediaExpression_Range::eMax => cmp == Ordering::Greater,
+            Range::Min => cmp == Ordering::Less,
+            Range::Equal => false,
+            Range::Max => cmp == Ordering::Greater,
         }
     }
 }

@@ -61,6 +61,7 @@ pub struct ParserContext<'a> {
 
 impl<'a> ParserContext<'a> {
     /// Create a parser context.
+    #[inline]
     pub fn new(
         stylesheet_origin: Origin,
         url_data: &'a UrlExtraData,
@@ -79,6 +80,7 @@ impl<'a> ParserContext<'a> {
     }
 
     /// Create a parser context for on-the-fly parsing in CSSOM
+    #[inline]
     pub fn new_for_cssom(
         url_data: &'a UrlExtraData,
         rule_type: Option<CssRuleType>,
@@ -95,6 +97,7 @@ impl<'a> ParserContext<'a> {
     }
 
     /// Create a parser context based on a previous context, but with a modified rule type.
+    #[inline]
     pub fn new_with_rule_type(
         context: &'a ParserContext,
         rule_type: CssRuleType,

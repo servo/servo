@@ -4,9 +4,10 @@
 
 //! Computed angles.
 
-use euclid::Radians;
+use num_traits::Zero;
 use std::{f32, f64};
 use std::f64::consts::PI;
+use std::ops::Add;
 use values::CSSFloat;
 use values::animated::{Animate, Procedure};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -64,15 +65,49 @@ impl Angle {
         radians.min(f64::MAX).max(f64::MIN)
     }
 
-    /// Returns an angle that represents a rotation of zero radians.
-    pub fn zero() -> Self {
-        Self::from_radians(0.0)
-    }
-
     /// <https://drafts.csswg.org/css-transitions/#animtype-number>
     #[inline]
     fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Angle::from_radians(self.radians().animate(&other.radians(), procedure)?))
+    }
+}
+
+impl AsRef<Angle> for Angle {
+    #[inline]
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+impl Add for Angle {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (Angle::Deg(x), Angle::Deg(y)) => Angle::Deg(x + y),
+            (Angle::Grad(x), Angle::Grad(y)) => Angle::Grad(x + y),
+            (Angle::Turn(x), Angle::Turn(y)) => Angle::Turn(x + y),
+            (Angle::Rad(x), Angle::Rad(y)) => Angle::Rad(x + y),
+            _ => Angle::from_radians(self.radians() + rhs.radians()),
+        }
+    }
+}
+
+impl Zero for Angle {
+    #[inline]
+    fn zero() -> Self {
+        Angle::from_radians(0.0)
+    }
+
+    #[inline]
+    fn is_zero(&self) -> bool {
+        match *self {
+            Angle::Deg(val) |
+            Angle::Grad(val) |
+            Angle::Turn(val) |
+            Angle::Rad(val) => val == 0.
+        }
     }
 }
 
@@ -82,12 +117,5 @@ impl ComputeSquaredDistance for Angle {
         // Use the formula for calculating the distance between angles defined in SVG:
         // https://www.w3.org/TR/SVG/animate.html#complexDistances
         self.radians64().compute_squared_distance(&other.radians64())
-    }
-}
-
-impl From<Angle> for Radians<CSSFloat> {
-    #[inline]
-    fn from(a: Angle) -> Self {
-        Radians::new(a.radians())
     }
 }

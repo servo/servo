@@ -769,7 +769,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 warn!("Sending event to constellation failed ({}).", e);
             }
 
-            if let Some(cursor) =  Cursor::from_u8(item.tag.1).ok() {
+            if let Some(cursor) =  Cursor::from_u8(item.tag.1 as _).ok() {
                 let msg = ConstellationMsg::SetCursor(cursor);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending event to constellation failed ({}).", e);

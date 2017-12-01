@@ -36,7 +36,6 @@ num = []
 packages = [
   "bitflags",
   "cookie",
-  "foreign-types",
   "mime",
   "semver",
   "toml",

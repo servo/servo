@@ -72,7 +72,8 @@ impl GeckoRestyleDamage {
         } else {
             StyleChange::Unchanged
         };
-        StyleDifference::new(GeckoRestyleDamage(nsChangeHint(hint)), change)
+        let damage = GeckoRestyleDamage(nsChangeHint(hint));
+        StyleDifference { damage, change }
     }
 
     /// Returns true if this restyle damage contains all the damage of |other|.

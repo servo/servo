@@ -648,19 +648,14 @@ impl<E: TElement> StyleSharingCache<E> {
         nth_index_cache: &mut NthIndexCache,
         selector_flags_map: &mut SelectorFlagsMap<E>
     ) -> Option<ResolvedElementStyles> {
+        debug_assert!(!target.is_native_anonymous());
+
         // Check that we have the same parent, or at least that the parents
         // share styles and permit sharing across their children. The latter
         // check allows us to share style between cousins if the parents
         // shared style.
         if !checks::parents_allow_sharing(target, candidate) {
             trace!("Miss: Parent");
-            return None;
-        }
-
-        if target.is_native_anonymous() {
-            debug_assert!(!candidate.element.is_native_anonymous(),
-                          "Why inserting NAC into the cache?");
-            trace!("Miss: Native Anonymous Content");
             return None;
         }
 

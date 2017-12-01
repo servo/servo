@@ -4,6 +4,7 @@ members = [
     "ports/geckolib",
     "ports/servo",
 ]
+exclude = [".cargo"]
 
 [profile.dev]
 codegen-units = 4

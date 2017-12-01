@@ -5,7 +5,6 @@
 //! Parsing of the stylesheet contents.
 
 use {Namespace, Prefix};
-use computed_values::font_family::FamilyName;
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{CowRcStr, SourceLocation, BasicParseError, BasicParseErrorKind};
@@ -31,6 +30,7 @@ use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
 use values::CustomIdent;
 use values::KeyframesName;
+use values::computed::font::FamilyName;
 use values::specified::url::SpecifiedUrl;
 
 /// The parser for the top-level rules in a stylesheet.
@@ -313,8 +313,11 @@ impl<'a, 'b, R: ParseErrorReporter> NestedRuleParser<'a, 'b, R> {
         input: &mut Parser,
         rule_type: CssRuleType
     ) -> Arc<Locked<CssRules>> {
-        let context =
-            ParserContext::new_with_rule_type(self.context, rule_type, self.namespaces);
+        let context = ParserContext::new_with_rule_type(
+            self.context,
+            rule_type,
+            self.namespaces,
+        );
 
         let nested_parser = NestedRuleParser {
             stylesheet_origin: self.stylesheet_origin,
@@ -421,12 +424,27 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 }
             },
             "-moz-document" => {
-                if cfg!(feature = "gecko") {
-                    let cond = DocumentCondition::parse(self.context, input)?;
-                    Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Document(cond, location)))
-                } else {
-                    Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
+                if !cfg!(feature = "gecko") {
+                    return Err(input.new_custom_error(
+                        StyleParseErrorKind::UnsupportedAtRule(name.clone())
+                    ))
                 }
+
+                #[cfg(feature = "gecko")]
+                {
+                    use gecko_bindings::structs;
+
+                    if self.stylesheet_origin == Origin::Author &&
+                        unsafe { !structs::StylePrefs_sMozDocumentEnabledInContent }
+                    {
+                        return Err(input.new_custom_error(
+                            StyleParseErrorKind::UnsupportedAtRule(name.clone())
+                        ))
+                    }
+                }
+
+                let cond = DocumentCondition::parse(self.context, input)?;
+                Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Document(cond, location)))
             },
             _ => Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
         }
@@ -439,33 +457,32 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
     ) -> Result<CssRule, ParseError<'i>> {
         match prelude {
             AtRuleBlockPrelude::FontFace(location) => {
-                let context =
-                    ParserContext::new_with_rule_type(
-                        self.context,
-                        CssRuleType::FontFace,
-                        self.namespaces,
-                    );
+                let context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::FontFace,
+                    self.namespaces,
+                );
 
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
                    parse_font_face_block(&context, self.error_context, input, location).into()))))
             }
             AtRuleBlockPrelude::FontFeatureValues(family_names, location) => {
-                let context =
-                    ParserContext::new_with_rule_type(
-                        self.context,
-                        CssRuleType::FontFeatureValues,
-                        self.namespaces,
-                    );
+                let context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::FontFeatureValues,
+                    self.namespaces,
+                );
+
                 Ok(CssRule::FontFeatureValues(Arc::new(self.shared_lock.wrap(
                     FontFeatureValuesRule::parse(&context, self.error_context, input, family_names, location)))))
             }
             AtRuleBlockPrelude::CounterStyle(name) => {
-                let context =
-                    ParserContext::new_with_rule_type(
-                        self.context,
-                        CssRuleType::CounterStyle,
-                        self.namespaces,
-                    );
+                let context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::CounterStyle,
+                    self.namespaces,
+                );
+
                 Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
                    parse_counter_style_body(name, &context, self.error_context, input)?.into()))))
             }
@@ -477,12 +494,12 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 }))))
             }
             AtRuleBlockPrelude::Supports(cond, location) => {
-                let eval_context =
-                    ParserContext::new_with_rule_type(
-                        self.context,
-                        CssRuleType::Style,
-                        self.namespaces,
-                    );
+                let eval_context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::Style,
+                    self.namespaces,
+                );
+
                 let enabled = cond.eval(&eval_context);
                 Ok(CssRule::Supports(Arc::new(self.shared_lock.wrap(SupportsRule {
                     condition: cond,
@@ -492,22 +509,21 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 }))))
             }
             AtRuleBlockPrelude::Viewport => {
-                let context =
-                    ParserContext::new_with_rule_type(
-                        self.context,
-                        CssRuleType::Viewport,
-                        self.namespaces,
-                    );
+                let context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::Viewport,
+                    self.namespaces,
+                );
+
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                    ViewportRule::parse(&context, self.error_context, input)?))))
             }
             AtRuleBlockPrelude::Keyframes(name, prefix, location) => {
-                let context =
-                    ParserContext::new_with_rule_type(
-                        self.context,
-                        CssRuleType::Keyframes,
-                        self.namespaces,
-                    );
+                let context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::Keyframes,
+                    self.namespaces,
+                );
 
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
@@ -517,12 +533,12 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 }))))
             }
             AtRuleBlockPrelude::Page(location) => {
-                let context =
-                    ParserContext::new_with_rule_type(
-                        self.context,
-                        CssRuleType::Page,
-                        self.namespaces,
-                    );
+                let context = ParserContext::new_with_rule_type(
+                    self.context,
+                    CssRuleType::Page,
+                    self.namespaces,
+                );
+
                 let declarations = parse_property_declaration_list(&context, self.error_context, input);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
                     block: Arc::new(self.shared_lock.wrap(declarations)),
@@ -573,12 +589,12 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for NestedRulePa
         prelude: QualifiedRuleParserPrelude,
         input: &mut Parser<'i, 't>
     ) -> Result<CssRule, ParseError<'i>> {
-        let context =
-            ParserContext::new_with_rule_type(
-                self.context,
-                CssRuleType::Style,
-                self.namespaces,
-            );
+        let context = ParserContext::new_with_rule_type(
+            self.context,
+            CssRuleType::Style,
+            self.namespaces,
+        );
+
         let declarations = parse_property_declaration_list(&context, self.error_context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude.selectors,

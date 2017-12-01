@@ -70,7 +70,8 @@ impl DOMParserMethods for DOMParser {
                                              DocumentSource::FromParser,
                                              loader,
                                              None,
-                                             None);
+                                             None,
+                                             Default::default());
                 ServoParser::parse_html_document(&document, s, url);
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
@@ -88,7 +89,8 @@ impl DOMParserMethods for DOMParser {
                                              DocumentSource::NotFromParser,
                                              loader,
                                              None,
-                                             None);
+                                             None,
+                                             Default::default());
                 ServoParser::parse_xml_document(&document, s, url);
                 Ok(document)
             }

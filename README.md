@@ -56,8 +56,10 @@ sudo apt install git curl freeglut3-dev autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
     libssl1.0-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
-    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
-    libpulse-dev
+    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev \
+    pulseaudio dbus-x11 libavcodec-dev libavformat-dev \
+    libavutil-dev libswresample-dev  libswscale-dev libdbus-1-dev \
+    libpulse-dev clang
 ```
 
 If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
@@ -73,7 +75,7 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel ncurses-devel pulseaudio-libs-devel
+    dbus-devel ncurses-devel pulseaudio-libs-devel clang clang-libs
 ```
 #### On CentOS
 
@@ -82,7 +84,7 @@ sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel ncurses-devel python34 pulseaudio-libs-devel
+    dbus-devel ncurses-devel python34 pulseaudio-libs-devel clang clang-libs
 ```
 
 #### On openSUSE Linux
@@ -90,7 +92,7 @@ sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
 sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
     harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
-    python-pip python-virtualenv rpm-build glu-devel
+    python-pip python-virtualenv rpm-build glu-devel llvm-clang libclang
 ```
 #### On Arch Linux
 

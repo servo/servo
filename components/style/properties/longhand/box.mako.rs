@@ -601,6 +601,19 @@ ${helpers.single_keyword("scroll-behavior",
     )}
 % endfor
 
+% for axis in ["x", "y"]:
+    ${helpers.predefined_type(
+        "overscroll-behavior-" + axis,
+        "OverscrollBehavior",
+        "computed::OverscrollBehavior::Auto",
+        products="gecko",
+        needs_context=False,
+        gecko_pref="layout.css.overscroll-behavior.enabled",
+        spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
+        animation_value_type="discrete"
+    )}
+% endfor
+
 // Compositing and Blending Level 1
 // http://www.w3.org/TR/compositing-1/
 ${helpers.single_keyword("isolation",
@@ -795,13 +808,13 @@ ${helpers.predefined_type("transform-origin",
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
                             button-bevel button-focus caret checkbox checkbox-container checkbox-label checkmenuitem
-                            dialog dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage
-                            menuitem menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup
-                            menuradio menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
-                            progresschunk progresschunk-vertical radio radio-container radio-label radiomenuitem range
-                            range-thumb resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal
-                            scalethumbstart scalethumbtick scalethumb-vertical scale-vertical scrollbar
-                            scrollbar-horizontal scrollbar-small scrollbar-vertical scrollbarbutton-down
+                            dialog dualbutton groupbox inner-spin-button listbox listitem menuarrow menubar menucheckbox
+                            menuimage menuitem menuitemtext menulist menulist-button menulist-text menulist-textfield
+                            menupopup menuradio menuseparator meterbar meterchunk number-input progressbar
+                            progressbar-vertical progresschunk progresschunk-vertical radio radio-container radio-label
+                            radiomenuitem range range-thumb resizer resizerpanel scale-horizontal scalethumbend
+                            scalethumb-horizontal scalethumbstart scalethumbtick scalethumb-vertical scale-vertical
+                            scrollbar scrollbar-horizontal scrollbar-small scrollbar-vertical scrollbarbutton-down
                             scrollbarbutton-left scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal
                             scrollbarthumb-vertical scrollbartrack-horizontal scrollbartrack-vertical searchfield
                             separator spinner spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar
@@ -812,7 +825,8 @@ ${helpers.single_keyword("-moz-appearance",
                             -moz-gtk-info-bar -moz-mac-active-source-list-selection -moz-mac-disclosure-button-closed
                             -moz-mac-disclosure-button-open -moz-mac-fullscreen-button -moz-mac-help-button
                             -moz-mac-source-list -moz-mac-source-list-selection -moz-mac-vibrancy-dark
-                            -moz-mac-vibrancy-light -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
+                            -moz-mac-vibrancy-light -moz-mac-vibrant-titlebar-light -moz-mac-vibrant-titlebar-dark
+                            -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
                             -moz-win-communications-toolbox -moz-win-exclude-glass -moz-win-glass -moz-win-media-toolbox
                             -moz-window-button-box -moz-window-button-box-maximized -moz-window-button-close
                             -moz-window-button-maximize -moz-window-button-minimize -moz-window-button-restore

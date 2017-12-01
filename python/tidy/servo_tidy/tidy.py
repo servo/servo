@@ -339,10 +339,17 @@ def check_lock(file_name, contents):
         packages_by_name.setdefault(package["name"], []).append((package["version"], source))
 
     for (name, packages) in packages_by_name.iteritems():
-        if name in exceptions or len(packages) <= 1:
+        has_duplicates = len(packages) > 1
+        duplicates_allowed = name in exceptions
+
+        if has_duplicates == duplicates_allowed:
             continue
 
-        message = "duplicate versions for package `{}`".format(name)
+        if duplicates_allowed:
+            message = 'duplicates for `{}` are allowed, but only single version found'.format(name)
+        else:
+            message = "duplicate versions for package `{}`".format(name)
+
         packages.sort()
         packages_dependencies = list(find_reverse_dependencies(name, content))
         for version, source in packages:

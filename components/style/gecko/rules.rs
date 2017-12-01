@@ -6,7 +6,6 @@
 
 use byteorder::{BigEndian, WriteBytesExt};
 use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
-use computed_values::font_family::FamilyName;
 use counter_style;
 use cssparser::UnicodeRange;
 use font_face::{FontFaceRuleData, Source, FontDisplay, FontWeight};
@@ -19,6 +18,7 @@ use nsstring::nsString;
 use properties::longhands::font_language_override;
 use shared_lock::{ToCssWithGuard, SharedRwLockReadGuard};
 use std::{fmt, str};
+use values::computed::font::FamilyName;
 use values::generics::FontSettings;
 
 /// A @font-face rule

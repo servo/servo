@@ -5,49 +5,53 @@
 //! The restyle damage is a hint that tells layout which kind of operations may
 //! be needed in presence of incremental style changes.
 
-#![deny(missing_docs)]
-
 use computed_values::display;
 use matching::{StyleChange, StyleDifference};
 use properties::ComputedValues;
 use std::fmt;
 
 bitflags! {
-    #[doc = "Individual layout actions that may be necessary after restyling."]
+    /// Individual layout actions that may be necessary after restyling.
     pub struct ServoRestyleDamage: u8 {
-        #[doc = "Repaint the node itself."]
-        #[doc = "Currently unused; need to decide how this propagates."]
+        /// Repaint the node itself.
+        ///
+        /// Currently unused; need to decide how this propagates.
         const REPAINT = 0x01;
 
-        #[doc = "The stacking-context-relative position of this node or its descendants has \
-                 changed."]
-        #[doc = "Propagates both up and down the flow tree."]
+        /// The stacking-context-relative position of this node or its
+        /// descendants has changed.
+        ///
+        /// Propagates both up and down the flow tree.
         const REPOSITION = 0x02;
 
-        #[doc = "Recompute the overflow regions (bounding box of object and all descendants)."]
-        #[doc = "Propagates down the flow tree because the computation is bottom-up."]
+        /// Recompute the overflow regions (bounding box of object and all descendants).
+        ///
+        /// Propagates down the flow tree because the computation is bottom-up.
         const STORE_OVERFLOW = 0x04;
 
-        #[doc = "Recompute intrinsic inline_sizes (minimum and preferred)."]
-        #[doc = "Propagates down the flow tree because the computation is"]
-        #[doc = "bottom-up."]
+        /// Recompute intrinsic inline_sizes (minimum and preferred).
+        ///
+        /// Propagates down the flow tree because the computation is.
+        /// bottom-up.
         const BUBBLE_ISIZES = 0x08;
 
-        #[doc = "Recompute actual inline-sizes and block-sizes, only taking out-of-flow children \
-                 into account. \
-                 Propagates up the flow tree because the computation is top-down."]
+        /// Recompute actual inline-sizes and block-sizes, only taking
+        /// out-of-flow children into account.
+        ///
+        /// Propagates up the flow tree because the computation is top-down.
         const REFLOW_OUT_OF_FLOW = 0x10;
 
-        #[doc = "Recompute actual inline_sizes and block_sizes."]
-        #[doc = "Propagates up the flow tree because the computation is"]
-        #[doc = "top-down."]
+        /// Recompute actual inline_sizes and block_sizes.
+        ///
+        /// Propagates up the flow tree because the computation is top-down.
         const REFLOW = 0x20;
 
-        #[doc = "Re-resolve generated content. \
-                 Propagates up the flow tree because the computation is inorder."]
+        /// Re-resolve generated content.
+        ///
+        /// Propagates up the flow tree because the computation is inorder.
         const RESOLVE_GENERATED_CONTENT = 0x40;
 
-        #[doc = "The entire flow needs to be reconstructed."]
+        /// The entire flow needs to be reconstructed.
         const RECONSTRUCT_FLOW = 0x80;
     }
 }
@@ -70,7 +74,7 @@ impl ServoRestyleDamage {
             // optimization to skip the cascade in those cases applies.
             StyleChange::Changed { reset_only: false }
         };
-        StyleDifference::new(damage, change)
+        StyleDifference { damage, change }
     }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and

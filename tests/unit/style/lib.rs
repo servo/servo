@@ -41,10 +41,13 @@ mod viewport;
 
 mod writing_modes {
     use style::logical_geometry::WritingMode;
-    use style::properties::{INITIAL_SERVO_VALUES, get_writing_mode};
+    use style::properties::INITIAL_SERVO_VALUES;
 
     #[test]
     fn initial_writing_mode_is_empty() {
-        assert_eq!(get_writing_mode(INITIAL_SERVO_VALUES.get_inheritedbox()), WritingMode::empty())
+        assert_eq!(
+            WritingMode::new(INITIAL_SERVO_VALUES.get_inheritedbox()),
+            WritingMode::empty(),
+        )
     }
 }

@@ -71,12 +71,12 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
         cut_off_inheritance: bool,
         element: E,
         data: &'a mut ElementData,
-        nth_index_cache: Option<&'a mut NthIndexCache>,
+        nth_index_cache: &'a mut NthIndexCache,
     ) -> Self {
         let matching_context = MatchingContext::new_for_visited(
             MatchingMode::Normal,
             None,
-            nth_index_cache,
+            Some(nth_index_cache),
             VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             shared_context.quirks_mode(),
         );
@@ -164,6 +164,21 @@ where
             }
         }
 
+        debug!("Collecting changes for: {:?}", element);
+        debug!(" > state: {:?}", state_changes);
+        debug!(
+            " > id changed: {:?} -> +{:?} -{:?}",
+            snapshot.id_changed(),
+            id_added,
+            id_removed
+        );
+        debug!(
+            " > class changed: {:?} -> +{:?} -{:?}",
+            snapshot.class_changed(),
+            classes_added,
+            classes_removed
+        );
+
         let lookup_element =
             if element.implemented_pseudo_element().is_some() {
                 element.pseudo_element_originating_element().unwrap()
@@ -213,6 +228,17 @@ where
 
             collector.invalidates_self
         };
+
+        // If we generated a ton of descendant invalidations, it's probably not
+        // worth to go ahead and try to process them.
+        //
+        // Just restyle the descendants directly.
+        //
+        // This number is completely made-up, but the page that made us add this
+        // code generated 1960+ invalidations (bug 1420741).
+        if descendant_invalidations.len() > 150 {
+            self.data.hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
+        }
 
         if invalidated_self {
             self.data.hint.insert(RestyleHint::RESTYLE_SELF);

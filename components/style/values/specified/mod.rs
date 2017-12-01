@@ -31,10 +31,10 @@ pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
-pub use self::font::{FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
+pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
-pub use self::font::{MozScriptLevel, MozScriptMinSize, XTextZoom, XLang};
-pub use self::box_::{AnimationIterationCount, AnimationName, ScrollSnapType, VerticalAlign};
+pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
+pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -50,7 +50,7 @@ pub use self::length::{NoCalcLength, ViewportPercentageLength};
 pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::rect::LengthOrNumberRect;
 pub use self::percentage::Percentage;
-pub use self::position::{Position, PositionComponent};
+pub use self::position::{Position, PositionComponent, GridAutoFlow, GridTemplateAreas};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine, TextOverflow, WordSpacing};
@@ -267,6 +267,20 @@ impl ToCss for Number {
             dest.write_str(")")?;
         }
         Ok(())
+    }
+}
+
+impl From<Number> for f32 {
+    #[inline]
+    fn from(n: Number) -> Self {
+        n.get()
+    }
+}
+
+impl From<Number> for f64 {
+    #[inline]
+    fn from(n: Number) -> Self {
+        n.get() as f64
     }
 }
 

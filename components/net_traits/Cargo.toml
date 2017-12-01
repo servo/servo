@@ -10,9 +10,9 @@ name = "net_traits"
 path = "lib.rs"
 
 [dependencies]
-cookie = "0.6"
+cookie = "0.10"
 hyper = "0.10"
-hyper_serde = "0.7"
+hyper_serde = "0.8"
 image = "0.17"
 ipc-channel = "0.9"
 lazy_static = "0.2"
