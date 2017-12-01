@@ -2135,10 +2135,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             return false;
         }
 
-        snapshot_helpers::has_class(self.0,
-                                    name,
-                                    case_sensitivity,
-                                    Gecko_ClassOrClassList)
+        snapshot_helpers::has_class(
+            self.0,
+            name,
+            case_sensitivity,
+            Gecko_ClassOrClassList,
+        )
     }
 
     #[inline]
