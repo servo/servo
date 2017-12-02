@@ -19,7 +19,7 @@ pub fn parse(doc: &Document, node: &Node) -> Option<Microdata> {
     let serialized_json = parse_json(node);
     if !serialized_vcard.is_empty() {
         return Some(Microdata::VCardData(serialized_vcard.to_owned()));
-    } else if !serialized_vcard.is_empty(){
+    } else if !serialized_vcard.is_empty() {
         return Some(Microdata::JSONData(serialized_json.to_owned()));
     } else {
         return None
