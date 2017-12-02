@@ -121,9 +121,9 @@ use style::properties::{CascadeFlags, ComputedValues, DeclarationSource, Importa
 use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
 use style::properties::{SourcePropertyDeclaration, StyleBuilder};
+use style::properties::{parse_one_declaration_into, parse_style_attribute};
 use style::properties::animated_properties::AnimationValue;
 use style::properties::animated_properties::compare_property_priority;
-use style::properties::parse_one_declaration_into;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::{CascadeLevel, StrongRuleNode, StyleSource};
 use style::selector_parser::{PseudoElementCascadeType, SelectorImpl};
@@ -2583,8 +2583,13 @@ pub extern "C" fn Servo_ParseStyleAttribute(
     let reporter = ErrorReporter::new(ptr::null_mut(), loader, raw_extra_data);
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     Arc::new(global_style_data.shared_lock.wrap(
-        GeckoElement::parse_style_attribute(value, url_data, quirks_mode.into(), &reporter)))
-        .into_strong()
+        parse_style_attribute(
+            value,
+            url_data,
+            &reporter,
+            quirks_mode.into(),
+        )
+    )).into_strong()
 }
 
 #[no_mangle]
