@@ -583,19 +583,19 @@ fn test_textinput_cursor_position_correct_after_clearing_selection() {
 #[test]
 fn test_textinput_set_selection_with_direction() {
     let mut textinput = text_input(Lines::Single, "abcdef");
-    textinput.selection_direction = SelectionDirection::Forward;
-    textinput.set_selection_range(2, 6);
+    textinput.set_selection_range(2, 6, SelectionDirection::Forward);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 6);
+    assert_eq!(textinput.selection_direction, SelectionDirection::Forward);
 
     assert!(textinput.selection_begin.is_some());
     assert_eq!(textinput.selection_begin.unwrap().line, 0);
     assert_eq!(textinput.selection_begin.unwrap().index, 2);
 
-    textinput.selection_direction = SelectionDirection::Backward;
-    textinput.set_selection_range(2, 6);
+    textinput.set_selection_range(2, 6, SelectionDirection::Backward);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);
+    assert_eq!(textinput.selection_direction, SelectionDirection::Backward);
 
     assert!(textinput.selection_begin.is_some());
     assert_eq!(textinput.selection_begin.unwrap().line, 0);
