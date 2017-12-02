@@ -9,8 +9,10 @@
 
 use cssparser::Parser;
 use hash::FnvHashMap;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
+use servo_arc::Arc;
 use std::fmt;
 use std::ops::Range;
 use str::HTML_SPACE_CHARACTERS;
@@ -608,6 +610,37 @@ impl Parse for TemplateAreas {
 
 trivial_to_computed_value!(TemplateAreas);
 
+#[derive(Clone, Debug, PartialEq, ToCss)]
+/// Arc type for `Arc<TemplateAreas>`
+pub struct TemplateAreasArc(pub Arc<TemplateAreas>);
+
+impl Parse for TemplateAreasArc {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let mut strings = vec![];
+        while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+            strings.push(string);
+        }
+
+        match TemplateAreas::from_vec(strings) {
+            Ok(template_areas) => Ok(TemplateAreasArc(Arc::new(template_areas))),
+            Err(_) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
+impl MallocSizeOf for TemplateAreasArc {
+    /// FIXIME: (cybai) NEED TO FIGURE OUT HOW TO IMPLEMENT
+    /// MallocConditionalSizeOf for this Arc
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+trivial_to_computed_value!(TemplateAreasArc);
+
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
 /// Not associated with any particular grid item, but can
@@ -657,7 +690,7 @@ fn is_name_code_point(c: char) -> bool {
 /// The syntax of this property also provides a visualization of
 /// the structure of the grid, making the overall layout of
 /// the grid container easier to understand.
-pub type GridTemplateAreas = Either<TemplateAreas, None_>;
+pub type GridTemplateAreas = Either<TemplateAreasArc, None_>;
 
 impl GridTemplateAreas {
     #[inline]
