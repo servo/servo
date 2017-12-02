@@ -213,7 +213,7 @@ impl Color {
         // specified value.
         let start = input.state();
         let authored = match input.next() {
-            Ok(&Token::Ident(ref s)) => Some(s.to_lowercase().into_boxed_str()),
+            Ok(&Token::Ident(ref s)) => Some(s.clone()),
             _ => None,
         };
         input.reset(&start);
@@ -221,19 +221,25 @@ impl Color {
             Ok(value) =>
                 Ok(match value {
                     CSSParserColor::CurrentColor => Color::CurrentColor,
-                    CSSParserColor::RGBA(rgba) => Color::Numeric {
-                        parsed: rgba,
-                        authored: authored,
-                    },
+                    CSSParserColor::RGBA(rgba) => {
+                        Color::Numeric {
+                            parsed: rgba,
+                            authored: authored.map(|s| s.to_lowercase().into_boxed_str()),
+                        }
+                    }
                 }),
             Err(e) => {
-                #[cfg(feature = "gecko")] {
+                #[cfg(feature = "gecko")]
+                {
                     if let Ok(system) = input.try(SystemColor::parse) {
                         return Ok(Color::System(system));
-                    } else if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
+                    }
+
+                    if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
                         return Ok(Color::Special(c));
                     }
                 }
+
                 match e {
                     BasicParseError { kind: BasicParseErrorKind::UnexpectedToken(t), location } => {
                         Err(location.new_custom_error(
