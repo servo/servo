@@ -60,19 +60,19 @@ impl Transform {
                 let result =
                     match_ignore_ascii_case! { &function,
                     "matrix" => {
-                        let a = specified::parse_number(context, input)?;
+                        let a = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let b = specified::parse_number(context, input)?;
+                        let b = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let c = specified::parse_number(context, input)?;
+                        let c = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let d = specified::parse_number(context, input)?;
+                        let d = Number::parse(context, input)?;
                         input.expect_comma()?;
                         if !prefixed {
                             // Standard matrix parsing.
-                            let e = specified::parse_number(context, input)?;
+                            let e = Number::parse(context, input)?;
                             input.expect_comma()?;
-                            let f = specified::parse_number(context, input)?;
+                            let f = Number::parse(context, input)?;
                             Ok(GenericTransformOperation::Matrix(Matrix { a, b, c, d, e, f }))
                         } else {
                             // Non-standard prefixed matrix parsing for -moz-transform.
@@ -83,39 +83,39 @@ impl Transform {
                         }
                     },
                     "matrix3d" => {
-                        let m11 = specified::parse_number(context, input)?;
+                        let m11 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m12 = specified::parse_number(context, input)?;
+                        let m12 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m13 = specified::parse_number(context, input)?;
+                        let m13 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m14 = specified::parse_number(context, input)?;
+                        let m14 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m21 = specified::parse_number(context, input)?;
+                        let m21 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m22 = specified::parse_number(context, input)?;
+                        let m22 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m23 = specified::parse_number(context, input)?;
+                        let m23 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m24 = specified::parse_number(context, input)?;
+                        let m24 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m31 = specified::parse_number(context, input)?;
+                        let m31 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m32 = specified::parse_number(context, input)?;
+                        let m32 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m33 = specified::parse_number(context, input)?;
+                        let m33 = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let m34 = specified::parse_number(context, input)?;
+                        let m34 = Number::parse(context, input)?;
                         input.expect_comma()?;
                         if !prefixed {
                             // Standard matrix3d parsing.
-                            let m41 = specified::parse_number(context, input)?;
+                            let m41 = Number::parse(context, input)?;
                             input.expect_comma()?;
-                            let m42 = specified::parse_number(context, input)?;
+                            let m42 = Number::parse(context, input)?;
                             input.expect_comma()?;
-                            let m43 = specified::parse_number(context, input)?;
+                            let m43 = Number::parse(context, input)?;
                             input.expect_comma()?;
-                            let m44 = specified::parse_number(context, input)?;
+                            let m44 = Number::parse(context, input)?;
                             Ok(GenericTransformOperation::Matrix3D(Matrix3D {
                                 m11, m12, m13, m14,
                                 m21, m22, m23, m24,
@@ -130,7 +130,7 @@ impl Transform {
                             input.expect_comma()?;
                             let m43 = LengthOrNumber::parse(context, input)?;
                             input.expect_comma()?;
-                            let m44 = specified::parse_number(context, input)?;
+                            let m44 = Number::parse(context, input)?;
                             Ok(GenericTransformOperation::PrefixedMatrix3D(Matrix3D {
                                 m11, m12, m13, m14,
                                 m21, m22, m23, m24,
@@ -169,32 +169,32 @@ impl Transform {
                         Ok(GenericTransformOperation::Translate3D(tx, ty, tz))
                     },
                     "scale" => {
-                        let sx = specified::parse_number(context, input)?;
+                        let sx = Number::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
-                            let sy = specified::parse_number(context, input)?;
+                            let sy = Number::parse(context, input)?;
                             Ok(GenericTransformOperation::Scale(sx, Some(sy)))
                         } else {
                             Ok(GenericTransformOperation::Scale(sx, None))
                         }
                     },
                     "scalex" => {
-                        let sx = specified::parse_number(context, input)?;
+                        let sx = Number::parse(context, input)?;
                         Ok(GenericTransformOperation::ScaleX(sx))
                     },
                     "scaley" => {
-                        let sy = specified::parse_number(context, input)?;
+                        let sy = Number::parse(context, input)?;
                         Ok(GenericTransformOperation::ScaleY(sy))
                     },
                     "scalez" => {
-                        let sz = specified::parse_number(context, input)?;
+                        let sz = Number::parse(context, input)?;
                         Ok(GenericTransformOperation::ScaleZ(sz))
                     },
                     "scale3d" => {
-                        let sx = specified::parse_number(context, input)?;
+                        let sx = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let sy = specified::parse_number(context, input)?;
+                        let sy = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let sz = specified::parse_number(context, input)?;
+                        let sz = Number::parse(context, input)?;
                         Ok(GenericTransformOperation::Scale3D(sx, sy, sz))
                     },
                     "rotate" => {
@@ -214,11 +214,11 @@ impl Transform {
                         Ok(GenericTransformOperation::RotateZ(theta))
                     },
                     "rotate3d" => {
-                        let ax = specified::parse_number(context, input)?;
+                        let ax = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let ay = specified::parse_number(context, input)?;
+                        let ay = Number::parse(context, input)?;
                         input.expect_comma()?;
-                        let az = specified::parse_number(context, input)?;
+                        let az = Number::parse(context, input)?;
                         input.expect_comma()?;
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
                         // TODO(gw): Check that the axis can be normalized.
