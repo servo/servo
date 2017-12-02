@@ -4,7 +4,6 @@
 
 //! Communication with the compositor thread.
 
-use script_traits::Microdata;
 use SendableFrameTree;
 use compositor::CompositingReason;
 use euclid::{Point2D, Size2D};
@@ -14,7 +13,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBr
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult, LoadData};
+use script_traits::{AnimationState, ConstellationMsg, EventResult, LoadData, Microdata};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::sync::mpsc::{Receiver, Sender};

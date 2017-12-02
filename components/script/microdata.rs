@@ -10,9 +10,9 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
+use script_traits::Microdata;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use script_traits::Microdata;
 
 pub fn parse(doc: &Document, node: &Node) -> Option<Microdata> {
     let serialized_vcard = parse_vcard(doc);
