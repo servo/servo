@@ -714,6 +714,8 @@ impl LineDirection {
         let mut _angle = if *compat_mode == CompatMode::Moz {
             input.try(|i| Angle::parse(context, i)).ok()
         } else {
+            // Gradients allow unitless zero angles as an exception, see:
+            // https://github.com/w3c/csswg-drafts/issues/1162
             if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
                 return Ok(LineDirection::Angle(angle));
             }

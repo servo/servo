@@ -29,16 +29,18 @@ pub type TransformOperation = GenericTransformOperation<
     LengthOrPercentage,
     LengthOrPercentageOrNumber,
 >;
+
 /// A specified CSS `transform`
 pub type Transform = GenericTransform<TransformOperation>;
 
 /// The specified value of a CSS `<transform-origin>`
 pub type TransformOrigin = GenericTransformOrigin<OriginComponent<X>, OriginComponent<Y>, Length>;
 
-
 impl Transform {
     /// Internal parse function for deciding if we wish to accept prefixed values or not
-    // Allow unitless zero angle for rotate() and skew() to align with gecko
+    ///
+    /// `transform` allows unitless zero angles as an exception, see:
+    /// https://github.com/w3c/csswg-drafts/issues/1162
     fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
