@@ -2123,31 +2123,6 @@ fn static_assert() {
 
                 value
             },
-            GridTemplateComponent::Subgrid(list) => {
-                let names_length = match list.fill_idx {
-                    Some(_) => list.names.len() - 1,
-                    None => list.names.len(),
-                };
-                let num_values = cmp::min(names_length, max_lines + 1);
-                let value = unsafe {
-                    bindings::Gecko_CreateStyleGridTemplate(0, num_values as u32).as_mut().unwrap()
-                };
-                value.set_mIsSubgrid(true);
-
-                let mut names = list.names.into_vec();
-                if let Some(idx) = list.fill_idx {
-                    value.set_mIsAutoFill(true);
-                    value.mRepeatAutoIndex = idx as i16;
-                    set_line_names(&names.swap_remove(idx as usize),
-                                   &mut value.mRepeatAutoLineNameListBefore);
-                }
-
-                for (servo_names, gecko_names) in names.iter().zip(value.mLineNameLists.iter_mut()) {
-                    set_line_names(servo_names, gecko_names);
-                }
-
-                value
-            },
         };
 
         unsafe { bindings::Gecko_SetStyleGridTemplate(&mut ${self_grid}, result); }
@@ -2170,7 +2145,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsTArray;
         use nsstring::nsStringRepr;
         use values::CustomIdent;
-        use values::generics::grid::{GridTemplateComponent, LineNameList, RepeatCount};
+        use values::generics::grid::{GridTemplateComponent, RepeatCount};
         use values::generics::grid::{TrackList, TrackListType, TrackListValue, TrackRepeat, TrackSize};
 
         let value = match unsafe { ${self_grid}.mPtr.as_ref() } {
@@ -2195,58 +2170,43 @@ fn static_assert() {
         }
 
         let repeat_auto_index = value.mRepeatAutoIndex as usize;
-        if value.mIsSubgrid() {
-            let mut names_vec = to_line_names_vec(&value.mLineNameLists);
-            let fill_idx = if value.mIsAutoFill() {
-                names_vec.insert(
-                    repeat_auto_index,
-                    to_boxed_customident_slice(&value.mRepeatAutoLineNameListBefore));
-                Some(repeat_auto_index as u32)
-            } else {
-                None
-            };
-            let names = names_vec.into_boxed_slice();
+        let mut auto_repeat = None;
+        let mut list_type = TrackListType::Normal;
+        let line_names = to_line_names_vec(&value.mLineNameLists).into_boxed_slice();
+        let mut values = Vec::with_capacity(value.mMinTrackSizingFunctions.len());
 
-            GridTemplateComponent::Subgrid(LineNameList{names, fill_idx})
-        } else {
-            let mut auto_repeat = None;
-            let mut list_type = TrackListType::Normal;
-            let line_names = to_line_names_vec(&value.mLineNameLists).into_boxed_slice();
-            let mut values = Vec::with_capacity(value.mMinTrackSizingFunctions.len());
+        let min_max_iter = value.mMinTrackSizingFunctions.iter()
+            .zip(value.mMaxTrackSizingFunctions.iter());
+        for (i, (gecko_min, gecko_max)) in min_max_iter.enumerate() {
+            let track_size = TrackSize::from_gecko_style_coords(gecko_min, gecko_max);
 
-            let min_max_iter = value.mMinTrackSizingFunctions.iter()
-                .zip(value.mMaxTrackSizingFunctions.iter());
-            for (i, (gecko_min, gecko_max)) in min_max_iter.enumerate() {
-                let track_size = TrackSize::from_gecko_style_coords(gecko_min, gecko_max);
+            if i == repeat_auto_index {
+                list_type = TrackListType::Auto(repeat_auto_index as u16);
 
-                if i == repeat_auto_index {
-                    list_type = TrackListType::Auto(repeat_auto_index as u16);
-
-                    let count = if value.mIsAutoFill() {
-                        RepeatCount::AutoFill
-                    } else {
-                        RepeatCount::AutoFit
-                    };
-
-                    let line_names = {
-                        let mut vec: Vec<Box<[CustomIdent]>> = Vec::with_capacity(2);
-                        vec.push(to_boxed_customident_slice(
-                            &value.mRepeatAutoLineNameListBefore));
-                        vec.push(to_boxed_customident_slice(
-                            &value.mRepeatAutoLineNameListAfter));
-                        vec.into_boxed_slice()
-                    };
-
-                    let track_sizes = vec!(track_size);
-
-                    auto_repeat = Some(TrackRepeat{count, line_names, track_sizes});
+                let count = if value.mIsAutoFill() {
+                    RepeatCount::AutoFill
                 } else {
-                    values.push(TrackListValue::TrackSize(track_size));
-                }
-            }
+                    RepeatCount::AutoFit
+                };
 
-            GridTemplateComponent::TrackList(TrackList{list_type, values, line_names, auto_repeat})
+                let line_names = {
+                    let mut vec: Vec<Box<[CustomIdent]>> = Vec::with_capacity(2);
+                    vec.push(to_boxed_customident_slice(
+                        &value.mRepeatAutoLineNameListBefore));
+                    vec.push(to_boxed_customident_slice(
+                        &value.mRepeatAutoLineNameListAfter));
+                    vec.into_boxed_slice()
+                };
+
+                let track_sizes = vec!(track_size);
+
+                auto_repeat = Some(TrackRepeat{count, line_names, track_sizes});
+            } else {
+                values.push(TrackListValue::TrackSize(track_size));
+            }
         }
+
+        GridTemplateComponent::TrackList(TrackList{list_type, values, line_names, auto_repeat})
     }
     % endfor
 

@@ -13,7 +13,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 use values::{CSSFloat, CustomIdent};
 use values::computed::{self, Context, ToComputedValue};
 use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
-use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType, TrackListValue};
+use values::generics::grid::{TrackSize, TrackList, TrackListType, TrackListValue};
 use values::specified::{LengthOrPercentage, Integer};
 
 /// Parse a single flexible length.
@@ -343,10 +343,6 @@ impl GridTemplateComponent<LengthOrPercentage, Integer> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(t) = input.try(|i| TrackList::parse(context, i)) {
-            return Ok(GridTemplateComponent::TrackList(t))
-        }
-
-        LineNameList::parse(context, input).map(GridTemplateComponent::Subgrid)
+        TrackList::parse(context, input).map(GridTemplateComponent::TrackList)
     }
 }
