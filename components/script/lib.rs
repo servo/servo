@@ -85,7 +85,6 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde;
-#[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 extern crate servo_allocator;
@@ -123,7 +122,7 @@ mod dom;
 pub mod fetch;
 mod layout_image;
 mod mem;
-mod microdata;
+pub mod microdata;
 mod microtask;
 mod network_listener;
 pub mod script_runtime;

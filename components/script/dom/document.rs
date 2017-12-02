@@ -99,7 +99,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
-use microdata::Microdata;
+use microdata;
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
@@ -1714,15 +1714,10 @@ impl Document {
 
         // Step 13.
         let htmlelement = self.get_html_element();
-        let result = Microdata::parse(self, htmlelement.unwrap().upcast::<Node>());
-        if !result.get("vcard").unwrap().is_empty() {
-            let event = ScriptMsg::SendMicrodata(result.get("vcard").unwrap().to_string(), "vcard".to_string());
+        let result = microdata::parse(self, htmlelement.unwrap().upcast::<Node>());
+        if let Some(data) = result {
+            let event = ScriptMsg::SendMicrodata(data);
             self.send_to_constellation(event);
-            self.SetTitle(DOMString::from("Extracted vCard".to_string()));
-        } else if !result.get("json").unwrap().is_empty() {
-            let event = ScriptMsg::SendMicrodata(result.get("json").unwrap().to_string(), "json".to_string());
-            self.send_to_constellation(event);
-            self.SetTitle(DOMString::from("Extracted JSON".to_string()));
         }
     }
 

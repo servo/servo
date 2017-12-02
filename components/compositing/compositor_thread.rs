@@ -4,6 +4,7 @@
 
 //! Communication with the compositor thread.
 
+use script_traits::Microdata;
 use SendableFrameTree;
 use compositor::CompositingReason;
 use euclid::{Point2D, Size2D};
@@ -146,8 +147,10 @@ pub enum EmbedderMsg {
     LoadStart(TopLevelBrowsingContextId),
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
-    /// Sends microdata
-    SendMicrodata(String, String),
+    /// Sends the extracted microdata from webpage.
+    /// The parameter is an enum containing either VCardData or JSONData.
+    /// These entires have a String that represents the actual microdata
+    SendMicrodata(Microdata),
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.

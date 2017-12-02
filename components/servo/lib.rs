@@ -462,8 +462,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                     self.compositor.window.load_end(top_level_browsing_context);
                 },
 
-                (EmbedderMsg::SendMicrodata(data, datatype), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.print_microdata(data, datatype);
+                (EmbedderMsg::SendMicrodata(result), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.write_microdata(result);
                 },
             }
         }
