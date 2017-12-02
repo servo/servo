@@ -912,6 +912,14 @@ ${helpers.single_keyword("-moz-orient",
 </%helpers:longhand>
 
 ${helpers.predefined_type(
+    "shape-image-threshold", "Opacity", "0.0",
+    products="gecko",
+    gecko_pref="layout.css.shape-outside.enabled",
+    animation_value_type="ComputedValue",
+    spec="https://drafts.csswg.org/css-shapes/#shape-image-threshold-property",
+)}
+
+${helpers.predefined_type(
     "shape-outside",
     "basic_shape::FloatAreaShape",
     "generics::basic_shape::ShapeSource::None",
