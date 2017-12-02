@@ -242,18 +242,19 @@
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
                     products="gecko">
     use parser::Parse;
+    use servo_arc::Arc;
     use values::{Either, None_};
     use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
     use values::generics::grid::{TrackListValue, concat_serialize_idents};
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
-    use values::specified::position::TemplateAreas;
+    use values::specified::position::{TemplateAreas, TemplateAreasArc};
 
     /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
     pub fn parse_grid_template<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                        -> Result<(GridTemplateComponent,
                                                   GridTemplateComponent,
-                                                  Either<TemplateAreas, None_>), ParseError<'i>> {
+                                                  Either<TemplateAreasArc, None_>), ParseError<'i>> {
         // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
         // shorthand should know after these keywords there is nothing to parse. Otherwise it
         // gets confused and rejects the sub properties that contains `none` or `subgrid`.
@@ -332,7 +333,7 @@
             };
 
             Ok((GenericGridTemplateComponent::TrackList(template_rows),
-                template_cols, Either::First(template_areas)))
+                template_cols, Either::First(TemplateAreasArc(Arc::new(template_areas)))))
         } else {
             let mut template_rows = GridTemplateComponent::parse(context, input)?;
             if let GenericGridTemplateComponent::TrackList(ref mut list) = template_rows {
@@ -365,7 +366,7 @@
     pub fn serialize_grid_template<W>(
         template_rows: &GridTemplateComponent,
         template_columns: &GridTemplateComponent,
-        template_areas: &Either<TemplateAreas, None_>,
+        template_areas: &Either<TemplateAreasArc, None_>,
         dest: &mut CssWriter<W>,
     ) -> fmt::Result
     where
@@ -378,7 +379,7 @@
             },
             Either::First(ref areas) => {
                 // The length of template-area and template-rows values should be equal.
-                if areas.strings.len() != template_rows.track_list_len() {
+                if areas.0.strings.len() != template_rows.track_list_len() {
                     return Ok(());
                 }
 
@@ -423,7 +424,7 @@
                 }
 
                 let mut names_iter = track_list.line_names.iter();
-                for (((i, string), names), value) in areas.strings.iter().enumerate()
+                for (((i, string), names), value) in areas.0.strings.iter().enumerate()
                                                                   .zip(&mut names_iter)
                                                                   .zip(track_list.values.iter()) {
                     if i > 0 {
@@ -456,8 +457,12 @@
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         #[inline]
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            serialize_grid_template(self.grid_template_rows, self.grid_template_columns,
-                                    self.grid_template_areas, dest)
+            serialize_grid_template(
+                self.grid_template_rows,
+                self.grid_template_columns,
+                self.grid_template_areas,
+                dest
+            )
         }
     }
 </%helpers:shorthand>

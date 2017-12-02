@@ -2188,10 +2188,10 @@ fn static_assert() {
 
         let mut refptr = unsafe {
             UniqueRefPtr::from_addrefed(
-                Gecko_NewGridTemplateAreasValue(v.areas.len() as u32, v.strings.len() as u32, v.width))
+                Gecko_NewGridTemplateAreasValue(v.0.areas.len() as u32, v.0.strings.len() as u32, v.0.width))
         };
 
-        for (servo, gecko) in v.areas.into_iter().zip(refptr.mNamedAreas.iter_mut()) {
+        for (servo, gecko) in v.0.areas.into_iter().zip(refptr.mNamedAreas.iter_mut()) {
             gecko.mName.assign_utf8(&*servo.name);
             gecko.mColumnStart = servo.columns.start;
             gecko.mColumnEnd = servo.columns.end;
@@ -2199,7 +2199,7 @@ fn static_assert() {
             gecko.mRowEnd = servo.rows.end;
         }
 
-        for (servo, gecko) in v.strings.into_iter().zip(refptr.mTemplates.iter_mut()) {
+        for (servo, gecko) in v.0.strings.into_iter().zip(refptr.mTemplates.iter_mut()) {
             gecko.assign_utf8(&*servo);
         }
 
@@ -2217,7 +2217,7 @@ fn static_assert() {
     pub fn clone_grid_template_areas(&self) -> values::computed::position::GridTemplateAreas {
         use std::ops::Range;
         use values::None_;
-        use values::specified::position::{NamedArea, TemplateAreas};
+        use values::specified::position::{NamedArea, TemplateAreas, TemplateAreasArc};
 
         if self.gecko.mGridTemplateAreas.mRawPtr.is_null() {
             return Either::Second(None_);
@@ -2253,7 +2253,7 @@ fn static_assert() {
             (*gecko_grid_template_areas).mNColumns
         };
 
-        Either::First(TemplateAreas{ areas, strings, width })
+        Either::First(TemplateAreasArc(Arc::new(TemplateAreas{ areas, strings, width })))
     }
 
 </%self:impl_trait>
