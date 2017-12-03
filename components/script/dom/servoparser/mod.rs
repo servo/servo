@@ -13,6 +13,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
+use dom::bindings::settings_stack::is_execution_stack_empty;
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
@@ -1001,7 +1002,9 @@ fn create_element_for_token(
         // Step 6.1.
         // TODO: handle throw-on-dynamic-markup-insertion counter.
         // Step 6.2
-        // TODO: If the JavaScript execution context stack is empty, then perform a microtask checkpoint.
+        if is_execution_stack_empty() {
+            document.window().upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+        }
         // Step 6.3
         ScriptThread::push_new_element_queue()
     }
