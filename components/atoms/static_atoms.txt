@@ -55,6 +55,7 @@ playing
 print
 progress
 radio
+range
 readystatechange
 reftest-wait
 reset
