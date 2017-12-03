@@ -44,24 +44,42 @@ pub struct OffscreenCanvas {
 }
 
 impl OffscreenCanvas {
-    fn new_inherited(document: &Document) -> OffscreenCanvas {
-        OffscreenCanvas {
-            reflector_: Reflector::new(),
-            context: DomRefCell::new(None),
-        }
+    pub fn new_inherited(
+		width: u64,
+	    height: u64,
+        document: &Document
+	) -> OffscreenCanvas {
+
+	OffscreenCanvas {
+		reflector_: Reflector::new(),
+	    context: DomRefCell::new(None),
+		}
+	}
+    //#[allow(unrooted_must_root)]
+	pub fn new(
+	   global: &GlobalScope,
+       width: u64,
+	   height: u64
+   ) -> DomRoot<OffscreenCanvas> {
+		reflect_dom_object(Box::new(OffscreenCanvas::new_inherited(width, height)),
+		global,
+		OffscreenCanvasBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope, width: u64,
-                        height: u64) -> Result<DomRoot<OffscreenCanvas>, Error> {
-                            unimplemented!()
-    }
+    pub fn Constructor(
+			global : &GlobalScope,
+			width: u64,
+			height: u64
+	) -> Result<DomRoot<OffscreenCanvas>, Error> {
+        Ok(OffscreenCanvas::new(global, width, height))
+	}
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-     fn Width(&self) -> u64 {
-         let width: u64 = 300;
-         width
+    fn Width(&self) -> u64 {
+        let width: u64 = 300;
+        width
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
