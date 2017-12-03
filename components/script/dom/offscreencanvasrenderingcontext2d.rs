@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFil
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::OffscreenCanvasRenderingContext2DBinding::
@@ -25,6 +26,7 @@ use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::str::DOMString;
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle};
 use dom::canvaspattern::CanvasPattern;
+use dom::canvasrenderingcontext2d::{LayoutCanvasRenderingContext2DHelpers,CanvasRenderingContext2D};
 use dom::globalscope::GlobalScope;
 use dom::imagedata::ImageData;
 use dom::node::{document_from_node, window_from_node};
@@ -61,21 +63,7 @@ enum CanvasFillOrStrokeStyle {
 #[dom_struct]
 pub struct OffscreenCanvasRenderingContext2D {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    ipc_renderer: IpcSender<CanvasMsg>,
-    /// For rendering contexts created by an HTML canvas element, this is Some,
-    /// for ones created by a paint worklet, this is None.
-    canvas: Option<Dom<OffscreenCanvas>>,
-    #[ignore_malloc_size_of = "Arc"]
-    image_cache: Arc<ImageCache>,
-    /// Any missing image URLs.
-    missing_image_urls: DomRefCell<Vec<ServoUrl>>,
-    /// The base URL for resolving CSS image URL values.
-    /// Needed because of https://github.com/servo/servo/issues/17625
-    base_url: ServoUrl,
-    state: DomRefCell<CanvasContextState>,
-    saved_states: DomRefCell<Vec<CanvasContextState>>,
-    origin_clean: Cell<bool>,
+    base: Dom<CanvasRenderingContext2D>,
 }
 
 #[must_root]
@@ -125,44 +113,32 @@ impl CanvasContextState {
 
 
 impl OffscreenCanvasRenderingContext2D {
-pub fn new_inherited(global: &GlobalScope,
+    pub fn new_inherited(global: &GlobalScope,
                          canvas: Option<&OffscreenCanvas>,
                          image_cache: Arc<ImageCache>,
                          base_url: ServoUrl,
                          size: Size2D<i32>)
                          -> OffscreenCanvasRenderingContext2D {
-        debug!("Creating new canvas rendering context.");
-        let (sender, receiver) = ipc::channel().unwrap();
-        let script_to_constellation_chan = global.script_to_constellation_chan();
-        debug!("Asking constellation to create new canvas thread.");
-        script_to_constellation_chan.send(ScriptMsg::CreateCanvasPaintThread(size, sender)).unwrap();
-        let ipc_renderer = receiver.recv().unwrap();
-        debug!("Done.");
-        OffscreenCanvasRenderingContext2D {
+        let base = CanvasRenderingContext2D::new(global, &canvas, size);
+        Some(OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
-            ipc_renderer: ipc_renderer,
-            canvas: canvas.map(Dom::from_ref),
-            image_cache: image_cache,
-            missing_image_urls: DomRefCell::new(Vec::new()),
-            base_url: base_url,
-            state: DomRefCell::new(CanvasContextState::new()),
-            saved_states: DomRefCell::new(Vec::new()),
-            origin_clean: Cell::new(true),
-        }
+            base: Dom::from_ref(&*base),
+        })
     }
 
-/*    pub fn new(global: &GlobalScope,
+    pub fn new(global: &GlobalScope,
                canvas: &OffscreenCanvas,
                size: Size2D<i32>)
                -> DomRoot<OffscreenCanvasRenderingContext2D> {
-        let window = window_from_node(canvas);
-        let image_cache = window.image_cache();
-        let base_url = window.get_url();
-        let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
-            global, Some(canvas), image_cache, base_url, size
-        ));
-        reflect_dom_object(boxed, global, OffscreenCanvasRenderingContext2DBinding::Wrap)
-    } */
+                   let window = window_from_node(canvas);
+                   let image_cache = window.image_cache();
+                   let base_url = window.get_url();
+                   let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
+                       global, Some(canvas), image_cache, base_url, size
+                   ));
+                   reflect_dom_object(boxed, global, OffscreenCanvasRenderingContext2DBinding::Wrap)
+    }
+
     fn draw_image(&self,
                   image: CanvasImageSource,
                   sx: f64,
@@ -174,79 +150,19 @@ pub fn new_inherited(global: &GlobalScope,
                   dw: Option<f64>,
                   dh: Option<f64>)
                   -> ErrorResult {
-        //let result = match image {
-        //    CanvasImageSource::HTMLImageElement(ref image) => {
-        //        // https://html.spec.whatwg.org/multipage/#img-error
-        //        // If the image argument is an HTMLImageElement object that is in the broken state,
-        //        // then throw an InvalidStateError exception
-        //        let url = image.get_url().ok_or(Error::InvalidState)?;
-        //        self.fetch_and_draw_image_data(url,
-        //                                       sx, sy, sw, sh,
-        //                                       dx, dy, dw, dh)
-        //    }
-        //    CanvasImageSource::HTMLImageElement(ref image) => {
-        //        // https://html.spec.whatwg.org/multipage/#img-error
-        //        // If the image argument is an HTMLImageElement object that is in the broken state,
-        //        // then throw an InvalidStateError exception
-        //        let url = image.get_url().ok_or(Error::InvalidState)?;
-        //        self.fetch_and_draw_image_data(url,
-        //                                       sx, sy, sw, sh,
-        //                                       dx, dy, dw, dh)
-        //    }
-        //    CanvasImageSource::HTMLImageElement(ref image) => {
-        //        // https://html.spec.whatwg.org/multipage/#img-error
-        //        // If the image argument is an HTMLImageElement object that is in the broken state,
-        //        // then throw an InvalidStateError exception
-        //        let url = image.get_url().ok_or(Error::InvalidState)?;
-        //        self.fetch_and_draw_image_data(url,
-        //                                       sx, sy, sw, sh,
-        //                                       dx, dy, dw, dh)
-        //    }
-        //    CanvasImageSource::CSSStyleValue(ref value) => {
-        //        let url = value.get_url(self.base_url.clone()).ok_or(Error::InvalidState)?;
-        //        self.fetch_and_draw_image_data(url,
-        //                                       sx, sy, sw, sh,
-        //                                       dx, dy, dw, dh)
-        //    }
-        //};
-        //
-        //if result.is_ok() && !self.is_origin_clean(image) {
-        //    self.set_origin_unclean()
-        //}
-        unimplemented!()
+        self.base.draw_image(image,sx,sy,sw,sh,dx,dy,dw,dh)
     }
 
     fn set_origin_unclean(&self) {
-        self.origin_clean.set(false)
-    }
-    #[inline]
-    fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
-        let response = self.image_cache
-            .find_image_or_metadata(url.clone(),
-                                    UsePlaceholder::No,
-                                    CanRequestImages::No);
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) =>
-                ImageResponse::Loaded(image, url),
-            Err(ImageState::Pending(_)) =>
-                ImageResponse::None,
-            _ => {
-                // Rather annoyingly, we get the same response back from
-                // A load which really failed and from a load which hasn't started yet.
-                self.missing_image_urls.borrow_mut().push(url);
-                ImageResponse::None
-            },
-        }
-    }
-    pub fn origin_is_clean(&self) -> bool {
-        self.origin_clean.get()
+        self.base.set_origin_unclean();
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean
-    fn is_origin_clean(&self,
-                       image: CanvasImageSource)
-                           -> bool {
-        true
+    #[inline]
+    fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
+        self.base.request_image_from_cache(url)
+    }
+    pub fn origin_is_clean(&self) -> bool {
+        self.base.origin_is_clean()
     }
 
     fn fetch_and_draw_image_data(&self,
@@ -260,50 +176,11 @@ pub fn new_inherited(global: &GlobalScope,
                                  dw: Option<f64>,
                                  dh: Option<f64>)
                                  -> ErrorResult {
-    /*    debug!("Fetching image {}.", url);
-        // https://html.spec.whatwg.org/multipage/#img-error
-        // If the image argument is an HTMLImageElement object that is in the broken state,
-        // then throw an InvalidStateError exception
-        let (image_data, image_size) = match self.fetch_image_data(url) {
-            Some((mut data, size)) => {
-                // Pixels come from cache in BGRA order and drawImage expects RGBA so we
-                // have to swap the color values
-                byte_swap_and_premultiply(&mut data);
-                let size = Size2D::new(size.width as f64, size.height as f64);
-                (data, size)
-            },
-            None => return Err(Error::InvalidState),
-        };
-        let dw = dw.unwrap_or(image_size.width);
-        let dh = dh.unwrap_or(image_size.height);
-        let sw = sw.unwrap_or(image_size.width);
-        let sh = sh.unwrap_or(image_size.height);
-        self.draw_image_data(image_data,
-                             image_size,
-                             sx, sy, sw, sh,
-                             dx, dy, dw, dh)
-    */    Ok(())
+        self.base.fetch_and_draw_image_data(url,sx,sy,sw,sh,dx,dy,dw,dh)
     }
 
     fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<i32>)> {
-        let img = match self.request_image_from_cache(url) {
-            ImageResponse::Loaded(img, _) => img,
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None |
-            ImageResponse::MetadataLoaded(_) => {
-                return None;
-            }
-        };
-
-        let image_size = Size2D::new(img.width as i32, img.height as i32);
-        let image_data = match img.format {
-            PixelFormat::BGRA8 => img.bytes.to_vec(),
-            PixelFormat::K8 => panic!("K8 color type not supported"),
-            PixelFormat::RGB8 => panic!("RGB8 color type not supported"),
-            PixelFormat::KA8 => panic!("KA8 color type not supported"),
-        };
-
-        Some((image_data, image_size))
+        self.base.fetch_image_data(url)
     }
     fn draw_html_canvas_element(&self,
                                 canvas: &OffscreenCanvas,
@@ -316,61 +193,8 @@ pub fn new_inherited(global: &GlobalScope,
                                 dw: Option<f64>,
                                 dh: Option<f64>)
                                 -> ErrorResult {
-        // 1. Check the usability of the image argument
-    /*    if !canvas.is_valid() {
-            return Err(Error::InvalidState);
-        }
-
-        let canvas_size = canvas.get_size();
-        let dw = dw.unwrap_or(canvas_size.width as f64);
-        let dh = dh.unwrap_or(canvas_size.height as f64);
-        let sw = sw.unwrap_or(canvas_size.width as f64);
-        let sh = sh.unwrap_or(canvas_size.height as f64);
-
-        let image_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
-        // 2. Establish the source and destination rectangles
-        let (source_rect, dest_rect) = self.adjust_source_dest_rects(image_size,
-                                                                     sx,
-                                                                     sy,
-                                                                     sw,
-                                                                     sh,
-                                                                     dx,
-                                                                     dy,
-                                                                     dw,
-                                                                     dh);
-
-        if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
-            return Ok(());
-        }
-
-        let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
-
-        if self.canvas.as_ref().map_or(false, |c| &**c == canvas) {
-            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(
-                image_size, dest_rect, source_rect, smoothing_enabled));
-            self.ipc_renderer.send(msg).unwrap();
-        } else {
-            let context = match canvas.get_or_init_2d_context() {
-                Some(context) => context,
-                None => return Err(Error::InvalidState),
-            };
-
-            let (sender, receiver) = ipc::channel().unwrap();
-            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageInOther(
-                self.ipc_renderer.clone(),
-                image_size,
-                dest_rect,
-                source_rect,
-                smoothing_enabled,
-                sender));
-
-            let renderer = context.get_ipc_renderer();
-            renderer.send(msg).unwrap();
-            receiver.recv().unwrap();
-        };
-
-    //    self.mark_as_dirty();
-    */    Ok(())
+    //self.base.draw_html_canvas_element(canvas,sx,sy,sw,sh,dx,dy,dw,dh)
+    unimplemented!()
     }
 }
 
@@ -397,7 +221,7 @@ pub fn parse_color(string: &str) -> Result<RGBA, ()> {
 impl LayoutOffscreenCanvasRenderingContext2DHelpers for LayoutDom<OffscreenCanvasRenderingContext2D> {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        (*self.unsafe_get()).ipc_renderer.clone()
+        self.base.get_ipc_renderer()
     }
 }
 
@@ -429,20 +253,17 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     fn Canvas(&self) -> DomRoot<OffscreenCanvas> {
         // This method is not called from a paint worklet rendering context,
         // so it's OK to panic if self.canvas is None.
-        DomRoot::from_ref(self.canvas.as_ref().expect("No canvas."))
+        unimplemented!()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn GlobalCompositeOperation(&self) -> DOMString {
-        let state = self.state.borrow();
-        match state.global_composition {
-            CompositionOrBlending::Composition(op) => DOMString::from(op.to_str()),
-            CompositionOrBlending::Blending(op) => DOMString::from(op.to_str()),
-        }
+        self.base.GlobalCompositeOperation()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
+        self.base.SetGlobalCompositeOperation(op_str)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -451,11 +272,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                  dx: f64,
                  dy: f64)
                  -> ErrorResult {
-        if !(dx.is_finite() && dy.is_finite()) {
-            return Ok(());
-        }
-
-        self.draw_image(image, 0f64, 0f64, None, None, dx, dy, None, None)
+        self.base.DrawImage(image, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -470,11 +287,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                   dw: f64,
                   dh: f64)
                   -> ErrorResult {
-        if !(dx.is_finite() && dy.is_finite() && dw.is_finite() && dh.is_finite()) {
-            return Ok(());
-        }
-
-        self.draw_image(image, 0f64, 0f64, None, None, dx, dy, Some(dw), Some(dh))
+        self.base.DrawImage_(image, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -489,76 +302,43 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                    dw: f64,
                    dh: f64)
                    -> ErrorResult {
-        if !(sx.is_finite() && sy.is_finite() && sw.is_finite() && sh.is_finite() &&
-             dx.is_finite() && dy.is_finite() && dw.is_finite() && dh.is_finite()) {
-            return Ok(());
-        }
-
-        self.draw_image(image,
-                        sx,
-                        sy,
-                        Some(sw),
-                        Some(sh),
-                        dx,
-                        dy,
-                        Some(dw),
-                        Some(dh))
+        self.base.DrawImage__(image, sx, sy, sw, sh, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beginpath
     fn BeginPath(&self) {
+        self.base.BeginPath()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
-    fn Fill(&self, _: CanvasFillRule) {
+    fn Fill(&self, cx: CanvasFillRule) {
+        self.base.Fill(cx)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(&self) {
+        self.base.Stroke()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
-    fn Clip(&self, _: CanvasFillRule) {
+    fn Clip(&self, cx: CanvasFillRule) {
         // TODO: Process fill rule
+        self.base.Clip(cx)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn StrokeStyle(&self) -> StringOrCanvasGradientOrCanvasPattern {
-        match self.state.borrow().stroke_style {
-            CanvasFillOrStrokeStyle::Color(ref rgba) => {
-                let mut result = String::new();
-                serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
-            },
-            CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(&*gradient))
-            },
-            CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(DomRoot::from_ref(&*pattern))
-            }
-        }
-
+        self.base.StrokeStyle()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.SetStrokeStyle(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn FillStyle(&self) -> StringOrCanvasGradientOrCanvasPattern {
-        match self.state.borrow().fill_style {
-            CanvasFillOrStrokeStyle::Color(ref rgba) => {
-                let mut result = String::new();
-                serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
-            },
-            CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(&*gradient))
-            },
-            CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(DomRoot::from_ref(&*pattern))
-            }
-        }
+        self.base.FillStyle()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
@@ -568,12 +348,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                             x1: Finite<f64>,
                             y1: Finite<f64>)
                             -> DomRoot<CanvasGradient> {
-        CanvasGradient::new(&self.global(),
-                            CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0,
-                                                                                 *y0,
-                                                                                 *x1,
-                                                                                 *y1,
-                                                                                 Vec::new())))
+        self.base.CreateLinearGradient(x0, y0, x1, y1)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
@@ -585,18 +360,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                             y1: Finite<f64>,
                             r1: Finite<f64>)
                             -> Fallible<DomRoot<CanvasGradient>> {
-        if *r0 < 0. || *r1 < 0. {
-            return Err(Error::IndexSize);
-        }
-
-        Ok(CanvasGradient::new(&self.global(),
-                               CanvasGradientStyle::Radial(RadialGradientStyle::new(*x0,
-                                                                                    *y0,
-                                                                                    *r0,
-                                                                                    *x1,
-                                                                                    *y1,
-                                                                                    *r1,
-                                                                                    Vec::new()))))
+        self.base.CreateRadialGradient(x0, y0, r0, x1, y1, r1)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
@@ -604,69 +368,16 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                      image: CanvasImageSource,
                      mut repetition: DOMString)
                      -> Fallible<DomRoot<CanvasPattern>> {
-        //let (image_data, image_size) = match image {
-        //    CanvasImageSource::HTMLImageElement(ref image) => {
-        //        // https://html.spec.whatwg.org/multipage/#img-error
-        //        // If the image argument is an HTMLImageElement object that is in the broken state,
-        //        // then throw an InvalidStateError exception
-        //        image.get_url()
-        //            .and_then(|url| self.fetch_image_data(url))
-        //            .ok_or(Error::InvalidState)?
-        //    },
-        //    CanvasImageSource::HTMLImageElement(ref image) => {
-        //        // https://html.spec.whatwg.org/multipage/#img-error
-        //        // If the image argument is an HTMLImageElement object that is in the broken state,
-        //        // then throw an InvalidStateError exception
-        //        image.get_url()
-        //            .and_then(|url| self.fetch_image_data(url))
-        //            .ok_or(Error::InvalidState)?
-        //    },
-        //    CanvasImageSource::HTMLImageElement(ref image) => {
-        //        // https://html.spec.whatwg.org/multipage/#img-error
-        //        // If the image argument is an HTMLImageElement object that is in the broken state,
-        //        // then throw an InvalidStateError exception
-        //        image.get_url()
-        //            .and_then(|url| self.fetch_image_data(url))
-        //            .ok_or(Error::InvalidState)?
-        //    }
-        //    CanvasImageSource::CSSStyleValue(ref value) => {
-        //        value.get_url(self.base_url.clone())
-        //            .and_then(|url| self.fetch_image_data(url))
-        //            .ok_or(Error::InvalidState)?
-        //    }
-        //};
-        //
-        //if repetition.is_empty() {
-        //    repetition.push_str("repeat");
-        //}
-        //
-        //if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-        //    Ok(CanvasPattern::new(&self.global(),
-        //                          image_data,
-        //                          image_size,
-        //                          rep,
-        //                          self.is_origin_clean(image)))
-        //} else {
-        //    Err(Error::Syntax)
-        //}
-        unimplemented!()
+        self.base.CreatePattern(image, repetition)
     }
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData(&self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<DomRoot<ImageData>> {
-        if *sw == 0.0 || *sh == 0.0 {
-            return Err(Error::IndexSize);
-        }
-
-        ImageData::new(&self.global(), DEFAULT_WIDTH, DEFAULT_HEIGHT, None)
+        self.base.CreateImageData(sw, sh)
     }
-
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData_(&self, imagedata: &ImageData) -> Fallible<DomRoot<ImageData>> {
-        ImageData::new(&self.global(),
-                       imagedata.Width(),
-                       imagedata.Height(),
-                       None)
+        self.base.CreateImageData_(imagedata)
     }
 
 
@@ -677,23 +388,12 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                     sw: Finite<f64>,
                     sh: Finite<f64>)
                     -> Fallible<DomRoot<ImageData>> {
-        if !self.origin_is_clean() {
-            return Err(Error::Security)
-        }
-        let mut sx = *sx;
-        let mut sy = *sy;
-        let mut sw = *sw;
-        let mut sh = *sh;
-        //let sh = cmp::max(1, sh.to_u32().unwrap());
-        //let sw = cmp::max(1, sw.to_u32().unwrap());
-
-        let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
-        let mut data = receiver.recv().unwrap();
-        ImageData::new(&self.global(), DEFAULT_WIDTH, DEFAULT_HEIGHT, Some(data))
+        self.base.GetImageData(sx,sy,sw,sh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData(&self, imagedata: &ImageData, dx: Finite<f64>, dy: Finite<f64>) {
+        self.base.PutImageData(imagedata, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -705,251 +405,215 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
                      dirty_y: Finite<f64>,
                      dirty_width: Finite<f64>,
                      dirty_height: Finite<f64>) {
+        self.base.PutImageData_(imagedata, dx, dy, dirty_x, dirty_y, dirty_width, dirty_height)
     }
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
     fn ImageSmoothingEnabled(&self) -> bool {
-        let state = self.state.borrow();
-        state.image_smoothing_enabled
+        self.base.ImageSmoothingEnabled()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
     fn SetImageSmoothingEnabled(&self, value: bool) {
+        self.base.SetImageSmoothingEnabled(value)
     }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-closepath
     fn ClosePath(&self) {
+        self.base.ClosePath()
     }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-moveto
     fn MoveTo(&self, x: f64, y: f64) {
+        self.base.MoveTo(x, y)
     }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-lineto
     fn LineTo(&self, x: f64, y: f64) {
+        self.base.LineTo(x, y)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-quadraticcurveto
     fn QuadraticCurveTo(&self, cpx: f64, cpy: f64, x: f64, y: f64) {
+        self.base.QuadraticCurveTo(cpx, cpy, x, y)
     }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-beziercurveto
     fn BezierCurveTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, x: f64, y: f64) {
+        self.base.BezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
     fn Arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
-        if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
-            return Ok(());
-        }
-
-        if r < 0.0 {
-            return Err(Error::IndexSize);
-        }
-
-        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::Arc(Point2D::new(x as f32, y as f32),
-                                                       r as f32,
-                                                       start as f32,
-                                                       end as f32,
-                                                       ccw));
-
-        self.ipc_renderer.send(msg).unwrap();
-        Ok(())
+        self.base.Arc(x, y, r, start, end, ccw)
     }
 
-        // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
-        fn ArcTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> ErrorResult {
-            if !([cp1x, cp1y, cp2x, cp2y, r].iter().all(|x| x.is_finite())) {
-                return Ok(());
-            }
-            if r < 0.0 {
-                return Err(Error::IndexSize);
-            }
-            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::ArcTo(Point2D::new(cp1x as f32, cp1y as f32),
-                                                             Point2D::new(cp2x as f32, cp2y as f32),
-                                                             r as f32));
-            self.ipc_renderer.send(msg).unwrap();
-            Ok(())
-        }
-        // https://html.spec.whatwg.org/multipage/#dom-context-2d-rect
-        fn Rect(&self, x: f64, y: f64, width: f64, height: f64) {
-        }
-        // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
-        fn Ellipse(&self, x: f64, y: f64,
-             rx: f64, ry: f64, rotation: f64, start: f64,
-              end: f64, ccw: bool) -> ErrorResult {
-            if !([x, y, rx, ry, rotation, start, end].iter().all(|x| x.is_finite())) {
-                return Ok(());
-            }
-            if rx < 0.0 || ry < 0.0 {
-                return Err(Error::IndexSize);
-            }
-
-            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::Ellipse(Point2D::new(x as f32, y as f32),
-                                                           rx as f32,
-                                                           ry as f32,
-                                                           rotation as f32,
-                                                           start as f32,
-                                                           end as f32,
-                                                           ccw));
-            self.ipc_renderer.send(msg).unwrap();
-            Ok(())
-        }
-        // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
-        fn LineWidth(&self) -> f64 {
-            let state = self.state.borrow();
-            state.line_width
-        }
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
+    fn ArcTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> ErrorResult {
+        self.base.ArcTo(cp1x, cp1y, cp2x, cp2y, r)
+    }
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-rect
+    fn Rect(&self, x: f64, y: f64, width: f64, height: f64) {
+        self.base.Rect(x, y, width, height)
+    }
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
+    fn Ellipse(&self, x: f64, y: f64,
+         rx: f64, ry: f64, rotation: f64, start: f64,
+          end: f64, ccw: bool) -> ErrorResult {
+              self.base.Ellipse(x, y, rx, ry, rotation, start, end, ccw)
+    }
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
+    fn LineWidth(&self) -> f64 {
+        self.base.LineWidth()
+    }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
         fn SetLineWidth(&self, width: f64) {
+            self.base.SetLineWidth(width)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
         fn LineCap(&self) -> CanvasLineCap {
-            match self.state.borrow().line_cap {
-                LineCapStyle::Butt => CanvasLineCap::Butt,
-                LineCapStyle::Round => CanvasLineCap::Round,
-                LineCapStyle::Square => CanvasLineCap::Square,
-            }
+            self.base.LineCap()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
         fn SetLineCap(&self, cap: CanvasLineCap) {
+            self.base.SetLineCap(cap)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
         fn LineJoin(&self) -> CanvasLineJoin {
-            match self.state.borrow().line_join {
-                LineJoinStyle::Round => CanvasLineJoin::Round,
-                LineJoinStyle::Bevel => CanvasLineJoin::Bevel,
-                LineJoinStyle::Miter => CanvasLineJoin::Miter,
-            }
+            self.base.LineJoin()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
         fn SetLineJoin(&self, join: CanvasLineJoin) {
+            self.base.SetLineJoin(join)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
         fn MiterLimit(&self) -> f64 {
-            let state = self.state.borrow();
-            state.miter_limit
+            self.base.MiterLimit()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
         fn SetMiterLimit(&self, limit: f64) {
+            self.base.SetMiterLimit(limit)
         }
+
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-fillrect
         fn FillRect(&self, x: f64, y: f64, width: f64, height: f64) {
+            self.base.FillRect(x, y, width, height)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-clearrect
         fn ClearRect(&self, x: f64, y: f64, width: f64, height: f64) {
+            self.base.ClearRect(x, y, width, height)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokerect
         fn StrokeRect(&self, x: f64, y: f64, width: f64, height: f64) {
+            self.base.StrokeRect(x, y, width, height)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
         fn ShadowOffsetX(&self) -> f64 {
-            self.state.borrow().shadow_offset_x
+            self.base.ShadowOffsetX()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
         fn SetShadowOffsetX(&self, value: f64) {
+            self.base.SetShadowOffsetX(value)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
         fn ShadowOffsetY(&self) -> f64 {
-            self.state.borrow().shadow_offset_y
+            self.base.ShadowOffsetY()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsety
         fn SetShadowOffsetY(&self, value: f64) {
+            self.base.SetShadowOffsetY(value)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
         fn ShadowBlur(&self) -> f64 {
-            self.state.borrow().shadow_blur
+            self.base.ShadowBlur()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowblur
         fn SetShadowBlur(&self, value: f64) {
+            self.base.SetShadowBlur(value)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
         fn ShadowColor(&self) -> DOMString {
-            let mut result = String::new();
-            serialize(&self.state.borrow().shadow_color, &mut result).unwrap();
-            DOMString::from(result)
+            self.base.ShadowColor()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
         fn SetShadowColor(&self, value: DOMString) {
+            self.base.SetShadowColor(value)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
         fn Save(&self) {
+            self.base.Save()
         }
 
         #[allow(unrooted_must_root)]
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
         fn Restore(&self) {
+            self.base.Restore()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-scale
         fn Scale(&self, x: f64, y: f64) {
+            self.base.Scale(x, y)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-rotate
         fn Rotate(&self, angle: f64) {
+            self.base.Rotate(angle)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-translate
         fn Translate(&self, x: f64, y: f64) {
+            self.base.Translate(x, y)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
         fn Transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
+            self.base.Transform(a, b, c, d, e, f)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
         fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
+            self.base.SetTransform(a, b, c, d, e, f)
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
         fn ResetTransform(&self) {
+            self.base.ResetTransform()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
         fn GlobalAlpha(&self) -> f64 {
-            let state = self.state.borrow();
-            state.global_alpha
+            self.base.GlobalAlpha()
         }
 
         // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
         fn SetGlobalAlpha(&self, alpha: f64) {
-            if !alpha.is_finite() || alpha > 1.0 || alpha < 0.0 {
-                return;
-            }
-
-            self.state.borrow_mut().global_alpha = alpha;
-            self.ipc_renderer
-                .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetGlobalAlpha(alpha as f32)))
-                .unwrap()
+            self.base.SetGlobalAlpha(alpha)
         }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.base.SetFillStyle(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
     fn IsPointInPath(&self, x: f64, y: f64, fill_rule: CanvasFillRule) -> bool {
-        let fill_rule = match fill_rule {
-            CanvasFillRule::Nonzero => FillRule::Nonzero,
-            CanvasFillRule::Evenodd => FillRule::Evenodd,
-        };
-        let (sender, receiver) = ipc::channel::<bool>().unwrap();
-        self.ipc_renderer
-            .send(CanvasMsg::Canvas2d(Canvas2dMsg::IsPointInPath(x, y, fill_rule, sender)))
-            .unwrap();
-        receiver.recv().unwrap()
+        self.base.IsPointInPath(x, y, fill_rule)
     }
 }
