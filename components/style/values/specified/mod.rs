@@ -109,36 +109,12 @@ impl Parse for SpecifiedUrl {
 impl Eq for SpecifiedUrl {}
 }
 
-/// Parse an `<integer>` value, handling `calc()` correctly.
-pub fn parse_integer<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<Integer, ParseError<'i>> {
-    let location = input.current_source_location();
-    // FIXME: remove early returns when lifetimes are non-lexical
-    match *input.next()? {
-        Token::Number { int_value: Some(v), .. } => return Ok(Integer::new(v)),
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-        ref t => return Err(location.new_unexpected_token_error(t.clone()))
-    }
-
-    let result = input.parse_nested_block(|i| {
-        CalcNode::parse_integer(context, i)
-    })?;
-
-    Ok(Integer::from_calc(result))
-}
-
-/// Parse a `<number>` value, handling `calc()` correctly, and without length
-/// limitations.
-pub fn parse_number<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                            -> Result<Number, ParseError<'i>> {
-    parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
-}
-
 /// Parse a `<number>` value, with a given clamping mode.
-pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
-                                               input: &mut Parser<'i, 't>,
-                                               clamping_mode: AllowedNumericType)
-                                               -> Result<Number, ParseError<'i>> {
+fn parse_number_with_clamping_mode<'i, 't>(
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+    clamping_mode: AllowedNumericType,
+) -> Result<Number, ParseError<'i>> {
     let location = input.current_source_location();
     // FIXME: remove early returns when lifetimes are non-lexical
     match *input.next()? {
@@ -200,7 +176,7 @@ pub struct Number {
 
 impl Parse for Number {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        parse_number(context, input)
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
 
@@ -357,7 +333,7 @@ pub struct Opacity(Number);
 
 impl Parse for Opacity {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        parse_number(context, input).map(Opacity)
+        Number::parse(context, input).map(Opacity)
     }
 }
 
@@ -416,7 +392,20 @@ impl Integer {
 
 impl Parse for Integer {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        parse_integer(context, input)
+        let location = input.current_source_location();
+
+        // FIXME: remove early returns when lifetimes are non-lexical
+        match *input.next()? {
+            Token::Number { int_value: Some(v), .. } => return Ok(Integer::new(v)),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
+            ref t => return Err(location.new_unexpected_token_error(t.clone()))
+        }
+
+        let result = input.parse_nested_block(|i| {
+            CalcNode::parse_integer(context, i)
+        })?;
+
+        Ok(Integer::from_calc(result))
     }
 }
 
@@ -427,7 +416,7 @@ impl Integer {
         input: &mut Parser<'i, 't>,
         min: i32
     ) -> Result<Integer, ParseError<'i>> {
-        match parse_integer(context, input) {
+        match Integer::parse(context, input) {
             // FIXME(emilio): The spec asks us to avoid rejecting it at parse
             // time except until computed value time.
             //
