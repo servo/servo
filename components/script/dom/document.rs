@@ -364,6 +364,8 @@ pub struct Document {
     tti_window: DomRefCell<InteractiveWindow>,
     /// RAII canceller for Fetch
     canceller: FetchCanceller,
+    /// https://html.spec.whatwg.org/multipage/#throw-on-dynamic-markup-insertion-counter
+    throw_on_dynamic_markup_insertion_counter: Cell<u64>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2053,6 +2055,16 @@ impl Document {
         let global_scope = self.window.upcast::<GlobalScope>();
         global_scope.script_to_constellation_chan().send(msg).unwrap();
     }
+
+    pub fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
+        let counter = self.throw_on_dynamic_markup_insertion_counter.get();
+        self.throw_on_dynamic_markup_insertion_counter.set(counter + 1);
+    }
+
+    pub fn decrement_throw_on_dynamic_markup_insertion_counter(&self) {
+        let counter = self.throw_on_dynamic_markup_insertion_counter.get();
+        self.throw_on_dynamic_markup_insertion_counter.set(counter - 1);
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -2294,6 +2306,7 @@ impl Document {
             interactive_time: DomRefCell::new(interactive_time),
             tti_window: DomRefCell::new(InteractiveWindow::new()),
             canceller: canceller,
+            throw_on_dynamic_markup_insertion_counter: Cell::new(0),
         }
     }
 
@@ -3717,7 +3730,9 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
+            return Err(Error::InvalidState);
+        }
 
         if !self.is_active() {
             // Step 3.
@@ -3863,7 +3878,10 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
+            return Err(Error::InvalidState);
+        }
+
         if !self.is_active() {
             // Step 3.
             return Ok(());
@@ -3910,7 +3928,9 @@ impl DocumentMethods for Document {
         }
 
         // Step 2.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
+            return Err(Error::InvalidState);
+        }
 
         let parser = match self.get_current_parser() {
             Some(ref parser) if parser.is_script_created() => DomRoot::from_ref(&**parser),

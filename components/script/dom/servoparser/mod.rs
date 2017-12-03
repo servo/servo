@@ -1000,7 +1000,7 @@ fn create_element_for_token(
     // Step 6.
     if will_execute_script {
         // Step 6.1.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        document.increment_throw_on_dynamic_markup_insertion_counter();
         // Step 6.2
         if is_execution_stack_empty() {
             document.window().upcast::<GlobalScope>().perform_a_microtask_checkpoint();
@@ -1025,9 +1025,9 @@ fn create_element_for_token(
     // Step 9.
     if will_execute_script {
         // Steps 9.1 - 9.2.
-        ScriptThread::pop_current_element_queue()
+        ScriptThread::pop_current_element_queue();
         // Step 9.3.
-        // TODO: handle throw-on-dynamic-markup-insertion counter.
+        document.decrement_throw_on_dynamic_markup_insertion_counter();
     }
 
     // TODO: Step 10.
