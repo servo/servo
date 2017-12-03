@@ -25,10 +25,11 @@ unstable = [
     "profile/unstable",
     "script/unstable",
 ]
+web-bluetooth = ["bluetooth"]
 
 [dependencies]
 bluetooth_traits = {path = "../bluetooth_traits"}
-# bluetooth = {path = "../bluetooth"}
+bluetooth = {path = "../bluetooth", optional = true}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
