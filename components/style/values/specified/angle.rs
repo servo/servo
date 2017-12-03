@@ -102,23 +102,25 @@ impl AsRef<ComputedAngle> for Angle {
     }
 }
 
+/// Whether to allow parsing an unitless zero as a valid angle.
+///
+/// This should always be `No`, except for exceptions like:
+///
+///   https://github.com/w3c/fxtf-drafts/issues/228
+///
+/// See also: https://github.com/w3c/csswg-drafts/issues/1162.
+enum AllowUnitlessZeroAngle {
+    Yes,
+    No,
+}
+
 impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        // FIXME: remove clone() when lifetimes are non-lexical
-        let token = input.next()?.clone();
-        match token {
-            Token::Dimension { value, ref unit, .. } => {
-                Angle::parse_dimension(value, unit, /* from_calc = */ false)
-            }
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
-            }
-            _ => Err(())
-        }.map_err(|()| input.new_unexpected_token_error(token.clone()))
+        Self::parse_internal(context, input, AllowUnitlessZeroAngle::No)
     }
 }
 
@@ -127,9 +129,8 @@ impl Angle {
     pub fn parse_dimension(
         value: CSSFloat,
         unit: &str,
-        from_calc: bool)
-        -> Result<Angle, ()>
-    {
+        from_calc: bool,
+    ) -> Result<Angle, ()> {
         let angle = match_ignore_ascii_case! { unit,
             "deg" => Angle::from_degrees(value, from_calc),
             "grad" => Angle::from_gradians(value, from_calc),
@@ -140,23 +141,33 @@ impl Angle {
         Ok(angle)
     }
 
-    /// Parse an angle, including unitless 0 degree.
+    /// Parse an `<angle>` allowing unitless zero to represent a zero angle.
     ///
-    /// Note that numbers without any AngleUnit, including unitless 0 angle,
-    /// should be invalid. However, some properties still accept unitless 0
-    /// angle and stores it as '0deg'.
-    ///
-    /// We can remove this and get back to the unified version Angle::parse once
-    /// https://github.com/w3c/csswg-drafts/issues/1162 is resolved.
-    pub fn parse_with_unitless<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                       -> Result<Self, ParseError<'i>> {
+    /// See the comment in `AllowUnitlessZeroAngle` for why.
+    pub fn parse_with_unitless<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_internal(context, input, AllowUnitlessZeroAngle::Yes)
+    }
+
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_unitless_zero: AllowUnitlessZeroAngle,
+    ) -> Result<Self, ParseError<'i>> {
         // FIXME: remove clone() when lifetimes are non-lexical
         let token = input.next()?.clone();
         match token {
             Token::Dimension { value, ref unit, .. } => {
                 Angle::parse_dimension(value, unit, /* from_calc = */ false)
             }
-            Token::Number { value, .. } if value == 0. => Ok(Angle::zero()),
+            Token::Number { value, .. } if value == 0. => {
+                match allow_unitless_zero {
+                    AllowUnitlessZeroAngle::Yes => Ok(Angle::zero()),
+                    AllowUnitlessZeroAngle::No => Err(()),
+                }
+            },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
