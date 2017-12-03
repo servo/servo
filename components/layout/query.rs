@@ -463,16 +463,16 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
         let bottom_padding = (border_box.size.height.to_f32_px() - bottom_border - top_border) as i32;
         let top_padding = top_border as i32;
         let left_padding = left_border as i32;
+        let top_margin = top_padding + fragment.margin.top(fragment.style.writing_mode).to_px();
+        let left_margin = left_padding + fragment.margin.left(fragment.style.writing_mode).to_px();
+        let bottom_margin = bottom_padding + fragment.margin.bottom(fragment.style.writing_mode).to_px();
+        let right_margin = right_padding + fragment.margin.right(fragment.style.writing_mode).to_px();
 
         match self.level {
             Some(start_level) if level <= start_level => { self.is_child = false; }
             Some(_) => {
                 let padding = Rect::new(Point2D::new(left_padding, top_padding),
                                         Size2D::new(right_padding, bottom_padding));
-                let top_margin = fragment.margin.top(fragment.style.writing_mode).to_px();
-                let left_margin = fragment.margin.left(fragment.style.writing_mode).to_px();
-                let bottom_margin = fragment.margin.bottom(fragment.style.writing_mode).to_px();
-                let right_margin = fragment.margin.right(fragment.style.writing_mode).to_px();
                 let margin = Rect::new(Point2D::new(left_margin, top_margin),
                                        Size2D::new(right_margin, bottom_margin));
                 self.union_rect = self.union_rect.union(&margin).union(&padding);
@@ -639,18 +639,18 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
             let bottom = max(iterator.union_rect.size.height, iterator.origin_rect.size.height);
             let left = max(iterator.union_rect.origin.x, iterator.origin_rect.origin.x);
             Rect::new(Point2D::new(left, iterator.origin_rect.origin.y),
-                      Size2D::new(iterator.origin_rect.size.width, bottom))
+                      Size2D::new(iterator.union_rect.size.width, bottom))
         },
         OverflowDirection::LeftAndUp => {
             let top = min(iterator.union_rect.origin.y, iterator.origin_rect.origin.y);
             let left = min(iterator.union_rect.origin.x, iterator.origin_rect.origin.x);
-            Rect::new(Point2D::new(left, top), iterator.origin_rect.size)
+            Rect::new(Point2D::new(left, top), iterator.union_rect.size)
         },
         OverflowDirection::RightAndUp => {
             let top = min(iterator.union_rect.origin.y, iterator.origin_rect.origin.y);
             let right = max(iterator.union_rect.size.width, iterator.origin_rect.size.width);
             Rect::new(Point2D::new(iterator.origin_rect.origin.x, top),
-                      Size2D::new(right, iterator.origin_rect.size.height))
+                      Size2D::new(right, iterator.union_rect.size.height))
         }
     }
 }
