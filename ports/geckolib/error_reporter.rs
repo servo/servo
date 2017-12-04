@@ -17,7 +17,7 @@ use style::gecko_bindings::structs::{Loader, ServoStyleSheet, nsIURI};
 use style::gecko_bindings::structs::ErrorReporter as GeckoErrorReporter;
 use style::gecko_bindings::structs::URLExtraData as RawUrlExtraData;
 use style::stylesheets::UrlExtraData;
-use style_traits::StyleParseErrorKind;
+use style_traits::{StyleParseErrorKind, ValueParseErrorKind};
 
 pub type ErrorKind<'i> = ParseErrorKind<'i, StyleParseErrorKind<'i>>;
 
@@ -139,6 +139,9 @@ fn extract_error_params<'a>(err: ErrorKind<'a>) -> Option<ErrorParams<'a>> {
 
         ParseErrorKind::Custom(
             StyleParseErrorKind::ExpectedIdentifier(token)
+        ) |
+        ParseErrorKind::Custom(
+            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(token))
         ) => {
             (Some(ErrorString::UnexpectedToken(token)), None)
         }
@@ -198,7 +201,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedRule(s, err) |
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(s, err) |
             ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) |
-            ContextualParseError::InvalidMediaRule(s, err) => {
+            ContextualParseError::InvalidMediaRule(s, err) |
+            ContextualParseError::UnsupportedValue(s, err) => {
                 (s.into(), err.kind)
             }
             ContextualParseError::InvalidCounterStyleWithoutSymbols(s) |
@@ -360,6 +364,23 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedFontFeatureValuesDescriptor(..) |
             ContextualParseError::InvalidFontFeatureValuesRule(..) =>
                 (b"PEUnknownAtRule\0", Action::Skip),
+            ContextualParseError::UnsupportedValue(_, ParseError { ref kind, .. }) => {
+                match *kind {
+                    ParseErrorKind::Custom(
+                        StyleParseErrorKind::ValueError(
+                            ValueParseErrorKind::InvalidColor(..)
+                        )
+                    ) => (b"PEColorNotColor", Action::Nothing),
+                    _ => {
+                        // Not the best error message, since we weren't parsing
+                        // a declaration, just a value. But we don't produce
+                        // UnsupportedValue errors other than InvalidColors
+                        // currently.
+                        debug_assert!(false, "should use a more specific error message");
+                        (b"PEDeclDropped", Action::Nothing)
+                    }
+                }
+            }
         };
         (None, msg, action)
     }
