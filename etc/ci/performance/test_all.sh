@@ -43,6 +43,9 @@ fi
 echo "Starting the local server"
 python3 -m http.server > /dev/null 2>&1 &
 
+# Stop the local server no matter how we exit the script
+trap 'kill $(jobs -pr)' SIGINT SIGTERM EXIT
+
 # TODO: enable the full manifest when #11087 is fixed
 # https://github.com/servo/servo/issues/11087
 # MANIFEST="page_load_test/tp5n/20160509.manifest"
@@ -61,5 +64,3 @@ then
     python3 submit_to_s3.py "${PERF_FILE}" "${PERF_KEY}"
 fi
 
-echo "Stopping the local server"
-trap 'kill $(jobs -pr)' SIGINT SIGTERM EXIT
