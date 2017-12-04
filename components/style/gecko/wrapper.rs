@@ -41,7 +41,6 @@ use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetExtraContentStyleDeclarations;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
-use gecko_bindings::bindings::Gecko_GetSMILOverrideDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetUnvisitedLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetVisitedLinkAttrDeclarationBlock;
@@ -1054,14 +1053,43 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
-        let declarations = unsafe { Gecko_GetSMILOverrideDeclarationBlock(self.0) };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
-            declarations.and_then(|s| s.as_arc_opt());
-        declarations.map(|s| s.borrow_arc())
+        unsafe {
+            let slots = match self.get_extended_slots() {
+                Some(s) => s,
+                None => return None,
+            };
+
+            let base_declaration: &structs::DeclarationBlock =
+                match slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref() {
+                    Some(decl) => decl,
+                    None => return None,
+                };
+
+            assert_eq!(base_declaration.mType, structs::StyleBackendType_Servo);
+            let declaration: &structs::ServoDeclarationBlock =
+                mem::transmute(base_declaration);
+
+            debug_assert_eq!(
+                &declaration._base as *const structs::DeclarationBlock,
+                base_declaration as *const structs::DeclarationBlock
+            );
+
+            let raw: &structs::RawServoDeclarationBlock =
+                match declaration.mRaw.mRawPtr.as_ref() {
+                    Some(decl) => decl,
+                    None => return None,
+                };
+
+            Some(Locked::<PropertyDeclarationBlock>::as_arc(
+                &*(&raw as *const &structs::RawServoDeclarationBlock)
+            ).borrow_arc())
+        }
     }
 
-    fn get_animation_rule_by_cascade(&self, cascade_level: ServoCascadeLevel)
-                                     -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    fn get_animation_rule_by_cascade(
+        &self,
+        cascade_level: ServoCascadeLevel,
+    ) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         match cascade_level {
             ServoCascadeLevel::Animations => self.get_animation_rule(),
             ServoCascadeLevel::Transitions => self.get_transition_rule(),
