@@ -36,6 +36,7 @@ num = []
 packages = [
   "bitflags",
   "cookie",
+  "lazy_static",
   "mime",
   "semver",
   "toml",

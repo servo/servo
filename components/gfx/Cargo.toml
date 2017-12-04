@@ -22,7 +22,7 @@ fontsan = {git = "https://github.com/servo/fontsan"}
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
 ipc-channel = "0.9"
-lazy_static = "0.2"
+lazy_static = "1"
 libc = "0.2"
 log = "0.3.5"
 malloc_size_of = { path = "../malloc_size_of" }
