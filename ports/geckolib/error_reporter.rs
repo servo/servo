@@ -16,7 +16,6 @@ use style::gecko_bindings::bindings::Gecko_ReportUnexpectedCSSError;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet, nsIURI};
 use style::gecko_bindings::structs::ErrorReporter as GeckoErrorReporter;
 use style::gecko_bindings::structs::URLExtraData as RawUrlExtraData;
-use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::stylesheets::UrlExtraData;
 use style_traits::StyleParseErrorKind;
 
@@ -29,10 +28,12 @@ impl ErrorReporter {
     /// Create a new instance of the Gecko error reporter.
     pub fn new(sheet: *mut ServoStyleSheet,
                loader: *mut Loader,
-               url: *mut RawUrlExtraData) -> ErrorReporter {
+               extra_data: *mut RawUrlExtraData) -> ErrorReporter {
         unsafe {
-            let url = RefPtr::from_ptr_ref(&url);
-            ErrorReporter(Gecko_CreateCSSErrorReporter(sheet, loader, url.mBaseURI.raw::<nsIURI>()))
+            let url = extra_data.as_ref()
+                .map(|d| d.mBaseURI.raw::<nsIURI>())
+                .unwrap_or(ptr::null_mut());
+            ErrorReporter(Gecko_CreateCSSErrorReporter(sheet, loader, url))
         }
     }
 }
@@ -364,11 +365,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
     }
 }
 
-impl ParseErrorReporter for ErrorReporter {
-    fn report_error(&self,
-                    _url: &UrlExtraData,
-                    location: SourceLocation,
-                    error: ContextualParseError) {
+impl ErrorReporter {
+    pub fn report(&self, location: SourceLocation, error: ContextualParseError) {
         let (pre, name, action) = error.to_gecko_message();
         let suffix = match action {
             Action::Nothing => ptr::null(),
@@ -398,5 +396,16 @@ impl ParseErrorReporter for ErrorReporter {
                                            location.line,
                                            location.column);
         }
+    }
+}
+
+impl ParseErrorReporter for ErrorReporter {
+    fn report_error(
+        &self,
+        _url: &UrlExtraData,
+        location: SourceLocation,
+        error: ContextualParseError
+    ) {
+        self.report(location, error)
     }
 }
