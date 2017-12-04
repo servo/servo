@@ -23,7 +23,7 @@ html5ever = "0.21.0"
 ipc-channel = "0.9"
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}
-lazy_static = "0.2"
+lazy_static = "1"
 libc = "0.2"
 log = "0.3.5"
 malloc_size_of = { path = "../malloc_size_of" }

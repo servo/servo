@@ -10,6 +10,6 @@ name = "servo_remutex"
 path = "lib.rs"
 
 [dependencies]
-lazy_static = "0.2"
+lazy_static = "1"
 log = "0.3.5"
 nonzero = {path = "../nonzero"}

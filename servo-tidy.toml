@@ -40,6 +40,7 @@ packages = [
   "semver",
   "toml",
   "unicase",
+  "lazy_static"
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
