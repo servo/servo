@@ -74,6 +74,7 @@ use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::StyleTransition;
 use gecko_bindings::structs::gfxFontFeatureValueSet;
+use gecko_bindings::structs::nsCSSCounterDesc;
 use gecko_bindings::structs::nsCSSCounterStyleRule;
 use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
@@ -424,1755 +425,1175 @@ enum RawServoRuleNodeVoid { }
 pub struct RawServoRuleNode(RawServoRuleNodeVoid);
 
 extern "C" {
- # [ link_name = "\u{1}_Gecko_EnsureTArrayCapacity" ] 
  pub fn Gecko_EnsureTArrayCapacity ( aArray : * mut :: std :: os :: raw :: c_void , aCapacity : usize , aElementSize : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ClearPODTArray" ] 
  pub fn Gecko_ClearPODTArray ( aArray : * mut :: std :: os :: raw :: c_void , aElementSize : usize , aElementAlign : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_AddRef" ] 
  pub fn Servo_CssRules_AddRef ( ptr : ServoCssRulesBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_Release" ] 
  pub fn Servo_CssRules_Release ( ptr : ServoCssRulesBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheetContents_AddRef" ] 
  pub fn Servo_StyleSheetContents_AddRef ( ptr : RawServoStyleSheetContentsBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheetContents_Release" ] 
  pub fn Servo_StyleSheetContents_Release ( ptr : RawServoStyleSheetContentsBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_AddRef" ] 
  pub fn Servo_DeclarationBlock_AddRef ( ptr : RawServoDeclarationBlockBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_Release" ] 
  pub fn Servo_DeclarationBlock_Release ( ptr : RawServoDeclarationBlockBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_AddRef" ] 
  pub fn Servo_StyleRule_AddRef ( ptr : RawServoStyleRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_Release" ] 
  pub fn Servo_StyleRule_Release ( ptr : RawServoStyleRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ImportRule_AddRef" ] 
  pub fn Servo_ImportRule_AddRef ( ptr : RawServoImportRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ImportRule_Release" ] 
  pub fn Servo_ImportRule_Release ( ptr : RawServoImportRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_AddRef" ] 
  pub fn Servo_AnimationValue_AddRef ( ptr : RawServoAnimationValueBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_Release" ] 
  pub fn Servo_AnimationValue_Release ( ptr : RawServoAnimationValueBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_AddRef" ] 
  pub fn Servo_Keyframe_AddRef ( ptr : RawServoKeyframeBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_Release" ] 
  pub fn Servo_Keyframe_Release ( ptr : RawServoKeyframeBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_AddRef" ] 
  pub fn Servo_KeyframesRule_AddRef ( ptr : RawServoKeyframesRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_Release" ] 
  pub fn Servo_KeyframesRule_Release ( ptr : RawServoKeyframesRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_AddRef" ] 
  pub fn Servo_MediaList_AddRef ( ptr : RawServoMediaListBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_Release" ] 
  pub fn Servo_MediaList_Release ( ptr : RawServoMediaListBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaRule_AddRef" ] 
  pub fn Servo_MediaRule_AddRef ( ptr : RawServoMediaRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaRule_Release" ] 
  pub fn Servo_MediaRule_Release ( ptr : RawServoMediaRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_NamespaceRule_AddRef" ] 
  pub fn Servo_NamespaceRule_AddRef ( ptr : RawServoNamespaceRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_NamespaceRule_Release" ] 
  pub fn Servo_NamespaceRule_Release ( ptr : RawServoNamespaceRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_PageRule_AddRef" ] 
  pub fn Servo_PageRule_AddRef ( ptr : RawServoPageRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_PageRule_Release" ] 
  pub fn Servo_PageRule_Release ( ptr : RawServoPageRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SupportsRule_AddRef" ] 
  pub fn Servo_SupportsRule_AddRef ( ptr : RawServoSupportsRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SupportsRule_Release" ] 
  pub fn Servo_SupportsRule_Release ( ptr : RawServoSupportsRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DocumentRule_AddRef" ] 
  pub fn Servo_DocumentRule_AddRef ( ptr : RawServoDocumentRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DocumentRule_Release" ] 
  pub fn Servo_DocumentRule_Release ( ptr : RawServoDocumentRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_FontFeatureValuesRule_AddRef" ] 
  pub fn Servo_FontFeatureValuesRule_AddRef ( ptr : RawServoFontFeatureValuesRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_FontFeatureValuesRule_Release" ] 
  pub fn Servo_FontFeatureValuesRule_Release ( ptr : RawServoFontFeatureValuesRuleBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_RuleNode_AddRef" ] 
  pub fn Servo_RuleNode_AddRef ( ptr : RawServoRuleNodeBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_RuleNode_Release" ] 
  pub fn Servo_RuleNode_Release ( ptr : RawServoRuleNodeBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_Drop" ] 
  pub fn Servo_StyleSet_Drop ( ptr : RawServoStyleSetOwned , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SelectorList_Drop" ] 
  pub fn Servo_SelectorList_Drop ( ptr : RawServoSelectorListOwned , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SourceSizeList_Drop" ] 
  pub fn Servo_SourceSizeList_Drop ( ptr : RawServoSourceSizeListOwned , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_IsInDocument" ] 
  pub fn Gecko_IsInDocument ( node : RawGeckoNodeBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_FlattenedTreeParentIsParent" ] 
  pub fn Gecko_FlattenedTreeParentIsParent ( node : RawGeckoNodeBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_IsSignificantChild" ] 
  pub fn Gecko_IsSignificantChild ( node : RawGeckoNodeBorrowed , text_is_significant : bool , whitespace_is_significant : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetLastChild" ] 
  pub fn Gecko_GetLastChild ( node : RawGeckoNodeBorrowed , ) -> RawGeckoNodeBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetFlattenedTreeParentNode" ] 
  pub fn Gecko_GetFlattenedTreeParentNode ( node : RawGeckoNodeBorrowed , ) -> RawGeckoNodeBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetBeforeOrAfterPseudo" ] 
  pub fn Gecko_GetBeforeOrAfterPseudo ( element : RawGeckoElementBorrowed , is_before : bool , ) -> RawGeckoElementBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetAnonymousContentForElement" ] 
  pub fn Gecko_GetAnonymousContentForElement ( element : RawGeckoElementBorrowed , ) -> * mut nsTArray < * mut nsIContent > ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_DestroyAnonymousContentList" ] 
  pub fn Gecko_DestroyAnonymousContentList ( anon_content : * mut nsTArray < * mut nsIContent > , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ServoStyleContext_Init" ] 
  pub fn Gecko_ServoStyleContext_Init ( context : * mut ServoStyleContext , parent_context : ServoStyleContextBorrowedOrNull , pres_context : RawGeckoPresContextBorrowed , values : ServoComputedDataBorrowed , pseudo_type : CSSPseudoElementType , pseudo_tag : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ServoStyleContext_Destroy" ] 
  pub fn Gecko_ServoStyleContext_Destroy ( context : * mut ServoStyleContext , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ConstructStyleChildrenIterator" ] 
  pub fn Gecko_ConstructStyleChildrenIterator ( aElement : RawGeckoElementBorrowed , aIterator : RawGeckoStyleChildrenIteratorBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_DestroyStyleChildrenIterator" ] 
  pub fn Gecko_DestroyStyleChildrenIterator ( aIterator : RawGeckoStyleChildrenIteratorBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetNextStyleChild" ] 
  pub fn Gecko_GetNextStyleChild ( it : RawGeckoStyleChildrenIteratorBorrowedMut , ) -> RawGeckoNodeBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_LoadStyleSheet" ] 
  pub fn Gecko_LoadStyleSheet ( loader : * mut Loader , parent : * mut ServoStyleSheet , reusable_sheets : * mut LoaderReusableStyleSheets , base_url_data : * mut RawGeckoURLExtraData , url_bytes : * const u8 , url_length : u32 , media_list : RawServoMediaListStrong , ) -> * mut ServoStyleSheet ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ElementState" ] 
  pub fn Gecko_ElementState ( element : RawGeckoElementBorrowed , ) -> u64 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_DocumentState" ] 
  pub fn Gecko_DocumentState ( aDocument : * const nsIDocument , ) -> u64 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_IsRootElement" ] 
  pub fn Gecko_IsRootElement ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_MatchesElement" ] 
  pub fn Gecko_MatchesElement ( type_ : CSSPseudoClassType , element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Namespace" ] 
  pub fn Gecko_Namespace ( element : RawGeckoElementBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_MatchLang" ] 
  pub fn Gecko_MatchLang ( element : RawGeckoElementBorrowed , override_lang : * mut nsAtom , has_override_lang : bool , value : * const u16 , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetXMLLangValue" ] 
  pub fn Gecko_GetXMLLangValue ( element : RawGeckoElementBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetDocumentLWTheme" ] 
  pub fn Gecko_GetDocumentLWTheme ( aDocument : * const nsIDocument , ) -> nsIDocument_DocumentTheme ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AtomAttrValue" ] 
  pub fn Gecko_AtomAttrValue ( element : RawGeckoElementBorrowed , attribute : * mut nsAtom , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_LangValue" ] 
  pub fn Gecko_LangValue ( element : RawGeckoElementBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_HasAttr" ] 
  pub fn Gecko_HasAttr ( element : RawGeckoElementBorrowed , ns : * mut nsAtom , name : * mut nsAtom , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AttrEquals" ] 
  pub fn Gecko_AttrEquals ( element : RawGeckoElementBorrowed , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignoreCase : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AttrDashEquals" ] 
  pub fn Gecko_AttrDashEquals ( element : RawGeckoElementBorrowed , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AttrIncludes" ] 
  pub fn Gecko_AttrIncludes ( element : RawGeckoElementBorrowed , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AttrHasSubstring" ] 
  pub fn Gecko_AttrHasSubstring ( element : RawGeckoElementBorrowed , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AttrHasPrefix" ] 
  pub fn Gecko_AttrHasPrefix ( element : RawGeckoElementBorrowed , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AttrHasSuffix" ] 
  pub fn Gecko_AttrHasSuffix ( element : RawGeckoElementBorrowed , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ClassOrClassList" ] 
  pub fn Gecko_ClassOrClassList ( element : RawGeckoElementBorrowed , class_ : * mut * mut nsAtom , classList : * mut * mut * mut nsAtom , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotAtomAttrValue" ] 
  pub fn Gecko_SnapshotAtomAttrValue ( element : * const ServoElementSnapshot , attribute : * mut nsAtom , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotLangValue" ] 
  pub fn Gecko_SnapshotLangValue ( element : * const ServoElementSnapshot , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotHasAttr" ] 
  pub fn Gecko_SnapshotHasAttr ( element : * const ServoElementSnapshot , ns : * mut nsAtom , name : * mut nsAtom , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotAttrEquals" ] 
  pub fn Gecko_SnapshotAttrEquals ( element : * const ServoElementSnapshot , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignoreCase : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotAttrDashEquals" ] 
  pub fn Gecko_SnapshotAttrDashEquals ( element : * const ServoElementSnapshot , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotAttrIncludes" ] 
  pub fn Gecko_SnapshotAttrIncludes ( element : * const ServoElementSnapshot , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotAttrHasSubstring" ] 
  pub fn Gecko_SnapshotAttrHasSubstring ( element : * const ServoElementSnapshot , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotAttrHasPrefix" ] 
  pub fn Gecko_SnapshotAttrHasPrefix ( element : * const ServoElementSnapshot , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotAttrHasSuffix" ] 
  pub fn Gecko_SnapshotAttrHasSuffix ( element : * const ServoElementSnapshot , ns : * mut nsAtom , name : * mut nsAtom , str : * mut nsAtom , ignore_case : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SnapshotClassOrClassList" ] 
  pub fn Gecko_SnapshotClassOrClassList ( element : * const ServoElementSnapshot , class_ : * mut * mut nsAtom , classList : * mut * mut * mut nsAtom , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetStyleAttrDeclarationBlock" ] 
  pub fn Gecko_GetStyleAttrDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_UnsetDirtyStyleAttr" ] 
  pub fn Gecko_UnsetDirtyStyleAttr ( element : RawGeckoElementBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetHTMLPresentationAttrDeclarationBlock" ] 
  pub fn Gecko_GetHTMLPresentationAttrDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetExtraContentStyleDeclarations" ] 
  pub fn Gecko_GetExtraContentStyleDeclarations ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetUnvisitedLinkAttrDeclarationBlock" ] 
  pub fn Gecko_GetUnvisitedLinkAttrDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetVisitedLinkAttrDeclarationBlock" ] 
  pub fn Gecko_GetVisitedLinkAttrDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetActiveLinkAttrDeclarationBlock" ] 
  pub fn Gecko_GetActiveLinkAttrDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_IsPrivateBrowsingEnabled" ] 
  pub fn Gecko_IsPrivateBrowsingEnabled ( aDoc : * const nsIDocument , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetAnimationRule" ] 
  pub fn Gecko_GetAnimationRule ( aElementOrPseudo : RawGeckoElementBorrowed , aCascadeLevel : EffectCompositor_CascadeLevel , aAnimationValues : RawServoAnimationValueMapBorrowedMut , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetSMILOverrideDeclarationBlock" ] 
  pub fn Gecko_GetSMILOverrideDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_StyleAnimationsEquals" ] 
  pub fn Gecko_StyleAnimationsEquals ( arg1 : RawGeckoStyleAnimationListBorrowed , arg2 : RawGeckoStyleAnimationListBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyAnimationNames" ] 
  pub fn Gecko_CopyAnimationNames ( aDest : RawGeckoStyleAnimationListBorrowedMut , aSrc : RawGeckoStyleAnimationListBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetAnimationName" ] 
  pub fn Gecko_SetAnimationName ( aStyleAnimation : * mut StyleAnimation , aAtom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_UpdateAnimations" ] 
  pub fn Gecko_UpdateAnimations ( aElementOrPseudo : RawGeckoElementBorrowed , aOldComputedValues : ServoStyleContextBorrowedOrNull , aComputedValues : ServoStyleContextBorrowedOrNull , aTasks : UpdateAnimationsTasks , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ElementHasAnimations" ] 
  pub fn Gecko_ElementHasAnimations ( aElementOrPseudo : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ElementHasCSSAnimations" ] 
  pub fn Gecko_ElementHasCSSAnimations ( aElementOrPseudo : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ElementHasCSSTransitions" ] 
  pub fn Gecko_ElementHasCSSTransitions ( aElementOrPseudo : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ElementTransitions_Length" ] 
  pub fn Gecko_ElementTransitions_Length ( aElementOrPseudo : RawGeckoElementBorrowed , ) -> usize ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ElementTransitions_PropertyAt" ] 
  pub fn Gecko_ElementTransitions_PropertyAt ( aElementOrPseudo : RawGeckoElementBorrowed , aIndex : usize , ) -> nsCSSPropertyID ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ElementTransitions_EndValueAt" ] 
  pub fn Gecko_ElementTransitions_EndValueAt ( aElementOrPseudo : RawGeckoElementBorrowed , aIndex : usize , ) -> RawServoAnimationValueBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetProgressFromComputedTiming" ] 
  pub fn Gecko_GetProgressFromComputedTiming ( aComputedTiming : RawGeckoComputedTimingBorrowed , ) -> f64 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetPositionInSegment" ] 
  pub fn Gecko_GetPositionInSegment ( aSegment : RawGeckoAnimationPropertySegmentBorrowed , aProgress : f64 , aBeforeFlag : ComputedTimingFunction_BeforeFlag , ) -> f64 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AnimationGetBaseStyle" ] 
  pub fn Gecko_AnimationGetBaseStyle ( aBaseStyles : RawServoAnimationValueTableBorrowed , aProperty : nsCSSPropertyID , ) -> RawServoAnimationValueBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_StyleTransition_SetUnsupportedProperty" ] 
  pub fn Gecko_StyleTransition_SetUnsupportedProperty ( aTransition : * mut StyleTransition , aAtom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Atomize" ] 
  pub fn Gecko_Atomize ( aString : * const :: std :: os :: raw :: c_char , aLength : u32 , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Atomize16" ] 
  pub fn Gecko_Atomize16 ( aString : * const nsAString , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefAtom" ] 
  pub fn Gecko_AddRefAtom ( aAtom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseAtom" ] 
  pub fn Gecko_ReleaseAtom ( aAtom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetAtomAsUTF16" ] 
  pub fn Gecko_GetAtomAsUTF16 ( aAtom : * mut nsAtom , aLength : * mut u32 , ) -> * const u16 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AtomEqualsUTF8" ] 
  pub fn Gecko_AtomEqualsUTF8 ( aAtom : * mut nsAtom , aString : * const :: std :: os :: raw :: c_char , aLength : u32 , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AtomEqualsUTF8IgnoreCase" ] 
  pub fn Gecko_AtomEqualsUTF8IgnoreCase ( aAtom : * mut nsAtom , aString : * const :: std :: os :: raw :: c_char , aLength : u32 , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_EnsureMozBorderColors" ] 
  pub fn Gecko_EnsureMozBorderColors ( aBorder : * mut nsStyleBorder , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyFontFamilyFrom" ] 
  pub fn Gecko_CopyFontFamilyFrom ( dst : * mut nsFont , src : * const nsFont , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsTArray_FontFamilyName_AppendNamed" ] 
  pub fn Gecko_nsTArray_FontFamilyName_AppendNamed ( aNames : * mut nsTArray < FontFamilyName > , aName : * mut nsAtom , aQuoted : bool , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsTArray_FontFamilyName_AppendGeneric" ] 
  pub fn Gecko_nsTArray_FontFamilyName_AppendGeneric ( aNames : * mut nsTArray < FontFamilyName > , aType : FontFamilyType , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SharedFontList_Create" ] 
  pub fn Gecko_SharedFontList_Create ( ) -> * mut SharedFontList ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SharedFontList_SizeOfIncludingThis" ] 
  pub fn Gecko_SharedFontList_SizeOfIncludingThis ( fontlist : * mut SharedFontList , ) -> usize ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SharedFontList_SizeOfIncludingThisIfUnshared" ] 
  pub fn Gecko_SharedFontList_SizeOfIncludingThisIfUnshared ( fontlist : * mut SharedFontList , ) -> usize ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefSharedFontListArbitraryThread" ] 
  pub fn Gecko_AddRefSharedFontListArbitraryThread ( aPtr : * mut SharedFontList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseSharedFontListArbitraryThread" ] 
  pub fn Gecko_ReleaseSharedFontListArbitraryThread ( aPtr : * mut SharedFontList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsFont_InitSystem" ] 
  pub fn Gecko_nsFont_InitSystem ( dst : * mut nsFont , font_id : i32 , font : * const nsStyleFont , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsFont_Destroy" ] 
  pub fn Gecko_nsFont_Destroy ( dst : * mut nsFont , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ConstructFontFeatureValueSet" ] 
  pub fn Gecko_ConstructFontFeatureValueSet ( ) -> * mut gfxFontFeatureValueSet ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AppendFeatureValueHashEntry" ] 
  pub fn Gecko_AppendFeatureValueHashEntry ( value_set : * mut gfxFontFeatureValueSet , family : * mut nsAtom , alternate : u32 , name : * mut nsAtom , ) -> * mut nsTArray < :: std :: os :: raw :: c_uint > ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsFont_SetFontFeatureValuesLookup" ] 
  pub fn Gecko_nsFont_SetFontFeatureValuesLookup ( font : * mut nsFont , pres_context : * const RawGeckoPresContext , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsFont_ResetFontFeatureValuesLookup" ] 
  pub fn Gecko_nsFont_ResetFontFeatureValuesLookup ( font : * mut nsFont , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ClearAlternateValues" ] 
  pub fn Gecko_ClearAlternateValues ( font : * mut nsFont , length : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AppendAlternateValues" ] 
  pub fn Gecko_AppendAlternateValues ( font : * mut nsFont , alternate_name : u32 , atom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyAlternateValuesFrom" ] 
  pub fn Gecko_CopyAlternateValuesFrom ( dest : * mut nsFont , src : * const nsFont , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetImageOrientation" ] 
  pub fn Gecko_SetImageOrientation ( aVisibility : * mut nsStyleVisibility , aOrientation : u8 , aFlip : bool , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetImageOrientationAsFromImage" ] 
  pub fn Gecko_SetImageOrientationAsFromImage ( aVisibility : * mut nsStyleVisibility , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyImageOrientationFrom" ] 
  pub fn Gecko_CopyImageOrientationFrom ( aDst : * mut nsStyleVisibility , aSrc : * const nsStyleVisibility , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetCounterStyleToName" ] 
  pub fn Gecko_SetCounterStyleToName ( ptr : * mut CounterStylePtr , name : * mut nsAtom , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetCounterStyleToSymbols" ] 
  pub fn Gecko_SetCounterStyleToSymbols ( ptr : * mut CounterStylePtr , symbols_type : u8 , symbols : * const * const nsACString , symbols_count : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetCounterStyleToString" ] 
  pub fn Gecko_SetCounterStyleToString ( ptr : * mut CounterStylePtr , symbol : * const nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyCounterStyle" ] 
  pub fn Gecko_CopyCounterStyle ( dst : * mut CounterStylePtr , src : * const CounterStylePtr , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CounterStyle_GetName" ] 
  pub fn Gecko_CounterStyle_GetName ( ptr : * const CounterStylePtr , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CounterStyle_GetAnonymous" ] 
  pub fn Gecko_CounterStyle_GetAnonymous ( ptr : * const CounterStylePtr , ) -> * const AnonymousCounterStyle ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetNullImageValue" ] 
  pub fn Gecko_SetNullImageValue ( image : * mut nsStyleImage , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetGradientImageValue" ] 
  pub fn Gecko_SetGradientImageValue ( image : * mut nsStyleImage , gradient : * mut nsStyleGradient , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefImageValueArbitraryThread" ] 
  pub fn Gecko_AddRefImageValueArbitraryThread ( aPtr : * mut ImageValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseImageValueArbitraryThread" ] 
  pub fn Gecko_ReleaseImageValueArbitraryThread ( aPtr : * mut ImageValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ImageValue_Create" ] 
  pub fn Gecko_ImageValue_Create ( aURI : ServoBundledURI , aURIString : ServoRawOffsetArc < RustString > , ) -> * mut ImageValue ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ImageValue_SizeOfIncludingThis" ] 
  pub fn Gecko_ImageValue_SizeOfIncludingThis ( aImageValue : * mut ImageValue , ) -> usize ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetLayerImageImageValue" ] 
  pub fn Gecko_SetLayerImageImageValue ( image : * mut nsStyleImage , aImageValue : * mut ImageValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetImageElement" ] 
  pub fn Gecko_SetImageElement ( image : * mut nsStyleImage , atom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyImageValueFrom" ] 
  pub fn Gecko_CopyImageValueFrom ( image : * mut nsStyleImage , other : * const nsStyleImage , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_InitializeImageCropRect" ] 
  pub fn Gecko_InitializeImageCropRect ( image : * mut nsStyleImage , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CreateGradient" ] 
  pub fn Gecko_CreateGradient ( shape : u8 , size : u8 , repeating : bool , legacy_syntax : bool , moz_legacy_syntax : bool , stops : u32 , ) -> * mut nsStyleGradient ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetURLValue" ] 
  pub fn Gecko_GetURLValue ( image : * const nsStyleImage , ) -> * const URLValueData ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetImageElement" ] 
  pub fn Gecko_GetImageElement ( image : * const nsStyleImage , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetGradientImageValue" ] 
  pub fn Gecko_GetGradientImageValue ( image : * const nsStyleImage , ) -> * const nsStyleGradient ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetListStyleImageNone" ] 
  pub fn Gecko_SetListStyleImageNone ( style_struct : * mut nsStyleList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetListStyleImageImageValue" ] 
  pub fn Gecko_SetListStyleImageImageValue ( style_struct : * mut nsStyleList , aImageValue : * mut ImageValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyListStyleImageFrom" ] 
  pub fn Gecko_CopyListStyleImageFrom ( dest : * mut nsStyleList , src : * const nsStyleList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetCursorArrayLength" ] 
  pub fn Gecko_SetCursorArrayLength ( ui : * mut nsStyleUserInterface , len : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetCursorImageValue" ] 
  pub fn Gecko_SetCursorImageValue ( aCursor : * mut nsCursorImage , aImageValue : * mut ImageValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyCursorArrayFrom" ] 
  pub fn Gecko_CopyCursorArrayFrom ( dest : * mut nsStyleUserInterface , src : * const nsStyleUserInterface , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetContentDataImageValue" ] 
  pub fn Gecko_SetContentDataImageValue ( aList : * mut nsStyleContentData , aImageValue : * mut ImageValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetCounterFunction" ] 
  pub fn Gecko_SetCounterFunction ( content_data : * mut nsStyleContentData , type_ : nsStyleContentType , ) -> * mut nsStyleContentData_CounterFunction ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetNodeFlags" ] 
  pub fn Gecko_SetNodeFlags ( node : RawGeckoNodeBorrowed , flags : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_UnsetNodeFlags" ] 
  pub fn Gecko_UnsetNodeFlags ( node : RawGeckoNodeBorrowed , flags : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NoteDirtyElement" ] 
  pub fn Gecko_NoteDirtyElement ( element : RawGeckoElementBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NoteDirtySubtreeForInvalidation" ] 
  pub fn Gecko_NoteDirtySubtreeForInvalidation ( element : RawGeckoElementBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NoteAnimationOnlyDirtyElement" ] 
  pub fn Gecko_NoteAnimationOnlyDirtyElement ( element : RawGeckoElementBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetImplementedPseudo" ] 
  pub fn Gecko_GetImplementedPseudo ( element : RawGeckoElementBorrowed , ) -> CSSPseudoElementType ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CalcStyleDifference" ] 
  pub fn Gecko_CalcStyleDifference ( old_style : ServoStyleContextBorrowed , new_style : ServoStyleContextBorrowed , any_style_changed : * mut bool , reset_only_changed : * mut bool , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetElementSnapshot" ] 
  pub fn Gecko_GetElementSnapshot ( table : * const ServoElementSnapshotTable , element : RawGeckoElementBorrowed , ) -> * const ServoElementSnapshot ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_DropElementSnapshot" ] 
  pub fn Gecko_DropElementSnapshot ( snapshot : ServoElementSnapshotOwned , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_HaveSeenPtr" ] 
  pub fn Gecko_HaveSeenPtr ( table : * mut SeenPtrs , ptr : * const :: std :: os :: raw :: c_void , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ResizeTArrayForStrings" ] 
  pub fn Gecko_ResizeTArrayForStrings ( array : * mut nsTArray <nsStringRepr> , length : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetStyleGridTemplate" ] 
  pub fn Gecko_SetStyleGridTemplate ( grid_template : * mut UniquePtr < nsStyleGridTemplate > , value : * mut nsStyleGridTemplate , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CreateStyleGridTemplate" ] 
  pub fn Gecko_CreateStyleGridTemplate ( track_sizes : u32 , name_size : u32 , ) -> * mut nsStyleGridTemplate ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyStyleGridTemplateValues" ] 
  pub fn Gecko_CopyStyleGridTemplateValues ( grid_template : * mut UniquePtr < nsStyleGridTemplate > , other : * const nsStyleGridTemplate , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewGridTemplateAreasValue" ] 
  pub fn Gecko_NewGridTemplateAreasValue ( areas : u32 , templates : u32 , columns : u32 , ) -> * mut GridTemplateAreasValue ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefGridTemplateAreasValueArbitraryThread" ] 
  pub fn Gecko_AddRefGridTemplateAreasValueArbitraryThread ( aPtr : * mut GridTemplateAreasValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseGridTemplateAreasValueArbitraryThread" ] 
  pub fn Gecko_ReleaseGridTemplateAreasValueArbitraryThread ( aPtr : * mut GridTemplateAreasValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ClearAndResizeStyleContents" ] 
  pub fn Gecko_ClearAndResizeStyleContents ( content : * mut nsStyleContent , how_many : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ClearAndResizeCounterIncrements" ] 
  pub fn Gecko_ClearAndResizeCounterIncrements ( content : * mut nsStyleContent , how_many : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ClearAndResizeCounterResets" ] 
  pub fn Gecko_ClearAndResizeCounterResets ( content : * mut nsStyleContent , how_many : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyStyleContentsFrom" ] 
  pub fn Gecko_CopyStyleContentsFrom ( content : * mut nsStyleContent , other : * const nsStyleContent , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyCounterResetsFrom" ] 
  pub fn Gecko_CopyCounterResetsFrom ( content : * mut nsStyleContent , other : * const nsStyleContent , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyCounterIncrementsFrom" ] 
  pub fn Gecko_CopyCounterIncrementsFrom ( content : * mut nsStyleContent , other : * const nsStyleContent , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_EnsureImageLayersLength" ] 
  pub fn Gecko_EnsureImageLayersLength ( layers : * mut nsStyleImageLayers , len : usize , layer_type : nsStyleImageLayers_LayerType , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_EnsureStyleAnimationArrayLength" ] 
  pub fn Gecko_EnsureStyleAnimationArrayLength ( array : * mut :: std :: os :: raw :: c_void , len : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_EnsureStyleTransitionArrayLength" ] 
  pub fn Gecko_EnsureStyleTransitionArrayLength ( array : * mut :: std :: os :: raw :: c_void , len : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ClearWillChange" ] 
  pub fn Gecko_ClearWillChange ( display : * mut nsStyleDisplay , length : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AppendWillChange" ] 
  pub fn Gecko_AppendWillChange ( display : * mut nsStyleDisplay , atom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyWillChangeFrom" ] 
  pub fn Gecko_CopyWillChangeFrom ( dest : * mut nsStyleDisplay , src : * mut nsStyleDisplay , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetOrCreateKeyframeAtStart" ] 
  pub fn Gecko_GetOrCreateKeyframeAtStart ( keyframes : RawGeckoKeyframeListBorrowedMut , offset : f32 , timingFunction : * const nsTimingFunction , ) -> * mut Keyframe ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetOrCreateInitialKeyframe" ] 
  pub fn Gecko_GetOrCreateInitialKeyframe ( keyframes : RawGeckoKeyframeListBorrowedMut , timingFunction : * const nsTimingFunction , ) -> * mut Keyframe ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetOrCreateFinalKeyframe" ] 
  pub fn Gecko_GetOrCreateFinalKeyframe ( keyframes : RawGeckoKeyframeListBorrowedMut , timingFunction : * const nsTimingFunction , ) -> * mut Keyframe ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AppendPropertyValuePair" ] 
  pub fn Gecko_AppendPropertyValuePair ( aProperties : RawGeckoPropertyValuePairListBorrowedMut , aProperty : nsCSSPropertyID , ) -> * mut PropertyValuePair ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ResetStyleCoord" ] 
  pub fn Gecko_ResetStyleCoord ( unit : * mut nsStyleUnit , value : * mut nsStyleUnion , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetStyleCoordCalcValue" ] 
  pub fn Gecko_SetStyleCoordCalcValue ( unit : * mut nsStyleUnit , value : * mut nsStyleUnion , calc : nsStyleCoord_CalcValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyShapeSourceFrom" ] 
  pub fn Gecko_CopyShapeSourceFrom ( dst : * mut StyleShapeSource , src : * const StyleShapeSource , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_DestroyShapeSource" ] 
  pub fn Gecko_DestroyShapeSource ( shape : * mut StyleShapeSource , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewBasicShape" ] 
  pub fn Gecko_NewBasicShape ( shape : * mut StyleShapeSource , type_ : StyleBasicShapeType , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewShapeImage" ] 
  pub fn Gecko_NewShapeImage ( shape : * mut StyleShapeSource , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_StyleShapeSource_SetURLValue" ] 
  pub fn Gecko_StyleShapeSource_SetURLValue ( shape : * mut StyleShapeSource , uri : ServoBundledURI , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ResetFilters" ] 
  pub fn Gecko_ResetFilters ( effects : * mut nsStyleEffects , new_len : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyFiltersFrom" ] 
  pub fn Gecko_CopyFiltersFrom ( aSrc : * mut nsStyleEffects , aDest : * mut nsStyleEffects , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleFilter_SetURLValue" ] 
  pub fn Gecko_nsStyleFilter_SetURLValue ( effects : * mut nsStyleFilter , uri : ServoBundledURI , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleSVGPaint_CopyFrom" ] 
  pub fn Gecko_nsStyleSVGPaint_CopyFrom ( dest : * mut nsStyleSVGPaint , src : * const nsStyleSVGPaint , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleSVGPaint_SetURLValue" ] 
  pub fn Gecko_nsStyleSVGPaint_SetURLValue ( paint : * mut nsStyleSVGPaint , uri : ServoBundledURI , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleSVGPaint_Reset" ] 
  pub fn Gecko_nsStyleSVGPaint_Reset ( paint : * mut nsStyleSVGPaint , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleSVG_SetDashArrayLength" ] 
  pub fn Gecko_nsStyleSVG_SetDashArrayLength ( svg : * mut nsStyleSVG , len : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleSVG_CopyDashArray" ] 
  pub fn Gecko_nsStyleSVG_CopyDashArray ( dst : * mut nsStyleSVG , src : * const nsStyleSVG , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleSVG_SetContextPropertiesLength" ] 
  pub fn Gecko_nsStyleSVG_SetContextPropertiesLength ( svg : * mut nsStyleSVG , len : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleSVG_CopyContextProperties" ] 
  pub fn Gecko_nsStyleSVG_CopyContextProperties ( dst : * mut nsStyleSVG , src : * const nsStyleSVG , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewURLValue" ] 
  pub fn Gecko_NewURLValue ( uri : ServoBundledURI , ) -> * mut URLValue ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefCSSURLValueArbitraryThread" ] 
  pub fn Gecko_AddRefCSSURLValueArbitraryThread ( aPtr : * mut URLValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseCSSURLValueArbitraryThread" ] 
  pub fn Gecko_ReleaseCSSURLValueArbitraryThread ( aPtr : * mut URLValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefURLExtraDataArbitraryThread" ] 
  pub fn Gecko_AddRefURLExtraDataArbitraryThread ( aPtr : * mut RawGeckoURLExtraData , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseURLExtraDataArbitraryThread" ] 
  pub fn Gecko_ReleaseURLExtraDataArbitraryThread ( aPtr : * mut RawGeckoURLExtraData , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_FillAllImageLayers" ] 
  pub fn Gecko_FillAllImageLayers ( layers : * mut nsStyleImageLayers , max_len : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefCalcArbitraryThread" ] 
  pub fn Gecko_AddRefCalcArbitraryThread ( aPtr : * mut nsStyleCoord_Calc , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseCalcArbitraryThread" ] 
  pub fn Gecko_ReleaseCalcArbitraryThread ( aPtr : * mut nsStyleCoord_Calc , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewCSSShadowArray" ] 
  pub fn Gecko_NewCSSShadowArray ( len : u32 , ) -> * mut nsCSSShadowArray ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefCSSShadowArrayArbitraryThread" ] 
  pub fn Gecko_AddRefCSSShadowArrayArbitraryThread ( aPtr : * mut nsCSSShadowArray , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseCSSShadowArrayArbitraryThread" ] 
  pub fn Gecko_ReleaseCSSShadowArrayArbitraryThread ( aPtr : * mut nsCSSShadowArray , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewStyleQuoteValues" ] 
  pub fn Gecko_NewStyleQuoteValues ( len : u32 , ) -> * mut nsStyleQuoteValues ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefQuoteValuesArbitraryThread" ] 
  pub fn Gecko_AddRefQuoteValuesArbitraryThread ( aPtr : * mut nsStyleQuoteValues , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseQuoteValuesArbitraryThread" ] 
  pub fn Gecko_ReleaseQuoteValuesArbitraryThread ( aPtr : * mut nsStyleQuoteValues , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewCSSValueSharedList" ] 
  pub fn Gecko_NewCSSValueSharedList ( len : u32 , ) -> * mut nsCSSValueSharedList ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_NewNoneTransform" ] 
  pub fn Gecko_NewNoneTransform ( ) -> * mut nsCSSValueSharedList ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_GetArrayItem" ] 
  pub fn Gecko_CSSValue_GetArrayItem ( css_value : nsCSSValueBorrowedMut , index : i32 , ) -> nsCSSValueBorrowedMut ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_GetArrayItemConst" ] 
  pub fn Gecko_CSSValue_GetArrayItemConst ( css_value : nsCSSValueBorrowed , index : i32 , ) -> nsCSSValueBorrowed ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_GetKeyword" ] 
  pub fn Gecko_CSSValue_GetKeyword ( aCSSValue : nsCSSValueBorrowed , ) -> nsCSSKeyword ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_GetNumber" ] 
  pub fn Gecko_CSSValue_GetNumber ( css_value : nsCSSValueBorrowed , ) -> f32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_GetPercentage" ] 
  pub fn Gecko_CSSValue_GetPercentage ( css_value : nsCSSValueBorrowed , ) -> f32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_GetCalc" ] 
  pub fn Gecko_CSSValue_GetCalc ( aCSSValue : nsCSSValueBorrowed , ) -> nsStyleCoord_CalcValue ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetNumber" ] 
  pub fn Gecko_CSSValue_SetNumber ( css_value : nsCSSValueBorrowedMut , number : f32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetKeyword" ] 
  pub fn Gecko_CSSValue_SetKeyword ( css_value : nsCSSValueBorrowedMut , keyword : nsCSSKeyword , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetPercentage" ] 
  pub fn Gecko_CSSValue_SetPercentage ( css_value : nsCSSValueBorrowedMut , percent : f32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetPixelLength" ] 
  pub fn Gecko_CSSValue_SetPixelLength ( aCSSValue : nsCSSValueBorrowedMut , aLen : f32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetCalc" ] 
  pub fn Gecko_CSSValue_SetCalc ( css_value : nsCSSValueBorrowedMut , calc : nsStyleCoord_CalcValue , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetFunction" ] 
  pub fn Gecko_CSSValue_SetFunction ( css_value : nsCSSValueBorrowedMut , len : i32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetString" ] 
  pub fn Gecko_CSSValue_SetString ( css_value : nsCSSValueBorrowedMut , string : * const u8 , len : u32 , unit : nsCSSUnit , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetStringFromAtom" ] 
  pub fn Gecko_CSSValue_SetStringFromAtom ( css_value : nsCSSValueBorrowedMut , atom : * mut nsAtom , unit : nsCSSUnit , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetAtomIdent" ] 
  pub fn Gecko_CSSValue_SetAtomIdent ( css_value : nsCSSValueBorrowedMut , atom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetArray" ] 
  pub fn Gecko_CSSValue_SetArray ( css_value : nsCSSValueBorrowedMut , len : i32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetURL" ] 
  pub fn Gecko_CSSValue_SetURL ( css_value : nsCSSValueBorrowedMut , uri : ServoBundledURI , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetInt" ] 
  pub fn Gecko_CSSValue_SetInt ( css_value : nsCSSValueBorrowedMut , integer : i32 , unit : nsCSSUnit , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetPair" ] 
  pub fn Gecko_CSSValue_SetPair ( css_value : nsCSSValueBorrowedMut , xvalue : nsCSSValueBorrowed , yvalue : nsCSSValueBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetList" ] 
  pub fn Gecko_CSSValue_SetList ( css_value : nsCSSValueBorrowedMut , len : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_SetPairList" ] 
  pub fn Gecko_CSSValue_SetPairList ( css_value : nsCSSValueBorrowedMut , len : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_InitSharedList" ] 
  pub fn Gecko_CSSValue_InitSharedList ( css_value : nsCSSValueBorrowedMut , len : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSValue_Drop" ] 
  pub fn Gecko_CSSValue_Drop ( css_value : nsCSSValueBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddRefCSSValueSharedListArbitraryThread" ] 
  pub fn Gecko_AddRefCSSValueSharedListArbitraryThread ( aPtr : * mut nsCSSValueSharedList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReleaseCSSValueSharedListArbitraryThread" ] 
  pub fn Gecko_ReleaseCSSValueSharedListArbitraryThread ( aPtr : * mut nsCSSValueSharedList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleFont_SetLang" ] 
  pub fn Gecko_nsStyleFont_SetLang ( font : * mut nsStyleFont , atom : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleFont_CopyLangFrom" ] 
  pub fn Gecko_nsStyleFont_CopyLangFrom ( aFont : * mut nsStyleFont , aSource : * const nsStyleFont , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleFont_FixupNoneGeneric" ] 
  pub fn Gecko_nsStyleFont_FixupNoneGeneric ( font : * mut nsStyleFont , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleFont_PrefillDefaultForGeneric" ] 
  pub fn Gecko_nsStyleFont_PrefillDefaultForGeneric ( font : * mut nsStyleFont , pres_context : RawGeckoPresContextBorrowed , generic_id : u8 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_nsStyleFont_FixupMinFontSize" ] 
  pub fn Gecko_nsStyleFont_FixupMinFontSize ( font : * mut nsStyleFont , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetBaseSize" ] 
  pub fn Gecko_GetBaseSize ( lang : * mut nsAtom , ) -> FontSizePrefs ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetBindingParent" ] 
  pub fn Gecko_GetBindingParent ( aElement : RawGeckoElementBorrowed , ) -> RawGeckoElementBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetXBLBinding" ] 
  pub fn Gecko_GetXBLBinding ( aElement : RawGeckoElementBorrowed , ) -> RawGeckoXBLBindingBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_XBLBinding_GetRawServoStyleSet" ] 
  pub fn Gecko_XBLBinding_GetRawServoStyleSet ( aXBLBinding : RawGeckoXBLBindingBorrowed , ) -> RawServoStyleSetBorrowedOrNull ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_XBLBinding_InheritsStyle" ] 
  pub fn Gecko_XBLBinding_InheritsStyle ( aXBLBinding : RawGeckoXBLBindingBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetFontMetrics" ] 
  pub fn Gecko_GetFontMetrics ( pres_context : RawGeckoPresContextBorrowed , is_vertical : bool , font : * const nsStyleFont , font_size : nscoord , use_user_font_set : bool , ) -> GeckoFontMetrics ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetAppUnitsPerPhysicalInch" ] 
  pub fn Gecko_GetAppUnitsPerPhysicalInch ( pres_context : RawGeckoPresContextBorrowed , ) -> i32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_StyleSheet_Clone" ] 
  pub fn Gecko_StyleSheet_Clone ( aSheet : * const ServoStyleSheet , aNewParentSheet : * const ServoStyleSheet , ) -> * mut ServoStyleSheet ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_StyleSheet_AddRef" ] 
  pub fn Gecko_StyleSheet_AddRef ( aSheet : * const ServoStyleSheet , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_StyleSheet_Release" ] 
  pub fn Gecko_StyleSheet_Release ( aSheet : * const ServoStyleSheet , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_LookupCSSKeyword" ] 
  pub fn Gecko_LookupCSSKeyword ( string : * const u8 , len : u32 , ) -> nsCSSKeyword ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSKeywordString" ] 
  pub fn Gecko_CSSKeywordString ( keyword : nsCSSKeyword , len : * mut u32 , ) -> * const :: std :: os :: raw :: c_char ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSFontFaceRule_Create" ] 
  pub fn Gecko_CSSFontFaceRule_Create ( line : u32 , column : u32 , ) -> * mut nsCSSFontFaceRule ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSFontFaceRule_Clone" ] 
  pub fn Gecko_CSSFontFaceRule_Clone ( rule : * const nsCSSFontFaceRule , ) -> * mut nsCSSFontFaceRule ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSFontFaceRule_GetCssText" ] 
  pub fn Gecko_CSSFontFaceRule_GetCssText ( rule : * const nsCSSFontFaceRule , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSFontFaceRule_AddRef" ] 
  pub fn Gecko_CSSFontFaceRule_AddRef ( aPtr : * mut nsCSSFontFaceRule , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSFontFaceRule_Release" ] 
  pub fn Gecko_CSSFontFaceRule_Release ( aPtr : * mut nsCSSFontFaceRule , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSCounterStyle_Create" ] 
  pub fn Gecko_CSSCounterStyle_Create ( name : * mut nsAtom , ) -> * mut nsCSSCounterStyleRule ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSCounterStyle_Clone" ] 
  pub fn Gecko_CSSCounterStyle_Clone ( rule : * const nsCSSCounterStyleRule , ) -> * mut nsCSSCounterStyleRule ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSCounterStyle_GetCssText" ] 
  pub fn Gecko_CSSCounterStyle_GetCssText ( rule : * const nsCSSCounterStyleRule , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSCounterStyleRule_AddRef" ] 
  pub fn Gecko_CSSCounterStyleRule_AddRef ( aPtr : * mut nsCSSCounterStyleRule , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CSSCounterStyleRule_Release" ] 
  pub fn Gecko_CSSCounterStyleRule_Release ( aPtr : * mut nsCSSCounterStyleRule , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_IsDocumentBody" ] 
  pub fn Gecko_IsDocumentBody ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetLookAndFeelSystemColor" ] 
  pub fn Gecko_GetLookAndFeelSystemColor ( color_id : i32 , pres_context : RawGeckoPresContextBorrowed , ) -> nscolor ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_MatchStringArgPseudo" ] 
  pub fn Gecko_MatchStringArgPseudo ( element : RawGeckoElementBorrowed , type_ : CSSPseudoClassType , ident : * const u16 , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddPropertyToSet" ] 
  pub fn Gecko_AddPropertyToSet ( arg1 : nsCSSPropertyIDSetBorrowedMut , arg2 : nsCSSPropertyID , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_RegisterNamespace" ] 
  pub fn Gecko_RegisterNamespace ( ns : * mut nsAtom , ) -> i32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ShouldCreateStyleThreadPool" ] 
  pub fn Gecko_ShouldCreateStyleThreadPool ( ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleFont" ] 
  pub fn Gecko_Construct_Default_nsStyleFont ( ptr : * mut nsStyleFont , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleFont" ] 
  pub fn Gecko_CopyConstruct_nsStyleFont ( ptr : * mut nsStyleFont , other : * const nsStyleFont , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleFont" ] 
  pub fn Gecko_Destroy_nsStyleFont ( ptr : * mut nsStyleFont , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleColor" ] 
  pub fn Gecko_Construct_Default_nsStyleColor ( ptr : * mut nsStyleColor , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleColor" ] 
  pub fn Gecko_CopyConstruct_nsStyleColor ( ptr : * mut nsStyleColor , other : * const nsStyleColor , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleColor" ] 
  pub fn Gecko_Destroy_nsStyleColor ( ptr : * mut nsStyleColor , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleList" ] 
  pub fn Gecko_Construct_Default_nsStyleList ( ptr : * mut nsStyleList , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleList" ] 
  pub fn Gecko_CopyConstruct_nsStyleList ( ptr : * mut nsStyleList , other : * const nsStyleList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleList" ] 
  pub fn Gecko_Destroy_nsStyleList ( ptr : * mut nsStyleList , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleText" ] 
  pub fn Gecko_Construct_Default_nsStyleText ( ptr : * mut nsStyleText , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleText" ] 
  pub fn Gecko_CopyConstruct_nsStyleText ( ptr : * mut nsStyleText , other : * const nsStyleText , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleText" ] 
  pub fn Gecko_Destroy_nsStyleText ( ptr : * mut nsStyleText , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleVisibility" ] 
  pub fn Gecko_Construct_Default_nsStyleVisibility ( ptr : * mut nsStyleVisibility , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleVisibility" ] 
  pub fn Gecko_CopyConstruct_nsStyleVisibility ( ptr : * mut nsStyleVisibility , other : * const nsStyleVisibility , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleVisibility" ] 
  pub fn Gecko_Destroy_nsStyleVisibility ( ptr : * mut nsStyleVisibility , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleUserInterface" ] 
  pub fn Gecko_Construct_Default_nsStyleUserInterface ( ptr : * mut nsStyleUserInterface , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleUserInterface" ] 
  pub fn Gecko_CopyConstruct_nsStyleUserInterface ( ptr : * mut nsStyleUserInterface , other : * const nsStyleUserInterface , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleUserInterface" ] 
  pub fn Gecko_Destroy_nsStyleUserInterface ( ptr : * mut nsStyleUserInterface , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleTableBorder" ] 
  pub fn Gecko_Construct_Default_nsStyleTableBorder ( ptr : * mut nsStyleTableBorder , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleTableBorder" ] 
  pub fn Gecko_CopyConstruct_nsStyleTableBorder ( ptr : * mut nsStyleTableBorder , other : * const nsStyleTableBorder , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleTableBorder" ] 
  pub fn Gecko_Destroy_nsStyleTableBorder ( ptr : * mut nsStyleTableBorder , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleSVG" ] 
  pub fn Gecko_Construct_Default_nsStyleSVG ( ptr : * mut nsStyleSVG , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleSVG" ] 
  pub fn Gecko_CopyConstruct_nsStyleSVG ( ptr : * mut nsStyleSVG , other : * const nsStyleSVG , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleSVG" ] 
  pub fn Gecko_Destroy_nsStyleSVG ( ptr : * mut nsStyleSVG , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleVariables" ] 
  pub fn Gecko_Construct_Default_nsStyleVariables ( ptr : * mut nsStyleVariables , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleVariables" ] 
  pub fn Gecko_CopyConstruct_nsStyleVariables ( ptr : * mut nsStyleVariables , other : * const nsStyleVariables , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleVariables" ] 
  pub fn Gecko_Destroy_nsStyleVariables ( ptr : * mut nsStyleVariables , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleBackground" ] 
  pub fn Gecko_Construct_Default_nsStyleBackground ( ptr : * mut nsStyleBackground , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleBackground" ] 
  pub fn Gecko_CopyConstruct_nsStyleBackground ( ptr : * mut nsStyleBackground , other : * const nsStyleBackground , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleBackground" ] 
  pub fn Gecko_Destroy_nsStyleBackground ( ptr : * mut nsStyleBackground , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStylePosition" ] 
  pub fn Gecko_Construct_Default_nsStylePosition ( ptr : * mut nsStylePosition , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStylePosition" ] 
  pub fn Gecko_CopyConstruct_nsStylePosition ( ptr : * mut nsStylePosition , other : * const nsStylePosition , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStylePosition" ] 
  pub fn Gecko_Destroy_nsStylePosition ( ptr : * mut nsStylePosition , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleTextReset" ] 
  pub fn Gecko_Construct_Default_nsStyleTextReset ( ptr : * mut nsStyleTextReset , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleTextReset" ] 
  pub fn Gecko_CopyConstruct_nsStyleTextReset ( ptr : * mut nsStyleTextReset , other : * const nsStyleTextReset , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleTextReset" ] 
  pub fn Gecko_Destroy_nsStyleTextReset ( ptr : * mut nsStyleTextReset , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleDisplay" ] 
  pub fn Gecko_Construct_Default_nsStyleDisplay ( ptr : * mut nsStyleDisplay , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleDisplay" ] 
  pub fn Gecko_CopyConstruct_nsStyleDisplay ( ptr : * mut nsStyleDisplay , other : * const nsStyleDisplay , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleDisplay" ] 
  pub fn Gecko_Destroy_nsStyleDisplay ( ptr : * mut nsStyleDisplay , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleContent" ] 
  pub fn Gecko_Construct_Default_nsStyleContent ( ptr : * mut nsStyleContent , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleContent" ] 
  pub fn Gecko_CopyConstruct_nsStyleContent ( ptr : * mut nsStyleContent , other : * const nsStyleContent , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleContent" ] 
  pub fn Gecko_Destroy_nsStyleContent ( ptr : * mut nsStyleContent , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleUIReset" ] 
  pub fn Gecko_Construct_Default_nsStyleUIReset ( ptr : * mut nsStyleUIReset , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleUIReset" ] 
  pub fn Gecko_CopyConstruct_nsStyleUIReset ( ptr : * mut nsStyleUIReset , other : * const nsStyleUIReset , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleUIReset" ] 
  pub fn Gecko_Destroy_nsStyleUIReset ( ptr : * mut nsStyleUIReset , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleTable" ] 
  pub fn Gecko_Construct_Default_nsStyleTable ( ptr : * mut nsStyleTable , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleTable" ] 
  pub fn Gecko_CopyConstruct_nsStyleTable ( ptr : * mut nsStyleTable , other : * const nsStyleTable , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleTable" ] 
  pub fn Gecko_Destroy_nsStyleTable ( ptr : * mut nsStyleTable , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleMargin" ] 
  pub fn Gecko_Construct_Default_nsStyleMargin ( ptr : * mut nsStyleMargin , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleMargin" ] 
  pub fn Gecko_CopyConstruct_nsStyleMargin ( ptr : * mut nsStyleMargin , other : * const nsStyleMargin , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleMargin" ] 
  pub fn Gecko_Destroy_nsStyleMargin ( ptr : * mut nsStyleMargin , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStylePadding" ] 
  pub fn Gecko_Construct_Default_nsStylePadding ( ptr : * mut nsStylePadding , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStylePadding" ] 
  pub fn Gecko_CopyConstruct_nsStylePadding ( ptr : * mut nsStylePadding , other : * const nsStylePadding , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStylePadding" ] 
  pub fn Gecko_Destroy_nsStylePadding ( ptr : * mut nsStylePadding , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleBorder" ] 
  pub fn Gecko_Construct_Default_nsStyleBorder ( ptr : * mut nsStyleBorder , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleBorder" ] 
  pub fn Gecko_CopyConstruct_nsStyleBorder ( ptr : * mut nsStyleBorder , other : * const nsStyleBorder , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleBorder" ] 
  pub fn Gecko_Destroy_nsStyleBorder ( ptr : * mut nsStyleBorder , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleOutline" ] 
  pub fn Gecko_Construct_Default_nsStyleOutline ( ptr : * mut nsStyleOutline , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleOutline" ] 
  pub fn Gecko_CopyConstruct_nsStyleOutline ( ptr : * mut nsStyleOutline , other : * const nsStyleOutline , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleOutline" ] 
  pub fn Gecko_Destroy_nsStyleOutline ( ptr : * mut nsStyleOutline , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleXUL" ] 
  pub fn Gecko_Construct_Default_nsStyleXUL ( ptr : * mut nsStyleXUL , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleXUL" ] 
  pub fn Gecko_CopyConstruct_nsStyleXUL ( ptr : * mut nsStyleXUL , other : * const nsStyleXUL , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleXUL" ] 
  pub fn Gecko_Destroy_nsStyleXUL ( ptr : * mut nsStyleXUL , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleSVGReset" ] 
  pub fn Gecko_Construct_Default_nsStyleSVGReset ( ptr : * mut nsStyleSVGReset , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleSVGReset" ] 
  pub fn Gecko_CopyConstruct_nsStyleSVGReset ( ptr : * mut nsStyleSVGReset , other : * const nsStyleSVGReset , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleSVGReset" ] 
  pub fn Gecko_Destroy_nsStyleSVGReset ( ptr : * mut nsStyleSVGReset , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleColumn" ] 
  pub fn Gecko_Construct_Default_nsStyleColumn ( ptr : * mut nsStyleColumn , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleColumn" ] 
  pub fn Gecko_CopyConstruct_nsStyleColumn ( ptr : * mut nsStyleColumn , other : * const nsStyleColumn , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleColumn" ] 
  pub fn Gecko_Destroy_nsStyleColumn ( ptr : * mut nsStyleColumn , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Construct_Default_nsStyleEffects" ] 
  pub fn Gecko_Construct_Default_nsStyleEffects ( ptr : * mut nsStyleEffects , pres_context : RawGeckoPresContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CopyConstruct_nsStyleEffects" ] 
  pub fn Gecko_CopyConstruct_nsStyleEffects ( ptr : * mut nsStyleEffects , other : * const nsStyleEffects , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_Destroy_nsStyleEffects" ] 
  pub fn Gecko_Destroy_nsStyleEffects ( ptr : * mut nsStyleEffects , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_RegisterProfilerThread" ] 
  pub fn Gecko_RegisterProfilerThread ( name : * const :: std :: os :: raw :: c_char , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_UnregisterProfilerThread" ] 
  pub fn Gecko_UnregisterProfilerThread ( ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_DocumentRule_UseForPresentation" ] 
  pub fn Gecko_DocumentRule_UseForPresentation ( arg1 : RawGeckoPresContextBorrowed , aPattern : * const nsACString , aURLMatchingFunction : URLMatchingFunction , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_SetJemallocThreadLocalArena" ] 
  pub fn Gecko_SetJemallocThreadLocalArena ( enabled : bool , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AddBufferToCrashReport" ] 
  pub fn Gecko_AddBufferToCrashReport ( addr : * const :: std :: os :: raw :: c_void , len : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_AnnotateCrashReport" ] 
  pub fn Gecko_AnnotateCrashReport ( key_str : * const :: std :: os :: raw :: c_char , value_str : * const :: std :: os :: raw :: c_char , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_ClearData" ] 
  pub fn Servo_Element_ClearData ( node : RawGeckoElementBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_SizeOfExcludingThisAndCVs" ] 
  pub fn Servo_Element_SizeOfExcludingThisAndCVs ( malloc_size_of : MallocSizeOf , malloc_enclosing_size_of : MallocSizeOf , seen_ptrs : * mut SeenPtrs , node : RawGeckoElementBorrowed , ) -> usize ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_HasPrimaryComputedValues" ] 
  pub fn Servo_Element_HasPrimaryComputedValues ( node : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_GetPrimaryComputedValues" ] 
  pub fn Servo_Element_GetPrimaryComputedValues ( node : RawGeckoElementBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_HasPseudoComputedValues" ] 
  pub fn Servo_Element_HasPseudoComputedValues ( node : RawGeckoElementBorrowed , index : usize , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_GetPseudoComputedValues" ] 
  pub fn Servo_Element_GetPseudoComputedValues ( node : RawGeckoElementBorrowed , index : usize , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_IsDisplayNone" ] 
  pub fn Servo_Element_IsDisplayNone ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Element_IsPrimaryStyleReusedViaRuleNode" ] 
  pub fn Servo_Element_IsPrimaryStyleReusedViaRuleNode ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_FromUTF8Bytes" ] 
  pub fn Servo_StyleSheet_FromUTF8Bytes ( loader : * mut Loader , gecko_stylesheet : * mut ServoStyleSheet , data : * const u8 , data_len : usize , parsing_mode : SheetParsingMode , extra_data : * mut RawGeckoURLExtraData , line_number_offset : u32 , quirks_mode : nsCompatibility , reusable_sheets : * mut LoaderReusableStyleSheets , ) -> RawServoStyleSheetContentsStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_Empty" ] 
  pub fn Servo_StyleSheet_Empty ( parsing_mode : SheetParsingMode , ) -> RawServoStyleSheetContentsStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_HasRules" ] 
  pub fn Servo_StyleSheet_HasRules ( sheet : RawServoStyleSheetContentsBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_GetRules" ] 
  pub fn Servo_StyleSheet_GetRules ( sheet : RawServoStyleSheetContentsBorrowed , ) -> ServoCssRulesStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_Clone" ] 
  pub fn Servo_StyleSheet_Clone ( sheet : RawServoStyleSheetContentsBorrowed , reference_sheet : * const ServoStyleSheet , ) -> RawServoStyleSheetContentsStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_SizeOfIncludingThis" ] 
  pub fn Servo_StyleSheet_SizeOfIncludingThis ( malloc_size_of : MallocSizeOf , malloc_enclosing_size_of : MallocSizeOf , sheet : RawServoStyleSheetContentsBorrowed , ) -> usize ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_GetSourceMapURL" ] 
  pub fn Servo_StyleSheet_GetSourceMapURL ( sheet : RawServoStyleSheetContentsBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_GetSourceURL" ] 
  pub fn Servo_StyleSheet_GetSourceURL ( sheet : RawServoStyleSheetContentsBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSheet_GetOrigin" ] 
  pub fn Servo_StyleSheet_GetOrigin ( sheet : RawServoStyleSheetContentsBorrowed , ) -> u8 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_Init" ] 
  pub fn Servo_StyleSet_Init ( pres_context : RawGeckoPresContextOwned , ) -> * mut RawServoStyleSet ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_RebuildCachedData" ] 
  pub fn Servo_StyleSet_RebuildCachedData ( set : RawServoStyleSetBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_MediumFeaturesChanged" ] 
  pub fn Servo_StyleSet_MediumFeaturesChanged ( set : RawServoStyleSetBorrowed , viewport_units_used : * mut bool , ) -> u8 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_SetDevice" ] 
  pub fn Servo_StyleSet_SetDevice ( set : RawServoStyleSetBorrowed , pres_context : RawGeckoPresContextOwned , ) -> u8 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_CompatModeChanged" ] 
  pub fn Servo_StyleSet_CompatModeChanged ( raw_data : RawServoStyleSetBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_AppendStyleSheet" ] 
  pub fn Servo_StyleSet_AppendStyleSheet ( set : RawServoStyleSetBorrowed , gecko_sheet : * const ServoStyleSheet , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_PrependStyleSheet" ] 
  pub fn Servo_StyleSet_PrependStyleSheet ( set : RawServoStyleSetBorrowed , gecko_sheet : * const ServoStyleSheet , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_RemoveStyleSheet" ] 
  pub fn Servo_StyleSet_RemoveStyleSheet ( set : RawServoStyleSetBorrowed , gecko_sheet : * const ServoStyleSheet , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_InsertStyleSheetBefore" ] 
  pub fn Servo_StyleSet_InsertStyleSheetBefore ( set : RawServoStyleSetBorrowed , gecko_sheet : * const ServoStyleSheet , before : * const ServoStyleSheet , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_FlushStyleSheets" ] 
  pub fn Servo_StyleSet_FlushStyleSheets ( set : RawServoStyleSetBorrowed , doc_elem : RawGeckoElementBorrowedOrNull , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_NoteStyleSheetsChanged" ] 
  pub fn Servo_StyleSet_NoteStyleSheetsChanged ( set : RawServoStyleSetBorrowed , author_style_disabled : bool , changed_origins : OriginFlags , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_GetKeyframesForName" ] 
  pub fn Servo_StyleSet_GetKeyframesForName ( set : RawServoStyleSetBorrowed , name : * mut nsAtom , timing_function : nsTimingFunctionBorrowed , keyframe_list : RawGeckoKeyframeListBorrowedMut , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_GetFontFaceRules" ] 
  pub fn Servo_StyleSet_GetFontFaceRules ( set : RawServoStyleSetBorrowed , list : RawGeckoFontFaceRuleListBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_GetCounterStyleRule" ] 
  pub fn Servo_StyleSet_GetCounterStyleRule ( set : RawServoStyleSetBorrowed , name : * mut nsAtom , ) -> * mut nsCSSCounterStyleRule ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_BuildFontFeatureValueSet" ] 
  pub fn Servo_StyleSet_BuildFontFeatureValueSet ( set : RawServoStyleSetBorrowed , ) -> * mut gfxFontFeatureValueSet ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_ResolveForDeclarations" ] 
  pub fn Servo_StyleSet_ResolveForDeclarations ( set : RawServoStyleSetBorrowed , parent_style : ServoStyleContextBorrowedOrNull , declarations : RawServoDeclarationBlockBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SelectorList_Parse" ] 
  pub fn Servo_SelectorList_Parse ( selector_list : * const nsACString , ) -> * mut RawServoSelectorList ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SourceSizeList_Parse" ] 
  pub fn Servo_SourceSizeList_Parse ( value : * const nsACString , ) -> * mut RawServoSourceSizeList ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SourceSizeList_Evaluate" ] 
  pub fn Servo_SourceSizeList_Evaluate ( set : RawServoStyleSetBorrowed , arg1 : RawServoSourceSizeListBorrowedOrNull , ) -> i32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SelectorList_Matches" ] 
  pub fn Servo_SelectorList_Matches ( arg1 : RawGeckoElementBorrowed , arg2 : RawServoSelectorListBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SelectorList_Closest" ] 
  pub fn Servo_SelectorList_Closest ( arg1 : RawGeckoElementBorrowed , arg2 : RawServoSelectorListBorrowed , ) -> * const RawGeckoElement ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SelectorList_QueryFirst" ] 
  pub fn Servo_SelectorList_QueryFirst ( arg1 : RawGeckoNodeBorrowed , arg2 : RawServoSelectorListBorrowed , may_use_invalidation : bool , ) -> * const RawGeckoElement ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SelectorList_QueryAll" ] 
  pub fn Servo_SelectorList_QueryAll ( arg1 : RawGeckoNodeBorrowed , arg2 : RawServoSelectorListBorrowed , content_list : * mut nsSimpleContentList , may_use_invalidation : bool , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_AddSizeOfExcludingThis" ] 
  pub fn Servo_StyleSet_AddSizeOfExcludingThis ( malloc_size_of : MallocSizeOf , malloc_enclosing_size_of : MallocSizeOf , sizes : * mut ServoStyleSetSizes , set : RawServoStyleSetBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_UACache_AddSizeOf" ] 
  pub fn Servo_UACache_AddSizeOf ( malloc_size_of : MallocSizeOf , malloc_enclosing_size_of : MallocSizeOf , sizes : * mut ServoStyleSetSizes , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleContext_AddRef" ] 
  pub fn Servo_StyleContext_AddRef ( ctx : ServoStyleContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleContext_Release" ] 
  pub fn Servo_StyleContext_Release ( ctx : ServoStyleContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_MightHaveAttributeDependency" ] 
  pub fn Servo_StyleSet_MightHaveAttributeDependency ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , local_name : * mut nsAtom , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_HasStateDependency" ] 
  pub fn Servo_StyleSet_HasStateDependency ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , state : u64 , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_HasDocumentStateDependency" ] 
  pub fn Servo_StyleSet_HasDocumentStateDependency ( set : RawServoStyleSetBorrowed , state : u64 , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_ListTypes" ] 
  pub fn Servo_CssRules_ListTypes ( rules : ServoCssRulesBorrowed , result : nsTArrayBorrowed_uintptr_t , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_InsertRule" ] 
  pub fn Servo_CssRules_InsertRule ( rules : ServoCssRulesBorrowed , sheet : RawServoStyleSheetContentsBorrowed , rule : * const nsACString , index : u32 , nested : bool , loader : * mut Loader , gecko_stylesheet : * mut ServoStyleSheet , rule_type : * mut u16 , ) -> nsresult ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_DeleteRule" ] 
  pub fn Servo_CssRules_DeleteRule ( rules : ServoCssRulesBorrowed , index : u32 , ) -> nsresult ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetStyleRuleAt" ] 
  pub fn Servo_CssRules_GetStyleRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoStyleRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_Debug" ] 
  pub fn Servo_StyleRule_Debug ( rule : RawServoStyleRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_GetCssText" ] 
  pub fn Servo_StyleRule_GetCssText ( rule : RawServoStyleRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetImportRuleAt" ] 
  pub fn Servo_CssRules_GetImportRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoImportRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ImportRule_Debug" ] 
  pub fn Servo_ImportRule_Debug ( rule : RawServoImportRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ImportRule_GetCssText" ] 
  pub fn Servo_ImportRule_GetCssText ( rule : RawServoImportRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_Debug" ] 
  pub fn Servo_Keyframe_Debug ( rule : RawServoKeyframeBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_GetCssText" ] 
  pub fn Servo_Keyframe_GetCssText ( rule : RawServoKeyframeBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetKeyframesRuleAt" ] 
  pub fn Servo_CssRules_GetKeyframesRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoKeyframesRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_Debug" ] 
  pub fn Servo_KeyframesRule_Debug ( rule : RawServoKeyframesRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_GetCssText" ] 
  pub fn Servo_KeyframesRule_GetCssText ( rule : RawServoKeyframesRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetMediaRuleAt" ] 
  pub fn Servo_CssRules_GetMediaRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoMediaRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaRule_Debug" ] 
  pub fn Servo_MediaRule_Debug ( rule : RawServoMediaRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaRule_GetCssText" ] 
  pub fn Servo_MediaRule_GetCssText ( rule : RawServoMediaRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaRule_GetRules" ] 
  pub fn Servo_MediaRule_GetRules ( rule : RawServoMediaRuleBorrowed , ) -> ServoCssRulesStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetNamespaceRuleAt" ] 
  pub fn Servo_CssRules_GetNamespaceRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoNamespaceRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_NamespaceRule_Debug" ] 
  pub fn Servo_NamespaceRule_Debug ( rule : RawServoNamespaceRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_NamespaceRule_GetCssText" ] 
  pub fn Servo_NamespaceRule_GetCssText ( rule : RawServoNamespaceRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetPageRuleAt" ] 
  pub fn Servo_CssRules_GetPageRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoPageRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_PageRule_Debug" ] 
  pub fn Servo_PageRule_Debug ( rule : RawServoPageRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_PageRule_GetCssText" ] 
  pub fn Servo_PageRule_GetCssText ( rule : RawServoPageRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetSupportsRuleAt" ] 
  pub fn Servo_CssRules_GetSupportsRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoSupportsRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SupportsRule_Debug" ] 
  pub fn Servo_SupportsRule_Debug ( rule : RawServoSupportsRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SupportsRule_GetCssText" ] 
  pub fn Servo_SupportsRule_GetCssText ( rule : RawServoSupportsRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SupportsRule_GetRules" ] 
  pub fn Servo_SupportsRule_GetRules ( rule : RawServoSupportsRuleBorrowed , ) -> ServoCssRulesStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetDocumentRuleAt" ] 
  pub fn Servo_CssRules_GetDocumentRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoDocumentRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DocumentRule_Debug" ] 
  pub fn Servo_DocumentRule_Debug ( rule : RawServoDocumentRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DocumentRule_GetCssText" ] 
  pub fn Servo_DocumentRule_GetCssText ( rule : RawServoDocumentRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DocumentRule_GetRules" ] 
  pub fn Servo_DocumentRule_GetRules ( rule : RawServoDocumentRuleBorrowed , ) -> ServoCssRulesStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetFontFeatureValuesRuleAt" ] 
  pub fn Servo_CssRules_GetFontFeatureValuesRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoFontFeatureValuesRuleStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_FontFeatureValuesRule_Debug" ] 
  pub fn Servo_FontFeatureValuesRule_Debug ( rule : RawServoFontFeatureValuesRuleBorrowed , result : * mut nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_FontFeatureValuesRule_GetCssText" ] 
  pub fn Servo_FontFeatureValuesRule_GetCssText ( rule : RawServoFontFeatureValuesRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetFontFaceRuleAt" ] 
  pub fn Servo_CssRules_GetFontFaceRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , ) -> * mut nsCSSFontFaceRule ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CssRules_GetCounterStyleRuleAt" ] 
  pub fn Servo_CssRules_GetCounterStyleRuleAt ( rules : ServoCssRulesBorrowed , index : u32 , ) -> * mut nsCSSCounterStyleRule ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_GetStyle" ] 
  pub fn Servo_StyleRule_GetStyle ( rule : RawServoStyleRuleBorrowed , ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_SetStyle" ] 
  pub fn Servo_StyleRule_SetStyle ( rule : RawServoStyleRuleBorrowed , declarations : RawServoDeclarationBlockBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_GetSelectorText" ] 
  pub fn Servo_StyleRule_GetSelectorText ( rule : RawServoStyleRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_GetSelectorTextAtIndex" ] 
  pub fn Servo_StyleRule_GetSelectorTextAtIndex ( rule : RawServoStyleRuleBorrowed , index : u32 , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_GetSpecificityAtIndex" ] 
  pub fn Servo_StyleRule_GetSpecificityAtIndex ( rule : RawServoStyleRuleBorrowed , index : u32 , specificity : * mut u64 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_GetSelectorCount" ] 
  pub fn Servo_StyleRule_GetSelectorCount ( rule : RawServoStyleRuleBorrowed , count : * mut u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleRule_SelectorMatchesElement" ] 
  pub fn Servo_StyleRule_SelectorMatchesElement ( arg1 : RawServoStyleRuleBorrowed , arg2 : RawGeckoElementBorrowed , index : u32 , pseudo_type : CSSPseudoElementType , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ImportRule_GetHref" ] 
  pub fn Servo_ImportRule_GetHref ( rule : RawServoImportRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ImportRule_GetSheet" ] 
  pub fn Servo_ImportRule_GetSheet ( rule : RawServoImportRuleBorrowed , ) -> * const ServoStyleSheet ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_GetKeyText" ] 
  pub fn Servo_Keyframe_GetKeyText ( keyframe : RawServoKeyframeBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_SetKeyText" ] 
  pub fn Servo_Keyframe_SetKeyText ( keyframe : RawServoKeyframeBorrowed , text : * const nsACString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_GetStyle" ] 
  pub fn Servo_Keyframe_GetStyle ( keyframe : RawServoKeyframeBorrowed , ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Keyframe_SetStyle" ] 
  pub fn Servo_Keyframe_SetStyle ( keyframe : RawServoKeyframeBorrowed , declarations : RawServoDeclarationBlockBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_GetName" ] 
  pub fn Servo_KeyframesRule_GetName ( rule : RawServoKeyframesRuleBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_SetName" ] 
  pub fn Servo_KeyframesRule_SetName ( rule : RawServoKeyframesRuleBorrowed , name : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_GetCount" ] 
  pub fn Servo_KeyframesRule_GetCount ( rule : RawServoKeyframesRuleBorrowed , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_GetKeyframeAt" ] 
  pub fn Servo_KeyframesRule_GetKeyframeAt ( rule : RawServoKeyframesRuleBorrowed , index : u32 , line : * mut u32 , column : * mut u32 , ) -> RawServoKeyframeStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_FindRule" ] 
  pub fn Servo_KeyframesRule_FindRule ( rule : RawServoKeyframesRuleBorrowed , key : * const nsACString , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_AppendRule" ] 
  pub fn Servo_KeyframesRule_AppendRule ( rule : RawServoKeyframesRuleBorrowed , sheet : RawServoStyleSheetContentsBorrowed , css : * const nsACString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_KeyframesRule_DeleteRule" ] 
  pub fn Servo_KeyframesRule_DeleteRule ( rule : RawServoKeyframesRuleBorrowed , index : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaRule_GetMedia" ] 
  pub fn Servo_MediaRule_GetMedia ( rule : RawServoMediaRuleBorrowed , ) -> RawServoMediaListStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_NamespaceRule_GetPrefix" ] 
  pub fn Servo_NamespaceRule_GetPrefix ( rule : RawServoNamespaceRuleBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_NamespaceRule_GetURI" ] 
  pub fn Servo_NamespaceRule_GetURI ( rule : RawServoNamespaceRuleBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_PageRule_GetStyle" ] 
  pub fn Servo_PageRule_GetStyle ( rule : RawServoPageRuleBorrowed , ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_PageRule_SetStyle" ] 
  pub fn Servo_PageRule_SetStyle ( rule : RawServoPageRuleBorrowed , declarations : RawServoDeclarationBlockBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SupportsRule_GetConditionText" ] 
  pub fn Servo_SupportsRule_GetConditionText ( rule : RawServoSupportsRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DocumentRule_GetConditionText" ] 
  pub fn Servo_DocumentRule_GetConditionText ( rule : RawServoDocumentRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_FontFeatureValuesRule_GetFontFamily" ] 
  pub fn Servo_FontFeatureValuesRule_GetFontFamily ( rule : RawServoFontFeatureValuesRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_FontFeatureValuesRule_GetValueText" ] 
  pub fn Servo_FontFeatureValuesRule_GetValueText ( rule : RawServoFontFeatureValuesRuleBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ParseProperty" ] 
  pub fn Servo_ParseProperty ( property : nsCSSPropertyID , value : * const nsACString , data : * mut RawGeckoURLExtraData , parsing_mode : ParsingMode , quirks_mode : nsCompatibility , loader : * mut Loader , ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ParseEasing" ] 
  pub fn Servo_ParseEasing ( easing : * const nsAString , data : * mut RawGeckoURLExtraData , output : nsTimingFunctionBorrowedMut , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_GetComputedKeyframeValues" ] 
  pub fn Servo_GetComputedKeyframeValues ( keyframes : RawGeckoKeyframeListBorrowed , element : RawGeckoElementBorrowed , style : ServoStyleContextBorrowed , set : RawServoStyleSetBorrowed , result : RawGeckoComputedKeyframeValuesListBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_ExtractAnimationValue" ] 
  pub fn Servo_ComputedValues_ExtractAnimationValue ( computed_values : ServoStyleContextBorrowed , property : nsCSSPropertyID , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_SpecifiesAnimationsOrTransitions" ] 
  pub fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions ( computed_values : ServoStyleContextBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Property_IsAnimatable" ] 
  pub fn Servo_Property_IsAnimatable ( property : nsCSSPropertyID , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Property_IsTransitionable" ] 
  pub fn Servo_Property_IsTransitionable ( property : nsCSSPropertyID , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Property_IsDiscreteAnimatable" ] 
  pub fn Servo_Property_IsDiscreteAnimatable ( property : nsCSSPropertyID , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_GetProperties_Overriding_Animation" ] 
  pub fn Servo_GetProperties_Overriding_Animation ( arg1 : RawGeckoElementBorrowed , arg2 : RawGeckoCSSPropertyIDListBorrowed , arg3 : nsCSSPropertyIDSetBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MatrixTransform_Operate" ] 
  pub fn Servo_MatrixTransform_Operate ( matrix_operator : MatrixTransformOperator , from : * const RawGeckoGfxMatrix4x4 , to : * const RawGeckoGfxMatrix4x4 , progress : f64 , result : * mut RawGeckoGfxMatrix4x4 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_GetAnimationValues" ] 
  pub fn Servo_GetAnimationValues ( declarations : RawServoDeclarationBlockBorrowed , element : RawGeckoElementBorrowed , style : ServoStyleContextBorrowed , style_set : RawServoStyleSetBorrowed , animation_values : RawGeckoServoAnimationValueListBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValues_Interpolate" ] 
  pub fn Servo_AnimationValues_Interpolate ( from : RawServoAnimationValueBorrowed , to : RawServoAnimationValueBorrowed , progress : f64 , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValues_IsInterpolable" ] 
  pub fn Servo_AnimationValues_IsInterpolable ( from : RawServoAnimationValueBorrowed , to : RawServoAnimationValueBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValues_Add" ] 
  pub fn Servo_AnimationValues_Add ( a : RawServoAnimationValueBorrowed , b : RawServoAnimationValueBorrowed , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValues_Accumulate" ] 
  pub fn Servo_AnimationValues_Accumulate ( a : RawServoAnimationValueBorrowed , b : RawServoAnimationValueBorrowed , count : u64 , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValues_GetZeroValue" ] 
  pub fn Servo_AnimationValues_GetZeroValue ( value_to_match : RawServoAnimationValueBorrowed , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValues_ComputeDistance" ] 
  pub fn Servo_AnimationValues_ComputeDistance ( from : RawServoAnimationValueBorrowed , to : RawServoAnimationValueBorrowed , ) -> f64 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_Serialize" ] 
  pub fn Servo_AnimationValue_Serialize ( value : RawServoAnimationValueBorrowed , property : nsCSSPropertyID , buffer : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Shorthand_AnimationValues_Serialize" ] 
  pub fn Servo_Shorthand_AnimationValues_Serialize ( shorthand_property : nsCSSPropertyID , values : RawGeckoServoAnimationValueListBorrowed , buffer : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_GetOpacity" ] 
  pub fn Servo_AnimationValue_GetOpacity ( value : RawServoAnimationValueBorrowed , ) -> f32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_Opacity" ] 
  pub fn Servo_AnimationValue_Opacity ( arg1 : f32 , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_GetTransform" ] 
  pub fn Servo_AnimationValue_GetTransform ( value : RawServoAnimationValueBorrowed , list : * mut RefPtr < nsCSSValueSharedList > , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_Transform" ] 
  pub fn Servo_AnimationValue_Transform ( list : * const nsCSSValueSharedList , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_DeepEqual" ] 
  pub fn Servo_AnimationValue_DeepEqual ( arg1 : RawServoAnimationValueBorrowed , arg2 : RawServoAnimationValueBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_Uncompute" ] 
  pub fn Servo_AnimationValue_Uncompute ( value : RawServoAnimationValueBorrowed , ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationValue_Compute" ] 
  pub fn Servo_AnimationValue_Compute ( element : RawGeckoElementBorrowed , declarations : RawServoDeclarationBlockBorrowed , style : ServoStyleContextBorrowed , raw_data : RawServoStyleSetBorrowed , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ParseStyleAttribute" ] 
  pub fn Servo_ParseStyleAttribute ( data : * const nsACString , extra_data : * mut RawGeckoURLExtraData , quirks_mode : nsCompatibility , loader : * mut Loader , ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_CreateEmpty" ] 
  pub fn Servo_DeclarationBlock_CreateEmpty ( ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_Clone" ] 
  pub fn Servo_DeclarationBlock_Clone ( declarations : RawServoDeclarationBlockBorrowed , ) -> RawServoDeclarationBlockStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_Equals" ] 
  pub fn Servo_DeclarationBlock_Equals ( a : RawServoDeclarationBlockBorrowed , b : RawServoDeclarationBlockBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_GetCssText" ] 
  pub fn Servo_DeclarationBlock_GetCssText ( declarations : RawServoDeclarationBlockBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SerializeOneValue" ] 
  pub fn Servo_DeclarationBlock_SerializeOneValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , buffer : * mut nsAString , computed_values : ServoStyleContextBorrowedOrNull , custom_properties : RawServoDeclarationBlockBorrowedOrNull , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_Count" ] 
  pub fn Servo_DeclarationBlock_Count ( declarations : RawServoDeclarationBlockBorrowed , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_GetNthProperty" ] 
  pub fn Servo_DeclarationBlock_GetNthProperty ( declarations : RawServoDeclarationBlockBorrowed , index : u32 , result : * mut nsAString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_GetPropertyValue" ] 
  pub fn Servo_DeclarationBlock_GetPropertyValue ( declarations : RawServoDeclarationBlockBorrowed , property : * const nsACString , value : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_GetPropertyValueById" ] 
  pub fn Servo_DeclarationBlock_GetPropertyValueById ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_GetPropertyIsImportant" ] 
  pub fn Servo_DeclarationBlock_GetPropertyIsImportant ( declarations : RawServoDeclarationBlockBorrowed , property : * const nsACString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetProperty" ] 
  pub fn Servo_DeclarationBlock_SetProperty ( declarations : RawServoDeclarationBlockBorrowed , property : * const nsACString , value : * const nsACString , is_important : bool , data : * mut RawGeckoURLExtraData , parsing_mode : ParsingMode , quirks_mode : nsCompatibility , loader : * mut Loader , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetPropertyById" ] 
  pub fn Servo_DeclarationBlock_SetPropertyById ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : * const nsACString , is_important : bool , data : * mut RawGeckoURLExtraData , parsing_mode : ParsingMode , quirks_mode : nsCompatibility , loader : * mut Loader , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_RemoveProperty" ] 
  pub fn Servo_DeclarationBlock_RemoveProperty ( declarations : RawServoDeclarationBlockBorrowed , property : * const nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_RemovePropertyById" ] 
  pub fn Servo_DeclarationBlock_RemovePropertyById ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_HasCSSWideKeyword" ] 
  pub fn Servo_DeclarationBlock_HasCSSWideKeyword ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AnimationCompose" ] 
  pub fn Servo_AnimationCompose ( animation_values : RawServoAnimationValueMapBorrowedMut , base_values : RawServoAnimationValueTableBorrowed , property : nsCSSPropertyID , animation_segment : RawGeckoAnimationPropertySegmentBorrowed , last_segment : RawGeckoAnimationPropertySegmentBorrowed , computed_timing : RawGeckoComputedTimingBorrowed , iter_composite : IterationCompositeOperation , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComposeAnimationSegment" ] 
  pub fn Servo_ComposeAnimationSegment ( animation_segment : RawGeckoAnimationPropertySegmentBorrowed , underlying_value : RawServoAnimationValueBorrowedOrNull , last_value : RawServoAnimationValueBorrowedOrNull , iter_composite : IterationCompositeOperation , progress : f64 , current_iteration : u64 , ) -> RawServoAnimationValueStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_PropertyIsSet" ] 
  pub fn Servo_DeclarationBlock_PropertyIsSet ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetIdentStringValue" ] 
  pub fn Servo_DeclarationBlock_SetIdentStringValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : * mut nsAtom , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetKeywordValue" ] 
  pub fn Servo_DeclarationBlock_SetKeywordValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : i32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetIntValue" ] 
  pub fn Servo_DeclarationBlock_SetIntValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : i32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetPixelValue" ] 
  pub fn Servo_DeclarationBlock_SetPixelValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : f32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetLengthValue" ] 
  pub fn Servo_DeclarationBlock_SetLengthValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : f32 , unit : nsCSSUnit , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetNumberValue" ] 
  pub fn Servo_DeclarationBlock_SetNumberValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : f32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetPercentValue" ] 
  pub fn Servo_DeclarationBlock_SetPercentValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : f32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetAutoValue" ] 
  pub fn Servo_DeclarationBlock_SetAutoValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetCurrentColor" ] 
  pub fn Servo_DeclarationBlock_SetCurrentColor ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetColorValue" ] 
  pub fn Servo_DeclarationBlock_SetColorValue ( declarations : RawServoDeclarationBlockBorrowed , property : nsCSSPropertyID , value : nscolor , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetFontFamily" ] 
  pub fn Servo_DeclarationBlock_SetFontFamily ( declarations : RawServoDeclarationBlockBorrowed , value : * const nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetTextDecorationColorOverride" ] 
  pub fn Servo_DeclarationBlock_SetTextDecorationColorOverride ( declarations : RawServoDeclarationBlockBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_DeclarationBlock_SetBackgroundImage" ] 
  pub fn Servo_DeclarationBlock_SetBackgroundImage ( declarations : RawServoDeclarationBlockBorrowed , value : * const nsAString , extra_data : * mut RawGeckoURLExtraData , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_Create" ] 
  pub fn Servo_MediaList_Create ( ) -> RawServoMediaListStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_DeepClone" ] 
  pub fn Servo_MediaList_DeepClone ( list : RawServoMediaListBorrowed , ) -> RawServoMediaListStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_Matches" ] 
  pub fn Servo_MediaList_Matches ( list : RawServoMediaListBorrowed , set : RawServoStyleSetBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_GetText" ] 
  pub fn Servo_MediaList_GetText ( list : RawServoMediaListBorrowed , result : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_SetText" ] 
  pub fn Servo_MediaList_SetText ( list : RawServoMediaListBorrowed , text : * const nsACString , aCallerType : CallerType , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_GetLength" ] 
  pub fn Servo_MediaList_GetLength ( list : RawServoMediaListBorrowed , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_GetMediumAt" ] 
  pub fn Servo_MediaList_GetMediumAt ( list : RawServoMediaListBorrowed , index : u32 , result : * mut nsAString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_AppendMedium" ] 
  pub fn Servo_MediaList_AppendMedium ( list : RawServoMediaListBorrowed , new_medium : * const nsACString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MediaList_DeleteMedium" ] 
  pub fn Servo_MediaList_DeleteMedium ( list : RawServoMediaListBorrowed , old_medium : * const nsACString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CSSSupports2" ] 
  pub fn Servo_CSSSupports2 ( name : * const nsACString , value : * const nsACString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CSSSupports" ] 
  pub fn Servo_CSSSupports ( cond : * const nsACString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_GetForAnonymousBox" ] 
  pub fn Servo_ComputedValues_GetForAnonymousBox ( parent_style_or_null : ServoStyleContextBorrowedOrNull , pseudo_tag : * mut nsAtom , set : RawServoStyleSetBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_Inherit" ] 
  pub fn Servo_ComputedValues_Inherit ( set : RawServoStyleSetBorrowed , pseudo_tag : * mut nsAtom , parent_style : ServoStyleContextBorrowedOrNull , target : InheritTarget , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_GetStyleBits" ] 
  pub fn Servo_ComputedValues_GetStyleBits ( values : ServoStyleContextBorrowed , ) -> u64 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_EqualCustomProperties" ] 
  pub fn Servo_ComputedValues_EqualCustomProperties ( first : ServoComputedDataBorrowed , second : ServoComputedDataBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_GetStyleRuleList" ] 
  pub fn Servo_ComputedValues_GetStyleRuleList ( values : ServoStyleContextBorrowed , rules : RawGeckoServoStyleRuleListBorrowedMut , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Initialize" ] 
  pub fn Servo_Initialize ( dummy_url_data : * mut RawGeckoURLExtraData , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_InitializeCooperativeThread" ] 
  pub fn Servo_InitializeCooperativeThread ( ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_Shutdown" ] 
  pub fn Servo_Shutdown ( ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_NoteExplicitHints" ] 
  pub fn Servo_NoteExplicitHints ( element : RawGeckoElementBorrowed , restyle_hint : nsRestyleHint , change_hint : nsChangeHint , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_TakeChangeHint" ] 
  pub fn Servo_TakeChangeHint ( element : RawGeckoElementBorrowed , was_restyled : * mut bool , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ResolveStyle" ] 
  pub fn Servo_ResolveStyle ( element : RawGeckoElementBorrowed , set : RawServoStyleSetBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ResolvePseudoStyle" ] 
  pub fn Servo_ResolvePseudoStyle ( element : RawGeckoElementBorrowed , pseudo_type : CSSPseudoElementType , is_probe : bool , inherited_style : ServoStyleContextBorrowedOrNull , set : RawServoStyleSetBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputedValues_ResolveXULTreePseudoStyle" ] 
  pub fn Servo_ComputedValues_ResolveXULTreePseudoStyle ( element : RawGeckoElementBorrowed , pseudo_tag : * mut nsAtom , inherited_style : ServoStyleContextBorrowed , input_word : * const AtomArray , set : RawServoStyleSetBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SetExplicitStyle" ] 
  pub fn Servo_SetExplicitStyle ( element : RawGeckoElementBorrowed , primary_style : ServoStyleContextBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_HasAuthorSpecifiedRules" ] 
  pub fn Servo_HasAuthorSpecifiedRules ( style : ServoStyleContextBorrowed , element : RawGeckoElementBorrowed , pseudo_type : CSSPseudoElementType , rule_type_mask : u32 , author_colors_allowed : bool , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ResolveStyleLazily" ] 
  pub fn Servo_ResolveStyleLazily ( element : RawGeckoElementBorrowed , pseudo_type : CSSPseudoElementType , rule_inclusion : StyleRuleInclusion , snapshots : * const ServoElementSnapshotTable , set : RawServoStyleSetBorrowed , ignore_existing_styles : bool , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ReparentStyle" ] 
  pub fn Servo_ReparentStyle ( style_to_reparent : ServoStyleContextBorrowed , parent_style : ServoStyleContextBorrowed , parent_style_ignoring_first_line : ServoStyleContextBorrowed , layout_parent_style : ServoStyleContextBorrowed , element : RawGeckoElementBorrowedOrNull , set : RawServoStyleSetBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_TraverseSubtree" ] 
  pub fn Servo_TraverseSubtree ( root : RawGeckoElementBorrowed , set : RawServoStyleSetBorrowed , snapshots : * const ServoElementSnapshotTable , flags : ServoTraversalFlags , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_AssertTreeIsClean" ] 
  pub fn Servo_AssertTreeIsClean ( root : RawGeckoElementBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_IsWorkerThread" ] 
  pub fn Servo_IsWorkerThread ( ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_MaybeGCRuleTree" ] 
  pub fn Servo_MaybeGCRuleTree ( set : RawServoStyleSetBorrowed , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_GetBaseComputedValuesForElement" ] 
  pub fn Servo_StyleSet_GetBaseComputedValuesForElement ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , existing_style : ServoStyleContextBorrowed , snapshots : * const ServoElementSnapshotTable , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_StyleSet_GetComputedValuesByAddingAnimation" ] 
  pub fn Servo_StyleSet_GetComputedValuesByAddingAnimation ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , existing_style : ServoStyleContextBorrowed , snapshots : * const ServoElementSnapshotTable , animation : RawServoAnimationValueBorrowed , ) -> ServoStyleContextStrong ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_SerializeFontValueForCanvas" ] 
  pub fn Servo_SerializeFontValueForCanvas ( declarations : RawServoDeclarationBlockBorrowed , buffer : * mut nsAString , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_GetCustomPropertyValue" ] 
  pub fn Servo_GetCustomPropertyValue ( computed_values : ServoStyleContextBorrowed , name : * const nsAString , value : * mut nsAString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_GetCustomPropertiesCount" ] 
  pub fn Servo_GetCustomPropertiesCount ( computed_values : ServoStyleContextBorrowed , ) -> u32 ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_GetCustomPropertyNameAt" ] 
  pub fn Servo_GetCustomPropertyNameAt ( arg1 : ServoStyleContextBorrowed , index : u32 , name : * mut nsAString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ProcessInvalidations" ] 
  pub fn Servo_ProcessInvalidations ( set : RawServoStyleSetBorrowed , element : RawGeckoElementBorrowed , snapshots : * const ServoElementSnapshotTable , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_HasPendingRestyleAncestor" ] 
  pub fn Servo_HasPendingRestyleAncestor ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_GetArcStringData" ] 
  pub fn Servo_GetArcStringData ( arg1 : * const RustString , chars : * mut * const u8 , len : * mut u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ReleaseArcStringData" ] 
  pub fn Servo_ReleaseArcStringData ( string : * const ServoRawOffsetArc < RustString > , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_CloneArcStringData" ] 
  pub fn Servo_CloneArcStringData ( string : * const ServoRawOffsetArc < RustString > , ) -> ServoRawOffsetArc < RustString > ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_IsValidCSSColor" ] 
  pub fn Servo_IsValidCSSColor ( value : * const nsAString , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ComputeColor" ] 
  pub fn Servo_ComputeColor ( set : RawServoStyleSetBorrowedOrNull , current_color : nscolor , value : * const nsAString , result_color : * mut nscolor , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ParseIntersectionObserverRootMargin" ] 
  pub fn Servo_ParseIntersectionObserverRootMargin ( value : * const nsAString , result : * mut nsCSSRect , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Servo_ParseTransformIntoMatrix" ] 
  pub fn Servo_ParseTransformIntoMatrix ( value : * const nsAString , contains_3d_transform : * mut bool , result : * mut RawGeckoGfxMatrix4x4 , ) -> bool ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_CreateCSSErrorReporter" ] 
+ pub fn Servo_ParseCounterStyleName ( value : * const nsACString , ) -> * mut nsAtom ; 
+} extern "C" {
+ pub fn Servo_ParseCounterStyleDescriptor ( aDescriptor : nsCSSCounterDesc , aValue : * const nsACString , aURLExtraData : * mut RawGeckoURLExtraData , aResult : * mut nsCSSValue , ) -> bool ; 
+} extern "C" {
  pub fn Gecko_CreateCSSErrorReporter ( sheet : * mut ServoStyleSheet , loader : * mut Loader , uri : * mut nsIURI , ) -> * mut ErrorReporter ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_DestroyCSSErrorReporter" ] 
  pub fn Gecko_DestroyCSSErrorReporter ( reporter : * mut ErrorReporter , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ReportUnexpectedCSSError" ] 
  pub fn Gecko_ReportUnexpectedCSSError ( reporter : * mut ErrorReporter , message : * const :: std :: os :: raw :: c_char , param : * const :: std :: os :: raw :: c_char , paramLen : u32 , prefix : * const :: std :: os :: raw :: c_char , prefixParam : * const :: std :: os :: raw :: c_char , prefixParamLen : u32 , suffix : * const :: std :: os :: raw :: c_char , source : * const :: std :: os :: raw :: c_char , sourceLen : u32 , lineNumber : u32 , colNumber : u32 , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_ContentList_AppendAll" ] 
  pub fn Gecko_ContentList_AppendAll ( aContentList : * mut nsSimpleContentList , aElements : * mut * const RawGeckoElement , aLength : usize , ) ; 
 } extern "C" {
- # [ link_name = "\u{1}_Gecko_GetElementsWithId" ] 
  pub fn Gecko_GetElementsWithId ( aDocument : * const nsIDocument , aId : * mut nsAtom , ) -> * const nsTArray < * mut Element > ; 
 }
