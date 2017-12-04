@@ -637,7 +637,7 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
         },
         OverflowDirection::LeftAndDown => {
             let bottom = max(iterator.union_rect.size.height, iterator.origin_rect.size.height);
-            let left = max(iterator.union_rect.origin.x, iterator.origin_rect.origin.x);
+            let left = min(iterator.union_rect.origin.x, iterator.origin_rect.origin.x);
             Rect::new(Point2D::new(left, iterator.origin_rect.origin.y),
                       Size2D::new(iterator.origin_rect.size.width, bottom))
         },
