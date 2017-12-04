@@ -564,6 +564,8 @@ cfg_if! {
             pub static nsGkAtoms_dateTime: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms11datasourcesE"]
             pub static nsGkAtoms_datasources: *mut nsStaticAtom;
+            #[link_name = "_ZN9nsGkAtoms4dateE"]
+            pub static nsGkAtoms_date: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8datetimeE"]
             pub static nsGkAtoms_datetime: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms11datetimeboxE"]
@@ -5749,6 +5751,8 @@ cfg_if! {
             pub static nsGkAtoms_dateTime: *mut nsStaticAtom;
             #[link_name = "?datasources@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_datasources: *mut nsStaticAtom;
+            #[link_name = "?date@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
+            pub static nsGkAtoms_date: *mut nsStaticAtom;
             #[link_name = "?datetime@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_datetime: *mut nsStaticAtom;
             #[link_name = "?datetimebox@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -10934,6 +10938,8 @@ cfg_if! {
             pub static nsGkAtoms_dateTime: *mut nsStaticAtom;
             #[link_name = "\x01?datasources@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_datasources: *mut nsStaticAtom;
+            #[link_name = "\x01?date@nsGkAtoms@@2PAVnsStaticAtom@@A"]
+            pub static nsGkAtoms_date: *mut nsStaticAtom;
             #[link_name = "\x01?datetime@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_datetime: *mut nsStaticAtom;
             #[link_name = "\x01?datetimebox@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -16122,6 +16128,8 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTime as *mut _) } }};
 ("datasources") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datasources as *mut _) } }};
+("date") =>
+  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_date as *mut _) } }};
 ("datetime") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datetime as *mut _) } }};
 ("datetimebox") =>
