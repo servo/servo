@@ -113,7 +113,9 @@ linux-nightly:
   - env CC=gcc-5 CXX=g++-5 ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly linux
-  - ./mach test-perf --submit
+  - ./mach test-perf
+  - python ./etc/ci/performance/download_buildbot_timings.py --verbose
+  - aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
 
 android:
   - ./mach clean-nightlies --keep 3 --force

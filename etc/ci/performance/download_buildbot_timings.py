@@ -12,8 +12,13 @@ import json
 from math import floor
 import os
 
+SCRIPT_PATH = os.path.split(__file__)[0]
+
 
 def main():
+    default_output_dir = os.path.join(SCRIPT_PATH, 'output')
+    default_cache_dir = os.path.join(SCRIPT_PATH, '.cache')
+
     parser = argparse.ArgumentParser(
         description="Download buildbot metadata"
     )
@@ -29,9 +34,8 @@ def main():
                         "Default: http://build.servo.org/json/builders/{}/builds/{}")
     parser.add_argument("--cache-dir",
                         type=str,
-                        default='.cache',
-                        help="the directory to cache JSON files in. "
-                        "Default: .cache")
+                        default=default_cache_dir,
+                        help="the directory to cache JSON files in. Default: " + default_cache_dir)
     parser.add_argument("--cache-name",
                         type=str,
                         default='build-{}-{}.json',
@@ -39,9 +43,8 @@ def main():
                         "Default: build-{}-{}.json")
     parser.add_argument("--output-dir",
                         type=str,
-                        default='output',
-                        help="the directory to save the CSV data to. "
-                        "Default: output")
+                        default=default_output_dir,
+                        help="the directory to save the CSV data to. Default: " + default_output_dir)
     parser.add_argument("--output-name",
                         type=str,
                         default='builds-{}-{}.csv',
