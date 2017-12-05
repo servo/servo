@@ -77,6 +77,7 @@ use style::gecko_bindings::bindings::RawServoDeclarationBlockBorrowedOrNull;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleSet;
 use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
+use style::gecko_bindings::bindings::nsCSSValueBorrowedMut;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
@@ -85,7 +86,7 @@ use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, Composite
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsAtom, nsCSSPropertyID};
-use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
+use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::AtomArray;
 use style::gecko_bindings::structs::IterationCompositeOperation;
@@ -4731,6 +4732,139 @@ pub extern "C" fn Servo_ParseTransformIntoMatrix(
     let contain_3d = unsafe { contain_3d.as_mut() }.expect("not a valid bool");
     *result = m.to_row_major_array();
     *contain_3d = is_3d;
+    true
+}
+
+// https://drafts.csswg.org/css-font-loading/#dom-fontface-fontface
+#[no_mangle]
+pub extern "C" fn Servo_ParseFontDescriptor(
+    desc_id: nsCSSFontDesc,
+    value: *const nsAString,
+    data: *mut URLExtraData,
+    result: nsCSSValueBorrowedMut,
+) -> bool {
+    use cssparser::UnicodeRange;
+    use self::nsCSSFontDesc::*;
+    use style::computed_values::{font_feature_settings, font_stretch, font_style};
+    use style::font_face::{FontDisplay, FontWeight, Source};
+    use style::properties::longhands::font_language_override;
+    use style::values::computed::font::FamilyName;
+
+    let string = unsafe { (*value).to_string() };
+    let mut input = ParserInput::new(&string);
+    let mut parser = Parser::new(&mut input);
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::FontFace),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    macro_rules! parse_font_desc {
+        (
+            valid = [ $( $v_enum_name: ident / $t: ty, )* ]
+            invalid = [ $( $i_enum_name: ident, )* ]
+        ) => {
+            match desc_id {
+                $(
+                    $v_enum_name => {
+                        let f = match parser.parse_entirely(|i| <$t as Parse>::parse(&context, i)) {
+                            Ok(f) => f,
+                            Err(..) => return false,
+                        };
+                        result.set_from(f);
+                    },
+                )*
+                $(
+                    $i_enum_name => {
+                        debug_assert!(false, "$i_enum_name is not a valid font descriptor");
+                        return false;
+                    },
+                )*
+            }
+        }
+    }
+
+    // We implement the parser of each arm according to the implementation of @font-face rule.
+    // see component/style/font_face.rs for more detail.
+    parse_font_desc!(
+        valid = [
+            eCSSFontDesc_Family / FamilyName,
+            eCSSFontDesc_Style / font_style::T,
+            eCSSFontDesc_Weight / FontWeight,
+            eCSSFontDesc_Stretch / font_stretch::T,
+            eCSSFontDesc_Src / Vec<Source>,
+            eCSSFontDesc_UnicodeRange / Vec<UnicodeRange>,
+            eCSSFontDesc_FontFeatureSettings / font_feature_settings::T,
+            eCSSFontDesc_FontLanguageOverride / font_language_override::SpecifiedValue,
+            eCSSFontDesc_Display / FontDisplay,
+        ]
+        invalid = [
+            eCSSFontDesc_UNKNOWN,
+            eCSSFontDesc_COUNT,
+        ]
+    );
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseFontShorthandForMatching(
+    value: *const nsAString,
+    data: *mut URLExtraData,
+    family: *mut structs::RefPtr<structs::SharedFontList>,
+    style: nsCSSValueBorrowedMut,
+    stretch: nsCSSValueBorrowedMut,
+    weight: nsCSSValueBorrowedMut
+) -> bool {
+    use style::properties::longhands::{font_stretch, font_style};
+    use style::properties::shorthands::font;
+    use style::values::specified::font::{FontFamily, FontWeight};
+
+    let string = unsafe { (*value).to_string() };
+    let mut input = ParserInput::new(&string);
+    let mut parser = Parser::new(&mut input);
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::FontFace),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    let font = match parser.parse_entirely(|f| font::parse_value(&context, f)) {
+        Ok(f) => f,
+        Err(..) => return false,
+    };
+
+    // The system font is not acceptable, so we return false.
+    let family = unsafe { &mut *family };
+    match font.font_family {
+        FontFamily::Values(list) => family.set_move(list.0),
+        FontFamily::System(_) => return false,
+    }
+    style.set_from(match font.font_style {
+        font_style::SpecifiedValue::Keyword(kw) => kw,
+        font_style::SpecifiedValue::System(_) => return false,
+    });
+    stretch.set_from(match font.font_stretch {
+        font_stretch::SpecifiedValue::Keyword(kw) => kw,
+        font_stretch::SpecifiedValue::System(_) => return false,
+    });
+    match font.font_weight {
+        FontWeight::Weight(w) => weight.set_from(w),
+        FontWeight::Normal => weight.set_enum(structs::NS_STYLE_FONT_WEIGHT_NORMAL as i32),
+        FontWeight::Bold => weight.set_enum(structs::NS_STYLE_FONT_WEIGHT_BOLD as i32),
+        // Resolve relative font weights against the initial of font-weight
+        // (normal, which is equivalent to 400).
+        FontWeight::Bolder => weight.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
+        FontWeight::Lighter => weight.set_enum(structs::NS_FONT_WEIGHT_THIN as i32),
+        FontWeight::System(_) => return false,
+    }
+
     true
 }
 
