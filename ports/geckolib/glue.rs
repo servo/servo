@@ -4811,6 +4811,64 @@ pub extern "C" fn Servo_ParseFontDescriptor(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_ParseFontShorthandForMatching(
+    value: *const nsAString,
+    data: *mut URLExtraData,
+    family: *mut structs::RefPtr<structs::SharedFontList>,
+    style: nsCSSValueBorrowedMut,
+    stretch: nsCSSValueBorrowedMut,
+    weight: nsCSSValueBorrowedMut
+) -> bool {
+    use style::properties::longhands::{font_stretch, font_style};
+    use style::properties::shorthands::font;
+    use style::values::specified::font::{FontFamily, FontWeight};
+
+    let string = unsafe { (*value).to_string() };
+    let mut input = ParserInput::new(&string);
+    let mut parser = Parser::new(&mut input);
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::FontFace),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    let font = match parser.parse_entirely(|f| font::parse_value(&context, f)) {
+        Ok(f) => f,
+        Err(..) => return false,
+    };
+
+    // The system font is not acceptable, so we return false.
+    let family = unsafe { &mut *family };
+    match font.font_family {
+        FontFamily::Values(list) => family.set_move(list.0),
+        FontFamily::System(_) => return false,
+    }
+    style.set_from(match font.font_style {
+        font_style::SpecifiedValue::Keyword(kw) => kw,
+        font_style::SpecifiedValue::System(_) => return false,
+    });
+    stretch.set_from(match font.font_stretch {
+        font_stretch::SpecifiedValue::Keyword(kw) => kw,
+        font_stretch::SpecifiedValue::System(_) => return false,
+    });
+    match font.font_weight {
+        FontWeight::Weight(w) => weight.set_from(w),
+        FontWeight::Normal => weight.set_enum(structs::NS_STYLE_FONT_WEIGHT_NORMAL as i32),
+        FontWeight::Bold => weight.set_enum(structs::NS_STYLE_FONT_WEIGHT_BOLD as i32),
+        // Resolve relative font weights against the initial of font-weight
+        // (normal, which is equivalent to 400).
+        FontWeight::Bolder => weight.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
+        FontWeight::Lighter => weight.set_enum(structs::NS_FONT_WEIGHT_THIN as i32),
+        FontWeight::System(_) => return false,
+    }
+
+    true
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn Servo_SourceSizeList_Parse(
     value: *const nsACString,
 ) -> *mut RawServoSourceSizeList {

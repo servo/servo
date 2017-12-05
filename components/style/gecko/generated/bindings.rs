@@ -2163,6 +2163,9 @@ extern "C" {
  # [ link_name = "\u{1}_Servo_ParseFontDescriptor" ] 
  pub fn Servo_ParseFontDescriptor ( desc_id : nsCSSFontDesc , value : * const nsAString , data : * mut RawGeckoURLExtraData , arg1 : nsCSSValueBorrowedMut , ) -> bool ; 
 } extern "C" {
+ # [ link_name = "\u{1}_Servo_ParseFontShorthandForMatching" ] 
+ pub fn Servo_ParseFontShorthandForMatching ( value : * const nsAString , data : * mut RawGeckoURLExtraData , family : * mut RefPtr < SharedFontList > , style : nsCSSValueBorrowedMut , stretch : nsCSSValueBorrowedMut , weight : nsCSSValueBorrowedMut , ) -> bool ; 
+} extern "C" {
  # [ link_name = "\u{1}_Gecko_CreateCSSErrorReporter" ] 
  pub fn Gecko_CreateCSSErrorReporter ( sheet : * mut ServoStyleSheet , loader : * mut Loader , uri : * mut nsIURI , ) -> * mut ErrorReporter ; 
 } extern "C" {
