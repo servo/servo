@@ -438,7 +438,7 @@ impl Window {
             },
             Event::WindowEvent {
                 window_id: _,
-                event: glutin::WindowEvent::MouseMoved {
+                event: glutin::WindowEvent::CursorMoved {
                     device_id: _,
                     position: (x, y),
                 },

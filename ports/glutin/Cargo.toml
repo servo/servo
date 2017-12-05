@@ -13,7 +13,7 @@ bitflags = "1.0"
 compositing = {path = "../../components/compositing"}
 euclid = "0.15"
 gleam = "0.4"
-glutin = "0.10.0"
+glutin = "0.11.0"
 libservo = {path = "../../components/servo"}
 log = "0.3.5"
 msg = {path = "../../components/msg"}
