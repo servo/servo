@@ -141,24 +141,26 @@ fn parse_number_with_clamping_mode<'i, 't>(
 
 // The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
 // 17.6.2.1. Higher values override lower values.
+//
+// FIXME(emilio): Should move to border.rs
 define_numbered_css_keyword_enum! { BorderStyle:
-    "none" => none = -1,
-    "solid" => solid = 6,
-    "double" => double = 7,
-    "dotted" => dotted = 4,
-    "dashed" => dashed = 5,
-    "hidden" => hidden = -2,
-    "groove" => groove = 1,
-    "ridge" => ridge = 3,
-    "inset" => inset = 0,
-    "outset" => outset = 2,
+    "none" => None = -1,
+    "solid" => Solid = 6,
+    "double" => Double = 7,
+    "dotted" => Dotted = 4,
+    "dashed" => Dashed = 5,
+    "hidden" => Hidden = -2,
+    "groove" => Groove = 1,
+    "ridge" => Ridge = 3,
+    "inset" => Inset = 0,
+    "outset" => Outset = 2,
 }
 
 
 impl BorderStyle {
     /// Whether this border style is either none or hidden.
     pub fn none_or_hidden(&self) -> bool {
-        matches!(*self, BorderStyle::none | BorderStyle::hidden)
+        matches!(*self, BorderStyle::None | BorderStyle::Hidden)
     }
 }
 

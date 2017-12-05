@@ -15,7 +15,7 @@ use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
 use properties::PropertyFlags;
-use properties::longhands::display::computed_value as display;
+use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::parser::{SelectorMethods, SelectorParseErrorKind};
@@ -229,10 +229,9 @@ impl PseudoElement {
 
     /// Whether this pseudo-element should actually exist if it has
     /// the given styles.
-    pub fn should_exist(&self, style: &ComputedValues) -> bool
-    {
+    pub fn should_exist(&self, style: &ComputedValues) -> bool {
         let display = style.get_box().clone_display();
-        if display == display::T::none {
+        if display == Display::None {
             return false;
         }
         if self.is_before_or_after() && style.ineffective_content_property() {

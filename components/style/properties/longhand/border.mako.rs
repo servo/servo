@@ -33,7 +33,7 @@
     )}
 
     ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
-                              "specified::BorderStyle::none",
+                              "specified::BorderStyle::None",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
                               flags="APPLIES_TO_FIRST_LETTER",

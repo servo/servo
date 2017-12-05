@@ -136,7 +136,7 @@
         input.try(|input| {
             input.expect_comma()?;
             list_style_type::parse(context, input)
-        }).unwrap_or(list_style_type::computed_value::T::decimal)
+        }).unwrap_or(list_style_type::computed_value::T::Decimal)
     }
 
     #[cfg(feature = "gecko")]

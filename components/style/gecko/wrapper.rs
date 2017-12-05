@@ -1446,7 +1446,7 @@ impl<'le> TElement for GeckoElement<'le> {
         old_values: Option<&ComputedValues>,
         new_values: &ComputedValues,
     ) -> bool {
-        use properties::longhands::display::computed_value as display;
+        use properties::longhands::display::computed_value::T as Display;
 
         let old_values = match old_values {
             Some(v) => v,
@@ -1462,8 +1462,8 @@ impl<'le> TElement for GeckoElement<'le> {
 
         new_box_style.transition_property_count() > 0 &&
         !transition_not_running &&
-        (new_display_style != display::T::none &&
-         old_display_style != display::T::none)
+        (new_display_style != Display::None &&
+         old_display_style != Display::None)
     }
 
     // Detect if there are any changes that require us to update transitions.

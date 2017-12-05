@@ -261,8 +261,8 @@ impl Font {
     #[inline]
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let codepoint = match self.variant {
-            font_variant_caps::T::small_caps => codepoint.to_uppercase().next().unwrap(), //FIXME: #5938
-            font_variant_caps::T::normal => codepoint,
+            font_variant_caps::T::SmallCaps => codepoint.to_uppercase().next().unwrap(), //FIXME: #5938
+            font_variant_caps::T::Normal => codepoint,
         };
         self.handle.glyph_index(codepoint)
     }

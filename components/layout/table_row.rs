@@ -23,7 +23,9 @@ use serde::{Serialize, Serializer};
 use std::cmp::max;
 use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
-use style::computed_values::{border_collapse, border_spacing, border_top_style};
+use style::computed_values::border_collapse::T as BorderCollapse;
+use style::computed_values::border_spacing::T as BorderSpacing;
+use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -54,7 +56,7 @@ pub struct TableRowFlow {
 
     /// The spacing for this row, propagated down from the table during the inline-size assignment
     /// phase.
-    pub spacing: border_spacing::T,
+    pub spacing: BorderSpacing,
 
     /// The direction of the columns, propagated down from the table during the inline-size
     /// assignment phase.
@@ -98,7 +100,7 @@ impl TableRowFlow {
             cell_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
             incoming_rowspan: Vec::new(),
-            spacing: border_spacing::T::zero(),
+            spacing: BorderSpacing::zero(),
             table_writing_mode: writing_mode,
             preliminary_collapsed_borders: CollapsedBordersForRow::new(),
             final_collapsed_borders: CollapsedBordersForRow::new(),
@@ -259,7 +261,7 @@ impl Flow for TableRowFlow {
                                      .fragment
                                      .style()
                                      .get_inheritedtable()
-                                     .border_collapse == border_collapse::T::collapse;
+                                     .border_collapse == BorderCollapse::Collapse;
         let row_style = &*self.block_flow.fragment.style;
         self.preliminary_collapsed_borders.reset(
             CollapsedBorder::inline_start(&row_style,
@@ -408,13 +410,13 @@ impl Flow for TableRowFlow {
         // Set up border collapse info.
         let border_collapse_info =
             match self.block_flow.fragment.style().get_inheritedtable().border_collapse {
-                border_collapse::T::collapse => {
+                BorderCollapse::Collapse => {
                     Some(BorderCollapseInfoForChildTableCell {
                         collapsed_borders_for_row: &self.final_collapsed_borders,
                         collapsed_border_spacing_for_row: &self.collapsed_border_spacing,
                     })
                 }
-                border_collapse::T::separate => None,
+                BorderCollapse::Separate => None,
             };
 
         // Push those inline sizes down to the cells.
@@ -473,8 +475,8 @@ impl Flow for TableRowFlow {
                                              .style
                                              .get_inheritedtable()
                                              .border_collapse {
-            border_collapse::T::separate => BorderPaintingMode::Separate,
-            border_collapse::T::collapse => BorderPaintingMode::Hidden,
+            BorderCollapse::Separate => BorderPaintingMode::Separate,
+            BorderCollapse::Collapse => BorderPaintingMode::Hidden,
         };
 
         self.block_flow.build_display_list_for_block(state, border_painting_mode);
@@ -578,7 +580,7 @@ impl CollapsedBorderSpacingForRow {
 #[derive(Clone, Copy, Debug)]
 pub struct CollapsedBorder {
     /// The style of the border.
-    pub style: border_top_style::T,
+    pub style: BorderStyle,
     /// The width of the border.
     pub width: Au,
     /// The color of the border.
@@ -615,7 +617,7 @@ impl CollapsedBorder {
     /// Creates a collapsible border style for no border.
     pub fn new() -> CollapsedBorder {
         CollapsedBorder {
-            style: border_top_style::T::none,
+            style: BorderStyle::None,
             width: Au(0),
             color: Color::transparent(),
             provenance: CollapsedBorderProvenance::FromTable,
@@ -723,11 +725,11 @@ impl CollapsedBorder {
     pub fn combine(&mut self, other: &CollapsedBorder) {
         match (self.style, other.style) {
             // Step 1.
-            (border_top_style::T::hidden, _) => {}
-            (_, border_top_style::T::hidden) => *self = *other,
+            (BorderStyle::Hidden, _) => {}
+            (_, BorderStyle::Hidden) => *self = *other,
             // Step 2.
-            (border_top_style::T::none, _) => *self = *other,
-            (_, border_top_style::T::none) => {}
+            (BorderStyle::None, _) => *self = *other,
+            (_, BorderStyle::None) => {}
             // Step 3.
             _ if self.width > other.width => {}
             _ if self.width < other.width => *self = *other,
@@ -745,7 +747,7 @@ pub fn propagate_column_inline_sizes_to_child(
         child_flow: &mut Flow,
         table_writing_mode: WritingMode,
         column_computed_inline_sizes: &[ColumnComputedInlineSize],
-        border_spacing: &border_spacing::T,
+        border_spacing: &BorderSpacing,
         incoming_rowspan: &mut Vec<u32>) {
     // If the child is a row group or a row, the column inline-size and rowspan info should be copied from its
     // parent.
@@ -814,7 +816,7 @@ fn set_inline_position_of_child_flow(
         row_writing_mode: WritingMode,
         table_writing_mode: WritingMode,
         column_computed_inline_sizes: &[ColumnComputedInlineSize],
-        border_spacing: &border_spacing::T,
+        border_spacing: &BorderSpacing,
         border_collapse_info: &Option<BorderCollapseInfoForChildTableCell>,
         parent_content_inline_size: Au,
         inline_start_margin_edge: &mut Au,

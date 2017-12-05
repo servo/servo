@@ -12,7 +12,7 @@ use log::LogLevel::Trace;
 use matching::{CascadeVisitedMode, MatchMethods};
 use properties::{AnimationRules, CascadeFlags, ComputedValues};
 use properties::cascade;
-use properties::longhands::display::computed_value::T as display;
+use properties::longhands::display::computed_value::T as Display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode};
@@ -115,7 +115,7 @@ fn eager_pseudo_is_definitely_not_generated(
     }
 
     if !style.flags.intersects(ComputedValueFlags::INHERITS_DISPLAY) &&
-       style.get_box().clone_display() == display::none {
+       style.get_box().clone_display() == Display::None {
         return true;
     }
 

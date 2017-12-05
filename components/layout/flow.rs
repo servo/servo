@@ -49,7 +49,11 @@ use std::iter::Zip;
 use std::slice::IterMut;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use style::computed_values::{clear, float, overflow_x, position, text_align};
+use style::computed_values::clear::T as Clear;
+use style::computed_values::float::T as Float;
+use style::computed_values::overflow_x::T as StyleOverflow;
+use style::computed_values::position::T as Position;
+use style::computed_values::text_align::T as TextAlign;
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
@@ -277,13 +281,13 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             &base(self).early_absolute_position_info.relative_containing_block_size,
             base(self).early_absolute_position_info.relative_containing_block_mode,
             CoordinateSystem::Own);
-        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_x {
+        if StyleOverflow::Visible != self.as_block().fragment.style.get_box().overflow_x {
             overflow.paint.origin.x = Au(0);
             overflow.paint.size.width = border_box.size.width;
             overflow.scroll.origin.x = Au(0);
             overflow.scroll.size.width = border_box.size.width;
         }
-        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_y {
+        if StyleOverflow::Visible != self.as_block().fragment.style.get_box().overflow_y {
             overflow.paint.origin.y = Au(0);
             overflow.paint.size.height = border_box.size.height;
             overflow.scroll.origin.y = Au(0);
@@ -391,13 +395,13 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     }
 
     /// The 'position' property of this flow.
-    fn positioning(&self) -> position::T {
-        position::T::static_
+    fn positioning(&self) -> Position {
+        Position::Static
     }
 
     /// Return true if this flow has position 'fixed'.
     fn is_fixed(&self) -> bool {
-        self.positioning() == position::T::fixed
+        self.positioning() == Position::Fixed
     }
 
     fn contains_positioned_fragments(&self) -> bool {
@@ -406,7 +410,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     }
 
     fn contains_relatively_positioned_fragments(&self) -> bool {
-        self.positioning() == position::T::relative
+        self.positioning() == Position::Relative
     }
 
     /// Returns true if this is an absolute containing block.
@@ -647,24 +651,24 @@ static TEXT_ALIGN_SHIFT: usize = 11;
 
 impl FlowFlags {
     #[inline]
-    pub fn text_align(self) -> text_align::T {
-        text_align::T::from_u32((self & FlowFlags::TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
+    pub fn text_align(self) -> TextAlign {
+        TextAlign::from_u32((self & FlowFlags::TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
-    pub fn set_text_align(&mut self, value: text_align::T) {
+    pub fn set_text_align(&mut self, value: TextAlign) {
         *self = (*self & !FlowFlags::TEXT_ALIGN) |
                 FlowFlags::from_bits(value.to_u32() << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
-    pub fn float_kind(&self) -> float::T {
+    pub fn float_kind(&self) -> Float {
         if self.contains(FlowFlags::FLOATS_LEFT) {
-            float::T::left
+            Float::Left
         } else if self.contains(FlowFlags::FLOATS_RIGHT) {
-            float::T::right
+            Float::Right
         } else {
-            float::T::none
+            Float::None
         }
     }
 
@@ -990,7 +994,7 @@ impl BaseFlow {
         match style {
             Some(style) => {
                 match style.get_box().position {
-                    position::T::absolute | position::T::fixed => {
+                    Position::Absolute | Position::Fixed => {
                         flags.insert(FlowFlags::IS_ABSOLUTELY_POSITIONED);
 
                         let logical_position = style.logical_position();
@@ -1008,17 +1012,17 @@ impl BaseFlow {
 
                 if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
                     match style.get_box().float {
-                        float::T::none => {}
-                        float::T::left => flags.insert(FlowFlags::FLOATS_LEFT),
-                        float::T::right => flags.insert(FlowFlags::FLOATS_RIGHT),
+                        Float::None => {}
+                        Float::Left => flags.insert(FlowFlags::FLOATS_LEFT),
+                        Float::Right => flags.insert(FlowFlags::FLOATS_RIGHT),
                     }
                 }
 
                 match style.get_box().clear {
-                    clear::T::none => {}
-                    clear::T::left => flags.insert(FlowFlags::CLEARS_LEFT),
-                    clear::T::right => flags.insert(FlowFlags::CLEARS_RIGHT),
-                    clear::T::both => {
+                    Clear::None => {}
+                    Clear::Left => flags.insert(FlowFlags::CLEARS_LEFT),
+                    Clear::Right => flags.insert(FlowFlags::CLEARS_RIGHT),
+                    Clear::Both => {
                         flags.insert(FlowFlags::CLEARS_LEFT);
                         flags.insert(FlowFlags::CLEARS_RIGHT);
                     }

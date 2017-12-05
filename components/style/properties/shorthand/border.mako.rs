@@ -80,7 +80,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
     }
     if any {
         Ok((color.unwrap_or_else(|| Color::currentcolor()),
-            style.unwrap_or(BorderStyle::none),
+            style.unwrap_or(BorderStyle::None),
             width.unwrap_or(BorderSideWidth::Medium)))
     } else {
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))

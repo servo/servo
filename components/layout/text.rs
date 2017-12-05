@@ -22,8 +22,10 @@ use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
 use std::sync::Arc;
-use style::computed_values::{text_rendering, text_transform};
-use style::computed_values::{word_break, white_space};
+use style::computed_values::text_rendering::T as TextRendering;
+use style::computed_values::text_transform::T as TextTransform;
+use style::computed_values::white_space::T as WhiteSpace;
+use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::style_structs;
@@ -158,11 +160,11 @@ impl TextRunScanner {
                 let inherited_text_style = in_fragment.style().get_inheritedtext();
                 fontgroup = font_context.layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
-                    white_space::T::normal |
-                    white_space::T::nowrap => CompressionMode::CompressWhitespaceNewline,
-                    white_space::T::pre |
-                    white_space::T::pre_wrap => CompressionMode::CompressNone,
-                    white_space::T::pre_line => CompressionMode::CompressWhitespace,
+                    WhiteSpace::Normal |
+                    WhiteSpace::Nowrap => CompressionMode::CompressWhitespaceNewline,
+                    WhiteSpace::Pre |
+                    WhiteSpace::PreWrap => CompressionMode::CompressNone,
+                    WhiteSpace::PreLine => CompressionMode::CompressWhitespace,
                 };
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing;
@@ -293,11 +295,11 @@ impl TextRunScanner {
                     flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
                 }
             }
-            if text_rendering == text_rendering::T::optimizespeed {
+            if text_rendering == TextRendering::Optimizespeed {
                 flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
                 flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
             }
-            if word_break == word_break::T::keep_all {
+            if word_break == WordBreak::KeepAll {
                 flags.insert(ShapingFlags::KEEP_ALL_FLAG);
             }
             let options = ShapingOptions {
@@ -597,7 +599,7 @@ impl RunMapping {
              run_info: &mut RunInfo,
              text: &str,
              compression: CompressionMode,
-             text_transform: text_transform::T,
+             text_transform: TextTransform,
              last_whitespace: &mut bool,
              start_position: &mut usize,
              end_position: usize) {
@@ -650,26 +652,26 @@ impl RunMapping {
 /// use graphemes instead of characters.
 fn apply_style_transform_if_necessary(string: &mut String,
                                       first_character_position: usize,
-                                      text_transform: text_transform::T,
+                                      text_transform: TextTransform,
                                       last_whitespace: bool,
                                       is_first_run: bool) {
     match text_transform {
-        text_transform::T::none => {}
-        text_transform::T::uppercase => {
+        TextTransform::None => {}
+        TextTransform::Uppercase => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
             for ch in original.chars().flat_map(|ch| ch.to_uppercase()) {
                 string.push(ch);
             }
         }
-        text_transform::T::lowercase => {
+        TextTransform::Lowercase => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
             for ch in original.chars().flat_map(|ch| ch.to_lowercase()) {
                 string.push(ch);
             }
         }
-        text_transform::T::capitalize => {
+        TextTransform::Capitalize => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
 

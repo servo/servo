@@ -152,7 +152,7 @@ impl Flow for TableRowGroupFlow {
                                                                     _writing_mode,
                                                                     _inline_start_margin_edge,
                                                                     _inline_end_margin_edge| {
-            if border_collapse == border_collapse::T::collapse {
+            if border_collapse == border_collapse::T::Collapse {
                 let child_table_row = child_flow.as_mut_table_row();
                 child_table_row.populate_collapsed_border_spacing(
                     collapsed_inline_direction_border_widths_for_table,

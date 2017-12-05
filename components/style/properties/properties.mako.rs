@@ -2396,24 +2396,24 @@ impl ComputedValuesInner {
 
     /// Return true if the effects force the transform style to be Flat
     pub fn overrides_transform_style(&self) -> bool {
-        use computed_values::mix_blend_mode;
+        use computed_values::mix_blend_mode::T as MixBlendMode;
 
         let effects = self.get_effects();
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         effects.opacity < 1.0 ||
            !effects.filter.0.is_empty() ||
            !effects.clip.is_auto() ||
-           effects.mix_blend_mode != mix_blend_mode::T::normal
+           effects.mix_blend_mode != MixBlendMode::Normal
     }
 
     /// <https://drafts.csswg.org/css-transforms/#grouping-property-values>
     pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
-        use computed_values::transform_style;
+        use computed_values::transform_style::T as TransformStyle;
 
         let box_ = self.get_box();
 
         if self.overrides_transform_style() {
-            transform_style::T::flat
+            TransformStyle::Flat
         } else {
             // Return the computed value if not overridden by the above exceptions
             box_.transform_style
@@ -2913,15 +2913,15 @@ impl<'a> StyleBuilder<'a> {
 
     /// Returns whether this computed style represents a floated object.
     pub fn floated(&self) -> bool {
-        self.get_box().clone_float() != longhands::float::computed_value::T::none
+        self.get_box().clone_float() != longhands::float::computed_value::T::None
     }
 
     /// Returns whether this computed style represents an out of flow-positioned
     /// object.
     pub fn out_of_flow_positioned(&self) -> bool {
-        use properties::longhands::position::computed_value::T as position;
+        use properties::longhands::position::computed_value::T as Position;
         matches!(self.get_box().clone_position(),
-                 position::absolute | position::fixed)
+                 Position::Absolute | Position::Fixed)
     }
 
     /// Whether this style has a top-layer style. That's implemented in Gecko
@@ -2934,7 +2934,7 @@ impl<'a> StyleBuilder<'a> {
     #[cfg(feature = "gecko")]
     pub fn in_top_layer(&self) -> bool {
         matches!(self.get_box().clone__moz_top_layer(),
-                 longhands::_moz_top_layer::computed_value::T::top)
+                 longhands::_moz_top_layer::computed_value::T::Top)
     }
 
     /// Clears the "have any reset structs been modified" flag.

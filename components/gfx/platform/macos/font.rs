@@ -21,7 +21,8 @@ use platform::macos::font_context::FontContextHandle;
 use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
-use style::computed_values::{font_stretch, font_weight};
+use style::computed_values::font_stretch::T as FontStretch;
+use style::computed_values::font_weight::T as FontWeight;
 use text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
@@ -210,29 +211,29 @@ impl FontHandleMethods for FontHandle {
         self.ctfont.symbolic_traits().is_italic()
     }
 
-    fn boldness(&self) -> font_weight::T {
+    fn boldness(&self) -> FontWeight {
         let normalized = self.ctfont.all_traits().normalized_weight();  // [-1.0, 1.0]
         let normalized = if normalized <= 0.0 {
             4.0 + normalized * 3.0  // [1.0, 4.0]
         } else {
             4.0 + normalized * 5.0  // [4.0, 9.0]
         }; // [1.0, 9.0], centered on 4.0
-        font_weight::T::from_int(normalized.round() as i32 * 100).unwrap()
+        FontWeight::from_int(normalized.round() as i32 * 100).unwrap()
     }
 
-    fn stretchiness(&self) -> font_stretch::T {
+    fn stretchiness(&self) -> FontStretch {
         let normalized = self.ctfont.all_traits().normalized_width();  // [-1.0, 1.0]
         let normalized = (normalized + 1.0) / 2.0 * 9.0;  // [0.0, 9.0]
         match normalized {
-            v if v < 1.0 => font_stretch::T::ultra_condensed,
-            v if v < 2.0 => font_stretch::T::extra_condensed,
-            v if v < 3.0 => font_stretch::T::condensed,
-            v if v < 4.0 => font_stretch::T::semi_condensed,
-            v if v < 5.0 => font_stretch::T::normal,
-            v if v < 6.0 => font_stretch::T::semi_expanded,
-            v if v < 7.0 => font_stretch::T::expanded,
-            v if v < 8.0 => font_stretch::T::extra_expanded,
-            _ => font_stretch::T::ultra_expanded,
+            v if v < 1.0 => FontStretch::UltraCondensed,
+            v if v < 2.0 => FontStretch::ExtraCondensed,
+            v if v < 3.0 => FontStretch::Condensed,
+            v if v < 4.0 => FontStretch::SemiCondensed,
+            v if v < 5.0 => FontStretch::Normal,
+            v if v < 6.0 => FontStretch::SemiExpanded,
+            v if v < 7.0 => FontStretch::Expanded,
+            v if v < 8.0 => FontStretch::ExtraExpanded,
+            _ => FontStretch::UltraExpanded,
         }
     }
 

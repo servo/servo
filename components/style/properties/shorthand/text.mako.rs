@@ -66,7 +66,7 @@
             self.text_decoration_line.to_css(dest)?;
 
             % if product == "gecko":
-                if self.text_decoration_style != &text_decoration_style::SpecifiedValue::solid {
+                if *self.text_decoration_style != text_decoration_style::SpecifiedValue::Solid {
                     dest.write_str(" ")?;
                     self.text_decoration_style.to_css(dest)?;
                 }

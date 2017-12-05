@@ -13,7 +13,9 @@ use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClipScrol
 use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingRegion, DisplayItem};
 use gfx::display_list::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
+use style::computed_values::image_rendering::T as ImageRendering;
+use style::computed_values::mix_blend_mode::T as MixBlendMode;
+use style::computed_values::transform_style::T as TransformStyle;
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, ClipMode, ComplexClipRegion};
@@ -41,16 +43,16 @@ trait ToBorderStyle {
 impl ToBorderStyle for BorderStyle {
     fn to_border_style(&self) -> webrender_api::BorderStyle {
         match *self {
-            BorderStyle::none => webrender_api::BorderStyle::None,
-            BorderStyle::solid => webrender_api::BorderStyle::Solid,
-            BorderStyle::double => webrender_api::BorderStyle::Double,
-            BorderStyle::dotted => webrender_api::BorderStyle::Dotted,
-            BorderStyle::dashed => webrender_api::BorderStyle::Dashed,
-            BorderStyle::hidden => webrender_api::BorderStyle::Hidden,
-            BorderStyle::groove => webrender_api::BorderStyle::Groove,
-            BorderStyle::ridge => webrender_api::BorderStyle::Ridge,
-            BorderStyle::inset => webrender_api::BorderStyle::Inset,
-            BorderStyle::outset => webrender_api::BorderStyle::Outset,
+            BorderStyle::None => webrender_api::BorderStyle::None,
+            BorderStyle::Solid => webrender_api::BorderStyle::Solid,
+            BorderStyle::Double => webrender_api::BorderStyle::Double,
+            BorderStyle::Dotted => webrender_api::BorderStyle::Dotted,
+            BorderStyle::Dashed => webrender_api::BorderStyle::Dashed,
+            BorderStyle::Hidden => webrender_api::BorderStyle::Hidden,
+            BorderStyle::Groove => webrender_api::BorderStyle::Groove,
+            BorderStyle::Ridge => webrender_api::BorderStyle::Ridge,
+            BorderStyle::Inset => webrender_api::BorderStyle::Inset,
+            BorderStyle::Outset => webrender_api::BorderStyle::Outset,
         }
     }
 }
@@ -148,25 +150,25 @@ pub trait ToMixBlendMode {
     fn to_mix_blend_mode(&self) -> webrender_api::MixBlendMode;
 }
 
-impl ToMixBlendMode for mix_blend_mode::T {
+impl ToMixBlendMode for MixBlendMode {
     fn to_mix_blend_mode(&self) -> webrender_api::MixBlendMode {
         match *self {
-            mix_blend_mode::T::normal => webrender_api::MixBlendMode::Normal,
-            mix_blend_mode::T::multiply => webrender_api::MixBlendMode::Multiply,
-            mix_blend_mode::T::screen => webrender_api::MixBlendMode::Screen,
-            mix_blend_mode::T::overlay => webrender_api::MixBlendMode::Overlay,
-            mix_blend_mode::T::darken => webrender_api::MixBlendMode::Darken,
-            mix_blend_mode::T::lighten => webrender_api::MixBlendMode::Lighten,
-            mix_blend_mode::T::color_dodge => webrender_api::MixBlendMode::ColorDodge,
-            mix_blend_mode::T::color_burn => webrender_api::MixBlendMode::ColorBurn,
-            mix_blend_mode::T::hard_light => webrender_api::MixBlendMode::HardLight,
-            mix_blend_mode::T::soft_light => webrender_api::MixBlendMode::SoftLight,
-            mix_blend_mode::T::difference => webrender_api::MixBlendMode::Difference,
-            mix_blend_mode::T::exclusion => webrender_api::MixBlendMode::Exclusion,
-            mix_blend_mode::T::hue => webrender_api::MixBlendMode::Hue,
-            mix_blend_mode::T::saturation => webrender_api::MixBlendMode::Saturation,
-            mix_blend_mode::T::color => webrender_api::MixBlendMode::Color,
-            mix_blend_mode::T::luminosity => webrender_api::MixBlendMode::Luminosity,
+            MixBlendMode::Normal => webrender_api::MixBlendMode::Normal,
+            MixBlendMode::Multiply => webrender_api::MixBlendMode::Multiply,
+            MixBlendMode::Screen => webrender_api::MixBlendMode::Screen,
+            MixBlendMode::Overlay => webrender_api::MixBlendMode::Overlay,
+            MixBlendMode::Darken => webrender_api::MixBlendMode::Darken,
+            MixBlendMode::Lighten => webrender_api::MixBlendMode::Lighten,
+            MixBlendMode::ColorDodge => webrender_api::MixBlendMode::ColorDodge,
+            MixBlendMode::ColorBurn => webrender_api::MixBlendMode::ColorBurn,
+            MixBlendMode::HardLight => webrender_api::MixBlendMode::HardLight,
+            MixBlendMode::SoftLight => webrender_api::MixBlendMode::SoftLight,
+            MixBlendMode::Difference => webrender_api::MixBlendMode::Difference,
+            MixBlendMode::Exclusion => webrender_api::MixBlendMode::Exclusion,
+            MixBlendMode::Hue => webrender_api::MixBlendMode::Hue,
+            MixBlendMode::Saturation => webrender_api::MixBlendMode::Saturation,
+            MixBlendMode::Color => webrender_api::MixBlendMode::Color,
+            MixBlendMode::Luminosity => webrender_api::MixBlendMode::Luminosity,
         }
     }
 }
@@ -175,12 +177,12 @@ trait ToImageRendering {
     fn to_image_rendering(&self) -> webrender_api::ImageRendering;
 }
 
-impl ToImageRendering for image_rendering::T {
+impl ToImageRendering for ImageRendering {
     fn to_image_rendering(&self) -> webrender_api::ImageRendering {
         match *self {
-            image_rendering::T::crisp_edges => webrender_api::ImageRendering::CrispEdges,
-            image_rendering::T::auto => webrender_api::ImageRendering::Auto,
-            image_rendering::T::pixelated => webrender_api::ImageRendering::Pixelated,
+            ImageRendering::CrispEdges => webrender_api::ImageRendering::CrispEdges,
+            ImageRendering::Auto => webrender_api::ImageRendering::Auto,
+            ImageRendering::Pixelated => webrender_api::ImageRendering::Pixelated,
         }
     }
 }
@@ -216,11 +218,11 @@ pub trait ToTransformStyle {
     fn to_transform_style(&self) -> webrender_api::TransformStyle;
 }
 
-impl ToTransformStyle for transform_style::T {
+impl ToTransformStyle for TransformStyle {
     fn to_transform_style(&self) -> webrender_api::TransformStyle {
         match *self {
-            transform_style::T::auto | transform_style::T::flat => webrender_api::TransformStyle::Flat,
-            transform_style::T::preserve_3d => webrender_api::TransformStyle::Preserve3D,
+            TransformStyle::Auto | TransformStyle::Flat => webrender_api::TransformStyle::Flat,
+            TransformStyle::Preserve3d => webrender_api::TransformStyle::Preserve3D,
         }
     }
 }

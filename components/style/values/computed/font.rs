@@ -803,7 +803,7 @@ impl ToComputedValue for specified::MozScriptLevel {
             specified::MozScriptLevel::Auto => {
                 let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
                 let display = cx.builder.get_parent_font().clone__moz_math_display();
-                if display == DisplayValue::inline {
+                if display == DisplayValue::Inline {
                     parent + 1
                 } else {
                     parent
