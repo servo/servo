@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput};
+use cssparser::{ParseErrorKind, Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use malloc_size_of::MallocSizeOfOps;
@@ -23,7 +23,7 @@ use style::data::{ElementStyles, self};
 use style::dom::{ShowSubtreeData, TDocument, TElement, TNode};
 use style::driver;
 use style::element_state::{DocumentState, ElementState};
-use style::error_reporting::{NullReporter, ParseErrorReporter};
+use style::error_reporting::{ContextualParseError, NullReporter, ParseErrorReporter};
 use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
 use style::gecko::data::{GeckoStyleSheet, PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_THREAD_POOL};
@@ -153,7 +153,7 @@ use style::values::distance::ComputeSquaredDistance;
 use style::values::specified;
 use style::values::specified::gecko::IntersectionObserverRootMargin;
 use style::values::specified::source_size_list::SourceSizeList;
-use style_traits::{ParsingMode, ToCss};
+use style_traits::{ParsingMode, StyleParseErrorKind, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -4557,10 +4557,31 @@ pub unsafe extern "C" fn Servo_SelectorList_Drop(list: RawServoSelectorListOwned
     let _ = list.into_box::<::selectors::SelectorList<SelectorImpl>>();
 }
 
-fn parse_color(value: &str) -> Result<specified::Color, ()> {
+fn parse_color(
+    value: &str,
+    error_reporter: Option<&ErrorReporter>,
+) -> Result<specified::Color, ()> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
-    parser.parse_entirely(specified::Color::parse_color).map_err(|_| ())
+    let start_position = parser.position();
+    parser.parse_entirely(specified::Color::parse_color).map_err(|err| {
+        if let Some(error_reporter) = error_reporter {
+            match err.kind {
+                ParseErrorKind::Custom(StyleParseErrorKind::ValueError(..)) => {
+                    let location = err.location.clone();
+                    let error = ContextualParseError::UnsupportedValue(
+                        parser.slice_from(start_position),
+                        err,
+                    );
+                    error_reporter.report(location, error);
+                }
+                // Ignore other kinds of errors that might be reported, such as
+                // ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken),
+                // since Gecko doesn't report those to the error console.
+                _ => {}
+            }
+        }
+    })
 }
 
 #[no_mangle]
@@ -4568,7 +4589,7 @@ pub extern "C" fn Servo_IsValidCSSColor(
     value: *const nsAString,
 ) -> bool {
     let value = unsafe { (*value).to_string() };
-    parse_color(&value).is_ok()
+    parse_color(&value, None).is_ok()
 }
 
 #[no_mangle]
@@ -4577,6 +4598,8 @@ pub extern "C" fn Servo_ComputeColor(
     current_color: structs::nscolor,
     value: *const nsAString,
     result_color: *mut structs::nscolor,
+    was_current_color: *mut bool,
+    loader: *mut Loader,
 ) -> bool {
     use style::gecko;
 
@@ -4584,7 +4607,12 @@ pub extern "C" fn Servo_ComputeColor(
     let value = unsafe { (*value).to_string() };
     let result_color = unsafe { result_color.as_mut().unwrap() };
 
-    match parse_color(&value) {
+    let reporter = unsafe { loader.as_mut() }.map(|loader| {
+        // Make an ErrorReporter that will report errors as being "from DOM".
+        ErrorReporter::new(ptr::null_mut(), loader, ptr::null_mut())
+    });
+
+    match parse_color(&value, reporter.as_ref()) {
         Ok(specified_color) => {
             let computed_color = match raw_data {
                 Some(raw_data) => {
@@ -4611,6 +4639,11 @@ pub extern "C" fn Servo_ComputeColor(
                 Some(computed_color) => {
                     let rgba = computed_color.to_rgba(current_color);
                     *result_color = gecko::values::convert_rgba_to_nscolor(&rgba);
+                    if !was_current_color.is_null() {
+                        unsafe {
+                            *was_current_color = computed_color.is_currentcolor();
+                        }
+                    }
                     true
                 }
                 None => false,

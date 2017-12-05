@@ -46,6 +46,8 @@ pub enum ContextualParseError<'a> {
     InvalidCounterStyleExtendsWithAdditiveSymbols,
     /// A media rule was invalid for some reason.
     InvalidMediaRule(&'a str, ParseError<'a>),
+    /// A value was not recognized.
+    UnsupportedValue(&'a str, ParseError<'a>),
 }
 
 impl<'a> fmt::Display for ContextualParseError<'a> {
@@ -171,6 +173,9 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
             }
             ContextualParseError::InvalidMediaRule(media_rule, ref err) => {
                 write!(f, "Invalid media rule: {}, ", media_rule)?;
+                parse_error_to_str(err, f)
+            }
+            ContextualParseError::UnsupportedValue(_value, ref err) => {
                 parse_error_to_str(err, f)
             }
         }
