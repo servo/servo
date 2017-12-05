@@ -58,6 +58,48 @@
     }
 </%helpers:shorthand>
 
+<%helpers:shorthand name="overflow-clip-box" sub_properties="overflow-clip-box-block overflow-clip-box-inline"
+                    enabled_in="ua" gecko_pref="layout.css.overflow-clip-box.enabled"
+                    spec="Internal, not web-exposed, may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)"
+                    products="gecko">
+  use properties::longhands::{overflow_clip_box_block, overflow_clip_box_inline};
+
+  pub fn to_inline_value(block_value: overflow_clip_box_block::SpecifiedValue)
+                         -> overflow_clip_box_inline::SpecifiedValue {
+      match block_value {
+          overflow_clip_box_block::SpecifiedValue::padding_box =>
+              overflow_clip_box_inline::SpecifiedValue::padding_box,
+          overflow_clip_box_block::SpecifiedValue::content_box =>
+              overflow_clip_box_inline::SpecifiedValue::content_box
+      }
+  }
+
+  pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<Longhands, ParseError<'i>> {
+      let block_value = overflow_clip_box_block::parse(context, input)?;
+      let inline_value = input.try(|input| overflow_clip_box_inline::parse(context, input)).unwrap_or(
+          to_inline_value(block_value));
+
+      Ok(expanded! {
+        overflow_clip_box_block: block_value,
+        overflow_clip_box_inline: inline_value,
+      })
+  }
+
+  impl<'a> ToCss for LonghandsToSerialize<'a>  {
+      fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+          if to_inline_value(*self.overflow_clip_box_block) == *self.overflow_clip_box_inline {
+            self.overflow_clip_box_block.to_css(dest)
+          } else {
+            self.overflow_clip_box_block.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.overflow_clip_box_inline.to_css(dest)
+          }
+      }
+  }
+
+</%helpers:shorthand>
+
 macro_rules! try_parse_one {
     ($input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {

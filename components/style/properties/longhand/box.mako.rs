@@ -373,9 +373,18 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
-${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
+${helpers.single_keyword("overflow-clip-box-block", "padding-box content-box",
     products="gecko", animation_value_type="discrete", enabled_in="ua",
     gecko_pref="layout.css.overflow-clip-box.enabled",
+    gecko_constant_prefix="NS_STYLE_OVERFLOW_CLIP_BOX",
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="Internal, not web-exposed, \
+          may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
+
+${helpers.single_keyword("overflow-clip-box-inline", "padding-box content-box",
+    products="gecko", animation_value_type="discrete", enabled_in="ua",
+    gecko_pref="layout.css.overflow-clip-box.enabled",
+    gecko_constant_prefix="NS_STYLE_OVERFLOW_CLIP_BOX",
     flags="APPLIES_TO_PLACEHOLDER",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
