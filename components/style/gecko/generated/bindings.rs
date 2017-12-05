@@ -529,13 +529,9 @@ extern "C" {
 } extern "C" {
  pub fn Gecko_ElementState ( element : RawGeckoElementBorrowed , ) -> u64 ; 
 } extern "C" {
- pub fn Gecko_DocumentState ( aDocument : * const nsIDocument , ) -> u64 ; 
-} extern "C" {
  pub fn Gecko_IsRootElement ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
  pub fn Gecko_MatchesElement ( type_ : CSSPseudoClassType , element : RawGeckoElementBorrowed , ) -> bool ; 
-} extern "C" {
- pub fn Gecko_Namespace ( element : RawGeckoElementBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
  pub fn Gecko_MatchLang ( element : RawGeckoElementBorrowed , override_lang : * mut nsAtom , has_override_lang : bool , value : * const u16 , ) -> bool ; 
 } extern "C" {
@@ -600,8 +596,6 @@ extern "C" {
  pub fn Gecko_IsPrivateBrowsingEnabled ( aDoc : * const nsIDocument , ) -> bool ; 
 } extern "C" {
  pub fn Gecko_GetAnimationRule ( aElementOrPseudo : RawGeckoElementBorrowed , aCascadeLevel : EffectCompositor_CascadeLevel , aAnimationValues : RawServoAnimationValueMapBorrowedMut , ) -> bool ; 
-} extern "C" {
- pub fn Gecko_GetSMILOverrideDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
  pub fn Gecko_StyleAnimationsEquals ( arg1 : RawGeckoStyleAnimationListBorrowed , arg2 : RawGeckoStyleAnimationListBorrowed , ) -> bool ; 
 } extern "C" {

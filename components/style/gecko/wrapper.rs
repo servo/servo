@@ -29,9 +29,9 @@ use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_ConstructStyleChildrenIterator, Gecko_DestroyStyleChildrenIterator};
-use gecko_bindings::bindings::{Gecko_DocumentState, Gecko_ElementState, Gecko_GetDocumentLWTheme};
+use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
-use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_Namespace};
+use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
@@ -41,7 +41,6 @@ use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetExtraContentStyleDeclarations;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
-use gecko_bindings::bindings::Gecko_GetSMILOverrideDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetUnvisitedLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetVisitedLinkAttrDeclarationBlock;
@@ -610,6 +609,7 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
+    #[inline]
     fn namespace_id(&self) -> i32 {
         self.as_node().node_info().mInner.mNamespaceID
     }
@@ -658,12 +658,11 @@ impl<'le> GeckoElement<'le> {
         unsafe { Gecko_ElementState(self.0) }
     }
 
+    #[inline]
     fn document_state(&self) -> DocumentState {
-        let node = self.as_node();
-        unsafe {
-            let states = Gecko_DocumentState(node.owner_doc().0);
-            DocumentState::from_bits_truncate(states)
-        }
+        DocumentState::from_bits_truncate(
+            self.as_node().owner_doc().0.mDocumentState.mStates
+        )
     }
 
     #[inline]
@@ -1054,14 +1053,43 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
-        let declarations = unsafe { Gecko_GetSMILOverrideDeclarationBlock(self.0) };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
-            declarations.and_then(|s| s.as_arc_opt());
-        declarations.map(|s| s.borrow_arc())
+        unsafe {
+            let slots = match self.get_extended_slots() {
+                Some(s) => s,
+                None => return None,
+            };
+
+            let base_declaration: &structs::DeclarationBlock =
+                match slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref() {
+                    Some(decl) => decl,
+                    None => return None,
+                };
+
+            assert_eq!(base_declaration.mType, structs::StyleBackendType_Servo);
+            let declaration: &structs::ServoDeclarationBlock =
+                mem::transmute(base_declaration);
+
+            debug_assert_eq!(
+                &declaration._base as *const structs::DeclarationBlock,
+                base_declaration as *const structs::DeclarationBlock
+            );
+
+            let raw: &structs::RawServoDeclarationBlock =
+                match declaration.mRaw.mRawPtr.as_ref() {
+                    Some(decl) => decl,
+                    None => return None,
+                };
+
+            Some(Locked::<PropertyDeclarationBlock>::as_arc(
+                &*(&raw as *const &structs::RawServoDeclarationBlock)
+            ).borrow_arc())
+        }
     }
 
-    fn get_animation_rule_by_cascade(&self, cascade_level: ServoCascadeLevel)
-                                     -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    fn get_animation_rule_by_cascade(
+        &self,
+        cascade_level: ServoCascadeLevel,
+    ) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         match cascade_level {
             ServoCascadeLevel::Animations => self.get_animation_rule(),
             ServoCascadeLevel::Transitions => self.get_transition_rule(),
@@ -1940,7 +1968,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn get_namespace(&self) -> &WeakNamespace {
         unsafe {
-            WeakNamespace::new(Gecko_Namespace(self.0))
+            let namespace_manager = structs::nsContentUtils_sNameSpaceManager;
+            WeakNamespace::new((*namespace_manager).mURIArray[self.namespace_id() as usize].mRawPtr)
         }
     }
 
