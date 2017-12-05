@@ -85,8 +85,8 @@ fn set_metric<U: ProgressiveWebMetric>(
 
     // Print the metric to console if the print-pwm option was given.
     if opts::get().print_pwm {
-        println!("Navigation start: {}", pwm.get_navigation_start().unwrap());
-        println!("{:?} {:?}", metric_type, time);
+        println!("Navigation start: {}", pwm.get_navigation_start().unwrap() as f64 / 1000000.);
+        println!("{:?} {:?}", metric_type, time as f64 / 1000000.);
     }
 
 }

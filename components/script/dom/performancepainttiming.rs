@@ -26,7 +26,7 @@ impl PerformancePaintTiming {
         PerformancePaintTiming {
             entry: PerformanceEntry::new_inherited(name,
                                                    DOMString::from("paint"),
-                                                   start_time as f64,
+                                                   start_time as f64 / 1000000.,
                                                    0.)
         }
     }
