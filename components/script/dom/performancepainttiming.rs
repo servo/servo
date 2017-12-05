@@ -9,6 +9,7 @@ use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
 use dom_struct::dom_struct;
+use metrics::ToMs;
 use script_traits::ProgressiveWebMetricType;
 
 #[dom_struct]
@@ -26,7 +27,7 @@ impl PerformancePaintTiming {
         PerformancePaintTiming {
             entry: PerformanceEntry::new_inherited(name,
                                                    DOMString::from("paint"),
-                                                   start_time as f64,
+                                                   start_time.to_ms(),
                                                    0.)
         }
     }
