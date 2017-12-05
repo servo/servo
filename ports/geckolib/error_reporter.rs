@@ -256,7 +256,7 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedPropertyDeclaration(..) =>
                 (b"PEUnknownProperty\0", Action::Drop),
             ContextualParseError::UnsupportedFontFaceDescriptor(..) =>
-                (b"PEUnknwnFontDesc\0", Action::Skip),
+                (b"PEUnknownFontDesc\0", Action::Skip),
             ContextualParseError::InvalidKeyframeRule(..) =>
                 (b"PEKeyframeBadName\0", Action::Nothing),
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(..) =>
