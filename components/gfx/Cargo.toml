@@ -36,7 +36,7 @@ servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
-smallvec = "0.4"
+smallvec = "0.6"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"

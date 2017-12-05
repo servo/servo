@@ -28,7 +28,7 @@ parking_lot = "0.4"
 # for the cargo problem behind this.
 selectors = {path = "../../components/selectors", features = ["gecko_like_types"]}
 servo_arc = {path = "../../components/servo_arc"}
-smallvec = "0.4"
+smallvec = "0.6"
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
 

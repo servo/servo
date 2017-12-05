@@ -19,7 +19,7 @@ hashglobe = { path = "../hashglobe" }
 mozjs = { version = "0.1.8", features = ["promises"], optional = true }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
-smallvec = "0.4"
+smallvec = "0.6"
 string_cache = { version = "0.6", optional = true }
 url = { version = "1.2", optional = true }
 webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"], optional = true }
