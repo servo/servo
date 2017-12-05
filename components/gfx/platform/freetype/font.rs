@@ -10,7 +10,7 @@ use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Load_Sfnt_Table};
 use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
-use freetype::freetype::{FT_Int32, FT_Kerning_Mode, FT_STYLE_FLAG_BOLD, FT_STYLE_FLAG_ITALIC};
+use freetype::freetype::{FT_Int32, FT_Kerning_Mode, FT_STYLE_FLAG_ITALIC};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
 use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
 use freetype::freetype::FT_Sfnt_Tag;
@@ -136,30 +136,45 @@ impl FontHandleMethods for FontHandle {
     }
     fn boldness(&self) -> font_weight::T {
         let default_weight = font_weight::T::normal();
-        if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD as c_long == 0 } {
-            default_weight
-        } else {
-            unsafe {
-                let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
-                let valid = !os2.is_null() && (*os2).version != 0xffff;
-                if valid {
-                    let weight =(*os2).usWeightClass as i32;
-                    if weight < 10 {
-                        font_weight::T::from_int(weight * 100).unwrap()
-                    } else if weight >= 100 && weight < 1000 {
-                        font_weight::T::from_int(weight / 100 * 100).unwrap()
-                    } else {
-                        default_weight
-                    }
+        unsafe {
+            let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
+            let valid = !os2.is_null() && (*os2).version != 0xffff;
+            if valid {
+                let weight =(*os2).usWeightClass as i32;
+                if weight < 10 {
+                    font_weight::T::from_int(weight * 100).unwrap()
+                } else if weight >= 100 && weight < 1000 {
+                    font_weight::T::from_int(weight / 100 * 100).unwrap()
                 } else {
                     default_weight
                 }
+            } else {
+                default_weight
             }
         }
     }
     fn stretchiness(&self) -> font_stretch::T {
-        // TODO(pcwalton): Implement this.
-        font_stretch::T::normal
+        let default_stretch = font_stretch::T::normal;
+        unsafe {
+            let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
+            let valid = !os2.is_null() && (*os2).version != 0xffff;
+            if valid {
+                match (*os2).usWidthClass {
+                    1 => font_stretch::T::ultra_condensed,
+                    2 => font_stretch::T::extra_condensed,
+                    3 => font_stretch::T::condensed,
+                    4 => font_stretch::T::semi_condensed,
+                    5 => font_stretch::T::normal, // called medium in TrueType spec
+                    6 => font_stretch::T::semi_expanded,
+                    7 => font_stretch::T::expanded,
+                    8 => font_stretch::T::extra_expanded,
+                    9 => font_stretch::T::ultra_expanded,
+                    _ => default_stretch,
+                }
+            } else {
+                default_stretch
+            }
+        }
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
