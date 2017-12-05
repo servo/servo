@@ -30,7 +30,7 @@ use dom::canvaspattern::CanvasPattern;
 use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::imagedata::ImageData;
-use dom::node::{document_from_node, Node, NodeDamage, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
@@ -249,13 +249,8 @@ impl CanvasRenderingContext2D {
             CanvasImageSource::CanvasRenderingContext2D(image) =>
                 image.origin_is_clean(),
             CanvasImageSource::HTMLImageElement(image) => {
-                let canvas = match self.canvas {
-                    Some(ref canvas) => canvas,
-                    None => return false,
-                };
                 let image_origin = image.get_origin().expect("Image's origin is missing");
-                let document = document_from_node(&**canvas);
-                document.url().clone().origin() == image_origin
+                image_origin.same_origin(GlobalScope::entry().origin())
             }
             CanvasImageSource::CSSStyleValue(_) => true,
         }
