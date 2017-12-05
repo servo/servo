@@ -373,12 +373,21 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
-${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
-    products="gecko", animation_value_type="discrete", enabled_in="ua",
-    gecko_pref="layout.css.overflow-clip-box.enabled",
-    flags="APPLIES_TO_PLACEHOLDER",
-    spec="Internal, not web-exposed, \
-          may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
+% for direction in ["inline", "block"]:
+    ${helpers.predefined_type(
+        "overflow-clip-box-" + direction,
+        "OverflowClipBox",
+        "computed::OverflowClipBox::padding_box",
+        products="gecko",
+        enabled_in="ua",
+        needs_context=False,
+        flags="APPLIES_TO_PLACEHOLDER",
+        gecko_pref="layout.css.overscroll-behavior.enabled",
+        animation_value_type="discrete",
+        spec="Internal, may be standardized in the future: \
+              https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box",
+    )}
+% endfor
 
 <%
     overflow_custom_consts = { "-moz-hidden-unscrollable": "CLIP" }

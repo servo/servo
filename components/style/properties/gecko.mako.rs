@@ -3098,6 +3098,7 @@ fn static_assert() {
                           scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin -moz-binding will-change
                           overscroll-behavior-x overscroll-behavior-y
+                          overflow-clip-box-inline overflow-clip-box-block
                           perspective-origin -moz-binding will-change
                           shape-outside contain touch-action""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
@@ -3490,6 +3491,10 @@ fn static_assert() {
                                              gecko_enum_prefix="StyleOverscrollBehavior") %>
     ${impl_keyword('overscroll_behavior_x', 'mOverscrollBehaviorX', overscroll_behavior_keyword)}
     ${impl_keyword('overscroll_behavior_y', 'mOverscrollBehaviorY', overscroll_behavior_keyword)}
+
+    <% overflow_clip_box_keyword = Keyword("overflow-clip-box", "padding-box content-box") %>
+    ${impl_keyword('overflow_clip_box_inline', 'mOverflowClipBoxInline', overflow_clip_box_keyword)}
+    ${impl_keyword('overflow_clip_box_block', 'mOverflowClipBoxBlock', overflow_clip_box_keyword)}
 
     pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
         self.gecko.mPerspectiveOrigin[0].set(v.horizontal);

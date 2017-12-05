@@ -124,3 +124,10 @@ define_css_keyword_enum! { OverscrollBehavior:
     "none" => None,
 }
 add_impls_for_keyword_enum!(OverscrollBehavior);
+
+// FIXME(emilio): Make all keywords CamelCase.
+define_css_keyword_enum! { OverflowClipBox:
+    "padding-box" => padding_box,
+    "content-box" => content_box,
+}
+add_impls_for_keyword_enum!(OverflowClipBox);
