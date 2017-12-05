@@ -10,7 +10,7 @@ name = "canvas_traits"
 path = "lib.rs"
 
 [dependencies]
-cssparser = "0.22.0"
+cssparser = "0.23.0"
 euclid = "0.15"
 ipc-channel = "0.9"
 lazy_static = "0.2"

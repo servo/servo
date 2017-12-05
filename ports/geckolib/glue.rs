@@ -4563,8 +4563,17 @@ fn parse_color(
 ) -> Result<specified::Color, ()> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
+    let url_data = unsafe { dummy_url_data() };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
     let start_position = parser.position();
-    parser.parse_entirely(specified::Color::parse_color).map_err(|err| {
+    parser.parse_entirely(|i| specified::Color::parse(&context, i)).map_err(|err| {
         if let Some(error_reporter) = error_reporter {
             match err.kind {
                 ParseErrorKind::Custom(StyleParseErrorKind::ValueError(..)) => {

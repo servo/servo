@@ -4,7 +4,8 @@
 
 //! Specified color values.
 
-use cssparser::{Color as CSSParserColor, Parser, RGBA, Token, BasicParseError, BasicParseErrorKind};
+use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, RGBA, Token};
+use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nscolor;
 use itoa;
@@ -16,6 +17,7 @@ use std::io::Write;
 use style_traits::{ToCss, ParseError, StyleParseErrorKind, ValueParseErrorKind};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
+use values::specified::calc::CalcNode;
 
 /// Specified color value
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
@@ -43,7 +45,6 @@ pub enum Color {
     InheritFromBodyQuirk,
 }
 
-
 #[cfg(feature = "gecko")]
 mod gecko {
     define_css_keyword_enum! { SpecialColorKeyword:
@@ -61,9 +62,127 @@ impl From<RGBA> for Color {
     }
 }
 
+struct ColorComponentParser<'a, 'b: 'a>(&'a ParserContext<'b>);
+impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponentParser<'a, 'b> {
+    type Error = StyleParseErrorKind<'i>;
+
+    fn parse_angle_or_number<'t>(
+        &self,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<AngleOrNumber, ParseError<'i>> {
+        #[allow(unused_imports)] use std::ascii::AsciiExt;
+        use values::specified::Angle;
+
+        let location = input.current_source_location();
+        let token = input.next()?.clone();
+        match token {
+            Token::Dimension { value, ref unit, .. } => {
+                let angle = Angle::parse_dimension(
+                    value,
+                    unit,
+                    /* from_calc = */ false,
+                );
+
+                let degrees = match angle {
+                    Ok(angle) => angle.degrees(),
+                    Err(()) => return Err(location.new_unexpected_token_error(token.clone())),
+                };
+
+                Ok(AngleOrNumber::Angle { degrees })
+            }
+            Token::Number { value, .. } => {
+                Ok(AngleOrNumber::Number { value })
+            }
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                input.parse_nested_block(|i| CalcNode::parse_angle_or_number(self.0, i))
+            }
+            t => return Err(location.new_unexpected_token_error(t)),
+        }
+    }
+
+    fn parse_percentage<'t>(
+        &self,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<f32, ParseError<'i>> {
+        use values::specified::Percentage;
+
+        Ok(Percentage::parse(self.0, input)?.get())
+    }
+
+    fn parse_number<'t>(
+        &self,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<f32, ParseError<'i>> {
+        use values::specified::Number;
+
+        Ok(Number::parse(self.0, input)?.get())
+    }
+
+    fn parse_number_or_percentage<'t>(
+        &self,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<NumberOrPercentage, ParseError<'i>> {
+        #[allow(unused_imports)] use std::ascii::AsciiExt;
+
+        let location = input.current_source_location();
+
+        match input.next()?.clone() {
+            Token::Number { value, .. } => Ok(NumberOrPercentage::Number { value }),
+            Token::Percentage { unit_value, .. } => {
+                Ok(NumberOrPercentage::Percentage { unit_value })
+            },
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                input.parse_nested_block(|i| CalcNode::parse_number_or_percentage(self.0, i))
+            }
+            t => return Err(location.new_unexpected_token_error(t))
+        }
+    }
+}
+
 impl Parse for Color {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Color::parse_color(input)
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        #[allow(unused_imports)] use std::ascii::AsciiExt;
+
+        // Currently we only store authored value for color keywords,
+        // because all browsers serialize those values as keywords for
+        // specified value.
+        let start = input.state();
+        let authored = input.expect_ident_cloned().ok();
+        input.reset(&start);
+
+        let compontent_parser = ColorComponentParser(&*context);
+        match input.try(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
+            Ok(value) => {
+                Ok(match value {
+                    CSSParserColor::CurrentColor => Color::CurrentColor,
+                    CSSParserColor::RGBA(rgba) => Color::Numeric {
+                        parsed: rgba,
+                        authored: authored.map(|s| s.to_ascii_lowercase().into_boxed_str()),
+                    },
+                })
+            }
+            Err(e) => {
+                #[cfg(feature = "gecko")]
+                {
+                    if let Ok(system) = input.try(SystemColor::parse) {
+                        return Ok(Color::System(system));
+                    }
+
+                    if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
+                        return Ok(Color::Special(c));
+                    }
+                }
+
+                match e.kind {
+                    ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken(t)) => {
+                        Err(e.location.new_custom_error(
+                            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(t))
+                        ))
+                    }
+                    _ => Err(e)
+                }
+            }
+        }
     }
 }
 
@@ -86,9 +205,9 @@ impl ToCss for Color {
 
 /// A wrapper of cssparser::Color::parse_hash.
 ///
-/// That function should never return CurrentColor, so it makes no sense
-/// to handle a cssparser::Color here. This should really be done in
-/// cssparser directly rather than here.
+/// That function should never return CurrentColor, so it makes no sense to
+/// handle a cssparser::Color here. This should really be done in cssparser
+/// directly rather than here.
 fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
     CSSParserColor::parse_hash(value).map(|color| {
         match color {
@@ -125,16 +244,17 @@ impl Color {
     /// Parse a color, with quirks.
     ///
     /// <https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk>
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         input.try(|i| Self::parse(context, i)).or_else(|e| {
             if !allow_quirks.allowed(context.quirks_mode) {
                 return Err(e);
             }
             Color::parse_quirky_color(input)
-                .map(|rgba| Color::rgba(rgba))
+                .map(Color::rgba)
                 .map_err(|_| e)
         })
     }
@@ -203,52 +323,6 @@ impl Color {
         match *self {
             Color::Numeric { ref parsed, .. } => parsed.alpha != 0,
             _ => true,
-        }
-    }
-
-    /// Parse a <color> value.
-    pub fn parse_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // Currently we only store authored value for color keywords,
-        // because all browsers serialize those values as keywords for
-        // specified value.
-        let start = input.state();
-        let authored = match input.next() {
-            Ok(&Token::Ident(ref s)) => Some(s.clone()),
-            _ => None,
-        };
-        input.reset(&start);
-        match input.try(CSSParserColor::parse) {
-            Ok(value) =>
-                Ok(match value {
-                    CSSParserColor::CurrentColor => Color::CurrentColor,
-                    CSSParserColor::RGBA(rgba) => {
-                        Color::Numeric {
-                            parsed: rgba,
-                            authored: authored.map(|s| s.to_lowercase().into_boxed_str()),
-                        }
-                    }
-                }),
-            Err(e) => {
-                #[cfg(feature = "gecko")]
-                {
-                    if let Ok(system) = input.try(SystemColor::parse) {
-                        return Ok(Color::System(system));
-                    }
-
-                    if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
-                        return Ok(Color::Special(c));
-                    }
-                }
-
-                match e {
-                    BasicParseError { kind: BasicParseErrorKind::UnexpectedToken(t), location } => {
-                        Err(location.new_custom_error(
-                            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(t))
-                        ))
-                    }
-                    e => Err(e.into())
-                }
-            }
         }
     }
 }

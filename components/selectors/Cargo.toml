@@ -25,7 +25,7 @@ bench = []
 [dependencies]
 bitflags = "1.0"
 matches = "0.1"
-cssparser = "0.22.0"
+cssparser = "0.23.0"
 log = "0.3"
 fnv = "1.0"
 malloc_size_of = { path = "../malloc_size_of" }

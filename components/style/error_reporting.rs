@@ -76,7 +76,6 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
                 Token::PrefixMatch => write!(f, "prefix match (^=)"),
                 Token::SuffixMatch => write!(f, "suffix match ($=)"),
                 Token::SubstringMatch => write!(f, "substring match (*=)"),
-                Token::Column => write!(f, "column (||)"),
                 Token::CDO => write!(f, "CDO (<!--)"),
                 Token::CDC => write!(f, "CDC (-->)"),
                 Token::Function(ref name) => write!(f, "function {}", name),
