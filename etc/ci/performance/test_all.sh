@@ -8,7 +8,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-base="http://localhost:8000"
+# We run the test-perf server on a port that WPT doesn't use,
+# to avoid WPT failures caused by picking up the wrong http server.
+# This was the root cause of a total test suite failure:
+# https://groups.google.com/forum/#!topic/mozilla.dev.servo/JlAZoRgcnpA
+port="8123"
+base="http://localhost:${port}"
 
 while (( "${#}" ))
 do
@@ -41,7 +46,7 @@ then echo "You didn't specify the engine to run: --servo or --gecko."; exit;
 fi
 
 echo "Starting the local server"
-python3 -m http.server > /dev/null 2>&1 &
+python3 -m http.server ${port} > /dev/null 2>&1 &
 
 # Stop the local server no matter how we exit the script
 trap 'kill $(jobs -pr)' SIGINT SIGTERM EXIT
