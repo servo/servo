@@ -277,13 +277,13 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             &base(self).early_absolute_position_info.relative_containing_block_size,
             base(self).early_absolute_position_info.relative_containing_block_mode,
             CoordinateSystem::Own);
-        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_x {
+        if overflow_x::T::Visible != self.as_block().fragment.style.get_box().overflow_x {
             overflow.paint.origin.x = Au(0);
             overflow.paint.size.width = border_box.size.width;
             overflow.scroll.origin.x = Au(0);
             overflow.scroll.size.width = border_box.size.width;
         }
-        if overflow_x::T::visible != self.as_block().fragment.style.get_box().overflow_y {
+        if overflow_x::T::Visible != self.as_block().fragment.style.get_box().overflow_y {
             overflow.paint.origin.y = Au(0);
             overflow.paint.size.height = border_box.size.height;
             overflow.scroll.origin.y = Au(0);

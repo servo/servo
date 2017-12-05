@@ -715,7 +715,7 @@ impl LineBreaker {
 
         let ellipsis = match (&fragment.style().get_text().text_overflow.second,
             fragment.style().get_box().overflow_x) {
-            (&TextOverflowSide::Clip, _) | (_, overflow_x::T::visible) => None,
+            (&TextOverflowSide::Clip, _) | (_, overflow_x::T::Visible) => None,
             (&TextOverflowSide::Ellipsis, _) => {
                 if fragment.margin_box_inline_size() > available_inline_size {
                     Some("…".to_string())

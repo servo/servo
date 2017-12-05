@@ -9,8 +9,8 @@ use app_units::Au;
 use properties::{self, CascadeFlags, ComputedValues, StyleBuilder};
 use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
-use properties::longhands::overflow_x::computed_value::T as overflow;
 use properties::longhands::position::computed_value::T as position;
+use values::specified::box_::Overflow;
 
 /// A struct that implements all the adjustment methods.
 ///
@@ -207,10 +207,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         // When 'contain: paint', update overflow from 'visible' to 'clip'.
         if self.style.get_box().clone_contain().contains(SpecifiedValue::PAINT) {
-            if self.style.get_box().clone_overflow_x() == overflow::visible {
+            if self.style.get_box().clone_overflow_x() == Overflow::visible {
                 let box_style = self.style.mutate_box();
-                box_style.set_overflow_x(overflow::_moz_hidden_unscrollable);
-                box_style.set_overflow_y(overflow::_moz_hidden_unscrollable);
+                box_style.set_overflow_x(Overflow::_moz_hidden_unscrollable);
+                box_style.set_overflow_y(Overflow::_moz_hidden_unscrollable);
             }
         }
     }
@@ -288,23 +288,23 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         // If 'visible' is specified but doesn't match the other dimension,
         // it turns into 'auto'.
-        if overflow_x == overflow::visible {
-            overflow_x = overflow::auto;
+        if overflow_x == Overflow::Visible {
+            overflow_x = Overflow::Auto;
         }
 
-        if overflow_y == overflow::visible {
-            overflow_y = overflow::auto;
+        if overflow_y == Overflow::Visible {
+            overflow_y = Overflow::Auto;
         }
 
         #[cfg(feature = "gecko")]
         {
             // overflow: clip is deprecated, so convert to hidden if it's
             // specified in only one dimension.
-            if overflow_x == overflow::_moz_hidden_unscrollable {
-                overflow_x = overflow::hidden;
+            if overflow_x == Overflow::_moz_hidden_unscrollable {
+                overflow_x = Overflow::hidden;
             }
-            if overflow_y == overflow::_moz_hidden_unscrollable {
-                overflow_y = overflow::hidden;
+            if overflow_y == Overflow::_moz_hidden_unscrollable {
+                overflow_y = Overflow::hidden;
             }
         }
 
