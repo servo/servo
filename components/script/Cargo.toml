@@ -89,7 +89,7 @@ servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
 servo_url = {path = "../url"}
-smallvec = "0.4"
+smallvec = "0.6"
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits"}
 swapper = "0.1"

@@ -33,7 +33,7 @@ malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 phf = "0.7.18"
 precomputed-hash = "0.1"
 servo_arc = { path = "../servo_arc" }
-smallvec = "0.4"
+smallvec = "0.6"
 
 [dev-dependencies]
 size_of_test = {path = "../size_of_test"}
