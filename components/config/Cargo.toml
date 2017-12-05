@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 euclid = "0.15"
 getopts = "0.2.11"
-lazy_static = "0.2"
+lazy_static = "1"
 log = "0.3.5"
 num_cpus = "1.1.0"
 rustc-serialize = "0.3"

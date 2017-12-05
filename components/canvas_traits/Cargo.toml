@@ -13,7 +13,7 @@ path = "lib.rs"
 cssparser = "0.23.0"
 euclid = "0.15"
 ipc-channel = "0.9"
-lazy_static = "0.2"
+lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 nonzero = {path = "../nonzero"}

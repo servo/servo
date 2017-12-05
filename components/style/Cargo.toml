@@ -44,7 +44,7 @@ hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.21", optional = true}
 itertools = "0.5"
 itoa = "0.3"
-lazy_static = "0.2"
+lazy_static = "1"
 log = "0.3"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
@@ -77,7 +77,7 @@ unicode-segmentation = "1.0"
 kernel32-sys = "0.2"
 
 [build-dependencies]
-lazy_static = "0.2"
+lazy_static = "1"
 log = "0.3"
 bindgen = { version = "0.31.2", optional = true }
 regex = {version = "0.2", optional = true}
