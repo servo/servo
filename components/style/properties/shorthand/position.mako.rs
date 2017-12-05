@@ -247,7 +247,7 @@
                     products="gecko">
     use parser::Parse;
     use values::{Either, None_};
-    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
+    use values::generics::grid::{TrackSize, TrackList, TrackListType};
     use values::generics::grid::{TrackListValue, concat_serialize_idents};
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
@@ -258,30 +258,23 @@
                                        -> Result<(GridTemplateComponent,
                                                   GridTemplateComponent,
                                                   Either<TemplateAreas, None_>), ParseError<'i>> {
-        // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
-        // shorthand should know after these keywords there is nothing to parse. Otherwise it
-        // gets confused and rejects the sub properties that contains `none` or `subgrid`.
-        <% keywords = {
-            "none": "GenericGridTemplateComponent::None",
-            "subgrid": "GenericGridTemplateComponent::Subgrid(LineNameList::default())"
-        }
-        %>
-        % for keyword, rust_type in keywords.items():
-            if let Ok(x) = input.try(|i| {
-                if i.try(|i| i.expect_ident_matching("${keyword}")).is_ok() {
-                    if i.is_exhausted() {
-                        return Ok((${rust_type},
-                                   ${rust_type},
-                                   Either::Second(None_)))
-                    } else {
-                        return Err(());
-                    }
+        // Other shorthand sub properties also parse `none` keyword and this shorthand
+        // should know after this keyword there is nothing to parse. Otherwise it
+        // gets confused and rejects the sub properties that contains `none`.
+        if let Ok(x) = input.try(|i| {
+            if i.try(|i| i.expect_ident_matching("none")).is_ok() {
+                if i.is_exhausted() {
+                    return Ok((GenericGridTemplateComponent::None,
+                               GenericGridTemplateComponent::None,
+                               Either::Second(None_)))
+                } else {
+                    return Err(());
                 }
-                Err(())
-            }) {
-                return Ok(x);
             }
-        % endfor
+            Err(())
+        }) {
+            return Ok(x);
+        }
 
         let first_line_names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice());
         if let Ok(mut string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
@@ -413,11 +406,6 @@
                            }) {
                             return Ok(());
                         }
-                    },
-                    // Also the shorthands don't accept subgrids unlike longhand.
-                    // We should fail without an error here.
-                    GenericGridTemplateComponent::Subgrid(_) => {
-                        return Ok(());
                     },
                     _ => {},
                 }
