@@ -60,6 +60,17 @@ enum CanvasFillOrStrokeStyle {
     Pattern(Dom<CanvasPattern>),
 }
 
+/// Trait to get dimensions of off-screen element
+pub trait OffscreenCanvasRendering {
+    //get width of offscreen-canvas element
+    fn width(&self) -> u64{
+    }
+
+    // Get the height of the offscreen-canvas element
+    fn Height(&self) -> u64{
+    }
+}
+
 #[dom_struct]
 pub struct OffscreenCanvasRenderingContext2D {
     reflector_: Reflector,
@@ -120,23 +131,23 @@ impl OffscreenCanvasRenderingContext2D {
                          size: Size2D<i32>)
                          -> OffscreenCanvasRenderingContext2D {
         let base = CanvasRenderingContext2D::new(global, &canvas, size);
-        Some(OffscreenCanvasRenderingContext2D {
+        OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
             base: Dom::from_ref(&*base),
-        })
+        }
     }
 
     pub fn new(global: &GlobalScope,
                canvas: &OffscreenCanvas,
                size: Size2D<i32>)
                -> DomRoot<OffscreenCanvasRenderingContext2D> {
-                   let window = window_from_node(canvas);
-                   let image_cache = window.image_cache();
-                   let base_url = window.get_url();
-                   let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
-                       global, Some(canvas), image_cache, base_url, size
-                   ));
-                   reflect_dom_object(boxed, global, OffscreenCanvasRenderingContext2DBinding::Wrap)
+                   //let image_cache = window.image_cache();
+                   //let base_url = window.get_url();
+                   //let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
+                   //    global, Some(canvas), image_cache, base_url, size
+                   //));
+                   //reflect_dom_object(boxed, global, OffscreenCanvasRenderingContext2DBinding::Wrap)
+                   unimplemented!()
     }
 
     fn draw_image(&self,
@@ -221,7 +232,8 @@ pub fn parse_color(string: &str) -> Result<RGBA, ()> {
 impl LayoutOffscreenCanvasRenderingContext2DHelpers for LayoutDom<OffscreenCanvasRenderingContext2D> {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        self.base.get_ipc_renderer()
+        //self.base.get_ipc_renderer()
+        unimplemented!()
     }
 }
 

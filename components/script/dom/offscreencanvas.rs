@@ -41,22 +41,25 @@ pub trait LayoutOffscreenCanvasHelpers {
 pub struct OffscreenCanvas {
     reflector_: Reflector,
     context: DomRefCell<Option<CanvasContext>>,
+    width: u64,
+    height: u64,
 }
 
 impl OffscreenCanvas {
     pub fn new_inherited(
 		width: u64,
-	    height: u64,
-        document: &Document
+	    height: u64
 	) -> OffscreenCanvas {
 
 	OffscreenCanvas {
 		reflector_: Reflector::new(),
 	    context: DomRefCell::new(None),
+        width: width,
+        height: height,
 		}
 	}
     //#[allow(unrooted_must_root)]
-	pub fn new(
+	fn new(
 	   global: &GlobalScope,
        width: u64,
 	   height: u64
@@ -78,22 +81,22 @@ impl OffscreenCanvas {
 impl OffscreenCanvasMethods for OffscreenCanvas {
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u64 {
-        let width: u64 = 300;
-        width
+        self.width
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(&self, height: u64) {
+        self.height = height
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(&self, width: u64) {
+        self.width = width
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u64 {
-        let height: u64 = 300;
-         height
+        self.height
     }
 }
 
