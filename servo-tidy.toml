@@ -41,6 +41,7 @@ packages = [
   "semver",
   "toml",
   "unicase",
+  "smallvec",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
