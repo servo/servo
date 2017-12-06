@@ -6,7 +6,7 @@
 
 /// A generic value for the `background-size` property.
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(MallocSizeOf, PartialEq, ToCss)]
 pub enum BackgroundSize<LengthOrPercentageOrAuto> {
     /// `<width> <height>`
     Explicit {

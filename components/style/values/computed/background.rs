@@ -11,6 +11,7 @@ use values::computed::{Context, ToComputedValue};
 use values::computed::length::LengthOrPercentageOrAuto;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
 use values::specified::background::{BackgroundRepeat as SpecifiedBackgroundRepeat, RepeatKeyword};
+use values::specified::background::BackgroundSize as SpecifiedBackgroundSize;
 
 /// A computed value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<LengthOrPercentageOrAuto>;
@@ -21,6 +22,36 @@ impl BackgroundSize {
         GenericBackgroundSize::Explicit {
             width: LengthOrPercentageOrAuto::Auto,
             height: LengthOrPercentageOrAuto::Auto,
+        }
+    }
+}
+
+impl ToComputedValue for SpecifiedBackgroundSize {
+    type ComputedValue = BackgroundSize;
+
+    fn to_computed_value(&self, context: &Context) -> BackgroundSize {
+        match *self {
+            GenericBackgroundSize::Explicit { ref width, ref height } =>
+                GenericBackgroundSize::Explicit {
+                    width: width.to_computed_value(context),
+                    height: height.to_computed_value(context)
+                },
+            GenericBackgroundSize::Cover => GenericBackgroundSize::Cover,
+            GenericBackgroundSize::Contain => GenericBackgroundSize::Contain,
+        }
+    }
+
+    fn from_computed_value(computed: &BackgroundSize) -> Self {
+        use values::specified::length::{LengthOrPercentageOrAuto as SpecifiedLengthOrPercentageOrAuto};
+
+        match *computed {
+            GenericBackgroundSize::Explicit { width, height } =>
+                GenericBackgroundSize::Explicit {
+                    width: SpecifiedLengthOrPercentageOrAuto::from_computed_value(&width),
+                    height: SpecifiedLengthOrPercentageOrAuto::from_computed_value(&height)
+                },
+            GenericBackgroundSize::Cover => GenericBackgroundSize::Cover,
+            GenericBackgroundSize::Contain => GenericBackgroundSize::Contain
         }
     }
 }
