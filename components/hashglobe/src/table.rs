@@ -757,7 +757,7 @@ impl<K, V> RawTable<K, V> {
                                                                         align_of::<(K, V)>());
 
         if oflo {
-            return Err(FailedAllocationError { reason: "capacity overflow when allocating RawTable" });
+            return Err(FailedAllocationError::new("capacity overflow when allocating RawTable" ));
         }
 
         // One check for overflow that covers calculation and rounding of size.
@@ -767,21 +767,21 @@ impl<K, V> RawTable<K, V> {
 
         if let Some(cap_bytes) = cap_bytes {
             if size < cap_bytes {
-                return Err(FailedAllocationError { reason: "capacity overflow when allocating RawTable" });
+                return Err(FailedAllocationError::new("capacity overflow when allocating RawTable"));
             }
         } else {
-            
-            return Err(FailedAllocationError { reason: "capacity overflow when allocating RawTable" });
+            return Err(FailedAllocationError::new("capacity overflow when allocating RawTable"));
         }
-
 
 
         // FORK NOTE: Uses alloc shim instead of Heap.alloc
         let buffer = alloc(size, alignment);
-        
+
         if buffer.is_null() {
-            
-            return Err(FailedAllocationError { reason: "out of memory when allocating RawTable" });
+            return Err(FailedAllocationError {
+                reason: "out of memory when allocating RawTable",
+                allocation_size: Some(size),
+            });
         }
 
         let hashes = buffer.offset(hash_offset as isize) as *mut HashUint;
