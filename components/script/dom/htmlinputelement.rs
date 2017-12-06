@@ -63,16 +63,118 @@ const PASSWORD_REPLACEMENT_CHAR: char = '●';
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
-enum InputType {
-    InputSubmit,
-    InputReset,
-    InputButton,
-    InputText,
-    InputFile,
-    InputImage,
-    InputCheckbox,
-    InputRadio,
-    InputPassword
+pub enum InputType {
+    Button,
+    Checkbox,
+    Color,
+    Date,
+    Datetime,
+    DatetimeLocal,
+    Email,
+    File,
+    Hidden,
+    Image,
+    Month,
+    Number,
+    Password,
+    Radio,
+    Range,
+    Reset,
+    Search,
+    Submit,
+    Tel,
+    Text,
+    Time,
+    Url,
+    Week,
+}
+
+impl InputType {
+    // Note that Password is not included here since it is handled
+    // slightly differently, with placeholder characters shown rather
+    // than the underlying value.
+    fn is_textual(&self) -> bool {
+        match *self {
+            InputType::Color | InputType::Date | InputType::Datetime
+            | InputType::DatetimeLocal | InputType::Email | InputType::Hidden
+            | InputType::Month | InputType::Number | InputType::Range
+            | InputType::Search | InputType::Tel | InputType::Text
+            | InputType::Time | InputType::Url | InputType::Week => {
+                true
+            }
+
+            _ => false
+        }
+    }
+
+    fn is_textual_or_password(&self) -> bool {
+        self.is_textual() || *self == InputType::Password
+    }
+
+    fn to_str(&self) -> &str {
+        match *self {
+            InputType::Button => "button",
+            InputType::Checkbox => "checkbox",
+            InputType::Color => "color",
+            InputType::Date => "date",
+            InputType::Datetime => "datetime",
+            InputType::DatetimeLocal => "datetime-local",
+            InputType::Email => "email",
+            InputType::File => "file",
+            InputType::Hidden => "hidden",
+            InputType::Image => "image",
+            InputType::Month => "month",
+            InputType::Number => "number",
+            InputType::Password => "password",
+            InputType::Radio => "radio",
+            InputType::Range => "range",
+            InputType::Reset => "reset",
+            InputType::Search => "search",
+            InputType::Submit => "submit",
+            InputType::Tel => "tel",
+            InputType::Text => "text",
+            InputType::Time => "time",
+            InputType::Url => "url",
+            InputType::Week => "week",
+        }
+    }
+}
+
+impl<'a> From<&'a Atom> for InputType {
+    fn from(value: &Atom) -> InputType {
+        match value.to_ascii_lowercase() {
+            atom!("button") => InputType::Button,
+            atom!("checkbox") => InputType::Checkbox,
+            atom!("color") => InputType::Color,
+            atom!("date") => InputType::Date,
+            atom!("datetime") => InputType::Datetime,
+            atom!("datetime-local") => InputType::DatetimeLocal,
+            atom!("email") => InputType::Email,
+            atom!("file") => InputType::File,
+            atom!("hidden") => InputType::Hidden,
+            atom!("image") => InputType::Image,
+            atom!("month") => InputType::Month,
+            atom!("number") => InputType::Number,
+            atom!("password") => InputType::Password,
+            atom!("radio") => InputType::Radio,
+            atom!("range") => InputType::Range,
+            atom!("reset") => InputType::Reset,
+            atom!("search") => InputType::Search,
+            atom!("submit") => InputType::Submit,
+            atom!("tel") => InputType::Tel,
+            atom!("text") => InputType::Text,
+            atom!("time") => InputType::Time,
+            atom!("url") => InputType::Url,
+            atom!("week") => InputType::Week,
+            _ => Self::default()
+        }
+    }
+}
+
+impl Default for InputType {
+    fn default() -> InputType {
+        InputType::Text
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -125,7 +227,7 @@ impl InputActivationState {
             checked_changed: false,
             checked_radio: None,
             was_mutable: false,
-            old_type: InputType::InputText
+            old_type: Default::default()
         }
     }
 }
@@ -142,7 +244,7 @@ impl HTMLInputElement {
                 HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE |
                                                       ElementState::IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
-            input_type: Cell::new(InputType::InputText),
+            input_type: Cell::new(Default::default()),
             placeholder: DomRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
@@ -171,25 +273,34 @@ impl HTMLInputElement {
                            HTMLInputElementBinding::Wrap)
     }
 
-    pub fn type_(&self) -> Atom {
-        self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("type"))
-            .map_or_else(|| atom!(""), |a| a.value().as_atom().to_owned())
+    // https://html.spec.whatwg.org/multipage/#dom-input-value
+    // https://html.spec.whatwg.org/multipage/#concept-input-apply
+    fn value_mode(&self) -> ValueMode {
+        match self.input_type() {
+            InputType::Submit | InputType::Reset | InputType::Button
+            | InputType::Image | InputType::Hidden => {
+                ValueMode::Default
+            },
+
+            InputType::Checkbox | InputType::Radio => {
+                ValueMode::DefaultOn
+            },
+
+            InputType::Color | InputType::Date | InputType::Datetime
+            | InputType::DatetimeLocal | InputType::Email | InputType::Month
+            | InputType::Number | InputType::Password | InputType::Range
+            | InputType::Search | InputType::Tel | InputType::Text
+            | InputType::Time | InputType::Url | InputType::Week => {
+                ValueMode::Value
+            }
+
+            InputType::File => ValueMode::Filename,
+        }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn value_mode(&self) -> ValueMode {
-        match self.input_type.get() {
-            InputType::InputSubmit |
-            InputType::InputReset |
-            InputType::InputButton |
-            InputType::InputImage => ValueMode::Default,
-            InputType::InputCheckbox |
-            InputType::InputRadio => ValueMode::DefaultOn,
-            InputType::InputPassword |
-            InputType::InputText => ValueMode::Value,
-            InputType::InputFile => ValueMode::Filename,
-        }
+    #[inline]
+    pub fn input_type(&self) -> InputType {
+        self.input_type.get()
     }
 }
 
@@ -223,13 +334,13 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
             String::from(value)
         }
 
-        match (*self.unsafe_get()).input_type.get() {
-            InputType::InputCheckbox | InputType::InputRadio => String::new(),
-            InputType::InputFile | InputType::InputImage => String::new(),
-            InputType::InputButton => get_raw_attr_value(self, ""),
-            InputType::InputSubmit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
-            InputType::InputReset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
-            InputType::InputPassword => {
+        match (*self.unsafe_get()).input_type() {
+            InputType::Checkbox | InputType::Radio => String::new(),
+            InputType::File | InputType::Image => String::new(),
+            InputType::Button => get_raw_attr_value(self, ""),
+            InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
+            InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
+            InputType::Password => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
                     text.chars().map(|_| PASSWORD_REPLACEMENT_CHAR).collect()
@@ -263,8 +374,8 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
 
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
 
-        match (*self.unsafe_get()).input_type.get() {
-            InputType::InputPassword => {
+        match (*self.unsafe_get()).input_type() {
+            InputType::Password => {
                 let text = get_raw_textinput_value(self);
                 let sel = textinput.get_absolute_selection_range();
 
@@ -275,7 +386,7 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char .. char_end * bytes_per_char)
             }
-            InputType::InputText => Some(textinput.get_absolute_selection_range()),
+            input_type if input_type.is_textual() => Some(textinput.get_absolute_selection_range()),
             _ => None
         }
     }
@@ -366,16 +477,9 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
-    make_enumerated_getter!(Type,
-                            "type",
-                            "text",
-                            "hidden" | "search" | "tel" |
-                            "url" | "email" | "password" |
-                            "datetime" | "date" | "month" |
-                            "week" | "time" | "datetime-local" |
-                            "number" | "range" | "color" |
-                            "checkbox" | "radio" | "file" |
-                            "submit" | "image" | "reset" | "button");
+    fn Type(&self) -> DOMString {
+        DOMString::from(self.input_type().to_str())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
     make_atomic_setter!(SetType, "type");
@@ -566,7 +670,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     fn Labels(&self) -> DomRoot<NodeList> {
-        if self.type_() == atom!("hidden") {
+        if self.input_type() == InputType::Hidden {
             let window = window_from_node(self);
             NodeList::empty(&window)
         } else {
@@ -614,7 +718,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // used for test purpose.
     // check-tidy: no specs after this line
     fn SelectFiles(&self, paths: Vec<DOMString>) {
-        if self.input_type.get() == InputType::InputFile {
+        if self.input_type() == InputType::File {
             self.select_files(Some(paths));
         }
     }
@@ -655,7 +759,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
 // https://html.spec.whatwg.org/multipage/#radio-button-group
 fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
                  group: Option<&Atom>) -> bool {
-    other.input_type.get() == InputType::InputRadio &&
+    other.input_type() == InputType::Radio &&
     // TODO Both a and b are in the same home subtree.
     other.form_owner().r() == owner &&
     match (other.radio_group_name(), group) {
@@ -677,7 +781,8 @@ impl HTMLInputElement {
         // 3.1: disabled state check is in get_unclean_dataset
 
         // Step 3.2
-        let ty = self.type_();
+        let ty = self.Type();
+
         // Step 3.4
         let name = self.Name();
         let is_submitter = match submitter {
@@ -687,25 +792,26 @@ impl HTMLInputElement {
             _ => false
         };
 
-        match ty {
+        match self.input_type() {
             // Step 3.1: it's a button but it is not submitter.
-            atom!("submit") | atom!("button") | atom!("reset") if !is_submitter => return vec![],
+            InputType::Submit | InputType::Button | InputType::Reset if !is_submitter => return vec![],
+
             // Step 3.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
-            atom!("radio") | atom!("checkbox") => if !self.Checked() || name.is_empty() {
+            InputType::Radio | InputType::Checkbox => if !self.Checked() || name.is_empty() {
                 return vec![];
             },
-            atom!("file") => {
+
+            InputType::File => {
                 let mut datums = vec![];
 
                 // Step 3.2-3.7
                 let name = self.Name();
-                let type_ = self.Type();
 
                 match self.GetFiles() {
                     Some(fl) => {
                         for f in fl.iter_files() {
                             datums.push(FormDatum {
-                                ty: type_.clone(),
+                                ty: ty.clone(),
                                 name: name.clone(),
                                 value: FormDatumValue::File(DomRoot::from_ref(&f)),
                             });
@@ -715,7 +821,7 @@ impl HTMLInputElement {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
                             // but this is _type_ of element rather than content right?
-                            ty: type_.clone(),
+                            ty: ty.clone(),
                             name: name.clone(),
                             value: FormDatumValue::String(DOMString::from("")),
                         })
@@ -724,7 +830,9 @@ impl HTMLInputElement {
 
                 return datums;
             }
-            atom!("image") => return vec![], // Unimplemented
+
+            InputType::Image => return vec![], // Unimplemented
+
             // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
             _ => if name.is_empty() {
                 return vec![];
@@ -734,7 +842,7 @@ impl HTMLInputElement {
 
         // Step 3.9
         vec![FormDatum {
-            ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
+            ty: ty.clone(),
             name: name,
             value: FormDatumValue::String(self.Value())
         }]
@@ -755,7 +863,7 @@ impl HTMLInputElement {
             self.checked_changed.set(true);
         }
 
-        if self.input_type.get() == InputType::InputRadio && checked {
+        if self.input_type() == InputType::Radio && checked {
             broadcast_radio_checked(self,
                                     self.radio_group_name().as_ref());
         }
@@ -773,12 +881,12 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
     pub fn reset(&self) {
-        match self.input_type.get() {
-            InputType::InputRadio | InputType::InputCheckbox => {
+        match self.input_type() {
+            InputType::Radio | InputType::Checkbox => {
                 self.update_checked_state(self.DefaultChecked(), false);
                 self.checked_changed.set(false);
             },
-            InputType::InputImage => (),
+            InputType::Image => (),
             _ => ()
         }
 
@@ -790,13 +898,14 @@ impl HTMLInputElement {
     }
 
     fn update_placeholder_shown_state(&self) {
-        match self.input_type.get() {
-            InputType::InputText | InputType::InputPassword => {},
-            _ => return,
+        if !self.input_type().is_textual_or_password() {
+            return
         }
+
         let has_placeholder = !self.placeholder.borrow().is_empty();
         let has_value = !self.textinput.borrow().is_empty();
         let el = self.upcast::<Element>();
+
         el.set_placeholder_shown_state(has_placeholder && !has_value);
     }
 
@@ -865,29 +974,29 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
     fn sanitize_value(&self) {
-        match self.type_() {
-            atom!("text") | atom!("search") | atom!("tel") | atom!("password") => {
+        match self.input_type() {
+            InputType::Text | InputType::Search | InputType::Tel | InputType::Password => {
                 self.textinput.borrow_mut().single_line_content_mut().strip_newlines();
             }
-            atom!("url") => {
+            InputType::Url => {
                 let mut textinput = self.textinput.borrow_mut();
                 let content = textinput.single_line_content_mut();
                 content.strip_newlines();
                 content.strip_leading_and_trailing_ascii_whitespace();
             }
-            atom!("date") => {
+            InputType::Date => {
                 let mut textinput = self.textinput.borrow_mut();
                 if !textinput.single_line_content().is_valid_date_string() {
                     *textinput.single_line_content_mut() = "".into();
                 }
             }
-            atom!("month") => {
+            InputType::Month => {
                 let mut textinput = self.textinput.borrow_mut();
                 if !textinput.single_line_content().is_valid_month_string() {
                     *textinput.single_line_content_mut() = "".into();
                 }
             }
-            atom!("color") => {
+            InputType::Color => {
                 let mut textinput = self.textinput.borrow_mut();
 
                 let is_valid = {
@@ -907,7 +1016,7 @@ impl HTMLInputElement {
                     textinput.set_content("#000000".into());
                 }
             }
-            atom!("time") => {
+            InputType::Time => {
                 let mut textinput = self.textinput.borrow_mut();
 
                 if ! textinput.single_line_content().is_valid_time_string() {
@@ -943,7 +1052,7 @@ impl VirtualMethods for HTMLInputElement {
                 el.set_enabled_state(!disabled_state);
                 el.check_ancestors_disabled_state_for_form_control();
 
-                if self.input_type.get() == InputType::InputText {
+                if self.input_type().is_textual() {
                     let read_write = !(self.ReadOnly() || el.disabled_state());
                     el.set_read_write_state(read_write);
                 }
@@ -969,29 +1078,20 @@ impl VirtualMethods for HTMLInputElement {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        let new_type = match attr.value().as_atom() {
-                            &atom!("button") => InputType::InputButton,
-                            &atom!("submit") => InputType::InputSubmit,
-                            &atom!("reset") => InputType::InputReset,
-                            &atom!("file") => InputType::InputFile,
-                            &atom!("radio") => InputType::InputRadio,
-                            &atom!("checkbox") => InputType::InputCheckbox,
-                            &atom!("password") => InputType::InputPassword,
-                            _ => InputType::InputText,
-                        };
+                        let new_type = InputType::from(attr.value().as_atom());
 
                         // https://html.spec.whatwg.org/multipage/#input-type-change
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         self.input_type.set(new_type);
 
-                        if new_type == InputType::InputText {
+                        if new_type.is_textual() {
                             let read_write = !(self.ReadOnly() || el.disabled_state());
                             el.set_read_write_state(read_write);
                         } else {
                             el.set_read_write_state(false);
                         }
 
-                        if new_type == InputType::InputFile {
+                        if new_type == InputType::File {
                             let window = window_from_node(self);
                             let filelist = FileList::new(&window, vec![]);
                             self.filelist.set(Some(&filelist));
@@ -1026,7 +1126,7 @@ impl VirtualMethods for HTMLInputElement {
                         }
 
                         // Step 5
-                        if new_type == InputType::InputRadio {
+                        if new_type == InputType::Radio {
                             self.radio_group_updated(
                                 self.radio_group_name().as_ref());
                         }
@@ -1035,12 +1135,12 @@ impl VirtualMethods for HTMLInputElement {
                         self.sanitize_value();
                     },
                     AttributeMutation::Removed => {
-                        if self.input_type.get() == InputType::InputRadio {
+                        if self.input_type() == InputType::Radio {
                             broadcast_radio_checked(
                                 self,
                                 self.radio_group_name().as_ref());
                         }
-                        self.input_type.set(InputType::InputText);
+                        self.input_type.set(InputType::default());
                         let el = self.upcast::<Element>();
 
                         let read_write = !(self.ReadOnly() || el.disabled_state());
@@ -1057,7 +1157,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.sanitize_value();
                 self.update_placeholder_shown_state();
             },
-            &local_name!("name") if self.input_type.get() == InputType::InputRadio => {
+            &local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
             },
@@ -1096,7 +1196,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
                 self.update_placeholder_shown_state();
             },
-            &local_name!("readonly") if self.input_type.get() == InputType::InputText => {
+            &local_name!("readonly") if self.input_type().is_textual() => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -1157,8 +1257,7 @@ impl VirtualMethods for HTMLInputElement {
             //TODO: set the editing position for text inputs
 
             document_from_node(self).request_focus(self.upcast());
-            if (self.input_type.get() == InputType::InputText ||
-                self.input_type.get() == InputType::InputPassword) &&
+            if self.input_type().is_textual_or_password() &&
                 // Check if we display a placeholder. Layout doesn't know about this.
                 !self.textinput.borrow().is_empty() {
                     if let Some(mouse_event) = event.downcast::<MouseEvent>() {
@@ -1181,8 +1280,7 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() &&
-            (self.input_type.get() == InputType::InputText ||
-             self.input_type.get() == InputType::InputPassword) {
+            self.input_type().is_textual_or_password() {
                 if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
                     // This can't be inlined, as holding on to textinput.borrow_mut()
                     // during self.implicit_submission will cause a panic.
@@ -1208,8 +1306,7 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() &&
-            (self.input_type.get() == InputType::InputText ||
-             self.input_type.get() == InputType::InputPassword) {
+            self.input_type().is_textual_or_password() {
                 if event.IsTrusted() {
                     let window = window_from_node(self);
                     let _ = window.user_interaction_task_source()
@@ -1254,13 +1351,13 @@ impl Activatable for HTMLInputElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        match self.input_type.get() {
+        match self.input_type() {
             // https://html.spec.whatwg.org/multipage/#submit-button-state-%28type=submit%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#reset-button-state-%28type=reset%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
-            InputType::InputSubmit | InputType::InputReset | InputType::InputFile
-            | InputType::InputCheckbox | InputType::InputRadio => self.is_mutable(),
+            InputType::Submit | InputType::Reset | InputType::File
+            | InputType::Checkbox | InputType::Radio => self.is_mutable(),
             _ => false
         }
     }
@@ -1269,16 +1366,16 @@ impl Activatable for HTMLInputElement {
     #[allow(unsafe_code)]
     fn pre_click_activation(&self) {
         let mut cache = self.activation_state.borrow_mut();
-        let ty = self.input_type.get();
+        let ty = self.input_type();
         cache.old_type = ty;
         cache.was_mutable = self.is_mutable();
         if cache.was_mutable {
             match ty {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
-                // InputType::InputSubmit => (), // No behavior defined
+                // InputType::Submit => (), // No behavior defined
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
-                // InputType::InputSubmit => (), // No behavior defined
-                InputType::InputCheckbox => {
+                // InputType::Submit => (), // No behavior defined
+                InputType::Checkbox => {
                     /*
                     https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):pre-click-activation-steps
                     cache current values of `checked` and `indeterminate`
@@ -1291,7 +1388,7 @@ impl Activatable for HTMLInputElement {
                     self.SetChecked(!cache.checked);
                 },
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):pre-click-activation-steps
-                InputType::InputRadio => {
+                InputType::Radio => {
                     //TODO: if not in document, use root ancestor instead of document
                     let owner = self.form_owner();
                     let doc = document_from_node(self);
@@ -1318,7 +1415,7 @@ impl Activatable for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
     fn canceled_activation(&self) {
         let cache = self.activation_state.borrow();
-        let ty = self.input_type.get();
+        let ty = self.input_type();
         if cache.old_type != ty  {
             // Type changed, abandon ship
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
@@ -1326,11 +1423,11 @@ impl Activatable for HTMLInputElement {
         }
         match ty {
             // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
-            // InputType::InputSubmit => (), // No behavior defined
+            // InputType::Submit => (), // No behavior defined
             // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
-            // InputType::InputReset => (), // No behavior defined
+            // InputType::Reset => (), // No behavior defined
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):canceled-activation-steps
-            InputType::InputCheckbox => {
+            InputType::Checkbox => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
                     self.SetIndeterminate(cache.indeterminate);
@@ -1339,7 +1436,7 @@ impl Activatable for HTMLInputElement {
                 }
             },
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):canceled-activation-steps
-            InputType::InputRadio => {
+            InputType::Radio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
                     match cache.checked_radio.r() {
@@ -1363,14 +1460,14 @@ impl Activatable for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        let ty = self.input_type.get();
+        let ty = self.input_type();
         if self.activation_state.borrow().old_type != ty || !self.is_mutable() {
             // Type changed or input is immutable, abandon ship
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
             return;
         }
         match ty {
-            InputType::InputSubmit => {
+            InputType::Submit => {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
@@ -1379,7 +1476,7 @@ impl Activatable for HTMLInputElement {
                              FormSubmitter::InputElement(self.clone()))
                 });
             },
-            InputType::InputReset => {
+            InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
@@ -1387,7 +1484,7 @@ impl Activatable for HTMLInputElement {
                     o.reset(ResetFrom::NotFromForm)
                 });
             },
-            InputType::InputCheckbox | InputType::InputRadio => {
+            InputType::Checkbox | InputType::Radio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 // Check if document owner is fully active
@@ -1395,7 +1492,7 @@ impl Activatable for HTMLInputElement {
                 target.fire_bubbling_event(atom!("input"));
                 target.fire_bubbling_event(atom!("change"));
             },
-            InputType::InputFile => self.select_files(None),
+            InputType::File => self.select_files(None),
             _ => ()
         }
     }
@@ -1433,11 +1530,11 @@ impl Activatable for HTMLInputElement {
                 let inputs = node.query_selector_iter(DOMString::from("input")).unwrap()
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
-                        input.form_owner() == owner && match input.type_() {
-                            atom!("text") | atom!("search") | atom!("url") | atom!("tel") |
-                            atom!("email") | atom!("password") | atom!("datetime") |
-                            atom!("date") | atom!("month") | atom!("week") | atom!("time") |
-                            atom!("datetime-local") | atom!("number")
+                        input.form_owner() == owner && match input.input_type() {
+                            InputType::Text | InputType::Search | InputType::Url | InputType::Tel
+                            | InputType::Email | InputType::Password | InputType::Datetime
+                            | InputType::Date | InputType::Month | InputType::Week | InputType::Time
+                            | InputType::DatetimeLocal | InputType::Number
                               => true,
                             _ => false
                         }
