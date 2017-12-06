@@ -31,7 +31,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
             selectors: selectors,
             block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
                 PropertyDeclaration::Display(
-                    longhands::display::SpecifiedValue::block),
+                    longhands::display::SpecifiedValue::Block),
                 Importance::Normal
             ))),
             source_location: SourceLocation {

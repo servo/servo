@@ -7,10 +7,10 @@
 
 use app_units::Au;
 use properties::{self, CascadeFlags, ComputedValues, StyleBuilder};
-use properties::longhands::display::computed_value::T as display;
-use properties::longhands::float::computed_value::T as float;
-use properties::longhands::overflow_x::computed_value::T as overflow;
-use properties::longhands::position::computed_value::T as position;
+use properties::longhands::display::computed_value::T as Display;
+use properties::longhands::float::computed_value::T as Float;
+use properties::longhands::overflow_x::computed_value::T as Overflow;
+use properties::longhands::position::computed_value::T as Position;
 
 /// A struct that implements all the adjustment methods.
 ///
@@ -23,10 +23,9 @@ pub struct StyleAdjuster<'a, 'b: 'a> {
 
 impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Trivially constructs a new StyleAdjuster.
+    #[inline]
     pub fn new(style: &'a mut StyleBuilder<'b>) -> Self {
-        StyleAdjuster {
-            style: style,
-        }
+        StyleAdjuster { style }
     }
 
     /// <https://fullscreen.spec.whatwg.org/#new-stacking-layer>
@@ -36,7 +35,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     fn adjust_for_top_layer(&mut self) {
         if !self.style.out_of_flow_positioned() && self.style.in_top_layer() {
-            self.style.mutate_box().set_position(position::absolute);
+            self.style.mutate_box().set_position(Position::Absolute);
         }
     }
 
@@ -47,7 +46,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     fn adjust_for_position(&mut self) {
         if self.style.out_of_flow_positioned() && self.style.floated() {
-            self.style.mutate_box().set_float(float::none);
+            self.style.mutate_box().set_float(Float::None);
         }
     }
 
@@ -97,7 +96,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use properties::computed_value_flags::ComputedValueFlags;
 
         if self.style.inherited_flags().contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE) ||
-            self.style.get_box().clone_display() == display::none {
+            self.style.get_box().clone_display() == Display::None {
             self.style.flags.insert(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE);
         }
 
@@ -127,10 +126,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// TODO(emilio): we should (Gecko too) revise these adjustments in presence
     /// of display: contents.
+    ///
+    /// FIXME(emilio): How does this play with logical properties? Doesn't
+    /// mutating writing-mode change the potential physical sides chosen?
     #[cfg(feature = "gecko")]
     fn adjust_for_text_combine_upright(&mut self) {
-        use computed_values::text_combine_upright::T as text_combine_upright;
-        use computed_values::writing_mode::T as writing_mode;
+        use computed_values::text_combine_upright::T as TextCombineUpright;
+        use computed_values::writing_mode::T as WritingMode;
         use properties::computed_value_flags::ComputedValueFlags;
 
         let writing_mode =
@@ -138,10 +140,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let text_combine_upright =
             self.style.get_inheritedtext().clone_text_combine_upright();
 
-        if writing_mode != writing_mode::horizontal_tb &&
-           text_combine_upright == text_combine_upright::all {
+        if writing_mode != WritingMode::HorizontalTb &&
+           text_combine_upright == TextCombineUpright::All {
             self.style.flags.insert(ComputedValueFlags::IS_TEXT_COMBINED);
-            self.style.mutate_inheritedbox().set_writing_mode(writing_mode::horizontal_tb);
+            self.style.mutate_inheritedbox().set_writing_mode(WritingMode::HorizontalTb);
         }
     }
 
@@ -181,8 +183,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             layout_parent_style.get_inheritedbox().clone_writing_mode();
 
         if our_writing_mode != parent_writing_mode &&
-           self.style.get_box().clone_display() == display::inline {
-            self.style.mutate_box().set_display(display::inline_block);
+           self.style.get_box().clone_display() == Display::Inline {
+            self.style.mutate_box().set_display(Display::InlineBlock);
         }
     }
 
@@ -199,18 +201,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
 
-        if self.style.get_box().clone_display() == display::inline {
-            self.style.mutate_box().set_adjusted_display(display::inline_block,
+        if self.style.get_box().clone_display() == Display::Inline {
+            self.style.mutate_box().set_adjusted_display(Display::InlineBlock,
                                                          false);
         }
 
 
         // When 'contain: paint', update overflow from 'visible' to 'clip'.
         if self.style.get_box().clone_contain().contains(SpecifiedValue::PAINT) {
-            if self.style.get_box().clone_overflow_x() == overflow::visible {
+            if self.style.get_box().clone_overflow_x() == Overflow::Visible {
                 let box_style = self.style.mutate_box();
-                box_style.set_overflow_x(overflow::_moz_hidden_unscrollable);
-                box_style.set_overflow_y(overflow::_moz_hidden_unscrollable);
+                box_style.set_overflow_x(Overflow::MozHiddenUnscrollable);
+                box_style.set_overflow_y(Overflow::MozHiddenUnscrollable);
             }
         }
     }
@@ -219,15 +221,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// both forced to "normal".
     #[cfg(feature = "gecko")]
     fn adjust_for_mathvariant(&mut self) {
-        use properties::longhands::_moz_math_variant::computed_value::T as moz_math_variant;
-        use properties::longhands::font_style::computed_value::T as font_style;
-        use properties::longhands::font_weight::computed_value::T as font_weight;
-        if self.style.get_font().clone__moz_math_variant() != moz_math_variant::none {
+        use properties::longhands::_moz_math_variant::computed_value::T as MozMathVariant;
+        use properties::longhands::font_style::computed_value::T as FontStyle;
+        use properties::longhands::font_weight::computed_value::T as FontWeight;
+        if self.style.get_font().clone__moz_math_variant() != MozMathVariant::None {
             let font_style = self.style.mutate_font();
             // Sadly we don't have a nice name for the computed value
             // of "font-weight: normal".
-            font_style.set_font_weight(font_weight::normal());
-            font_style.set_font_style(font_style::normal);
+            font_style.set_font_weight(FontWeight::normal());
+            font_style.set_font_style(FontStyle::Normal);
         }
     }
 
@@ -237,18 +239,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// See https://github.com/servo/servo/issues/15229
     #[cfg(feature = "servo")]
     fn adjust_for_alignment(&mut self, layout_parent_style: &ComputedValues) {
-        use computed_values::align_items::T as align_items;
-        use computed_values::align_self::T as align_self;
+        use computed_values::align_items::T as AlignItems;
+        use computed_values::align_self::T as AlignSelf;
 
-        if self.style.get_position().clone_align_self() == align_self::auto &&
+        if self.style.get_position().clone_align_self() == AlignSelf::Auto &&
            !self.style.out_of_flow_positioned() {
             let self_align =
                 match layout_parent_style.get_position().clone_align_items() {
-                    align_items::stretch => align_self::stretch,
-                    align_items::baseline => align_self::baseline,
-                    align_items::flex_start => align_self::flex_start,
-                    align_items::flex_end => align_self::flex_end,
-                    align_items::center => align_self::center,
+                    AlignItems::Stretch => AlignSelf::Stretch,
+                    AlignItems::Baseline => AlignSelf::Baseline,
+                    AlignItems::FlexStart => AlignSelf::FlexStart,
+                    AlignItems::FlexEnd => AlignSelf::FlexEnd,
+                    AlignItems::Center => AlignSelf::Center,
                 };
             self.style.mutate_position().set_align_self(self_align);
         }
@@ -288,23 +290,23 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         // If 'visible' is specified but doesn't match the other dimension,
         // it turns into 'auto'.
-        if overflow_x == overflow::visible {
-            overflow_x = overflow::auto;
+        if overflow_x == Overflow::Visible {
+            overflow_x = Overflow::Auto;
         }
 
-        if overflow_y == overflow::visible {
-            overflow_y = overflow::auto;
+        if overflow_y == Overflow::Visible {
+            overflow_y = Overflow::Auto;
         }
 
         #[cfg(feature = "gecko")]
         {
             // overflow: clip is deprecated, so convert to hidden if it's
             // specified in only one dimension.
-            if overflow_x == overflow::_moz_hidden_unscrollable {
-                overflow_x = overflow::hidden;
+            if overflow_x == Overflow::MozHiddenUnscrollable {
+                overflow_x = Overflow::Hidden;
             }
-            if overflow_y == overflow::_moz_hidden_unscrollable {
-                overflow_y = overflow::hidden;
+            if overflow_y == Overflow::MozHiddenUnscrollable {
+                overflow_y = Overflow::Hidden;
             }
         }
 
@@ -324,11 +326,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // TODO: We should probably convert display:contents into display:none
         // in some cases too: https://drafts.csswg.org/css-display/#unbox
         if !flags.contains(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS) ||
-           self.style.get_box().clone_display() != display::contents {
+           self.style.get_box().clone_display() != Display::Contents {
             return;
         }
 
-        self.style.mutate_box().set_display(display::inline);
+        self.style.mutate_box().set_display(Display::Inline);
     }
 
     /// If a <fieldset> has grid/flex display type, we need to inherit
@@ -347,16 +349,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if !flags.contains(CascadeFlags::IS_FIELDSET_CONTENT) {
             return;
         }
-        debug_assert_eq!(self.style.get_box().clone_display(), display::block);
+        debug_assert_eq!(self.style.get_box().clone_display(), Display::Block);
         // TODO We actually want style from parent rather than layout
         // parent, so that this fixup doesn't happen incorrectly when
         // when <fieldset> has "display: contents".
         let parent_display = layout_parent_style.get_box().clone_display();
         let new_display = match parent_display {
-            display::flex |
-            display::inline_flex => Some(display::flex),
-            display::grid |
-            display::inline_grid => Some(display::grid),
+            Display::Flex |
+            Display::InlineFlex => Some(Display::Flex),
+            Display::Grid |
+            Display::InlineGrid => Some(Display::Grid),
             _ => None,
         };
         if let Some(new_display) = new_display {
@@ -372,19 +374,19 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// table.
     #[cfg(feature = "gecko")]
     fn adjust_for_table_text_align(&mut self) {
-        use properties::longhands::text_align::computed_value::T as text_align;
-        if self.style.get_box().clone_display() != display::table {
+        use properties::longhands::text_align::computed_value::T as TextAlign;
+        if self.style.get_box().clone_display() != Display::Table {
             return;
         }
 
         match self.style.get_inheritedtext().clone_text_align() {
-            text_align::_moz_left |
-            text_align::_moz_center |
-            text_align::_moz_right => {},
+            TextAlign::MozLeft |
+            TextAlign::MozCenter |
+            TextAlign::MozRight => {},
             _ => return,
         }
 
-        self.style.mutate_inheritedtext().set_text_align(text_align::start)
+        self.style.mutate_inheritedtext().set_text_align(TextAlign::Start)
     }
 
     /// Set the HAS_TEXT_DECORATION_LINES flag based on parent style.
@@ -419,15 +421,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
         match self.style.get_box().clone_display() {
             // Ruby base and text are always non-breakable.
-            display::ruby_base |
-            display::ruby_text => true,
+            Display::RubyBase |
+            Display::RubyText => true,
             // Ruby base container and text container are breakable.
             // Note that, when certain HTML tags, e.g. form controls, have ruby
             // level container display type, they could also escape from the
             // line break suppression flag while they shouldn't. However, it is
             // generally fine since they themselves are non-breakable.
-            display::ruby_base_container |
-            display::ruby_text_container => false,
+            Display::RubyBaseContainer |
+            Display::RubyTextContainer => false,
             // Anything else is non-breakable if and only if its layout parent
             // has a ruby display type, because any of the ruby boxes can be
             // anonymous.
@@ -448,7 +450,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ) {
         use properties::CascadeFlags;
         use properties::computed_value_flags::ComputedValueFlags;
-        use properties::longhands::unicode_bidi::computed_value::T as unicode_bidi;
+        use properties::longhands::unicode_bidi::computed_value::T as UnicodeBidi;
 
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
@@ -475,9 +477,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // per spec https://drafts.csswg.org/css-ruby-1/#bidi
         if self_display.is_ruby_type() {
             let new_value = match self.style.get_text().clone_unicode_bidi() {
-                unicode_bidi::normal |
-                unicode_bidi::embed => Some(unicode_bidi::isolate),
-                unicode_bidi::bidi_override => Some(unicode_bidi::isolate_override),
+                UnicodeBidi::Normal |
+                UnicodeBidi::Embed => Some(UnicodeBidi::Isolate),
+                UnicodeBidi::BidiOverride => Some(UnicodeBidi::IsolateOverride),
                 _ => None,
             };
             if let Some(new_value) = new_value {

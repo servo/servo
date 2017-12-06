@@ -20,7 +20,8 @@ use platform::font_template::FontTemplateData;
 use std::{mem, ptr};
 use std::os::raw::{c_char, c_long};
 use std::sync::Arc;
-use style::computed_values::{font_stretch, font_weight};
+use style::computed_values::font_stretch::T as FontStretch;
+use style::computed_values::font_weight::T as FontWeight;
 use super::c_str_to_string;
 use text::glyph::GlyphId;
 use text::util::fixed_to_float;
@@ -134,8 +135,8 @@ impl FontHandleMethods for FontHandle {
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 }
     }
-    fn boldness(&self) -> font_weight::T {
-        let default_weight = font_weight::T::normal();
+    fn boldness(&self) -> FontWeight {
+        let default_weight = FontWeight::normal();
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD as c_long == 0 } {
             default_weight
         } else {
@@ -145,9 +146,9 @@ impl FontHandleMethods for FontHandle {
                 if valid {
                     let weight =(*os2).usWeightClass as i32;
                     if weight < 10 {
-                        font_weight::T::from_int(weight * 100).unwrap()
+                        FontWeight::from_int(weight * 100).unwrap()
                     } else if weight >= 100 && weight < 1000 {
-                        font_weight::T::from_int(weight / 100 * 100).unwrap()
+                        FontWeight::from_int(weight / 100 * 100).unwrap()
                     } else {
                         default_weight
                     }
@@ -157,9 +158,9 @@ impl FontHandleMethods for FontHandle {
             }
         }
     }
-    fn stretchiness(&self) -> font_stretch::T {
+    fn stretchiness(&self) -> FontStretch {
         // TODO(pcwalton): Implement this.
-        font_stretch::T::normal
+        FontStretch::Normal
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

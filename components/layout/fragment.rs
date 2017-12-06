@@ -40,10 +40,20 @@ use std::borrow::ToOwned;
 use std::cmp::{Ordering, max, min};
 use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
-use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
-use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration_line};
-use style::computed_values::{transform_style, white_space, word_break};
+use style::computed_values::border_collapse::T as BorderCollapse;
+use style::computed_values::box_sizing::T as BoxSizing;
+use style::computed_values::clear::T as Clear;
+use style::computed_values::color::T as Color;
 use style::computed_values::content::ContentItem;
+use style::computed_values::display::T as Display;
+use style::computed_values::mix_blend_mode::T as MixBlendMode;
+use style::computed_values::overflow_wrap::T as OverflowWrap;
+use style::computed_values::overflow_x::T as StyleOverflow;
+use style::computed_values::position::T as Position;
+use style::computed_values::text_decoration_line::T as TextDecorationLine;
+use style::computed_values::transform_style::T as TransformStyle;
+use style::computed_values::white_space::T as WhiteSpace;
+use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
@@ -866,7 +876,7 @@ impl Fragment {
                 let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
                     QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
-                        border_collapse::T::separate {
+                        BorderCollapse::Separate {
                     base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
                     base_quantities
@@ -876,7 +886,7 @@ impl Fragment {
                 let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS |
                     QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
-                        border_collapse::T::separate {
+                        BorderCollapse::Separate {
                     base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
                     base_quantities
@@ -886,7 +896,7 @@ impl Fragment {
                 let base_quantities =
                     QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
-                        border_collapse::T::separate {
+                        BorderCollapse::Separate {
                     base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
                     base_quantities
@@ -964,7 +974,7 @@ impl Fragment {
                 specified = min(specified, max)
             }
 
-            if self.style.get_position().box_sizing == box_sizing::T::border_box {
+            if self.style.get_position().box_sizing == BoxSizing::BorderBox {
                 specified = max(Au(0), specified - border_padding);
             }
         }
@@ -1164,7 +1174,7 @@ impl Fragment {
             Direction::Block => (self.style.min_block_size(), self.style.max_block_size())
         };
 
-        let border = if self.style().get_position().box_sizing == box_sizing::T::border_box {
+        let border = if self.style().get_position().box_sizing == BoxSizing::BorderBox {
             Some(self.border_padding.start_end(direction))
         } else {
             None
@@ -1224,10 +1234,10 @@ impl Fragment {
     /// 'box-sizing: border-box'. The `border_padding` field must have been initialized.
     pub fn box_sizing_boundary(&self, direction: Direction) -> Au {
         match (self.style().get_position().box_sizing, direction) {
-            (box_sizing::T::border_box, Direction::Inline) => {
+            (BoxSizing::BorderBox, Direction::Inline) => {
                 self.border_padding.inline_start_end()
             }
-            (box_sizing::T::border_box, Direction::Block) => {
+            (BoxSizing::BorderBox, Direction::Block) => {
                 self.border_padding.block_start_end()
             }
             _ => Au(0)
@@ -1320,8 +1330,8 @@ impl Fragment {
                                       containing_block_inline_size: Au) {
         // Compute border.
         let border = match self.style.get_inheritedtable().border_collapse {
-            border_collapse::T::separate => self.border_width(),
-            border_collapse::T::collapse => LogicalMargin::zero(self.style.writing_mode),
+            BorderCollapse::Separate => self.border_width(),
+            BorderCollapse::Collapse => LogicalMargin::zero(self.style.writing_mode),
         };
 
         // Compute padding from the fragment's style.
@@ -1382,7 +1392,7 @@ impl Fragment {
         }
 
         // Go over the ancestor fragments and add all relative offsets (if any).
-        let mut rel_pos = if self.style().get_box().position == position::T::relative {
+        let mut rel_pos = if self.style().get_box().position == Position::Relative {
             from_style(self.style(), containing_block_size)
         } else {
             LogicalSize::zero(self.style.writing_mode)
@@ -1390,7 +1400,7 @@ impl Fragment {
 
         if let Some(ref inline_fragment_context) = self.inline_context {
             for node in &inline_fragment_context.nodes {
-                if node.style.get_box().position == position::T::relative {
+                if node.style.get_box().position == Position::Relative {
                     rel_pos = rel_pos + from_style(&*node.style, containing_block_size);
                 }
             }
@@ -1406,10 +1416,10 @@ impl Fragment {
     pub fn clear(&self) -> Option<ClearType> {
         let style = self.style();
         match style.get_box().clear {
-            clear::T::none => None,
-            clear::T::left => Some(ClearType::Left),
-            clear::T::right => Some(ClearType::Right),
-            clear::T::both => Some(ClearType::Both),
+            Clear::None => None,
+            Clear::Left => Some(ClearType::Left),
+            Clear::Right => Some(ClearType::Right),
+            Clear::Both => Some(ClearType::Both),
         }
     }
 
@@ -1423,11 +1433,11 @@ impl Fragment {
         &*self.selected_style
     }
 
-    pub fn white_space(&self) -> white_space::T {
+    pub fn white_space(&self) -> WhiteSpace {
         self.style().get_inheritedtext().white_space
     }
 
-    pub fn color(&self) -> color::T {
+    pub fn color(&self) -> Color {
         self.style().get_color().color
     }
 
@@ -1438,7 +1448,7 @@ impl Fragment {
     /// CSS 2.1 § 16.3.1. Unfortunately, computing this properly doesn't really fit into Servo's
     /// model. Therefore, this is a best lower bound approximation, but the end result may actually
     /// have the various decoration flags turned on afterward.
-    pub fn text_decoration_line(&self) -> text_decoration_line::T {
+    pub fn text_decoration_line(&self) -> TextDecorationLine {
         self.style().get_text().text_decoration_line
     }
 
@@ -1654,13 +1664,13 @@ impl Fragment {
         let mut flags = SplitOptions::empty();
         if starts_line {
             flags.insert(SplitOptions::STARTS_LINE);
-            if self.style().get_inheritedtext().overflow_wrap == overflow_wrap::T::break_word {
+            if self.style().get_inheritedtext().overflow_wrap == OverflowWrap::BreakWord {
                 flags.insert(SplitOptions::RETRY_AT_CHARACTER_BOUNDARIES)
             }
         }
 
         match self.style().get_inheritedtext().word_break {
-            word_break::T::normal | word_break::T::keep_all => {
+            WordBreak::Normal | WordBreak::KeepAll => {
                 // Break at normal word boundaries. keep-all forbids soft wrap opportunities.
                 let natural_word_breaking_strategy =
                     text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
@@ -1669,7 +1679,7 @@ impl Fragment {
                     max_inline_size,
                     flags)
             }
-            word_break::T::break_all => {
+            WordBreak::BreakAll => {
                 // Break at character boundaries.
                 let character_breaking_strategy =
                     text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
@@ -2205,7 +2215,7 @@ impl Fragment {
                 match (flow.baseline_offset_of_last_line_box_in_flow(),
                        style.get_box().overflow_y) {
                 // Case A
-                (Some(baseline_offset), overflow_x::T::visible) => baseline_offset,
+                (Some(baseline_offset), StyleOverflow::Visible) => baseline_offset,
                 // Case B
                 _ => border_box_block_size + end_margin,
             };
@@ -2519,7 +2529,7 @@ impl Fragment {
             return true
         }
 
-        if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
+        if self.style().get_effects().mix_blend_mode != MixBlendMode::Normal {
             return true
         }
 
@@ -2527,21 +2537,21 @@ impl Fragment {
             return true;
         }
 
-        if self.style().get_box().transform_style == transform_style::T::preserve_3d ||
+        if self.style().get_box().transform_style == TransformStyle::Preserve3d ||
            self.style().overrides_transform_style() {
             return true
         }
 
         // Fixed position and sticky position always create stacking contexts.
-        if self.style().get_box().position == position::T::fixed ||
-           self.style().get_box().position == position::T::sticky  {
+        if self.style().get_box().position == Position::Fixed ||
+           self.style().get_box().position == Position::Sticky  {
             return true
         }
 
         // Statically positioned fragments don't establish stacking contexts if the previous
         // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
         // positioned fragments.
-        if self.style().get_box().position == position::T::static_ {
+        if self.style().get_box().position == Position::Static {
             return false;
         }
 
@@ -2556,7 +2566,7 @@ impl Fragment {
     // from the value specified in the style.
     pub fn effective_z_index(&self) -> i32 {
         match self.style().get_box().position {
-            position::T::static_ => {},
+            Position::Static => {},
             _ => return self.style().get_position().z_index.integer_or(0),
         }
 
@@ -2565,7 +2575,7 @@ impl Fragment {
         }
 
         match self.style().get_box().display {
-            display::T::flex => self.style().get_position().z_index.integer_or(0),
+            Display::Flex => self.style().get_position().z_index.integer_or(0),
             _ => 0,
         }
     }
@@ -2779,12 +2789,12 @@ impl Fragment {
     /// Returns true if this node *or any of the nodes within its inline fragment context* have
     /// non-`static` `position`.
     pub fn is_positioned(&self) -> bool {
-        if self.style.get_box().position != position::T::static_ {
+        if self.style.get_box().position != Position::Static {
             return true
         }
         if let Some(ref inline_context) = self.inline_context {
             for node in inline_context.nodes.iter() {
-                if node.style.get_box().position != position::T::static_ {
+                if node.style.get_box().position != Position::Static {
                     return true
                 }
             }
@@ -2794,7 +2804,7 @@ impl Fragment {
 
     /// Returns true if this node is absolutely positioned.
     pub fn is_absolutely_positioned(&self) -> bool {
-        self.style.get_box().position == position::T::absolute
+        self.style.get_box().position == Position::Absolute
     }
 
     pub fn is_inline_absolute(&self) -> bool {

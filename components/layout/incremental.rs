@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use flow::{self, FlowFlags, Flow};
-use style::computed_values::float;
+use style::computed_values::float::T as Float;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 
@@ -61,7 +61,7 @@ impl<'a> LayoutDamageComputation for &'a mut Flow {
         }
 
         let self_base = flow::mut_base(self);
-        if self_base.flags.float_kind() != float::T::none &&
+        if self_base.flags.float_kind() != Float::None &&
                 self_base.restyle_damage.intersects(ServoRestyleDamage::REFLOW) {
             special_damage.insert(SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT);
         }

@@ -103,11 +103,11 @@ impl KeyframesAnimationState {
 
         // Update the next iteration direction if applicable.
         match self.direction {
-            AnimationDirection::alternate |
-            AnimationDirection::alternate_reverse => {
+            AnimationDirection::Alternate |
+            AnimationDirection::AlternateReverse => {
                 self.current_direction = match self.current_direction {
-                    AnimationDirection::normal => AnimationDirection::reverse,
-                    AnimationDirection::reverse => AnimationDirection::normal,
+                    AnimationDirection::Normal => AnimationDirection::Reverse,
+                    AnimationDirection::Reverse => AnimationDirection::Normal,
                     _ => unreachable!(),
                 };
             }
@@ -551,15 +551,15 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
             let animation_direction = box_style.animation_direction_mod(i);
 
             let initial_direction = match animation_direction {
-                AnimationDirection::normal |
-                AnimationDirection::alternate => AnimationDirection::normal,
-                AnimationDirection::reverse |
-                AnimationDirection::alternate_reverse => AnimationDirection::reverse,
+                AnimationDirection::Normal |
+                AnimationDirection::Alternate => AnimationDirection::Normal,
+                AnimationDirection::Reverse |
+                AnimationDirection::AlternateReverse => AnimationDirection::Reverse,
             };
 
             let running_state = match box_style.animation_play_state_mod(i) {
-                AnimationPlayState::paused => KeyframesRunningState::Paused(0.),
-                AnimationPlayState::running => KeyframesRunningState::Running,
+                AnimationPlayState::Paused => KeyframesRunningState::Paused(0.),
+                AnimationPlayState::Running => KeyframesRunningState::Running,
             };
 
 
@@ -677,7 +677,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
             let last_keyframe_position;
             let target_keyframe_position;
             match state.current_direction {
-                AnimationDirection::normal => {
+                AnimationDirection::Normal => {
                     target_keyframe_position =
                         animation.steps.iter().position(|step| {
                             total_progress as f32 <= step.start_percentage.0
@@ -687,7 +687,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
                         if pos != 0 { Some(pos - 1) } else { None }
                     }).unwrap_or(0);
                 }
-                AnimationDirection::reverse => {
+                AnimationDirection::Reverse => {
                     target_keyframe_position =
                         animation.steps.iter().rev().position(|step| {
                             total_progress as f32 <= 1. - step.start_percentage.0
@@ -717,10 +717,10 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
             let relative_timespan = (target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0).abs();
             let relative_duration = relative_timespan as f64 * duration;
             let last_keyframe_ended_at = match state.current_direction {
-                AnimationDirection::normal => {
+                AnimationDirection::Normal => {
                     state.started_at + (total_duration * last_keyframe.start_percentage.0 as f64)
                 }
-                AnimationDirection::reverse => {
+                AnimationDirection::Reverse => {
                     state.started_at + (total_duration * (1. - last_keyframe.start_percentage.0 as f64))
                 }
                 _ => unreachable!(),

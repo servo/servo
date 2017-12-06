@@ -76,13 +76,13 @@ ${helpers.single_keyword("word-break",
         #[inline]
         fn to_computed_value(&self, _: &Context) -> computed_value::T {
             match *self {
-                % for value in "auto none inter_word".split():
+                % for value in "Auto None InterWord".split():
                     SpecifiedValue::${value} => computed_value::T::${value},
                 % endfor
                 % if product == "gecko":
-                    SpecifiedValue::inter_character => computed_value::T::inter_character,
+                    SpecifiedValue::InterCharacter => computed_value::T::InterCharacter,
                     // https://drafts.csswg.org/css-text-3/#valdef-text-justify-distribute
-                    SpecifiedValue::distribute => computed_value::T::inter_character,
+                    SpecifiedValue::Distribute => computed_value::T::InterCharacter,
                 % endif
             }
         }
@@ -90,11 +90,11 @@ ${helpers.single_keyword("word-break",
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
             match *computed {
-                % for value in "auto none inter_word".split():
+                % for value in "Auto None InterWord".split():
                     computed_value::T::${value} => SpecifiedValue::${value},
                 % endfor
                 % if product == "gecko":
-                    computed_value::T::inter_character => SpecifiedValue::inter_character,
+                    computed_value::T::InterCharacter => SpecifiedValue::InterCharacter,
                 % endif
             }
         }
@@ -109,18 +109,25 @@ ${helpers.single_keyword("text-align-last",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
+//
+// FIXME(emilio): This can't really be that complicated.
 <%helpers:longhand name="text-align" animation_value_type="discrete"
                    flags="APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-text/#propdef-text-align">
+    pub use self::computed_value::TextAlign;
+
     pub mod computed_value {
+        pub use self::TextAlign as T;
+
         macro_rules! define_text_align {
             ( $( $name: ident ( $string: expr ) => $discriminant: expr, )+ ) => {
-                define_css_keyword_enum! { T:
+                define_css_keyword_enum! { TextAlign:
                     $(
                         $string => $name,
                     )+
                 }
-                impl T {
+
+                impl TextAlign {
                     pub fn to_u32(self) -> u32 {
                         match self {
                             $(
@@ -139,22 +146,23 @@ ${helpers.single_keyword("text-align-last",
                 }
             }
         }
+        // FIXME(emilio): Why reinventing the world?
         define_text_align! {
-            start("start") => 0,
-            end("end") => 1,
-            left("left") => 2,
-            right("right") => 3,
-            center("center") => 4,
-            justify("justify") => 5,
+            Start("start") => 0,
+            End("end") => 1,
+            Left("left") => 2,
+            Right("right") => 3,
+            Center("center") => 4,
+            Justify("justify") => 5,
             % if product == "servo":
-            servo_center("-servo-center") => 6,
-            servo_left("-servo-left") => 7,
-            servo_right("-servo-right") => 8,
+            ServoCenter("-servo-center") => 6,
+            ServoLeft("-servo-left") => 7,
+            ServoRight("-servo-right") => 8,
             % else:
-            _moz_center("-moz-center") => 6,
-            _moz_left("-moz-left") => 7,
-            _moz_right("-moz-right") => 8,
-            char("char") => 10,
+            MozCenter("-moz-center") => 6,
+            MozLeft("-moz-left") => 7,
+            MozRight("-moz-right") => 8,
+            Char("char") => 10,
             % endif
         }
 
@@ -164,8 +172,8 @@ ${helpers.single_keyword("text-align-last",
                                                     gecko_strip_moz_prefix=False), type="T")}
     }
 
-    #[inline] pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::start
+    #[inline] pub fn get_initial_value() -> TextAlign {
+        TextAlign::Start
     }
 
 
@@ -176,14 +184,14 @@ ${helpers.single_keyword("text-align-last",
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum SpecifiedValue {
-            Keyword(computed_value::T),
+            Keyword(TextAlign),
             MatchParent,
             MozCenterOrInherit,
         }
         pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<SpecifiedValue, ParseError<'i>> {
             // MozCenterOrInherit cannot be parsed, only set directly on th elements
-            if let Ok(key) = input.try(computed_value::T::parse) {
+            if let Ok(key) = input.try(TextAlign::parse) {
                 Ok(SpecifiedValue::Keyword(key))
             } else {
                 input.expect_ident_matching("match-parent")?;
@@ -211,10 +219,10 @@ ${helpers.single_keyword("text-align-last",
             }
         }
         impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
+            type ComputedValue = TextAlign;
 
             #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            fn to_computed_value(&self, context: &Context) -> TextAlign {
                 match *self {
                     SpecifiedValue::Keyword(key) => key,
                     SpecifiedValue::MatchParent => {
@@ -230,17 +238,17 @@ ${helpers.single_keyword("text-align-last",
                         let parent = context.builder.get_parent_inheritedtext().clone_text_align();
                         let ltr = context.builder.inherited_writing_mode().is_bidi_ltr();
                         match (parent, ltr) {
-                            (computed_value::T::start, true) => computed_value::T::left,
-                            (computed_value::T::start, false) => computed_value::T::right,
-                            (computed_value::T::end, true) => computed_value::T::right,
-                            (computed_value::T::end, false) => computed_value::T::left,
+                            (TextAlign::Start, true) => TextAlign::Left,
+                            (TextAlign::Start, false) => TextAlign::Right,
+                            (TextAlign::End, true) => TextAlign::Right,
+                            (TextAlign::End, false) => TextAlign::Left,
                             _ => parent
                         }
                     }
                     SpecifiedValue::MozCenterOrInherit => {
                         let parent = context.builder.get_parent_inheritedtext().clone_text_align();
-                        if parent == computed_value::T::start {
-                            computed_value::T::center
+                        if parent == TextAlign::Start {
+                            TextAlign::Center
                         } else {
                             parent
                         }
@@ -314,8 +322,8 @@ ${helpers.predefined_type("word-spacing",
         // Start with no declarations if this is an atomic inline-level box; otherwise, start with the
         // declarations in effect and add in the text decorations that this block specifies.
         let mut result = match context.style().get_box().clone_display() {
-            super::display::computed_value::T::inline_block |
-            super::display::computed_value::T::inline_table => get_initial_value(),
+            super::display::computed_value::T::InlineBlock |
+            super::display::computed_value::T::InlineTable => get_initial_value(),
             _ => context.builder.get_parent_inheritedtext().clone__servo_text_decorations_in_effect()
         };
 
@@ -354,31 +362,31 @@ ${helpers.predefined_type("word-spacing",
     impl SpecifiedValue {
         pub fn allow_wrap(&self) -> bool {
             match *self {
-                SpecifiedValue::nowrap |
-                SpecifiedValue::pre => false,
-                SpecifiedValue::normal |
-                SpecifiedValue::pre_wrap |
-                SpecifiedValue::pre_line => true,
+                SpecifiedValue::Nowrap |
+                SpecifiedValue::Pre => false,
+                SpecifiedValue::Normal |
+                SpecifiedValue::PreWrap |
+                SpecifiedValue::PreLine => true,
             }
         }
 
         pub fn preserve_newlines(&self) -> bool {
             match *self {
-                SpecifiedValue::normal |
-                SpecifiedValue::nowrap => false,
-                SpecifiedValue::pre |
-                SpecifiedValue::pre_wrap |
-                SpecifiedValue::pre_line => true,
+                SpecifiedValue::Normal |
+                SpecifiedValue::Nowrap => false,
+                SpecifiedValue::Pre |
+                SpecifiedValue::PreWrap |
+                SpecifiedValue::PreLine => true,
             }
         }
 
         pub fn preserve_spaces(&self) -> bool {
             match *self {
-                SpecifiedValue::normal |
-                SpecifiedValue::nowrap |
-                SpecifiedValue::pre_line => false,
-                SpecifiedValue::pre |
-                SpecifiedValue::pre_wrap => true,
+                SpecifiedValue::Normal |
+                SpecifiedValue::Nowrap |
+                SpecifiedValue::PreLine => false,
+                SpecifiedValue::Pre |
+                SpecifiedValue::PreWrap => true,
             }
         }
     }
@@ -399,7 +407,7 @@ ${helpers.predefined_type(
 <%helpers:longhand name="text-emphasis-style" products="gecko" boxed="True"
                    animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
-    use computed_values::writing_mode::T as writing_mode;
+    use computed_values::writing_mode::T as WritingMode;
     use std::fmt;
     use style_traits::ToCss;
     use unicode_segmentation::UnicodeSegmentation;
@@ -519,7 +527,7 @@ ${helpers.predefined_type(
             match *self {
                 SpecifiedValue::Keyword(ref keyword) => {
                     let default_shape = if context.style().get_inheritedbox()
-                                                  .clone_writing_mode() == writing_mode::horizontal_tb {
+                                                  .clone_writing_mode() == WritingMode::HorizontalTb {
                         ShapeKeyword::Circle
                     } else {
                         ShapeKeyword::Sesame

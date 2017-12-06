@@ -13,7 +13,7 @@ use data::ElementData;
 use dom::TElement;
 use invalidation::element::restyle_hints::RestyleHint;
 use properties::ComputedValues;
-use properties::longhands::display::computed_value as display;
+use properties::longhands::display::computed_value::T as Display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
@@ -151,11 +151,11 @@ trait PrivateMatchMethods: TElement {
             (context.shared.traversal_flags.contains(TraversalFlags::ForCSSRuleChanges) &&
              (has_new_animation_style || has_animations)) ||
             !old_box_style.animations_equals(new_box_style) ||
-             (old_display_style == display::T::none &&
-              new_display_style != display::T::none &&
+             (old_display_style == Display::None &&
+              new_display_style != Display::None &&
               has_new_animation_style) ||
-             (old_display_style != display::T::none &&
-              new_display_style == display::T::none &&
+             (old_display_style != Display::None &&
+              new_display_style == Display::None &&
               has_animations)
         })
     }
@@ -179,8 +179,8 @@ trait PrivateMatchMethods: TElement {
         let display_changed_from_none = old_values.map_or(false, |old| {
             let old_display_style = old.get_box().clone_display();
             let new_display_style = new_values.get_box().clone_display();
-            old_display_style == display::T::none &&
-            new_display_style != display::T::none
+            old_display_style == Display::None &&
+            new_display_style != Display::None
         });
 
         if display_changed_from_none {
@@ -363,7 +363,7 @@ trait PrivateMatchMethods: TElement {
         // NOTE(emilio): Gecko has the special-case of -moz-binding, but
         // that gets handled on the frame constructor when processing
         // the reframe, so no need to handle that here.
-        if old_display == display::T::none && old_display != new_display {
+        if old_display == Display::None && old_display != new_display {
             return ChildCascadeRequirement::MustCascadeChildren
         }
 

@@ -67,7 +67,7 @@ impl TableWrapperFlow {
                                         -> TableWrapperFlow {
         let mut block_flow = BlockFlow::from_fragment_and_float_kind(fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::T::fixed {
+                              table_layout::T::Fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto

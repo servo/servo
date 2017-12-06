@@ -20,11 +20,12 @@ use layout_debug;
 use model::MaybeAuto;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
-use style::computed_values::{border_collapse, border_top_style};
+use style::computed_values::border_collapse::T as BorderCollapse;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::Color;
 use style::values::generics::box_::VerticalAlign;
+use style::values::specified::BorderStyle;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 
@@ -259,8 +260,8 @@ impl Flow for TableCellFlow {
                                              .style
                                              .get_inheritedtable()
                                              .border_collapse {
-            border_collapse::T::separate => BorderPaintingMode::Separate,
-            border_collapse::T::collapse => BorderPaintingMode::Collapse(&self.collapsed_borders),
+            BorderCollapse::Separate => BorderPaintingMode::Separate,
+            BorderCollapse::Collapse => BorderPaintingMode::Collapse(&self.collapsed_borders),
         };
 
         self.block_flow.build_display_list_for_block(state, border_painting_mode)
@@ -425,7 +426,7 @@ impl CollapsedBordersForCell {
     pub fn adjust_border_colors_and_styles_for_painting(
             &self,
             border_colors: &mut SideOffsets2D<Color>,
-            border_styles: &mut SideOffsets2D<border_top_style::T>,
+            border_styles: &mut SideOffsets2D<BorderStyle>,
             writing_mode: WritingMode) {
         let logical_border_colors = LogicalMargin::new(writing_mode,
                                                        self.block_start_border.color,

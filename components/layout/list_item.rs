@@ -19,7 +19,8 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedC
 use fragment::Overflow;
 use generated_content;
 use inline::InlineFlow;
-use style::computed_values::{list_style_type, position};
+use style::computed_values::list_style_type::T as ListStyleType;
+use style::computed_values::position::T as Position;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -50,12 +51,12 @@ impl ListItemFlow {
 
         if let Some(ref marker) = this.marker_fragments.first() {
             match marker.style().get_list().list_style_type {
-                list_style_type::T::disc |
-                list_style_type::T::none |
-                list_style_type::T::circle |
-                list_style_type::T::square |
-                list_style_type::T::disclosure_open |
-                list_style_type::T::disclosure_closed => {}
+                ListStyleType::Disc |
+                ListStyleType::None |
+                ListStyleType::Circle |
+                ListStyleType::Square |
+                ListStyleType::DisclosureOpen |
+                ListStyleType::DisclosureClosed => {}
                 _ => this.block_flow.base.restyle_damage.insert(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT),
             }
         }
@@ -177,7 +178,7 @@ impl Flow for ListItemFlow {
     }
 
     /// The 'position' property of this flow.
-    fn positioning(&self) -> position::T {
+    fn positioning(&self) -> Position {
         self.block_flow.positioning()
     }
 
@@ -229,13 +230,16 @@ pub enum ListStyleTypeContent {
 
 impl ListStyleTypeContent {
     /// Returns the content to be used for the given value of the `list-style-type` property.
-    pub fn from_list_style_type(list_style_type: list_style_type::T) -> ListStyleTypeContent {
+    pub fn from_list_style_type(list_style_type: ListStyleType) -> ListStyleTypeContent {
         // Just to keep things simple, use a nonbreaking space (Unicode 0xa0) to provide the marker
         // separation.
         match list_style_type {
-            list_style_type::T::none => ListStyleTypeContent::None,
-            list_style_type::T::disc | list_style_type::T::circle | list_style_type::T::square |
-            list_style_type::T::disclosure_open | list_style_type::T::disclosure_closed => {
+            ListStyleType::None => ListStyleTypeContent::None,
+            ListStyleType::Disc |
+            ListStyleType::Circle |
+            ListStyleType::Square |
+            ListStyleType::DisclosureOpen |
+            ListStyleType::DisclosureClosed => {
                 let text = generated_content::static_representation(list_style_type);
                 ListStyleTypeContent::StaticText(text)
             }

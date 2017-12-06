@@ -38,7 +38,7 @@ def to_rust_ident(name):
 
 
 def to_camel_case(ident):
-    return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
+    return re.sub("(^|_|-)([a-z0-9])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
 
 def to_camel_case_lower(ident):

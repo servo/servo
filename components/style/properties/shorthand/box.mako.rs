@@ -18,20 +18,20 @@
                 try_match_ident_ignore_ascii_case! { input,
                     "-moz-scrollbars-horizontal" => {
                         Ok(expanded! {
-                            overflow_x: SpecifiedValue::scroll,
-                            overflow_y: SpecifiedValue::hidden,
+                            overflow_x: SpecifiedValue::Scroll,
+                            overflow_y: SpecifiedValue::Hidden,
                         })
                     }
                     "-moz-scrollbars-vertical" => {
                         Ok(expanded! {
-                            overflow_x: SpecifiedValue::hidden,
-                            overflow_y: SpecifiedValue::scroll,
+                            overflow_x: SpecifiedValue::Hidden,
+                            overflow_y: SpecifiedValue::Scroll,
                         })
                     }
                     "-moz-scrollbars-none" => {
                         Ok(expanded! {
-                            overflow_x: SpecifiedValue::hidden,
-                            overflow_y: SpecifiedValue::hidden,
+                            overflow_x: SpecifiedValue::Hidden,
+                            overflow_y: SpecifiedValue::Hidden,
                         })
                     }
                 }
