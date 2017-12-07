@@ -2186,7 +2186,7 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
-        let interactive_time = InteractiveMetrics::new(window.time_profiler_chan().clone());
+        let interactive_time = InteractiveMetrics::new(window.time_profiler_chan().clone(), url.clone());
 
         Document {
             node: Node::new_document_node(),
