@@ -46,6 +46,15 @@ pub const MAX_TASK_NS: u64 = 50000000;
 /// 10 second window (in ns)
 const INTERACTIVE_WINDOW_SECONDS_IN_NS: u64 = 10000000000;
 
+pub trait ToMs<T> {
+    fn to_ms(&self) -> T;
+}
+
+impl ToMs<f64> for u64 {
+    fn to_ms(&self) -> f64 {
+        *self as f64 / 1000000.
+    }
+}
 
 fn set_metric<U: ProgressiveWebMetric>(
     pwm: &U,
@@ -85,8 +94,8 @@ fn set_metric<U: ProgressiveWebMetric>(
 
     // Print the metric to console if the print-pwm option was given.
     if opts::get().print_pwm {
-        println!("Navigation start: {}", pwm.get_navigation_start().unwrap());
-        println!("{:?} {:?}", metric_type, time);
+        println!("Navigation start: {}", pwm.get_navigation_start().unwrap().to_ms());
+        println!("{:?} {:?}", metric_type, time.to_ms());
     }
 
 }
