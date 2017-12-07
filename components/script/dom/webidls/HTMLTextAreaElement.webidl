@@ -50,7 +50,7 @@ interface HTMLTextAreaElement : HTMLElement {
 
   readonly attribute NodeList labels;
 
-  // void select();
+  void select();
   [SetterThrows]
            attribute unsigned long? selectionStart;
   [SetterThrows]
