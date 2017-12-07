@@ -417,6 +417,31 @@ impl TextControl for HTMLInputElement {
             _ => false
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#concept-input-apply
+    //
+    // Defines input types to which the select() IDL method applies. These are a superset of the
+    // types for which selection_api_applies() returns true.
+    //
+    // Types omitted which could theoretically be included if they were
+    // rendered as a text control: file
+    fn has_selectable_text(&self) -> bool {
+        match self.input_type() {
+            InputType::Text | InputType::Search | InputType::Url
+            | InputType::Tel | InputType::Password | InputType::Email
+            | InputType::Date | InputType::Month | InputType::Week
+            | InputType::Time | InputType::DatetimeLocal | InputType::Number
+            | InputType::Color => {
+                true
+            }
+
+            InputType::Button | InputType::Checkbox | InputType::File
+            | InputType::Hidden | InputType::Image | InputType::Radio
+            | InputType::Range | InputType::Reset | InputType::Submit => {
+                false
+            }
+        }
+    }
 }
 
 impl HTMLInputElementMethods for HTMLInputElement {
@@ -685,6 +710,11 @@ impl HTMLInputElementMethods for HTMLInputElement {
         } else {
             self.upcast::<HTMLElement>().labels()
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    fn Select(&self) {
+        self.dom_select(); // defined in TextControl trait
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart

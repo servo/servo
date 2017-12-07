@@ -15,6 +15,18 @@ use textinput::{SelectionDirection, TextInput};
 pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn textinput(&self) -> &DomRefCell<TextInput<ScriptToConstellationChan>>;
     fn selection_api_applies(&self) -> bool;
+    fn has_selectable_text(&self) -> bool;
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    fn dom_select(&self) {
+        // Step 1
+        if !self.has_selectable_text() {
+            return;
+        }
+
+        // Step 2
+        self.set_selection_range(Some(0), Some(u32::max_value()), None);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn get_dom_selection_start(&self) -> Option<u32> {

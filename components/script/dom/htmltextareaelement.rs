@@ -152,6 +152,10 @@ impl TextControl for HTMLTextAreaElement {
     fn selection_api_applies(&self) -> bool {
         true
     }
+
+    fn has_selectable_text(&self) -> bool {
+        true
+    }
 }
 
 impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
@@ -264,6 +268,11 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     fn Labels(&self) -> DomRoot<NodeList> {
         self.upcast::<HTMLElement>().labels()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    fn Select(&self) {
+        self.dom_select(); // defined in TextControl trait
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
