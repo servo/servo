@@ -10,8 +10,8 @@ use bloom::StyleBloom;
 use data::{EagerPseudoStyles, ElementData};
 use dom::{TElement, SendElement};
 #[cfg(feature = "servo")] use dom::OpaqueNode;
-use euclid::ScaleFactor;
 use euclid::Size2D;
+use euclid::TypedScale;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
@@ -171,7 +171,7 @@ impl<'a> SharedStyleContext<'a> {
     }
 
     /// The device pixel ratio
-    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
         self.stylist.device().device_pixel_ratio()
     }
 

@@ -19,7 +19,7 @@ use wrappers::CefWrap;
 
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::{Point2D, TypedPoint2D, Size2D, TypedSize2D, ScaleFactor};
+use euclid::{Point2D, TypedPoint2D, Size2D, TypedSize2D, TypedScale};
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
@@ -276,11 +276,11 @@ impl WindowMethods for Window {
         }
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         if cfg!(target_os="macos") {
             let browser = self.cef_browser.borrow();
             match *browser {
-                None => ScaleFactor::new(1.0),
+                None => TypedScale::new(1.0),
                 Some(ref browser) => {
                     let mut view_rect = cef_rect_t::zero();
                     if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
@@ -298,13 +298,13 @@ impl WindowMethods for Window {
                                .get_render_handler()
                                .get_backing_rect((*browser).clone(), &mut backing_rect);
                     }
-                    ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32)
+                    TypedScale::new(backing_rect.width as f32 / view_rect.width as f32)
                 }
             }
         } else {
             // FIXME(zmike)
             // need to figure out a method for actually getting the scale factor instead of this nonsense
-            ScaleFactor::new(1.0 as f32)
+            TypedScale::new(1.0 as f32)
         }
     }
 

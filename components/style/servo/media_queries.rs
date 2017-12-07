@@ -7,7 +7,7 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{Parser, RGBA};
-use euclid::{ScaleFactor, Size2D, TypedSize2D};
+use euclid::{TypedScale, Size2D, TypedSize2D};
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::ComputedValues;
@@ -31,7 +31,7 @@ pub struct Device {
     /// The current viewport size, in CSS pixels.
     viewport_size: TypedSize2D<f32, CSSPixel>,
     /// The current device pixel ratio, from CSS pixels to device pixels.
-    device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+    device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
 
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -57,7 +57,7 @@ impl Device {
     pub fn new(
         media_type: MediaType,
         viewport_size: TypedSize2D<f32, CSSPixel>,
-        device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>
+        device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>
     ) -> Device {
         Device {
             media_type,
@@ -121,7 +121,7 @@ impl Device {
     }
 
     /// Returns the device pixel ratio.
-    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
         self.device_pixel_ratio
     }
 
