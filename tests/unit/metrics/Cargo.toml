@@ -18,5 +18,6 @@ metrics = {path = "../../../components/metrics"}
 msg = {path = "../../../components/msg"}
 net_traits = {path = "../../../components/net_traits"}
 profile_traits = {path = "../../../components/profile_traits"}
+servo_url = {path = "../../../components/url"}
 style = {path = "../../../components/style"}
 time = "0.1.12"

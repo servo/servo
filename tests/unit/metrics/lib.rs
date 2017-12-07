@@ -12,6 +12,7 @@ extern crate metrics;
 extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
+extern crate servo_url;
 extern crate style;
 extern crate time;
 

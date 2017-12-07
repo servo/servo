@@ -1782,6 +1782,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "servo_config 0.0.1",
+ "servo_url 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1797,6 +1798,7 @@ dependencies = [
  "msg 0.0.1",
  "net_traits 0.0.1",
  "profile_traits 0.0.1",
+ "servo_url 0.0.1",
  "style 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
