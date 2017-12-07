@@ -28,6 +28,18 @@ pub enum PseudoElementResolution {
     Force,
 }
 
+/// Whether we can skip cascading of some properties if not
+/// necessary, or we have to cascade everything.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PropertyCascading {
+    /// Allow skipping properties in other category if the
+    /// element has display:none.
+    AllowSkippingForDisplayNone,
+    /// Force cascading all properties so that the result
+    /// can be exposed to outside observer, e.g. scripts.
+    ForceAll,
+}
+
 /// A struct that takes care of resolving the style of a given element.
 pub struct StyleResolverForElement<'a, 'ctx, 'le, E>
 where
@@ -39,6 +51,7 @@ where
     context: &'a mut StyleContext<'ctx, E>,
     rule_inclusion: RuleInclusion,
     pseudo_resolution: PseudoElementResolution,
+    prop_cascading: PropertyCascading,
     _marker: ::std::marker::PhantomData<&'le E>,
 }
 
@@ -138,12 +151,14 @@ where
         context: &'a mut StyleContext<'ctx, E>,
         rule_inclusion: RuleInclusion,
         pseudo_resolution: PseudoElementResolution,
+        prop_cascading: PropertyCascading,
     ) -> Self {
         Self {
             element,
             context,
             rule_inclusion,
             pseudo_resolution,
+            prop_cascading,
             _marker: ::std::marker::PhantomData,
         }
     }
@@ -571,6 +586,10 @@ where
             self.element.is_root()
         {
             cascade_flags.insert(CascadeFlags::IS_ROOT_ELEMENT);
+        }
+
+        if self.prop_cascading == PropertyCascading::AllowSkippingForDisplayNone {
+            cascade_flags.insert(CascadeFlags::ALLOW_SKIPPING_OTHER_CATEGORY);
         }
 
         let implemented_pseudo = self.element.implemented_pseudo_element();
