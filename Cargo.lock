@@ -1050,7 +1050,6 @@ dependencies = [
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
- "stylo_tests 0.0.1",
 ]
 
 [[package]]
@@ -2807,24 +2806,10 @@ dependencies = [
  "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
- "deny_public_fields_tests 0.0.1",
- "gfx_tests 0.0.1",
  "glutin_app 0.0.1",
- "layout_tests 0.0.1",
  "libservo 0.0.1",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "malloc_size_of_tests 0.0.1",
- "metrics_tests 0.0.1",
- "msg_tests 0.0.1",
- "net_tests 0.0.1",
- "net_traits_tests 0.0.1",
- "profile_tests 0.0.1",
- "script_plugins_tests 0.0.1",
- "script_tests 0.0.1",
- "servo_config_tests 0.0.1",
- "servo_remutex_tests 0.0.1",
  "sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "style_tests 0.0.1",
 ]
 
 [[package]]
