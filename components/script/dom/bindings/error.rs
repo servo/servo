@@ -69,6 +69,8 @@ pub enum Error {
     TypeMismatch,
     /// InvalidModificationError DOMException
     InvalidModification,
+    /// NotReadableError DOMException
+    NotReadable,
 
     /// TypeError JavaScript Error
     Type(String),
@@ -110,6 +112,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: &GlobalScope, resu
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::InvalidModification => DOMErrorName::InvalidModificationError,
+        Error::NotReadable => DOMErrorName::NotReadableError,
         Error::Type(message) => {
             assert!(!JS_IsExceptionPending(cx));
             throw_type_error(cx, &message);

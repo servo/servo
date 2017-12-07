@@ -9,7 +9,10 @@ interface FileReaderSync {
   // Synchronously return strings
 
   // ArrayBuffer readAsArrayBuffer(Blob blob);
-  // DOMString readAsBinaryString(Blob blob);
-  // DOMString readAsText(Blob blob, optional DOMString label);
-  // DOMString readAsDataURL(Blob blob);
+  [Throws]
+  DOMString readAsBinaryString(Blob blob);
+  [Throws]
+  DOMString readAsText(Blob blob, optional DOMString label);
+  [Throws]
+  DOMString readAsDataURL(Blob blob);
 };

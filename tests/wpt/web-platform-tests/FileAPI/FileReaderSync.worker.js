@@ -21,8 +21,8 @@ test(function() {
 }, "readAsDataURL");
 
 test(function() {
-  var data = readerSync.readAsArrayBuffer(blob);
-  assert_true(data instanceof ArrayBuffer);
-}, "readAsArrayBuffer");
+  var data = readerSync.readAsBinaryString(blob);
+  assert_equals(data, "test");
+}, "readAsBinaryString");
 
 done();

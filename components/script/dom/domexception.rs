@@ -35,6 +35,7 @@ pub enum DOMErrorName {
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
+    NotReadableError = DOMExceptionConstants::NOT_READABLE_ERR,
 }
 
 #[dom_struct]
@@ -94,6 +95,7 @@ impl DOMExceptionMethods for DOMException {
             DOMErrorName::InvalidNodeTypeError =>
                 "The supplied node is incorrect or has an incorrect ancestor for this operation.",
             DOMErrorName::DataCloneError => "The object can not be cloned.",
+            DOMErrorName::NotReadableError => "The I/O read operation failed."
         };
 
         DOMString::from(message)

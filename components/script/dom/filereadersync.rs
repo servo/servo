@@ -2,23 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::FileReaderSyncBinding;
-use dom::bindings::error::Fallible;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::FileReaderSyncBinding::{FileReaderSyncMethods, FileReaderSyncBinding};
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use dom::blob::Blob;
+use dom::bindings::str::DOMString;
+use dom::filereader::{FileReaderReadyState};
+use base64;
+use std::cell::Cell;
+use encoding_rs::{Encoding, UTF_8};
+use hyper::mime::{Attr, Mime};
 
 #[dom_struct]
 pub struct FileReaderSync {
-    eventtarget: EventTarget
+    eventtarget: EventTarget,
+    ready_state: Cell<FileReaderReadyState>,
 }
 
 impl FileReaderSync {
     pub fn new_inherited() -> FileReaderSync {
         FileReaderSync {
             eventtarget: EventTarget::new_inherited(),
+            ready_state: Cell::new(FileReaderReadyState::Empty),
         }
     }
 
@@ -29,5 +39,93 @@ impl FileReaderSync {
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReaderSync>> {
         Ok(FileReaderSync::new(global))
+    }
+}
+
+impl FileReaderSyncMethods for FileReaderSync {
+    // https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection
+    fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString>{
+        // step 1
+        if self.ready_state.get() == FileReaderReadyState::Loading {
+            return Err(Error::InvalidState);
+        }
+
+        // step 2
+        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
+        if blob_contents.is_empty() {
+            return Err(Error::NotReadable)
+        }
+
+        // step 3
+        Ok(DOMString::from(String::from_utf8_lossy(&blob_contents)))
+    }
+
+    // https://w3c.github.io/FileAPI/#readAsTextSync
+    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> Fallible<DOMString> {
+        // step 1
+        if self.ready_state.get() == FileReaderReadyState::Loading {
+            return Err(Error::InvalidState);
+        }
+
+        // step 2
+        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
+        if blob_contents.is_empty() {
+            return Err(Error::NotReadable)
+        }
+
+        // step 3
+        let blob_label = label.map(String::from);
+        let blob_type = String::from(blob.Type());
+
+        //https://w3c.github.io/FileAPI/#encoding-determination
+        // Steps 1 & 2 & 3
+        let mut encoding = blob_label.as_ref()
+            .map(|string| string.as_bytes())
+            .and_then(Encoding::for_label);
+
+        // Step 4 & 5
+        encoding = encoding.or_else(|| {
+            let resultmime = blob_type.parse::<Mime>().ok();
+            resultmime.and_then(|Mime(_, _, ref parameters)| {
+                parameters.iter()
+                    .find(|&&(ref k, _)| &Attr::Charset == k)
+                    .and_then(|&(_, ref v)| Encoding::for_label(v.as_str().as_bytes()))
+            })
+        });
+
+        // Step 6
+        let enc = encoding.unwrap_or(UTF_8);
+        let convert = blob_contents;
+
+        // Step 7
+        let (output, _, _) = enc.decode(&convert);
+
+        Ok(DOMString::from(output))
+    }
+
+    // https://w3c.github.io/FileAPI/#readAsDataURLSync-section
+    fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<DOMString> {
+        // step 1
+        if self.ready_state.get() == FileReaderReadyState::Loading {
+            return Err(Error::InvalidState);
+        }
+
+        // step 2
+        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
+        if blob_contents.is_empty() {
+            return Err(Error::NotReadable)
+        }
+
+        // step 3
+        let base64 = base64::encode(&blob_contents);
+        let blob_type = String::from(blob.Type());
+
+        let output = if blob_type.is_empty() {
+            format!("data:base64,{}", base64)
+        } else {
+            format!("data:{};base64,{}", blob_type, base64)
+        };
+
+        Ok(DOMString::from(output))
     }
 }
