@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::FileReaderSyncBinding::{FileReaderSyncMeth
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
+use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -17,6 +18,9 @@ use base64;
 use std::cell::Cell;
 use encoding_rs::{Encoding, UTF_8};
 use hyper::mime::{Attr, Mime};
+use js::typedarray::{ArrayBuffer, CreateWith};
+use std::ptr;
+use js::jsapi::JSContext;
 
 #[dom_struct]
 pub struct FileReaderSync {
@@ -127,5 +131,26 @@ impl FileReaderSyncMethods for FileReaderSync {
         };
 
         Ok(DOMString::from(output))
+    }
+
+     // https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection
+     #[allow(unsafe_code)]
+    unsafe fn ReadAsArrayBuffer(&self, cx: *mut JSContext, blob: &Blob) -> Fallible<NonNullJSObjectPtr> {
+        // step 1
+        if self.ready_state.get() == FileReaderReadyState::Loading {
+            return Err(Error::InvalidState);
+        }
+
+        // step 2
+        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
+        if blob_contents.is_empty() {
+            return Err(Error::NotReadable)
+        }
+
+        // step 3
+        rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+        assert!(ArrayBuffer::create(cx, CreateWith::Slice(&blob_contents), array_buffer.handle_mut()).is_ok());
+
+        Ok(NonNullJSObjectPtr::new_unchecked(array_buffer.get()))
     }
 }

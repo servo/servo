@@ -8,7 +8,8 @@
 interface FileReaderSync {
   // Synchronously return strings
 
-  // ArrayBuffer readAsArrayBuffer(Blob blob);
+  [Throws]
+  ArrayBuffer readAsArrayBuffer(Blob blob);
   [Throws]
   DOMString readAsBinaryString(Blob blob);
   [Throws]

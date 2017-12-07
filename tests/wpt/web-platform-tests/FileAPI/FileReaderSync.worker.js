@@ -25,4 +25,10 @@ test(function() {
   assert_equals(data, "test");
 }, "readAsBinaryString");
 
+test(function() {
+  var data = readerSync.readAsArrayBuffer(blob);
+  assert_true(data instanceof ArrayBuffer);
+  assert_equals(data.byteLength, "test".length);
+}, "readAsArrayBuffer");
+
 done();
