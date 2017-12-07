@@ -82,12 +82,10 @@ impl FileReaderSyncMethods for FileReaderSync {
         let blob_type = String::from(blob.Type());
 
         //https://w3c.github.io/FileAPI/#encoding-determination
-        // Steps 1 & 2 & 3
         let mut encoding = blob_label.as_ref()
             .map(|string| string.as_bytes())
             .and_then(Encoding::for_label);
 
-        // Step 4 & 5
         encoding = encoding.or_else(|| {
             let resultmime = blob_type.parse::<Mime>().ok();
             resultmime.and_then(|Mime(_, _, ref parameters)| {
@@ -97,11 +95,9 @@ impl FileReaderSyncMethods for FileReaderSync {
             })
         });
 
-        // Step 6
         let enc = encoding.unwrap_or(UTF_8);
         let convert = blob_contents;
 
-        // Step 7
         let (output, _, _) = enc.decode(&convert);
 
         Ok(DOMString::from(output))
