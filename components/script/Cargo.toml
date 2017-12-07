@@ -30,7 +30,7 @@ gecko-media = {git = "https://github.com/servo/gecko-media.git"}
 tinyfiledialogs = "2.5.9"
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 audio-video-metadata = "0.1.4"
 base64 = "0.6"
 bitflags = "1.0"

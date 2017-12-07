@@ -14,7 +14,7 @@ path = "lib.rs"
 unstable = ["simd"]
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 bitflags = "1.0"
 euclid = "0.15"
 fnv = "1.0"
