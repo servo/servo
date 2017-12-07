@@ -12,6 +12,9 @@ from os.path import isfile, isdir, join
 import json
 import sys
 import test
+import logging
+import random
+
 test_summary = {
     test.Status.KILLED: 0,
     test.Status.SURVIVED: 0,
@@ -34,22 +37,25 @@ def mutation_test_for(mutation_path):
     if isfile(test_mapping_file):
         json_data = open(test_mapping_file).read()
         test_mapping = json.loads(json_data)
-        # Run mutation test for all source files in mapping file.
-        for src_file in test_mapping.keys():
+        # Run mutation test for all source files in mapping file in a random order.
+        source_files = list(test_mapping.keys())
+        random.shuffle(source_files)
+        for src_file in source_files:
             status = test.mutation_test(join(mutation_path, src_file.encode('utf-8')), test_mapping[src_file])
             test_summary[status] += 1
         # Run mutation test in all folder in the path.
         for folder in get_folders_list(mutation_path):
             mutation_test_for(folder)
     else:
-        print("This folder {0} has no test mapping file.".format(mutation_path))
+        logging.warning("This folder {0} has no test mapping file.".format(mutation_path))
 
 
 mutation_test_for(sys.argv[1])
-print "\nTest Summary:"
-print "Mutant Killed (Success) \t{0}".format(test_summary[test.Status.KILLED])
-print "Mutant Survived (Failure) \t{0}".format(test_summary[test.Status.SURVIVED])
-print "Mutation Skipped \t\t{0}".format(test_summary[test.Status.SKIPPED])
-print "Unexpected error in mutation \t{0}".format(test_summary[test.Status.UNEXPECTED])
+logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=logging.DEBUG)
+logging.info("Test Summary:")
+logging.info("Mutant Killed (Success) \t\t{0}".format(test_summary[test.Status.KILLED]))
+logging.info("Mutant Survived (Failure) \t{0}".format(test_summary[test.Status.SURVIVED]))
+logging.info("Mutation Skipped \t\t\t{0}".format(test_summary[test.Status.SKIPPED]))
+logging.info("Unexpected error in mutation \t{0}".format(test_summary[test.Status.UNEXPECTED]))
 if test_summary[test.Status.SURVIVED]:
     sys.exit(1)

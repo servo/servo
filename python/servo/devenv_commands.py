@@ -94,7 +94,7 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
     def check_geckolib(self, params):
-        return self.run_cargo(params, check=True, geckolib=True)
+        return self.run_cargo(["-p", "geckoservo"] + (params or []), check=True, geckolib=True)
 
     @Command('cargo-update',
              description='Same as update-cargo',

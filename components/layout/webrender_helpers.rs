@@ -264,7 +264,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             // TODO(gw): Make use of the WR backface visibility functionality.
             is_backface_visible: true,
             tag,
-            edge_aa_segment_mask: webrender_api::EdgeAaSegmentMask::empty(),
         }
     }
 
