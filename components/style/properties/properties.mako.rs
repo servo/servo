@@ -1809,8 +1809,8 @@ impl SourcePropertyDeclaration {
     }
 
     fn push(&mut self, declaration: PropertyDeclaration) {
-        let over_capacity = self.declarations.push(declaration).is_some();
-        debug_assert!(!over_capacity);
+        let _result = self.declarations.try_push(declaration);
+        debug_assert!(_result.is_ok());
     }
 }
 

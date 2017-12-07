@@ -515,7 +515,7 @@ pub struct SelectorFlagsMap<E: TElement> {
     map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
-    cache: LRUCache<CacheItem<E>, [Entry<CacheItem<E>>; 4 + 1]>,
+    cache: LRUCache<[Entry<CacheItem<E>>; 4 + 1]>,
 }
 
 #[cfg(debug_assertions)]
@@ -538,17 +538,17 @@ impl<E: TElement> SelectorFlagsMap<E> {
     pub fn insert_flags(&mut self, element: E, flags: ElementSelectorFlags) {
         let el = unsafe { SendElement::new(element) };
         // Check the cache. If the flags have already been noted, we're done.
-        if self.cache.iter().find(|&(_, ref x)| x.0 == el)
-               .map_or(ElementSelectorFlags::empty(), |(_, x)| x.1)
-               .contains(flags) {
+        if let Some(item) = self.cache.find(|x| x.0 == el) {
+            if !item.1.contains(flags) {
+                item.1.insert(flags);
+                self.map.get_mut(&el).unwrap().insert(flags);
+            }
             return;
         }
 
         let f = self.map.entry(el).or_insert(ElementSelectorFlags::empty());
         *f |= flags;
 
-        // Insert into the cache. We don't worry about duplicate entries,
-        // which lets us avoid reshuffling.
         self.cache.insert((unsafe { SendElement::new(element) }, *f))
     }
 
