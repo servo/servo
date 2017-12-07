@@ -68,7 +68,6 @@ pub enum InputType {
     Checkbox,
     Color,
     Date,
-    Datetime,
     DatetimeLocal,
     Email,
     File,
@@ -95,11 +94,11 @@ impl InputType {
     // than the underlying value.
     fn is_textual(&self) -> bool {
         match *self {
-            InputType::Color | InputType::Date | InputType::Datetime
-            | InputType::DatetimeLocal | InputType::Email | InputType::Hidden
-            | InputType::Month | InputType::Number | InputType::Range
-            | InputType::Search | InputType::Tel | InputType::Text
-            | InputType::Time | InputType::Url | InputType::Week => {
+            InputType::Color | InputType::Date | InputType::DatetimeLocal
+            | InputType::Email | InputType::Hidden | InputType::Month
+            | InputType::Number | InputType::Range | InputType::Search
+            | InputType::Tel | InputType::Text | InputType::Time
+            | InputType::Url | InputType::Week => {
                 true
             }
 
@@ -117,7 +116,6 @@ impl InputType {
             InputType::Checkbox => "checkbox",
             InputType::Color => "color",
             InputType::Date => "date",
-            InputType::Datetime => "datetime",
             InputType::DatetimeLocal => "datetime-local",
             InputType::Email => "email",
             InputType::File => "file",
@@ -147,7 +145,6 @@ impl<'a> From<&'a Atom> for InputType {
             atom!("checkbox") => InputType::Checkbox,
             atom!("color") => InputType::Color,
             atom!("date") => InputType::Date,
-            atom!("datetime") => InputType::Datetime,
             atom!("datetime-local") => InputType::DatetimeLocal,
             atom!("email") => InputType::Email,
             atom!("file") => InputType::File,
@@ -286,11 +283,11 @@ impl HTMLInputElement {
                 ValueMode::DefaultOn
             },
 
-            InputType::Color | InputType::Date | InputType::Datetime
-            | InputType::DatetimeLocal | InputType::Email | InputType::Month
-            | InputType::Number | InputType::Password | InputType::Range
-            | InputType::Search | InputType::Tel | InputType::Text
-            | InputType::Time | InputType::Url | InputType::Week => {
+            InputType::Color | InputType::Date | InputType::DatetimeLocal
+            | InputType::Email | InputType::Month | InputType::Number
+            | InputType::Password | InputType::Range | InputType::Search
+            | InputType::Tel | InputType::Text | InputType::Time
+            | InputType::Url | InputType::Week => {
                 ValueMode::Value
             }
 
@@ -1532,8 +1529,8 @@ impl Activatable for HTMLInputElement {
                     .filter(|input| {
                         input.form_owner() == owner && match input.input_type() {
                             InputType::Text | InputType::Search | InputType::Url | InputType::Tel
-                            | InputType::Email | InputType::Password | InputType::Datetime
-                            | InputType::Date | InputType::Month | InputType::Week | InputType::Time
+                            | InputType::Email | InputType::Password | InputType::Date
+                            | InputType::Month | InputType::Week | InputType::Time
                             | InputType::DatetimeLocal | InputType::Number
                               => true,
                             _ => false
