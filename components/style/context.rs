@@ -515,7 +515,7 @@ pub struct SelectorFlagsMap<E: TElement> {
     map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
-    cache: LRUCache<CacheItem<E>, [Entry<CacheItem<E>>; 4 + 1]>,
+    cache: LRUCache<[Entry<CacheItem<E>>; 4 + 1]>,
 }
 
 #[cfg(debug_assertions)]
