@@ -17,7 +17,7 @@ from statistics import median, StatisticsError
 from urllib.parse import urlsplit, urlunsplit, urljoin
 
 
-DATE = datetime.now().strftime("%Y%m%d")
+DATE = datetime.now().strftime("%Y-%m-%d")
 MACHINE = platform.machine()
 SYSTEM = platform.system()
 
@@ -66,11 +66,11 @@ def execute_test(url, command, timeout):
     return ""
 
 
-def run_servo_test(testcase, url, timeout, is_async):
+def run_servo_test(testcase, url, date, timeout, is_async):
     if is_async:
         print("Servo does not support async test!")
         # Return a placeholder
-        return parse_log("", testcase, url)
+        return parse_log("", testcase, url, date)
 
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     command = [
@@ -92,10 +92,10 @@ def run_servo_test(testcase, url, timeout, is_async):
         ))
     except subprocess.TimeoutExpired:
         print("Test FAILED due to timeout: {}".format(testcase))
-    return parse_log(log, testcase, url)
+    return parse_log(log, testcase, url, date)
 
 
-def parse_log(log, testcase, url):
+def parse_log(log, testcase, url, date):
     blocks = []
     block = []
     copy = False
@@ -149,7 +149,7 @@ def parse_log(log, testcase, url):
         return {
             "system": SYSTEM,
             "machine": MACHINE,
-            "date": DATE,
+            "date": date,
             "testcase": testcase,
             "title": "",
             "navigationStart": 0,
@@ -177,15 +177,15 @@ def parse_log(log, testcase, url):
 
     # Set the testcase field to contain the original testcase name,
     # rather than the url.
-    def set_testcase(timing, testcase=None):
+    def set_testcase(timing, testcase=None, date=None):
         timing['testcase'] = testcase
         timing['system'] = SYSTEM
         timing['machine'] = MACHINE
-        timing['date'] = DATE
+        timing['date'] = date
         return timing
 
     valid_timing_for_case = partial(valid_timing, url=url)
-    set_testcase_for_case = partial(set_testcase, testcase=testcase)
+    set_testcase_for_case = partial(set_testcase, testcase=testcase, date=date)
     timings = list(map(set_testcase_for_case, filter(valid_timing_for_case, map(parse_block, blocks))))
 
     if len(timings) == 0:
@@ -329,6 +329,10 @@ def main():
                         default=300,  # 5 min
                         help=("kill the test if not finished in time (sec)."
                               " Default: 5 min"))
+    parser.add_argument("--date",
+                        type=str,
+                        default=None,  # 5 min
+                        help=("the date to use in the CSV file."))
     parser.add_argument("--engine",
                         type=str,
                         default='servo',
@@ -340,6 +344,7 @@ def main():
     elif args.engine == 'gecko':
         import gecko_driver  # Load this only when we need gecko test
         run_test = gecko_driver.run_gecko_test
+    date = args.date or DATE
     try:
         # Assume the server is up and running
         testcases = load_manifest(args.tp5_manifest)
@@ -352,7 +357,7 @@ def main():
                                                         url))
                 # results will be a mixure of timings dict and testcase strings
                 # testcase string indicates a failed test
-                results += run_test(testcase, url, args.timeout, is_async)
+                results += run_test(testcase, url, date, args.timeout, is_async)
                 print("Finished")
                 # TODO: Record and analyze other performance.timing properties
 
