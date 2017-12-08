@@ -347,13 +347,8 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
-    pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
-    use super::counter_increment::parse_common;
-
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
-        parse_common(context, 0, input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("counter-reset",
+                          "CounterReset",
+                          initial_value="computed::CounterReset::none()",
+                          animation_value_type="discrete",
+                          spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset")}

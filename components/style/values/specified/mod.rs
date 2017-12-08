@@ -37,6 +37,7 @@ pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, 
 pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
+pub use self::counters::CounterReset;
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 #[cfg(feature = "gecko")]
@@ -70,6 +71,7 @@ pub mod border;
 pub mod box_;
 pub mod calc;
 pub mod color;
+pub mod counters;
 pub mod effects;
 pub mod flex;
 pub mod font;
