@@ -114,7 +114,7 @@ linux-nightly:
   - ./mach package --release
   - ./mach upload-nightly linux
   - ./mach test-perf
-  - python ./etc/ci/performance/download_buildbot_timings.py --verbose
+  - python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
   - aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
 
 android:
