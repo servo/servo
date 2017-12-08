@@ -1595,4 +1595,6 @@ extern "C" {
  pub fn Gecko_ContentList_AppendAll ( aContentList : * mut nsSimpleContentList , aElements : * mut * const RawGeckoElement , aLength : usize , ) ; 
 } extern "C" {
  pub fn Gecko_GetElementsWithId ( aDocument : * const nsIDocument , aId : * mut nsAtom , ) -> * const nsTArray < * mut Element > ; 
+} extern "C" {
+ pub fn Gecko_GetBoolPrefValue ( pref_name : * const :: std :: os :: raw :: c_char , ) -> bool ; 
 }
