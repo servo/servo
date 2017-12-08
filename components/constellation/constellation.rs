@@ -106,7 +106,7 @@ use compositing::compositor_thread::{CompositorProxy, EmbedderMsg, EmbedderProxy
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
-use euclid::{Size2D, TypedSize2D, ScaleFactor};
+use euclid::{Size2D, TypedSize2D, TypedScale};
 use event_loop::EventLoop;
 #[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
 use gecko_media::GeckoMedia;
@@ -596,9 +596,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 mem_profiler_chan: state.mem_profiler_chan,
                 window_size: WindowSizeData {
                     initial_viewport: opts::get().initial_window_size.to_f32() *
-                        ScaleFactor::new(1.0),
+                        TypedScale::new(1.0),
                     device_pixel_ratio:
-                        ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
+                        TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
                 },
                 phantom: PhantomData,
                 clipboard_ctx: if state.supports_clipboard {

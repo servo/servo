@@ -10,11 +10,11 @@ name = "script_layout_interface"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 atomic_refcell = "0.1"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.23.0"
-euclid = "0.15"
+euclid = "0.16"
 gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.22"
 ipc-channel = "0.9"

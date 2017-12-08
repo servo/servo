@@ -24,7 +24,7 @@ use dom::workletglobalscope::WorkletGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
-use euclid::ScaleFactor;
+use euclid::TypedScale;
 use euclid::TypedSize2D;
 use ipc_channel::ipc;
 use js::jsapi::Call;
@@ -79,7 +79,7 @@ pub struct PaintWorkletGlobalScope {
     /// The most recent size the worklet was drawn at
     cached_size: Cell<TypedSize2D<f32, CSSPixel>>,
     /// The most recent device pixel ratio the worklet was drawn at
-    cached_device_pixel_ratio: Cell<ScaleFactor<f32, CSSPixel, DevicePixel>>,
+    cached_device_pixel_ratio: Cell<TypedScale<f32, CSSPixel, DevicePixel>>,
     /// The most recent properties the worklet was drawn at
     cached_properties: DomRefCell<Vec<(Atom, String)>>,
     /// The most recent arguments the worklet was drawn at
@@ -104,7 +104,7 @@ impl PaintWorkletGlobalScope {
             paint_class_instances: Default::default(),
             cached_name: DomRefCell::new(Atom::from("")),
             cached_size: Cell::new(TypedSize2D::zero()),
-            cached_device_pixel_ratio: Cell::new(ScaleFactor::new(1.0)),
+            cached_device_pixel_ratio: Cell::new(TypedScale::new(1.0)),
             cached_properties: Default::default(),
             cached_arguments: Default::default(),
             cached_result: DomRefCell::new(DrawAPaintImageResult {
@@ -173,7 +173,7 @@ impl PaintWorkletGlobalScope {
     fn draw_a_paint_image(&self,
                           name: &Atom,
                           size_in_px: TypedSize2D<f32, CSSPixel>,
-                          device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                          device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                           properties: &StylePropertyMapReadOnly,
                           arguments: &[String])
                           -> DrawAPaintImageResult
@@ -193,7 +193,7 @@ impl PaintWorkletGlobalScope {
                                name: &Atom,
                                size_in_px: TypedSize2D<f32, CSSPixel>,
                                size_in_dpx: TypedSize2D<u32, DevicePixel>,
-                               device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                               device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                                properties: &StylePropertyMapReadOnly,
                                arguments: &[String])
                                -> DrawAPaintImageResult
@@ -340,7 +340,7 @@ impl PaintWorkletGlobalScope {
         impl Painter for WorkletPainter {
             fn draw_a_paint_image(&self,
                                   size: TypedSize2D<f32, CSSPixel>,
-                                  device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                                  device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                                   properties: Vec<(Atom, String)>,
                                   arguments: Vec<String>)
                                   -> DrawAPaintImageResult {
@@ -451,7 +451,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
 pub enum PaintWorkletTask {
     DrawAPaintImage(Atom,
                     TypedSize2D<f32, CSSPixel>,
-                    ScaleFactor<f32, CSSPixel, DevicePixel>,
+                    TypedScale<f32, CSSPixel, DevicePixel>,
                     Vec<(Atom, String)>,
                     Vec<String>,
                     Sender<DrawAPaintImageResult>),

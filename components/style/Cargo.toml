@@ -25,7 +25,7 @@ servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5eve
 gecko_debug = ["nsstring/gecko_debug"]
 
 [dependencies]
-app_units = "0.5.5"
+app_units = "0.6"
 arrayvec = "0.4.6"
 atomic_refcell = "0.1"
 bitflags = "1.0"
@@ -33,7 +33,7 @@ byteorder = "1.0"
 cfg-if = "0.1.0"
 cssparser = "0.23.0"
 encoding_rs = {version = "0.7", optional = true}
-euclid = "0.15"
+euclid = "0.16"
 fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }

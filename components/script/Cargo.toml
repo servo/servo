@@ -30,7 +30,7 @@ gecko-media = {git = "https://github.com/servo/gecko-media.git"}
 tinyfiledialogs = "2.5.9"
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 audio-video-metadata = "0.1.4"
 base64 = "0.6"
 bitflags = "1.0"
@@ -45,7 +45,7 @@ devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 encoding_rs = "0.7"
-euclid = "0.15"
+euclid = "0.16"
 fnv = "1.0"
 gleam = "0.4"
 half = "1.0"
@@ -69,7 +69,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 nonzero = {path = "../nonzero"}
 num-traits = "0.1.32"
-offscreen_gl_context = { version = "0.13", features = ["serde"] }
+offscreen_gl_context = { version = "0.14", features = ["serde"] }
 open = "1.1.1"
 parking_lot = "0.4"
 phf = "0.7.18"

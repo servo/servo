@@ -12,9 +12,9 @@ path = "lib.rs"
 servo = ["mozjs", "string_cache", "url", "webrender_api", "xml5ever"]
 
 [dependencies]
-app_units = "0.5.5"
+app_units = "0.6"
 cssparser = "0.23.0"
-euclid = "0.15"
+euclid = "0.16"
 hashglobe = { path = "../hashglobe" }
 mozjs = { version = "0.1.8", features = ["promises"], optional = true }
 servo_arc = { path = "../servo_arc" }

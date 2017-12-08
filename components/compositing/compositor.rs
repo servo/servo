@@ -6,7 +6,7 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg};
-use euclid::{TypedPoint2D, TypedVector2D, ScaleFactor};
+use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -108,7 +108,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
 
     /// The scene scale, to allow for zooming and high-resolution painting.
-    scale: ScaleFactor<f32, LayerPixel, DevicePixel>,
+    scale: TypedScale<f32, LayerPixel, DevicePixel>,
 
     /// The size of the rendering area.
     frame_size: DeviceUintSize,
@@ -124,10 +124,10 @@ pub struct IOCompositor<Window: WindowMethods> {
     max_viewport_zoom: Option<PinchZoomFactor>,
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
-    page_zoom: ScaleFactor<f32, CSSPixel, DeviceIndependentPixel>,
+    page_zoom: TypedScale<f32, CSSPixel, DeviceIndependentPixel>,
 
     /// The device pixel ratio for this window.
-    scale_factor: ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>,
+    scale_factor: TypedScale<f32, DeviceIndependentPixel, DevicePixel>,
 
     /// The type of composition to perform
     composite_target: CompositeTarget,
@@ -366,7 +366,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             pipeline_details: HashMap::new(),
             frame_size: frame_size,
             window_rect: window_rect,
-            scale: ScaleFactor::new(1.0),
+            scale: TypedScale::new(1.0),
             scale_factor: scale_factor,
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
@@ -374,7 +374,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             waiting_for_results_of_scroll: false,
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
-            page_zoom: ScaleFactor::new(1.0),
+            page_zoom: TypedScale::new(1.0),
             viewport_zoom: PinchZoomFactor::new(1.0),
             min_viewport_zoom: None,
             max_viewport_zoom: None,
@@ -1016,10 +1016,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     // deltas instead of summing them.
                     if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
                         let old_event_count =
-                            ScaleFactor::new(last_combined_event.event_count as f32);
+                            TypedScale::new(last_combined_event.event_count as f32);
                         last_combined_event.event_count += 1;
                         let new_event_count =
-                            ScaleFactor::new(last_combined_event.event_count as f32);
+                            TypedScale::new(last_combined_event.event_count as f32);
                         last_combined_event.scroll_location = ScrollLocation::Delta(
                             (delta * old_event_count + this_delta) /
                             new_event_count);
@@ -1110,34 +1110,34 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match opts::get().device_pixels_per_px {
-            Some(device_pixels_per_px) => ScaleFactor::new(device_pixels_per_px),
+            Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
             None => match opts::get().output_file {
-                Some(_) => ScaleFactor::new(1.0),
+                Some(_) => TypedScale::new(1.0),
                 None => self.scale_factor
             }
         }
     }
 
-    fn device_pixels_per_page_px(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+    fn device_pixels_per_page_px(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
         self.page_zoom * self.hidpi_factor()
     }
 
     fn update_zoom_transform(&mut self) {
         let scale = self.device_pixels_per_page_px();
-        self.scale = ScaleFactor::new(scale.get());
+        self.scale = TypedScale::new(scale.get());
     }
 
     pub fn on_zoom_reset_window_event(&mut self) {
-        self.page_zoom = ScaleFactor::new(1.0);
+        self.page_zoom = TypedScale::new(1.0);
         self.update_zoom_transform();
         self.send_window_size(WindowSizeType::Resize);
         self.update_page_zoom_for_webrender();
     }
 
     pub fn on_zoom_window_event(&mut self, magnification: f32) {
-        self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification)
+        self.page_zoom = TypedScale::new((self.page_zoom.get() * magnification)
                                           .max(MIN_ZOOM).min(MAX_ZOOM));
         self.update_zoom_transform();
         self.send_window_size(WindowSizeType::Resize);
