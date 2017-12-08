@@ -5,16 +5,20 @@
 //! A simple application that uses glutin to open a window for Servo to display in.
 
 
-#[macro_use] extern crate bitflags;
+#[macro_use]
+extern crate bitflags;
 extern crate compositing;
-#[cfg(target_os = "android")] extern crate egl;
+#[cfg(target_os = "android")]
+extern crate egl;
 extern crate euclid;
 extern crate gleam;
 extern crate glutin;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
-#[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+extern crate osmesa_sys;
 extern crate script_traits;
 extern crate servo;
 extern crate servo_config;
@@ -23,22 +27,20 @@ extern crate servo_url;
 extern crate style_traits;
 extern crate webrender_api;
 
-#[cfg(target_os = "windows")] extern crate winapi;
-#[cfg(target_os = "windows")] extern crate user32;
-#[cfg(target_os = "windows")] extern crate gdi32;
+#[cfg(target_os = "windows")]
+extern crate winapi;
+#[cfg(target_os = "windows")]
+extern crate user32;
+#[cfg(target_os = "windows")]
+extern crate gdi32;
 
-use compositing::windowing::WindowEvent;
 use servo_config::opts;
 use std::rc::Rc;
 use window::Window;
 
 pub mod window;
 
-pub type WindowID = glutin::WindowID;
-
-pub trait NestedEventLoopListener {
-    fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool;
-}
+pub type WindowID = glutin::WindowId;
 
 pub fn create_window(parent: Option<WindowID>) -> Rc<Window> {
     // Read command-line options.
