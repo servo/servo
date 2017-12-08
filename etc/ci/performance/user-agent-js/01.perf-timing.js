@@ -41,7 +41,9 @@ if (document.readyState === "complete") {
     printPerfTiming()
     window.close();
 } else {
-    window.addEventListener('load', printPerfTiming);
+    window.addEventListener('load', function () {
+	window.setTimeout(printPerfTiming, 0);
+    });
     var timeout = 5;
     window.setTimeout(function() {
         print("[PERF] Timeout after " + timeout + " min. Force stop");
