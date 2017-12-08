@@ -44,7 +44,6 @@ where
 
 struct MatchingResults {
     rule_node: StrongRuleNode,
-    relevant_link_found: bool,
 }
 
 /// A style returned from the resolver machinery.
@@ -158,15 +157,17 @@ where
         let primary_results =
             self.match_primary(VisitedHandlingMode::AllLinksUnvisited);
 
-        let relevant_link_found = primary_results.relevant_link_found;
+        let inside_link =
+            parent_style.map_or(false, |s| s.visited_style().is_some());
 
-        let visited_rules = if relevant_link_found {
-            let visited_matching_results =
-                self.match_primary(VisitedHandlingMode::RelevantLinkVisited);
-            Some(visited_matching_results.rule_node)
-        } else {
-            None
-        };
+        let visited_rules =
+            if inside_link || self.element.is_link() {
+                let visited_matching_results =
+                    self.match_primary(VisitedHandlingMode::RelevantLinkVisited);
+                Some(visited_matching_results.rule_node)
+            } else {
+                None
+            };
 
         self.cascade_primary_style(
             CascadeInputs {
@@ -446,7 +447,6 @@ where
         // FIXME(emilio): This is a hack for animations, and should go away.
         self.element.unset_dirty_style_attribute();
 
-        let relevant_link_found = matching_context.relevant_link_found;
         let rule_node = stylist.rule_tree().compute_rule_node(
             &mut applicable_declarations,
             &self.context.shared.guards
@@ -462,7 +462,7 @@ where
             }
         }
 
-        MatchingResults { rule_node, relevant_link_found }
+        MatchingResults { rule_node, }
     }
 
     fn match_pseudo(

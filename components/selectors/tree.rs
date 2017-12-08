@@ -6,7 +6,8 @@
 //! between layout and style.
 
 use attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use context::VisitedHandlingMode;
+use matching::{ElementSelectorFlags, MatchingContext};
 use parser::SelectorImpl;
 use servo_arc::NonZeroPtrMut;
 use std::fmt::Debug;
@@ -68,7 +69,7 @@ pub trait Element: Sized + Clone + Debug {
         &self,
         pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        relevant_link: &RelevantLinkStatus,
+        visited_handling: VisitedHandlingMode,
         flags_setter: &mut F,
     ) -> bool
     where

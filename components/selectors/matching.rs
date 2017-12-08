@@ -60,6 +60,7 @@ impl ElementSelectorFlags {
 struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     shared: &'a mut MatchingContext<'b, Impl>,
     matches_hover_and_active_quirk: bool,
+    visited_handling: VisitedHandlingMode,
 }
 
 #[inline(always)]
@@ -107,124 +108,6 @@ fn may_match(hashes: &AncestorHashes, bf: &BloomFilter) -> bool {
     // and check it against the filter if it exists.
     let fourth = hashes.fourth_hash();
     fourth == 0 || bf.might_contain_hash(fourth)
-}
-
-/// Tracks whether we are currently looking for relevant links for a given
-/// complex selector. A "relevant link" is the element being matched if it is a
-/// link or the nearest ancestor link.
-///
-/// `matches_complex_selector` creates a new instance of this for each complex
-/// selector we try to match for an element. This is done because `is_visited`
-/// and `is_unvisited` are based on relevant link state of only the current
-/// complex selector being matched (not the global relevant link status for all
-/// selectors in `MatchingContext`).
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RelevantLinkStatus {
-    /// Looking for a possible relevant link.  This is the initial mode when
-    /// matching a selector.
-    Looking,
-    /// Not looking for a relevant link.  We transition to this mode if we
-    /// encounter a sibiling combinator (since only ancestor combinators are
-    /// allowed for this purpose).
-    NotLooking,
-    /// Found a relevant link for the element being matched.
-    Found,
-}
-
-impl Default for RelevantLinkStatus {
-    fn default() -> Self {
-        RelevantLinkStatus::NotLooking
-    }
-}
-
-impl RelevantLinkStatus {
-    /// If we found the relevant link for this element, record that in the
-    /// overall matching context for the element as a whole and stop looking for
-    /// addtional links.
-    fn examine_potential_link<E>(
-        &self,
-        element: &E,
-        context: &mut MatchingContext<E::Impl>,
-    ) -> RelevantLinkStatus
-    where
-        E: Element,
-    {
-        // If a relevant link was previously found, we no longer want to look
-        // for links.  Only the nearest ancestor link is considered relevant.
-        if *self != RelevantLinkStatus::Looking {
-            return RelevantLinkStatus::NotLooking
-        }
-
-        if !element.is_link() {
-            return *self
-        }
-
-        // We found a relevant link. Record this in the `MatchingContext`,
-        // where we track whether one was found for _any_ selector (meaning
-        // this field might already be true from a previous selector).
-        context.relevant_link_found = true;
-        // Also return `Found` to update the relevant link status for _this_
-        // specific selector's matching process.
-        RelevantLinkStatus::Found
-    }
-
-    /// Returns whether an element is considered visited for the purposes of
-    /// matching.  This is true only if the element is a link, an relevant link
-    /// exists for the element, and the visited handling mode is set to accept
-    /// relevant links as visited.
-    pub fn is_visited<E>(
-        &self,
-        element: &E,
-        context: &MatchingContext<E::Impl>,
-    ) -> bool
-    where
-        E: Element,
-    {
-        if !element.is_link() {
-            return false
-        }
-
-        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
-            return true;
-        }
-
-        // Non-relevant links are always unvisited.
-        if *self != RelevantLinkStatus::Found {
-            return false
-        }
-
-        context.visited_handling == VisitedHandlingMode::RelevantLinkVisited
-    }
-
-    /// Returns whether an element is considered unvisited for the purposes of
-    /// matching.  Assuming the element is a link, this is always true for
-    /// non-relevant links, since only relevant links can potentially be treated
-    /// as visited.  If this is a relevant link, then is it unvisited if the
-    /// visited handling mode is set to treat all links as unvisted (including
-    /// relevant links).
-    pub fn is_unvisited<E>(
-        &self,
-        element: &E,
-        context: &MatchingContext<E::Impl>
-    ) -> bool
-    where
-        E: Element,
-    {
-        if !element.is_link() {
-            return false
-        }
-
-        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
-            return true;
-        }
-
-        // Non-relevant links are always unvisited.
-        if *self != RelevantLinkStatus::Found {
-            return true
-        }
-
-        context.visited_handling == VisitedHandlingMode::AllLinksUnvisited
-    }
 }
 
 /// A result of selector matching, includes 3 failure types,
@@ -342,8 +225,10 @@ where
         selector.combinator_at_parse_order(from_offset - 1); // This asserts.
     }
 
+    let visited_handling = context.visited_handling;
     let mut local_context = LocalMatchingContext {
         shared: context,
+        visited_handling,
         matches_hover_and_active_quirk: false,
     };
 
@@ -359,7 +244,6 @@ where
             component,
             element,
             &mut local_context,
-            &RelevantLinkStatus::NotLooking,
             &mut |_, _| {}) {
             return CompoundSelectorMatchingResult::NotMatched;
         }
@@ -417,11 +301,12 @@ where
         }
     }
 
+    let visited_handling = context.visited_handling;
     let result = matches_complex_selector_internal(
         iter,
         element,
         context,
-        &mut RelevantLinkStatus::Looking,
+        visited_handling,
         flags_setter,
         Rightmost::Yes,
     );
@@ -505,6 +390,7 @@ where
             if element.blocks_ancestor_combinators() {
                 return None;
             }
+
             element.parent_element()
         }
         Combinator::PseudoElement => {
@@ -517,7 +403,7 @@ fn matches_complex_selector_internal<E, F>(
     mut selector_iter: SelectorIter<E::Impl>,
     element: &E,
     context: &mut MatchingContext<E::Impl>,
-    relevant_link: &mut RelevantLinkStatus,
+    visited_handling: VisitedHandlingMode,
     flags_setter: &mut F,
     rightmost: Rightmost,
 ) -> SelectorMatchingResult
@@ -525,11 +411,7 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    *relevant_link = relevant_link.examine_potential_link(element, context);
-
-    debug!("Matching complex selector {:?} for {:?}, relevant link {:?}",
-           selector_iter, element, relevant_link);
-
+    debug!("Matching complex selector {:?} for {:?}", selector_iter, element);
 
     let matches_all_simple_selectors = {
         let matches_hover_and_active_quirk =
@@ -537,6 +419,7 @@ where
         let mut local_context =
             LocalMatchingContext {
                 shared: context,
+                visited_handling,
                 matches_hover_and_active_quirk,
             };
         selector_iter.all(|simple| {
@@ -544,7 +427,6 @@ where
                 simple,
                 element,
                 &mut local_context,
-                &relevant_link,
                 flags_setter,
             )
         })
@@ -567,9 +449,6 @@ where
     let candidate_not_found = match combinator {
         Combinator::NextSibling |
         Combinator::LaterSibling => {
-            // Only ancestor combinators are allowed while looking for
-            // relevant links, so switch to not looking.
-            *relevant_link = RelevantLinkStatus::NotLooking;
             SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant
         }
         Combinator::Child |
@@ -581,16 +460,26 @@ where
 
     let mut next_element = next_element_for_combinator(element, combinator);
 
+    // Stop matching :visited as soon as we find a link, or a combinator for
+    // something that isn't an ancestor.
+    let mut visited_handling =
+        if element.is_link() || combinator.is_sibling() {
+            VisitedHandlingMode::AllLinksUnvisited
+        } else {
+            visited_handling
+        };
+
     loop {
         let element = match next_element {
             None => return candidate_not_found,
             Some(next_element) => next_element,
         };
+
         let result = matches_complex_selector_internal(
             selector_iter.clone(),
             &element,
             context,
-            relevant_link,
+            visited_handling,
             flags_setter,
             Rightmost::No,
         );
@@ -627,6 +516,13 @@ where
             _ => {},
         }
 
+        visited_handling =
+            if element.is_link() || combinator.is_sibling() {
+                VisitedHandlingMode::AllLinksUnvisited
+            } else {
+                visited_handling
+            };
+
         next_element = next_element_for_combinator(&element, combinator);
     }
 }
@@ -637,7 +533,6 @@ fn matches_simple_selector<E, F>(
     selector: &Component<E::Impl>,
     element: &E,
     context: &mut LocalMatchingContext<E::Impl>,
-    relevant_link: &RelevantLinkStatus,
     flags_setter: &mut F,
 ) -> bool
 where
@@ -733,7 +628,12 @@ where
                 return false;
             }
 
-            element.match_non_ts_pseudo_class(pc, &mut context.shared, relevant_link, flags_setter)
+            element.match_non_ts_pseudo_class(
+                pc,
+                &mut context.shared,
+                context.visited_handling,
+                flags_setter
+            )
         }
         Component::FirstChild => {
             matches_first_child(element, flags_setter)
@@ -787,7 +687,6 @@ where
                     ss,
                     element,
                     context,
-                    relevant_link,
                     flags_setter,
                 )
             });
