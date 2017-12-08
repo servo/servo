@@ -364,9 +364,7 @@ impl Flow for TableFlow {
             }
         }
 
-        let inline_size_computer = InternalTable {
-            border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
-        };
+        let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       shared_context,
                                                       containing_block_inline_size);
@@ -541,22 +539,18 @@ impl fmt::Debug for TableFlow {
 
 /// Table, TableRowGroup, TableRow, TableCell types.
 /// Their inline-sizes are calculated in the same way and do not have margins.
-pub struct InternalTable {
-    pub border_collapse: border_collapse::T,
-}
+pub struct InternalTable;
 
 impl ISizeAndMarginsComputer for InternalTable {
-    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
-        block.fragment.compute_border_and_padding(containing_block_inline_size)
-    }
-
     /// Compute the used value of inline-size, taking care of min-inline-size and max-inline-size.
     ///
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
-    fn compute_used_inline_size(&self,
-                                block: &mut BlockFlow,
-                                shared_context: &SharedStyleContext,
-                                parent_flow_inline_size: Au) {
+    fn compute_used_inline_size(
+        &self,
+        block: &mut BlockFlow,
+        shared_context: &SharedStyleContext,
+        parent_flow_inline_size: Au
+    ) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
                                                                    shared_context);
