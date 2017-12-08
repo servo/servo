@@ -825,15 +825,16 @@ impl Stylist {
     where
         E: TElement,
     {
-        let cascade_inputs =
-            self.lazy_pseudo_rules(
-                guards,
-                element,
-                pseudo,
-                is_probe,
-                rule_inclusion,
-                matching_fn
-            );
+        let cascade_inputs = self.lazy_pseudo_rules(
+            guards,
+            element,
+            parent_style,
+            pseudo,
+            is_probe,
+            rule_inclusion,
+            matching_fn
+        );
+
         self.compute_pseudo_element_style_with_inputs(
             &cascade_inputs,
             pseudo,
@@ -981,10 +982,11 @@ impl Stylist {
     ///
     /// See the documentation on lazy pseudo-elements in
     /// docs/components/style.md
-    pub fn lazy_pseudo_rules<E>(
+    fn lazy_pseudo_rules<E>(
         &self,
         guards: &StylesheetGuards,
         element: &E,
+        parent_style: &ComputedValues,
         pseudo: &PseudoElement,
         is_probe: bool,
         rule_inclusion: RuleInclusion,
@@ -1028,13 +1030,13 @@ impl Stylist {
 
         let mut inputs = CascadeInputs::default();
         let mut declarations = ApplicableDeclarationList::new();
-        let mut matching_context =
-            MatchingContext::new(
-                MatchingMode::ForStatelessPseudoElement,
-                None,
-                None,
-                self.quirks_mode,
-            );
+        let mut matching_context = MatchingContext::new(
+            MatchingMode::ForStatelessPseudoElement,
+            None,
+            None,
+            self.quirks_mode,
+        );
+
         matching_context.pseudo_element_matching_fn = matching_fn;
 
         self.push_applicable_declarations(
@@ -1062,7 +1064,7 @@ impl Stylist {
             return inputs;
         }
 
-        if matching_context.relevant_link_found {
+        if parent_style.visited_style().is_some() {
             let mut declarations = ApplicableDeclarationList::new();
             let mut matching_context =
                 MatchingContext::new_for_visited(

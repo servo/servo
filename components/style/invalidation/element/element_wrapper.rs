@@ -11,8 +11,8 @@ use element_state::ElementState;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use selectors::context::VisitedHandlingMode;
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
-use selectors::matching::RelevantLinkStatus;
 use std::cell::Cell;
 use std::fmt;
 
@@ -153,7 +153,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         &self,
         pseudo_class: &NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        relevant_link: &RelevantLinkStatus,
+        visited_handling: VisitedHandlingMode,
         _setter: &mut F,
     ) -> bool
     where
@@ -196,14 +196,16 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 return state.contains(selector_flag);
             }
 
-            // For :link and :visited, we don't actually want to test the element
-            // state directly.  Instead, we use the `relevant_link` to determine if
-            // they match.
+            // For :link and :visited, we don't actually want to test the
+            // element state directly.
+            //
+            // Instead, we use the `visited_handling` to determine if they
+            // match.
             NonTSPseudoClass::Link => {
-                return relevant_link.is_unvisited(self, context);
+                return self.is_link() && visited_handling.matches_unvisited()
             }
             NonTSPseudoClass::Visited => {
-                return relevant_link.is_visited(self, context);
+                return self.is_link() && visited_handling.matches_visited()
             }
 
             #[cfg(feature = "gecko")]
@@ -238,7 +240,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             return self.element.match_non_ts_pseudo_class(
                 pseudo_class,
                 context,
-                relevant_link,
+                visited_handling,
                 &mut |_, _| {},
             )
         }
@@ -248,7 +250,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 self.element.match_non_ts_pseudo_class(
                     pseudo_class,
                     context,
-                    relevant_link,
+                    visited_handling,
                     &mut |_, _| {},
                 )
             }

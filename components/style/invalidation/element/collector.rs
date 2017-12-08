@@ -406,9 +406,8 @@ where
         &mut self,
         visited_handling_mode: VisitedHandlingMode,
         dependency: &Dependency,
-        relevant_link_found: &mut bool,
     ) -> bool {
-        let (matches_now, relevant_link_found_now) = {
+        let matches_now = {
             let mut context = MatchingContext::new_for_visited(
                 MatchingMode::Normal,
                 None,
@@ -426,10 +425,10 @@ where
                 &mut |_, _| {},
             );
 
-            (matches_now, context.relevant_link_found)
+            matches_now
         };
 
-        let (matched_then, relevant_link_found_then) = {
+        let matched_then = {
             let mut context = MatchingContext::new_for_visited(
                 MatchingMode::Normal,
                 None,
@@ -447,15 +446,12 @@ where
                 &mut |_, _| {},
             );
 
-            (matched_then, context.relevant_link_found)
+            matched_then
         };
-
-        *relevant_link_found = relevant_link_found_now;
 
         // Check for mismatches in both the match result and also the status
         // of whether a relevant link was found.
-        matched_then != matches_now ||
-            relevant_link_found_now != relevant_link_found_then
+        matched_then != matches_now
     }
 
     fn scan_dependency(
@@ -464,20 +460,18 @@ where
         is_visited_dependent: VisitedDependent,
     ) {
         debug!("TreeStyleInvalidator::scan_dependency({:?}, {:?}, {:?})",
-               self.element,
-               dependency,
-               is_visited_dependent);
+           self.element,
+           dependency,
+           is_visited_dependent,
+        );
 
         if !self.dependency_may_be_relevant(dependency) {
             return;
         }
 
-        let mut relevant_link_found = false;
-
         let should_account_for_dependency = self.check_dependency(
-            VisitedHandlingMode::AllLinksUnvisited,
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             dependency,
-            &mut relevant_link_found,
         );
 
         if should_account_for_dependency {
@@ -500,11 +494,12 @@ where
         //
         // NOTE: This thing is actually untested because testing it is flaky,
         // see the tests that were added and then backed out in bug 1328509.
-        if is_visited_dependent == VisitedDependent::Yes && relevant_link_found {
+        if is_visited_dependent == VisitedDependent::Yes &&
+            self.element.is_link()
+        {
             let should_account_for_dependency = self.check_dependency(
                 VisitedHandlingMode::RelevantLinkVisited,
                 dependency,
-                &mut false,
             );
 
             if should_account_for_dependency {
