@@ -32,7 +32,7 @@ use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 #[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
-use gecko_media::{CanPlayType, GeckoMedia};
+use gecko_media::{CanPlayType, GeckoMedia, Metadata as GeckoMetadata, PlanarYCbCrImage, Player, PlayerEventSink};
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -43,13 +43,17 @@ use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::ScriptThread;
+use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
 use std::mem;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 use time::{self, Timespec, Duration};
 
 #[dom_struct]
@@ -85,6 +89,9 @@ pub struct HTMLMediaElement {
     /// Play promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    /// The player from gecko-media.
+    #[ignore_malloc_size_of = "defined in gecko-media"]
+    player: DomRefCell<Option<Player>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -129,6 +136,7 @@ impl HTMLMediaElement {
             delaying_the_load_event_flag: Default::default(),
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
+            player: Default::default(),
         }
     }
 
@@ -1094,6 +1102,22 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.network_state.set(NetworkState::Idle);
 
             elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
+
+            #[cfg(all(
+                any(target_os = "macos", target_os = "linux"),
+                not(any(target_arch = "arm", target_arch = "aarch64")),
+            ))]
+            {
+                // FIXME(nox): Use GeckoMedia::create_network_player.
+                let gecko_media = GeckoMedia::get().unwrap();
+                let metadata = self.metadata.as_ref().unwrap();
+                let mime_type = metadata.content_type.as_ref().unwrap().to_string();
+                *elem.player.borrow_mut() = Some(gecko_media.create_blob_player(
+                    mem::replace(&mut self.data, vec![]),
+                    &mime_type,
+                    Box::new(EventSink::new(&elem)),
+                ).unwrap());
+            }
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
@@ -1142,5 +1166,87 @@ impl HTMLMediaElementContext {
             elem.change_ready_state(ReadyState::HaveMetadata);
             self.have_metadata = true;
         }
+    }
+}
+
+#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+pub struct EventSink {
+    task_source: DOMManipulationTaskSource,
+    task_canceller: TaskCanceller,
+    element: Trusted<HTMLMediaElement>,
+}
+
+#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+impl EventSink {
+    fn new(element: &HTMLMediaElement) -> Self {
+        let window = window_from_node(element);
+        Self {
+            task_source: window.dom_manipulation_task_source(),
+            task_canceller: window.task_canceller(),
+            element: Trusted::new(element),
+        }
+    }
+
+    fn queue<T>(&self, task: T)
+    where
+        T: TaskOnce + 'static,
+    {
+        self.task_source.queue_with_canceller(task, &self.task_canceller).unwrap();
+    }
+}
+
+#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+impl PlayerEventSink for EventSink {
+    fn playback_ended(&self) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn decode_error(&self) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn async_event(&self, name: &str) {
+        let element = self.element.clone();
+        let name = Atom::from(name);
+        self.queue(task!(queue_event_from_media: move || {
+            element.root().upcast::<EventTarget>().fire_event(name);
+        }));
+    }
+
+    fn metadata_loaded(&self, _metadata: GeckoMetadata) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn duration_changed(&self, _duration: f64) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn loaded_data(&self) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn time_update(&self, _time: f64) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn seek_started(&self) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn seek_completed(&self) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn update_current_images(&self, _images: Vec<PlanarYCbCrImage>) {
+        // FIXME(nox): No idea what we should do here.
+        // FIXME(nox): https://github.com/servo/gecko-media/issues/112
+    }
+
+    fn buffered(&self, _ranges: Vec<Range<f64>>) {
+        // FIXME(nox): No idea what we should do here.
+    }
+
+    fn seekable(&self, _ranges: Vec<Range<f64>>) {
+        // FIXME(nox): No idea what we should do here.
     }
 }
