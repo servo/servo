@@ -131,9 +131,7 @@ impl Flow for TableRowGroupFlow {
         let content_inline_size = containing_block_inline_size;
 
         let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
-        let inline_size_computer = InternalTable {
-            border_collapse: border_collapse,
-        };
+        let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       shared_context,
                                                       containing_block_inline_size);
