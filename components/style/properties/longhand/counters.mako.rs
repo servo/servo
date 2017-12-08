@@ -236,131 +236,14 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
-    use std::fmt::{self, Write};
-    use style_traits::{CssWriter, ToCss};
-    use values::CustomIdent;
+${helpers.predefined_type("counter-increment",
+                          "CounterIncrement",
+                          initial_value="computed::CounterIncrement::none()",
+                          animation_value_type="discrete",
+                          spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment")}
 
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
-
-    pub mod computed_value {
-        use std::fmt::{self, Write};
-        use style_traits::{CssWriter, ToCss};
-        use values::CustomIdent;
-
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-        pub struct T(pub Vec<(CustomIdent, i32)>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-            where
-                W: Write,
-            {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-
-                let mut first = true;
-                for &(ref name, value) in &self.0 {
-                    if !first {
-                        dest.write_str(" ")?;
-                    }
-                    first = false;
-                    name.to_css(dest)?;
-                    dest.write_str(" ")?;
-                    value.to_css(dest)?;
-                }
-                Ok(())
-            }
-        }
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-            computed_value::T(self.0.iter().map(|&(ref name, ref value)| {
-                (name.clone(), value.to_computed_value(context))
-            }).collect::<Vec<_>>())
-        }
-
-        fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-            SpecifiedValue(computed.0.iter().map(|&(ref name, ref value)| {
-                (name.clone(), specified::Integer::from_computed_value(&value))
-            }).collect::<Vec<_>>())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Vec::new())
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-        where
-            W: Write,
-        {
-            if self.0.is_empty() {
-                return dest.write_str("none");
-            }
-            let mut first = true;
-            for &(ref name, ref value) in &self.0 {
-                if !first {
-                    dest.write_str(" ")?;
-                }
-                first = false;
-                name.to_css(dest)?;
-                dest.write_str(" ")?;
-                value.to_css(dest)?;
-            }
-
-            Ok(())
-        }
-    }
-
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        parse_common(context, 1, input)
-    }
-
-    pub fn parse_common<'i, 't>(context: &ParserContext, default_value: i32, input: &mut Parser<'i, 't>)
-                                -> Result<SpecifiedValue, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue(Vec::new()))
-        }
-
-        let mut counters = Vec::new();
-        loop {
-            let location = input.current_source_location();
-            let counter_name = match input.next() {
-                Ok(&Token::Ident(ref ident)) => CustomIdent::from_ident(location, ident, &["none"])?,
-                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-                Err(_) => break,
-            };
-            let counter_delta = input.try(|input| specified::Integer::parse(context, input))
-                                     .unwrap_or(specified::Integer::new(default_value));
-            counters.push((counter_name, counter_delta))
-        }
-
-        if !counters.is_empty() {
-            Ok(SpecifiedValue(counters))
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-</%helpers:longhand>
-
-<%helpers:longhand name="counter-reset" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
-    pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
-    use super::counter_increment::parse_common;
-
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
-        parse_common(context, 0, input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("counter-reset",
+                          "CounterReset",
+                          initial_value="computed::CounterReset::none()",
+                          animation_value_type="discrete",
+                          spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset")}

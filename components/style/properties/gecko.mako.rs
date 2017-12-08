@@ -5675,11 +5675,14 @@ clip-path
     }
 
     % for counter_property in ["Increment", "Reset"]:
-        pub fn set_counter_${counter_property.lower()}(&mut self, v: longhands::counter_increment::computed_value::T) {
+        pub fn set_counter_${counter_property.lower()}(
+            &mut self,
+            v: longhands::counter_${counter_property.lower()}::computed_value::T
+        ) {
             unsafe {
                 bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko,
-                                                                      v.0.len() as u32);
-                for (i, (name, value)) in v.0.into_iter().enumerate() {
+                                                                      v.get_values().len() as u32);
+                for (i, &(ref name, value)) in v.get_values().into_iter().enumerate() {
                     self.gecko.m${counter_property}s[i].mCounter.assign(name.0.as_slice());
                     self.gecko.m${counter_property}s[i].mValue = value;
                 }
@@ -5696,11 +5699,13 @@ clip-path
             self.copy_counter_${counter_property.lower()}_from(other)
         }
 
-        pub fn clone_counter_${counter_property.lower()}(&self) -> longhands::counter_increment::computed_value::T {
+        pub fn clone_counter_${counter_property.lower()}(
+            &self
+        ) -> longhands::counter_${counter_property.lower()}::computed_value::T {
             use values::CustomIdent;
             use gecko_string_cache::Atom;
 
-            longhands::counter_increment::computed_value::T(
+            longhands::counter_${counter_property.lower()}::computed_value::T::new(
                 self.gecko.m${counter_property}s.iter().map(|ref gecko_counter| {
                     (CustomIdent(Atom::from(gecko_counter.mCounter.to_string())), gecko_counter.mValue)
                 }).collect()
