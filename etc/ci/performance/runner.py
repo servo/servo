@@ -281,10 +281,12 @@ def save_result_csv(results, filename, manifest, expected_runs, base):
         'unloadEventStart',
     ]
 
+    successes = list(filter(lambda x: x['domComplete'] != -1, results))
+
     with open(filename, 'w', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames)
         writer.writeheader()
-        writer.writerows(results)
+        writer.writerows(successes)
 
 
 def format_result_summary(results):
