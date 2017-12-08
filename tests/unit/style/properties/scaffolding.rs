@@ -10,7 +10,7 @@ use std::process::Command;
 
 #[test]
 fn properties_list_json() {
-    let top = Path::new(file!()).parent().unwrap().join("..").join("..").join("..").join("..");
+    let top = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("..").join("..").join("..");
     let json = top.join("target").join("doc").join("servo").join("css-properties.json");
     if json.exists() {
         remove_file(&json).unwrap()
@@ -24,7 +24,7 @@ fn properties_list_json() {
         .arg("regular")
         .status()
         .unwrap();
-    assert!(status.success());
+    assert!(status.success(), "{:?}", status);
 
     let properties: Value = serde_json::from_reader(File::open(json).unwrap()).unwrap();
     assert!(properties.as_object().unwrap().len() > 100);
