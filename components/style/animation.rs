@@ -339,12 +339,7 @@ impl PropertyAnimation {
             longhand,
             old_style,
             new_style,
-        );
-
-        let animated_property = match animated_property {
-            Some(p) => p,
-            None => return None,
-        };
+        )?;
 
         let property_animation = PropertyAnimation {
             property: animated_property,

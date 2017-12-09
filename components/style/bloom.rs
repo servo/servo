@@ -169,10 +169,8 @@ impl<E: TElement> StyleBloom<E> {
     /// Pop the last element in the bloom filter and return it.
     #[inline]
     fn pop(&mut self) -> Option<E> {
-        let (popped_element, num_hashes)  = match self.elements.pop() {
-            None => return None,
-            Some(x) => (*x.element, x.num_hashes),
-        };
+        let PushedElement { element, num_hashes } = self.elements.pop()?;
+        let popped_element = *element;
 
         // Verify that the pushed hashes match the ones we'd get from the element.
         let mut expected_hashes = vec![];

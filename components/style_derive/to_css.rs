@@ -145,10 +145,7 @@ fn to_css_identifier(mut camel_case: &str) -> String {
 
 /// Given "FooBar", returns "Foo" and sets `camel_case` to "Bar".
 fn split_camel_segment<'input>(camel_case: &mut &'input str) -> Option<&'input str> {
-    let index = match camel_case.chars().next() {
-        None => return None,
-        Some(ch) => ch.len_utf8(),
-    };
+    let index = camel_case.chars().next()?.len_utf8();
     let end_position = camel_case[index..]
         .find(char::is_uppercase)
         .map_or(camel_case.len(), |pos| index + pos);

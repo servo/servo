@@ -1750,22 +1750,17 @@ impl Fragment {
 
         let character_breaking_strategy =
             text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
-        match self.calculate_split_position_using_breaking_strategy(character_breaking_strategy,
-                                                                    max_inline_size,
-                                                                    SplitOptions::empty()) {
-            None => None,
-            Some(split_info) => {
-                match split_info.inline_start {
-                    None => None,
-                    Some(split) => {
-                        Some(TruncationResult {
-                            split: split,
-                            text_run: split_info.text_run.clone(),
-                        })
-                    }
-                }
-            }
-        }
+
+        let split_info = self.calculate_split_position_using_breaking_strategy(
+                character_breaking_strategy,
+                max_inline_size,
+                SplitOptions::empty())?;
+
+        let split = split_info.inline_start?;
+        Some(TruncationResult {
+            split: split,
+            text_run: split_info.text_run.clone(),
+        })
     }
 
     /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
