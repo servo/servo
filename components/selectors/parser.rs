@@ -55,6 +55,7 @@ pub enum SelectorParseErrorKind<'i> {
     EmptySelector,
     DanglingCombinator,
     NonSimpleSelectorInNegation,
+    NonCompoundSelector,
     UnexpectedTokenInAttributeSelector(Token<'i>),
     PseudoElementExpectedColon(Token<'i>),
     PseudoElementExpectedIdent(Token<'i>),
@@ -207,6 +208,33 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     pub fn from_vec(v: Vec<Selector<Impl>>) -> Self {
         SelectorList(SmallVec::from_vec(v))
     }
+}
+
+/// Parse a comma separated list of compound selectors.
+pub fn parse_compound_selector_list<'i, 't, P, Impl>(
+    parser: &P,
+    input: &mut CssParser<'i, 't>,
+) -> Result<Box<[Selector<Impl>]>, ParseError<'i, P::Error>>
+where
+    P: Parser<'i, Impl=Impl>,
+    Impl: SelectorImpl,
+{
+    let location = input.current_source_location();
+    let selectors = input.parse_comma_separated(|input| {
+        Selector::parse(parser, input)
+    })?;
+
+    // Ensure they're actually all compound selectors.
+    if selectors
+        .iter()
+        .flat_map(|x| x.iter_raw_match_order())
+        .any(|s| s.is_combinator()) {
+        return Err(location.new_custom_error(
+            SelectorParseErrorKind::NonCompoundSelector
+        ))
+    }
+
+    Ok(selectors.into_boxed_slice())
 }
 
 /// Ancestor hashes for the bloom filter. We precompute these and store them

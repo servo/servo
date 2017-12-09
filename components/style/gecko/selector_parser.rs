@@ -11,7 +11,7 @@ use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use selector_parser::{Direction, SelectorParser};
 use selectors::SelectorList;
-use selectors::parser::{Selector, SelectorMethods, SelectorParseErrorKind};
+use selectors::parser::{self as selector_parser, Selector, SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -400,16 +400,12 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                         NonTSPseudoClass::Dir(Box::new(direction))
                     },
                     "-moz-any" => {
-                        let selectors = parser.parse_comma_separated(|input| {
-                            Selector::parse(self, input)
-                        })?;
-                        // Selectors inside `:-moz-any` may not include combinators.
-                        if selectors.iter().flat_map(|x| x.iter_raw_match_order()).any(|s| s.is_combinator()) {
-                            return Err(parser.new_custom_error(
-                                SelectorParseErrorKind::UnexpectedIdent("-moz-any".into())
-                            ))
-                        }
-                        NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
+                        NonTSPseudoClass::MozAny(
+                            selector_parser::parse_compound_selector_list(
+                                self,
+                                parser,
+                            )?
+                        )
                     }
                     _ => return Err(parser.new_custom_error(
                         SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())
