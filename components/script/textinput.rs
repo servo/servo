@@ -513,6 +513,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Remove the current selection.
     pub fn clear_selection(&mut self) {
         self.selection_origin = None;
+        self.selection_direction = SelectionDirection::None;
+    }
+
+    /// Remove the current selection and set the edit point to the end of the content.
+    pub fn clear_selection_to_limit(&mut self) {
+        self.clear_selection();
+        self.adjust_horizontal_to_limit(Direction::Forward, Selection::NotSelected);
     }
 
     pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {

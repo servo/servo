@@ -35,7 +35,7 @@ use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
-use textinput::{Direction, KeyReaction, Lines, Selection, SelectionDirection, TextInput};
+use textinput::{KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -257,7 +257,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         if old_value != textinput.get_content() {
             // Step 4
-            textinput.adjust_horizontal_to_limit(Direction::Forward, Selection::NotSelected);
+            textinput.clear_selection_to_limit();
         } else {
             textinput.selection_origin = old_selection;
         }

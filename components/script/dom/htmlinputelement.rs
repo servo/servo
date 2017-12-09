@@ -52,7 +52,7 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use style::str::split_commas;
-use textinput::{Direction, Selection, SelectionDirection, TextInput};
+use textinput::{SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 
@@ -563,8 +563,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 self.sanitize_value();
                 // Step 5.
                 if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut()
-                        .adjust_horizontal_to_limit(Direction::Forward, Selection::NotSelected);
+                    self.textinput.borrow_mut().clear_selection_to_limit();
                 }
             }
             ValueMode::Default |
