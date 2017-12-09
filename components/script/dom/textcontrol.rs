@@ -136,6 +136,9 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
 
     // https://html.spec.whatwg.org/multipage/#set-the-selection-range
     fn set_selection_range(&self, start: Option<u32>, end: Option<u32>, direction: Option<SelectionDirection>) {
+        let mut textinput = self.textinput().borrow_mut();
+        let original_selection_state = textinput.selection_state();
+
         // Step 1
         let start = start.unwrap_or(0);
 
@@ -143,16 +146,18 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
         let end = end.unwrap_or(0);
 
         // Steps 3-5
-        self.textinput().borrow_mut().set_selection_range(start, end, direction.unwrap_or(SelectionDirection::None));
+        textinput.set_selection_range(start, end, direction.unwrap_or(SelectionDirection::None));
 
         // Step 6
-        let window = window_from_node(self);
-        let _ = window.user_interaction_task_source().queue_event(
-            &self.upcast::<EventTarget>(),
-            atom!("select"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            &window);
+        if textinput.selection_state() != original_selection_state {
+            let window = window_from_node(self);
+            window.user_interaction_task_source().queue_event(
+                &self.upcast::<EventTarget>(),
+                atom!("select"),
+                EventBubbles::Bubbles,
+                EventCancelable::NotCancelable,
+                &window);
+        }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }

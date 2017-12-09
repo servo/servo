@@ -242,6 +242,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_start_offset() .. self.selection_end_offset()
     }
 
+    /// A tuple containing the (start, end, direction) of the current selection. Can be used to
+    /// compare whether selection state has changed.
+    pub fn selection_state(&self) -> (TextPoint, TextPoint, SelectionDirection) {
+        (self.selection_start(), self.selection_end(), self.selection_direction)
+    }
+
     // Check that the selection is valid.
     fn assert_ok_selection(&self) {
         if let Some(begin) = self.selection_origin {
