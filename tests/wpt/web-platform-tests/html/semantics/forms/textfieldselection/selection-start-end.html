@@ -143,4 +143,30 @@
       el.remove();
     }
   }, "selectionEnd edge-case values");
+
+  test(() => {
+    for (let el of createTestElements(testValue)) {
+      const start = 1;
+      const end = testValue.length - 1;
+
+      el.setSelectionRange(start, end);
+
+      assert_equals(el.selectionStart, start, `selectionStart on ${el.id}`);
+      assert_equals(el.selectionEnd, end, `selectionEnd on ${el.id}`);
+
+      el.selectionDirection = "backward";
+
+      assert_equals(el.selectionStart, start,
+                    `selectionStart on ${el.id} after setting selectionDirection to "backward"`);
+      assert_equals(el.selectionEnd, end,
+                    `selectionEnd on ${el.id} after setting selectionDirection to "backward"`);
+
+      el.selectionDirection = "forward";
+
+      assert_equals(el.selectionStart, start,
+                    `selectionStart on ${el.id} after setting selectionDirection to "forward"`);
+      assert_equals(el.selectionEnd, end,
+                    `selectionEnd on ${el.id} after setting selectionDirection to "forward"`);
+    }
+  }, "selectionStart and selectionEnd should remain the same when selectionDirection is changed");
 </script>

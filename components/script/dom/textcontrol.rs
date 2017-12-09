@@ -123,11 +123,11 @@ pub trait TextControl: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     }
 
     fn selection_start(&self) -> u32 {
-        self.textinput().borrow().get_selection_start()
+        self.textinput().borrow().selection_start_offset() as u32
     }
 
     fn selection_end(&self) -> u32 {
-        self.textinput().borrow().get_absolute_insertion_point() as u32
+        self.textinput().borrow().selection_end_offset() as u32
     }
 
     fn selection_direction(&self) -> SelectionDirection {
