@@ -140,14 +140,9 @@ impl<'a> Iterator for NormalDeclarationIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let next = self.0.iter.next();
-            match next {
-                Some((decl, importance)) => {
-                    if !importance {
-                        return Some(decl);
-                    }
-                },
-                None => return None,
+            let (decl, importance) = self.0.iter.next()?;
+            if !importance {
+                return Some(decl);
             }
         }
     }
@@ -171,7 +166,7 @@ impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
         declarations: &'a PropertyDeclarationBlock,
         context: &'cx mut Context<'cx_a>,
         default_values: &'a ComputedValues,
-       extra_custom_properties: Option<&'a Arc<::custom_properties::CustomPropertiesMap>>,
+        extra_custom_properties: Option<&'a Arc<::custom_properties::CustomPropertiesMap>>,
     ) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
             iter: declarations.normal_declaration_iter(),
@@ -187,11 +182,7 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let next = self.iter.next();
-            let decl = match next {
-                Some(decl) => decl,
-                None => return None,
-            };
+            let decl = self.iter.next()?;
 
             let animation = AnimationValue::from_declaration(
                 decl,
