@@ -399,15 +399,28 @@ impl PropertyDeclarationBlock {
         importance: Importance,
         source: DeclarationSource,
     ) -> bool {
-        let all_shorthand_len = match drain.all_shorthand {
-            AllShorthand::NotSet => 0,
-            AllShorthand::CSSWideKeyword(_) |
-            AllShorthand::WithVariables(_) => ShorthandId::All.longhands().len()
-        };
-        let push_calls_count = drain.declarations.len() + all_shorthand_len;
+        match source {
+            DeclarationSource::Parsing => {
+                let all_shorthand_len = match drain.all_shorthand {
+                    AllShorthand::NotSet => 0,
+                    AllShorthand::CSSWideKeyword(_) |
+                    AllShorthand::WithVariables(_) => ShorthandId::All.longhands().len()
+                };
+                let push_calls_count =
+                    drain.declarations.len() + all_shorthand_len;
 
-        // With deduplication the actual length increase may be less than this.
-        self.declarations.reserve(push_calls_count);
+                // With deduplication the actual length increase may be less than this.
+                self.declarations.reserve(push_calls_count);
+            }
+            DeclarationSource::CssOm => {
+                // Don't bother reserving space, since it's usually the case
+                // that CSSOM just overrides properties and we don't need to use
+                // more memory. See bug 1424346 for an example where this
+                // matters.
+                //
+                // TODO: Would it be worth to call reserve() just if it's empty?
+            }
+        }
 
         let mut changed = false;
         for decl in &mut drain.declarations {
