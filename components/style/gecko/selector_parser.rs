@@ -9,7 +9,7 @@ use element_state::{DocumentState, ElementState};
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use selector_parser::{Direction, SelectorParser, PseudoElementCascadeType};
+use selector_parser::{Direction, SelectorParser};
 use selectors::SelectorList;
 use selectors::parser::{Selector, SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
@@ -477,12 +477,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 }
 
 impl SelectorImpl {
-    #[inline]
-    /// Legacy alias for PseudoElement::cascade_type.
-    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        pseudo.cascade_type()
-    }
-
     /// A helper to traverse each eagerly cascaded pseudo-element, executing
     /// `fun` on it.
     #[inline]
