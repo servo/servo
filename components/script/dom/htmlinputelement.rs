@@ -374,7 +374,7 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
         match (*self.unsafe_get()).input_type() {
             InputType::Password => {
                 let text = get_raw_textinput_value(self);
-                let sel = textinput.get_absolute_selection_range();
+                let sel = textinput.sorted_selection_offsets_range();
 
                 // Translate indices from the raw value to indices in the replacement value.
                 let char_start = text[.. sel.start].chars().count();
@@ -383,7 +383,7 @@ impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char .. char_end * bytes_per_char)
             }
-            input_type if input_type.is_textual() => Some(textinput.get_absolute_selection_range()),
+            input_type if input_type.is_textual() => Some(textinput.sorted_selection_offsets_range()),
             _ => None
         }
     }

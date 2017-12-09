@@ -81,7 +81,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
             return None;
         }
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
-        Some(textinput.get_absolute_selection_range())
+        Some(textinput.sorted_selection_offsets_range())
     }
 
     #[allow(unsafe_code)]
@@ -247,7 +247,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         // Step 1
         let old_value = textinput.get_content();
-        let old_selection = textinput.selection_begin;
+        let old_selection = textinput.selection_origin;
 
         // Step 2
         textinput.set_content(value);
@@ -259,7 +259,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
             // Step 4
             textinput.adjust_horizontal_to_limit(Direction::Forward, Selection::NotSelected);
         } else {
-            textinput.selection_begin = old_selection;
+            textinput.selection_origin = old_selection;
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
