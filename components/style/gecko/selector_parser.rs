@@ -333,9 +333,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
 
-    fn is_pseudo_element_allows_single_colon(name: &CowRcStr<'i>) -> bool {
+    fn pseudo_element_allows_single_colon(name: &str) -> bool {
+        // FIXME: -moz-tree check should probably be ascii-case-insensitive.
         ::selectors::parser::is_css2_pseudo_element(name) ||
-            name.starts_with("-moz-tree-") // tree pseudo-elements
+            name.starts_with("-moz-tree-")
     }
 
     fn parse_non_ts_pseudo_class(
@@ -431,6 +432,8 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     ) -> Result<PseudoElement, ParseError<'i>> {
         PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
             .or_else(|| {
+                // FIXME: -moz-tree check should probably be
+                // ascii-case-insensitive.
                 if name.starts_with("-moz-tree-") {
                     PseudoElement::tree_pseudo_element(&name, Box::new([]))
                 } else {
@@ -445,9 +448,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         name: CowRcStr<'i>,
         parser: &mut Parser<'i, 't>,
     ) -> Result<PseudoElement, ParseError<'i>> {
+        // FIXME: -moz-tree check should probably be ascii-case-insensitive.
         if name.starts_with("-moz-tree-") {
-            // Tree pseudo-elements can have zero or more arguments,
-            // separated by either comma or space.
+            // Tree pseudo-elements can have zero or more arguments, separated
+            // by either comma or space.
             let mut args = Vec::new();
             loop {
                 let location = parser.current_source_location();
