@@ -196,11 +196,7 @@ impl<'a> Iterator for DocumentCascadeDataIter<'a> {
     type Item = (&'a CascadeData, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (_, origin) = match self.iter.next() {
-            Some(o) => o,
-            None => return None,
-        };
-
+        let (_, origin) = self.iter.next()?;
         Some((self.cascade_data.borrow_for_origin(origin), origin))
     }
 }

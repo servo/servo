@@ -376,11 +376,7 @@ where
             originating_element_style.style(),
             pseudo,
             VisitedHandlingMode::AllLinksUnvisited
-        );
-        let rules = match rules {
-            Some(rules) => rules,
-            None => return None,
-        };
+        )?;
 
         let mut visited_rules = None;
         if originating_element_style.style().visited_style().is_some() {

@@ -127,10 +127,7 @@ impl<'a, E> ElementWrapper<'a, E>
             if lang.is_some() {
                 return lang;
             }
-            match current.parent_element() {
-                Some(parent) => current = parent,
-                None => return None,
-            }
+            current = current.parent_element()?;
         }
     }
 }

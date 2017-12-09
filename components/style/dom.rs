@@ -78,14 +78,10 @@ where
 
     fn next(&mut self) -> Option<N> {
         loop {
-            match self.0.next() {
-                Some(n) => {
-                    // Filter out nodes that layout should ignore.
-                    if n.is_text_node() || n.is_element() {
-                        return Some(n)
-                    }
-                }
-                None => return None,
+            let n = self.0.next()?;
+            // Filter out nodes that layout should ignore.
+            if n.is_text_node() || n.is_element() {
+                return Some(n)
             }
         }
     }
@@ -100,13 +96,9 @@ where
     type Item = N;
 
     fn next(&mut self) -> Option<N> {
-        match self.0.take() {
-            Some(n) => {
-                self.0 = n.next_sibling();
-                Some(n)
-            }
-            None => None,
-        }
+        let n = self.0.take()?;
+        self.0 = n.next_sibling();
+        Some(n)
     }
 }
 
@@ -124,11 +116,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<N> {
-        let prev = match self.previous.take() {
-            None => return None,
-            Some(n) => n,
-        };
-
+        let prev = self.previous.take()?;
         self.previous = prev.next_in_preorder(Some(self.scope));
         self.previous
     }

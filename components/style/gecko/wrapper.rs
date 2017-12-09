@@ -428,10 +428,7 @@ impl<'lb> GeckoXBLBinding<'lb> {
             if !binding.anon_content().is_null() {
                 return Some(binding);
             }
-            binding = match binding.base_binding() {
-                Some(b) => b,
-                None => return None,
-            };
+            binding = binding.base_binding()?;
         }
     }
 
@@ -1006,20 +1003,14 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
         debug_assert!(self.is_native_anonymous());
-        let mut parent = match self.traversal_parent() {
-            Some(e) => e,
-            None => return None,
-        };
+        let mut parent = self.traversal_parent()?;
 
         loop {
             if !parent.is_native_anonymous() {
                 return Some(parent);
             }
 
-            parent = match parent.traversal_parent() {
-                Some(p) => p,
-                None => return None,
-            };
+            parent = parent.traversal_parent()?;
         }
     }
 
@@ -1054,16 +1045,10 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         unsafe {
-            let slots = match self.get_extended_slots() {
-                Some(s) => s,
-                None => return None,
-            };
+            let slots = self.get_extended_slots()?;
 
             let base_declaration: &structs::DeclarationBlock =
-                match slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref() {
-                    Some(decl) => decl,
-                    None => return None,
-                };
+                slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref()?;
 
             assert_eq!(base_declaration.mType, structs::StyleBackendType_Servo);
             let declaration: &structs::ServoDeclarationBlock =
@@ -1074,11 +1059,7 @@ impl<'le> TElement for GeckoElement<'le> {
                 base_declaration as *const structs::DeclarationBlock
             );
 
-            let raw: &structs::RawServoDeclarationBlock =
-                match declaration.mRaw.mRawPtr.as_ref() {
-                    Some(decl) => decl,
-                    None => return None,
-                };
+            let raw: &structs::RawServoDeclarationBlock = declaration.mRaw.mRawPtr.as_ref()?;
 
             Some(Locked::<PropertyDeclarationBlock>::as_arc(
                 &*(&raw as *const &structs::RawServoDeclarationBlock)
