@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>elementScroll-002</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #scroller1 {
+        height: 80px;
+        width: 80px;
+        overflow: hidden;
+        background: red;
+    }
+
+    #container1 {
+        background: green;
+        padding-top: 10px;
+        margin-top: 200px;
+        padding-left: 10px;
+        margin-left: 200px;
+        width: 300px;
+        height: 300px;
+    }
+
+    #scroller2 {
+        height: 80px;
+        width: 80px;
+        overflow: hidden;
+        background: red;
+    }
+
+    #container2 {
+        background: green;
+        margin-bottom: 200px;
+        margin-right: 200px;
+        width: 300px;
+        height: 300px;
+    }
+
+    #scroller3 {
+        height: 80px;
+        width: 80px;
+        overflow: scroll;
+        background: red;
+    }
+
+    #container3 {
+        background: green;
+        padding-top: 10px;
+        padding-left: 10px;
+        width: 300px;
+        height: 300px;
+    }
+</style>
+<div id="scroller1">
+    <div id="container1"></div>
+</div>
+<div id="scroller2">
+    <div id="container2"></div>
+</div>
+<div id="scroller3">
+    <div id="container3"></div>
+</div>
+<script>
+    var scroller;
+    test(function () {
+        scroller = document.getElementById("scroller1");
+        assert_equals(scroller.scrollHeight, 10 + 200 + 300, "initial scrollHeight should be 510");
+        assert_equals(scroller.scrollWidth, 10 + 200 + 300, "initial scrollWidth should be 510");
+    }, "Element scrollHeight/scrollWidth getter test with padding + height/width + margin");
+
+    test(function () {
+        scroller = document.getElementById("scroller2");
+        assert_equals(scroller.scrollHeight, 200 + 300 , "initial scrollHeight should be 500");
+        assert_equals(scroller.scrollWidth, 200 + 300, "initial scrollWidth should be 500");
+    }, "Element scrollHeight/scrollWidth getter test with height/width + margin");
+
+    test(function () {
+        scroller = document.getElementById("scroller3");
+        assert_equals(scroller.scrollHeight, 10 + 300, "initial scrollHeight should be 310");
+        assert_equals(scroller.scrollWidth, 10 + 300, "initial scrollWidth should be 310");
+    }, "Element scrollHeight/scrollWidth getter test with height/width + padding");
+</script>
