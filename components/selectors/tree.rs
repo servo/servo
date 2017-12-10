@@ -84,6 +84,13 @@ pub trait Element: Sized + Clone + Debug {
     /// Whether this element is a `link`.
     fn is_link(&self) -> bool;
 
+    /// Returns the assigned <slot> element this element is assigned to.
+    ///
+    /// Necessary for the `::slotted` pseudo-class.
+    fn assigned_slot(&self) -> Option<Self> {
+        None
+    }
+
     fn has_id(&self,
               id: &<Self::Impl as SelectorImpl>::Identifier,
               case_sensitivity: CaseSensitivity)
