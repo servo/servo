@@ -8,6 +8,7 @@ use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
+use dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
@@ -188,7 +189,6 @@ pub struct HTMLInputElement {
     input_type: Cell<InputType>,
     checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
-    value_changed: Cell<bool>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
@@ -244,7 +244,6 @@ impl HTMLInputElement {
             input_type: Cell::new(Default::default()),
             placeholder: DomRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
-            value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
@@ -442,6 +441,10 @@ impl TextControl for HTMLInputElement {
             }
         }
     }
+
+    fn set_dirty_value_flag(&self, value: bool) {
+        self.value_dirty.set(value)
+    }
 }
 
 impl HTMLInputElementMethods for HTMLInputElement {
@@ -581,7 +584,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
         }
 
-        self.value_changed.set(true);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -749,6 +751,19 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         self.set_dom_selection_range(start, end, direction)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
+        // defined in TextControl trait
+        self.set_dom_range_text(replacement, None, None, Default::default())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    fn SetRangeText_(&self, replacement: DOMString, start: u32, end: u32,
+                     selection_mode: SelectionMode) -> ErrorResult {
+        // defined in TextControl trait
+        self.set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 
     // Select the files based on filepaths passed in,
@@ -931,7 +946,6 @@ impl HTMLInputElement {
         self.SetValue(self.DefaultValue())
             .expect("Failed to reset input value to default.");
         self.value_dirty.set(false);
-        self.value_changed.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -1213,7 +1227,7 @@ impl VirtualMethods for HTMLInputElement {
 
                 self.update_placeholder_shown_state();
             },
-            &local_name!("value") if !self.value_changed.get() => {
+            &local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
                     value.map_or(DOMString::new(), DOMString::from));
@@ -1356,7 +1370,7 @@ impl VirtualMethods for HTMLInputElement {
                                                      keyevent.MetaKey());
                         },
                         DispatchInput => {
-                            self.value_changed.set(true);
+                            self.value_dirty.set(true);
                             self.update_placeholder_shown_state();
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                             event.mark_as_handled();
