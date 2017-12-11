@@ -6,7 +6,7 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
-use cssparser::{Parser, Token};
+use cssparser::{Parser, Token, NumberOrPercentage, AngleOrNumber};
 use parser::ParserContext;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt;
@@ -202,9 +202,8 @@ impl CalcNode {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        expected_unit: CalcUnit)
-        -> Result<Self, ParseError<'i>>
-    {
+        expected_unit: CalcUnit,
+    ) -> Result<Self, ParseError<'i>> {
         let mut root = Self::parse_product(context, input, expected_unit)?;
 
         loop {
@@ -612,5 +611,40 @@ impl CalcNode {
         Self::parse(context, input, CalcUnit::Time)?
             .to_time()
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+
+    /// Convenience parsing function for `<number>` or `<percentage>`.
+    pub fn parse_number_or_percentage<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<NumberOrPercentage, ParseError<'i>> {
+        let node = Self::parse(context, input, CalcUnit::Percentage)?;
+
+        if let Ok(value) = node.to_number() {
+            return Ok(NumberOrPercentage::Number { value })
+        }
+
+        match node.to_percentage() {
+            Ok(unit_value) => Ok(NumberOrPercentage::Percentage { unit_value }),
+            Err(()) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+        }
+    }
+
+    /// Convenience parsing function for `<number>` or `<angle>`.
+    pub fn parse_angle_or_number<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<AngleOrNumber, ParseError<'i>> {
+        let node = Self::parse(context, input, CalcUnit::Angle)?;
+
+        if let Ok(angle) = node.to_angle() {
+            let degrees = angle.degrees();
+            return Ok(AngleOrNumber::Angle { degrees })
+        }
+
+        match node.to_number() {
+            Ok(value) => Ok(AngleOrNumber::Number { value }),
+            Err(()) => Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+        }
     }
 }

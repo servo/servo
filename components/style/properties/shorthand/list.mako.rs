@@ -60,7 +60,7 @@
 
         fn list_style_type_none() -> list_style_type::SpecifiedValue {
             % if product == "servo":
-            list_style_type::SpecifiedValue::none
+            list_style_type::SpecifiedValue::None
             % else:
             use values::generics::CounterStyleOrNone;
             list_style_type::SpecifiedValue::CounterStyle(CounterStyleOrNone::None)

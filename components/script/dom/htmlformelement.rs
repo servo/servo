@@ -30,7 +30,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use dom::htmlimageelement::HTMLImageElement;
-use dom::htmlinputelement::HTMLInputElement;
+use dom::htmlinputelement::{HTMLInputElement, InputType};
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
 use dom::htmlobjectelement::HTMLObjectElement;
@@ -183,7 +183,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                             }
                             HTMLElementTypeId::HTMLInputElement => {
                                 let input_elem = elem.downcast::<HTMLInputElement>().unwrap();
-                                if input_elem.type_() == atom!("image") {
+                                if input_elem.input_type() == InputType::Image {
                                     return false;
                                 }
                                 input_elem.form_owner()

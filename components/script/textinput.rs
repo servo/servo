@@ -21,7 +21,7 @@ pub enum Selection {
     NotSelected
 }
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum SelectionDirection {
     Forward,
     Backward,
@@ -825,7 +825,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    pub fn set_selection_range(&mut self, start: u32, end: u32) {
+    pub fn set_selection_range(&mut self, start: u32, end: u32, direction: SelectionDirection) {
         let mut start = start as usize;
         let mut end = end as usize;
         let text_end = self.get_content().len();
@@ -837,7 +837,9 @@ impl<T: ClipboardProvider> TextInput<T> {
             start = end;
         }
 
-        match self.selection_direction {
+        self.selection_direction = direction;
+
+        match direction {
             SelectionDirection::None |
             SelectionDirection::Forward => {
                 self.selection_begin = Some(self.get_text_point_for_absolute_point(start));

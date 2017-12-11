@@ -102,21 +102,21 @@ macro_rules! map_enum {
 
 map_enum! {
     font_style {
-        normal => NS_FONT_STYLE_NORMAL,
-        italic => NS_FONT_STYLE_ITALIC,
-        oblique => NS_FONT_STYLE_OBLIQUE,
+        Normal => NS_FONT_STYLE_NORMAL,
+        Italic => NS_FONT_STYLE_ITALIC,
+        Oblique => NS_FONT_STYLE_OBLIQUE,
     }
 
     font_stretch {
-        normal          => NS_FONT_STRETCH_NORMAL,
-        ultra_condensed => NS_FONT_STRETCH_ULTRA_CONDENSED,
-        extra_condensed => NS_FONT_STRETCH_EXTRA_CONDENSED,
-        condensed       => NS_FONT_STRETCH_CONDENSED,
-        semi_condensed  => NS_FONT_STRETCH_SEMI_CONDENSED,
-        semi_expanded   => NS_FONT_STRETCH_SEMI_EXPANDED,
-        expanded        => NS_FONT_STRETCH_EXPANDED,
-        extra_expanded  => NS_FONT_STRETCH_EXTRA_EXPANDED,
-        ultra_expanded  => NS_FONT_STRETCH_ULTRA_EXPANDED,
+        Normal          => NS_FONT_STRETCH_NORMAL,
+        UltraCondensed  => NS_FONT_STRETCH_ULTRA_CONDENSED,
+        ExtraCondensed  => NS_FONT_STRETCH_EXTRA_CONDENSED,
+        Condensed       => NS_FONT_STRETCH_CONDENSED,
+        SemiCondensed   => NS_FONT_STRETCH_SEMI_CONDENSED,
+        SemiExpanded    => NS_FONT_STRETCH_SEMI_EXPANDED,
+        Expanded        => NS_FONT_STRETCH_EXPANDED,
+        ExtraExpanded   => NS_FONT_STRETCH_EXTRA_EXPANDED,
+        UltraExpanded   => NS_FONT_STRETCH_ULTRA_EXPANDED,
     }
 }
 

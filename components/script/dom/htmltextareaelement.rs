@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
@@ -145,6 +146,10 @@ impl TextControl for HTMLTextAreaElement {
     fn textinput(&self) -> &DomRefCell<TextInput<ScriptToConstellationChan>> {
         &self.textinput
     }
+
+    fn selection_api_applies(&self) -> bool {
+        true
+    }
 }
 
 impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
@@ -260,38 +265,38 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn SelectionStart(&self) -> u32 {
-        self.dom_selection_start()
+    fn GetSelectionStart(&self) -> Option<u32> {
+        self.get_dom_selection_start()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn SetSelectionStart(&self, start: u32) {
-        self.set_dom_selection_start(start);
+    fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
+        self.set_dom_selection_start(start)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn SelectionEnd(&self) -> u32 {
-        self.dom_selection_end()
+    fn GetSelectionEnd(&self) -> Option<u32> {
+        self.get_dom_selection_end()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn SetSelectionEnd(&self, end: u32) {
-        self.set_dom_selection_end(end);
+    fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
+        self.set_dom_selection_end(end)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn SelectionDirection(&self) -> DOMString {
-        self.dom_selection_direction()
+    fn GetSelectionDirection(&self) -> Option<DOMString> {
+        self.get_dom_selection_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn SetSelectionDirection(&self, direction: DOMString) {
-        self.set_dom_selection_direction(direction);
+    fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
+        self.set_dom_selection_direction(direction)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
-    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
-        self.set_dom_selection_range(start, end, direction);
+    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+        self.set_dom_selection_range(start, end, direction)
     }
 }
 

@@ -80,10 +80,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.current.is_none() {
-                let next_origin = match self.origins.next() {
-                    Some(o) => o,
-                    None => return None,
-                };
+                let next_origin = self.origins.next()?;
 
                 self.current =
                     Some((next_origin, self.collections.borrow_for_origin(&next_origin).iter()));
@@ -238,10 +235,7 @@ where
         use std::mem;
 
         loop {
-            let potential_sheet = match self.iter.next() {
-                Some(s) => s,
-                None => return None,
-            };
+            let potential_sheet = self.iter.next()?;
 
             let dirty = mem::replace(&mut potential_sheet.dirty, false);
             if dirty {

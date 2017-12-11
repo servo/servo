@@ -850,11 +850,13 @@ impl ShorthandId {
     /// Finds and returns an appendable value for the given declarations.
     ///
     /// Returns the optional appendable value.
-    pub fn get_shorthand_appendable_value<'a, I>(self,
-                                                 declarations: I)
-                                                 -> Option<AppendableValue<'a, I::IntoIter>>
-        where I: IntoIterator<Item=&'a PropertyDeclaration>,
-              I::IntoIter: Clone,
+    pub fn get_shorthand_appendable_value<'a, I>(
+        self,
+        declarations: I,
+    ) -> Option<AppendableValue<'a, I::IntoIter>>
+    where
+        I: IntoIterator<Item=&'a PropertyDeclaration>,
+        I::IntoIter: Clone,
     {
         let declarations = declarations.into_iter();
 
@@ -862,10 +864,7 @@ impl ShorthandId {
         let mut declarations2 = declarations.clone();
         let mut declarations3 = declarations.clone();
 
-        let first_declaration = match declarations2.next() {
-            Some(declaration) => declaration,
-            None => return None
-        };
+        let first_declaration = declarations2.next()?;
 
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
@@ -1809,8 +1808,8 @@ impl SourcePropertyDeclaration {
     }
 
     fn push(&mut self, declaration: PropertyDeclaration) {
-        let over_capacity = self.declarations.push(declaration).is_some();
-        debug_assert!(!over_capacity);
+        let _result = self.declarations.try_push(declaration);
+        debug_assert!(_result.is_ok());
     }
 }
 
@@ -2396,24 +2395,24 @@ impl ComputedValuesInner {
 
     /// Return true if the effects force the transform style to be Flat
     pub fn overrides_transform_style(&self) -> bool {
-        use computed_values::mix_blend_mode;
+        use computed_values::mix_blend_mode::T as MixBlendMode;
 
         let effects = self.get_effects();
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         effects.opacity < 1.0 ||
            !effects.filter.0.is_empty() ||
            !effects.clip.is_auto() ||
-           effects.mix_blend_mode != mix_blend_mode::T::normal
+           effects.mix_blend_mode != MixBlendMode::Normal
     }
 
     /// <https://drafts.csswg.org/css-transforms/#grouping-property-values>
     pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
-        use computed_values::transform_style;
+        use computed_values::transform_style::T as TransformStyle;
 
         let box_ = self.get_box();
 
         if self.overrides_transform_style() {
-            transform_style::T::flat
+            TransformStyle::Flat
         } else {
             // Return the computed value if not overridden by the above exceptions
             box_.transform_style
@@ -2913,15 +2912,15 @@ impl<'a> StyleBuilder<'a> {
 
     /// Returns whether this computed style represents a floated object.
     pub fn floated(&self) -> bool {
-        self.get_box().clone_float() != longhands::float::computed_value::T::none
+        self.get_box().clone_float() != longhands::float::computed_value::T::None
     }
 
     /// Returns whether this computed style represents an out of flow-positioned
     /// object.
     pub fn out_of_flow_positioned(&self) -> bool {
-        use properties::longhands::position::computed_value::T as position;
+        use properties::longhands::position::computed_value::T as Position;
         matches!(self.get_box().clone_position(),
-                 position::absolute | position::fixed)
+                 Position::Absolute | Position::Fixed)
     }
 
     /// Whether this style has a top-layer style. That's implemented in Gecko
@@ -2934,7 +2933,7 @@ impl<'a> StyleBuilder<'a> {
     #[cfg(feature = "gecko")]
     pub fn in_top_layer(&self) -> bool {
         matches!(self.get_box().clone__moz_top_layer(),
-                 longhands::_moz_top_layer::computed_value::T::top)
+                 longhands::_moz_top_layer::computed_value::T::Top)
     }
 
     /// Clears the "have any reset structs been modified" flag.
@@ -3129,6 +3128,9 @@ pub fn cascade(
 ) -> Arc<ComputedValues> {
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     let empty = SmallBitVec::new();
+
+    let property_restriction = pseudo.and_then(|p| p.property_restriction());
+
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
@@ -3141,8 +3143,6 @@ pub fn cascade(
                 DeclarationImportanceIterator::new(&[], &empty)
             };
             let node_importance = node.importance();
-
-            let property_restriction = pseudo.and_then(|p| p.property_restriction());
 
             declarations
                 // Yield declarations later in source order (with more precedence) first.
@@ -3168,6 +3168,7 @@ pub fn cascade(
                 })
         })
     };
+
     apply_declarations(
         device,
         pseudo,
@@ -3187,7 +3188,6 @@ pub fn cascade(
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-#[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(
     device: &Device,
     pseudo: Option<<&PseudoElement>,

@@ -74,7 +74,9 @@ use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::StyleTransition;
 use gecko_bindings::structs::gfxFontFeatureValueSet;
+use gecko_bindings::structs::nsCSSCounterDesc;
 use gecko_bindings::structs::nsCSSCounterStyleRule;
+use gecko_bindings::structs::nsCSSFontDesc;
 use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
@@ -528,13 +530,9 @@ extern "C" {
 } extern "C" {
  pub fn Gecko_ElementState ( element : RawGeckoElementBorrowed , ) -> u64 ; 
 } extern "C" {
- pub fn Gecko_DocumentState ( aDocument : * const nsIDocument , ) -> u64 ; 
-} extern "C" {
  pub fn Gecko_IsRootElement ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
  pub fn Gecko_MatchesElement ( type_ : CSSPseudoClassType , element : RawGeckoElementBorrowed , ) -> bool ; 
-} extern "C" {
- pub fn Gecko_Namespace ( element : RawGeckoElementBorrowed , ) -> * mut nsAtom ; 
 } extern "C" {
  pub fn Gecko_MatchLang ( element : RawGeckoElementBorrowed , override_lang : * mut nsAtom , has_override_lang : bool , value : * const u16 , ) -> bool ; 
 } extern "C" {
@@ -599,8 +597,6 @@ extern "C" {
  pub fn Gecko_IsPrivateBrowsingEnabled ( aDoc : * const nsIDocument , ) -> bool ; 
 } extern "C" {
  pub fn Gecko_GetAnimationRule ( aElementOrPseudo : RawGeckoElementBorrowed , aCascadeLevel : EffectCompositor_CascadeLevel , aAnimationValues : RawServoAnimationValueMapBorrowedMut , ) -> bool ; 
-} extern "C" {
- pub fn Gecko_GetSMILOverrideDeclarationBlock ( element : RawGeckoElementBorrowed , ) -> RawServoDeclarationBlockStrongBorrowedOrNull ; 
 } extern "C" {
  pub fn Gecko_StyleAnimationsEquals ( arg1 : RawGeckoStyleAnimationListBorrowed , arg2 : RawGeckoStyleAnimationListBorrowed , ) -> bool ; 
 } extern "C" {
@@ -1576,11 +1572,19 @@ extern "C" {
 } extern "C" {
  pub fn Servo_IsValidCSSColor ( value : * const nsAString , ) -> bool ; 
 } extern "C" {
- pub fn Servo_ComputeColor ( set : RawServoStyleSetBorrowedOrNull , current_color : nscolor , value : * const nsAString , result_color : * mut nscolor , ) -> bool ; 
+ pub fn Servo_ComputeColor ( set : RawServoStyleSetBorrowedOrNull , current_color : nscolor , value : * const nsAString , result_color : * mut nscolor , was_current_color : * mut bool , loader : * mut Loader , ) -> bool ; 
 } extern "C" {
  pub fn Servo_ParseIntersectionObserverRootMargin ( value : * const nsAString , result : * mut nsCSSRect , ) -> bool ; 
 } extern "C" {
  pub fn Servo_ParseTransformIntoMatrix ( value : * const nsAString , contains_3d_transform : * mut bool , result : * mut RawGeckoGfxMatrix4x4 , ) -> bool ; 
+} extern "C" {
+ pub fn Servo_ParseCounterStyleName ( value : * const nsACString , ) -> * mut nsAtom ; 
+} extern "C" {
+ pub fn Servo_ParseCounterStyleDescriptor ( aDescriptor : nsCSSCounterDesc , aValue : * const nsACString , aURLExtraData : * mut RawGeckoURLExtraData , aResult : * mut nsCSSValue , ) -> bool ; 
+} extern "C" {
+ pub fn Servo_ParseFontDescriptor ( desc_id : nsCSSFontDesc , value : * const nsAString , data : * mut RawGeckoURLExtraData , arg1 : nsCSSValueBorrowedMut , ) -> bool ; 
+} extern "C" {
+ pub fn Servo_ParseFontShorthandForMatching ( value : * const nsAString , data : * mut RawGeckoURLExtraData , family : * mut RefPtr < SharedFontList > , style : nsCSSValueBorrowedMut , stretch : nsCSSValueBorrowedMut , weight : nsCSSValueBorrowedMut , ) -> bool ; 
 } extern "C" {
  pub fn Gecko_CreateCSSErrorReporter ( sheet : * mut ServoStyleSheet , loader : * mut Loader , uri : * mut nsIURI , ) -> * mut ErrorReporter ; 
 } extern "C" {
@@ -1591,4 +1595,6 @@ extern "C" {
  pub fn Gecko_ContentList_AppendAll ( aContentList : * mut nsSimpleContentList , aElements : * mut * const RawGeckoElement , aLength : usize , ) ; 
 } extern "C" {
  pub fn Gecko_GetElementsWithId ( aDocument : * const nsIDocument , aId : * mut nsAtom , ) -> * const nsTArray < * mut Element > ; 
+} extern "C" {
+ pub fn Gecko_GetBoolPrefValue ( pref_name : * const :: std :: os :: raw :: c_char , ) -> bool ; 
 }

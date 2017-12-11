@@ -229,6 +229,17 @@ where
             collector.invalidates_self
         };
 
+        // If we generated a ton of descendant invalidations, it's probably not
+        // worth to go ahead and try to process them.
+        //
+        // Just restyle the descendants directly.
+        //
+        // This number is completely made-up, but the page that made us add this
+        // code generated 1960+ invalidations (bug 1420741).
+        if descendant_invalidations.len() > 150 {
+            self.data.hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
+        }
+
         if invalidated_self {
             self.data.hint.insert(RestyleHint::RESTYLE_SELF);
         }
@@ -395,9 +406,8 @@ where
         &mut self,
         visited_handling_mode: VisitedHandlingMode,
         dependency: &Dependency,
-        relevant_link_found: &mut bool,
     ) -> bool {
-        let (matches_now, relevant_link_found_now) = {
+        let matches_now = {
             let mut context = MatchingContext::new_for_visited(
                 MatchingMode::Normal,
                 None,
@@ -415,10 +425,10 @@ where
                 &mut |_, _| {},
             );
 
-            (matches_now, context.relevant_link_found)
+            matches_now
         };
 
-        let (matched_then, relevant_link_found_then) = {
+        let matched_then = {
             let mut context = MatchingContext::new_for_visited(
                 MatchingMode::Normal,
                 None,
@@ -436,15 +446,12 @@ where
                 &mut |_, _| {},
             );
 
-            (matched_then, context.relevant_link_found)
+            matched_then
         };
-
-        *relevant_link_found = relevant_link_found_now;
 
         // Check for mismatches in both the match result and also the status
         // of whether a relevant link was found.
-        matched_then != matches_now ||
-            relevant_link_found_now != relevant_link_found_then
+        matched_then != matches_now
     }
 
     fn scan_dependency(
@@ -453,20 +460,18 @@ where
         is_visited_dependent: VisitedDependent,
     ) {
         debug!("TreeStyleInvalidator::scan_dependency({:?}, {:?}, {:?})",
-               self.element,
-               dependency,
-               is_visited_dependent);
+           self.element,
+           dependency,
+           is_visited_dependent,
+        );
 
         if !self.dependency_may_be_relevant(dependency) {
             return;
         }
 
-        let mut relevant_link_found = false;
-
         let should_account_for_dependency = self.check_dependency(
-            VisitedHandlingMode::AllLinksUnvisited,
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             dependency,
-            &mut relevant_link_found,
         );
 
         if should_account_for_dependency {
@@ -489,11 +494,12 @@ where
         //
         // NOTE: This thing is actually untested because testing it is flaky,
         // see the tests that were added and then backed out in bug 1328509.
-        if is_visited_dependent == VisitedDependent::Yes && relevant_link_found {
+        if is_visited_dependent == VisitedDependent::Yes &&
+            self.element.is_link()
+        {
             let should_account_for_dependency = self.check_dependency(
                 VisitedHandlingMode::RelevantLinkVisited,
                 dependency,
-                &mut false,
             );
 
             if should_account_for_dependency {

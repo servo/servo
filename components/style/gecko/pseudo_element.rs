@@ -11,7 +11,7 @@
 use cssparser::{ToCss, serialize_identifier};
 use gecko_bindings::structs::{self, CSSPseudoElementType};
 use properties::{ComputedValues, PropertyFlags};
-use properties::longhands::display::computed_value as display;
+use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use string_cache::Atom;
@@ -161,7 +161,7 @@ impl PseudoElement {
     /// Whether this pseudo-element should actually exist if it has
     /// the given styles.
     pub fn should_exist(&self, style: &ComputedValues) -> bool {
-        if style.get_box().clone_display() == display::T::none {
+        if style.get_box().clone_display() == Display::None {
             return false;
         }
 

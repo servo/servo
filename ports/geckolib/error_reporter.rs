@@ -16,9 +16,8 @@ use style::gecko_bindings::bindings::Gecko_ReportUnexpectedCSSError;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet, nsIURI};
 use style::gecko_bindings::structs::ErrorReporter as GeckoErrorReporter;
 use style::gecko_bindings::structs::URLExtraData as RawUrlExtraData;
-use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::stylesheets::UrlExtraData;
-use style_traits::StyleParseErrorKind;
+use style_traits::{StyleParseErrorKind, ValueParseErrorKind};
 
 pub type ErrorKind<'i> = ParseErrorKind<'i, StyleParseErrorKind<'i>>;
 
@@ -29,10 +28,12 @@ impl ErrorReporter {
     /// Create a new instance of the Gecko error reporter.
     pub fn new(sheet: *mut ServoStyleSheet,
                loader: *mut Loader,
-               url: *mut RawUrlExtraData) -> ErrorReporter {
+               extra_data: *mut RawUrlExtraData) -> ErrorReporter {
         unsafe {
-            let url = RefPtr::from_ptr_ref(&url);
-            ErrorReporter(Gecko_CreateCSSErrorReporter(sheet, loader, url.mBaseURI.raw::<nsIURI>()))
+            let url = extra_data.as_ref()
+                .map(|d| d.mBaseURI.raw::<nsIURI>())
+                .unwrap_or(ptr::null_mut());
+            ErrorReporter(Gecko_CreateCSSErrorReporter(sheet, loader, url))
         }
     }
 }
@@ -138,6 +139,9 @@ fn extract_error_params<'a>(err: ErrorKind<'a>) -> Option<ErrorParams<'a>> {
 
         ParseErrorKind::Custom(
             StyleParseErrorKind::ExpectedIdentifier(token)
+        ) |
+        ParseErrorKind::Custom(
+            StyleParseErrorKind::ValueError(ValueParseErrorKind::InvalidColor(token))
         ) => {
             (Some(ErrorString::UnexpectedToken(token)), None)
         }
@@ -197,7 +201,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedRule(s, err) |
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(s, err) |
             ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) |
-            ContextualParseError::InvalidMediaRule(s, err) => {
+            ContextualParseError::InvalidMediaRule(s, err) |
+            ContextualParseError::UnsupportedValue(s, err) => {
                 (s.into(), err.kind)
             }
             ContextualParseError::InvalidCounterStyleWithoutSymbols(s) |
@@ -251,7 +256,7 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedPropertyDeclaration(..) =>
                 (b"PEUnknownProperty\0", Action::Drop),
             ContextualParseError::UnsupportedFontFaceDescriptor(..) =>
-                (b"PEUnknwnFontDesc\0", Action::Skip),
+                (b"PEUnknownFontDesc\0", Action::Skip),
             ContextualParseError::InvalidKeyframeRule(..) =>
                 (b"PEKeyframeBadName\0", Action::Nothing),
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(..) =>
@@ -359,16 +364,30 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedFontFeatureValuesDescriptor(..) |
             ContextualParseError::InvalidFontFeatureValuesRule(..) =>
                 (b"PEUnknownAtRule\0", Action::Skip),
+            ContextualParseError::UnsupportedValue(_, ParseError { ref kind, .. }) => {
+                match *kind {
+                    ParseErrorKind::Custom(
+                        StyleParseErrorKind::ValueError(
+                            ValueParseErrorKind::InvalidColor(..)
+                        )
+                    ) => (b"PEColorNotColor", Action::Nothing),
+                    _ => {
+                        // Not the best error message, since we weren't parsing
+                        // a declaration, just a value. But we don't produce
+                        // UnsupportedValue errors other than InvalidColors
+                        // currently.
+                        debug_assert!(false, "should use a more specific error message");
+                        (b"PEDeclDropped", Action::Nothing)
+                    }
+                }
+            }
         };
         (None, msg, action)
     }
 }
 
-impl ParseErrorReporter for ErrorReporter {
-    fn report_error(&self,
-                    _url: &UrlExtraData,
-                    location: SourceLocation,
-                    error: ContextualParseError) {
+impl ErrorReporter {
+    pub fn report(&self, location: SourceLocation, error: ContextualParseError) {
         let (pre, name, action) = error.to_gecko_message();
         let suffix = match action {
             Action::Nothing => ptr::null(),
@@ -398,5 +417,16 @@ impl ParseErrorReporter for ErrorReporter {
                                            location.line,
                                            location.column);
         }
+    }
+}
+
+impl ParseErrorReporter for ErrorReporter {
+    fn report_error(
+        &self,
+        _url: &UrlExtraData,
+        location: SourceLocation,
+        error: ContextualParseError
+    ) {
+        self.report(location, error)
     }
 }

@@ -34,7 +34,8 @@ pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVa
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
-pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior, ScrollSnapType, VerticalAlign};
+pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior};
+pub use self::box_::{OverflowClipBox, ScrollSnapType, VerticalAlign};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -109,36 +110,12 @@ impl Parse for SpecifiedUrl {
 impl Eq for SpecifiedUrl {}
 }
 
-/// Parse an `<integer>` value, handling `calc()` correctly.
-pub fn parse_integer<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<Integer, ParseError<'i>> {
-    let location = input.current_source_location();
-    // FIXME: remove early returns when lifetimes are non-lexical
-    match *input.next()? {
-        Token::Number { int_value: Some(v), .. } => return Ok(Integer::new(v)),
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
-        ref t => return Err(location.new_unexpected_token_error(t.clone()))
-    }
-
-    let result = input.parse_nested_block(|i| {
-        CalcNode::parse_integer(context, i)
-    })?;
-
-    Ok(Integer::from_calc(result))
-}
-
-/// Parse a `<number>` value, handling `calc()` correctly, and without length
-/// limitations.
-pub fn parse_number<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                            -> Result<Number, ParseError<'i>> {
-    parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
-}
-
 /// Parse a `<number>` value, with a given clamping mode.
-pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
-                                               input: &mut Parser<'i, 't>,
-                                               clamping_mode: AllowedNumericType)
-                                               -> Result<Number, ParseError<'i>> {
+fn parse_number_with_clamping_mode<'i, 't>(
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+    clamping_mode: AllowedNumericType,
+) -> Result<Number, ParseError<'i>> {
     let location = input.current_source_location();
     // FIXME: remove early returns when lifetimes are non-lexical
     match *input.next()? {
@@ -164,24 +141,26 @@ pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
 
 // The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
 // 17.6.2.1. Higher values override lower values.
+//
+// FIXME(emilio): Should move to border.rs
 define_numbered_css_keyword_enum! { BorderStyle:
-    "none" => none = -1,
-    "solid" => solid = 6,
-    "double" => double = 7,
-    "dotted" => dotted = 4,
-    "dashed" => dashed = 5,
-    "hidden" => hidden = -2,
-    "groove" => groove = 1,
-    "ridge" => ridge = 3,
-    "inset" => inset = 0,
-    "outset" => outset = 2,
+    "none" => None = -1,
+    "solid" => Solid = 6,
+    "double" => Double = 7,
+    "dotted" => Dotted = 4,
+    "dashed" => Dashed = 5,
+    "hidden" => Hidden = -2,
+    "groove" => Groove = 1,
+    "ridge" => Ridge = 3,
+    "inset" => Inset = 0,
+    "outset" => Outset = 2,
 }
 
 
 impl BorderStyle {
     /// Whether this border style is either none or hidden.
     pub fn none_or_hidden(&self) -> bool {
-        matches!(*self, BorderStyle::none | BorderStyle::hidden)
+        matches!(*self, BorderStyle::None | BorderStyle::Hidden)
     }
 }
 
@@ -200,7 +179,7 @@ pub struct Number {
 
 impl Parse for Number {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        parse_number(context, input)
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
 
@@ -357,7 +336,7 @@ pub struct Opacity(Number);
 
 impl Parse for Opacity {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        parse_number(context, input).map(Opacity)
+        Number::parse(context, input).map(Opacity)
     }
 }
 
@@ -416,7 +395,20 @@ impl Integer {
 
 impl Parse for Integer {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        parse_integer(context, input)
+        let location = input.current_source_location();
+
+        // FIXME: remove early returns when lifetimes are non-lexical
+        match *input.next()? {
+            Token::Number { int_value: Some(v), .. } => return Ok(Integer::new(v)),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
+            ref t => return Err(location.new_unexpected_token_error(t.clone()))
+        }
+
+        let result = input.parse_nested_block(|i| {
+            CalcNode::parse_integer(context, i)
+        })?;
+
+        Ok(Integer::from_calc(result))
     }
 }
 
@@ -427,7 +419,7 @@ impl Integer {
         input: &mut Parser<'i, 't>,
         min: i32
     ) -> Result<Integer, ParseError<'i>> {
-        match parse_integer(context, input) {
+        match Integer::parse(context, input) {
             // FIXME(emilio): The spec asks us to avoid rejecting it at parse
             // time except until computed value time.
             //

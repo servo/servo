@@ -102,20 +102,16 @@ impl RuleCache {
             return None;
         }
 
-        let rules = match builder_with_early_props.rules {
-            Some(ref rules) => rules,
-            None => return None,
-        };
+        let rules = builder_with_early_props.rules.as_ref()?;
+        let cached_values = self.map.get(rules)?;
 
-        self.map.get(rules).and_then(|cached_values| {
-            for &(ref conditions, ref values) in cached_values.iter() {
-                if conditions.matches(builder_with_early_props) {
-                    debug!("Using cached reset style with conditions {:?}", conditions);
-                    return Some(&**values)
-                }
+        for &(ref conditions, ref values) in cached_values.iter() {
+            if conditions.matches(builder_with_early_props) {
+                debug!("Using cached reset style with conditions {:?}", conditions);
+                return Some(&**values)
             }
-            None
-        })
+        }
+        None
     }
 
     /// Inserts a node into the rules cache if possible.

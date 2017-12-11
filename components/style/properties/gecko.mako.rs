@@ -5,7 +5,7 @@
 // `data` comes from components/style/properties.mako.rs; see build.rs for more details.
 
 <%!
-    from data import to_rust_ident, to_camel_case, to_camel_case_lower
+    from data import to_camel_case, to_camel_case_lower
     from data import Keyword
 %>
 <%namespace name="helpers" file="/helpers.mako.rs" />
@@ -258,7 +258,7 @@ impl ComputedValuesInner {
 
     #[inline]
     pub fn is_display_contents(&self) -> bool {
-        self.get_box().clone_display() == longhands::display::computed_value::T::contents
+        self.get_box().clone_display() == longhands::display::computed_value::T::Contents
     }
 
     /// Returns true if the value of the `content` property would make a
@@ -404,7 +404,7 @@ def set_gecko_property(ffi_name, expr):
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-                Keyword::${to_rust_ident(value)} =>
+                Keyword::${to_camel_case(value)} =>
                     structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
             % endfor
         };
@@ -437,7 +437,7 @@ def set_gecko_property(ffi_name, expr):
 
         match ${get_gecko_property(gecko_ffi_name)} as ${cast_type} {
             % for value in keyword.values_for('gecko'):
-            ${keyword.casted_constant_name(value, cast_type)} => Keyword::${to_rust_ident(value)},
+            ${keyword.casted_constant_name(value, cast_type)} => Keyword::${to_camel_case(value)},
             % endfor
             % if keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
@@ -446,7 +446,7 @@ def set_gecko_property(ffi_name, expr):
         % else:
         match ${get_gecko_property(gecko_ffi_name)} {
             % for value in keyword.values_for('gecko'):
-            structs::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
+            structs::${keyword.gecko_constant(value)} => Keyword::${to_camel_case(value)},
             % endfor
             % if keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
@@ -2348,7 +2348,7 @@ fn static_assert() {
         // cast + static_asserts
         let result = match v {
             % for value in border_style_keyword.values_for('gecko'):
-                Either::Second(border_style::T::${to_rust_ident(value)}) =>
+                Either::Second(border_style::T::${to_camel_case(value)}) =>
                     structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
             % endfor
                 Either::First(Auto) =>
@@ -2377,7 +2377,9 @@ fn static_assert() {
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match ${get_gecko_property("mOutlineStyle")} ${border_style_keyword.maybe_cast("u32")} {
             % for value in border_style_keyword.values_for('gecko'):
-            structs::${border_style_keyword.gecko_constant(value)} => Either::Second(border_style::T::${value}),
+            structs::${border_style_keyword.gecko_constant(value)} => {
+                Either::Second(border_style::T::${to_camel_case(value)})
+            },
             % endfor
             structs::${border_style_keyword.gecko_constant('auto')} => Either::First(Auto),
             % if border_style_keyword.gecko_inexhaustive:
@@ -3065,7 +3067,7 @@ fn static_assert() {
         for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
             let result = match servo {
                 % for value in keyword.gecko_values():
-                    Keyword::${to_rust_ident(value)} =>
+                    Keyword::${to_camel_case(value)} =>
                         structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
                 % endfor
             };
@@ -3078,7 +3080,7 @@ fn static_assert() {
         use properties::longhands::animation_${ident}::single_value::computed_value::T as Keyword;
         match self.gecko.mAnimations[index].m${gecko_ffi_name} ${keyword.maybe_cast("u32")} {
             % for value in keyword.gecko_values():
-                structs::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
+                structs::${keyword.gecko_constant(value)} => Keyword::${to_camel_case(value)},
             % endfor
             x => panic!("Found unexpected value for animation-${ident}: {:?}", x),
         }
@@ -3098,6 +3100,7 @@ fn static_assert() {
                           scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin -moz-binding will-change
                           overscroll-behavior-x overscroll-behavior-y
+                          overflow-clip-box-inline overflow-clip-box-block
                           perspective-origin -moz-binding will-change
                           shape-outside contain touch-action""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
@@ -3120,7 +3123,7 @@ fn static_assert() {
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in display_keyword.values_for('gecko'):
-                Keyword::${to_rust_ident(value)} =>
+                Keyword::${to_camel_case(value)} =>
                     structs::${display_keyword.gecko_constant(value)},
             % endfor
         };
@@ -3137,7 +3140,7 @@ fn static_assert() {
         use properties::longhands::display::computed_value::T as Keyword;
         let result = match v {
             % for value in display_keyword.values_for('gecko'):
-                Keyword::${to_rust_ident(value)} =>
+                Keyword::${to_camel_case(value)} =>
                     structs::${display_keyword.gecko_constant(value)},
             % endfor
         };
@@ -3161,7 +3164,7 @@ fn static_assert() {
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         self.gecko.mOverflowY = match v {
             % for value in overflow_x.keyword.values_for('gecko'):
-                BaseType::${to_rust_ident(value)} => structs::${overflow_x.keyword.gecko_constant(value)} as u8,
+                BaseType::${to_camel_case(value)} => structs::${overflow_x.keyword.gecko_constant(value)} as u8,
             % endfor
         };
     }
@@ -3171,7 +3174,7 @@ fn static_assert() {
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match self.gecko.mOverflowY as u32 {
             % for value in overflow_x.keyword.values_for('gecko'):
-            structs::${overflow_x.keyword.gecko_constant(value)} => BaseType::${to_rust_ident(value)},
+            structs::${overflow_x.keyword.gecko_constant(value)} => BaseType::${to_camel_case(value)},
             % endfor
             x => panic!("Found unexpected value in style struct for overflow_y property: {}", x),
         }
@@ -3227,11 +3230,11 @@ fn static_assert() {
         use computed_values::page_break_${kind}::T;
 
         let result = match v {
-            T::auto   => false,
-            T::always => true,
-            T::avoid  => false,
-            T::left   => true,
-            T::right  => true
+            T::Auto   => false,
+            T::Always => true,
+            T::Avoid  => false,
+            T::Left   => true,
+            T::Right  => true
         };
         self.gecko.mBreak${kind.title()} = result;
     }
@@ -3243,10 +3246,7 @@ fn static_assert() {
     pub fn clone_page_break_${kind}(&self) -> longhands::page_break_${kind}::computed_value::T {
         use computed_values::page_break_${kind}::T;
 
-        match self.gecko.mBreak${kind.title()} {
-            true => T::always,
-            false => T::auto,
-        }
+        if self.gecko.mBreak${kind.title()} { T::Always } else { T::Auto }
     }
     % endfor
 
@@ -3490,6 +3490,10 @@ fn static_assert() {
                                              gecko_enum_prefix="StyleOverscrollBehavior") %>
     ${impl_keyword('overscroll_behavior_x', 'mOverscrollBehaviorX', overscroll_behavior_keyword)}
     ${impl_keyword('overscroll_behavior_y', 'mOverscrollBehaviorY', overscroll_behavior_keyword)}
+
+    <% overflow_clip_box_keyword = Keyword("overflow-clip-box", "padding-box content-box") %>
+    ${impl_keyword('overflow_clip_box_inline', 'mOverflowClipBoxInline', overflow_clip_box_keyword)}
+    ${impl_keyword('overflow_clip_box_block', 'mOverflowClipBoxBlock', overflow_clip_box_keyword)}
 
     pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
         self.gecko.mPerspectiveOrigin[0].set(v.horizontal);
@@ -3771,7 +3775,7 @@ fn static_assert() {
             geckolayer.${field_name} = {
                 match servo {
                     % for value in keyword.values_for("gecko"):
-                    Keyword::${to_rust_ident(value)} =>
+                    Keyword::${to_camel_case(value)} =>
                         structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast('u8')},
                     % endfor
                 }
@@ -3800,7 +3804,7 @@ fn static_assert() {
                         % else:
                         structs::${keyword.gecko_constant(value)}
                         % endif
-                            => Keyword::${to_rust_ident(value)},
+                            => Keyword::${to_camel_case(value)},
                         % endfor
                         x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
                     }

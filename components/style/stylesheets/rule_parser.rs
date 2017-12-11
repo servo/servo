@@ -5,7 +5,7 @@
 //! Parsing of the stylesheet contents.
 
 use {Namespace, Prefix};
-use counter_style::{parse_counter_style_body, parse_counter_style_name};
+use counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{CowRcStr, SourceLocation, BasicParseError, BasicParseErrorKind};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -383,13 +383,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                     // Support for this rule is not fully implemented in Servo yet.
                     return Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
                 }
-                let name = parse_counter_style_name(input)?;
-                // ASCII-case-insensitive matches for "decimal" and "disc".
-                // The name is already lower-cased by `parse_counter_style_name`
-                // so we can use == here.
-                if name.0 == atom!("decimal") || name.0 == atom!("disc") {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-                }
+                let name = parse_counter_style_name_definition(input)?;
                 Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::CounterStyle(name)))
             },
             "viewport" => {
@@ -424,12 +418,27 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                 }
             },
             "-moz-document" => {
-                if cfg!(feature = "gecko") {
-                    let cond = DocumentCondition::parse(self.context, input)?;
-                    Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Document(cond, location)))
-                } else {
-                    Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
+                if !cfg!(feature = "gecko") {
+                    return Err(input.new_custom_error(
+                        StyleParseErrorKind::UnsupportedAtRule(name.clone())
+                    ))
                 }
+
+                #[cfg(feature = "gecko")]
+                {
+                    use gecko_bindings::structs;
+
+                    if self.stylesheet_origin == Origin::Author &&
+                        unsafe { !structs::StylePrefs_sMozDocumentEnabledInContent }
+                    {
+                        return Err(input.new_custom_error(
+                            StyleParseErrorKind::UnsupportedAtRule(name.clone())
+                        ))
+                    }
+                }
+
+                let cond = DocumentCondition::parse(self.context, input)?;
+                Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Document(cond, location)))
             },
             _ => Err(input.new_custom_error(StyleParseErrorKind::UnsupportedAtRule(name.clone())))
         }

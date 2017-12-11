@@ -29,12 +29,14 @@ trait Recover<Q: ?Sized> {
 #[derive(Debug)]
 pub struct FailedAllocationError {
     reason: &'static str,
+    /// The size we are allocating, if needed.
+    allocation_size: Option<usize>,
 }
 
 impl FailedAllocationError {
     #[inline]
     pub fn new(reason: &'static str) -> Self {
-        Self { reason }
+        Self { reason, allocation_size: None }
     }
 }
 
@@ -46,6 +48,9 @@ impl error::Error for FailedAllocationError {
 
 impl fmt::Display for FailedAllocationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.reason.fmt(f)
+        match self.allocation_size {
+            Some(size) => write!(f, "{}, allocation size: {}", self.reason, size),
+            None => self.reason.fmt(f),
+        }
     }
 }

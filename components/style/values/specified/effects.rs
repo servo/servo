@@ -205,7 +205,11 @@ impl Parse for Filter {
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-grayscale
                     Ok(GenericFilter::Grayscale(Factor::parse_with_clamping_to_one(context, i)?))
                 },
-                "hue-rotate" => Ok(GenericFilter::HueRotate(Angle::parse(context, i)?)),
+                "hue-rotate" => {
+                    // We allow unitless zero here, see:
+                    // https://github.com/w3c/fxtf-drafts/issues/228
+                    Ok(GenericFilter::HueRotate(Angle::parse_with_unitless(context, i)?))
+                },
                 "invert" => {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-invert

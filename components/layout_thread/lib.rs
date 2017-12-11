@@ -54,7 +54,7 @@ mod dom_wrapper;
 use app_units::Au;
 use dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use dom_wrapper::drop_style_and_layout_data;
-use euclid::{Point2D, Rect, Size2D, ScaleFactor, TypedSize2D};
+use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};
 use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
@@ -455,8 +455,8 @@ impl LayoutThread {
         // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
             MediaType::screen(),
-            opts::get().initial_window_size.to_f32() * ScaleFactor::new(1.0),
-            ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)));
+            opts::get().initial_window_size.to_f32() * TypedScale::new(1.0),
+            TypedScale::new(opts::get().device_pixels_per_px.unwrap_or(1.0)));
 
         let configuration =
             rayon::Configuration::new().num_threads(layout_threads)
@@ -1784,7 +1784,7 @@ impl RegisteredSpeculativePainter for RegisteredPainterImpl {
 impl Painter for RegisteredPainterImpl {
     fn draw_a_paint_image(&self,
                           size: TypedSize2D<f32, CSSPixel>,
-                          device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                          device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                           properties: Vec<(Atom, String)>,
                           arguments: Vec<String>)
                           -> DrawAPaintImageResult
