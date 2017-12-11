@@ -56,6 +56,13 @@ pub struct TextPoint {
     pub index: usize,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub struct SelectionState {
+    start: TextPoint,
+    end: TextPoint,
+    direction: SelectionDirection,
+}
+
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
@@ -242,10 +249,13 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_start_offset() .. self.selection_end_offset()
     }
 
-    /// A tuple containing the (start, end, direction) of the current selection. Can be used to
-    /// compare whether selection state has changed.
-    pub fn selection_state(&self) -> (TextPoint, TextPoint, SelectionDirection) {
-        (self.selection_start(), self.selection_end(), self.selection_direction)
+    /// The state of the current selection. Can be used to compare whether selection state has changed.
+    pub fn selection_state(&self) -> SelectionState {
+        SelectionState {
+            start: self.selection_start(),
+            end: self.selection_end(),
+            direction: self.selection_direction,
+        }
     }
 
     // Check that the selection is valid.
