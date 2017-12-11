@@ -53,7 +53,7 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use style::str::split_commas;
-use textinput::{SelectionDirection, TextInput};
+use textinput::{Direction, SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 
@@ -566,7 +566,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 self.sanitize_value();
                 // Step 5.
                 if *self.textinput.borrow().single_line_content() != old_value {
-                    self.textinput.borrow_mut().clear_selection_to_limit();
+                    self.textinput.borrow_mut().clear_selection_to_limit(Direction::Forward);
                 }
             }
             ValueMode::Default |
@@ -1159,6 +1159,8 @@ impl VirtualMethods for HTMLInputElement {
 
                         // https://html.spec.whatwg.org/multipage/#input-type-change
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
+                        let previously_selectable = self.selection_api_applies();
+
                         self.input_type.set(new_type);
 
                         if new_type.is_textual() {
@@ -1210,6 +1212,11 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Step 6
                         self.sanitize_value();
+
+                        // Steps 7-9
+                        if !previously_selectable && self.selection_api_applies() {
+                            self.textinput.borrow_mut().clear_selection_to_limit(Direction::Backward);
+                        }
                     },
                     AttributeMutation::Removed => {
                         if self.input_type() == InputType::Radio {
