@@ -31,6 +31,11 @@
     { type: "reset" },
     { type: "button" }
   ];
+
+  const selectionStart = 2;
+  const selectionEnd = 5;
+  const selectionDirection = "backward";
+
   for (var i = 0; i < types.length; i++) {
     for (var j = 0; j < types.length; j++) {
       if (types[i] != types[j]) {
@@ -49,6 +54,13 @@
             assert_equals(input.value, "");
           } else {
             input.value = expected;
+
+            const previouslySelectable = (input.selectionStart !== null);
+
+            if (previouslySelectable) {
+              input.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+            }
+
             input.type = types[j].type;  // change state
 
             // type[i] sanitization
@@ -69,6 +81,20 @@
             }
 
             assert_equals(input.value, expected, "input.value should be '" + expected + "' after change of state");
+
+            const nowSelectable = (input.selectionStart !== null);
+
+            if (nowSelectable) {
+              if (previouslySelectable) {
+                assert_equals(input.selectionStart, selectionStart, "selectionStart should be unchanged");
+                assert_equals(input.selectionEnd, selectionEnd, "selectionEnd should be unchanged");
+                assert_equals(input.selectionDirection, selectionDirection, "selectionDirection should be unchanged");
+              } else {
+                assert_equals(input.selectionStart, 0, "selectionStart should be 0");
+                assert_equals(input.selectionEnd, 0, "selectionEnd should be 0");
+                assert_equals(input.selectionDirection, "none", "selectionDirection should be 'none'");
+              }
+            }
           }
         }, "change state from " + types[i].type + " to " + types[j].type);
       }
