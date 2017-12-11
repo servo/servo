@@ -405,6 +405,18 @@ impl TextControl for HTMLInputElement {
     fn textinput(&self) -> &DomRefCell<TextInput<ScriptToConstellationChan>> {
         &self.textinput
     }
+
+    // https://html.spec.whatwg.org/multipage/#concept-input-apply
+    fn selection_api_applies(&self) -> bool {
+        match self.input_type() {
+            InputType::Text | InputType::Search | InputType::Url
+            | InputType::Tel | InputType::Password => {
+                true
+            },
+
+            _ => false
+        }
+    }
 }
 
 impl HTMLInputElementMethods for HTMLInputElement {
@@ -676,38 +688,38 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn SelectionStart(&self) -> u32 {
-        self.dom_selection_start()
+    fn GetSelectionStart(&self) -> Option<u32> {
+        self.get_dom_selection_start()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn SetSelectionStart(&self, start: u32) {
-        self.set_dom_selection_start(start);
+    fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
+        self.set_dom_selection_start(start)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn SelectionEnd(&self) -> u32 {
-        self.dom_selection_end()
+    fn GetSelectionEnd(&self) -> Option<u32> {
+        self.get_dom_selection_end()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn SetSelectionEnd(&self, end: u32) {
+    fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
         self.set_dom_selection_end(end)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn SelectionDirection(&self) -> DOMString {
-        self.dom_selection_direction()
+    fn GetSelectionDirection(&self) -> Option<DOMString> {
+        self.get_dom_selection_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn SetSelectionDirection(&self, direction: DOMString) {
-        self.set_dom_selection_direction(direction);
+    fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
+        self.set_dom_selection_direction(direction)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
-    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
-        self.set_dom_selection_range(start, end, direction);
+    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+        self.set_dom_selection_range(start, end, direction)
     }
 
     // Select the files based on filepaths passed in,
