@@ -18,16 +18,17 @@
     use values::specified::{Color, Position, PositionComponent};
     use parser::Parse;
 
+    // FIXME(emilio): Should be the same type!
     impl From<background_origin::single_value::SpecifiedValue> for background_clip::single_value::SpecifiedValue {
         fn from(origin: background_origin::single_value::SpecifiedValue) ->
             background_clip::single_value::SpecifiedValue {
             match origin {
-                background_origin::single_value::SpecifiedValue::content_box =>
-                    background_clip::single_value::SpecifiedValue::content_box,
-                background_origin::single_value::SpecifiedValue::padding_box =>
-                    background_clip::single_value::SpecifiedValue::padding_box,
-                background_origin::single_value::SpecifiedValue::border_box =>
-                    background_clip::single_value::SpecifiedValue::border_box,
+                background_origin::single_value::SpecifiedValue::ContentBox =>
+                    background_clip::single_value::SpecifiedValue::ContentBox,
+                background_origin::single_value::SpecifiedValue::PaddingBox =>
+                    background_clip::single_value::SpecifiedValue::PaddingBox,
+                background_origin::single_value::SpecifiedValue::BorderBox =>
+                    background_clip::single_value::SpecifiedValue::BorderBox,
             }
         }
     }
@@ -177,7 +178,7 @@
                     size.to_css(dest)?;
                 }
 
-                if *origin != Origin::padding_box || *clip != Clip::border_box {
+                if *origin != Origin::PaddingBox || *clip != Clip::BorderBox {
                     dest.write_str(" ")?;
                     origin.to_css(dest)?;
                     if *clip != From::from(*origin) {

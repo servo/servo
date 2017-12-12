@@ -12,12 +12,14 @@ use dom::TElement;
 use selectors::NthIndexCache;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 
-/// Determines whether a target and a candidate have compatible parents for sharing.
+/// Determines whether a target and a candidate have compatible parents for
+/// sharing.
 pub fn parents_allow_sharing<E>(
     target: &mut StyleSharingTarget<E>,
     candidate: &mut StyleSharingCandidate<E>
 ) -> bool
-    where E: TElement,
+where
+    E: TElement,
 {
     // If the identity of the parent style isn't equal, we can't share. We check
     // this first, because the result is cached.
@@ -58,7 +60,8 @@ pub fn have_same_style_attribute<E>(
     target: &mut StyleSharingTarget<E>,
     candidate: &mut StyleSharingCandidate<E>
 ) -> bool
-    where E: TElement,
+where
+    E: TElement,
 {
     match (target.style_attribute(), candidate.style_attribute()) {
         (None, None) => true,
@@ -72,7 +75,8 @@ pub fn have_same_presentational_hints<E>(
     target: &mut StyleSharingTarget<E>,
     candidate: &mut StyleSharingCandidate<E>
 ) -> bool
-    where E: TElement,
+where
+    E: TElement,
 {
     target.pres_hints() == candidate.pres_hints()
 }
@@ -80,10 +84,12 @@ pub fn have_same_presentational_hints<E>(
 /// Whether a given element has the same class attribute than a given candidate.
 ///
 /// We don't try to share style across elements with different class attributes.
-pub fn have_same_class<E>(target: &mut StyleSharingTarget<E>,
-                          candidate: &mut StyleSharingCandidate<E>)
-                          -> bool
-    where E: TElement,
+pub fn have_same_class<E>(
+    target: &mut StyleSharingTarget<E>,
+    candidate: &mut StyleSharingCandidate<E>,
+) -> bool
+where
+    E: TElement,
 {
     target.class_list() == candidate.class_list()
 }

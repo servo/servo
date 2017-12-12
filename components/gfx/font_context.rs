@@ -20,7 +20,8 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use style::computed_values::{font_style, font_variant_caps};
+use style::computed_values::font_style::T as FontStyle;
+use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs;
 use webrender_api;
 
@@ -78,14 +79,14 @@ impl FontContext {
                           template: Arc<FontTemplateData>,
                           descriptor: FontTemplateDescriptor,
                           pt_size: Au,
-                          variant: font_variant_caps::T,
+                          variant: FontVariantCaps,
                           font_key: webrender_api::FontKey) -> Result<Font, ()> {
         // TODO: (Bug #3463): Currently we only support fake small-caps
         // painting. We should also support true small-caps (where the
         // font supports it) in the future.
         let actual_pt_size = match variant {
-            font_variant_caps::T::small_caps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
-            font_variant_caps::T::normal => pt_size,
+            FontVariantCaps::SmallCaps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
+            FontVariantCaps::Normal => pt_size,
         };
 
         let handle = FontHandle::new_from_template(&self.platform_handle,
@@ -130,8 +131,8 @@ impl FontContext {
 
         let desc = FontTemplateDescriptor::new(style.font_weight,
                                                style.font_stretch,
-                                               style.font_style == font_style::T::italic ||
-                                                style.font_style == font_style::T::oblique);
+                                               style.font_style == FontStyle::Italic ||
+                                                style.font_style == FontStyle::Oblique);
 
         let mut fonts: SmallVec<[Rc<RefCell<Font>>; 8]> = SmallVec::new();
 

@@ -19,5 +19,9 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
         #[must_root]
         #[repr(C)]
     };
+
+    // Work around https://github.com/rust-lang/rust/issues/46489
+    let attributes = attributes.to_string().parse().unwrap();
+
     iter::once(attributes).chain(iter::once(input)).collect()
 }

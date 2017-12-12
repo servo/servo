@@ -48,6 +48,26 @@ pub enum VisitedHandlingMode {
     RelevantLinkVisited,
 }
 
+impl VisitedHandlingMode {
+    #[inline]
+    pub fn matches_visited(&self) -> bool {
+        matches!(
+            *self,
+            VisitedHandlingMode::RelevantLinkVisited |
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited
+        )
+    }
+
+    #[inline]
+    pub fn matches_unvisited(&self) -> bool {
+        matches!(
+            *self,
+            VisitedHandlingMode::AllLinksUnvisited |
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited
+        )
+    }
+}
+
 /// Which quirks mode is this document in.
 ///
 /// See: https://quirks.spec.whatwg.org/
@@ -87,12 +107,6 @@ where
     pub nth_index_cache: Option<&'a mut NthIndexCache>,
     /// Input that controls how matching for links is handled.
     pub visited_handling: VisitedHandlingMode,
-    /// Output that records whether we encountered a "relevant link" while
-    /// matching _any_ selector for this element. (This differs from
-    /// `RelevantLinkStatus` which tracks the status for the _current_ selector
-    /// only.)
-    pub relevant_link_found: bool,
-
     /// The element which is going to match :scope pseudo-class. It can be
     /// either one :scope element, or the scoping element.
     ///
@@ -107,6 +121,9 @@ where
     pub scope_element: Option<OpaqueElement>,
 
     /// The current nesting level of selectors that we're matching.
+    ///
+    /// FIXME(emilio): Move this somewhere else and make MatchingContext
+    /// immutable again.
     pub nesting_level: usize,
 
     /// An optional hook function for checking whether a pseudo-element
@@ -152,7 +169,6 @@ where
             visited_handling,
             nth_index_cache,
             quirks_mode,
-            relevant_link_found: false,
             classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
             scope_element: None,
             nesting_level: 0,

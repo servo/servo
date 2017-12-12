@@ -17,11 +17,12 @@ pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsAtom, *mut *mut 
 
 /// Given an item `T`, a class name, and a getter function, return whether that
 /// element has the class that `name` represents.
-pub fn has_class<T>(item: T,
-                    name: &Atom,
-                    case_sensitivity: CaseSensitivity,
-                    getter: ClassOrClassList<T>) -> bool
-{
+pub fn has_class<T>(
+    item: T,
+    name: &Atom,
+    case_sensitivity: CaseSensitivity,
+    getter: ClassOrClassList<T>,
+) -> bool {
     unsafe {
         let mut class: *mut nsAtom = ptr::null_mut();
         let mut list: *mut *mut nsAtom = ptr::null_mut();
@@ -40,10 +41,13 @@ pub fn has_class<T>(item: T,
 
 /// Given an item, a callback, and a getter, execute `callback` for each class
 /// this `item` has.
-pub fn each_class<F, T>(item: T,
-                        mut callback: F,
-                        getter: ClassOrClassList<T>)
-    where F: FnMut(&Atom)
+pub fn each_class<F, T>(
+    item: T,
+    mut callback: F,
+    getter: ClassOrClassList<T>,
+)
+where
+    F: FnMut(&Atom)
 {
     unsafe {
         let mut class: *mut nsAtom = ptr::null_mut();

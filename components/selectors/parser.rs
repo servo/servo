@@ -55,6 +55,7 @@ pub enum SelectorParseErrorKind<'i> {
     EmptySelector,
     DanglingCombinator,
     NonSimpleSelectorInNegation,
+    NonCompoundSelector,
     UnexpectedTokenInAttributeSelector(Token<'i>),
     PseudoElementExpectedColon(Token<'i>),
     PseudoElementExpectedIdent(Token<'i>),
@@ -127,7 +128,7 @@ pub trait Parser<'i> {
 
     /// Whether the name is a pseudo-element that can be specified with
     /// the single colon syntax in addition to the double-colon syntax.
-    fn is_pseudo_element_allows_single_colon(name: &CowRcStr<'i>) -> bool {
+    fn pseudo_element_allows_single_colon(name: &str) -> bool {
         is_css2_pseudo_element(name)
     }
 
@@ -207,6 +208,33 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     pub fn from_vec(v: Vec<Selector<Impl>>) -> Self {
         SelectorList(SmallVec::from_vec(v))
     }
+}
+
+/// Parse a comma separated list of compound selectors.
+pub fn parse_compound_selector_list<'i, 't, P, Impl>(
+    parser: &P,
+    input: &mut CssParser<'i, 't>,
+) -> Result<Box<[Selector<Impl>]>, ParseError<'i, P::Error>>
+where
+    P: Parser<'i, Impl=Impl>,
+    Impl: SelectorImpl,
+{
+    let location = input.current_source_location();
+    let selectors = input.parse_comma_separated(|input| {
+        Selector::parse(parser, input)
+    })?;
+
+    // Ensure they're actually all compound selectors.
+    if selectors
+        .iter()
+        .flat_map(|x| x.iter_raw_match_order())
+        .any(|s| s.is_combinator()) {
+        return Err(location.new_custom_error(
+            SelectorParseErrorKind::NonCompoundSelector
+        ))
+    }
+
+    Ok(selectors.into_boxed_slice())
 }
 
 /// Ancestor hashes for the bloom filter. We precompute these and store them
@@ -1701,7 +1729,7 @@ where
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
 /// can be specified with the single colon syntax (in addition to the
 /// double-colon syntax, which can be used for all pseudo-elements).
-pub fn is_css2_pseudo_element<'i>(name: &CowRcStr<'i>) -> bool {
+pub fn is_css2_pseudo_element(name: &str) -> bool {
     // ** Do not add to this list! **
     match_ignore_ascii_case! { name,
         "before" | "after" | "first-line" | "first-letter" => true,
@@ -1760,7 +1788,7 @@ where
                 )),
             };
             let is_pseudo_element = !is_single_colon ||
-                P::is_pseudo_element_allows_single_colon(&name);
+                P::pseudo_element_allows_single_colon(&name);
             if is_pseudo_element {
                 let pseudo_element = if is_functional {
                     input.parse_nested_block(|input| {

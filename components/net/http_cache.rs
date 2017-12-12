@@ -479,10 +479,7 @@ impl HttpCache {
             return None;
         }
         let entry_key = CacheKey::new(request.clone());
-        let resources = match self.entries.get(&entry_key) {
-            Some(ref resources) => resources.clone(),
-            None => return None,
-        };
+        let resources = self.entries.get(&entry_key)?.clone();
         let mut candidates = vec![];
         for cached_resource in resources.iter() {
             let mut can_be_constructed = true;

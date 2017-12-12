@@ -30,12 +30,17 @@ use std::{fmt, i32, isize, mem};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
-use style::computed_values::{display, overflow_x, position, text_align, text_justify};
-use style::computed_values::{vertical_align, white_space};
+use style::computed_values::display::T as Display;
+use style::computed_values::overflow_x::T as StyleOverflow;
+use style::computed_values::position::T as Position;
+use style::computed_values::text_align::T as TextAlign;
+use style::computed_values::text_justify::T as TextJustify;
+use style::computed_values::white_space::T as WhiteSpace;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::generics::box_::VerticalAlign;
+use style::values::computed::box_::VerticalAlign;
+use style::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use style::values::specified::text::TextOverflowSide;
 use text;
 use traversal::PreorderFlowTraversal;
@@ -715,7 +720,7 @@ impl LineBreaker {
 
         let ellipsis = match (&fragment.style().get_text().text_overflow.second,
             fragment.style().get_box().overflow_x) {
-            (&TextOverflowSide::Clip, _) | (_, overflow_x::T::visible) => None,
+            (&TextOverflowSide::Clip, _) | (_, StyleOverflow::Visible) => None,
             (&TextOverflowSide::Ellipsis, _) => {
                 if fragment.margin_box_inline_size() > available_inline_size {
                     Some("…".to_string())
@@ -907,7 +912,7 @@ impl InlineFlow {
     /// performs text justification if mandated by the style.
     fn set_inline_fragment_positions(fragments: &mut InlineFragments,
                                      line: &Line,
-                                     line_align: text_align::T,
+                                     line_align: TextAlign,
                                      indentation: Au,
                                      is_last_line: bool) {
         // Figure out how much inline-size we have.
@@ -922,14 +927,14 @@ impl InlineFlow {
         // Translate `left` and `right` to logical directions.
         let is_ltr = fragments.fragments[0].style().writing_mode.is_bidi_ltr();
         let line_align = match (line_align, is_ltr) {
-            (text_align::T::left, true) |
-            (text_align::T::servo_left, true) |
-            (text_align::T::right, false) |
-            (text_align::T::servo_right, false) => text_align::T::start,
-            (text_align::T::left, false) |
-            (text_align::T::servo_left, false) |
-            (text_align::T::right, true) |
-            (text_align::T::servo_right, true) => text_align::T::end,
+            (TextAlign::Left, true) |
+            (TextAlign::ServoLeft, true) |
+            (TextAlign::Right, false) |
+            (TextAlign::ServoRight, false) => TextAlign::Start,
+            (TextAlign::Left, false) |
+            (TextAlign::ServoLeft, false) |
+            (TextAlign::Right, true) |
+            (TextAlign::ServoRight, true) => TextAlign::End,
             _ => line_align
         };
 
@@ -937,22 +942,22 @@ impl InlineFlow {
         // necessary.
         let mut inline_start_position_for_fragment = line.bounds.start.i + indentation;
         match line_align {
-            text_align::T::justify if !is_last_line && text_justify != text_justify::T::none => {
+            TextAlign::Justify if !is_last_line && text_justify != TextJustify::None => {
                 InlineFlow::justify_inline_fragments(fragments, line, slack_inline_size)
             }
-            text_align::T::justify | text_align::T::start => {}
-            text_align::T::center | text_align::T::servo_center => {
+            TextAlign::Justify | TextAlign::Start => {}
+            TextAlign::Center | TextAlign::ServoCenter => {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size.scale_by(0.5)
             }
-            text_align::T::end => {
+            TextAlign::End => {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size
             }
-            text_align::T::left |
-            text_align::T::servo_left |
-            text_align::T::right |
-            text_align::T::servo_right => unreachable!()
+            TextAlign::Left |
+            TextAlign::ServoLeft |
+            TextAlign::Right |
+            TextAlign::ServoRight => unreachable!()
         }
 
         // Lay out the fragments in visual order.
@@ -1149,7 +1154,7 @@ impl InlineFlow {
         update_line_metrics_for_fragment(&mut line_metrics,
                                          &inline_metrics,
                                          style.get_box().display,
-                                         VerticalAlign::Baseline,
+                                         GenericVerticalAlign::Baseline,
                                          &mut largest_block_size_for_top_fragments,
                                          &mut largest_block_size_for_bottom_fragments);
 
@@ -1185,24 +1190,24 @@ impl InlineFlow {
 
         fn update_line_metrics_for_fragment(line_metrics: &mut LineMetrics,
                                             inline_metrics: &InlineMetrics,
-                                            display_value: display::T,
-                                            vertical_align_value: vertical_align::T,
+                                            display_value: Display,
+                                            vertical_align_value: VerticalAlign,
                                             largest_block_size_for_top_fragments: &mut Au,
                                             largest_block_size_for_bottom_fragments: &mut Au) {
             match (display_value, vertical_align_value) {
-                (display::T::inline, VerticalAlign::Top) |
-                (display::T::block, VerticalAlign::Top) |
-                (display::T::inline_flex, VerticalAlign::Top) |
-                (display::T::inline_block, VerticalAlign::Top) if
+                (Display::Inline, GenericVerticalAlign::Top) |
+                (Display::Block, GenericVerticalAlign::Top) |
+                (Display::InlineFlex, GenericVerticalAlign::Top) |
+                (Display::InlineBlock, GenericVerticalAlign::Top) if
                         inline_metrics.space_above_baseline >= Au(0) => {
                     *largest_block_size_for_top_fragments = max(
                         *largest_block_size_for_top_fragments,
                         inline_metrics.space_above_baseline + inline_metrics.space_below_baseline)
                 }
-                (display::T::inline, VerticalAlign::Bottom) |
-                (display::T::block, VerticalAlign::Bottom) |
-                (display::T::inline_flex, VerticalAlign::Bottom) |
-                (display::T::inline_block, VerticalAlign::Bottom) if
+                (Display::Inline, GenericVerticalAlign::Bottom) |
+                (Display::Block, GenericVerticalAlign::Bottom) |
+                (Display::InlineFlex, GenericVerticalAlign::Bottom) |
+                (Display::InlineBlock, GenericVerticalAlign::Bottom) if
                         inline_metrics.space_below_baseline >= Au(0) => {
                     *largest_block_size_for_bottom_fragments = max(
                         *largest_block_size_for_bottom_fragments,
@@ -1321,11 +1326,11 @@ impl Flow for InlineFlow {
         for fragment in &mut self.fragments.fragments {
             let intrinsic_sizes_for_fragment = fragment.compute_intrinsic_inline_sizes().finish();
             match fragment.style.get_inheritedtext().white_space {
-                white_space::T::nowrap => {
+                WhiteSpace::Nowrap => {
                     intrinsic_sizes_for_nonbroken_run.union_nonbreaking_inline(
                         &intrinsic_sizes_for_fragment)
                 }
-                white_space::T::pre => {
+                WhiteSpace::Pre => {
                     intrinsic_sizes_for_nonbroken_run.union_nonbreaking_inline(
                         &intrinsic_sizes_for_fragment);
 
@@ -1340,8 +1345,8 @@ impl Flow for InlineFlow {
                         intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
                     }
                 }
-                white_space::T::pre_wrap |
-                white_space::T::pre_line => {
+                WhiteSpace::PreWrap |
+                WhiteSpace::PreLine => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
                     // necessary.
                     intrinsic_sizes_for_inline_run.union_inline(
@@ -1361,7 +1366,7 @@ impl Flow for InlineFlow {
                         intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
                     }
                 }
-                white_space::T::normal => {
+                WhiteSpace::Normal => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
                     // necessary.
                     intrinsic_sizes_for_inline_run.union_inline(
@@ -1720,7 +1725,7 @@ impl Flow for InlineFlow {
 
     fn contains_relatively_positioned_fragments(&self) -> bool {
         self.fragments.fragments.iter().any(|fragment| {
-            fragment.style.get_box().position == position::T::relative
+            fragment.style.get_box().position == Position::Relative
         })
     }
 

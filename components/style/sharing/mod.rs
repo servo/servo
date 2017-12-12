@@ -421,7 +421,7 @@ impl<E: TElement> StyleSharingTarget<E> {
 }
 
 struct SharingCacheBase<Candidate> {
-    entries: LRUCache<Candidate, [Entry<Candidate>; SHARING_CACHE_BACKING_STORE_SIZE]>,
+    entries: LRUCache<[Entry<Candidate>; SHARING_CACHE_BACKING_STORE_SIZE]>,
 }
 
 impl<Candidate> Default for SharingCacheBase<Candidate> {

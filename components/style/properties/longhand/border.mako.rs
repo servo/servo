@@ -33,7 +33,7 @@
     )}
 
     ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
-                              "specified::BorderStyle::none",
+                              "specified::BorderStyle::None",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
                               flags="APPLIES_TO_FIRST_LETTER",
@@ -74,6 +74,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
                        products="gecko"
                        flags="APPLIES_TO_FIRST_LETTER"
+                       enabled_in="chrome"
                        ignored_when_colors_disabled="True">
         use std::fmt;
         use style_traits::ToCss;

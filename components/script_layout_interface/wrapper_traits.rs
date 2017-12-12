@@ -17,7 +17,7 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
 use style::attr::AttrValue;
-use style::computed_values::display;
+use style::computed_values::display::T as Display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, TNode};
@@ -197,7 +197,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     fn as_element(&self) -> Option<Self::ConcreteThreadSafeLayoutElement>;
 
     #[inline]
-    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>> {
+    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<Display>> {
         self.as_element().map_or(PseudoElementType::Normal, |el| el.get_pseudo_element_type())
     }
 
@@ -304,7 +304,7 @@ pub trait ThreadSafeLayoutElement
 
     /// Creates a new `ThreadSafeLayoutElement` for the same `LayoutElement`
     /// with a different pseudo-element type.
-    fn with_pseudo(&self, pseudo: PseudoElementType<Option<display::T>>) -> Self;
+    fn with_pseudo(&self, pseudo: PseudoElementType<Option<Display>>) -> Self;
 
     /// Returns the type ID of this node.
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
@@ -327,7 +327,7 @@ pub trait ThreadSafeLayoutElement
     fn style_data(&self) -> AtomicRef<ElementData>;
 
     #[inline]
-    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>>;
+    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<Display>>;
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
@@ -364,7 +364,7 @@ pub trait ThreadSafeLayoutElement
             let display = if self.get_attr(&ns!(), &local_name!("open")).is_some() {
                 None // Specified by the stylesheet
             } else {
-                Some(display::T::none)
+                Some(Display::None)
             };
             Some(self.with_pseudo(PseudoElementType::DetailsContent(display)))
         } else {

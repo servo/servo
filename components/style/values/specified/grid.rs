@@ -326,6 +326,19 @@ impl ToComputedValue for TrackList<LengthOrPercentage, Integer> {
     }
 }
 
+#[cfg(feature = "gecko")]
+#[inline]
+fn allow_grid_template_subgrids() -> bool {
+    use gecko_bindings::structs::mozilla;
+    unsafe { mozilla::StylePrefs_sGridTemplateSubgridValueEnabled }
+}
+
+#[cfg(feature = "servo")]
+#[inline]
+fn allow_grid_template_subgrids() -> bool {
+    false
+}
+
 impl Parse for GridTemplateComponent<LengthOrPercentage, Integer> {
     // FIXME: Derive Parse (probably with None_)
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -343,10 +356,12 @@ impl GridTemplateComponent<LengthOrPercentage, Integer> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(t) = input.try(|i| TrackList::parse(context, i)) {
-            return Ok(GridTemplateComponent::TrackList(t))
+        if allow_grid_template_subgrids() {
+            if let Ok(t) = input.try(|i| LineNameList::parse(context, i)) {
+                return Ok(GridTemplateComponent::Subgrid(t))
+            }
         }
 
-        LineNameList::parse(context, input).map(GridTemplateComponent::Subgrid)
+        TrackList::parse(context, input).map(GridTemplateComponent::TrackList)
     }
 }

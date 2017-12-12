@@ -658,10 +658,10 @@ impl Animate for Visibility {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let (this_weight, other_weight) = procedure.weights();
         match (*self, *other) {
-            (Visibility::visible, _) => {
+            (Visibility::Visible, _) => {
                 Ok(if this_weight > 0.0 { *self } else { *other })
             },
-            (_, Visibility::visible) => {
+            (_, Visibility::Visible) => {
                 Ok(if other_weight > 0.0 { *other } else { *self })
             },
             _ => Err(()),
@@ -763,7 +763,7 @@ impl Animate for FontStretch {
     {
         let from = f64::from(*self);
         let to = f64::from(*other);
-        let normal = f64::from(FontStretch::normal);
+        let normal = f64::from(FontStretch::Normal);
         let (this_weight, other_weight) = procedure.weights();
         let result = (from - normal) * this_weight + (to - normal) * other_weight + normal;
         Ok(result.into())
@@ -788,15 +788,15 @@ impl From<FontStretch> for f64 {
     fn from(stretch: FontStretch) -> f64 {
         use self::FontStretch::*;
         match stretch {
-            ultra_condensed => 1.0,
-            extra_condensed => 2.0,
-            condensed       => 3.0,
-            semi_condensed  => 4.0,
-            normal          => 5.0,
-            semi_expanded   => 6.0,
-            expanded        => 7.0,
-            extra_expanded  => 8.0,
-            ultra_expanded  => 9.0,
+            UltraCondensed => 1.0,
+            ExtraCondensed => 2.0,
+            Condensed => 3.0,
+            SemiCondensed => 4.0,
+            Normal => 5.0,
+            SemiExpanded => 6.0,
+            Expanded => 7.0,
+            ExtraExpanded => 8.0,
+            UltraExpanded => 9.0,
         }
     }
 }
@@ -806,8 +806,8 @@ impl Into<FontStretch> for f64 {
         use properties::longhands::font_stretch::computed_value::T::*;
         let index = (self + 0.5).floor().min(9.0).max(1.0);
         static FONT_STRETCH_ENUM_MAP: [FontStretch; 9] =
-            [ ultra_condensed, extra_condensed, condensed, semi_condensed, normal,
-              semi_expanded, expanded, extra_expanded, ultra_expanded ];
+            [ UltraCondensed, ExtraCondensed, Condensed, SemiCondensed, Normal,
+              SemiExpanded, Expanded, ExtraExpanded, UltraExpanded ];
         FONT_STRETCH_ENUM_MAP[(index - 1.0) as usize]
     }
 }

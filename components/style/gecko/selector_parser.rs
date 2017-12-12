@@ -9,9 +9,9 @@ use element_state::{DocumentState, ElementState};
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use selector_parser::{Direction, SelectorParser, PseudoElementCascadeType};
+use selector_parser::{Direction, SelectorParser};
 use selectors::SelectorList;
-use selectors::parser::{Selector, SelectorMethods, SelectorParseErrorKind};
+use selectors::parser::{self as selector_parser, Selector, SelectorMethods, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -333,9 +333,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
 
-    fn is_pseudo_element_allows_single_colon(name: &CowRcStr<'i>) -> bool {
+    fn pseudo_element_allows_single_colon(name: &str) -> bool {
+        // FIXME: -moz-tree check should probably be ascii-case-insensitive.
         ::selectors::parser::is_css2_pseudo_element(name) ||
-            name.starts_with("-moz-tree-") // tree pseudo-elements
+            name.starts_with("-moz-tree-")
     }
 
     fn parse_non_ts_pseudo_class(
@@ -399,16 +400,12 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                         NonTSPseudoClass::Dir(Box::new(direction))
                     },
                     "-moz-any" => {
-                        let selectors = parser.parse_comma_separated(|input| {
-                            Selector::parse(self, input)
-                        })?;
-                        // Selectors inside `:-moz-any` may not include combinators.
-                        if selectors.iter().flat_map(|x| x.iter_raw_match_order()).any(|s| s.is_combinator()) {
-                            return Err(parser.new_custom_error(
-                                SelectorParseErrorKind::UnexpectedIdent("-moz-any".into())
-                            ))
-                        }
-                        NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
+                        NonTSPseudoClass::MozAny(
+                            selector_parser::parse_compound_selector_list(
+                                self,
+                                parser,
+                            )?
+                        )
                     }
                     _ => return Err(parser.new_custom_error(
                         SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())
@@ -431,6 +428,8 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     ) -> Result<PseudoElement, ParseError<'i>> {
         PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
             .or_else(|| {
+                // FIXME: -moz-tree check should probably be
+                // ascii-case-insensitive.
                 if name.starts_with("-moz-tree-") {
                     PseudoElement::tree_pseudo_element(&name, Box::new([]))
                 } else {
@@ -445,9 +444,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         name: CowRcStr<'i>,
         parser: &mut Parser<'i, 't>,
     ) -> Result<PseudoElement, ParseError<'i>> {
+        // FIXME: -moz-tree check should probably be ascii-case-insensitive.
         if name.starts_with("-moz-tree-") {
-            // Tree pseudo-elements can have zero or more arguments,
-            // separated by either comma or space.
+            // Tree pseudo-elements can have zero or more arguments, separated
+            // by either comma or space.
             let mut args = Vec::new();
             loop {
                 let location = parser.current_source_location();
@@ -477,12 +477,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 }
 
 impl SelectorImpl {
-    #[inline]
-    /// Legacy alias for PseudoElement::cascade_type.
-    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        pseudo.cascade_type()
-    }
-
     /// A helper to traverse each eagerly cascaded pseudo-element, executing
     /// `fun` on it.
     #[inline]

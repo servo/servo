@@ -32,7 +32,7 @@ mod parsing;
 mod properties;
 mod rule_tree;
 mod size_of;
-#[path = "../stylo/specified_values.rs"]
+#[path = "../../../ports/geckolib/tests/specified_values.rs"]
 mod specified_values;
 mod str;
 mod stylesheets;

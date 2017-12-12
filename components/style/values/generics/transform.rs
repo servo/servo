@@ -5,7 +5,7 @@
 //! Generic types for CSS values that are related to transformations.
 
 use app_units::Au;
-use euclid::{Radians, Rect, Transform3D};
+use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
 use std::fmt;
 use style_traits::ToCss;
@@ -457,18 +457,20 @@ where
                 let theta = TWO_PI - theta.as_ref().radians64();
                 let (ax, ay, az, theta) =
                     get_normalized_vector_and_angle(ax.into(), ay.into(), az.into(), theta);
-                Transform3D::create_rotation(ax as f64, ay as f64, az as f64, Radians::new(theta))
+                Transform3D::create_rotation(
+                    ax as f64, ay as f64, az as f64, euclid::Angle::radians(theta)
+                )
             },
             RotateX(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(1., 0., 0., theta)
             },
             RotateY(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(0., 1., 0., theta)
             },
             RotateZ(theta) | Rotate(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(0., 0., 1., theta)
             },
             Perspective(ref d) => {
@@ -503,20 +505,20 @@ where
             },
             Skew(theta_x, theta_y) => {
                 Transform3D::create_skew(
-                    Radians::new(theta_x.as_ref().radians64()),
-                    Radians::new(theta_y.map_or(0., |a| a.as_ref().radians64())),
+                    euclid::Angle::radians(theta_x.as_ref().radians64()),
+                    euclid::Angle::radians(theta_y.map_or(0., |a| a.as_ref().radians64())),
                 )
             },
             SkewX(theta) => {
                 Transform3D::create_skew(
-                    Radians::new(theta.as_ref().radians64()),
-                    Radians::new(0.),
+                    euclid::Angle::radians(theta.as_ref().radians64()),
+                    euclid::Angle::radians(0.),
                 )
             },
             SkewY(theta) => {
                 Transform3D::create_skew(
-                    Radians::new(0.),
-                    Radians::new(theta.as_ref().radians64()),
+                    euclid::Angle::radians(0.),
+                    euclid::Angle::radians(theta.as_ref().radians64()),
                 )
             },
             Matrix3D(m) => m.into(),

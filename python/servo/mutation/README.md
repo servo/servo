@@ -7,8 +7,17 @@ For more info refer [Wiki page](https://en.wikipedia.org/wiki/Mutation_testing).
 
 Here Mutation testing is used to test the coverage of WPT for Servo's browser engine.
 
-### Mutation Strategy
-This version of mutation testing consists of a Python script that finds random uses of && in Servo's code base and replaces them by ||. The expectation from the WPT tests is to catch this mutation and result in failures when executed on the corresponding code base.
+### Mutation Strategies
+The mutation test consists of a Python script that mutates random lines in Servo's code base. The expectation from the WPT tests is to catch this bug caused by mutation and result in test failures.
+
+There are few strategies to mutate source code in order to create bugs. The strategies are randomly picked for each file. Some of the strategies are:
+
+* Change Conditional flow
+* Delete if block
+* Change Arithmetic operations
+
+#### How To Add a New Strategy?
+Write new class inheriting the Strategy class in mutator.py and include it in get_strategies method. Override mutate method or provide replace strategy regex if it works with mutate method of Strategy class.
 
 ### Test Run Strategy
 The mutation test aims to run only tests which are concerned with the mutant. Therefore part of WPT test is related to the source code under mutation is invoked. For this it requires a test mapping in source folders.
@@ -49,21 +58,18 @@ The mutation tests can be run by running the below command from the servo direct
 Eg. `python python/servo/mutation/init.py components/script/dom`
 
 ### Running Mutation Test from CI
-
 The CI script for running mutation testing is present in /etc/ci folder. It can be called by executing the below command from the CLI:
 
-`python /etc/ci/mutation_test.py`
+`./etc/ci/mutation_test.sh`
 
 ### Execution Flow
 1. The script is called from the command line, it searches for test_mapping.json in the path entered by user.
-2. If found, it reads the json file and parses it, gets source file to tests mapping.
-3. If the source file does not have any local changes then it is mutated at a random line.
-4. The corresponding WPT tests are run for this mutant and the test results are logged.
-5. Once all WPT are run for the first source file, the mutation continues for other source files mentioned in the json file and runs their corresponding WPT tests.
-6. Once it has completed executing mutation testing for the entered path, it repeats the above procedure for sub-paths present inside the entered path.
+2. If found, it reads the json file and parses it, gets source file to tests mapping. For all source files in the mapping file, it does the following.
+3. If the source file does not have any local changes then it mutates at a random line using a random strategy. It retries with other strategies if that strategy could not produce any mutation.
+4. The code is built and the corresponding WPT tests are run for this mutant and the test results are logged.
+5. Once it has completed executing mutation testing for the entered path, it repeats the above procedure for sub-paths present inside the entered path.
 
 ### Test Summary
-
 At the end of the test run the test summary displayed which looks like this:
 ```
 Test Summary:

@@ -7,6 +7,7 @@ use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;

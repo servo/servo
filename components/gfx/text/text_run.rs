@@ -149,10 +149,7 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
-        let glyph_run = match self.glyph_run {
-            None => return None,
-            Some(glyph_run) => glyph_run,
-        };
+        let glyph_run = self.glyph_run?;
 
         debug_assert!(!self.range.is_empty());
         let byte_start = self.range.begin();

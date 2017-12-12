@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Style load event should be async</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test("style load should be async");
+    var sync = true;
+    function check() {
+        assert_false(sync);
+        t.done();
+    }
+</script>
+<style onload="t.step(check)">
+</style>
+<script>
+  sync = false
+</script>
+
+<body>
+  <div id="log"></div>
+  <div id="test"></div>
+</body>
+</html>

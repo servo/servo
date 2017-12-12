@@ -75,10 +75,7 @@ impl VirtualMethods for HTMLLegendElement {
 impl HTMLLegendElementMethods for HTMLLegendElement {
     // https://html.spec.whatwg.org/multipage/#dom-legend-form
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
-        let parent = match self.upcast::<Node>().GetParentElement() {
-            Some(parent) => parent,
-            None => return None,
-        };
+        let parent = self.upcast::<Node>().GetParentElement()?;
         if parent.is::<HTMLFieldSetElement>() {
             return self.form_owner();
         }

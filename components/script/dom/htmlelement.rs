@@ -22,7 +22,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
-use dom::htmlinputelement::HTMLInputElement;
+use dom::htmlinputelement::{HTMLInputElement, InputType};
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::node::{Node, NodeFlags};
 use dom::node::{document_from_node, window_from_node};
@@ -497,7 +497,7 @@ impl HTMLElement {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
                 match type_id {
                     HTMLElementTypeId::HTMLInputElement =>
-                        self.downcast::<HTMLInputElement>().unwrap().type_() != atom!("hidden"),
+                        self.downcast::<HTMLInputElement>().unwrap().input_type() != InputType::Hidden,
                     HTMLElementTypeId::HTMLButtonElement |
                         HTMLElementTypeId::HTMLMeterElement |
                         HTMLElementTypeId::HTMLOutputElement |

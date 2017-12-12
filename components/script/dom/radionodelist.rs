@@ -10,7 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
-use dom::htmlinputelement::HTMLInputElement;
+use dom::htmlinputelement::{HTMLInputElement, InputType};
 use dom::node::Node;
 use dom::nodelist::{NodeList, NodeListType};
 use dom::window::Window;
@@ -55,13 +55,12 @@ impl RadioNodeListMethods for RadioNodeList {
         self.upcast::<NodeList>().as_simple_list().iter().filter_map(|node| {
             // Step 1
             node.downcast::<HTMLInputElement>().and_then(|input| {
-                match input.type_() {
-                    atom!("radio") if input.Checked() => {
-                        // Step 3-4
-                        let value = input.Value();
-                        Some(if value.is_empty() { DOMString::from("on") } else { value })
-                    }
-                    _ => None
+                if input.input_type() == InputType::Radio && input.Checked() {
+                    // Step 3-4
+                    let value = input.Value();
+                    Some(if value.is_empty() { DOMString::from("on") } else { value })
+                } else {
+                    None
                 }
             })
         }).next()
@@ -74,8 +73,8 @@ impl RadioNodeListMethods for RadioNodeList {
         for node in self.upcast::<NodeList>().as_simple_list().iter() {
             // Step 1
             if let Some(input) = node.downcast::<HTMLInputElement>() {
-                match input.type_() {
-                    atom!("radio") if value == DOMString::from("on") => {
+                match input.input_type() {
+                    InputType::Radio if value == DOMString::from("on") => {
                         // Step 2
                         let val = input.Value();
                         if val.is_empty() || val == value {
@@ -83,7 +82,7 @@ impl RadioNodeListMethods for RadioNodeList {
                             return;
                         }
                     }
-                    atom!("radio") => {
+                    InputType::Radio => {
                         // Step 2
                         if input.Value() == value {
                             input.SetChecked(true);

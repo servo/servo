@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
-use euclid::ScaleFactor;
+use euclid::TypedScale;
 use euclid::TypedSize2D;
 use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
@@ -31,7 +31,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
             selectors: selectors,
             block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
                 PropertyDeclaration::Display(
-                    longhands::display::SpecifiedValue::block),
+                    longhands::display::SpecifiedValue::Block),
                 Importance::Normal
             ))),
             source_location: SourceLocation {
@@ -179,7 +179,7 @@ fn test_insert() {
 }
 
 fn mock_stylist() -> Stylist {
-    let device = Device::new(MediaType::screen(), TypedSize2D::new(0f32, 0f32), ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), TypedSize2D::new(0f32, 0f32), TypedScale::new(1.0));
     Stylist::new(device, QuirksMode::NoQuirks)
 }
 

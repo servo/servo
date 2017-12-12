@@ -18,20 +18,20 @@
                 try_match_ident_ignore_ascii_case! { input,
                     "-moz-scrollbars-horizontal" => {
                         Ok(expanded! {
-                            overflow_x: SpecifiedValue::scroll,
-                            overflow_y: SpecifiedValue::hidden,
+                            overflow_x: SpecifiedValue::Scroll,
+                            overflow_y: SpecifiedValue::Hidden,
                         })
                     }
                     "-moz-scrollbars-vertical" => {
                         Ok(expanded! {
-                            overflow_x: SpecifiedValue::hidden,
-                            overflow_y: SpecifiedValue::scroll,
+                            overflow_x: SpecifiedValue::Hidden,
+                            overflow_y: SpecifiedValue::Scroll,
                         })
                     }
                     "-moz-scrollbars-none" => {
                         Ok(expanded! {
-                            overflow_x: SpecifiedValue::hidden,
-                            overflow_y: SpecifiedValue::hidden,
+                            overflow_x: SpecifiedValue::Hidden,
+                            overflow_y: SpecifiedValue::Hidden,
                         })
                     }
                 }
@@ -54,6 +54,44 @@
             } else {
                 Ok(())
             }
+        }
+    }
+</%helpers:shorthand>
+
+<%helpers:shorthand
+    name="overflow-clip-box"
+    sub_properties="overflow-clip-box-block overflow-clip-box-inline"
+    enabled_in="ua"
+    gecko_pref="layout.css.overflow-clip-box.enabled"
+    spec="Internal, may be standardized in the future "
+         "(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)"
+    products="gecko"
+>
+    use values::specified::OverflowClipBox;
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let block_value = OverflowClipBox::parse(input)?;
+        let inline_value =
+            input.try(|input| OverflowClipBox::parse(input)).unwrap_or(block_value);
+
+        Ok(expanded! {
+          overflow_clip_box_block: block_value,
+          overflow_clip_box_inline: inline_value,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.overflow_clip_box_block.to_css(dest)?;
+
+            if self.overflow_clip_box_block != self.overflow_clip_box_inline {
+                dest.write_str(" ")?;
+                self.overflow_clip_box_inline.to_css(dest)?;
+            }
+
+            Ok(())
         }
     }
 </%helpers:shorthand>

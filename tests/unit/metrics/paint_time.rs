@@ -11,7 +11,8 @@ use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net_traits::image::base::PixelFormat;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
-use style::computed_values::image_rendering;
+use servo_url::ServoUrl;
+use style::computed_values::image_rendering::T as ImageRendering;
 use time;
 
 struct DummyProfilerMetadataFactory {}
@@ -32,6 +33,7 @@ fn test_paint_metrics_construction() {
         profiler_chan,
         layout_sender,
         script_sender,
+        ServoUrl::parse("about:blank").unwrap(),
     );
     assert_eq!(
         (&paint_time_metrics).get_navigation_start(),
@@ -60,6 +62,7 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
         profiler_chan,
         layout_sender,
         script_sender,
+        ServoUrl::parse("about:blank").unwrap(),
     );
     let dummy_profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
@@ -127,7 +130,7 @@ fn test_first_contentful_paint_setter() {
         image_data: None,
         stretch_size: Size2D::zero(),
         tile_spacing: Size2D::zero(),
-        image_rendering: image_rendering::T::auto,
+        image_rendering: ImageRendering::Auto,
     }));
     let display_list = DisplayList {
         list: vec![image],

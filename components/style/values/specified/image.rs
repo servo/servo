@@ -261,8 +261,10 @@ impl Parse for Gradient {
 }
 
 impl Gradient {
-    fn parse_webkit_gradient_argument<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                              -> Result<Self, ParseError<'i>> {
+    fn parse_webkit_gradient_argument<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         type Point = GenericPosition<Component<X>, Component<Y>>;
 
         #[derive(Clone, Copy)]
@@ -518,10 +520,11 @@ impl Gradient {
 impl GradientKind {
     /// Parses a linear gradient.
     /// CompatMode can change during `-moz-` prefixed gradient parsing if it come across a `to` keyword.
-    fn parse_linear<'i, 't>(context: &ParserContext,
-                            input: &mut Parser<'i, 't>,
-                            compat_mode: &mut CompatMode)
-                            -> Result<Self, ParseError<'i>> {
+    fn parse_linear<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        compat_mode: &mut CompatMode,
+    ) -> Result<Self, ParseError<'i>> {
         let direction = if let Ok(d) = input.try(|i| LineDirection::parse(context, i, compat_mode)) {
             input.expect_comma()?;
             d
@@ -534,10 +537,11 @@ impl GradientKind {
         Ok(GenericGradientKind::Linear(direction))
     }
 
-    fn parse_radial<'i, 't>(context: &ParserContext,
-                            input: &mut Parser<'i, 't>,
-                            compat_mode: &mut CompatMode)
-                            -> Result<Self, ParseError<'i>> {
+    fn parse_radial<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        compat_mode: &mut CompatMode,
+    ) -> Result<Self, ParseError<'i>> {
         let (shape, position, angle, moz_position) = match *compat_mode {
             CompatMode::Modern => {
                 let shape = input.try(|i| EndingShape::parse(context, i, *compat_mode));
@@ -702,13 +706,16 @@ impl GenericsLineDirection for LineDirection {
 }
 
 impl LineDirection {
-    fn parse<'i, 't>(context: &ParserContext,
-                     input: &mut Parser<'i, 't>,
-                     compat_mode: &mut CompatMode)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        compat_mode: &mut CompatMode,
+    ) -> Result<Self, ParseError<'i>> {
         let mut _angle = if *compat_mode == CompatMode::Moz {
             input.try(|i| Angle::parse(context, i)).ok()
         } else {
+            // Gradients allow unitless zero angles as an exception, see:
+            // https://github.com/w3c/csswg-drafts/issues/1162
             if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
                 return Ok(LineDirection::Angle(angle));
             }
@@ -780,10 +787,11 @@ impl ToComputedValue for GradientPosition {
 }
 
 impl EndingShape {
-    fn parse<'i, 't>(context: &ParserContext,
-                     input: &mut Parser<'i, 't>,
-                     compat_mode: CompatMode)
-                     -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        compat_mode: CompatMode,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(i, compat_mode)) {
             if input.try(|i| i.expect_ident_matching("circle")).is_ok() {
                 return Ok(GenericEndingShape::Circle(Circle::Extent(extent)));
@@ -861,9 +869,10 @@ impl EndingShape {
 }
 
 impl ShapeExtent {
-    fn parse_with_compat_mode<'i, 't>(input: &mut Parser<'i, 't>,
-                                      compat_mode: CompatMode)
-                                      -> Result<Self, ParseError<'i>> {
+    fn parse_with_compat_mode<'i, 't>(
+        input: &mut Parser<'i, 't>,
+        compat_mode: CompatMode,
+    ) -> Result<Self, ParseError<'i>> {
         match Self::parse(input)? {
             ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern => {
                 Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
@@ -876,8 +885,10 @@ impl ShapeExtent {
 }
 
 impl GradientItem {
-    fn parse_comma_separated<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                     -> Result<Vec<Self>, ParseError<'i>> {
+    fn parse_comma_separated<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Vec<Self>, ParseError<'i>> {
         let mut seen_stop = false;
         let items = input.parse_comma_separated(|input| {
             if seen_stop {

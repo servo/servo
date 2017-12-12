@@ -23,7 +23,7 @@ unstable = ["libservo/unstable"]
 [dependencies]
 compositing = {path = "../../components/compositing"}
 devtools = {path = "../../components/devtools"}
-euclid = "0.15"
+euclid = "0.16"
 gleam = "0.4"
 glutin_app = {path = "../glutin"}
 libc = "0.2"

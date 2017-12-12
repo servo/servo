@@ -16,7 +16,8 @@ use platform::font_template::FontTemplateData;
 use platform::windows::font_context::FontContextHandle;
 use platform::windows::font_list::font_from_atom;
 use std::sync::Arc;
-use style::computed_values::{font_stretch, font_weight};
+use style::computed_values::font_stretch::T as StyleFontStretch;
+use style::computed_values::font_weight::T as StyleFontWeight;
 use text::glyph::GlyphId;
 use truetype;
 
@@ -94,8 +95,8 @@ fn get_family_face_indices(records: &[truetype::naming_table::Record]) -> Option
 struct FontInfo {
     family_name: String,
     face_name: String,
-    weight: font_weight::T,
-    stretch: font_stretch::T,
+    weight: StyleFontWeight,
+    stretch: StyleFontStretch,
     style: FontStyle,
 }
 
@@ -155,19 +156,21 @@ impl FontInfo {
             },
         };
 
-        let weight = font_weight::T::
-            from_int(min(9, max(1, weight_val as i32 / 100)) * 100).unwrap();
+        let weight =
+            StyleFontWeight::from_int(
+                min(9, max(1, weight_val as i32 / 100)) * 100
+            ).unwrap();
 
         let stretch = match min(9, max(1, width_val)) {
-            1 => font_stretch::T::ultra_condensed,
-            2 => font_stretch::T::extra_condensed,
-            3 => font_stretch::T::condensed,
-            4 => font_stretch::T::semi_condensed,
-            5 => font_stretch::T::normal,
-            6 => font_stretch::T::semi_expanded,
-            7 => font_stretch::T::expanded,
-            8 => font_stretch::T::extra_expanded,
-            9 => font_stretch::T::ultra_expanded,
+            1 => StyleFontStretch::UltraCondensed,
+            2 => StyleFontStretch::ExtraCondensed,
+            3 => StyleFontStretch::Condensed,
+            4 => StyleFontStretch::SemiCondensed,
+            5 => StyleFontStretch::Normal,
+            6 => StyleFontStretch::SemiExpanded,
+            7 => StyleFontStretch::Expanded,
+            8 => StyleFontStretch::ExtraExpanded,
+            9 => StyleFontStretch::UltraExpanded,
             _ => return Err(()),
         };
 
@@ -188,7 +191,7 @@ impl FontInfo {
 
     fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
         let style = font.style();
-        let weight = font_weight::T(match font.weight() {
+        let weight = StyleFontWeight(match font.weight() {
             FontWeight::Thin => 100,
             FontWeight::ExtraLight => 200,
             FontWeight::Light => 300,
@@ -204,16 +207,16 @@ impl FontInfo {
             FontWeight::ExtraBlack => 900,
         });
         let stretch = match font.stretch() {
-            FontStretch::Undefined => font_stretch::T::normal,
-            FontStretch::UltraCondensed => font_stretch::T::ultra_condensed,
-            FontStretch::ExtraCondensed => font_stretch::T::extra_condensed,
-            FontStretch::Condensed => font_stretch::T::condensed,
-            FontStretch::SemiCondensed => font_stretch::T::semi_condensed,
-            FontStretch::Normal => font_stretch::T::normal,
-            FontStretch::SemiExpanded => font_stretch::T::semi_expanded,
-            FontStretch::Expanded => font_stretch::T::expanded,
-            FontStretch::ExtraExpanded => font_stretch::T::extra_expanded,
-            FontStretch::UltraExpanded => font_stretch::T::ultra_expanded,
+            FontStretch::Undefined => StyleFontStretch::Normal,
+            FontStretch::UltraCondensed => StyleFontStretch::UltraCondensed,
+            FontStretch::ExtraCondensed => StyleFontStretch::ExtraCondensed,
+            FontStretch::Condensed => StyleFontStretch::Condensed,
+            FontStretch::SemiCondensed => StyleFontStretch::SemiCondensed,
+            FontStretch::Normal => StyleFontStretch::Normal,
+            FontStretch::SemiExpanded => StyleFontStretch::SemiExpanded,
+            FontStretch::Expanded => StyleFontStretch::Expanded,
+            FontStretch::ExtraExpanded => StyleFontStretch::ExtraExpanded,
+            FontStretch::UltraExpanded => StyleFontStretch::UltraExpanded,
         };
 
         Ok(FontInfo {
@@ -300,11 +303,11 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn boldness(&self) -> font_weight::T {
+    fn boldness(&self) -> StyleFontWeight {
         self.info.weight
     }
 
-    fn stretchiness(&self) -> font_stretch::T {
+    fn stretchiness(&self) -> StyleFontStretch {
         self.info.stretch
     }
 

@@ -582,7 +582,7 @@ impl<T: MallocSizeOf, Unit> MallocSizeOf for euclid::Length<T, Unit> {
     }
 }
 
-impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::ScaleFactor<T, Src, Dst> {
+impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::TypedScale<T, Src, Dst> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
     }

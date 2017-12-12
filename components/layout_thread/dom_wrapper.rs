@@ -49,7 +49,7 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, QuirksMode, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, QuirksMode};
 use selectors::matching::VisitedHandlingMode;
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
@@ -718,7 +718,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         &self,
         pseudo_class: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: &RelevantLinkStatus,
+        _: VisitedHandlingMode,
         _: &mut F,
     ) -> bool
     where
@@ -1233,7 +1233,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         &self,
         _: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: &RelevantLinkStatus,
+        _: VisitedHandlingMode,
         _: &mut F,
     ) -> bool
     where

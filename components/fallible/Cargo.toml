@@ -10,7 +10,7 @@ name = "fallible"
 path = "lib.rs"
 
 [dependencies]
-smallvec = "0.4"
+smallvec = "0.6"
 hashglobe = { path = "../hashglobe" }
 
 # This crate effectively does nothing except if the `known_system_malloc`

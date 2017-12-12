@@ -91,7 +91,7 @@ pub struct DeclarationImportanceIterator<'a> {
 }
 
 impl<'a> DeclarationImportanceIterator<'a> {
-    /// Constructor
+    /// Constructor.
     pub fn new(declarations: &'a [PropertyDeclaration], important: &'a SmallBitVec) -> Self {
         DeclarationImportanceIterator {
             iter: declarations.iter().zip(important.iter()),
@@ -102,17 +102,20 @@ impl<'a> DeclarationImportanceIterator<'a> {
 impl<'a> Iterator for DeclarationImportanceIterator<'a> {
     type Item = (&'a PropertyDeclaration, Importance);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(decl, important)|
             (decl, if important { Importance::Important } else { Importance::Normal }))
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.iter.size_hint()
     }
 }
 
 impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {
+    #[inline(always)]
     fn next_back(&mut self) -> Option<Self::Item> {
         self.iter.next_back().map(|(decl, important)|
             (decl, if important { Importance::Important } else { Importance::Normal }))
@@ -123,7 +126,8 @@ impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {
 pub struct NormalDeclarationIterator<'a>(DeclarationImportanceIterator<'a>);
 
 impl<'a> NormalDeclarationIterator<'a> {
-    /// Constructor
+    /// Constructor.
+    #[inline]
     pub fn new(declarations: &'a [PropertyDeclaration], important: &'a SmallBitVec) -> Self {
         NormalDeclarationIterator(
             DeclarationImportanceIterator::new(declarations, important)
@@ -136,14 +140,9 @@ impl<'a> Iterator for NormalDeclarationIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let next = self.0.iter.next();
-            match next {
-                Some((decl, importance)) => {
-                    if !importance {
-                        return Some(decl);
-                    }
-                },
-                None => return None,
+            let (decl, importance) = self.0.iter.next()?;
+            if !importance {
+                return Some(decl);
             }
         }
     }
@@ -167,7 +166,7 @@ impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
         declarations: &'a PropertyDeclarationBlock,
         context: &'cx mut Context<'cx_a>,
         default_values: &'a ComputedValues,
-       extra_custom_properties: Option<&'a Arc<::custom_properties::CustomPropertiesMap>>,
+        extra_custom_properties: Option<&'a Arc<::custom_properties::CustomPropertiesMap>>,
     ) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
             iter: declarations.normal_declaration_iter(),
@@ -183,11 +182,7 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let next = self.iter.next();
-            let decl = match next {
-                Some(decl) => decl,
-                None => return None,
-            };
+            let decl = self.iter.next()?;
 
             let animation = AnimationValue::from_declaration(
                 decl,
@@ -395,15 +390,28 @@ impl PropertyDeclarationBlock {
         importance: Importance,
         source: DeclarationSource,
     ) -> bool {
-        let all_shorthand_len = match drain.all_shorthand {
-            AllShorthand::NotSet => 0,
-            AllShorthand::CSSWideKeyword(_) |
-            AllShorthand::WithVariables(_) => ShorthandId::All.longhands().len()
-        };
-        let push_calls_count = drain.declarations.len() + all_shorthand_len;
+        match source {
+            DeclarationSource::Parsing => {
+                let all_shorthand_len = match drain.all_shorthand {
+                    AllShorthand::NotSet => 0,
+                    AllShorthand::CSSWideKeyword(_) |
+                    AllShorthand::WithVariables(_) => ShorthandId::All.longhands().len()
+                };
+                let push_calls_count =
+                    drain.declarations.len() + all_shorthand_len;
 
-        // With deduplication the actual length increase may be less than this.
-        self.declarations.reserve(push_calls_count);
+                // With deduplication the actual length increase may be less than this.
+                self.declarations.reserve(push_calls_count);
+            }
+            DeclarationSource::CssOm => {
+                // Don't bother reserving space, since it's usually the case
+                // that CSSOM just overrides properties and we don't need to use
+                // more memory. See bug 1424346 for an example where this
+                // matters.
+                //
+                // TODO: Would it be worth to call reserve() just if it's empty?
+            }
+        }
 
         let mut changed = false;
         for decl in &mut drain.declarations {

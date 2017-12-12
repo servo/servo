@@ -11,7 +11,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
 use cssparser::{Parser, Token, serialize_identifier, CowRcStr};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
-#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::{ nsCSSCounterDesc, nsCSSValue };
 use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
@@ -22,8 +22,12 @@ use std::ops::Range;
 use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 
-/// Parse the prelude of an @counter-style rule
-pub fn parse_counter_style_name<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CustomIdent, ParseError<'i>> {
+/// Parse a counter style name reference.
+///
+/// This allows the reserved counter style names "decimal" and "disc".
+pub fn parse_counter_style_name<'i, 't>(
+    input: &mut Parser<'i, 't>
+) -> Result<CustomIdent, ParseError<'i>> {
     macro_rules! predefined {
         ($($name: expr,)+) => {
             {
@@ -41,13 +45,27 @@ pub fn parse_counter_style_name<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Cu
                 if let Some(&lower_cased) = predefined(&ident) {
                     Ok(CustomIdent(Atom::from(lower_cased)))
                 } else {
-                    // https://github.com/w3c/csswg-drafts/issues/1295 excludes "none"
+                    // none is always an invalid <counter-style> value.
                     CustomIdent::from_ident(location, ident, &["none"])
                 }
             }
         }
     }
     include!("predefined.rs")
+}
+
+/// Parse the prelude of an @counter-style rule
+pub fn parse_counter_style_name_definition<'i, 't>(
+    input: &mut Parser<'i, 't>
+) -> Result<CustomIdent, ParseError<'i>> {
+    parse_counter_style_name(input)
+        .and_then(|ident| {
+            if ident.0 == atom!("decimal") || ident.0 == atom!("disc") {
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            } else {
+                Ok(ident)
+            }
+        })
 }
 
 /// Parse the body (inside `{}`) of an @counter-style rule
@@ -224,6 +242,30 @@ macro_rules! counter_style_descriptors {
                 )+
                 dest.write_str("}")
             }
+        }
+
+        /// Parse a descriptor into an `nsCSSValue`.
+        #[cfg(feature = "gecko")]
+        pub fn parse_counter_style_descriptor<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+            descriptor: nsCSSCounterDesc,
+            value: &mut nsCSSValue
+        ) -> Result<(), ParseError<'i>> {
+            match descriptor {
+                $(
+                    nsCSSCounterDesc::$gecko_ident => {
+                        let v: $ty =
+                            input.parse_entirely(|i| Parse::parse(context, i))?;
+                        value.set_from(v);
+                    }
+                )*
+                nsCSSCounterDesc::eCSSCounterDesc_COUNT |
+                nsCSSCounterDesc::eCSSCounterDesc_UNKNOWN => {
+                    panic!("invalid counter descriptor");
+                }
+            }
+            Ok(())
         }
     }
 }
