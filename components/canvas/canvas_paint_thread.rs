@@ -11,7 +11,7 @@ use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
@@ -118,9 +118,10 @@ impl<'a> CanvasPaintThread<'a> {
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
                  webrender_api_sender: webrender_api::RenderApiSender,
-                 antialias: bool)
+                 antialias: bool,
+                 canvas_channel: (IpcSender<CanvasMsg>, IpcReceiver<CanvasMsg>))
                  -> IpcSender<CanvasMsg> {
-        let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
+        let (sender, receiver) = canvas_channel;
         let antialias = if antialias {
             AntialiasMode::Default
         } else {
