@@ -1235,9 +1235,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     self.embedder_proxy.send(EmbedderMsg::HeadParsed(source_top_ctx_id));
                 }
             }
-            FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
+            FromScriptMsg::CreateCanvasPaintThread(size, receiver) => {
                 debug!("constellation got create-canvas-paint-thread message");
-                self.handle_create_canvas_paint_thread_msg(&size, sender)
+                self.handle_create_canvas_paint_thread_msg(&size, receiver)
             }
             FromScriptMsg::NodeStatus(message) => {
                 debug!("constellation got NodeStatus message");
@@ -2264,13 +2264,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_create_canvas_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
-            response_sender: IpcSender<IpcSender<CanvasMsg>>) {
+            receiver: IpcReceiver<CanvasMsg>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let sender = CanvasPaintThread::start(*size, webrender_api,
-                                              opts::get().enable_canvas_antialiasing);
-        if let Err(e) = response_sender.send(sender) {
-            warn!("Create canvas paint thread response failed ({})", e);
-        }
+        CanvasPaintThread::start(*size,
+                                 webrender_api,
+                                 opts::get().enable_canvas_antialiasing,
+                                 receiver);
     }
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {

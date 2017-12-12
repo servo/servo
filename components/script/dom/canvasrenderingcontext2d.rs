@@ -129,11 +129,10 @@ impl CanvasRenderingContext2D {
                          size: Size2D<i32>)
                          -> CanvasRenderingContext2D {
         debug!("Creating new canvas rendering context.");
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (ipc_renderer, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
-        script_to_constellation_chan.send(ScriptMsg::CreateCanvasPaintThread(size, sender)).unwrap();
-        let ipc_renderer = receiver.recv().unwrap();
+        script_to_constellation_chan.send(ScriptMsg::CreateCanvasPaintThread(size, receiver)).unwrap();
         debug!("Done.");
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
