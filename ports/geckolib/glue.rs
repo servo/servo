@@ -267,8 +267,19 @@ fn traverse_subtree(
         None
     };
 
+    let is_restyle = element.get_data().is_some();
+
     let traversal = RecalcStyleOnly::new(shared_style_context);
-    driver::traverse_dom(&traversal, token, thread_pool);
+    let (used_parallel, stats) = driver::traverse_dom(&traversal, token, thread_pool);
+
+    if traversal_flags.contains(TraversalFlags::ParallelTraversal) &&
+       !traversal_flags.contains(TraversalFlags::AnimationOnly) &&
+       is_restyle && !element.is_native_anonymous() {
+       // We turn off parallel traversal for background tabs; this
+       // shouldn't count in telemetry. We're also focusing on restyles so
+       // we ensure that it's a restyle.
+       per_doc_data.record_traversal(used_parallel, stats);
+    }
 }
 
 /// Traverses the subtree rooted at `root` for restyling.
