@@ -11,7 +11,7 @@ use gleam::gl;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::net_error_list::NetError;
-use script_traits::{LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
+use script_traits::{LoadData, Microdata, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
@@ -192,4 +192,7 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState) {}
+
+    /// Print Microdata on the Console or write to file
+    fn write_microdata(&self, _data: Microdata) {}
 }

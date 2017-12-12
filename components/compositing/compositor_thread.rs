@@ -13,7 +13,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBr
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult, LoadData};
+use script_traits::{AnimationState, ConstellationMsg, EventResult, LoadData, Microdata};
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::sync::mpsc::{Receiver, Sender};
@@ -146,6 +146,10 @@ pub enum EmbedderMsg {
     LoadStart(TopLevelBrowsingContextId),
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
+    /// Sends the extracted microdata from webpage.
+    /// The parameter is an enum containing either VCardData or JSONData.
+    /// These entires have a String that represents the actual microdata
+    SendMicrodata(Microdata),
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.
@@ -237,6 +241,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
             EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
+            EmbedderMsg::SendMicrodata(..) => write!(f, "SendMicrodata"),
         }
     }
 }

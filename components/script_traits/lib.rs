@@ -161,6 +161,15 @@ pub enum JsEvalResult {
     Ok(Vec<u8>)
 }
 
+/// The result of parsing microdata from a webpage
+#[derive(Debug, Deserialize, Serialize)]
+pub enum Microdata {
+    /// The String that has the vCard information
+    VCardData(String),
+    /// The String that has the JSON information
+    JSONData(String),
+}
+
 impl LoadData {
     /// Create a new `LoadData` object.
     pub fn new(url: ServoUrl,

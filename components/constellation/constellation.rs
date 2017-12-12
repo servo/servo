@@ -1321,6 +1321,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::SetFullscreenState(state) => {
                 self.embedder_proxy.send(EmbedderMsg::SetFullscreenState(source_top_ctx_id, state));
             }
+            FromScriptMsg::SendMicrodata(result) => {
+                self.embedder_proxy.send(EmbedderMsg::SendMicrodata(result));
+            }
         }
     }
 

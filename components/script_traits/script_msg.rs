@@ -9,6 +9,7 @@ use IFrameLoadInfo;
 use IFrameLoadInfoWithData;
 use LayoutControlMsg;
 use LoadData;
+use Microdata;
 use MozBrowserEvent;
 use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
@@ -163,6 +164,10 @@ pub enum ScriptMsg {
     GetScreenAvailSize(IpcSender<(Size2D<u32>)>),
     /// Requests that the compositor shut down.
     Exit,
+    /// Sends the extracted microdata from webpage.
+    /// The parameter is an enum containing either VCardData or JSONData.
+    /// These entires have a String that represents the actual microdata
+    SendMicrodata(Microdata),
 }
 
 /// Entities required to spawn service workers
