@@ -48,8 +48,12 @@ use servo_geometry::max_rect;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{box_sizing, display, float, overflow_x};
-use style::computed_values::{position, text_align};
+use style::computed_values::box_sizing::T as BoxSizing;
+use style::computed_values::display::T as Display;
+use style::computed_values::float::T as Float;
+use style::computed_values::overflow_x::T as StyleOverflow;
+use style::computed_values::position::T as Position;
+use style::computed_values::text_align::T as TextAlign;
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
@@ -352,8 +356,8 @@ impl CandidateBSizeIterator {
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
         let adjustment_for_box_sizing = match fragment.style.get_position().box_sizing {
-            box_sizing::T::border_box => fragment.border_padding.block_start_end(),
-            box_sizing::T::content_box => Au(0),
+            BoxSizing::BorderBox => fragment.border_padding.block_start_end(),
+            BoxSizing::ContentBox => Au(0),
         };
 
         return CandidateBSizeIterator {
@@ -1344,8 +1348,8 @@ impl BlockFlow {
 
         // Calculate non-auto block size to pass to children.
         let box_border = match self.fragment.style().get_position().box_sizing {
-            box_sizing::T::border_box => self.fragment.border_padding.block_start_end(),
-            box_sizing::T::content_box => Au(0),
+            BoxSizing::BorderBox => self.fragment.border_padding.block_start_end(),
+            BoxSizing::ContentBox => Au(0),
         };
         let parent_container_size = self.explicit_block_containing_size(shared_context);
         // https://drafts.csswg.org/css-ui-3/#box-sizing
@@ -1434,20 +1438,20 @@ impl BlockFlow {
             return FormattingContextType::Other
         }
         let style = self.fragment.style();
-        if style.get_box().float != float::T::none {
+        if style.get_box().float != Float::None {
             return FormattingContextType::Other
         }
         match style.get_box().display {
-            display::T::table_cell |
-            display::T::table_caption |
-            display::T::table_row_group |
-            display::T::table |
-            display::T::inline_block |
-            display::T::flex => {
+            Display::TableCell |
+            Display::TableCaption |
+            Display::TableRowGroup |
+            Display::Table |
+            Display::InlineBlock |
+            Display::Flex => {
                 FormattingContextType::Other
             }
-            _ if style.get_box().overflow_x != overflow_x::T::visible ||
-                    style.get_box().overflow_y != overflow_x::T::visible ||
+            _ if style.get_box().overflow_x != StyleOverflow::Visible ||
+                    style.get_box().overflow_y != StyleOverflow::Visible ||
                     style.is_multicol() => {
                 FormattingContextType::Block
             }
@@ -1531,8 +1535,8 @@ impl BlockFlow {
             if let MaybeAuto::Specified(size) = MaybeAuto::from_style(specified_inline_size,
                                                                       container_size) {
                 match self.fragment.style().get_position().box_sizing {
-                    box_sizing::T::border_box => size,
-                    box_sizing::T::content_box =>
+                    BoxSizing::BorderBox => size,
+                    BoxSizing::ContentBox =>
                         size + self.fragment.border_padding.inline_start_end(),
                 }
             } else {
@@ -1561,8 +1565,8 @@ impl BlockFlow {
     }
 
     fn is_inline_block_or_inline_flex(&self) -> bool {
-        self.fragment.style().get_box().display == display::T::inline_block ||
-        self.fragment.style().get_box().display == display::T::inline_flex
+        self.fragment.style().get_box().display == Display::InlineBlock ||
+        self.fragment.style().get_box().display == Display::InlineFlex
     }
 
     /// Computes the content portion (only) of the intrinsic inline sizes of this flow. This is
@@ -1631,21 +1635,21 @@ impl BlockFlow {
             }
 
             match (float_kind, child_base.flags.contains(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS)) {
-                (float::T::none, true) => {
+                (Float::None, true) => {
                     computation.content_intrinsic_sizes.preferred_inline_size =
                         max(computation.content_intrinsic_sizes.preferred_inline_size,
                             child_base.intrinsic_inline_sizes.preferred_inline_size);
                 }
-                (float::T::none, false) => {
+                (Float::None, false) => {
                     preferred_inline_size_of_children_without_text_or_replaced_fragments = max(
                         preferred_inline_size_of_children_without_text_or_replaced_fragments,
                         child_base.intrinsic_inline_sizes.preferred_inline_size)
                 }
-                (float::T::left, _) => {
+                (Float::Left, _) => {
                     left_float_width_accumulator = left_float_width_accumulator +
                         child_base.intrinsic_inline_sizes.preferred_inline_size;
                 }
-                (float::T::right, _) => {
+                (Float::Right, _) => {
                     right_float_width_accumulator = right_float_width_accumulator +
                         child_base.intrinsic_inline_sizes.preferred_inline_size;
                 }
@@ -1669,8 +1673,8 @@ impl BlockFlow {
     pub fn overflow_style_may_require_clip_scroll_node(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y) {
-            (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) | (overflow_x::T::hidden, _) |
-            (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) | (_, overflow_x::T::hidden) =>
+            (StyleOverflow::Auto, _) | (StyleOverflow::Scroll, _) | (StyleOverflow::Hidden, _) |
+            (_, StyleOverflow::Auto) | (_, StyleOverflow::Scroll) | (_, StyleOverflow::Hidden) =>
                 true,
             (_, _) => false,
         }
@@ -2098,7 +2102,7 @@ impl Flow for BlockFlow {
     }
 
     /// The 'position' property of this flow.
-    fn positioning(&self) -> position::T {
+    fn positioning(&self) -> Position {
         self.fragment.style.get_box().position
     }
 
@@ -2209,7 +2213,7 @@ pub struct ISizeConstraintInput {
     pub inline_end_margin: MaybeAuto,
     pub inline_start: MaybeAuto,
     pub inline_end: MaybeAuto,
-    pub text_align: text_align::T,
+    pub text_align: TextAlign,
     pub available_inline_size: Au,
 }
 
@@ -2219,7 +2223,7 @@ impl ISizeConstraintInput {
                inline_end_margin: MaybeAuto,
                inline_start: MaybeAuto,
                inline_end: MaybeAuto,
-               text_align: text_align::T,
+               text_align: TextAlign,
                available_inline_size: Au)
            -> ISizeConstraintInput {
         ISizeConstraintInput {
@@ -2298,12 +2302,12 @@ pub trait ISizeAndMarginsComputer {
                                                                          shared_context);
         let style = block.fragment.style();
         match (computed_inline_size, style.get_position().box_sizing) {
-            (MaybeAuto::Specified(size), box_sizing::T::border_box) => {
+            (MaybeAuto::Specified(size), BoxSizing::BorderBox) => {
                 computed_inline_size =
                     MaybeAuto::Specified(size - block.fragment.border_padding.inline_start_end())
             }
-            (MaybeAuto::Auto, box_sizing::T::border_box) |
-            (_, box_sizing::T::content_box) => {}
+            (MaybeAuto::Auto, BoxSizing::BorderBox) |
+            (_, BoxSizing::ContentBox) => {}
         }
 
         let margin = style.logical_margin();
@@ -2499,15 +2503,15 @@ pub trait ISizeAndMarginsComputer {
                  MaybeAuto::Specified(margin_end)) => {
                     // servo_left, servo_right, and servo_center are used to implement
                     // the "align descendants" rule in HTML5 § 14.2.
-                    if block_align == text_align::T::servo_center {
+                    if block_align == TextAlign::ServoCenter {
                         // Ignore any existing margins, and make the inline-start and
                         // inline-end margins equal.
                         let margin = (available_inline_size - inline_size).scale_by(0.5);
                         (margin, inline_size, margin)
                     } else {
                         let ignore_end_margin = match block_align {
-                            text_align::T::servo_left => block_mode.is_bidi_ltr(),
-                            text_align::T::servo_right => !block_mode.is_bidi_ltr(),
+                            TextAlign::ServoLeft => block_mode.is_bidi_ltr(),
+                            TextAlign::ServoRight => !block_mode.is_bidi_ltr(),
                             _ => parent_has_same_direction,
                         };
                         if ignore_end_margin {

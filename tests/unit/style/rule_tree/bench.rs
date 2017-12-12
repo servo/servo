@@ -80,7 +80,7 @@ fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, C
     let mut rules = rules.to_vec();
     rules.push((StyleSource::Declarations(Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
         PropertyDeclaration::Display(
-            longhands::display::SpecifiedValue::block),
+            longhands::display::SpecifiedValue::Block),
         Importance::Normal
     )))), CascadeLevel::UserNormal));
     test_insertion(rule_tree, rules)

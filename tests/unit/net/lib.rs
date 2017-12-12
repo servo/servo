@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![cfg(test)]
+
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
@@ -19,18 +21,18 @@ extern crate time;
 extern crate unicase;
 extern crate url;
 
-#[cfg(test)] mod chrome_loader;
-#[cfg(test)] mod cookie;
-#[cfg(test)] mod cookie_http_state;
-#[cfg(test)] mod data_loader;
-#[cfg(test)] mod file_loader;
-#[cfg(test)] mod fetch;
-#[cfg(test)] mod mime_classifier;
-#[cfg(test)] mod resource_thread;
-#[cfg(test)] mod hsts;
-#[cfg(test)] mod http_loader;
-#[cfg(test)] mod filemanager_thread;
-#[cfg(test)] mod subresource_integrity;
+mod chrome_loader;
+mod cookie;
+mod cookie_http_state;
+mod data_loader;
+mod fetch;
+mod file_loader;
+mod filemanager_thread;
+mod hsts;
+mod http_loader;
+mod mime_classifier;
+mod resource_thread;
+mod subresource_integrity;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};

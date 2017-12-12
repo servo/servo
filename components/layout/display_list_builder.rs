@@ -49,8 +49,13 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
-use style::computed_values::{border_style, cursor};
-use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
+use style::computed_values::border_style::T as BorderStyle;
+use style::computed_values::cursor;
+use style::computed_values::image_rendering::T as ImageRendering;
+use style::computed_values::overflow_x::T as StyleOverflow;
+use style::computed_values::pointer_events::T as PointerEvents;
+use style::computed_values::position::T as StylePosition;
+use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
@@ -104,10 +109,10 @@ fn convert_repeat_mode(from: RepeatKeyword) -> RepeatMode {
 }
 
 fn establishes_containing_block_for_absolute(flags: StackingContextCollectionFlags,
-                                             positioning: position::T)
+                                             positioning: StylePosition)
                                              -> bool {
     !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK) &&
-                    position::T::static_ != positioning
+                    StylePosition::Static != positioning
 }
 
 trait RgbColor {
@@ -967,15 +972,15 @@ impl FragmentDisplayListBuilding for Fragment {
                                     background.background_image.0.len() - 1);
 
         match *color_clip {
-            background_clip::single_value::T::border_box => {}
-            background_clip::single_value::T::padding_box => {
+            background_clip::single_value::T::BorderBox => {}
+            background_clip::single_value::T::PaddingBox => {
                 let border = style.logical_border_width().to_physical(style.writing_mode);
                 bounds.origin.x = bounds.origin.x + border.left;
                 bounds.origin.y = bounds.origin.y + border.top;
                 bounds.size.width = bounds.size.width - border.horizontal();
                 bounds.size.height = bounds.size.height - border.vertical();
             }
-            background_clip::single_value::T::content_box => {
+            background_clip::single_value::T::ContentBox => {
                 let border_padding = self.border_padding.to_physical(style.writing_mode);
                 bounds.origin.x = bounds.origin.x + border_padding.left;
                 bounds.origin.y = bounds.origin.y + border_padding.top;
@@ -1144,13 +1149,13 @@ impl FragmentDisplayListBuilding for Fragment {
         // Use 'background-origin' to get the origin value.
         let origin = get_cyclic(&background.background_origin.0, index);
         let (mut origin_x, mut origin_y) = match *origin {
-            background_origin::single_value::T::padding_box => {
+            background_origin::single_value::T::PaddingBox => {
                 (Au(0), Au(0))
             }
-            background_origin::single_value::T::border_box => {
+            background_origin::single_value::T::BorderBox => {
                 (-border.left, -border.top)
             }
-            background_origin::single_value::T::content_box => {
+            background_origin::single_value::T::ContentBox => {
                 let border_padding = self.border_padding.to_physical(self.style.writing_mode);
                 (border_padding.left - border.left, border_padding.top - border.top)
             }
@@ -1159,10 +1164,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // Use `background-attachment` to get the initial virtual origin
         let attachment = get_cyclic(&background.background_attachment.0, index);
         let (virtual_origin_x, virtual_origin_y) = match *attachment {
-            background_attachment::single_value::T::scroll => {
+            background_attachment::single_value::T::Scroll => {
                 (absolute_bounds.origin.x, absolute_bounds.origin.y)
             }
-            background_attachment::single_value::T::fixed => {
+            background_attachment::single_value::T::Fixed => {
                 // If the ‘background-attachment’ value for this image is ‘fixed’, then
                 // 'background-origin' has no effect.
                 origin_x = Au(0);
@@ -1703,8 +1708,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         let outline_style = match style.get_outline().outline_style {
-            Either::First(_auto) => border_style::T::solid,
-            Either::Second(border_style::T::none) => return,
+            Either::First(_auto) => BorderStyle::Solid,
+            Either::Second(BorderStyle::None) => return,
             Either::Second(border_style) => border_style
         };
 
@@ -1756,7 +1761,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             details: BorderDetails::Normal(NormalBorder {
                 color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
-                style: SideOffsets2D::new_all_same(border_style::T::solid),
+                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
                 radius: Default::default(),
             }),
         })));
@@ -1796,7 +1801,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             details: BorderDetails::Normal(NormalBorder {
                 color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
-                style: SideOffsets2D::new_all_same(border_style::T::solid),
+                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
                 radius: Default::default(),
             }),
         })));
@@ -1880,7 +1885,7 @@ impl FragmentDisplayListBuilding for Fragment {
                           display_list_section: DisplayListSection,
                           clip: &Rect<Au>) {
         self.restyle_damage.remove(ServoRestyleDamage::REPAINT);
-        if self.style().get_inheritedbox().visibility != visibility::T::visible {
+        if self.style().get_inheritedbox().visibility != Visibility::Visible {
             return
         }
 
@@ -2174,7 +2179,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     image_data: None,
                     stretch_size: stacking_relative_content_box.size,
                     tile_spacing: Size2D::zero(),
-                    image_rendering: image_rendering::T::auto,
+                    image_rendering: ImageRendering::Auto,
                 }));
 
                 state.add_display_item(display_item);
@@ -2518,9 +2523,9 @@ impl SavedStackingContextCollectionState {
     fn push_clip(&mut self,
                  state: &mut StackingContextCollectionState,
                  clip: &Rect<Au>,
-                 positioning: position::T) {
+                 positioning: StylePosition) {
         let mut clip = *clip;
-        if positioning != position::T::fixed {
+        if positioning != StylePosition::Fixed {
             if let Some(old_clip) = state.clip_stack.last() {
                 clip = old_clip.intersection(&clip).unwrap_or_else(Rect::zero);
             }
@@ -2529,7 +2534,7 @@ impl SavedStackingContextCollectionState {
         state.clip_stack.push(clip);
         self.clips_pushed += 1;
 
-        if position::T::absolute == positioning {
+        if StylePosition::Absolute == positioning {
             state.containing_block_clip_stack.push(clip);
             self.containing_block_clips_pushed += 1;
         }
@@ -2659,13 +2664,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         // If this block is absolutely positioned, we should be clipped and positioned by
         // the scroll root of our nearest ancestor that establishes a containing block.
         let containing_clipping_and_scrolling = match self.positioning() {
-            position::T::absolute => {
+            StylePosition::Absolute => {
                 preserved_state.switch_to_containing_block_clip(state);
                 state.current_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
                 state.containing_block_clipping_and_scrolling
             }
-            position::T::fixed => {
-                preserved_state.push_clip(state, &max_rect(), position::T::fixed);
+            StylePosition::Fixed => {
+                preserved_state.push_clip(state, &max_rect(), StylePosition::Fixed);
                 state.current_clipping_and_scrolling
             }
             _ => state.current_clipping_and_scrolling,
@@ -2703,7 +2708,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
 
         match self.positioning() {
-            position::T::absolute | position::T::relative | position::T::fixed =>
+            StylePosition::Absolute | StylePosition::Relative | StylePosition::Fixed =>
                 state.containing_block_clipping_and_scrolling = state.current_clipping_and_scrolling,
             _ => {}
         }
@@ -2714,7 +2719,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     fn setup_clip_scroll_node_for_position(&mut self,
                                       state: &mut StackingContextCollectionState,
                                       border_box: &Rect<Au>) {
-        if self.positioning() != position::T::sticky {
+        if self.positioning() != StylePosition::Sticky {
             return;
         }
 
@@ -2791,8 +2796,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             self.base.overflow.scroll.origin != Point2D::zero() ||
             self.base.overflow.scroll.size.width > content_box.size.width ||
             self.base.overflow.scroll.size.height > content_box.size.height ||
-            overflow_x::T::hidden == self.fragment.style.get_box().overflow_x ||
-            overflow_x::T::hidden == self.fragment.style.get_box().overflow_y;
+            StyleOverflow::Hidden == self.fragment.style.get_box().overflow_x ||
+            StyleOverflow::Hidden == self.fragment.style.get_box().overflow_y;
 
         self.mark_scrolling_overflow(has_scrolling_overflow);
         if !has_scrolling_overflow {
@@ -2805,8 +2810,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let new_clip_scroll_node_id = ClipId::new(self.fragment.unique_id(IdType::OverflowClip),
                                                   state.pipeline_id.to_webrender());
 
-        let sensitivity = if overflow_x::T::hidden == self.fragment.style.get_box().overflow_x &&
-                             overflow_x::T::hidden == self.fragment.style.get_box().overflow_y {
+        let sensitivity = if StyleOverflow::Hidden == self.fragment.style.get_box().overflow_x &&
+                             StyleOverflow::Hidden == self.fragment.style.get_box().overflow_y {
             ScrollSensitivity::Script
         } else {
             ScrollSensitivity::ScriptAndInputEvents
@@ -2852,7 +2857,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         // CSS `clip` should only apply to position:absolute or positione:fixed elements.
         // CSS Masking Appendix A: "Applies to: Absolutely positioned elements."
         match self.positioning() {
-            position::T::absolute | position::T::fixed => {}
+            StylePosition::Absolute | StylePosition::Fixed => {}
             _ => return,
         }
 
@@ -2891,7 +2896,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         state: &mut StackingContextCollectionState
     ) {
         let creation_mode = if self.base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) ||
-                               self.fragment.style.get_box().position != position::T::static_ {
+                               self.fragment.style.get_box().position != StylePosition::Static {
             StackingContextType::PseudoPositioned
         } else {
             assert!(self.base.flags.is_float());
@@ -2997,7 +3002,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             return BlockStackingContextType::PseudoStackingContext
         }
 
-        if self.fragment.style.get_box().position != position::T::static_ {
+        if self.fragment.style.get_box().position != StylePosition::Static {
             return BlockStackingContextType::PseudoStackingContext
         }
 
@@ -3176,7 +3181,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
             border_widths: SideOffsets2D::new_all_same(Au::from_px(2)),
             details: BorderDetails::Normal(NormalBorder {
                 color: SideOffsets2D::new_all_same(color),
-                style: SideOffsets2D::new_all_same(border_style::T::solid),
+                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
                 radius: BorderRadii::all_same(Au(0)),
             }),
         })));
@@ -3194,9 +3199,9 @@ impl ComputedValuesCursorUtility for ComputedValues {
     #[inline]
     fn get_cursor(&self, default_cursor: Cursor) -> Option<Cursor> {
         match (self.get_pointing().pointer_events, self.get_pointing().cursor) {
-            (pointer_events::T::none, _) => None,
-            (pointer_events::T::auto, cursor::Keyword::Auto) => Some(default_cursor),
-            (pointer_events::T::auto, cursor::Keyword::Cursor(cursor)) => Some(cursor),
+            (PointerEvents::None, _) => None,
+            (PointerEvents::Auto, cursor::Keyword::Auto) => Some(default_cursor),
+            (PointerEvents::Auto, cursor::Keyword::Cursor(cursor)) => Some(cursor),
         }
     }
 }

@@ -8,8 +8,8 @@ use app_units::AU_PER_PX;
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{CssStringWriter, Parser, RGBA, Token, BasicParseErrorKind};
-use euclid::ScaleFactor;
 use euclid::Size2D;
+use euclid::TypedScale;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
@@ -187,12 +187,12 @@ impl Device {
     }
 
     /// Returns the device pixel ratio.
-    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
         let override_dppx = self.pres_context().mOverrideDPPX;
-        if override_dppx > 0.0 { return ScaleFactor::new(override_dppx); }
+        if override_dppx > 0.0 { return TypedScale::new(override_dppx); }
         let au_per_dpx = self.pres_context().mCurAppUnitsPerDevPixel as f32;
         let au_per_px = AU_PER_PX as f32;
-        ScaleFactor::new(au_per_px / au_per_dpx)
+        TypedScale::new(au_per_px / au_per_dpx)
     }
 
     /// Returns whether document colors are enabled.

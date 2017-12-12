@@ -1048,6 +1048,10 @@ impl Window {
         self.navigation_start_precise.get()
     }
 
+    pub fn has_document(&self) -> bool {
+        self.document.get().is_some()
+    }
+
     /// Cancels all the tasks associated with that window.
     ///
     /// This sets the current `ignore_further_async_events` sentinel value to

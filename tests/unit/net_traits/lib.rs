@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![cfg(test)]
+
 extern crate net_traits;
 
-#[cfg(test)] mod image;
-#[cfg(test)] mod pub_domains;
+mod image;
+mod pub_domains;
 
 #[test]
 fn test_trim_http_whitespace() {

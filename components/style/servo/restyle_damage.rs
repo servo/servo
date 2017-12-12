@@ -5,7 +5,7 @@
 //! The restyle damage is a hint that tells layout which kind of operations may
 //! be needed in presence of incremental style changes.
 
-use computed_values::display;
+use computed_values::display::T as Display;
 use matching::{StyleChange, StyleDifference};
 use properties::ComputedValues;
 use std::fmt;
@@ -219,7 +219,7 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
         get_text.text_decoration_line, get_text.unicode_bidi,
         get_inheritedtable.empty_cells, get_inheritedtable.caption_side,
         get_column.column_width, get_column.column_count
-    ]) || (new.get_box().display == display::T::inline &&
+    ]) || (new.get_box().display == Display::Inline &&
            add_if_not_equal!(old, new, damage,
                              [ServoRestyleDamage::REPAINT, ServoRestyleDamage::REPOSITION,
                              ServoRestyleDamage::STORE_OVERFLOW, ServoRestyleDamage::BUBBLE_ISIZES,

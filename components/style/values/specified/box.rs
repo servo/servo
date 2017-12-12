@@ -124,3 +124,9 @@ define_css_keyword_enum! { OverscrollBehavior:
     "none" => None,
 }
 add_impls_for_keyword_enum!(OverscrollBehavior);
+
+define_css_keyword_enum! { OverflowClipBox:
+    "padding-box" => PaddingBox,
+    "content-box" => ContentBox,
+}
+add_impls_for_keyword_enum!(OverflowClipBox);

@@ -26,8 +26,8 @@ use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScope;
 use dom_struct::dom_struct;
-use euclid::ScaleFactor;
 use euclid::Size2D;
+use euclid::TypedScale;
 use euclid::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
@@ -38,7 +38,7 @@ use style_traits::DevicePixel;
 #[dom_struct]
 pub struct PaintRenderingContext2D {
     context: CanvasRenderingContext2D,
-    device_pixel_ratio: Cell<ScaleFactor<f32, CSSPixel, DevicePixel>>,
+    device_pixel_ratio: Cell<TypedScale<f32, CSSPixel, DevicePixel>>,
 }
 
 impl PaintRenderingContext2D {
@@ -48,7 +48,7 @@ impl PaintRenderingContext2D {
         let base_url = global.upcast::<WorkletGlobalScope>().base_url();
         PaintRenderingContext2D {
             context: CanvasRenderingContext2D::new_inherited(global.upcast(), None, image_cache, base_url, size),
-            device_pixel_ratio: Cell::new(ScaleFactor::new(1.0)),
+            device_pixel_ratio: Cell::new(TypedScale::new(1.0)),
         }
     }
 
@@ -69,7 +69,7 @@ impl PaintRenderingContext2D {
 
     pub fn set_bitmap_dimensions(&self,
                                  size: TypedSize2D<f32, CSSPixel>,
-                                 device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>)
+                                 device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>)
     {
         let size = size * device_pixel_ratio;
         self.device_pixel_ratio.set(device_pixel_ratio);

@@ -8,7 +8,7 @@ use flow::{self, Flow, FlowFlags, ImmutableFlowUtils};
 use persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::fmt;
-use style::computed_values::float;
+use style::computed_values::float::T as StyleFloat;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::values::computed::LengthOrPercentageOrAuto;
 
@@ -20,11 +20,11 @@ pub enum FloatKind {
 }
 
 impl FloatKind {
-    pub fn from_property(property: float::T) -> Option<FloatKind> {
+    pub fn from_property(property: StyleFloat) -> Option<FloatKind> {
         match property {
-            float::T::none => None,
-            float::T::left => Some(FloatKind::Left),
-            float::T::right => Some(FloatKind::Right),
+            StyleFloat::None => None,
+            StyleFloat::Left => Some(FloatKind::Left),
+            StyleFloat::Right => Some(FloatKind::Right),
         }
     }
 }
@@ -513,9 +513,9 @@ impl SpeculatedFloatPlacement {
         }
 
         match base_flow.flags.float_kind() {
-            float::T::none => {}
-            float::T::left => self.left = self.left + float_inline_size,
-            float::T::right => self.right = self.right + float_inline_size,
+            StyleFloat::None => {}
+            StyleFloat::Left => self.left = self.left + float_inline_size,
+            StyleFloat::Right => self.right = self.right + float_inline_size,
         }
     }
 

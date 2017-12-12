@@ -14,6 +14,7 @@ extern crate msg;
 extern crate profile_traits;
 extern crate script_traits;
 extern crate servo_config;
+extern crate servo_url;
 extern crate time;
 
 use gfx::display_list::{DisplayItem, DisplayList};
@@ -24,6 +25,7 @@ use profile_traits::time::{ProfilerChan, ProfilerCategory, send_profile_data};
 use profile_traits::time::TimerMetadata;
 use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
 use servo_config::opts;
+use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -38,6 +40,7 @@ pub trait ProgressiveWebMetric {
     fn set_navigation_start(&mut self, time: u64);
     fn get_time_profiler_chan(&self) -> &ProfilerChan;
     fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: u64);
+    fn get_url(&self) -> &ServoUrl;
 }
 
 /// TODO make this configurable
@@ -46,6 +49,15 @@ pub const MAX_TASK_NS: u64 = 50000000;
 /// 10 second window (in ns)
 const INTERACTIVE_WINDOW_SECONDS_IN_NS: u64 = 10000000000;
 
+pub trait ToMs<T> {
+    fn to_ms(&self) -> T;
+}
+
+impl ToMs<f64> for u64 {
+    fn to_ms(&self) -> f64 {
+        *self as f64 / 1000000.
+    }
+}
 
 fn set_metric<U: ProgressiveWebMetric>(
     pwm: &U,
@@ -53,7 +65,8 @@ fn set_metric<U: ProgressiveWebMetric>(
     metric_type: ProgressiveWebMetricType,
     category: ProfilerCategory,
     attr: &Cell<Option<u64>>,
-    metric_time: Option<u64>)
+    metric_time: Option<u64>,
+    url: &ServoUrl)
 {
     let navigation_start = match pwm.get_navigation_start() {
         Some(time) => time,
@@ -85,8 +98,8 @@ fn set_metric<U: ProgressiveWebMetric>(
 
     // Print the metric to console if the print-pwm option was given.
     if opts::get().print_pwm {
-        println!("Navigation start: {}", pwm.get_navigation_start().unwrap());
-        println!("{:?} {:?}", metric_type, time);
+        println!("Navigation start: {}", pwm.get_navigation_start().unwrap().to_ms());
+        println!("{:?} {:?} {:?}", url, metric_type, time.to_ms());
     }
 
 }
@@ -108,6 +121,7 @@ pub struct InteractiveMetrics {
     time_to_interactive: Cell<Option<u64>>,
     #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
+    url: ServoUrl
 }
 
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
@@ -148,13 +162,14 @@ pub enum InteractiveFlag {
 }
 
 impl InteractiveMetrics {
-    pub fn new(time_profiler_chan: ProfilerChan) -> InteractiveMetrics {
+    pub fn new(time_profiler_chan: ProfilerChan, url: ServoUrl) -> InteractiveMetrics {
         InteractiveMetrics {
             navigation_start: None,
             dom_content_loaded: Cell::new(None),
             main_thread_available: Cell::new(None),
             time_to_interactive: Cell::new(None),
             time_profiler_chan: time_profiler_chan,
+            url,
         }
     }
 
@@ -212,7 +227,9 @@ impl InteractiveMetrics {
             ProgressiveWebMetricType::TimeToInteractive,
             ProfilerCategory::TimeToInteractive,
             &self.time_to_interactive,
-            Some(metric_time));
+            Some(metric_time),
+            &self.url,
+        );
     }
 
     pub fn get_tti(&self) -> Option<u64> {
@@ -238,6 +255,10 @@ impl ProgressiveWebMetric for InteractiveMetrics {
     fn get_time_profiler_chan(&self) -> &ProfilerChan {
         &self.time_profiler_chan
     }
+
+    fn get_url(&self) -> &ServoUrl {
+        &self.url
+    }
 }
 
 pub struct PaintTimeMetrics {
@@ -249,6 +270,7 @@ pub struct PaintTimeMetrics {
     time_profiler_chan: ProfilerChan,
     constellation_chan: IpcSender<LayoutMsg>,
     script_chan: IpcSender<ConstellationControlMsg>,
+    url: ServoUrl,
 }
 
 impl PaintTimeMetrics {
@@ -256,7 +278,8 @@ impl PaintTimeMetrics {
         pipeline_id: PipelineId,
         time_profiler_chan: ProfilerChan,
         constellation_chan: IpcSender<LayoutMsg>,
-        script_chan: IpcSender<ConstellationControlMsg>)
+        script_chan: IpcSender<ConstellationControlMsg>,
+        url: ServoUrl)
             -> PaintTimeMetrics {
         PaintTimeMetrics {
             pending_metrics: RefCell::new(HashMap::new()),
@@ -267,6 +290,7 @@ impl PaintTimeMetrics {
             time_profiler_chan,
             constellation_chan,
             script_chan,
+            url,
         }
     }
 
@@ -285,6 +309,7 @@ impl PaintTimeMetrics {
             ProfilerCategory::TimeToFirstPaint,
             &self.first_paint,
             None,
+            &self.url,
         );
     }
 
@@ -345,6 +370,7 @@ impl PaintTimeMetrics {
                 ProfilerCategory::TimeToFirstPaint,
                 &self.first_paint,
                 Some(paint_time),
+                &self.url,
             );
 
             if pending_metric.1 {
@@ -355,6 +381,7 @@ impl PaintTimeMetrics {
                     ProfilerCategory::TimeToFirstContentfulPaint,
                     &self.first_contentful_paint,
                     Some(paint_time),
+                    &self.url,
                 );
             }
         }
@@ -387,5 +414,9 @@ impl ProgressiveWebMetric for PaintTimeMetrics {
 
     fn get_time_profiler_chan(&self) -> &ProfilerChan {
         &self.time_profiler_chan
+    }
+
+    fn get_url(&self) -> &ServoUrl {
+        &self.url
     }
 }

@@ -26,12 +26,12 @@ use sequential;
 use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use style::computed_values;
+use style::computed_values::display::T as Display;
+use style::computed_values::position::T as Position;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
-use style::properties::longhands::{display, position};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 use webrender_api::ClipId;
@@ -531,7 +531,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             });
 
             // offsetParent returns null if the node is fixed.
-            if fragment.style.get_box().position == computed_values::position::T::fixed {
+            if fragment.style.get_box().position == Position::Fixed {
                 self.parent_nodes.clear();
             }
         } else if let Some(node) = fragment.inline_context.as_ref().and_then(|inline_context| {
@@ -579,15 +579,15 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 //  2) Is static position *and* is a table or table cell
                 //  3) Is not static position
                 (true, _, _) |
-                (false, computed_values::position::T::static_, &SpecificFragmentInfo::Table) |
-                (false, computed_values::position::T::static_, &SpecificFragmentInfo::TableCell) |
-                (false, computed_values::position::T::sticky, _) |
-                (false, computed_values::position::T::absolute, _) |
-                (false, computed_values::position::T::relative, _) |
-                (false, computed_values::position::T::fixed, _) => true,
+                (false, Position::Static, &SpecificFragmentInfo::Table) |
+                (false, Position::Static, &SpecificFragmentInfo::TableCell) |
+                (false, Position::Sticky, _) |
+                (false, Position::Absolute, _) |
+                (false, Position::Relative, _) |
+                (false, Position::Fixed, _) => true,
 
                 // Otherwise, it's not a valid parent
-                (false, computed_values::position::T::static_, _) => false,
+                (false, Position::Static, _) => false,
             };
 
             let parent_info = if is_valid_parent {
@@ -751,10 +751,10 @@ where
     };
 
     let positioned = match style.get_box().position {
-        position::computed_value::T::relative |
-        position::computed_value::T::sticky |
-        position::computed_value::T::fixed |
-        position::computed_value::T::absolute => true,
+        Position::Relative |
+        Position::Sticky |
+        Position::Fixed |
+        Position::Absolute => true,
         _ => false
     };
 
@@ -804,7 +804,7 @@ where
         LonghandId::MarginLeft | LonghandId::MarginRight |
         LonghandId::PaddingBottom | LonghandId::PaddingTop |
         LonghandId::PaddingLeft | LonghandId::PaddingRight
-        if applies && style.get_box().display != display::computed_value::T::none => {
+        if applies && style.get_box().display != Display::None => {
             let (margin_padding, side) = match longhand_id {
                 LonghandId::MarginBottom => (MarginPadding::Margin, Side::Bottom),
                 LonghandId::MarginTop => (MarginPadding::Margin, Side::Top),
@@ -827,13 +827,11 @@ where
         },
 
         LonghandId::Bottom | LonghandId::Top | LonghandId::Right | LonghandId::Left
-        if applies && positioned && style.get_box().display !=
-                display::computed_value::T::none => {
+        if applies && positioned && style.get_box().display != Display::None => {
             used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
         }
         LonghandId::Width | LonghandId::Height
-        if applies && style.get_box().display !=
-                display::computed_value::T::none => {
+        if applies && style.get_box().display != Display::None => {
             used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
         }
         // FIXME: implement used value computation for line-height

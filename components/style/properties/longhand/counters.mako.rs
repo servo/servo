@@ -136,7 +136,7 @@
         input.try(|input| {
             input.expect_comma()?;
             list_style_type::parse(context, input)
-        }).unwrap_or(list_style_type::computed_value::T::decimal)
+        }).unwrap_or(list_style_type::computed_value::T::Decimal)
     }
 
     #[cfg(feature = "gecko")]
@@ -334,7 +334,7 @@
                 Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
             };
-            let counter_delta = input.try(|input| specified::parse_integer(context, input))
+            let counter_delta = input.try(|input| specified::Integer::parse(context, input))
                                      .unwrap_or(specified::Integer::new(default_value));
             counters.push((counter_name, counter_delta))
         }

@@ -20,31 +20,27 @@ gecko = ["nsstring", "num_cpus",
          "style_traits/gecko", "fallible/known_system_malloc"]
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
-         "cssparser/serde", "encoding_rs", "malloc_size_of/servo",
-
-         # FIXME: Uncomment when https://github.com/servo/servo/pull/16953 has landed:
-         #"arrayvec/use_union"
-
+         "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
          "servo_url"]
 gecko_debug = ["nsstring/gecko_debug"]
 
 [dependencies]
-app_units = "0.5.5"
-arrayvec = "0.3.20"
+app_units = "0.6"
+arrayvec = "0.4.6"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.22.0"
+cssparser = "0.23.0"
 encoding_rs = {version = "0.7", optional = true}
-euclid = "0.15"
+euclid = "0.16"
 fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
-html5ever = {version = "0.21", optional = true}
+html5ever = {version = "0.22", optional = true}
 itertools = "0.5"
 itoa = "0.3"
-lazy_static = "0.2"
+lazy_static = "1"
 log = "0.3"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
@@ -64,12 +60,12 @@ servo_arc = { path = "../servo_arc" }
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
 smallbitvec = "1.0.6"
-smallvec = "0.4"
+smallvec = "0.6"
 style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
 time = "0.1"
-uluru = "0.1"
+uluru = "0.2"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 
@@ -77,7 +73,7 @@ unicode-segmentation = "1.0"
 kernel32-sys = "0.2"
 
 [build-dependencies]
-lazy_static = "0.2"
+lazy_static = "1"
 log = "0.3"
 bindgen = { version = "0.31.2", optional = true }
 regex = {version = "0.2", optional = true}

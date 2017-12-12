@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput};
+use cssparser::{ParseErrorKind, Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use malloc_size_of::MallocSizeOfOps;
@@ -18,11 +18,12 @@ use std::ptr;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
+use style::counter_style;
 use style::data::{ElementStyles, self};
 use style::dom::{ShowSubtreeData, TDocument, TElement, TNode};
 use style::driver;
 use style::element_state::{DocumentState, ElementState};
-use style::error_reporting::{NullReporter, ParseErrorReporter};
+use style::error_reporting::{ContextualParseError, NullReporter, ParseErrorReporter};
 use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
 use style::gecko::data::{GeckoStyleSheet, PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_THREAD_POOL};
@@ -76,6 +77,7 @@ use style::gecko_bindings::bindings::RawServoDeclarationBlockBorrowedOrNull;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleSet;
 use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
+use style::gecko_bindings::bindings::nsCSSValueBorrowedMut;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
@@ -84,7 +86,7 @@ use style::gecko_bindings::structs::{CallerType, CSSPseudoElementType, Composite
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsAtom, nsCSSPropertyID};
-use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
+use style::gecko_bindings::structs::{nsCSSFontDesc, nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::AtomArray;
 use style::gecko_bindings::structs::IterationCompositeOperation;
@@ -104,6 +106,8 @@ use style::gecko_bindings::structs::ServoTraversalFlags;
 use style::gecko_bindings::structs::StyleRuleInclusion;
 use style::gecko_bindings::structs::URLExtraData;
 use style::gecko_bindings::structs::gfxFontFeatureValueSet;
+use style::gecko_bindings::structs::nsCSSCounterDesc;
+use style::gecko_bindings::structs::nsCSSValue;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsIDocument;
@@ -121,9 +125,9 @@ use style::properties::{CascadeFlags, ComputedValues, DeclarationSource, Importa
 use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
 use style::properties::{SourcePropertyDeclaration, StyleBuilder};
+use style::properties::{parse_one_declaration_into, parse_style_attribute};
 use style::properties::animated_properties::AnimationValue;
 use style::properties::animated_properties::compare_property_priority;
-use style::properties::parse_one_declaration_into;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::{CascadeLevel, StrongRuleNode, StyleSource};
 use style::selector_parser::{PseudoElementCascadeType, SelectorImpl};
@@ -150,7 +154,7 @@ use style::values::distance::ComputeSquaredDistance;
 use style::values::specified;
 use style::values::specified::gecko::IntersectionObserverRootMargin;
 use style::values::specified::source_size_list::SourceSizeList;
-use style_traits::{ParsingMode, ToCss};
+use style_traits::{ParsingMode, StyleParseErrorKind, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -263,8 +267,19 @@ fn traverse_subtree(
         None
     };
 
+    let is_restyle = element.get_data().is_some();
+
     let traversal = RecalcStyleOnly::new(shared_style_context);
-    driver::traverse_dom(&traversal, token, thread_pool);
+    let (used_parallel, stats) = driver::traverse_dom(&traversal, token, thread_pool);
+
+    if traversal_flags.contains(TraversalFlags::ParallelTraversal) &&
+       !traversal_flags.contains(TraversalFlags::AnimationOnly) &&
+       is_restyle && !element.is_native_anonymous() {
+       // We turn off parallel traversal for background tabs; this
+       // shouldn't count in telemetry. We're also focusing on restyles so
+       // we ensure that it's a restyle.
+       per_doc_data.record_traversal(used_parallel, stats);
+    }
 }
 
 /// Traverses the subtree rooted at `root` for restyling.
@@ -2583,8 +2598,13 @@ pub extern "C" fn Servo_ParseStyleAttribute(
     let reporter = ErrorReporter::new(ptr::null_mut(), loader, raw_extra_data);
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     Arc::new(global_style_data.shared_lock.wrap(
-        GeckoElement::parse_style_attribute(value, url_data, quirks_mode.into(), &reporter)))
-        .into_strong()
+        parse_style_attribute(
+            value,
+            url_data,
+            &reporter,
+            quirks_mode.into(),
+        )
+    )).into_strong()
 }
 
 #[no_mangle]
@@ -4549,10 +4569,40 @@ pub unsafe extern "C" fn Servo_SelectorList_Drop(list: RawServoSelectorListOwned
     let _ = list.into_box::<::selectors::SelectorList<SelectorImpl>>();
 }
 
-fn parse_color(value: &str) -> Result<specified::Color, ()> {
+fn parse_color(
+    value: &str,
+    error_reporter: Option<&ErrorReporter>,
+) -> Result<specified::Color, ()> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
-    parser.parse_entirely(specified::Color::parse_color).map_err(|_| ())
+    let url_data = unsafe { dummy_url_data() };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    let start_position = parser.position();
+    parser.parse_entirely(|i| specified::Color::parse(&context, i)).map_err(|err| {
+        if let Some(error_reporter) = error_reporter {
+            match err.kind {
+                ParseErrorKind::Custom(StyleParseErrorKind::ValueError(..)) => {
+                    let location = err.location.clone();
+                    let error = ContextualParseError::UnsupportedValue(
+                        parser.slice_from(start_position),
+                        err,
+                    );
+                    error_reporter.report(location, error);
+                }
+                // Ignore other kinds of errors that might be reported, such as
+                // ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken),
+                // since Gecko doesn't report those to the error console.
+                _ => {}
+            }
+        }
+    })
 }
 
 #[no_mangle]
@@ -4560,7 +4610,7 @@ pub extern "C" fn Servo_IsValidCSSColor(
     value: *const nsAString,
 ) -> bool {
     let value = unsafe { (*value).to_string() };
-    parse_color(&value).is_ok()
+    parse_color(&value, None).is_ok()
 }
 
 #[no_mangle]
@@ -4569,6 +4619,8 @@ pub extern "C" fn Servo_ComputeColor(
     current_color: structs::nscolor,
     value: *const nsAString,
     result_color: *mut structs::nscolor,
+    was_current_color: *mut bool,
+    loader: *mut Loader,
 ) -> bool {
     use style::gecko;
 
@@ -4576,7 +4628,12 @@ pub extern "C" fn Servo_ComputeColor(
     let value = unsafe { (*value).to_string() };
     let result_color = unsafe { result_color.as_mut().unwrap() };
 
-    match parse_color(&value) {
+    let reporter = unsafe { loader.as_mut() }.map(|loader| {
+        // Make an ErrorReporter that will report errors as being "from DOM".
+        ErrorReporter::new(ptr::null_mut(), loader, ptr::null_mut())
+    });
+
+    match parse_color(&value, reporter.as_ref()) {
         Ok(specified_color) => {
             let computed_color = match raw_data {
                 Some(raw_data) => {
@@ -4603,6 +4660,11 @@ pub extern "C" fn Servo_ComputeColor(
                 Some(computed_color) => {
                     let rgba = computed_color.to_rgba(current_color);
                     *result_color = gecko::values::convert_rgba_to_nscolor(&rgba);
+                    if !was_current_color.is_null() {
+                        unsafe {
+                            *was_current_color = computed_color.is_currentcolor();
+                        }
+                    }
                     true
                 }
                 None => false,
@@ -4684,6 +4746,139 @@ pub extern "C" fn Servo_ParseTransformIntoMatrix(
     true
 }
 
+// https://drafts.csswg.org/css-font-loading/#dom-fontface-fontface
+#[no_mangle]
+pub extern "C" fn Servo_ParseFontDescriptor(
+    desc_id: nsCSSFontDesc,
+    value: *const nsAString,
+    data: *mut URLExtraData,
+    result: nsCSSValueBorrowedMut,
+) -> bool {
+    use cssparser::UnicodeRange;
+    use self::nsCSSFontDesc::*;
+    use style::computed_values::{font_feature_settings, font_stretch, font_style};
+    use style::font_face::{FontDisplay, FontWeight, Source};
+    use style::properties::longhands::font_language_override;
+    use style::values::computed::font::FamilyName;
+
+    let string = unsafe { (*value).to_string() };
+    let mut input = ParserInput::new(&string);
+    let mut parser = Parser::new(&mut input);
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::FontFace),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    macro_rules! parse_font_desc {
+        (
+            valid = [ $( $v_enum_name: ident / $t: ty, )* ]
+            invalid = [ $( $i_enum_name: ident, )* ]
+        ) => {
+            match desc_id {
+                $(
+                    $v_enum_name => {
+                        let f = match parser.parse_entirely(|i| <$t as Parse>::parse(&context, i)) {
+                            Ok(f) => f,
+                            Err(..) => return false,
+                        };
+                        result.set_from(f);
+                    },
+                )*
+                $(
+                    $i_enum_name => {
+                        debug_assert!(false, "$i_enum_name is not a valid font descriptor");
+                        return false;
+                    },
+                )*
+            }
+        }
+    }
+
+    // We implement the parser of each arm according to the implementation of @font-face rule.
+    // see component/style/font_face.rs for more detail.
+    parse_font_desc!(
+        valid = [
+            eCSSFontDesc_Family / FamilyName,
+            eCSSFontDesc_Style / font_style::T,
+            eCSSFontDesc_Weight / FontWeight,
+            eCSSFontDesc_Stretch / font_stretch::T,
+            eCSSFontDesc_Src / Vec<Source>,
+            eCSSFontDesc_UnicodeRange / Vec<UnicodeRange>,
+            eCSSFontDesc_FontFeatureSettings / font_feature_settings::T,
+            eCSSFontDesc_FontLanguageOverride / font_language_override::SpecifiedValue,
+            eCSSFontDesc_Display / FontDisplay,
+        ]
+        invalid = [
+            eCSSFontDesc_UNKNOWN,
+            eCSSFontDesc_COUNT,
+        ]
+    );
+
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseFontShorthandForMatching(
+    value: *const nsAString,
+    data: *mut URLExtraData,
+    family: *mut structs::RefPtr<structs::SharedFontList>,
+    style: nsCSSValueBorrowedMut,
+    stretch: nsCSSValueBorrowedMut,
+    weight: nsCSSValueBorrowedMut
+) -> bool {
+    use style::properties::longhands::{font_stretch, font_style};
+    use style::properties::shorthands::font;
+    use style::values::specified::font::{FontFamily, FontWeight};
+
+    let string = unsafe { (*value).to_string() };
+    let mut input = ParserInput::new(&string);
+    let mut parser = Parser::new(&mut input);
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::FontFace),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+
+    let font = match parser.parse_entirely(|f| font::parse_value(&context, f)) {
+        Ok(f) => f,
+        Err(..) => return false,
+    };
+
+    // The system font is not acceptable, so we return false.
+    let family = unsafe { &mut *family };
+    match font.font_family {
+        FontFamily::Values(list) => family.set_move(list.0),
+        FontFamily::System(_) => return false,
+    }
+    style.set_from(match font.font_style {
+        font_style::SpecifiedValue::Keyword(kw) => kw,
+        font_style::SpecifiedValue::System(_) => return false,
+    });
+    stretch.set_from(match font.font_stretch {
+        font_stretch::SpecifiedValue::Keyword(kw) => kw,
+        font_stretch::SpecifiedValue::System(_) => return false,
+    });
+    match font.font_weight {
+        FontWeight::Weight(w) => weight.set_from(w),
+        FontWeight::Normal => weight.set_enum(structs::NS_STYLE_FONT_WEIGHT_NORMAL as i32),
+        FontWeight::Bold => weight.set_enum(structs::NS_STYLE_FONT_WEIGHT_BOLD as i32),
+        // Resolve relative font weights against the initial of font-weight
+        // (normal, which is equivalent to 400).
+        FontWeight::Bolder => weight.set_enum(structs::NS_FONT_WEIGHT_BOLD as i32),
+        FontWeight::Lighter => weight.set_enum(structs::NS_FONT_WEIGHT_THIN as i32),
+        FontWeight::System(_) => return false,
+    }
+
+    true
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn Servo_SourceSizeList_Parse(
     value: *const nsACString,
@@ -4729,4 +4924,50 @@ pub unsafe extern "C" fn Servo_SourceSizeList_Evaluate(
 #[no_mangle]
 pub unsafe extern "C" fn Servo_SourceSizeList_Drop(list: RawServoSourceSizeListOwned) {
     let _ = list.into_box::<SourceSizeList>();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseCounterStyleName(
+    value: *const nsACString,
+) -> *mut nsAtom {
+    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+    match parser.parse_entirely(counter_style::parse_counter_style_name_definition) {
+        Ok(name) => name.0.into_addrefed(),
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseCounterStyleDescriptor(
+    descriptor: nsCSSCounterDesc,
+    value: *const nsACString,
+    raw_extra_data: *mut URLExtraData,
+    result: *mut nsCSSValue,
+) -> bool {
+    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
+    let url_data = unsafe {
+        if raw_extra_data.is_null() {
+            dummy_url_data()
+        } else {
+            RefPtr::from_ptr_ref(&raw_extra_data)
+        }
+    };
+    let result = unsafe { result.as_mut().unwrap() };
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+    let context = ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(CssRuleType::CounterStyle),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+    );
+    counter_style::parse_counter_style_descriptor(
+        &context,
+        &mut parser,
+        descriptor,
+        result,
+    ).is_ok()
 }

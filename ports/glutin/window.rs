@@ -8,7 +8,7 @@ use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent};
 use compositing::windowing::{WebRenderDebugOption, WindowEvent, WindowMethods};
-use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, ScaleFactor, TypedSize2D};
+use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedScale, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -210,15 +210,15 @@ pub struct Window {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
-    ScaleFactor::new(1.0)
+fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+    TypedScale::new(1.0)
 }
 
 #[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        ScaleFactor::new(ppi as f32 / 96.0)
+        TypedScale::new(ppi as f32 / 96.0)
 }
 
 
@@ -1124,22 +1124,22 @@ impl WindowMethods for Window {
     }
 
     #[cfg(not(target_os = "windows"))]
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
-                ScaleFactor::new(window.hidpi_factor())
+                TypedScale::new(window.hidpi_factor())
             }
             WindowKind::Headless(..) => {
-                ScaleFactor::new(1.0)
+                TypedScale::new(1.0)
             }
         }
     }
 
     #[cfg(target_os = "windows")]
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        ScaleFactor::new(ppi as f32 / 96.0)
+        TypedScale::new(ppi as f32 / 96.0)
     }
 
     fn set_page_title(&self, _: BrowserId, title: Option<String>) {

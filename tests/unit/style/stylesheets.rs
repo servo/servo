@@ -108,7 +108,7 @@ fn test_parse_stylesheet() {
                         ), (0 << 20) + (1 << 10) + (1 << 0))
                     )),
                     block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
-                        (PropertyDeclaration::Display(longhands::display::SpecifiedValue::none),
+                        (PropertyDeclaration::Display(longhands::display::SpecifiedValue::None),
                          Importance::Important),
                         (PropertyDeclaration::Custom(Atom::from("a"),
                          DeclaredValueOwned::CSSWideKeyword(CSSWideKeyword::Inherit)),
@@ -138,7 +138,7 @@ fn test_parse_stylesheet() {
                         ),
                     )),
                     block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
-                        (PropertyDeclaration::Display(longhands::display::SpecifiedValue::block),
+                        (PropertyDeclaration::Display(longhands::display::SpecifiedValue::Block),
                          Importance::Normal),
                     ]))),
                     source_location: SourceLocation {

@@ -8,7 +8,7 @@ use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use euclid::{TypedSize2D, ScaleFactor};
+use euclid::{TypedSize2D, TypedScale};
 use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::Error;
@@ -149,7 +149,7 @@ pub struct InitialPipelineState {
     pub window_size: Option<TypedSize2D<f32, CSSPixel>>,
 
     /// Information about the device pixel ratio.
-    pub device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+    pub device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
 
     /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,
@@ -489,7 +489,8 @@ impl UnprivilegedPipelineContent {
         let paint_time_metrics = PaintTimeMetrics::new(self.id,
                                                        self.time_profiler_chan.clone(),
                                                        self.layout_to_constellation_chan.clone(),
-                                                       self.script_chan.clone());
+                                                       self.script_chan.clone(),
+                                                       self.load_data.url.clone());
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             browsing_context_id: self.browsing_context_id,

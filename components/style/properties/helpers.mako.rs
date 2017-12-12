@@ -441,7 +441,7 @@
             use style_traits::ParseError;
             define_css_keyword_enum! { T:
                 % for value in keyword.values_for(product):
-                    "${value}" => ${to_rust_ident(value)},
+                    "${value}" => ${to_camel_case(value)},
                 % endfor
             }
 
@@ -486,11 +486,11 @@
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            computed_value::T::${to_rust_ident(values.split()[0])}
+            computed_value::T::${to_camel_case(values.split()[0])}
         }
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
-            SpecifiedValue::Keyword(computed_value::T::${to_rust_ident(values.split()[0])})
+            SpecifiedValue::Keyword(computed_value::T::${to_camel_case(values.split()[0])})
         }
 
         impl SpecifiedValue {
@@ -510,6 +510,8 @@
 
 <%def name="single_keyword(name, values, vector=False, **kwargs)">
     <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
+        // FIXME(emilio): WTF is this even trying to do? Those are no-ops,
+        // should be derived instead!
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
 
@@ -517,7 +519,7 @@
             fn to_computed_value(&self, _context: &Context) -> computed_value::T {
                 match *self {
                     % for value in data.longhands_by_name[name].keyword.values_for(product):
-                        SpecifiedValue::${to_rust_ident(value)} => computed_value::T::${to_rust_ident(value)},
+                        SpecifiedValue::${to_camel_case(value)} => computed_value::T::${to_camel_case(value)},
                     % endfor
                 }
             }
@@ -525,7 +527,7 @@
             fn from_computed_value(computed: &computed_value::T) -> Self {
                 match *computed {
                     % for value in data.longhands_by_name[name].keyword.values_for(product):
-                        computed_value::T::${to_rust_ident(value)} => SpecifiedValue::${to_rust_ident(value)},
+                        computed_value::T::${to_camel_case(value)} => SpecifiedValue::${to_camel_case(value)},
                     % endfor
                 }
             }
@@ -554,7 +556,7 @@
             % endfor
             match kw ${maybe_cast} {
                 % for value in values:
-                    ${to_rust_ident(value).upper()} => ${type}::${to_rust_ident(value)},
+                    ${to_rust_ident(value).upper()} => ${type}::${to_camel_case(value)},
                 % endfor
                 x => panic!("Found unexpected value in style struct for ${keyword.name} property: {:?}", x),
             }
@@ -616,12 +618,12 @@
             define_css_keyword_enum! { SpecifiedValue:
                 values {
                     % for value in keyword.values_for(product) + (extra_specified or "").split():
-                        "${value}" => ${to_rust_ident(value)},
+                        "${value}" => ${to_camel_case(value)},
                     % endfor
                 }
                 aliases {
                     % for alias, value in keyword.aliases_for(product).iteritems():
-                        "${alias}" => ${to_rust_ident(value)},
+                        "${alias}" => ${to_camel_case(value)},
                     % endfor
                 }
             }
@@ -631,17 +633,17 @@
         pub mod computed_value {
             define_css_keyword_enum! { T:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):
-                    "${value}" => ${to_rust_ident(value)},
+                    "${value}" => ${to_camel_case(value)},
                 % endfor
             }
         }
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            computed_value::T::${to_rust_ident(values.split()[0])}
+            computed_value::T::${to_camel_case(values.split()[0])}
         }
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
-            SpecifiedValue::${to_rust_ident(values.split()[0])}
+            SpecifiedValue::${to_camel_case(values.split()[0])}
         }
         #[inline]
         pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)

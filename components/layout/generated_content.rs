@@ -15,8 +15,9 @@ use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use style::computed_values::{display, list_style_type};
 use style::computed_values::content::ContentItem;
+use style::computed_values::display::T as Display;
+use style::computed_values::list_style_type::T as ListStyleType;
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -157,8 +158,8 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
         }
 
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if fragment.style().get_box().display != display::T::list_item {
-            list_style_type = list_style_type::T::none
+        if fragment.style().get_box().display != Display::ListItem {
+            list_style_type = ListStyleType::None
         }
 
         let mut new_info = None;
@@ -254,14 +255,14 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
 
     fn reset_and_increment_counters_as_necessary(&mut self, fragment: &mut Fragment) {
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if !self.is_block || fragment.style().get_box().display != display::T::list_item {
-            list_style_type = list_style_type::T::none
+        if !self.is_block || fragment.style().get_box().display != Display::ListItem {
+            list_style_type = ListStyleType::None
         }
 
         match list_style_type {
-            list_style_type::T::disc | list_style_type::T::none | list_style_type::T::circle |
-            list_style_type::T::square | list_style_type::T::disclosure_open |
-            list_style_type::T::disclosure_closed => {}
+            ListStyleType::Disc | ListStyleType::None | ListStyleType::Circle |
+            ListStyleType::Square | ListStyleType::DisclosureOpen |
+            ListStyleType::DisclosureClosed => {}
             _ => self.traversal.list_item.increment(self.level, 1),
         }
 
@@ -369,7 +370,7 @@ impl Counter {
               node: OpaqueNode,
               pseudo: PseudoElementType<()>,
               style: ::ServoArc<ComputedValues>,
-              list_style_type: list_style_type::T,
+              list_style_type: ListStyleType,
               mode: RenderingMode)
               -> Option<SpecificFragmentInfo> {
         let mut string = String::new();
@@ -458,71 +459,72 @@ fn render_text(layout_context: &LayoutContext,
 
 /// Appends string that represents the value rendered using the system appropriate for the given
 /// `list-style-type` onto the given string.
-fn push_representation(value: i32, list_style_type: list_style_type::T, accumulator: &mut String) {
+fn push_representation(value: i32, list_style_type: ListStyleType, accumulator: &mut String) {
     match list_style_type {
-        list_style_type::T::none => {}
-        list_style_type::T::disc |
-        list_style_type::T::circle |
-        list_style_type::T::square |
-        list_style_type::T::disclosure_open |
-        list_style_type::T::disclosure_closed => {
+        ListStyleType::None => {}
+        ListStyleType::Disc |
+        ListStyleType::Circle |
+        ListStyleType::Square |
+        ListStyleType::DisclosureOpen |
+        ListStyleType::DisclosureClosed => {
             accumulator.push(static_representation(list_style_type))
         }
-        list_style_type::T::decimal => push_numeric_representation(value, &DECIMAL, accumulator),
-        list_style_type::T::arabic_indic => {
+        ListStyleType::Decimal => push_numeric_representation(value, &DECIMAL, accumulator),
+        ListStyleType::ArabicIndic => {
             push_numeric_representation(value, &ARABIC_INDIC, accumulator)
         }
-        list_style_type::T::bengali => push_numeric_representation(value, &BENGALI, accumulator),
-        list_style_type::T::cambodian | list_style_type::T::khmer => {
+        ListStyleType::Bengali => push_numeric_representation(value, &BENGALI, accumulator),
+        ListStyleType::Cambodian |
+        ListStyleType::Khmer => {
             push_numeric_representation(value, &CAMBODIAN, accumulator)
         }
-        list_style_type::T::cjk_decimal => {
+        ListStyleType::CjkDecimal => {
             push_numeric_representation(value, &CJK_DECIMAL, accumulator)
         }
-        list_style_type::T::devanagari => {
+        ListStyleType::Devanagari => {
             push_numeric_representation(value, &DEVANAGARI, accumulator)
         }
-        list_style_type::T::gujarati => push_numeric_representation(value, &GUJARATI, accumulator),
-        list_style_type::T::gurmukhi => push_numeric_representation(value, &GURMUKHI, accumulator),
-        list_style_type::T::kannada => push_numeric_representation(value, &KANNADA, accumulator),
-        list_style_type::T::lao => push_numeric_representation(value, &LAO, accumulator),
-        list_style_type::T::malayalam => {
+        ListStyleType::Gujarati => push_numeric_representation(value, &GUJARATI, accumulator),
+        ListStyleType::Gurmukhi => push_numeric_representation(value, &GURMUKHI, accumulator),
+        ListStyleType::Kannada => push_numeric_representation(value, &KANNADA, accumulator),
+        ListStyleType::Lao => push_numeric_representation(value, &LAO, accumulator),
+        ListStyleType::Malayalam => {
             push_numeric_representation(value, &MALAYALAM, accumulator)
         }
-        list_style_type::T::mongolian => {
+        ListStyleType::Mongolian => {
             push_numeric_representation(value, &MONGOLIAN, accumulator)
         }
-        list_style_type::T::myanmar => push_numeric_representation(value, &MYANMAR, accumulator),
-        list_style_type::T::oriya => push_numeric_representation(value, &ORIYA, accumulator),
-        list_style_type::T::persian => push_numeric_representation(value, &PERSIAN, accumulator),
-        list_style_type::T::telugu => push_numeric_representation(value, &TELUGU, accumulator),
-        list_style_type::T::thai => push_numeric_representation(value, &THAI, accumulator),
-        list_style_type::T::tibetan => push_numeric_representation(value, &TIBETAN, accumulator),
-        list_style_type::T::lower_alpha => {
+        ListStyleType::Myanmar => push_numeric_representation(value, &MYANMAR, accumulator),
+        ListStyleType::Oriya => push_numeric_representation(value, &ORIYA, accumulator),
+        ListStyleType::Persian => push_numeric_representation(value, &PERSIAN, accumulator),
+        ListStyleType::Telugu => push_numeric_representation(value, &TELUGU, accumulator),
+        ListStyleType::Thai => push_numeric_representation(value, &THAI, accumulator),
+        ListStyleType::Tibetan => push_numeric_representation(value, &TIBETAN, accumulator),
+        ListStyleType::LowerAlpha => {
             push_alphabetic_representation(value, &LOWER_ALPHA, accumulator)
         }
-        list_style_type::T::upper_alpha => {
+        ListStyleType::UpperAlpha => {
             push_alphabetic_representation(value, &UPPER_ALPHA, accumulator)
         }
-        list_style_type::T::cjk_earthly_branch => {
+        ListStyleType::CjkEarthlyBranch => {
             push_alphabetic_representation(value, &CJK_EARTHLY_BRANCH, accumulator)
         }
-        list_style_type::T::cjk_heavenly_stem => {
+        ListStyleType::CjkHeavenlyStem => {
             push_alphabetic_representation(value, &CJK_HEAVENLY_STEM, accumulator)
         }
-        list_style_type::T::lower_greek => {
+        ListStyleType::LowerGreek => {
             push_alphabetic_representation(value, &LOWER_GREEK, accumulator)
         }
-        list_style_type::T::hiragana => {
+        ListStyleType::Hiragana => {
             push_alphabetic_representation(value, &HIRAGANA, accumulator)
         }
-        list_style_type::T::hiragana_iroha => {
+        ListStyleType::HiraganaIroha => {
             push_alphabetic_representation(value, &HIRAGANA_IROHA, accumulator)
         }
-        list_style_type::T::katakana => {
+        ListStyleType::Katakana => {
             push_alphabetic_representation(value, &KATAKANA, accumulator)
         }
-        list_style_type::T::katakana_iroha => {
+        ListStyleType::KatakanaIroha => {
             push_alphabetic_representation(value, &KATAKANA_IROHA, accumulator)
         }
     }
@@ -530,13 +532,13 @@ fn push_representation(value: i32, list_style_type: list_style_type::T, accumula
 
 /// Returns the static character that represents the value rendered using the given list-style, if
 /// possible.
-pub fn static_representation(list_style_type: list_style_type::T) -> char {
+pub fn static_representation(list_style_type: ListStyleType) -> char {
     match list_style_type {
-        list_style_type::T::disc => '•',
-        list_style_type::T::circle => '◦',
-        list_style_type::T::square => '▪',
-        list_style_type::T::disclosure_open => '▾',
-        list_style_type::T::disclosure_closed => '‣',
+        ListStyleType::Disc => '•',
+        ListStyleType::Circle => '◦',
+        ListStyleType::Square => '▪',
+        ListStyleType::DisclosureOpen => '▾',
+        ListStyleType::DisclosureClosed => '‣',
         _ => panic!("No static representation for this list-style-type!"),
     }
 }

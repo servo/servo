@@ -38,12 +38,12 @@ ${helpers.predefined_type(
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        Either::Second(BorderStyle::none)
+        Either::Second(BorderStyle::None)
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        Either::Second(BorderStyle::none)
+        Either::Second(BorderStyle::None)
     }
 
     pub mod computed_value {
@@ -54,7 +54,7 @@ ${helpers.predefined_type(
                          -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(context, input)
             .and_then(|result| {
-                if let Either::Second(BorderStyle::hidden) = result {
+                if let Either::Second(BorderStyle::Hidden) = result {
                     // The outline-style property accepts the same values as
                     // border-style, except that 'hidden' is not a legal outline
                     // style.

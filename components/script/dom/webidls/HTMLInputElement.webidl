@@ -90,13 +90,17 @@ interface HTMLInputElement : HTMLElement {
   readonly attribute NodeList labels;
 
   //void select();
-           attribute unsigned long selectionStart;
-           attribute unsigned long selectionEnd;
-           attribute DOMString selectionDirection;
+  [SetterThrows]
+           attribute unsigned long? selectionStart;
+  [SetterThrows]
+           attribute unsigned long? selectionEnd;
+  [SetterThrows]
+           attribute DOMString? selectionDirection;
   //void setRangeText(DOMString replacement);
   //void setRangeText(DOMString replacement, unsigned long start, unsigned long end,
   //                  optional SelectionMode selectionMode = "preserve");
-  void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
+  [Throws]
+           void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
   // also has obsolete members
 
