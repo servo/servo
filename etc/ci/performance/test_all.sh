@@ -14,6 +14,7 @@ set -o pipefail
 # https://groups.google.com/forum/#!topic/mozilla.dev.servo/JlAZoRgcnpA
 port="8123"
 base="http://localhost:${port}"
+date="$(date +%Y-%m-%d)"
 
 while (( "${#}" ))
 do
@@ -31,6 +32,10 @@ case "${1}" in
     ;;
   --base)
     base="${2}"
+    shift
+    ;;
+  --date)
+    date="${2}"
     shift
     ;;
   *)
@@ -56,11 +61,12 @@ trap 'kill $(jobs -pr)' SIGINT SIGTERM EXIT
 # MANIFEST="page_load_test/tp5n/20160509.manifest"
 MANIFEST="page_load_test/test.manifest" # A manifest that excludes
                                         # timeout test cases
-PERF_KEY="perf-$(uname -s)-$(uname -m)-$(date +%s).csv"
+PERF_KEY="perf-$(uname -s)-$(uname -m)-${date}.csv"
 PERF_FILE="output/${PERF_KEY}"
 
 echo "Running tests"
-python3 runner.py ${engine} --runs 4 --timeout "${timeout}" --base "${base}" \
+python3 runner.py ${engine} --runs 4 --timeout "${timeout}" \
+  --base "${base}" --date "${date}" \
   "${MANIFEST}" "${PERF_FILE}"
 
 if [[ "${submit:-}" ]];

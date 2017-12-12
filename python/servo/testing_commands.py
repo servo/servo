@@ -171,9 +171,11 @@ class MachCommands(CommandBase):
              category='testing')
     @CommandArgument('--base', default=None,
                      help="the base URL for testcases")
+    @CommandArgument('--date', default=None,
+                     help="the datestamp for the data")
     @CommandArgument('--submit', '-a', default=False, action="store_true",
                      help="submit the data to perfherder")
-    def test_perf(self, base=None, submit=False):
+    def test_perf(self, base=None, date=None, submit=False):
         self.set_software_rendering_env(True)
 
         self.ensure_bootstrapped()
@@ -181,6 +183,8 @@ class MachCommands(CommandBase):
         cmd = ["bash", "test_perf.sh"]
         if base:
             cmd += ["--base", base]
+        if date:
+            cmd += ["--date", date]
         if submit:
             cmd += ["--submit"]
         return call(cmd,
