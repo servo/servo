@@ -14,7 +14,6 @@ import itertools
 import locale
 import os
 from os import path
-import re
 import contextlib
 import subprocess
 from subprocess import PIPE
@@ -137,7 +136,8 @@ def call(*args, **kwargs):
         kwargs['env'] = normalize_env(kwargs['env'])
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
-    return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
+    kwargs.setdefault("shell", sys.platform == "win32")
+    return subprocess.call(*args, **kwargs)
 
 
 def check_output(*args, **kwargs):
@@ -149,7 +149,8 @@ def check_output(*args, **kwargs):
         kwargs['env'] = normalize_env(kwargs['env'])
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
-    return subprocess.check_output(*args, shell=sys.platform == 'win32', **kwargs)
+    kwargs.setdefault("shell", sys.platform == "win32")
+    return subprocess.check_output(*args, **kwargs)
 
 
 def check_call(*args, **kwargs):
@@ -165,7 +166,8 @@ def check_call(*args, **kwargs):
         print(' '.join(args[0]))
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
-    proc = subprocess.Popen(*args, shell=sys.platform == 'win32', **kwargs)
+    kwargs.setdefault("shell", sys.platform == "win32")
+    proc = subprocess.Popen(*args, **kwargs)
     status = None
     # Leave it to the subprocess to handle Ctrl+C. If it terminates as
     # a result of Ctrl+C, proc.wait() will return a status code, and,
@@ -319,25 +321,22 @@ class CommandBase(object):
         return self._default_toolchain
 
     def call_rustup_run(self, args, **kwargs):
+        args[0] += BIN_SUFFIX
         if self.config["tools"]["use-rustup"]:
             try:
-                version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
+                kwargs.setdefault("env", {})["RUSTUP_TOOLCHAIN"] = self.toolchain()
+                return call(args, executable="rustup" + BIN_SUFFIX, shell=False, **kwargs)
             except OSError as e:
                 if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
+                    print repr(e)
+                    print
                     print "It looks like rustup is not installed. See instructions at " \
                           "https://github.com/servo/servo/#setting-up-your-environment"
                     print
                     return 1
                 raise
-            version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
-            if version < (1, 8, 0):
-                print "rustup is at version %s.%s.%s, Servo requires 1.8.0 or more recent." % version
-                print "Try running 'rustup self update'."
-                return 1
-            args = ["rustup" + BIN_SUFFIX, "run", "--install", self.toolchain()] + args
         else:
-            args[0] += BIN_SUFFIX
-        return call(args, **kwargs)
+            return call(args, **kwargs)
 
     def get_top_dir(self):
         return self.context.topdir
