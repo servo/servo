@@ -8,7 +8,7 @@
 # except according to those terms.
 
 from __future__ import print_function, unicode_literals
-from os import path, getcwd, listdir
+from os import path, listdir
 from time import time
 
 import sys
@@ -50,16 +50,9 @@ class MachCommands(CommandBase):
                 params[1:1] = ['--package', 'geckoservo']
 
             self.set_use_stable_rust()
-            crate_dir = path.join('ports', 'geckolib')
-        else:
-            crate_dir = path.join('ports', 'servo')
 
         build_start = time()
-        if self.context.topdir == getcwd():
-            with cd(crate_dir):
-                status = call(['cargo'] + params, env=env)
-        else:
-            status = call(['cargo'] + params, env=env)
+        status = call(['cargo'] + params, env=env)
         elapsed = time() - build_start
 
         notify_build_done(self.config, elapsed, status == 0)
