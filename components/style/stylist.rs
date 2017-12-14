@@ -666,7 +666,7 @@ impl Stylist {
             parent,
             cascade_flags,
             font_metrics,
-            &rule_node
+            rule_node
         )
     }
 
@@ -679,37 +679,19 @@ impl Stylist {
         parent: Option<&ComputedValues>,
         cascade_flags: CascadeFlags,
         font_metrics: &FontMetricsProvider,
-        rule_node: &StrongRuleNode
+        rule_node: StrongRuleNode
     ) -> Arc<ComputedValues> {
-        // NOTE(emilio): We skip calculating the proper layout parent style
-        // here.
-        //
-        // It'd be fine to assert that this isn't called with a parent style
-        // where display contents is in effect, but in practice this is hard to
-        // do for stuff like :-moz-fieldset-content with a
-        // <fieldset style="display: contents">. That is, the computed value of
-        // display for the fieldset is "contents", even though it's not the used
-        // value, so we don't need to adjust in a different way anyway.
-        //
-        // In practice, I don't think any anonymous content can be a direct
-        // descendant of a display: contents element where display: contents is
-        // the actual used value, and the computed value of it would need
-        // blockification.
-        properties::cascade(
-            &self.device,
-            Some(pseudo),
-            rule_node,
+        self.compute_pseudo_element_style_with_inputs(
+            &CascadeInputs {
+                rules: Some(rule_node),
+                visited_rules: None,
+            },
+            pseudo,
             guards,
             parent,
-            parent,
-            parent,
-            None,
             font_metrics,
             cascade_flags,
-            self.quirks_mode,
-            /* rule_cache = */ None,
-            &mut Default::default(),
-        )
+        ).unwrap()
     }
 
     /// Returns the rule node for given precomputed pseudo-element.
@@ -835,8 +817,9 @@ impl Stylist {
             &cascade_inputs,
             pseudo,
             guards,
-            parent_style,
+            Some(parent_style),
             font_metrics,
+            CascadeFlags::empty(),
         )
     }
 
@@ -849,8 +832,9 @@ impl Stylist {
         inputs: &CascadeInputs,
         pseudo: &PseudoElement,
         guards: &StylesheetGuards,
-        parent_style: &ComputedValues,
-        font_metrics: &FontMetricsProvider
+        parent_style: Option<&ComputedValues>,
+        font_metrics: &FontMetricsProvider,
+        cascade_flags: CascadeFlags,
     ) -> Option<Arc<ComputedValues>> {
         // We may have only visited rules in cases when we are actually
         // resolving, not probing, pseudo-element style.
@@ -863,6 +847,13 @@ impl Stylist {
         // pseudos other than before and after, so it's probably ok.
         //
         // (Though the flags don't indicate so!)
+        //
+        // It'd be fine to assert that this isn't called with a parent style
+        // where display contents is in effect, but in practice this is hard to
+        // do for stuff like :-moz-fieldset-content with a
+        // <fieldset style="display: contents">. That is, the computed value of
+        // display for the fieldset is "contents", even though it's not the used
+        // value, so we don't need to adjust in a different way anyway.
         Some(self.compute_style_with_inputs(
             inputs,
             Some(pseudo),
@@ -871,7 +862,7 @@ impl Stylist {
             parent_style,
             parent_style,
             font_metrics,
-            CascadeFlags::empty(),
+            cascade_flags,
         ))
     }
 
@@ -895,15 +886,18 @@ impl Stylist {
         inputs: &CascadeInputs,
         pseudo: Option<&PseudoElement>,
         guards: &StylesheetGuards,
-        parent_style: &ComputedValues,
-        parent_style_ignoring_first_line: &ComputedValues,
-        layout_parent_style: &ComputedValues,
+        parent_style: Option<&ComputedValues>,
+        parent_style_ignoring_first_line: Option<&ComputedValues>,
+        layout_parent_style: Option<&ComputedValues>,
         font_metrics: &FontMetricsProvider,
         cascade_flags: CascadeFlags
     ) -> Arc<ComputedValues> {
         // We need to compute visited values if we have visited rules or if our
         // parent has visited values.
-        let visited_values = if inputs.visited_rules.is_some() || parent_style.visited_style().is_some() {
+        let mut visited_values = None;
+        if inputs.visited_rules.is_some() ||
+            parent_style.and_then(|s| s.visited_style()).is_some()
+        {
             // At this point inputs may have visited rules, or rules, or both,
             // or neither (e.g. if it's a text style it may have neither).  So
             // we have to be a bit careful here.
@@ -923,31 +917,35 @@ impl Stylist {
                 // We want to use the visited bits (if any) from our parent
                 // style as our parent.
                 inherited_style =
-                    parent_style.visited_style().unwrap_or(parent_style);
+                    parent_style.map(|parent_style| {
+                        parent_style.visited_style().unwrap_or(parent_style)
+                    });
                 inherited_style_ignoring_first_line =
-                    parent_style_ignoring_first_line.visited_style().unwrap_or(parent_style_ignoring_first_line);
+                    parent_style_ignoring_first_line.map(|parent_style| {
+                        parent_style.visited_style().unwrap_or(parent_style)
+                    });
                 layout_parent_style_for_visited =
-                    layout_parent_style.visited_style().unwrap_or(layout_parent_style);
+                    layout_parent_style.map(|parent_style| {
+                        parent_style.visited_style().unwrap_or(parent_style)
+                    });
             }
 
-            Some(properties::cascade(
+            visited_values = Some(properties::cascade(
                 &self.device,
                 pseudo,
                 rule_node,
                 guards,
-                Some(inherited_style),
-                Some(inherited_style_ignoring_first_line),
-                Some(layout_parent_style_for_visited),
+                inherited_style,
+                inherited_style_ignoring_first_line,
+                layout_parent_style_for_visited,
                 None,
                 font_metrics,
                 cascade_flags | CascadeFlags::VISITED_DEPENDENT_ONLY,
                 self.quirks_mode,
                 /* rule_cache = */ None,
                 &mut Default::default(),
-            ))
-        } else {
-            None
-        };
+            ));
+        }
 
         // We may not have non-visited rules, if we only had visited ones.  In
         // that case we want to use the root rulenode for our non-visited rules.
@@ -962,9 +960,9 @@ impl Stylist {
             pseudo,
             rules,
             guards,
-            Some(parent_style),
-            Some(parent_style_ignoring_first_line),
-            Some(layout_parent_style),
+            parent_style,
+            parent_style_ignoring_first_line,
+            layout_parent_style,
             visited_values,
             font_metrics,
             cascade_flags,
