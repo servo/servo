@@ -503,21 +503,6 @@ pub trait FragmentDisplayListBuilding {
                                              size: Size2D<Au>)
                                              -> Option<WebRenderImageInfo>;
 
-    fn convert_linear_gradient(&self,
-                               bounds: &Rect<Au>,
-                               stops: &[GradientItem],
-                               direction: &LineDirection,
-                               repeating: bool)
-                               -> display_list::Gradient;
-
-    fn convert_radial_gradient(&self,
-                               bounds: &Rect<Au>,
-                               stops: &[GradientItem],
-                               shape: &EndingShape,
-                               center: &Position,
-                               repeating: bool)
-                               -> display_list::RadialGradient;
-
     /// Adds the display items necessary to paint the background linear gradient of this fragment
     /// to the appropriate section of the display list.
     fn build_display_list_for_background_gradient(&self,
@@ -526,7 +511,8 @@ pub trait FragmentDisplayListBuilding {
                                                   absolute_bounds: &Rect<Au>,
                                                   clip: &LocalClip,
                                                   gradient: &Gradient,
-                                                  style: &ComputedValues);
+                                                  style: &ComputedValues,
+                                                  index: usize);
 
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
     /// necessary.
@@ -819,6 +805,120 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     stops
 }
 
+fn convert_linear_gradient(size: Size2D<Au>,
+                           stops: &[GradientItem],
+                           direction: LineDirection,
+                           repeating: bool)
+                           -> display_list::Gradient {
+    let angle = match direction {
+        LineDirection::Angle(angle) => angle.radians(),
+        LineDirection::Horizontal(x) => {
+            match x {
+                X::Left => Angle::Deg(270.).radians(),
+                X::Right => Angle::Deg(90.).radians(),
+            }
+        },
+        LineDirection::Vertical(y) => {
+            match y {
+                Y::Top => Angle::Deg(0.).radians(),
+                Y::Bottom => Angle::Deg(180.).radians(),
+            }
+        },
+        LineDirection::Corner(horizontal, vertical) => {
+            // This the angle for one of the diagonals of the box. Our angle
+            // will either be this one, this one + PI, or one of the other
+            // two perpendicular angles.
+            let atan = (size.height.to_f32_px() /
+                        size.width.to_f32_px()).atan();
+            match (horizontal, vertical) {
+                (X::Right, Y::Bottom)
+                    => f32::consts::PI - atan,
+                (X::Left, Y::Bottom)
+                    => f32::consts::PI + atan,
+                (X::Right, Y::Top)
+                    => atan,
+                (X::Left, Y::Top)
+                    => -atan,
+            }
+        }
+    };
+
+    // Get correct gradient line length, based on:
+    // https://drafts.csswg.org/css-images-3/#linear-gradients
+    let dir = Point2D::new(angle.sin(), -angle.cos());
+
+    let line_length = (dir.x * size.width.to_f32_px()).abs() +
+                        (dir.y * size.height.to_f32_px()).abs();
+
+    let inv_dir_length = 1.0 / (dir.x * dir.x + dir.y * dir.y).sqrt();
+
+    // This is the vector between the center and the ending point; i.e. half
+    // of the distance between the starting point and the ending point.
+    let delta = Vector2D::new(Au::from_f32_px(dir.x * inv_dir_length * line_length / 2.0),
+                                Au::from_f32_px(dir.y * inv_dir_length * line_length / 2.0));
+
+    // This is the length of the gradient line.
+    let length = Au::from_f32_px(
+        (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
+
+    let mut stops = convert_gradient_stops(stops, length);
+
+    // Only clamped gradients need to be fixed because in repeating gradients
+    // there is no "first" or "last" stop because they repeat infinitly in
+    // both directions, so the rendering is always correct.
+    if !repeating {
+        fix_gradient_stops(&mut stops);
+    }
+
+    let center = Point2D::new(size.width / 2, size.height / 2);
+
+    display_list::Gradient {
+        start_point: center - delta,
+        end_point: center + delta,
+        stops: stops,
+        repeating: repeating,
+    }
+}
+
+fn convert_radial_gradient(size: Size2D<Au>,
+                           stops: &[GradientItem],
+                           shape: EndingShape,
+                           center: Position,
+                           repeating: bool)
+                           -> display_list::RadialGradient {
+    let center = Point2D::new(center.horizontal.to_used_value(size.width),
+                                center.vertical.to_used_value(size.height));
+    let radius = match shape {
+        GenericEndingShape::Circle(Circle::Radius(length)) => {
+            let length = Au::from(length);
+            Size2D::new(length, length)
+        },
+        GenericEndingShape::Circle(Circle::Extent(extent)) => {
+            convert_circle_size_keyword(extent, &size, &center)
+        },
+        GenericEndingShape::Ellipse(Ellipse::Radii(x, y)) => {
+            Size2D::new(x.to_used_value(size.width), y.to_used_value(size.height))
+        },
+        GenericEndingShape::Ellipse(Ellipse::Extent(extent)) => {
+            convert_ellipse_size_keyword(extent, &size, &center)
+        },
+    };
+
+    let mut stops = convert_gradient_stops(stops, radius.width);
+    // Repeating gradients have no last stops that can be ignored. So
+    // fixup is not necessary but may actually break the gradient.
+    if !repeating {
+        fix_gradient_stops(&mut stops);
+    }
+
+    display_list::RadialGradient {
+        center: center,
+        radius: radius,
+        stops: stops,
+        repeating: repeating,
+    }
+}
+
 #[inline]
 /// Duplicate the first and last stops if necessary.
 ///
@@ -1026,7 +1126,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                     &absolute_bounds,
                                                                     &clip,
                                                                     gradient,
-                                                                    style);
+                                                                    style,
+                                                                    i);
                 }
                 Either::Second(Image::Url(ref image_url)) => {
                     if let Some(url) = image_url.url() {
@@ -1310,135 +1411,36 @@ impl FragmentDisplayListBuilding for Fragment {
         Some(webrender_image)
     }
 
-    fn convert_linear_gradient(&self,
-                               bounds: &Rect<Au>,
-                               stops: &[GradientItem],
-                               direction: &LineDirection,
-                               repeating: bool)
-                               -> display_list::Gradient {
-        let angle = match *direction {
-            LineDirection::Angle(angle) => angle.radians(),
-            LineDirection::Horizontal(x) => {
-                match x {
-                    X::Left => Angle::Deg(270.).radians(),
-                    X::Right => Angle::Deg(90.).radians(),
-                }
-            },
-            LineDirection::Vertical(y) => {
-                match y {
-                    Y::Top => Angle::Deg(0.).radians(),
-                    Y::Bottom => Angle::Deg(180.).radians(),
-                }
-            },
-            LineDirection::Corner(horizontal, vertical) => {
-                // This the angle for one of the diagonals of the box. Our angle
-                // will either be this one, this one + PI, or one of the other
-                // two perpendicular angles.
-                let atan = (bounds.size.height.to_f32_px() /
-                            bounds.size.width.to_f32_px()).atan();
-                match (horizontal, vertical) {
-                    (X::Right, Y::Bottom)
-                        => f32::consts::PI - atan,
-                    (X::Left, Y::Bottom)
-                        => f32::consts::PI + atan,
-                    (X::Right, Y::Top)
-                        => atan,
-                    (X::Left, Y::Top)
-                        => -atan,
-                }
-            }
-        };
-
-        // Get correct gradient line length, based on:
-        // https://drafts.csswg.org/css-images-3/#linear-gradients
-        let dir = Point2D::new(angle.sin(), -angle.cos());
-
-        let line_length = (dir.x * bounds.size.width.to_f32_px()).abs() +
-                          (dir.y * bounds.size.height.to_f32_px()).abs();
-
-        let inv_dir_length = 1.0 / (dir.x * dir.x + dir.y * dir.y).sqrt();
-
-        // This is the vector between the center and the ending point; i.e. half
-        // of the distance between the starting point and the ending point.
-        let delta = Vector2D::new(Au::from_f32_px(dir.x * inv_dir_length * line_length / 2.0),
-                                  Au::from_f32_px(dir.y * inv_dir_length * line_length / 2.0));
-
-        // This is the length of the gradient line.
-        let length = Au::from_f32_px(
-            (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
-
-        let mut stops = convert_gradient_stops(stops, length);
-
-        // Only clamped gradients need to be fixed because in repeating gradients
-        // there is no "first" or "last" stop because they repeat infinitly in
-        // both directions, so the rendering is always correct.
-        if !repeating {
-            fix_gradient_stops(&mut stops);
-        }
-
-        let center = Point2D::new(bounds.size.width / 2, bounds.size.height / 2);
-
-        display_list::Gradient {
-            start_point: center - delta,
-            end_point: center + delta,
-            stops: stops,
-            repeating: repeating,
-        }
-    }
-
-    fn convert_radial_gradient(&self,
-                               bounds: &Rect<Au>,
-                               stops: &[GradientItem],
-                               shape: &EndingShape,
-                               center: &Position,
-                               repeating: bool)
-                               -> display_list::RadialGradient {
-        let center = Point2D::new(center.horizontal.to_used_value(bounds.size.width),
-                                  center.vertical.to_used_value(bounds.size.height));
-        let radius = match *shape {
-            GenericEndingShape::Circle(Circle::Radius(length)) => {
-                let length = Au::from(length);
-                Size2D::new(length, length)
-            },
-            GenericEndingShape::Circle(Circle::Extent(extent)) => {
-                convert_circle_size_keyword(extent, &bounds.size, &center)
-            },
-            GenericEndingShape::Ellipse(Ellipse::Radii(x, y)) => {
-                Size2D::new(x.to_used_value(bounds.size.width), y.to_used_value(bounds.size.height))
-            },
-            GenericEndingShape::Ellipse(Ellipse::Extent(extent)) => {
-                convert_ellipse_size_keyword(extent, &bounds.size, &center)
-            },
-        };
-
-        let mut stops = convert_gradient_stops(stops, radius.width);
-        // Repeating gradients have no last stops that can be ignored. So
-        // fixup is not necessary but may actually break the gradient.
-        if !repeating {
-            fix_gradient_stops(&mut stops);
-        }
-
-        display_list::RadialGradient {
-            center: center,
-            radius: radius,
-            stops: stops,
-            repeating: repeating,
-        }
-    }
-
     fn build_display_list_for_background_gradient(&self,
                                                   state: &mut DisplayListBuildState,
                                                   display_list_section: DisplayListSection,
                                                   absolute_bounds: &Rect<Au>,
                                                   clip: &LocalClip,
                                                   gradient: &Gradient,
-                                                  style: &ComputedValues) {
+                                                  style: &ComputedValues,
+                                                  index: usize) {
+        let bg = style.get_background();
+        let bg_size = get_cyclic(&bg.background_size.0, index).clone();
+        let bg_position_x = get_cyclic(&bg.background_position_x.0, index).clone();
+        let bg_position_y = get_cyclic(&bg.background_position_y.0, index).clone();
         let border = self.border_width().to_physical(style.writing_mode);
+
         let mut bounds = *absolute_bounds;
-        bounds.origin.x = bounds.origin.x + border.left;
-        bounds.origin.y = bounds.origin.y + border.top;
+        bounds.origin.x = bounds.origin.x + border.left + bg_position_x.to_used_value(bounds.size.width);
+        bounds.origin.y = bounds.origin.y + border.top + bg_position_y.to_used_value(bounds.size.height);
         bounds.size.width = bounds.size.width - border.horizontal();
         bounds.size.height = bounds.size.height - border.vertical();
+
+        let tile = match bg_size {
+            BackgroundSize::Cover | BackgroundSize::Contain => bounds.size,
+            BackgroundSize::Explicit { width, height } => {
+                Size2D::new(
+                    MaybeAuto::from_style(width, bounds.size.width)
+                        .specified_or_default(bounds.size.width),
+                    MaybeAuto::from_style(height, bounds.size.height)
+                        .specified_or_default(bounds.size.height))
+            }
+        };
 
         let base = state.create_base_display_item(&bounds,
                                                   *clip,
@@ -1447,25 +1449,29 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   display_list_section);
 
         let display_item = match gradient.kind {
-            GradientKind::Linear(ref angle_or_corner) => {
-                let gradient = self.convert_linear_gradient(&bounds,
-                                                            &gradient.items[..],
-                                                            angle_or_corner,
-                                                            gradient.repeating);
+            GradientKind::Linear(angle_or_corner) => {
+                let gradient = convert_linear_gradient(
+                    tile,
+                    &gradient.items[..],
+                    angle_or_corner,
+                    gradient.repeating);
                 DisplayItem::Gradient(Box::new(GradientDisplayItem {
                     base: base,
                     gradient: gradient,
+                    tile: tile,
                 }))
             }
-            GradientKind::Radial(ref shape, ref center, _angle) => {
-                let gradient = self.convert_radial_gradient(&bounds,
-                                                            &gradient.items[..],
-                                                            shape,
-                                                            center,
-                                                            gradient.repeating);
+            GradientKind::Radial(shape, center, _angle) => {
+                let gradient = convert_radial_gradient(
+                    tile,
+                    &gradient.items[..],
+                    shape,
+                    center,
+                    gradient.repeating);
                 DisplayItem::RadialGradient(Box::new(RadialGradientDisplayItem {
                     base: base,
                     gradient: gradient,
+                    tile: tile,
                 }))
             }
         };
@@ -1594,10 +1600,10 @@ impl FragmentDisplayListBuilding for Fragment {
             Either::Second(Image::Gradient(ref gradient)) => {
                 match gradient.kind {
                     GradientKind::Linear(angle_or_corner) => {
-                        let grad = self.convert_linear_gradient(&bounds,
-                                                                &gradient.items[..],
-                                                                &angle_or_corner,
-                                                                gradient.repeating);
+                        let grad = convert_linear_gradient(bounds.size,
+                                                           &gradient.items[..],
+                                                           angle_or_corner,
+                                                           gradient.repeating);
 
                         state.add_display_item(DisplayItem::Border(Box::new(BorderDisplayItem {
                             base: base,
@@ -1610,12 +1616,12 @@ impl FragmentDisplayListBuilding for Fragment {
                             }),
                         })));
                     }
-                    GradientKind::Radial(ref shape, ref center, _angle) => {
-                        let grad = self.convert_radial_gradient(&bounds,
-                                                                &gradient.items[..],
-                                                                shape,
-                                                                center,
-                                                                gradient.repeating);
+                    GradientKind::Radial(shape, center, _angle) => {
+                        let grad = convert_radial_gradient(bounds.size,
+                                                           &gradient.items[..],
+                                                           shape,
+                                                           center,
+                                                           gradient.repeating);
                         state.add_display_item(DisplayItem::Border(Box::new(BorderDisplayItem {
                             base: base,
                             border_widths: border.to_physical(style.writing_mode),

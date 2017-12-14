@@ -720,6 +720,15 @@ pub struct GradientDisplayItem {
 
     /// Contains all gradient data. Included start, end point and color stops.
     pub gradient: Gradient,
+
+    /// The size of a single gradient tile.
+    ///
+    /// The gradient may fill an entire element background
+    /// but it can be composed from many smaller copys of
+    /// the same gradient.
+    ///
+    /// Without tiles, the tile will be the same size as the background.
+    pub tile: Size2D<Au>,
 }
 
 /// Paints a radial gradient.
@@ -745,6 +754,15 @@ pub struct RadialGradientDisplayItem {
 
     /// Contains all gradient data.
     pub gradient: RadialGradient,
+
+    /// The size of a single gradient tile.
+    ///
+    /// The gradient may fill an entire element background
+    /// but it can be composed from many smaller copys of
+    /// the same gradient.
+    ///
+    /// Without tiles, the tile will be the same size as the background.
+    pub tile: Size2D<Au>,
 }
 
 /// A normal border, supporting CSS border styles.
