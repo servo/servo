@@ -41,7 +41,7 @@ serde_json = "1.0"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 smallvec = "0.6"
-style = {path = "../style"}
+style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits"}
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
