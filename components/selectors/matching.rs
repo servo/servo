@@ -72,14 +72,24 @@ pub fn matches_selector_list<E>(
 where
     E: Element
 {
-    selector_list.0.iter().any(|selector| {
-        matches_selector(selector,
-                         0,
-                         None,
-                         element,
-                         context,
-                         &mut |_, _| {})
-    })
+    // This is pretty much any(..) but manually inlined because the compiler
+    // refuses to do so from querySelector / querySelectorAll.
+    for selector in &selector_list.0 {
+        let matches = matches_selector(
+            selector,
+            0,
+            None,
+            element,
+            context,
+            &mut |_, _| {},
+        );
+
+        if matches {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[inline(always)]
