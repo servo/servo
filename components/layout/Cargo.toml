@@ -10,7 +10,7 @@ name = "layout"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.6"
+app_units = "0.6.1"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
