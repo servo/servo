@@ -1700,7 +1700,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     style: &ComputedValues,
                                                     bounds: &Rect<Au>,
                                                     clip: &Rect<Au>) {
-        use style::values::Either;
+        use style::values::specified::outline::OutlineStyle;
 
         let width = Au::from(style.get_outline().outline_width);
         if width == Au(0) {
@@ -1708,9 +1708,9 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         let outline_style = match style.get_outline().outline_style {
-            Either::First(_auto) => BorderStyle::Solid,
-            Either::Second(BorderStyle::None) => return,
-            Either::Second(border_style) => border_style
+            OutlineStyle::Auto => BorderStyle::Solid,
+            OutlineStyle::Other(BorderStyle::None) => return,
+            OutlineStyle::Other(border_style) => border_style
         };
 
         // Outlines are not accounted for in the dimensions of the border box, so adjust the

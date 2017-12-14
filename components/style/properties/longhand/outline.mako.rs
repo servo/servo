@@ -20,51 +20,14 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-color",
 )}
 
-<%helpers:longhand name="outline-style" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
-    use values::specified::BorderStyle;
-
-    pub type SpecifiedValue = Either<Auto, BorderStyle>;
-
-    impl SpecifiedValue {
-        #[inline]
-        pub fn none_or_hidden(&self) -> bool {
-            match *self {
-                Either::First(ref _auto) => false,
-                Either::Second(ref border_style) => border_style.none_or_hidden()
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        Either::Second(BorderStyle::None)
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        Either::Second(BorderStyle::None)
-    }
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        SpecifiedValue::parse(context, input)
-            .and_then(|result| {
-                if let Either::Second(BorderStyle::Hidden) = result {
-                    // The outline-style property accepts the same values as
-                    // border-style, except that 'hidden' is not a legal outline
-                    // style.
-                    Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent("hidden".into())))
-                } else {
-                    Ok(result)
-                }
-            })
-    }
-</%helpers:longhand>
+${helpers.predefined_type(
+    "outline-style",
+    "OutlineStyle",
+    "computed::OutlineStyle::none()",
+    initial_specified_value="specified::OutlineStyle::none()",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style",
+)}
 
 ${helpers.predefined_type("outline-width",
                           "BorderSideWidth",
