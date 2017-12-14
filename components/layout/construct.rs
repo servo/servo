@@ -19,7 +19,7 @@ use context::{LayoutContext, with_thread_local_font_context};
 use data::{LayoutDataFlags, LayoutData};
 use flex::FlexFlow;
 use floats::FloatKind;
-use flow::{self, AbsoluteDescendants, Flow, FlowClass, ImmutableFlowUtils};
+use flow::{AbsoluteDescendants, Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils};
 use flow::{FlowFlags, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo, SvgFragmentInfo};
@@ -96,7 +96,7 @@ impl ConstructionResult {
         match *self {
             ConstructionResult::None => 0,
             ConstructionResult::ConstructionItem(_) => 0,
-            ConstructionResult::Flow(ref flow_ref, _) => flow::base(&**flow_ref).debug_id(),
+            ConstructionResult::Flow(ref flow_ref, _) => flow_ref.base().debug_id(),
         }
     }
 }
@@ -497,7 +497,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         ConstructionResult::Flow(kid_flow, AbsoluteDescendants::new());
                     self.set_flow_construction_result(&kid, construction_result)
                 } else {
-                    if !flow::base(&*kid_flow).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+                    if !kid_flow.base().flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                         // Flush any inline fragments that we were gathering up. This allows us to
                         // handle {ib} splits.
                         let old_inline_fragment_accumulator =
@@ -625,7 +625,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             flow.set_absolute_descendants(abs_descendants);
 
             abs_descendants = AbsoluteDescendants::new();
-            if flow::base(&*flow).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+            if flow.base().flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its CB.
                 abs_descendants.push(flow.clone());
@@ -780,7 +780,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             match kid.get_construction_result() {
                 ConstructionResult::None => {}
                 ConstructionResult::Flow(flow, kid_abs_descendants) => {
-                    if !flow::base(&*flow).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+                    if !flow.base().flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                         opt_inline_block_splits.push_back(InlineBlockSplit::new(
                             &mut fragment_accumulator, node, self.style_context(), flow));
                         abs_descendants.push_descendants(kid_abs_descendants);
@@ -1073,7 +1073,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
             abs_descendants = AbsoluteDescendants::new();
 
-            if flow::base(&*flow).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+            if flow.base().flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its containing block.
                 abs_descendants.push(flow.clone());
@@ -1144,7 +1144,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
             abs_descendants = AbsoluteDescendants::new();
 
-            if flow::base(&*wrapper_flow).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+            if wrapper_flow.base().flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its containing block.
                 abs_descendants.push(wrapper_flow.clone());
@@ -1373,7 +1373,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     }
 
                     let flow = FlowRef::deref_mut(flow);
-                    flow::mut_base(flow).restyle_damage.insert(damage);
+                    flow.mut_base().restyle_damage.insert(damage);
                     flow.repair_style_and_bubble_inline_sizes(&style);
                     true
                 }
@@ -1398,7 +1398,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         match fragment.specific {
                             SpecificFragmentInfo::InlineBlock(ref mut inline_block_fragment) => {
                                 let flow_ref = FlowRef::deref_mut(&mut inline_block_fragment.flow_ref);
-                                flow::mut_base(flow_ref).restyle_damage.insert(damage);
+                                flow_ref.mut_base().restyle_damage.insert(damage);
                                 // FIXME(pcwalton): Fragment restyle damage too?
                                 flow_ref.repair_style_and_bubble_inline_sizes(&style);
                             }
@@ -1406,14 +1406,14 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                     ref mut inline_absolute_hypothetical_fragment) => {
                                 let flow_ref = FlowRef::deref_mut(
                                     &mut inline_absolute_hypothetical_fragment.flow_ref);
-                                flow::mut_base(flow_ref).restyle_damage.insert(damage);
+                                flow_ref.mut_base().restyle_damage.insert(damage);
                                 // FIXME(pcwalton): Fragment restyle damage too?
                                 flow_ref.repair_style_and_bubble_inline_sizes(&style);
                             }
                             SpecificFragmentInfo::InlineAbsolute(ref mut inline_absolute_fragment) => {
                                 let flow_ref = FlowRef::deref_mut(
                                     &mut inline_absolute_fragment.flow_ref);
-                                flow::mut_base(flow_ref).restyle_damage.insert(damage);
+                                flow_ref.mut_base().restyle_damage.insert(damage);
                                 // FIXME(pcwalton): Fragment restyle damage too?
                                 flow_ref.repair_style_and_bubble_inline_sizes(&style);
                             }
@@ -1660,7 +1660,7 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
     fn set_flow_construction_result(self, mut result: ConstructionResult) {
         if self.can_be_fragmented() {
             if let ConstructionResult::Flow(ref mut flow, _) = result {
-                flow::mut_base(FlowRef::deref_mut(flow)).flags.insert(FlowFlags::CAN_BE_FRAGMENTED);
+                FlowRef::deref_mut(flow).mut_base().flags.insert(FlowFlags::CAN_BE_FRAGMENTED);
             }
         }
 
@@ -1732,11 +1732,11 @@ impl FlowConstructionUtils for FlowRef {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
         {
-            let kid_base = flow::mut_base(FlowRef::deref_mut(&mut new_child));
+            let kid_base = FlowRef::deref_mut(&mut new_child).mut_base();
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
-        let base = flow::mut_base(FlowRef::deref_mut(self));
+        let base = FlowRef::deref_mut(self).mut_base();
         base.children.push_back(new_child);
         let _ = base.parallel.children_count.fetch_add(1, Ordering::Relaxed);
     }
@@ -1750,7 +1750,7 @@ impl FlowConstructionUtils for FlowRef {
     fn finish(&mut self) {
         if !opts::get().bubble_inline_sizes_separately {
             FlowRef::deref_mut(self).bubble_inline_sizes();
-            flow::mut_base(FlowRef::deref_mut(self)).restyle_damage.remove(ServoRestyleDamage::BUBBLE_ISIZES);
+            FlowRef::deref_mut(self).mut_base().restyle_damage.remove(ServoRestyleDamage::BUBBLE_ISIZES);
         }
     }
 }
@@ -1951,7 +1951,7 @@ impl Legalizer {
             }
 
             (FlowClass::Flex, FlowClass::Inline) => {
-                flow::mut_base(FlowRef::deref_mut(child)).flags.insert(FlowFlags::MARGINS_CANNOT_COLLAPSE);
+                FlowRef::deref_mut(child).mut_base().flags.insert(FlowFlags::MARGINS_CANNOT_COLLAPSE);
                 let mut block_wrapper =
                     Legalizer::create_anonymous_flow(context,
                                                      parent,

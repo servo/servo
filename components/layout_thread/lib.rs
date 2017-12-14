@@ -70,7 +70,7 @@ use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::context::malloc_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
-use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
@@ -956,22 +956,22 @@ impl LayoutThread {
                                               layout_root: &mut Flow,
                                               layout_context: &mut LayoutContext,
                                               rw_data: &mut LayoutThreadData) {
-        let writing_mode = flow::base(layout_root).writing_mode;
+        let writing_mode = layout_root.base().writing_mode;
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
         profile(time::ProfilerCategory::LayoutDispListBuild,
                 metadata.clone(),
                 sender.clone(),
                 || {
-            flow::mut_base(layout_root).stacking_relative_position =
+            layout_root.mut_base().stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              self.viewport_size).to_vector();
 
-            flow::mut_base(layout_root).clip = data.page_clip_rect;
+            layout_root.mut_base().clip = data.page_clip_rect;
 
             let traversal = ComputeStackingRelativePositions { layout_context: layout_context };
             traversal.traverse(layout_root);
 
-            if flow::base(layout_root).restyle_damage.contains(ServoRestyleDamage::REPAINT) ||
+            if layout_root.base().restyle_damage.contains(ServoRestyleDamage::REPAINT) ||
                     rw_data.display_list.is_none() {
                 if reflow_goal.needs_display_list() {
                     let mut build_state =
@@ -980,7 +980,7 @@ impl LayoutThread {
                     debug!("Done building display list.");
 
                     let root_size = {
-                        let root_flow = flow::base(layout_root);
+                        let root_flow = layout_root.base();
                         if self.stylist.viewport_constraints().is_some() {
                             root_flow.position.size.to_physical(root_flow.writing_mode)
                         } else {
@@ -1564,7 +1564,7 @@ impl LayoutThread {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        if flow::base(&**root_flow).restyle_damage.intersects(ServoRestyleDamage::REFLOW |
+        if root_flow.base().restyle_damage.intersects(ServoRestyleDamage::REFLOW |
                                                               ServoRestyleDamage::REFLOW_OUT_OF_FLOW) {
             profile(time::ProfilerCategory::LayoutMain,
                     self.profiler_metadata(),
@@ -1630,12 +1630,12 @@ impl LayoutThread {
 
     fn reflow_all_nodes(flow: &mut Flow) {
         debug!("reflowing all nodes!");
-        flow::mut_base(flow)
+        flow.mut_base()
             .restyle_damage
             .insert(ServoRestyleDamage::REPAINT | ServoRestyleDamage::STORE_OVERFLOW |
                     ServoRestyleDamage::REFLOW | ServoRestyleDamage::REPOSITION);
 
-        for child in flow::child_iter_mut(flow) {
+        for child in flow.mut_base().child_iter_mut() {
             LayoutThread::reflow_all_nodes(child);
         }
     }

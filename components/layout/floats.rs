@@ -4,7 +4,7 @@
 
 use app_units::{Au, MAX_AU};
 use block::FormattingContextType;
-use flow::{self, Flow, FlowFlags, ImmutableFlowUtils};
+use flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::fmt;
@@ -458,7 +458,7 @@ impl SpeculatedFloatPlacement {
     /// Given the speculated inline size of the floats out for the inorder predecessor of this
     /// flow, computes the speculated inline size of the floats flowing in.
     pub fn compute_floats_in(&mut self, flow: &mut Flow) {
-        let base_flow = flow::base(flow);
+        let base_flow = flow.base();
         if base_flow.flags.contains(FlowFlags::CLEARS_LEFT) {
             self.left = Au(0)
         }
@@ -491,7 +491,7 @@ impl SpeculatedFloatPlacement {
             }
         }
 
-        let base_flow = flow::base(flow);
+        let base_flow = flow.base();
         if !base_flow.flags.is_float() {
             return
         }
@@ -522,7 +522,7 @@ impl SpeculatedFloatPlacement {
     /// Given a flow, computes the speculated inline size of the floats in of its first child.
     pub fn compute_floats_in_for_first_child(parent_flow: &mut Flow) -> SpeculatedFloatPlacement {
         if !parent_flow.is_block_like() {
-            return flow::base(parent_flow).speculated_float_placement_in
+            return parent_flow.base().speculated_float_placement_in
         }
 
         let parent_block_flow = parent_flow.as_block();

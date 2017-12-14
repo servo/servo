@@ -13,7 +13,7 @@ use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
 use display_list_builder::StackingContextCollectionState;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use flow::{self, Flow, FlowClass, FlowFlags, OpaqueFlow};
+use flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
@@ -101,8 +101,8 @@ impl TableCellFlow {
         // Note to the reader: this code has been tested with negative margins.
         // We end up with a "end" that's before the "start," but the math still works out.
         let mut extents = None;
-        for kid in flow::base(self).children.iter() {
-            let kid_base = flow::base(kid);
+        for kid in self.base().children.iter() {
+            let kid_base = kid.base();
             if kid_base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 continue
             }
@@ -128,7 +128,7 @@ impl TableCellFlow {
         };
 
         let kids_size = last_end - first_start;
-        let self_size = flow::base(self).position.size.block -
+        let self_size = self.base().position.size.block -
             self.block_flow.fragment.border_padding.block_start_end();
         let kids_self_gap = self_size - kids_size;
 
@@ -143,8 +143,8 @@ impl TableCellFlow {
             return
         }
 
-        for kid in flow::mut_base(self).children.iter_mut() {
-            let kid_base = flow::mut_base(kid);
+        for kid in self.mut_base().children.iter_mut() {
+            let kid_base = kid.mut_base();
             if !kid_base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 kid_base.position.start.b += offset
             }
