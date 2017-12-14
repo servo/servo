@@ -4,31 +4,38 @@
 
 //! `list` specified values.
 
-use cssparser::{Parser, Token, serialize_string};
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 
-/// Specified and computed `quote` property
+/// Specified and computed `quote` property.
+///
+/// FIXME(emilio): It's a shame that this allocates all the time it's computed,
+/// probably should just be refcounted.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-pub struct Quotes(pub Vec<(String, String)>);
+pub struct Quotes(pub Box<[(Box<str>, Box<str>)]>);
 
 impl ToCss for Quotes {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if self.0.is_empty() {
-            return dest.write_str("none")
+        let mut iter = self.0.iter();
+
+        match iter.next() {
+            Some(&(ref l, ref r)) => {
+                l.to_css(dest)?;
+                dest.write_char(' ')?;
+                r.to_css(dest)?;
+            }
+            None => return dest.write_str("none"),
         }
 
-        let mut first = true;
-        for pair in &self.0 {
-            if !first {
-                dest.write_str(" ")?;
-            }
-            first = false;
-            serialize_string(&*pair.0, dest)?;
-            dest.write_str(" ")?;
-            serialize_string(&*pair.1, dest)?;
+        for &(ref l, ref r) in iter {
+            dest.write_char(' ')?;
+            l.to_css(dest)?;
+            dest.write_char(' ')?;
+            r.to_css(dest)?;
         }
+
         Ok(())
     }
 }
@@ -36,27 +43,27 @@ impl ToCss for Quotes {
 impl Parse for Quotes {
     fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Quotes, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(Quotes(Vec::new()))
+            return Ok(Quotes(Vec::new().into_boxed_slice()))
         }
 
         let mut quotes = Vec::new();
         loop {
             let location = input.current_source_location();
             let first = match input.next() {
-                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
+                Ok(&Token::QuotedString(ref value)) => {
+                    value.as_ref().to_owned().into_boxed_str()
+                },
                 Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
             };
-            let location = input.current_source_location();
-            let second = match input.next() {
-                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
-                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-                Err(e) => return Err(e.into()),
-            };
+
+            let second =
+                input.expect_string()?.as_ref().to_owned().into_boxed_str();
             quotes.push((first, second))
         }
+
         if !quotes.is_empty() {
-            Ok(Quotes(quotes))
+            Ok(Quotes(quotes.into_boxed_slice()))
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }

@@ -401,6 +401,7 @@ trivial_to_computed_value!(BorderStyle);
 trivial_to_computed_value!(Cursor);
 trivial_to_computed_value!(Namespace);
 trivial_to_computed_value!(String);
+trivial_to_computed_value!(Box<str>);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;

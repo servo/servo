@@ -311,9 +311,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                 &quotes.0[self.traversal.quote as usize]
             };
         if close {
-            close_quote.clone()
+            close_quote.to_string()
         } else {
-            open_quote.clone()
+            open_quote.to_string()
         }
     }
 }

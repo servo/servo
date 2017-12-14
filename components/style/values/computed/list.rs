@@ -7,12 +7,20 @@
 pub use values::specified::list::Quotes;
 
 impl Quotes {
-    /// Initial value for `quotes`
+    /// Initial value for `quotes`.
+    ///
+    /// FIXME(emilio): This should ideally not allocate.
     #[inline]
     pub fn get_initial_value() -> Quotes {
         Quotes(vec![
-            ("\u{201c}".to_owned(), "\u{201d}".to_owned()),
-            ("\u{2018}".to_owned(), "\u{2019}".to_owned()),
-        ])
+            (
+                "\u{201c}".to_owned().into_boxed_str(),
+                "\u{201d}".to_owned().into_boxed_str(),
+            ),
+            (
+                "\u{2018}".to_owned().into_boxed_str(),
+                "\u{2019}".to_owned().into_boxed_str(),
+            ),
+        ].into_boxed_slice())
     }
 }
