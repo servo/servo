@@ -1005,6 +1005,12 @@ impl HTMLInputElement {
                     *textinput.single_line_content_mut() = "".into();
                 }
             }
+            InputType::Week => {
+                let mut textinput = self.textinput.borrow_mut();
+                if !textinput.single_line_content().is_valid_week_string() {
+                    *textinput.single_line_content_mut() = "".into();
+                }
+            }
             InputType::Color => {
                 let mut textinput = self.textinput.borrow_mut();
 
