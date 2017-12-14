@@ -393,6 +393,9 @@ where
 
             element.parent_element()
         }
+        Combinator::SlotAssignment => {
+            element.assigned_slot()
+        }
         Combinator::PseudoElement => {
             element.pseudo_element_originating_element()
         }
@@ -453,6 +456,7 @@ where
         }
         Combinator::Child |
         Combinator::Descendant |
+        Combinator::SlotAssignment |
         Combinator::PseudoElement => {
             SelectorMatchingResult::NotMatchedGlobally
         }
@@ -541,6 +545,21 @@ where
 {
     match *selector {
         Component::Combinator(_) => unreachable!(),
+        Component::Slotted(ref selectors) => {
+            context.shared.nesting_level += 1;
+            let result =
+                element.assigned_slot().is_some() &&
+                selectors.iter().any(|s| {
+                    matches_complex_selector(
+                        s.iter(),
+                        element,
+                        context.shared,
+                        flags_setter,
+                    )
+                });
+            context.shared.nesting_level -= 1;
+            result
+        }
         Component::PseudoElement(ref pseudo) => {
             element.match_pseudo_element(pseudo, context.shared)
         }
