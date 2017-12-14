@@ -54,6 +54,7 @@ pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPercentage};
+pub use self::list::Quotes;
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
 pub use self::position::{Position, GridAutoFlow, GridTemplateAreas};
@@ -80,6 +81,7 @@ pub mod image;
 #[cfg(feature = "gecko")]
 pub mod gecko;
 pub mod length;
+pub mod list;
 pub mod outline;
 pub mod percentage;
 pub mod position;
@@ -399,6 +401,7 @@ trivial_to_computed_value!(BorderStyle);
 trivial_to_computed_value!(Cursor);
 trivial_to_computed_value!(Namespace);
 trivial_to_computed_value!(String);
+trivial_to_computed_value!(Box<str>);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;

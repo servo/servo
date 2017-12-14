@@ -4229,8 +4229,11 @@ fn static_assert() {
             let ref gecko_quote_values = *self.gecko.mQuotes.mRawPtr;
             longhands::quotes::computed_value::T(
                 gecko_quote_values.mQuotePairs.iter().map(|gecko_pair| {
-                    (gecko_pair.first.to_string(), gecko_pair.second.to_string())
-                }).collect()
+                    (
+                        gecko_pair.first.to_string().into_boxed_str(),
+                        gecko_pair.second.to_string().into_boxed_str(),
+                    )
+                }).collect::<Vec<_>>().into_boxed_slice()
             )
         }
     }
