@@ -108,8 +108,8 @@ use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::{Size2D, TypedSize2D, TypedScale};
 use event_loop::EventLoop;
-#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
-use gecko_media::GeckoMedia;
+//#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+//use gecko_media::GeckoMedia;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::{Error as IpcError};
@@ -1484,7 +1484,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Asking compositor to complete shutdown.");
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
 
-        #[cfg(all(
+        /*#[cfg(all(
             any(target_os = "macos", target_os = "linux"),
             not(any(target_arch = "arm", target_arch = "aarch64")),
         ))]
@@ -1492,7 +1492,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Err(()) = GeckoMedia::shutdown() {
                 warn!("Media stack shutdown failed.");
             }
-        }
+        }*/
     }
 
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {

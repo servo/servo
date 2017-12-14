@@ -58,6 +58,7 @@ use style::computed_values::position::T as StylePosition;
 use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
+use style::properties::longhands::background_origin::single_value::computed_value::T as BackgroundOrigin;
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
 use style::properties::style_structs;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -508,7 +509,7 @@ pub trait FragmentDisplayListBuilding {
     fn build_display_list_for_background_gradient(&self,
                                                   state: &mut DisplayListBuildState,
                                                   display_list_section: DisplayListSection,
-                                                  absolute_bounds: &Rect<Au>,
+                                                  absolute_bounds: Rect<Au>,
                                                   clip: &LocalClip,
                                                   gradient: &Gradient,
                                                   style: &ComputedValues,
@@ -1123,7 +1124,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 Either::Second(Image::Gradient(ref gradient)) => {
                     self.build_display_list_for_background_gradient(state,
                                                                     display_list_section,
-                                                                    &absolute_bounds,
+                                                                    *absolute_bounds,
                                                                     &clip,
                                                                     gradient,
                                                                     style,
@@ -1414,22 +1415,56 @@ impl FragmentDisplayListBuilding for Fragment {
     fn build_display_list_for_background_gradient(&self,
                                                   state: &mut DisplayListBuildState,
                                                   display_list_section: DisplayListSection,
-                                                  absolute_bounds: &Rect<Au>,
+                                                  absolute_bounds: Rect<Au>,
                                                   clip: &LocalClip,
                                                   gradient: &Gradient,
                                                   style: &ComputedValues,
                                                   index: usize) {
+        // Calculate where the first "tile" needs to be placed on one axis.
+        // * base is the beginning of the visible area
+        // * start is the current "tile" position
+        // * tile is the length of the "tile"
+        // Returns a difference between start and new start.
+        // It holds that base - tile < start - diff <= base
+        fn get_first_tile(base: Au, start: Au, tile: Au) -> Au {
+            if tile == Au(0) {
+                return Au(0);
+            }
+            if start > base {
+                ((start - base) / tile + 1) * tile
+            } else {
+                ((base - start) / tile) * tile
+            }
+        }
+
         let bg = style.get_background();
+        let bg_origin = get_cyclic(&bg.background_origin.0, index).clone();
         let bg_size = get_cyclic(&bg.background_size.0, index).clone();
         let bg_position_x = get_cyclic(&bg.background_position_x.0, index).clone();
         let bg_position_y = get_cyclic(&bg.background_position_y.0, index).clone();
-        let border = self.border_width().to_physical(style.writing_mode);
 
-        let mut bounds = *absolute_bounds;
-        bounds.origin.x = bounds.origin.x + border.left + bg_position_x.to_used_value(bounds.size.width);
-        bounds.origin.y = bounds.origin.y + border.top + bg_position_y.to_used_value(bounds.size.height);
-        bounds.size.width = bounds.size.width - border.horizontal();
-        bounds.size.height = bounds.size.height - border.vertical();
+        let mut bounds = absolute_bounds;
+
+        match bg_origin {
+            BackgroundOrigin::BorderBox => {}
+            BackgroundOrigin::PaddingBox => {
+                let border = style.logical_border_width().to_physical(style.writing_mode);
+                bounds.origin.x += border.left;
+                bounds.origin.y += border.top;
+                bounds.size.width -= border.horizontal();
+                bounds.size.height -= border.vertical();
+            }
+            BackgroundOrigin::ContentBox => {
+                let border_padding = self.border_padding.to_physical(style.writing_mode);
+                bounds.origin.x += border_padding.left;
+                bounds.origin.y += border_padding.top;
+                bounds.size.width -= border_padding.horizontal();
+                bounds.size.height -= border_padding.vertical();
+            }
+        }
+
+        bounds.origin.x += bg_position_x.to_used_value(bounds.size.width);
+        bounds.origin.y += bg_position_y.to_used_value(bounds.size.height);
 
         let tile = match bg_size {
             BackgroundSize::Cover | BackgroundSize::Contain => bounds.size,
@@ -1442,7 +1477,18 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
 
-        let base = state.create_base_display_item(&bounds,
+        let diff_x = get_first_tile(absolute_bounds.origin.x,
+                                    bounds.origin.x,
+                                    tile.width);
+        let diff_y = get_first_tile(absolute_bounds.origin.y,
+                                    bounds.origin.y,
+                                    tile.height);
+        let tiled_bounds = Rect::new(
+            Point2D::new(bounds.origin.x - diff_x, bounds.origin.y - diff_y),
+            Size2D::new(absolute_bounds.size.width + diff_x,
+                        absolute_bounds.size.height + diff_y));
+
+        let base = state.create_base_display_item(&tiled_bounds,
                                                   *clip,
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),

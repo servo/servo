@@ -31,8 +31,8 @@ use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
-use gecko_media::{CanPlayType, GeckoMedia};
+//#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+//use gecko_media::{CanPlayType, GeckoMedia};
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -870,7 +870,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         self.media_element_load_algorithm();
     }
 
-    #[cfg(all(
+    /*#[cfg(all(
         any(target_os = "macos", target_os = "linux"),
         not(any(target_arch = "arm", target_arch = "aarch64")),
     ))]
@@ -890,7 +890,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     #[cfg(not(all(
         any(target_os = "macos", target_os = "linux"),
         not(any(target_arch = "arm", target_arch = "aarch64")),
-    )))]
+    )))]*/
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
