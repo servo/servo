@@ -40195,6 +40195,12 @@
      {}
     ]
    ],
+   "mozilla/window_performance_topLevelDomComplete.html": [
+    [
+     "/_mozilla/mozilla/window_performance_topLevelDomComplete.html",
+     {}
+    ]
+   ],
    "mozilla/window_requestAnimationFrame.html": [
     [
      "/_mozilla/mozilla/window_requestAnimationFrame.html",
@@ -72340,6 +72346,10 @@
   ],
   "mozilla/window_performance.html": [
    "f03283e68b82d972ad21f674243070643ef89489",
+   "testharness"
+  ],
+  "mozilla/window_performance_topLevelDomComplete.html": [
+   "4b953e63ffa6bf4ed1bc9a2baaea457d46502b9d",
    "testharness"
   ],
   "mozilla/window_requestAnimationFrame.html": [
