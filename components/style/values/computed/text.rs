@@ -101,3 +101,69 @@ impl ToCss for TextDecorationLine {
         Ok(())
     }
 }
+
+macro_rules! define_text_align {
+    ($($name: ident($string: expr) => $discriminant: expr,)+) => {
+        define_css_keyword_enum! { TextAlign:
+            $(
+                $string => $name,
+            )+
+        }
+
+        impl TextAlign {
+            /// Convert computed TextAlign into u32
+            pub fn to_u32(self) -> u32 {
+                match self {
+                    $(
+                        TextAlign::$name => $discriminant,
+                    )+
+                }
+            }
+            /// Construct a TextAlign from u32.
+            pub fn from_u32(discriminant: u32) -> Option<TextAlign> {
+                match discriminant {
+                    $(
+                        $discriminant => Some(TextAlign::$name),
+                    )+
+                    _ => None
+                }
+            }
+        }
+    }
+}
+
+// FIXME(emilio): Why reinventing the world?
+#[cfg(feature = "gecko")]
+define_text_align! {
+    Start("start") => 0,
+    End("end") => 1,
+    Left("left") => 2,
+    Right("right") => 3,
+    Center("center") => 4,
+    Justify("justify") => 5,
+    MozCenter("-moz-center") => 6,
+    MozLeft("-moz-left") => 7,
+    MozRight("-moz-right") => 8,
+    Char("char") => 10,
+}
+
+#[cfg(feature = "servo")]
+define_text_align! {
+    Start("start") => 0,
+    End("end") => 1,
+    Left("left") => 2,
+    Right("right") => 3,
+    Center("center") => 4,
+    Justify("justify") => 5,
+    ServoCenter("-servo-center") => 6,
+    ServoLeft("-servo-left") => 7,
+    ServoRight("-servo-right") => 8,
+}
+
+impl TextAlign {
+    /// Return the initial value of TextAlign.
+    #[inline]
+    pub fn start() -> TextAlign {
+        TextAlign::Start
+    }
+}

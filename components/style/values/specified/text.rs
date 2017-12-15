@@ -10,9 +10,11 @@ use parser::{Parse, ParserContext};
 use properties::{longhands, PropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use style_traits::{ParseError, StyleParseErrorKind};
+use std::fmt;
+use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
+use values::computed::text::TextAlign as ComputedTextAlign;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
@@ -347,5 +349,110 @@ impl Parse for TextDecorationLine {
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
+    }
+}
+
+/// Specified value of text-align property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum TextAlign {
+    /// Keyword value of text-align property.
+    Keyword(ComputedTextAlign),
+    /// `match-parent` value of text-align property. It has a different handling
+    /// unlike other keywords.
+    #[cfg(feature = "gecko")]
+    MatchParent,
+    /// `MozCenterOrInherit` value of text-align property. It cannot be parsed,
+    /// only set directly on the elements and it has a different handling
+    /// unlike other values.
+    #[cfg(feature = "gecko")]
+    MozCenterOrInherit,
+
+}
+
+impl Parse for TextAlign {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // MozCenterOrInherit cannot be parsed, only set directly on the elements
+        if let Ok(key) = input.try(ComputedTextAlign::parse) {
+            return Ok(TextAlign::Keyword(key));
+        }
+        #[cfg(feature = "gecko")]
+        {
+            if let Ok(_) = input.try(|i| i.expect_ident_matching("match-parent")) {
+                return Ok(TextAlign::MatchParent);
+            }
+        }
+        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+    }
+}
+
+impl ToCss for TextAlign {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TextAlign::Keyword(key) => key.to_css(dest),
+            #[cfg(feature = "gecko")]
+            TextAlign::MatchParent => dest.write_str("match-parent"),
+            #[cfg(feature = "gecko")]
+            TextAlign::MozCenterOrInherit => Ok(()),
+        }
+    }
+}
+
+impl TextAlign {
+    /// Convert an enumerated value coming from Gecko to a `TextAlign`.
+    #[cfg(feature = "gecko")]
+    pub fn from_gecko_keyword(kw: u32) -> Self {
+        use gecko_bindings::structs::NS_STYLE_TEXT_ALIGN_MATCH_PARENT;
+        if kw == NS_STYLE_TEXT_ALIGN_MATCH_PARENT {
+            TextAlign::MatchParent
+        } else {
+            TextAlign::Keyword(ComputedTextAlign::from_gecko_keyword(kw))
+        }
+    }
+}
+
+impl ToComputedValue for TextAlign {
+    type ComputedValue = ComputedTextAlign;
+
+    #[inline]
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        match *self {
+            TextAlign::Keyword(key) => key,
+            #[cfg(feature = "gecko")]
+            TextAlign::MatchParent => {
+                // on the root <html> element we should still respect the dir
+                // but the parent dir of that element is LTR even if it's <html dir=rtl>
+                // and will only be RTL if certain prefs have been set.
+                // In that case, the default behavior here will set it to left,
+                // but we want to set it to right -- instead set it to the default (`start`),
+                // which will do the right thing in this case (but not the general case)
+                if _context.is_root_element {
+                    return ComputedTextAlign::start();
+                }
+                let parent = _context.builder.get_parent_inheritedtext().clone_text_align();
+                let ltr = _context.builder.inherited_writing_mode().is_bidi_ltr();
+                match (parent, ltr) {
+                    (ComputedTextAlign::Start, true) => ComputedTextAlign::Left,
+                    (ComputedTextAlign::Start, false) => ComputedTextAlign::Right,
+                    (ComputedTextAlign::End, true) => ComputedTextAlign::Right,
+                    (ComputedTextAlign::End, false) => ComputedTextAlign::Left,
+                    _ => parent
+                }
+            },
+            #[cfg(feature = "gecko")]
+            TextAlign::MozCenterOrInherit => {
+                let parent = _context.builder.get_parent_inheritedtext().clone_text_align();
+                if parent == ComputedTextAlign::Start {
+                    ComputedTextAlign::Center
+                } else {
+                    parent
+                }
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        TextAlign::Keyword(*computed)
     }
 }

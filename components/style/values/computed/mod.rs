@@ -60,7 +60,7 @@ pub use self::percentage::Percentage;
 pub use self::position::{Position, GridAutoFlow, GridTemplateAreas};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::table::XSpan;
-pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextOverflow, WordSpacing};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextAlign, TextOverflow, WordSpacing};
 pub use self::time::Time;
 pub use self::transform::{TimingFunction, Transform, TransformOperation, TransformOrigin};
 pub use self::ui::MozForceBrokenImageIcon;
