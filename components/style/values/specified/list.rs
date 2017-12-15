@@ -32,16 +32,15 @@ impl ListStyleImage {
 impl Parse for ListStyleImage {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<ListStyleImage, ParseError<'i>> {
+        #[allow(unused_mut)]
+        let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
+
         #[cfg(feature = "gecko")]
         {
-            let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
             if let Either::First(ref mut url) = value {
                 url.build_image_value();
             }
         }
-
-        #[cfg(not(feature = "gecko"))]
-        let value = input.try(|input| UrlOrNone::parse(context, input))?;
 
         return Ok(ListStyleImage(value));
     }
