@@ -409,7 +409,7 @@ pub fn where_predicate(
 
 /// Transforms "FooBar" to "foo-bar".
 ///
-/// If the first Camel segment is "Moz" or "Webkit", the result string
+/// If the first Camel segment is "Moz", "Webkit", or "Servo", the result string
 /// is prepended with "-".
 pub fn to_css_identifier(mut camel_case: &str) -> String {
     camel_case = camel_case.trim_right_matches('_');
@@ -418,7 +418,7 @@ pub fn to_css_identifier(mut camel_case: &str) -> String {
     while let Some(segment) = split_camel_segment(&mut camel_case) {
         if first {
             match segment {
-                "Moz" | "Webkit" => first = false,
+                "Moz" | "Webkit" | "Servo" => first = false,
                 _ => {},
             }
         }
