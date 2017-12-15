@@ -1,6 +1,7 @@
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
+  - ./mach run -r -o output.png
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
