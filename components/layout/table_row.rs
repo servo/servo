@@ -13,7 +13,7 @@ use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
 use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
-use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
+use flow::{EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
@@ -126,7 +126,7 @@ impl TableRowFlow {
                 - self.block_flow.fragment.margin;
             for kid in self.block_flow.base.child_iter_mut() {
                 kid.place_float_if_applicable();
-                if !flow::base(kid).flags.is_float() {
+                if !kid.base().flags.is_float() {
                     kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
                                                                          thread_id,
                                                                          content_box);
@@ -143,7 +143,7 @@ impl TableRowFlow {
                             child_specified_block_size +
                             child_fragment.border_padding.block_start_end());
                 }
-                let child_node = flow::mut_base(kid);
+                let child_node = kid.mut_base();
                 child_node.position.start.b = Au(0);
                 max_block_size = max(max_block_size, child_node.position.size.block);
             }
@@ -301,7 +301,7 @@ impl Flow for TableRowFlow {
 
                 // Collect minimum and preferred inline-sizes of the cell for automatic table layout
                 // calculation.
-                let child_base = flow::mut_base(kid);
+                let child_base = kid.mut_base();
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
                     minimum_length: match child_specified_inline_size {
                         LengthOrPercentageOrAuto::Auto |

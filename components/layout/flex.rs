@@ -13,8 +13,7 @@ use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use display_list_builder::StackingContextCollectionState;
 use euclid::Point2D;
 use floats::FloatKind;
-use flow;
-use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
+use flow::{Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins};
@@ -451,7 +450,7 @@ impl FlexFlow {
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
             for kid in self.block_flow.base.children.iter_mut() {
-                let base = flow::mut_base(kid);
+                let base = kid.mut_base();
                 let is_absolutely_positioned = base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
                     let flex_item_inline_sizes = IntrinsicISizes {
@@ -477,7 +476,7 @@ impl FlexFlow {
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
             for kid in self.block_flow.base.children.iter_mut() {
-                let base = flow::mut_base(kid);
+                let base = kid.mut_base();
                 let is_absolutely_positioned = base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
                     computation.content_intrinsic_sizes.minimum_inline_size =
@@ -519,7 +518,7 @@ impl FlexFlow {
 
         let mut children = self.block_flow.base.children.random_access_mut();
         for kid in &mut self.items {
-            let kid_base = flow::mut_base(children.get(kid.index));
+            let kid_base = children.get(kid.index).mut_base();
             kid_base.block_container_explicit_block_size = container_block_size;
             if kid_base.flags.contains(FlowFlags::INLINE_POSITION_IS_STATIC) {
                 // The inline-start margin edge of the child flow is at our inline-start content
@@ -667,7 +666,7 @@ impl FlexFlow {
 
         let mut children = self.block_flow.base.children.random_access_mut();
         for item in &mut self.items {
-            let base = flow::mut_base(children.get(item.index));
+            let base = children.get(item.index).mut_base();
             if !self.main_reverse {
                 base.position.start.b = cur_b;
                 cur_b = cur_b + base.position.size.block;
