@@ -24,7 +24,7 @@ impl ListStyleImage {
     /// Initial specified value for `list-style-image`.
     ///
     #[inline]
-    pub fn get_initial_specified_value() -> ListStyleImage {
+    pub fn none() -> ListStyleImage {
         ListStyleImage(Either::Second(None_))
     }
 }

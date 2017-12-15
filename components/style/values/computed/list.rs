@@ -4,18 +4,7 @@
 
 //! `list` computed values.
 
-use values::{Either, None_};
-
 pub use values::specified::list::{ListStyleImage, Quotes};
-
-impl ListStyleImage {
-    /// Initial value for `list-style-image`.
-    ///
-    #[inline]
-    pub fn get_initial_value() -> ListStyleImage {
-        ListStyleImage(Either::Second(None_))
-    }
-}
 
 impl Quotes {
     /// Initial value for `quotes`.
