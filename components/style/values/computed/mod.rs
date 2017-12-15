@@ -54,7 +54,7 @@ pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPercentage};
-pub use self::list::Quotes;
+pub use self::list::{ListStyleImage, Quotes};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
 pub use self::position::{Position, GridAutoFlow, GridTemplateAreas};
