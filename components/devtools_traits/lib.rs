@@ -11,6 +11,7 @@
 
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 #[macro_use]
 extern crate bitflags;

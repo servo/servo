@@ -5,6 +5,7 @@
 //! `NonZero*` types that are either `core::nonzero::NonZero<_>`
 //! or some stable types with an equivalent API (but no memory layout optimization).
 
+#![deny(warnings)]
 #![cfg_attr(feature = "unstable", feature(nonzero))]
 #![cfg_attr(feature = "unstable", feature(const_fn))]
 #![cfg_attr(feature = "unstable", feature(const_nonzero_new))]

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;

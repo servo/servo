@@ -14,6 +14,7 @@
 #![feature(string_retain)]
 
 #![deny(unsafe_code)]
+#![deny(warnings)]
 #![allow(non_snake_case)]
 
 #![doc = "The script crate contains all matters DOM."]

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]

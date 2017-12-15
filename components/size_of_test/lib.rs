@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![deny(warnings)]
 #[macro_export]
 macro_rules! size_of_test {
     ($testname: ident, $t: ty, $expected_size: expr) => {

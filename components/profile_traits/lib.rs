@@ -7,6 +7,7 @@
 //! modules won't have to depend on `profile`.
 
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 extern crate ipc_channel;
 #[macro_use]

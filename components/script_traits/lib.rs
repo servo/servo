@@ -8,6 +8,7 @@
 
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 extern crate bluetooth_traits;
 extern crate canvas_traits;

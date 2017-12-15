@@ -17,6 +17,7 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
+#![deny(warnings)]
 extern crate env_logger;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 extern crate gaol;
