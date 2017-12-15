@@ -48,15 +48,15 @@ pub trait Animate: Sized {
 
 /// An animation procedure.
 ///
-/// <https://w3c.github.io/web-animations/#procedures-for-animating-properties>
+/// <https://drafts.csswg.org/web-animations/#procedures-for-animating-properties>
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Procedure {
-    /// <https://w3c.github.io/web-animations/#animation-interpolation>
+    /// <https://drafts.csswg.org/web-animations/#animation-interpolation>
     Interpolate { progress: f64 },
-    /// <https://w3c.github.io/web-animations/#animation-addition>
+    /// <https://drafts.csswg.org/web-animations/#animation-addition>
     Add,
-    /// <https://w3c.github.io/web-animations/#animation-accumulation>
+    /// <https://drafts.csswg.org/web-animations/#animation-accumulation>
     Accumulate { count: u64 },
 }
 
