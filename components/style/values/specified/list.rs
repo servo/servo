@@ -8,6 +8,41 @@ use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use values::{Either, None_};
+use values::specified::UrlOrNone;
+
+/// Specified and computed `list-style-image` property.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub struct ListStyleImage(pub UrlOrNone);
+
+// FIXME(nox): This is wrong, there are different types for specified
+// and computed URLs in Servo.
+trivial_to_computed_value!(ListStyleImage);
+
+impl ListStyleImage {
+    /// Initial specified value for `list-style-image`.
+    #[inline]
+    pub fn none() -> ListStyleImage {
+        ListStyleImage(Either::Second(None_))
+    }
+}
+
+impl Parse for ListStyleImage {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<ListStyleImage, ParseError<'i>> {
+        #[allow(unused_mut)]
+        let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
+
+        #[cfg(feature = "gecko")]
+        {
+            if let Either::First(ref mut url) = value {
+                url.build_image_value();
+            }
+        }
+
+        return Ok(ListStyleImage(value));
+    }
+}
 
 /// Specified and computed `quote` property.
 ///
