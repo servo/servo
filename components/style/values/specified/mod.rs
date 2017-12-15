@@ -49,7 +49,7 @@ pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, ViewportPercentageLength};
 pub use self::length::NonNegativeLengthOrPercentage;
-pub use self::list::Quotes;
+pub use self::list::{ListStyleImage, Quotes};
 pub use self::outline::OutlineStyle;
 pub use self::rect::LengthOrNumberRect;
 pub use self::percentage::Percentage;

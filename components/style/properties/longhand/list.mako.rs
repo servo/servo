@@ -95,45 +95,13 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     </%helpers:longhand>
 % endif
 
-<%helpers:longhand name="list-style-image" animation_value_type="discrete"
-                   boxed="${product == 'gecko'}"
-                   spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
-    use values::specified::UrlOrNone;
-    pub use self::computed_value::T as SpecifiedValue;
-
-    pub mod computed_value {
-        use values::specified::UrlOrNone;
-
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-        pub struct T(pub UrlOrNone);
-
-        // FIXME(nox): This is wrong, there are different types for specified
-        // and computed URLs in Servo.
-        trivial_to_computed_value!(T);
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Either::Second(None_))
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(Either::Second(None_))
-    }
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
-        % if product == "gecko":
-        let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
-        if let Either::First(ref mut url) = value {
-            url.build_image_value();
-        }
-        % else :
-        let value = input.try(|input| UrlOrNone::parse(context, input))?;
-        % endif
-
-        return Ok(SpecifiedValue(value));
-    }
-</%helpers:longhand>
+${helpers.predefined_type("list-style-image",
+                          "ListStyleImage",
+                          initial_value="specified::ListStyleImage::none()",
+                          initial_specified_value="specified::ListStyleImage::none()",
+                          animation_value_type="discrete",
+                          boxed=product == "gecko",
+                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
 
 ${helpers.predefined_type("quotes",
                           "Quotes",
