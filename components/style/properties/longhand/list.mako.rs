@@ -100,7 +100,7 @@ ${helpers.predefined_type("list-style-image",
                           initial_value="computed::ListStyleImage::get_initial_value()",
                           initial_specified_value="specified::ListStyleImage::get_initial_specified_value()",
                           animation_value_type="discrete",
-                          boxed="True" if product == "gecko" else "False",
+                          boxed=product == "gecko",
                           spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
 
 ${helpers.predefined_type("quotes",
