@@ -881,62 +881,14 @@ ${helpers.single_keyword("-moz-orient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animation_value_type="discrete")}
 
-<%helpers:longhand name="will-change" products="gecko" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-will-change/#will-change">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::CustomIdent;
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-    pub enum SpecifiedValue {
-        Auto,
-        AnimateableFeatures(Vec<CustomIdent>),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Auto => dest.write_str("auto"),
-                SpecifiedValue::AnimateableFeatures(ref features) => {
-                    let (first, rest) = features.split_first().unwrap();
-                    first.to_css(dest)?;
-                    for feature in rest {
-                        dest.write_str(", ")?;
-                        feature.to_css(dest)?;
-                    }
-                    Ok(())
-                }
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Auto
-    }
-
-    /// auto | <animateable-feature>#
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(computed_value::T::Auto)
-        } else {
-            input.parse_comma_separated(|i| {
-                let location = i.current_source_location();
-                CustomIdent::from_ident(location, i.expect_ident()?, &[
-                    "will-change",
-                    "none",
-                    "all",
-                    "auto",
-                ])
-            }).map(SpecifiedValue::AnimateableFeatures)
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type(
+    "will-change",
+    "WillChange",
+    "computed::WillChange::auto()",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-will-change/#will-change"
+)}
 
 ${helpers.predefined_type(
     "shape-image-threshold", "Opacity", "0.0",
