@@ -3619,11 +3619,11 @@ fn static_assert() {
         if self.gecko.mWillChange.len() == 0 {
             T::Auto
         } else {
-            T::AnimateableFeatures(
-                self.gecko.mWillChange.iter().map(|gecko_atom| {
-                    CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
-                }).collect()
-            )
+            let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
+                CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
+            }).collect();
+
+            T::AnimateableFeatures(custom_idents.into_boxed_slice())
         }
     }
 
