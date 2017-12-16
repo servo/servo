@@ -27,7 +27,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
 
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
-            if variant_attrs.function && variant_attrs.iterable {
+            if variant_attrs.iterable {
                 assert_eq!(bindings.len(), 1);
                 let binding = &bindings[0];
                 expr = quote! {
