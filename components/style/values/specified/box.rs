@@ -9,6 +9,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, ToCss};
+use values::CustomIdent;
 use values::KeyframesName;
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
@@ -130,3 +131,63 @@ define_css_keyword_enum! { OverflowClipBox:
     "content-box" => ContentBox,
 }
 add_impls_for_keyword_enum!(OverflowClipBox);
+
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+/// Provides a rendering hint to the user agent,
+/// stating what kinds of changes the author expects
+/// to perform on the element
+///
+/// <https://drafts.csswg.org/css-will-change/#will-change>
+pub enum WillChange {
+    /// Expresses no particular intent
+    Auto,
+    /// scroll-position | contents | <custom-ident>
+    AnimateableFeatures(Vec<CustomIdent>),
+}
+
+impl WillChange {
+    #[inline]
+    /// Get default value of `will-change` as `auto`
+    pub fn auto() -> WillChange {
+        WillChange::Auto
+    }
+}
+
+impl ToCss for WillChange {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            WillChange::Auto => dest.write_str("auto"),
+            WillChange::AnimateableFeatures(ref features) => {
+                let (first, rest) = features.split_first().unwrap();
+                first.to_css(dest)?;
+                for feature in rest {
+                    dest.write_str(", ")?;
+                    feature.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Parse for WillChange {
+    /// auto | <animateable-feature>#
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<WillChange, ParseError<'i>> {
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(WillChange::Auto)
+        } else {
+            input.parse_comma_separated(|i| {
+                let location = i.current_source_location();
+                CustomIdent::from_ident(location, i.expect_ident()?, &[
+                    "will-change",
+                    "none",
+                    "all",
+                    "auto",
+                ])
+            }).map(WillChange::AnimateableFeatures)
+        }
+    }
+}
