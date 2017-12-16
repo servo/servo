@@ -20,9 +20,10 @@ pub fn derive(input: DeriveInput) -> Tokens {
         );
 
         let identifier = cg::to_css_identifier(variant.ident.as_ref());
+        let ident = &variant.ident;
         match_body = quote! {
             #match_body
-            #identifier => Ok(#name::#variant),
+            #identifier => Ok(#name::#ident),
         }
     });
 
