@@ -23,7 +23,7 @@ embedder_traits = { path = "../embedder_traits" }
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 hyper = "0.10"
-ipc-channel = "0.10"
+ipc-channel = "0.11"
 layout_traits = {path = "../layout_traits"}
 log = "0.4"
 metrics = {path = "../metrics"}
@@ -33,6 +33,7 @@ net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "1.0"
+servo_channel = {path = "../channel"}
 style_traits = {path = "../style_traits"}
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}

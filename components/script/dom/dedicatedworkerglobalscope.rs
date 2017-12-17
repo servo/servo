@@ -36,12 +36,12 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx, Runtime};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use servo_channel::{channel, route_ipc_receiver_to_new_servo_sender, Sender, Receiver};
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -313,7 +313,7 @@ impl DedicatedWorkerGlobalScope {
             let runtime = unsafe { new_rt_and_cx() };
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
-            ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
+            route_ipc_receiver_to_new_servo_sender(from_devtools_receiver, devtools_mpsc_chan);
 
             let (timer_tx, timer_rx) = channel();
             let (timer_ipc_chan, timer_ipc_port) = ipc::channel().unwrap();

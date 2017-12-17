@@ -19,13 +19,14 @@ euclid = "0.19"
 gfx_traits = {path = "../gfx_traits"}
 gleam = {version = "0.6", optional = true}
 image = "0.19"
-ipc-channel = "0.10"
+ipc-channel = "0.11"
 libc = "0.2"
 log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
+servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}

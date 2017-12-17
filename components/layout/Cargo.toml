@@ -22,7 +22,7 @@ fxhash = "0.2"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.22"
-ipc-channel = "0.10"
+ipc-channel = "0.11"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
@@ -39,6 +39,7 @@ selectors = { path = "../selectors" }
 serde = "1.0"
 servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
+servo_channel = {path = "../channel"}
 servo_geometry = {path = "../geometry"}
 serde_json = "1.0"
 servo_config = {path = "../config"}

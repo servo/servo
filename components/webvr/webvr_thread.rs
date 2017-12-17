@@ -9,11 +9,10 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
+use servo_channel::{channel, Receiver, Sender};
 use servo_config::prefs::PREFS;
 use std::{thread, time};
 use std::collections::{HashMap, HashSet};
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
 use webvr_traits::{WebVRMsg, WebVRResult};
 use webvr_traits::webvr::*;
 
@@ -72,7 +71,7 @@ impl WebVRThread {
         vr_compositor_chan: WebVRCompositorSender,
     ) -> (IpcSender<WebVRMsg>, Sender<Sender<ConstellationMsg>>) {
         let (sender, receiver) = ipc::channel().unwrap();
-        let (constellation_sender, constellation_receiver) = mpsc::channel();
+        let (constellation_sender, constellation_receiver) = channel();
         let sender_clone = sender.clone();
         thread::Builder::new()
             .name("WebVRThread".into())
@@ -358,7 +357,7 @@ pub type WebVRCompositorSender = Sender<Option<WebVRCompositor>>;
 
 impl WebVRCompositorHandler {
     pub fn new() -> (Box<WebVRCompositorHandler>, WebVRCompositorSender) {
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = channel();
         let instance = Box::new(WebVRCompositorHandler {
             compositors: HashMap::new(),
             webvr_thread_receiver: receiver,

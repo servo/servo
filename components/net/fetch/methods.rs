@@ -21,6 +21,7 @@ use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
+use servo_channel::{channel, Sender, Receiver};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fmt;
@@ -30,7 +31,6 @@ use std::mem;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
-use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
 use subresource_integrity::is_response_integrity_valid;
 

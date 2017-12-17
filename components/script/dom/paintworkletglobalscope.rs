@@ -60,8 +60,6 @@ use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::mpsc;
-use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 use style_traits::CSSPixel;
@@ -352,7 +350,7 @@ impl PaintWorkletGlobalScope {
                                   arguments: Vec<String>)
                                   -> Result<DrawAPaintImageResult, PaintWorkletError> {
                 let name = self.name.clone();
-                let (sender, receiver) = mpsc::channel();
+                let (sender, receiver) = channel();
                 let task = PaintWorkletTask::DrawAPaintImage(name,
                                                              size,
                                                              device_pixel_ratio,

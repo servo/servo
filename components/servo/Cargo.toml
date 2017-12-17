@@ -32,6 +32,7 @@ canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing", features = ["gleam"]}
 constellation = {path = "../constellation"}
+crossbeam-channel = "0.2"
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
@@ -40,7 +41,7 @@ env_logger = "0.5"
 euclid = "0.19"
 gfx = {path = "../gfx"}
 gleam = "0.6"
-ipc-channel = "0.10"
+ipc-channel = "0.11"
 layout_thread = {path = "../layout_thread"}
 log = "0.4"
 msg = {path = "../msg"}

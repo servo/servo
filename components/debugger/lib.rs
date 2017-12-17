@@ -4,10 +4,9 @@
 
 #[macro_use]
 extern crate log;
+extern crate servo_channel;
 extern crate ws;
 
-use std::sync::mpsc;
-use std::sync::mpsc::channel;
 use std::thread;
 use ws::{Builder, CloseCode, Handler, Handshake};
 
@@ -15,7 +14,7 @@ enum Message {
     ShutdownServer,
 }
 
-pub struct Sender(mpsc::Sender<Message>);
+pub struct Sender(servo_channel::Sender<Message>);
 
 struct Connection {
     sender: ws::Sender,
@@ -38,7 +37,7 @@ impl Handler for Connection {
 
 pub fn start_server(port: u16) -> Sender {
     debug!("Starting server.");
-    let (sender, receiver) = channel();
+    let (sender, receiver) = servo_channel::channel();
     thread::Builder::new()
         .name("debugger".to_owned())
         .spawn(move || {
@@ -51,7 +50,7 @@ pub fn start_server(port: u16) -> Sender {
                 .spawn(move || {
                     socket.listen(("127.0.0.1", port)).unwrap();
                 }).expect("Thread spawning failed");
-            while let Ok(message) = receiver.recv() {
+            while let Some(message) = receiver.recv() {
                 match message {
                     Message::ShutdownServer => {
                         break;

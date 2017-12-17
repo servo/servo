@@ -23,6 +23,7 @@ use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutC
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
+use servo_channel::Sender;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use std::collections::HashMap;
@@ -31,7 +32,6 @@ use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::time::Instant;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
@@ -358,7 +358,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
-            warn!("Sending exit message to constellation failed ({}).", e);
+            warn!("Sending exit message to constellation failed ({:?}).", e);
         }
 
         self.shutdown_state = ShutdownState::ShuttingDown;
@@ -420,7 +420,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
                 let img = res.unwrap_or(None);
                 if let Err(e) = reply.send(img) {
-                    warn!("Sending reply to create png failed ({}).", e);
+                    warn!("Sending reply to create png failed ({:?}).", e);
                 }
             },
 
@@ -494,19 +494,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetClientWindow(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.window) {
-                    warn!("Sending response to get client window failed ({}).", e);
+                    warn!("Sending response to get client window failed ({:?}).", e);
                 }
             },
 
             (Msg::GetScreenSize(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen) {
-                    warn!("Sending response to get screen size failed ({}).", e);
+                    warn!("Sending response to get screen size failed ({:?}).", e);
                 }
             },
 
             (Msg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen_avail) {
-                    warn!("Sending response to get screen avail size failed ({}).", e);
+                    warn!("Sending response to get screen avail size failed ({:?}).", e);
                 }
             },
 
@@ -634,7 +634,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending window resize to constellation failed ({}).", e);
+            warn!("Sending window resize to constellation failed ({:?}).", e);
         }
     }
 
@@ -701,7 +701,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let pipeline_id = PipelineId::from_webrender(result.pipeline);
         let msg = ConstellationMsg::ForwardEvent(pipeline_id, event_to_send);
         if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({}).", e);
+            warn!("Sending event to constellation failed ({:?}).", e);
         }
     }
 
@@ -743,13 +743,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let pipeline_id = PipelineId::from_webrender(item.pipeline);
             let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
             if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({}).", e);
+                warn!("Sending event to constellation failed ({:?}).", e);
             }
 
             if let Some(cursor) = CursorKind::from_u8(item.tag.1 as _).ok() {
                 let msg = ConstellationMsg::SetCursor(cursor);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({}).", e);
+                    warn!("Sending event to constellation failed ({:?}).", e);
                 }
             }
         }
@@ -772,7 +772,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let pipeline_id = PipelineId::from_webrender(item.pipeline);
             let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
             if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({}).", e);
+                warn!("Sending event to constellation failed ({:?}).", e);
             }
         }
     }
@@ -1008,7 +1008,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if animation_callbacks_running {
             let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Script);
             if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({}).", e);
+                warn!("Sending tick to constellation failed ({:?}).", e);
             }
         }
 
@@ -1017,7 +1017,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if animations_running {
             let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Layout);
             if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({}).", e);
+                warn!("Sending tick to constellation failed ({:?}).", e);
             }
         }
     }
@@ -1160,7 +1160,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // if it's safe to output the image.
                 let msg = ConstellationMsg::IsReadyToSaveImage(pipeline_epochs);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending ready to save to constellation failed ({}).", e);
+                    warn!("Sending ready to save to constellation failed ({:?}).", e);
                 }
                 self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
                 Err(NotReadyToPaint::JustNotifiedConstellation)
@@ -1288,8 +1288,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     if let Some(pipeline) = self.pipeline(*id) {
                         // and inform the layout thread with the measured paint time.
                         let msg = LayoutControlMsg::PaintMetric(epoch, paint_time);
-                        if let Err(e) = pipeline.layout_chan.send(msg) {
-                            warn!("Sending PaintMetric message to layout failed ({}).", e);
+                        if let Err(e)  = pipeline.layout_chan.send(msg) {
+                            warn!("Sending PaintMetric message to layout failed ({:?}).", e);
                         }
                     }
                 }

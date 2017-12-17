@@ -15,7 +15,7 @@ use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg
 use net_traits::{IpcSend, NetworkError, ResourceThreads};
 use net_traits::request::{Destination, RequestInit};
 use net_traits::response::ResponseInit;
-use std::sync::mpsc::Sender;
+use servo_channel::Sender;
 
 pub struct NetworkListener {
     res_init: Option<ResponseInit>,
