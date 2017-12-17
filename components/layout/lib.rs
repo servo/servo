@@ -36,6 +36,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate servo_arc;
 extern crate servo_atoms;
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;

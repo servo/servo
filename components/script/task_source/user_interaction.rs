@@ -11,9 +11,9 @@ use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
+use servo_channel::Sender;
 use std::fmt;
 use std::result::Result;
-use std::sync::mpsc::Sender;
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
 

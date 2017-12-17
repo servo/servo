@@ -14,8 +14,8 @@ use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, ConstellationMsg, EventResult};
+use servo_channel::{Receiver, Sender};
 use std::fmt::{Debug, Error, Formatter};
-use std::sync::mpsc::{Receiver, Sender};
 use style_traits::viewport::ViewportConstraints;
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
@@ -28,9 +28,8 @@ pub struct CompositorProxy {
 
 impl CompositorProxy {
     pub fn send(&self, msg: Msg) {
-        // Send a message and kick the OS event loop awake.
         if let Err(err) = self.sender.send(msg) {
-            warn!("Failed to send response ({}).", err);
+            warn!("Failed to send response ({:?}).", err);
         }
         self.event_loop_waker.wake();
     }
@@ -52,7 +51,7 @@ pub struct CompositorReceiver {
 
 impl CompositorReceiver {
     pub fn try_recv_compositor_msg(&mut self) -> Option<Msg> {
-        self.receiver.try_recv().ok()
+        self.receiver.try_recv()
     }
     pub fn recv_compositor_msg(&mut self) -> Msg {
         self.receiver.recv().unwrap()

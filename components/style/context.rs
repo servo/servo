@@ -32,14 +32,14 @@ use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
 use servo_atoms::Atom;
+#[cfg(feature = "servo")]
+use servo_channel::Sender;
 use shared_lock::StylesheetGuards;
 use sharing::StyleSharingCache;
 use std::fmt;
 use std::ops;
 #[cfg(feature = "servo")]
 use std::sync::Mutex;
-#[cfg(feature = "servo")]
-use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 #[cfg(feature = "servo")]

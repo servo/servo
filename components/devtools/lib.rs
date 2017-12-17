@@ -21,6 +21,7 @@ extern crate msg;
 #[macro_use]
 extern crate serde;
 extern crate serde_json;
+extern crate servo_channel;
 extern crate time;
 
 use actor::{Actor, ActorRegistry};
@@ -41,13 +42,13 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
+use servo_channel::{Receiver, Sender, channel};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use time::precise_time_ns;
 
@@ -509,7 +510,7 @@ fn run_server(
             }
         }).expect("Thread spawning failed");
 
-    while let Ok(msg) = receiver.recv() {
+    while let Some(msg) = receiver.recv() {
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
