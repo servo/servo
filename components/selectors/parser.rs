@@ -215,6 +215,27 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     }
 }
 
+/// Parses one compound selector suitable for nested stuff like ::-moz-any, etc.
+fn parse_inner_compound_selector<'i, 't, P, Impl>(
+    parser: &P,
+    input: &mut CssParser<'i, 't>,
+) -> Result<Selector<Impl>, ParseError<'i, P::Error>>
+where
+    P: Parser<'i, Impl=Impl>,
+    Impl: SelectorImpl,
+{
+    let location = input.current_source_location();
+    let selector = Selector::parse(parser, input)?;
+    // Ensure they're actually all compound selectors.
+    if selector.iter_raw_match_order().any(|s| s.is_combinator()) {
+        return Err(location.new_custom_error(
+            SelectorParseErrorKind::NonCompoundSelector
+        ))
+    }
+
+    Ok(selector)
+}
+
 /// Parse a comma separated list of compound selectors.
 pub fn parse_compound_selector_list<'i, 't, P, Impl>(
     parser: &P,
@@ -224,22 +245,9 @@ where
     P: Parser<'i, Impl=Impl>,
     Impl: SelectorImpl,
 {
-    let location = input.current_source_location();
-    let selectors = input.parse_comma_separated(|input| {
-        Selector::parse(parser, input)
-    })?;
-
-    // Ensure they're actually all compound selectors.
-    if selectors
-        .iter()
-        .flat_map(|x| x.iter_raw_match_order())
-        .any(|s| s.is_combinator()) {
-        return Err(location.new_custom_error(
-            SelectorParseErrorKind::NonCompoundSelector
-        ))
-    }
-
-    Ok(selectors.into_boxed_slice())
+    input.parse_comma_separated(|input| {
+        parse_inner_compound_selector(parser, input)
+    }).map(|selectors| selectors.into_boxed_slice())
 }
 
 /// Ancestor hashes for the bloom filter. We precompute these and store them
@@ -761,8 +769,12 @@ pub enum Component<Impl: SelectorImpl> {
     ///
     /// https://drafts.csswg.org/css-scoping/#slotted-pseudo
     ///
-    /// The selectors here are compound selectors, that is, no combinators.
-    Slotted(Box<[Selector<Impl>]>),
+    /// The selector here is a compound selector, that is, no combinators.
+    ///
+    /// NOTE(emilio): This should support a list of selectors, but as of this
+    /// writing no other browser does, and that allows them to put ::slotted()
+    /// in the rule hash, so we do that too.
+    Slotted(Selector<Impl>),
     PseudoElement(Impl::PseudoElement),
 }
 
@@ -997,14 +1009,9 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             Combinator(ref c) => {
                 c.to_css(dest)
             }
-            Slotted(ref selectors) => {
+            Slotted(ref selector) => {
                 dest.write_str("::slotted(")?;
-                let mut iter = selectors.iter();
-                iter.next().expect("At least one selector").to_css(dest)?;
-                for other in iter {
-                    dest.write_str(", ")?;
-                    other.to_css(dest)?;
-                }
+                selector.to_css(dest)?;
                 dest.write_char(')')
             }
             PseudoElement(ref p) => {
@@ -1305,7 +1312,7 @@ where
 enum SimpleSelectorParseResult<Impl: SelectorImpl> {
     SimpleSelector(Component<Impl>),
     PseudoElement(Impl::PseudoElement),
-    SlottedPseudo(Box<[Selector<Impl>]>),
+    SlottedPseudo(Selector<Impl>),
 }
 
 #[derive(Debug)]
@@ -1724,13 +1731,13 @@ where
                 empty = false;
                 break
             }
-            SimpleSelectorParseResult::SlottedPseudo(selectors) => {
+            SimpleSelectorParseResult::SlottedPseudo(selector) => {
                 empty = false;
                 slot = true;
                 if !builder.is_empty() {
                     builder.push_combinator(Combinator::SlotAssignment);
                 }
-                builder.push_simple_selector(Component::Slotted(selectors));
+                builder.push_simple_selector(Component::Slotted(selector));
                 // FIXME(emilio): ::slotted() should support ::before and
                 // ::after after it, so we shouldn't break, but we shouldn't
                 // push more type selectors either.
@@ -1857,7 +1864,7 @@ where
                     if P::parse_slotted(parser) && name.eq_ignore_ascii_case("slotted") {
                         SimpleSelectorParseResult::SlottedPseudo(
                             input.parse_nested_block(|input| {
-                                parse_compound_selector_list(
+                                parse_inner_compound_selector(
                                     parser,
                                     input,
                                 )
@@ -2489,7 +2496,10 @@ pub mod tests {
         assert!(parse("div ::slotted(div)").is_ok());
         assert!(parse("div + slot::slotted(div)").is_ok());
         assert!(parse("div + slot::slotted(div.foo)").is_ok());
-        assert!(parse("div + slot::slotted(.foo, bar, .baz)").is_ok());
+        assert!(parse("slot::slotted(div,foo)::first-line").is_err());
+        // TODO
+        assert!(parse("::slotted(div)::before").is_err());
+        assert!(parse("slot::slotted(div,foo)").is_err());
     }
 
     #[test]
