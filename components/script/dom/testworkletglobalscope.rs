@@ -13,9 +13,9 @@ use dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom_struct::dom_struct;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
+use servo_channel::Sender;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
 
 // check-tidy: no specs after this line
 

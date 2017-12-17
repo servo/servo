@@ -25,10 +25,10 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use script_traits::WorkerScriptLoadOrigin;
+use servo_channel::{channel, Sender};
 use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Sender, channel};
 use task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;

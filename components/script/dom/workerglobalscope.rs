@@ -36,12 +36,12 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit as NetReques
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, get_reports, Runtime};
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
+use servo_channel::Receiver;
 use servo_url::{MutableOrigin, ServoUrl};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Receiver;
 use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;

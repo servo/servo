@@ -19,6 +19,7 @@ extern crate net_traits;
 extern crate regex;
 extern crate rustc_serialize;
 extern crate script_traits;
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_url;
 extern crate uuid;
@@ -38,12 +39,12 @@ use rustc_serialize::json::{Json, ToJson};
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
+use servo_channel::Sender;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::{SocketAddr, SocketAddrV4};
-use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
@@ -1180,7 +1181,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
 
     fn delete_session(&mut self, _session: &Option<Session>) {
         // Servo doesn't support multiple sessions, so we exit on session deletion
-        let _ = self.constellation_chan.send(ConstellationMsg::Exit);
+        let _ = self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
         self.session = None;
     }
 }
