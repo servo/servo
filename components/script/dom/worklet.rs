@@ -10,6 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
+use crossbeam_channel::{self, Sender, Receiver};
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
@@ -58,9 +59,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
-use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
 use std::thread;
 use style::thread_state::{self, ThreadState};
 use swapper::Swapper;
@@ -308,7 +306,7 @@ impl WorkletThreadPool {
 
     /// For testing.
     pub fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = crossbeam_channel::unbounded();
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
         let _ = self.primary_sender.send(msg);
         receiver.recv().expect("Test worklet has died?")
@@ -354,7 +352,7 @@ struct WorkletThreadRole {
 
 impl WorkletThreadRole {
     fn new(is_hot_backup: bool, is_cold_backup: bool) -> WorkletThreadRole {
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = crossbeam_channel::unbounded();
         WorkletThreadRole {
             sender: sender,
             receiver: receiver,
@@ -418,7 +416,7 @@ impl WorkletThread {
     #[allow(unsafe_code)]
     #[allow(unrooted_must_root)]
     fn spawn(role: WorkletThreadRole, init: WorkletThreadInit) -> Sender<WorkletControl> {
-        let (control_sender, control_receiver) = mpsc::channel();
+        let (control_sender, control_receiver) = crossbeam_channel::unbounded();
         // TODO: name this thread
         thread::spawn(move || {
             // TODO: add a new IN_WORKLET thread state?
@@ -464,7 +462,7 @@ impl WorkletThread {
                 //       this total ordering on thread roles is what guarantees deadlock-freedom.
                 WorkletData::StartSwapRoles(sender) => {
                     let (our_swapper, their_swapper) = swapper();
-                    sender.send(WorkletData::FinishSwapRoles(their_swapper)).unwrap();
+                    sender.send(WorkletData::FinishSwapRoles(their_swapper));
                     let _ = our_swapper.swap(&mut self.role);
                 }
                 // To finish swapping roles, perform the atomic swap.
@@ -487,12 +485,12 @@ impl WorkletThread {
                 if let Some(control) = self.control_buffer.take() {
                     self.process_control(control);
                 }
-                while let Ok(control) = self.control_receiver.try_recv() {
+                while let Some(control) = self.control_receiver.try_recv() {
                     self.process_control(control);
                 }
                 self.gc();
             } else if self.control_buffer.is_none() {
-                if let Ok(control) = self.control_receiver.try_recv() {
+                if let Some(control) = self.control_receiver.try_recv() {
                     self.control_buffer = Some(control);
                     let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
                     let _ = self.cold_backup_sender.send(msg);
@@ -603,7 +601,7 @@ impl WorkletThread {
             if old_counter == 1 {
                 debug!("Resolving promise.");
                 let msg = MainThreadScriptMsg::WorkletLoaded(pipeline_id);
-                self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
+                self.global_init.to_script_thread_sender.send(msg);
                 self.run_in_script_thread(promise.resolve_task(()));
             }
         }
@@ -646,7 +644,7 @@ impl WorkletThread {
     {
         let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, Box::new(task), None);
         let msg = MainThreadScriptMsg::Common(msg);
-        self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
+        self.global_init.to_script_thread_sender.send(msg);
     }
 }
 

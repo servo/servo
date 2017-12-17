@@ -7,6 +7,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use compositing::compositor_thread::Msg as CompositorMsg;
+use crossbeam_channel::Sender;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::{TypedSize2D, TypedScale};
 use event_loop::EventLoop;
@@ -38,7 +39,6 @@ use std::ffi::OsStr;
 use std::process;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use webrender_api;
@@ -247,11 +247,7 @@ impl Pipeline {
                                 Err(e) => {
                                     error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
                                 },
-                                Ok(message) => if let Err(e) =
-                                    devtools_chan.send(DevtoolsControlMsg::FromScript(message))
-                                {
-                                    warn!("Sending to devtools failed ({})", e)
-                                },
+                                Ok(message) => devtools_chan.send(DevtoolsControlMsg::FromScript(message)),
                             },
                         ),
                     );

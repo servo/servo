@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::{self, Sender};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler};
 use dom::abstractworker::WorkerScriptMsg;
@@ -28,7 +29,6 @@ use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Sender, channel};
 use task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -77,7 +77,7 @@ impl Worker {
             Err(_) => return Err(Error::Syntax),
         };
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = crossbeam_channel::unbounded();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
         global.track_worker(closing.clone());

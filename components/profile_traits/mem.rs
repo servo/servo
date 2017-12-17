@@ -6,11 +6,11 @@
 
 #![deny(missing_docs)]
 
+use crossbeam_channel::Sender;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use serde;
 use std::marker::Send;
-use std::sync::mpsc::Sender;
 
 /// A trait to abstract away the various kinds of message senders we use.
 pub trait OpaqueSender<T> {
@@ -20,9 +20,7 @@ pub trait OpaqueSender<T> {
 
 impl<T> OpaqueSender<T> for Sender<T> {
     fn send(&self, message: T) {
-        if let Err(e) = Sender::send(self, message) {
-            warn!("Error communicating with the target thread from the profiler: {}", e);
-        }
+        Sender::send(self, message)
     }
 }
 

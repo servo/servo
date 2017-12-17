@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 base64 = "0.6"
 brotli = "1.0.6"
+crossbeam-channel = "0.2"
 cookie = "0.10"
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }

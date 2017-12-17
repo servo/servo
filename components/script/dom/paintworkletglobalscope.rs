@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::{self, Sender};
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
@@ -58,8 +59,6 @@ use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::mpsc;
-use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 use style_traits::CSSPixel;
@@ -350,7 +349,7 @@ impl PaintWorkletGlobalScope {
                                   arguments: Vec<String>)
                                   -> Result<DrawAPaintImageResult, PaintWorkletError> {
                 let name = self.name.clone();
-                let (sender, receiver) = mpsc::channel();
+                let (sender, receiver) = crossbeam_channel::unbounded();
                 let task = PaintWorkletTask::DrawAPaintImage(name,
                                                              size,
                                                              device_pixel_ratio,
@@ -364,9 +363,12 @@ impl PaintWorkletGlobalScope {
                                    .as_u64()
                                    .unwrap_or(10u64);
 
-                let timeout_duration = Duration::from_millis(timeout);
-                receiver.recv_timeout(timeout_duration)
-                        .map_err(|e| PaintWorkletError::from(e))
+                select! {
+                    recv(crossbeam_channel::after(Duration::from_millis(timeout))) => {
+                        Err(PaintWorkletError::Timeout)
+                    }
+                    recv(receiver, msg) => msg.ok_or(PaintWorkletError::Timeout)
+                }
             }
         }
         Box::new(WorkletPainter {

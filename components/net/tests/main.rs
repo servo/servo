@@ -5,6 +5,7 @@
 #![cfg(test)]
 
 extern crate cookie as cookie_rs;
+extern crate crossbeam_channel;
 extern crate devtools_traits;
 extern crate embedder_traits;
 extern crate flate2;
@@ -34,6 +35,7 @@ mod mime_classifier;
 mod resource_thread;
 mod subresource_integrity;
 
+use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use embedder_traits::resources::{self, Resource};
@@ -48,7 +50,6 @@ use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender, channel};
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
@@ -57,7 +58,7 @@ struct FetchResponseCollector {
 }
 
 fn create_embedder_proxy() -> EmbedderProxy {
-    let (sender, _) = channel();
+    let (sender, _) = crossbeam_channel::unbounded();
     let event_loop_waker = | | {
         struct DummyEventLoopWaker {
         }
@@ -109,7 +110,7 @@ fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Respo
 }
 
 fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = crossbeam_channel::unbounded();
     let mut target = FetchResponseCollector {
         sender: sender,
     };
@@ -120,7 +121,7 @@ fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response
 }
 
 fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Response {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = crossbeam_channel::unbounded();
     let mut target = FetchResponseCollector {
         sender: sender,
     };

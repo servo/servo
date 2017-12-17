@@ -12,6 +12,7 @@
 extern crate app_units;
 extern crate atomic_refcell;
 extern crate canvas_traits;
+extern crate crossbeam_channel;
 extern crate cssparser;
 extern crate euclid;
 extern crate gfx_traits;

@@ -7,6 +7,7 @@
 //! A memory cache implementing the logic specified in <http://tools.ietf.org/html/rfc7234>
 //! and <http://tools.ietf.org/html/rfc7232>.
 
+use crossbeam_channel::{self, Sender};
 use fetch::methods::{Data, DoneChannel};
 use hyper::header;
 use hyper::header::ContentType;
@@ -26,7 +27,6 @@ use std::collections::HashMap;
 use std::str;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{channel, Sender};
 use time;
 use time::{Duration, Tm};
 
@@ -315,7 +315,7 @@ fn create_cached_response(request: &Request,
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock().unwrap() {
-        let (done_sender, done_receiver) = channel();
+        let (done_sender, done_receiver) = crossbeam_channel::unbounded();
         *done_chan = Some((done_sender.clone(), done_receiver));
         cached_resource.awaiting_body.lock().unwrap().push(done_sender);
     }
@@ -630,7 +630,7 @@ impl HttpCache {
                 // The response constructed here will replace the 304 one from the network.
                 let in_progress_channel = match *cached_resource.body.lock().unwrap() {
                     ResponseBody::Receiving(..) => {
-                        Some(channel())
+                        Some(crossbeam_channel::unbounded())
                     },
                     ResponseBody::Empty | ResponseBody::Done(..) => None
                 };

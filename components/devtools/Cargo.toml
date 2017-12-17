@@ -10,6 +10,7 @@ name = "devtools"
 path = "lib.rs"
 
 [dependencies]
+crossbeam-channel = "0.2"
 devtools_traits = {path = "../devtools_traits"}
 hyper = "0.10"
 hyper_serde = "0.8"

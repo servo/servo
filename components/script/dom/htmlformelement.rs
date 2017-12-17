@@ -448,7 +448,7 @@ impl HTMLFormElement {
                 pipeline_id,
                 load_data,
                 false,
-            )).unwrap();
+            ));
         });
 
         // Step 3.
