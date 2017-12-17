@@ -610,10 +610,7 @@ impl<'le> GeckoElement<'le> {
         self.as_node().node_info().mInner.mNamespaceID
     }
 
-    fn is_html_element(&self) -> bool {
-        self.namespace_id() == (structs::root::kNameSpaceID_XHTML as i32)
-    }
-
+    #[inline]
     fn is_xul_element(&self) -> bool {
         self.namespace_id() == (structs::root::kNameSpaceID_XUL as i32)
     }
@@ -972,6 +969,40 @@ impl<'le> TElement for GeckoElement<'le> {
         }
 
         self.as_node().owner_doc().as_node()
+    }
+
+
+    #[inline]
+    fn is_html_element(&self) -> bool {
+        self.namespace_id() == (structs::root::kNameSpaceID_XHTML as i32)
+    }
+
+    /// Return the list of slotted nodes of this node.
+    #[inline]
+    fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
+        if !self.is_html_slot_element() || !self.is_in_shadow_tree() {
+            return &[];
+        }
+
+        let slot: &structs::HTMLSlotElement = unsafe {
+            mem::transmute(self.0)
+        };
+
+        if cfg!(debug_assertions) {
+            let base: &RawGeckoElement = &slot._base._base._base._base;
+            assert_eq!(base as *const _, self.0 as *const _, "Bad cast");
+        }
+
+        let assigned_nodes: &[structs::RefPtr<structs::nsINode>] =
+            &*slot.mAssignedNodes;
+
+        debug_assert_eq!(
+            mem::size_of::<structs::RefPtr<structs::nsINode>>(),
+            mem::size_of::<Self::ConcreteNode>(),
+            "Bad cast!"
+        );
+
+        unsafe { mem::transmute(assigned_nodes) }
     }
 
     /// Execute `f` for each anonymous content child element (apart from

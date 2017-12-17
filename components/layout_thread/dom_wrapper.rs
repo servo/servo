@@ -363,6 +363,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         LayoutIterator(self.as_node().dom_children())
     }
 
+    fn is_html_element(&self) -> bool {
+        unsafe { self.element.is_html_element() }
+    }
+
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute()).as_ref().map(|x| x.borrow_arc())
