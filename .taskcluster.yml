@@ -17,7 +17,7 @@ tasks:
           - pull_request.synchronize
     payload:
       maxRunTime: 3600
-      image: servobrowser/servo-linux-dev
+      image: 'servobrowser/servo-linux-dev:servo-linux-build-deps-2017-06-30'
       command:
         - /bin/bash
         - '--login'
