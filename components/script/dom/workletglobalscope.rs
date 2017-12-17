@@ -26,11 +26,11 @@ use script_thread::MainThreadScriptMsg;
 use script_traits::{Painter, ScriptMsg};
 use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
 use servo_atoms::Atom;
+use servo_channel::Sender;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>

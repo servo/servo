@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 #![cfg_attr(feature = "unstable", feature(conservative_impl_trait))]
-#![feature(mpsc_select)]
 
 extern crate backtrace;
 extern crate bluetooth_traits;

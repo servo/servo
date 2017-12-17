@@ -16,10 +16,11 @@ oculusvr = ['rust-webvr/oculusvr']
 [dependencies]
 canvas_traits = {path = "../canvas_traits"}
 euclid = "0.19"
-ipc-channel = "0.10"
+ipc-channel = "0.11"
 log = "0.4"
 msg = {path = "../msg"}
 rust-webvr = {version = "0.9", features = ["openvr"]}
 script_traits = {path = "../script_traits"}
+servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 webvr_traits = {path = "../webvr_traits" }

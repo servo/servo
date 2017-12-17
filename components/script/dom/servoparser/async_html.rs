@@ -27,12 +27,12 @@ use html5ever::tendril::fmt::UTF8;
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
 use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode, TreeSink};
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use servo_channel::{channel, Receiver, Sender};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::vec_deque::VecDeque;
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use style::context::QuirksMode as ServoQuirksMode;
 

@@ -20,13 +20,13 @@ use net_traits::{Metadata, FetchMetadata};
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use servo_arc::Arc;
+use servo_channel::{Sender, channel};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::str;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{channel, Sender};
 use time;
 use time::{Duration, Tm};
 

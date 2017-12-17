@@ -36,11 +36,11 @@ use profile_traits::ipc;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
 use serde_bytes::ByteBuf;
+use servo_channel::{channel, Sender};
 use std::cell::Cell;
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
-use std::sync::mpsc;
 use std::thread;
 use task_source::TaskSourceName;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
@@ -505,7 +505,7 @@ impl VRDisplay {
         // while the render thread is syncing the VRFrameData to be used for the current frame.
         // This thread runs until the user calls ExitPresent, the tab is closed or some unexpected error happened.
         thread::Builder::new().name("WebVR_RAF".into()).spawn(move || {
-            let (raf_sender, raf_receiver) = mpsc::channel();
+            let (raf_sender, raf_receiver) = channel();
             let mut near = near_init;
             let mut far = far_init;
 
@@ -581,7 +581,7 @@ impl VRDisplay {
         self.frame_data_status.set(status);
     }
 
-    fn handle_raf(&self, end_sender: &mpsc::Sender<Result<(f64, f64), ()>>) {
+    fn handle_raf(&self, end_sender: &Sender<Result<(f64, f64), ()>>) {
         self.frame_data_status.set(VRFrameDataStatus::Waiting);
         self.running_display_raf.set(true);
 

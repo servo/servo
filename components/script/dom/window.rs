@@ -94,6 +94,7 @@ use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, Win
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
 use servo_arc;
+use servo_channel::{channel, Sender};
 use servo_config::opts;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
@@ -109,8 +110,6 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Sender, channel};
-use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
@@ -1376,14 +1375,15 @@ impl Window {
 
         debug!("script: layout forked");
 
-        let complete = match join_port.try_recv() {
-            Err(Empty) => {
+        let complete = select! {
+            recv(join_port.select(), msg) => if let Some(reflow_complete) = msg {
+                reflow_complete
+            } else {
+                panic!("Layout thread failed while script was waiting for a result.");
+            },
+            default => {
                 info!("script: waiting on layout");
                 join_port.recv().unwrap()
-            }
-            Ok(reflow_complete) => reflow_complete,
-            Err(Disconnected) => {
-                panic!("Layout thread failed while script was waiting for a result.");
             }
         };
 

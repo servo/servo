@@ -4,9 +4,9 @@
 
 use ipc_channel::ipc::{self, IpcSender};
 use script_traits::{TimerEvent, TimerEventRequest, TimerSchedulerMsg};
+use servo_channel::base_channel;
 use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
-use servo_channel::base_channel;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -69,26 +69,29 @@ impl TimerScheduler {
                         scheduled_events.pop();
                     }
                     // Look to see if there are any incoming events
-                    match req_receiver.try_recv() {
-                        // If there is an event, add it to the priority queue
-                        Ok(TimerSchedulerMsg::Request(req)) => {
-                            let TimerEventRequest(_, _, _, delay) = req;
-                            let schedule = Instant::now() + Duration::from_millis(delay.get());
-                            let event = ScheduledEvent {
-                                request: req,
-                                for_time: schedule,
-                            };
-                            scheduled_events.push(event);
+                    select! {
+                        recv(req_receiver, msg) => match msg {
+                            // If there is an event, add it to the priority queue
+                            Some(TimerSchedulerMsg::Request(req)) => {
+                                let TimerEventRequest(_, _, _, delay) = req;
+                                let schedule = Instant::now() + Duration::from_millis(delay.get());
+                                let event = ScheduledEvent {
+                                    request: req,
+                                    for_time: schedule,
+                                };
+                                scheduled_events.push(event);
+                            },
+                            // If the channel is closed or we are shutting down, we are done.
+                            Some(TimerSchedulerMsg::Exit) |
+                            None => break,
                         },
                         // If there is no incoming event, park the thread,
                         // it will either be unparked when a new event arrives,
                         // or by a timeout.
-                        Err(Empty) => match scheduled_events.peek() {
+                        default => match scheduled_events.peek() {
                             None => thread::park(),
                             Some(event) => thread::park_timeout(event.for_time - now),
                         },
-                        // If the channel is closed or we are shutting down, we are done.
-                        Ok(TimerSchedulerMsg::Exit) | Err(Disconnected) => break,
                     }
                 }
                 // This thread can terminate if the req_ipc_sender is dropped.

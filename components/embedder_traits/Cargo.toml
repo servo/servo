@@ -13,11 +13,12 @@ path = "lib.rs"
 tests = []
 
 [dependencies]
-ipc-channel = "0.10"
+ipc-channel = "0.11"
 lazy_static = "1"
 log = "0.4"
 msg = {path = "../msg"}
 serde = "1.0"
+servo_channel = {path = "../channel"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

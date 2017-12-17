@@ -28,6 +28,7 @@ use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
+use servo_channel::Sender;
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
@@ -38,7 +39,6 @@ use std::ffi::OsStr;
 use std::process;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use webrender_api;
@@ -255,7 +255,7 @@ impl Pipeline {
                                 Ok(message) => if let Err(e) =
                                     devtools_chan.send(DevtoolsControlMsg::FromScript(message))
                                 {
-                                    warn!("Sending to devtools failed ({})", e)
+                                    warn!("Sending to devtools failed ({:?})", e)
                                 },
                             },
                         ),
