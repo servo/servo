@@ -11,7 +11,7 @@ use azure::azure_hl::SurfacePattern;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use ipc_channel::ipc::{IpcSender, IpcReceiver};
 use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
