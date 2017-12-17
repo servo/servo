@@ -4,6 +4,7 @@
 
 use {OpaqueStyleAndLayoutData, PendingImage, TrustedNodeAddress};
 use app_units::Au;
+use crossbeam_channel::{Receiver, Sender};
 use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -19,7 +20,6 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender};
 use style::context::QuirksMode;
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;

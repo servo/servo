@@ -6,6 +6,7 @@ use brotli::Decompressor;
 use connector::{Connector, create_http_connector};
 use cookie;
 use cookie_storage::CookieStorage;
+use crossbeam_channel::{self, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use fetch::cors_cache::CorsCache;
@@ -48,7 +49,6 @@ use std::mem;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::RwLock;
-use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use time;
 use time::Tm;
@@ -346,7 +346,7 @@ fn prepare_devtools_request(request_id: String,
 
 fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
                             devtools_chan: &Sender<DevtoolsControlMsg>) {
-    devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
+    devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
 }
 
 fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
@@ -1094,7 +1094,7 @@ fn http_network_fetch(request: &Request,
     let res_body = response.body.clone();
 
     // We're about to spawn a thread to be waited on here
-    let (done_sender, done_receiver) = channel();
+    let (done_sender, done_receiver) = crossbeam_channel::unbounded();
     *done_chan = Some((done_sender.clone(), done_receiver));
     let meta = match response.metadata().expect("Response metadata should exist at this stage") {
         FetchMetadata::Unfiltered(m) => m,

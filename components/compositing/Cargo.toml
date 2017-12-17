@@ -14,6 +14,7 @@ path = "lib.rs"
 default = []
 
 [dependencies]
+crossbeam-channel = "0.2"
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.19"
 gfx_traits = {path = "../gfx_traits"}

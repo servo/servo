@@ -13,6 +13,7 @@ path = "lib.rs"
 app_units = "0.7"
 atomic_refcell = "0.1"
 canvas_traits = {path = "../canvas_traits"}
+crossbeam-channel = "0.2"
 cssparser = "0.24"
 euclid = "0.19"
 gfx_traits = {path = "../gfx_traits"}

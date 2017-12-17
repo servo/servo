@@ -32,6 +32,7 @@ canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing", features = ["gleam"]}
 constellation = {path = "../constellation"}
+crossbeam-channel = "0.2"
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}

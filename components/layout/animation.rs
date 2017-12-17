@@ -5,6 +5,7 @@
 //! CSS transitions and animations.
 
 use context::LayoutContext;
+use crossbeam_channel::Receiver;
 use display_list::items::OpaqueNode;
 use flow::{Flow, GetBaseFlow};
 use fxhash::FxHashMap;
@@ -13,7 +14,6 @@ use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::UntrustedNodeAddress;
-use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
 use style::dom::TElement;
 use style::font_metrics::ServoMetricsProvider;
@@ -37,7 +37,7 @@ where
     E: TElement,
 {
     let mut new_running_animations = vec![];
-    while let Ok(animation) = new_animations_receiver.try_recv() {
+    while let Some(animation) = new_animations_receiver.try_recv() {
         let mut should_push = true;
         if let Animation::Keyframes(ref node, _, ref name, ref state) = animation {
             // If the animation was already present in the list for the

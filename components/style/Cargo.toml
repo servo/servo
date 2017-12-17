@@ -21,7 +21,7 @@ gecko = ["num_cpus",
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
-         "servo_url", "string_cache"]
+         "servo_url", "string_cache", "crossbeam-channel"]
 gecko_debug = []
 
 [dependencies]
@@ -31,6 +31,7 @@ atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cfg-if = "0.1.0"
+crossbeam-channel = {version = "0.2", optional = true}
 cssparser = "0.24.0"
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.7", optional = true}

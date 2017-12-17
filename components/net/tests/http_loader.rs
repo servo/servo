@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs::Cookie as CookiePair;
+use crossbeam_channel::{self, Receiver};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
@@ -34,9 +35,8 @@ use servo_url::{ServoUrl, ImmutableOrigin};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::str::FromStr;
-use std::sync::{Arc, Mutex, RwLock, mpsc};
+use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Receiver;
 
 fn mock_origin() -> ImmutableOrigin {
     ServoUrl::parse("http://servo.org").unwrap().origin()
@@ -213,7 +213,7 @@ fn test_request_and_response_data_with_network_messages() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let (devtools_chan, devtools_port) = mpsc::channel();
+    let (devtools_chan, devtools_port) = crossbeam_channel::unbounded();
     let response = fetch(&mut request, Some(devtools_chan));
     assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
@@ -300,14 +300,14 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         pipeline_id: None,
         .. RequestInit::default()
     });
-    let (devtools_chan, devtools_port) = mpsc::channel();
+    let (devtools_chan, devtools_port) = crossbeam_channel::unbounded();
     let response = fetch(&mut request, Some(devtools_chan));
     assert!(response.internal_response.unwrap().status.unwrap().is_success());
 
     let _ = server.close();
 
     // notification received from devtools
-    assert!(devtools_port.try_recv().is_err());
+    assert!(devtools_port.try_recv().is_none());
 }
 
 #[test]
@@ -334,7 +334,7 @@ fn test_redirected_request_to_devtools() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let (devtools_chan, devtools_port) = mpsc::channel();
+    let (devtools_chan, devtools_port) = crossbeam_channel::unbounded();
     fetch(&mut request, Some(devtools_chan));
 
     let _ = pre_server.close();

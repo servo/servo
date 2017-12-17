@@ -5,10 +5,12 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#![feature(mpsc_select)]
+#![feature(box_syntax)]
+#![feature(nonzero)]
 
 extern crate app_units;
 extern crate atomic_refcell;
+#[macro_use] extern crate crossbeam_channel;
 extern crate embedder_traits;
 extern crate euclid;
 extern crate fnv;
@@ -55,6 +57,7 @@ extern crate webrender_api;
 mod dom_wrapper;
 
 use app_units::Au;
+use crossbeam_channel::{Receiver, Sender};
 use dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use dom_wrapper::drop_style_and_layout_data;
 use embedder_traits::resources::{self, Resource};
@@ -123,7 +126,6 @@ use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
@@ -361,7 +363,7 @@ impl Drop for ScriptReflowResult {
             self.result
                 .borrow_mut()
                 .take()
-                .unwrap()).unwrap();
+                .unwrap());
     }
 }
 
@@ -483,15 +485,15 @@ impl LayoutThread {
         debug!("Possible layout Threads: {}", layout_threads);
 
         // Create the channel on which new animations can be sent.
-        let (new_animations_sender, new_animations_receiver) = channel();
+        let (new_animations_sender, new_animations_receiver) = crossbeam_channel::unbounded();
 
         // Proxy IPC messages from the pipeline to the layout thread.
-        let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
+        let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(pipeline_port);
 
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
         let font_cache_receiver =
-            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
+            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_font_cache_receiver);
 
 
         LayoutThread {
@@ -613,22 +615,10 @@ impl LayoutThread {
             FromFontCache,
         }
 
-        let request = {
-            let port_from_script = &self.port;
-            let port_from_pipeline = &self.pipeline_port;
-            let port_from_font_cache = &self.font_cache_receiver;
-            select! {
-                msg = port_from_pipeline.recv() => {
-                    Request::FromPipeline(msg.unwrap())
-                },
-                msg = port_from_script.recv() => {
-                    Request::FromScript(msg.unwrap())
-                },
-                msg = port_from_font_cache.recv() => {
-                    msg.unwrap();
-                    Request::FromFontCache
-                }
-            }
+        let request = select! {
+            recv(self.pipeline_port, msg) => Request::FromPipeline(msg.unwrap()),
+            recv(self.port, msg) => Request::FromScript(msg.unwrap()),
+            recv(self.font_cache_receiver, msg) => { msg.unwrap(); Request::FromFontCache }
         };
 
         match request {
@@ -704,7 +694,7 @@ impl LayoutThread {
             Msg::GetRPC(response_chan) => {
                 response_chan.send(
                     Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<LayoutRPC + Send>
-                ).unwrap();
+                );
             },
             Msg::Reflow(data) => {
                 let mut data = ScriptReflowResult::new(data);
@@ -846,7 +836,7 @@ impl LayoutThread {
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
     fn prepare_to_exit(&mut self, response_chan: Sender<()>) {
-        response_chan.send(()).unwrap();
+        response_chan.send(());
         loop {
             match self.port.recv().unwrap() {
                 Msg::ReapStyleAndLayoutData(dead_data) => {

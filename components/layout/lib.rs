@@ -9,6 +9,7 @@ extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
 extern crate canvas_traits;
+extern crate crossbeam_channel;
 extern crate euclid;
 extern crate fnv;
 extern crate fxhash;

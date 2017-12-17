@@ -44,6 +44,7 @@
 //!   `<Box<_> as MallocSizeOf>::size_of(field, ops)`.
 
 extern crate app_units;
+extern crate crossbeam_channel;
 extern crate cssparser;
 extern crate euclid;
 extern crate hashglobe;
@@ -986,7 +987,7 @@ impl<T> MallocSizeOf for hyper_serde::Serde<T> where
 
 // Placeholder for unique case where internals of Sender cannot be measured.
 // malloc size of is 0 macro complains about type supplied!
-impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
+impl<T> MallocSizeOf for crossbeam_channel::Sender<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
     }

@@ -37,6 +37,7 @@ use canvas_traits::webgl::{WebGLContextShareMode, WebGLError, WebGLFramebufferId
 use canvas_traits::webgl::{WebGLPipeline, WebGLProgramId, WebGLReceiver, WebGLRenderbufferId};
 use canvas_traits::webgl::{WebGLSLVersion, WebGLSender, WebGLShaderId, WebGLTextureId};
 use canvas_traits::webgl::{WebGLVersion, WebGLVertexArrayId};
+use crossbeam_channel::{Receiver, Sender};
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use dom::abstractworker::SharedRt;
@@ -105,7 +106,6 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::mpsc::{Receiver, Sender};
 use std::time::{SystemTime, Instant};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;

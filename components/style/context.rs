@@ -8,6 +8,8 @@
 use animation::Animation;
 use app_units::Au;
 use bloom::StyleBloom;
+#[cfg(feature = "servo")]
+use crossbeam_channel::Sender;
 use data::{EagerPseudoStyles, ElementData};
 use dom::{SendElement, TElement};
 #[cfg(feature = "servo")]
@@ -38,8 +40,6 @@ use std::fmt;
 use std::ops;
 #[cfg(feature = "servo")]
 use std::sync::Mutex;
-#[cfg(feature = "servo")]
-use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 #[cfg(feature = "servo")]

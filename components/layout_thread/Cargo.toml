@@ -15,6 +15,7 @@ unstable = ["parking_lot/nightly"]
 [dependencies]
 app_units = "0.7"
 atomic_refcell = "0.1"
+crossbeam-channel = "0.2"
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.19"
 fnv = "1.0"

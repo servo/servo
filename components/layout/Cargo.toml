@@ -16,6 +16,7 @@ app_units = "0.7"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
+crossbeam-channel = "0.2"
 euclid = "0.19"
 fnv = "1.0"
 fxhash = "0.2"

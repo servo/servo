@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
@@ -41,7 +42,6 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Receiver;
 use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
