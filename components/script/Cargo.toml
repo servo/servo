@@ -39,6 +39,7 @@ byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = "0.10"
+chrono = "0.4"
 cssparser = "0.23.0"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
