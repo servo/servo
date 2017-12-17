@@ -6,7 +6,7 @@ use properties::{parse, parse_input};
 use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
 use style::properties::parse_property_declaration_list;
-use style::values::{CustomIdent, RGBA, Auto};
+use style::values::{CustomIdent, RGBA};
 use style::values::generics::flex::FlexBasis;
 use style::values::specified::{BorderStyle, BorderSideWidth, Color};
 use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
