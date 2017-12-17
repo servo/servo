@@ -4,6 +4,7 @@
 
 #![allow(unrooted_must_root)]
 
+use crossbeam_channel::{self, Receiver, Sender};
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
@@ -32,7 +33,6 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::vec_deque::VecDeque;
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use style::context::QuirksMode as ServoQuirksMode;
 
@@ -185,9 +185,9 @@ impl Tokenizer {
             fragment_context: Option<super::FragmentContext>)
             -> Self {
         // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
-        let (to_html_tokenizer_sender, html_tokenizer_receiver) = channel();
+        let (to_html_tokenizer_sender, html_tokenizer_receiver) = crossbeam_channel::unbounded();
         // Messages from HtmlTokenizer and Sink (parser thread) to Tokenizer (main thread)
-        let (to_tokenizer_sender, tokenizer_receiver) = channel();
+        let (to_tokenizer_sender, tokenizer_receiver) = crossbeam_channel::unbounded();
 
         let mut tokenizer = Tokenizer {
             document: Dom::from_ref(document),
@@ -238,7 +238,7 @@ impl Tokenizer {
 
         // Send message to parser thread, asking it to start reading from the input.
         // Parser operation messages will be sent to main thread as they are evaluated.
-        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::Feed { input: send_tendrils }).unwrap();
+        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::Feed { input: send_tendrils });
 
         loop {
             match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
@@ -260,7 +260,7 @@ impl Tokenizer {
     }
 
     pub fn end(&mut self) {
-        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::End).unwrap();
+        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::End);
         loop {
             match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
                 ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
@@ -275,7 +275,7 @@ impl Tokenizer {
     }
 
     pub fn set_plaintext_state(&mut self) {
-        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::SetPlainTextState).unwrap();
+        self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::SetPlainTextState);
     }
 
     fn insert_node(&mut self, id: ParseNodeId, node: Dom<Node>) {
@@ -481,11 +481,11 @@ fn run(sink: Sink,
                     TokenizerResult::Done => ToTokenizerMsg::TokenizerResultDone { updated_input },
                     TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript { script, updated_input }
                 };
-                sender.send(res).unwrap();
+                sender.send(res);
             },
             ToHtmlTokenizerMsg::End => {
                 html_tokenizer.end();
-                sender.send(ToTokenizerMsg::End).unwrap();
+                sender.send(ToTokenizerMsg::End);
                 break;
             },
             ToHtmlTokenizerMsg::SetPlainTextState => html_tokenizer.set_plaintext_state()
@@ -536,7 +536,7 @@ impl Sink {
     }
 
     fn send_op(&self, op: ParseOperation) {
-        self.sender.send(ToTokenizerMsg::ProcessOperation(op)).unwrap();
+        self.sender.send(ToTokenizerMsg::ProcessOperation(op));
     }
 
     fn insert_parse_node_data(&mut self, id: ParseNodeId, data: ParseNodeData) {

@@ -209,9 +209,7 @@ impl Node {
         debug_assert!(thread_state::get().is_script());
         let win = window_from_node(self);
         self.style_and_layout_data.set(None);
-        if win.layout_chan().send(Msg::ReapStyleAndLayoutData(data)).is_err() {
-            warn!("layout thread unreachable - leaking layout data");
-        }
+        win.layout_chan().send(Msg::ReapStyleAndLayoutData(data))
     }
 
     /// Adds a new child to the end of this node's list of children.

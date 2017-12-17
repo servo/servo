@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::{self, Receiver, Sender};
 use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
 use dom::abstractworker::WorkerScriptMsg;
@@ -29,7 +30,6 @@ use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorke
 use servo_config::prefs::PREFS;
 use servo_rand::random;
 use servo_url::ServoUrl;
-use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
@@ -55,9 +55,8 @@ pub struct ServiceWorkerChan {
 
 impl ScriptChan for ServiceWorkerChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.sender
-            .send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(msg)))
-            .map_err(|_| ())
+        Ok(self.sender
+               .send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(msg))))
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -184,11 +183,11 @@ impl ServiceWorkerGlobalScope {
 
             let runtime = unsafe { new_rt_and_cx() };
 
-            let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
-            ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_receiver, devtools_mpsc_chan);
+            let (devtools_mpsc_chan, devtools_mpsc_port) = crossbeam_channel::unbounded();
+            ROUTER.route_ipc_receiver_to_crossbeam_sender(devtools_receiver, devtools_mpsc_chan);
             // TODO XXXcreativcoder use this timer_ipc_port, when we have a service worker instance here
             let (timer_ipc_chan, _timer_ipc_port) = ipc::channel().unwrap();
-            let (timer_chan, timer_port) = channel();
+            let (timer_chan, timer_port) = crossbeam_channel::unbounded();
             let global = ServiceWorkerGlobalScope::new(
                 init, url, devtools_mpsc_port, runtime,
                 own_sender, receiver,
@@ -213,7 +212,7 @@ impl ServiceWorkerGlobalScope {
             scope.upcast::<GlobalScope>().mem_profiler_chan().run_with_memory_reporting(|| {
                 // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
                 // Step 1
-                while let Ok(event) = global.receive_event() {
+                while let Some(event) = global.receive_event() {
                     // Step 3
                     if !global.handle_event(event) {
                         break;
@@ -275,34 +274,17 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
-    #[allow(unsafe_code)]
-    fn receive_event(&self) -> Result<MixedMessage, RecvError> {
+    fn receive_event(&self) -> Option<MixedMessage> {
         let scope = self.upcast::<WorkerGlobalScope>();
-        let worker_port = &self.receiver;
         let devtools_port = scope.from_devtools_receiver();
-        let timer_event_port = &self.timer_event_port;
 
-        let sel = Select::new();
-        let mut worker_handle = sel.handle(worker_port);
-        let mut devtools_handle = sel.handle(devtools_port);
-        let mut timer_port_handle = sel.handle(timer_event_port);
-        unsafe {
-            worker_handle.add();
-            if scope.from_devtools_sender().is_some() {
-                devtools_handle.add();
+        select! {
+            recv(self.receiver, msg) => msg.map(MixedMessage::FromServiceWorker),
+            recv(self.timer_event_port, msg) => msg.map(MixedMessage::FromTimeoutThread),
+            recv(scope.from_devtools_sender().map(|_| devtools_port), msg) => {
+                msg.map(MixedMessage::FromDevtools)
             }
-            timer_port_handle.add();
-        }
-
-        let ret = sel.wait();
-        if ret == worker_handle.id() {
-            Ok(MixedMessage::FromServiceWorker(worker_port.recv()?))
-        }else if ret == devtools_handle.id() {
-            Ok(MixedMessage::FromDevtools(devtools_port.recv()?))
-        } else if ret == timer_port_handle.id() {
-            Ok(MixedMessage::FromTimeoutThread(timer_event_port.recv()?))
-        } else {
-            panic!("unexpected select result!")
+            default => None
         }
     }
 

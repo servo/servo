@@ -24,6 +24,7 @@ servo = [
 
 [dependencies]
 app_units = "0.6"
+crossbeam-channel = "0.2"
 cssparser = "0.23.0"
 euclid = "0.17"
 hashglobe = { path = "../hashglobe" }

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl;
+use crossbeam_channel::{self, Receiver, Sender};
 use euclid::Size2D;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -12,8 +13,6 @@ use script_traits::ConstellationMsg;
 use servo_config::prefs::PREFS;
 use std::{thread, time};
 use std::collections::{HashMap, HashSet};
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
 use webvr_traits::{WebVRMsg, WebVRResult};
 use webvr_traits::webvr::*;
 
@@ -70,7 +69,7 @@ impl WebVRThread {
     pub fn spawn(vr_compositor_chan: WebVRCompositorSender)
                  -> (IpcSender<WebVRMsg>, Sender<Sender<ConstellationMsg>>) {
         let (sender, receiver) = ipc::channel().unwrap();
-        let (constellation_sender, constellation_receiver) = mpsc::channel();
+        let (constellation_sender, constellation_receiver) = crossbeam_channel::unbounded();
         let sender_clone = sender.clone();
         thread::Builder::new().name("WebVRThread".into()).spawn(move || {
             let constellation_chan = constellation_receiver.recv().unwrap();
@@ -220,7 +219,7 @@ impl WebVRThread {
 
     fn handle_create_compositor(&mut self, display_id: u32) {
         let compositor = self.service.get_display(display_id).map(|d| WebVRCompositor(d.as_ptr()));
-        self.vr_compositor_chan.send(compositor).unwrap();
+        self.vr_compositor_chan.send(compositor);
     }
 
     fn handle_get_gamepads(&mut self,
@@ -256,7 +255,7 @@ impl WebVRThread {
 
     fn notify_events(&self, events: Vec<VREvent>) {
         let pipeline_ids: Vec<PipelineId> = self.contexts.iter().map(|c| *c).collect();
-        self.constellation_chan.send(ConstellationMsg::WebVREvents(pipeline_ids.clone(), events)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebVREvents(pipeline_ids.clone(), events));
     }
 
     #[inline]
@@ -320,7 +319,7 @@ pub type WebVRCompositorSender = Sender<Option<WebVRCompositor>>;
 
 impl WebVRCompositorHandler {
     pub fn new() -> (Box<WebVRCompositorHandler>, WebVRCompositorSender) {
-        let (sender, receiver) = mpsc::channel();
+        let (sender, receiver) = crossbeam_channel::unbounded();
         let instance = Box::new(WebVRCompositorHandler {
             compositors: HashMap::new(),
             webvr_thread_receiver: receiver,

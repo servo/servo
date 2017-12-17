@@ -6,6 +6,7 @@ use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
+use crossbeam_channel::{self, Sender};
 use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::cell::DomRefCell;
@@ -98,8 +99,6 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Sender, channel};
-use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::{ComputedValues, PropertyId};
@@ -357,7 +356,7 @@ impl Window {
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let (tx, rx) = channel();
+        let (tx, rx) = crossbeam_channel::unbounded();
         (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
     }
 
@@ -1182,7 +1181,7 @@ impl Window {
         self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
             scroll_id,
             scroll_offset: Vector2D::new(-x, -y),
-        })).unwrap();
+        }));
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1208,7 +1207,7 @@ impl Window {
     /// Advances the layout animation clock by `delta` milliseconds, and then
     /// forces a reflow if `tick` is true.
     pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
-        self.layout_chan.send(Msg::AdvanceClockMs(delta, tick)).unwrap();
+        self.layout_chan.send(Msg::AdvanceClockMs(delta, tick));
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This
@@ -1253,7 +1252,7 @@ impl Window {
         };
 
         // Layout will let us know when it's done.
-        let (join_chan, join_port) = channel();
+        let (join_chan, join_port) = crossbeam_channel::unbounded();
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
@@ -1278,18 +1277,19 @@ impl Window {
             dom_count: self.Document().dom_count(),
         };
 
-        self.layout_chan.send(Msg::Reflow(reflow)).unwrap();
+        self.layout_chan.send(Msg::Reflow(reflow));
 
         debug!("script: layout forked");
 
-        let complete = match join_port.try_recv() {
-            Err(Empty) => {
+        let complete = select! {
+            recv(join_port, msg) => if let Some(reflow_complete) = msg {
+                reflow_complete
+            } else {
+                panic!("Layout thread failed while script was waiting for a result.");
+            },
+            default => {
                 info!("script: waiting on layout");
                 join_port.recv().unwrap()
-            }
-            Ok(reflow_complete) => reflow_complete,
-            Err(Disconnected) => {
-                panic!("Layout thread failed while script was waiting for a result.");
             }
         };
 
@@ -1583,7 +1583,7 @@ impl Window {
         if doc.prompt_to_unload(false) {
             self.main_thread_script_chan().send(
                 MainThreadScriptMsg::Navigate(pipeline_id,
-                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace));
         };
 
     }
@@ -1802,8 +1802,8 @@ impl Window {
         webrender_document: DocumentId,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<LayoutRPC + Send> = {
-            let (rpc_send, rpc_recv) = channel();
-            layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
+            let (rpc_send, rpc_recv) = crossbeam_channel::unbounded();
+            layout_chan.send(Msg::GetRPC(rpc_send));
             rpc_recv.recv().unwrap()
         };
         let error_reporter = CSSErrorReporter {

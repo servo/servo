@@ -12,6 +12,7 @@ path = "lib.rs"
 [dependencies]
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
+crossbeam-channel = "0.2"
 cookie = "0.10"
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = {path = "../embedder_traits"}

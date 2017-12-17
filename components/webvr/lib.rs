@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 
 extern crate canvas_traits;
+extern crate crossbeam_channel;
 extern crate euclid;
 extern crate ipc_channel;
 #[macro_use]
