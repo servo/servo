@@ -11,6 +11,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate script_traits;
+extern crate servo_channel;
 extern crate servo_url;
 extern crate webrender_api;
 
@@ -28,9 +29,9 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::LayoutMsg as ConstellationMsg;
+use servo_channel::{Receiver, Sender};
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender};
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency

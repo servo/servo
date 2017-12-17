@@ -84,6 +84,7 @@ pub extern crate servo_arc;
 #[cfg(feature = "servo")]
 #[macro_use]
 extern crate servo_atoms;
+#[cfg(feature = "servo")] extern crate servo_channel;
 #[cfg(feature = "servo")]
 extern crate servo_config;
 #[cfg(feature = "servo")]

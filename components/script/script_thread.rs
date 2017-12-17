@@ -70,7 +70,6 @@ use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
@@ -101,6 +100,8 @@ use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent,
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
+use servo_channel::{channel, Receiver, Sender};
+use servo_channel::{route_ipc_receiver_to_new_servo_receiver, route_ipc_receiver_to_new_servo_sender};
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
@@ -113,7 +114,6 @@ use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -299,39 +299,39 @@ impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
 
 impl ScriptPort for Receiver<CommonScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map_err(|_| ())
+        self.recv().ok_or(())
     }
 }
 
 impl ScriptPort for Receiver<MainThreadScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         match self.recv() {
-            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(_) => panic!("unexpected main thread event message!"),
-            _ => Err(()),
+            Some(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
+            Some(_) => panic!("unexpected main thread event message!"),
+            None => Err(()),
         }
     }
 }
 
 impl ScriptPort for Receiver<(TrustedWorkerAddress, CommonScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).map_err(|_| ())
+        self.recv().map(|(_, msg)| msg).ok_or(())
     }
 }
 
 impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         match self.recv().map(|(_, msg)| msg) {
-            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(_) => panic!("unexpected main thread event message!"),
-            _ => Err(()),
+            Some(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
+            Some(_) => panic!("unexpected main thread event message!"),
+            None => Err(()),
         }
     }
 }
 
 impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).map_err(|_| ())
+        self.recv().map(|(_, msg)| msg).ok_or(())
     }
 }
 
@@ -895,12 +895,12 @@ impl ScriptThread {
 
         // Ask the router to proxy IPC messages from the devtools to us.
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
-        let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
+        let devtools_port = route_ipc_receiver_to_new_servo_receiver(ipc_devtools_receiver);
 
         let (timer_event_chan, timer_event_port) = channel();
 
         // Ask the router to proxy IPC messages from the control port to us.
-        let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
+        let control_port = route_ipc_receiver_to_new_servo_receiver(state.control_port);
 
         let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 
@@ -1018,37 +1018,15 @@ impl ScriptThread {
 
         // Receive at least one message so we don't spinloop.
         debug!("Waiting for event.");
-        let mut event = {
-            let sel = Select::new();
-            let mut script_port = sel.handle(self.task_queue.select());
-            let mut control_port = sel.handle(&self.control_port);
-            let mut timer_event_port = sel.handle(&self.timer_event_port);
-            let mut devtools_port = sel.handle(&self.devtools_port);
-            let mut image_cache_port = sel.handle(&self.image_cache_port);
-            unsafe {
-                script_port.add();
-                control_port.add();
-                timer_event_port.add();
-                if self.devtools_chan.is_some() {
-                    devtools_port.add();
-                }
-                image_cache_port.add();
-            }
-            let ret = sel.wait();
-            if ret == script_port.id() {
-                self.task_queue.take_tasks();
+        let mut event = select! {
+            recv(self.task_queue.select(), msg) => {
+                self.task_queue.take_tasks(msg.unwrap());
                 FromScript(self.task_queue.recv().unwrap())
-            } else if ret == control_port.id() {
-                FromConstellation(self.control_port.recv().unwrap())
-            } else if ret == timer_event_port.id() {
-                FromScheduler(self.timer_event_port.recv().unwrap())
-            } else if ret == devtools_port.id() {
-                FromDevtools(self.devtools_port.recv().unwrap())
-            } else if ret == image_cache_port.id() {
-                FromImageCache(self.image_cache_port.recv().unwrap())
-            } else {
-                panic!("unexpected select result")
-            }
+            },
+            recv(self.control_port.select(), msg) => FromConstellation(msg.unwrap()),
+            recv(self.timer_event_port.select(), msg) => FromScheduler(msg.unwrap()),
+            recv(self.devtools_chan.as_ref().map(|_| self.devtools_port.select()), msg) => FromDevtools(msg.unwrap()),
+            recv(self.image_cache_port.select(), msg) => FromImageCache(msg.unwrap()),
         };
         debug!("Got event.");
 
@@ -1130,20 +1108,20 @@ impl ScriptThread {
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
-                Err(_) => match self.task_queue.try_recv() {
-                    Err(_) => match self.timer_event_port.try_recv() {
-                        Err(_) => match self.devtools_port.try_recv() {
-                            Err(_) => match self.image_cache_port.try_recv() {
-                                Err(_) => break,
-                                Ok(ev) => event = FromImageCache(ev),
+                None => match self.task_queue.try_recv() {
+                    None => match self.timer_event_port.try_recv() {
+                        None => match self.devtools_port.try_recv() {
+                            None => match self.image_cache_port.try_recv() {
+                                None => break,
+                                Some(ev) => event = FromImageCache(ev),
                             },
-                            Ok(ev) => event = FromDevtools(ev),
+                            Some(ev) => event = FromDevtools(ev),
                         },
-                        Ok(ev) => event = FromScheduler(ev),
+                        Some(ev) => event = FromScheduler(ev),
                     },
-                    Ok(ev) => event = FromScript(ev),
+                    Some(ev) => event = FromScript(ev),
                 },
-                Ok(ev) => event = FromConstellation(ev),
+                Some(ev) => event = FromConstellation(ev),
             }
         }
 
@@ -2195,7 +2173,7 @@ impl ScriptThread {
         let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
-        ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
+        route_ipc_receiver_to_new_servo_sender(ipc_timer_event_port,
                                                  self.timer_event_chan.clone());
 
         let origin = if final_url.as_str() == "about:blank" {

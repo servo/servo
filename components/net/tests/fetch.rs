@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use {DEFAULT_USER_AGENT, new_fetch_context, create_embedder_proxy, fetch, make_server};
-use devtools_traits::DevtoolsControlMsg;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use fetch_with_context;
@@ -34,13 +33,13 @@ use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use servo_channel::{channel, Sender};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{Sender, channel};
 use time::{self, Duration};
 use unicase::UniCase;
 
@@ -774,17 +773,17 @@ fn test_fetch_redirect_updates_method() {
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
     // make sure the test doesn't send more data than expected
-    assert_eq!(rx.try_recv().is_err(), true);
+    assert_eq!(rx.try_recv().is_none(), true);
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::Found, Method::Post);
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
-    assert_eq!(rx.try_recv().is_err(), true);
+    assert_eq!(rx.try_recv().is_none(), true);
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SeeOther, Method::Get);
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
-    assert_eq!(rx.try_recv().is_err(), true);
+    assert_eq!(rx.try_recv().is_none(), true);
 
     let extension = Method::Extension("FOO".to_owned());
 
@@ -792,18 +791,18 @@ fn test_fetch_redirect_updates_method() {
     assert_eq!(rx.recv().unwrap(), true);
     // for MovedPermanently and Found, Method should only be changed if it was Post
     assert_eq!(rx.recv().unwrap(), false);
-    assert_eq!(rx.try_recv().is_err(), true);
+    assert_eq!(rx.try_recv().is_none(), true);
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::Found, extension.clone());
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), false);
-    assert_eq!(rx.try_recv().is_err(), true);
+    assert_eq!(rx.try_recv().is_none(), true);
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::SeeOther, extension.clone());
     assert_eq!(rx.recv().unwrap(), true);
     // for SeeOther, Method should always be changed, so this should be true
     assert_eq!(rx.recv().unwrap(), true);
-    assert_eq!(rx.try_recv().is_err(), true);
+    assert_eq!(rx.try_recv().is_none(), true);
 }
 
 fn response_is_done(response: &Response) -> bool {
@@ -912,7 +911,7 @@ fn test_fetch_with_devtools() {
     let mut request = Request::new(url.clone(), Some(origin), Some(TEST_PIPELINE_ID));
     request.referrer = Referrer::NoReferrer;
 
-    let (devtools_chan, devtools_port) = channel::<DevtoolsControlMsg>();
+    let (devtools_chan, devtools_port) = channel();
 
     let _ = fetch(&mut request, Some(devtools_chan));
     let _ = server.close();

@@ -11,7 +11,7 @@ use script_runtime::ScriptThreadEventCategory;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
-use std::sync::mpsc::{Receiver, Sender};
+use servo_channel::{Receiver, Sender, base_channel};
 use task::TaskBox;
 use task_source::TaskSourceName;
 
@@ -53,9 +53,13 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
     /// Process incoming tasks, immediately sending priority ones downstream,
     /// and categorizing potential throttles.
-    fn process_incoming_tasks(&self) {
-        let mut non_throttled: Vec<T> = self.port
-            .try_iter()
+    fn process_incoming_tasks(&self, first_msg: T) {
+        let mut incoming = vec![first_msg];
+        while let Some(msg) = self.port.try_recv() {
+            incoming.push(msg)
+        }
+        let mut non_throttled: Vec<T> = incoming
+            .into_iter()
             .filter(|msg| !msg.is_wake_up())
             .collect();
 
@@ -100,31 +104,31 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
     /// Reset the queue for a new iteration of the event-loop,
     /// returning the port about whose readiness we want to be notified.
-    pub fn select(&self) -> &Receiver<T> {
+    pub fn select(&self) -> &base_channel::Receiver<T> {
         // This is a new iteration of the event-loop, so we reset the "business" counter.
         self.taken_task_counter.set(0);
         // We want to be notified when the script-port is ready to receive.
         // Hence that's the one we need to include in the select.
-        &self.port
+        self.port.select()
     }
 
     /// Take a message from the front of the queue, without waiting if empty.
-    pub fn recv(&self) -> Result<T, ()> {
-        self.msg_queue.borrow_mut().pop_front().ok_or(())
+    pub fn recv(&self) -> Option<T> {
+        self.msg_queue.borrow_mut().pop_front()
     }
 
     /// Same as recv.
-    pub fn try_recv(&self) -> Result<T, ()> {
+    pub fn try_recv(&self) -> Option<T> {
         self.recv()
     }
 
     /// Drain the queue for the current iteration of the event-loop.
     /// Holding-back throttles above a given high-water mark.
-    pub fn take_tasks(&self) {
+    pub fn take_tasks(&self, first_msg: T) {
         // High-watermark: once reached, throttled tasks will be held-back.
         const PER_ITERATION_MAX: u64 = 5;
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
-        self.process_incoming_tasks();
+        self.process_incoming_tasks(first_msg);
         let mut throttled = self.throttled.borrow_mut();
         let mut throttled_length: usize = throttled.values().map(|queue| queue.len()).sum();
         let task_source_names = TaskSourceName::all();

@@ -30,6 +30,7 @@ extern crate profile_traits;
 extern crate rustc_serialize;
 #[macro_use] extern crate serde;
 extern crate servo_atoms;
+extern crate servo_channel;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
@@ -60,12 +61,12 @@ use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
+use servo_channel::{Receiver, Sender};
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
@@ -802,12 +803,6 @@ pub enum PaintWorkletError {
     Timeout,
     /// No such worklet.
     WorkletNotFound,
-}
-
-impl From<RecvTimeoutError> for PaintWorkletError {
-    fn from(_: RecvTimeoutError) -> PaintWorkletError {
-        PaintWorkletError::Timeout
-    }
 }
 
 /// Execute paint code in the worklet thread pool.

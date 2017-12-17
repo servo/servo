@@ -33,6 +33,7 @@ extern crate profile_traits;
 extern crate serde_json;
 extern crate servo_allocator;
 extern crate servo_arc;
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;
