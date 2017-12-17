@@ -9,6 +9,7 @@
 
 extern crate base64;
 extern crate cookie as cookie_rs;
+extern crate crossbeam_channel;
 extern crate euclid;
 extern crate hyper;
 extern crate image;
@@ -27,6 +28,7 @@ extern crate webdriver;
 
 mod keys;
 
+use crossbeam_channel::Sender;
 use euclid::TypedSize2D;
 use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -44,7 +46,6 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::{SocketAddr, SocketAddrV4};
-use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
@@ -277,7 +278,7 @@ impl Handler {
 
         for _ in 0..iterations {
             let msg = ConstellationMsg::GetFocusTopLevelBrowsingContext(sender.clone());
-            self.constellation_chan.send(msg).unwrap();
+            self.constellation_chan.send(msg);
             // Wait until the document is ready before returning the top-level browsing context id.
             if let Some(x) = receiver.recv().unwrap() {
                 debug!("Focused context is {}", x);
@@ -336,14 +337,14 @@ impl Handler {
     fn browsing_context_script_command(&self, cmd_msg: WebDriverScriptCommand) -> WebDriverResult<()> {
         let browsing_context_id = self.session()?.browsing_context_id;
         let msg = ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg));
-        self.constellation_chan.send(msg).unwrap();
+        self.constellation_chan.send(msg);
         Ok(())
     }
 
     fn top_level_script_command(&self, cmd_msg: WebDriverScriptCommand) -> WebDriverResult<()> {
         let browsing_context_id = BrowsingContextId::from(self.session()?.top_level_browsing_context_id);
         let msg = ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg));
-        self.constellation_chan.send(msg).unwrap();
+        self.constellation_chan.send(msg);
         Ok(())
     }
 
@@ -360,7 +361,7 @@ impl Handler {
 
         let load_data = LoadData::new(url, None, None, None);
         let cmd_msg = WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, sender.clone());
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
 
         self.wait_for_load(sender, receiver)
     }
@@ -398,7 +399,7 @@ impl Handler {
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg = WebDriverCommandMsg::GetWindowSize(top_level_browsing_context_id, sender);
 
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
 
         let window_size = receiver.recv().unwrap();
         let vp = window_size.initial_viewport;
@@ -422,7 +423,7 @@ impl Handler {
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, sender.clone());
 
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
 
         let timeout = self.resize_timeout;
         let constellation_chan = self.constellation_chan.clone();
@@ -431,7 +432,7 @@ impl Handler {
             // which will give the current window size.
             thread::sleep(Duration::from_millis(timeout as u64));
             let cmd_msg = WebDriverCommandMsg::GetWindowSize(top_level_browsing_context_id, sender);
-            constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+            constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
         });
 
         let window_size = receiver.recv().unwrap();
@@ -468,7 +469,7 @@ impl Handler {
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let direction = TraversalDirection::Back(1);
         let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
-        self.constellation_chan.send(msg).unwrap();
+        self.constellation_chan.send(msg);
         Ok(WebDriverResponse::Void)
     }
 
@@ -476,7 +477,7 @@ impl Handler {
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let direction = TraversalDirection::Forward(1);
         let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
-        self.constellation_chan.send(msg).unwrap();
+        self.constellation_chan.send(msg);
         Ok(WebDriverResponse::Void)
     }
 
@@ -486,7 +487,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let cmd_msg = WebDriverCommandMsg::Refresh(top_level_browsing_context_id, sender.clone());
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
 
         self.wait_for_load(sender, receiver)
     }
@@ -788,7 +789,7 @@ impl Handler {
 
         let cmd = WebDriverScriptCommand::FocusElement(element.id.clone(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
 
         // TODO: distinguish the not found and not focusable cases
         receiver.recv().unwrap().or_else(|_| Err(WebDriverError::new(
@@ -801,7 +802,7 @@ impl Handler {
         // send keys command being two separate messages,
         // so the constellation may have changed state between them.
         let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, keys);
-        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
 
         Ok(WebDriverResponse::Void)
     }
@@ -816,7 +817,7 @@ impl Handler {
         for _ in 0..iterations {
             let (sender, receiver) = ipc::channel().unwrap();
             let cmd_msg = WebDriverCommandMsg::TakeScreenshot(top_level_id, sender);
-            self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+            self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg));
 
             if let Some(x) = receiver.recv().unwrap() {
                 img = Some(x);

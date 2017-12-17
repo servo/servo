@@ -35,6 +35,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.2"
+crossbeam-channel = "0.2.1"
 cookie = "0.10"
 chrono = "0.4"
 cssparser = "0.24"

@@ -7,6 +7,7 @@
 extern crate base64;
 extern crate brotli;
 extern crate cookie as cookie_rs;
+extern crate crossbeam_channel;
 extern crate devtools_traits;
 extern crate embedder_traits;
 extern crate flate2;

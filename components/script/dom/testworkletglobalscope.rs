@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::Sender;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
@@ -15,7 +16,6 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
 
 // check-tidy: no specs after this line
 

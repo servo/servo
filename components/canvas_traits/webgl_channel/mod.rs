@@ -38,7 +38,7 @@ impl<T: Serialize> WebGLSender<T> {
                 sender.send(msg).map_err(|_| ())
             },
             WebGLSender::Mpsc(ref sender) => {
-                sender.send(msg).map_err(|_| ())
+                Ok(sender.send(msg))
             }
         }
     }
@@ -58,7 +58,7 @@ impl<T> WebGLReceiver<T> where T: for<'de> Deserialize<'de> + Serialize {
                 receiver.recv().map_err(|_| ())
             },
             WebGLReceiver::Mpsc(ref receiver) => {
-                receiver.recv().map_err(|_| ())
+                receiver.recv().ok_or(())
             }
         }
     }

@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 #![cfg_attr(feature = "unstable", feature(conservative_impl_trait))]
-#![feature(mpsc_select)]
 
 extern crate backtrace;
 extern crate bluetooth_traits;
@@ -12,6 +11,7 @@ extern crate canvas;
 extern crate canvas_traits;
 extern crate clipboard;
 extern crate compositing;
+#[macro_use] extern crate crossbeam_channel;
 extern crate debugger;
 extern crate devtools_traits;
 #[cfg(not(target_os = "ios"))]

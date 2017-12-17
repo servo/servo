@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::{self, Sender, Receiver};
 use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
 use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler, WorkerScriptMsg};
@@ -39,7 +40,6 @@ use servo_url::ServoUrl;
 use std::mem::replace;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
-use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
 
@@ -208,15 +208,15 @@ impl DedicatedWorkerGlobalScope {
             let runtime = unsafe { new_rt_and_cx() };
             *worker_rt_for_mainthread.lock().unwrap() = Some(SharedRt::new(&runtime));
 
-            let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
-            ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
+            let (devtools_mpsc_chan, devtools_mpsc_port) = crossbeam_channel::unbounded();
+            ROUTER.route_ipc_receiver_to_crossbeam_sender(from_devtools_receiver, devtools_mpsc_chan);
 
-            let (timer_tx, timer_rx) = channel();
+            let (timer_tx, timer_rx) = crossbeam_channel::unbounded();
             let (timer_ipc_chan, timer_ipc_port) = ipc::channel().unwrap();
             let worker_for_route = worker.clone();
             ROUTER.add_route(timer_ipc_port.to_opaque(), Box::new(move |message| {
                 let event = message.to().unwrap();
-                timer_tx.send((worker_for_route.clone(), event)).unwrap();
+                timer_tx.send((worker_for_route.clone(), event));
             }));
 
             let global = DedicatedWorkerGlobalScope::new(
@@ -245,7 +245,7 @@ impl DedicatedWorkerGlobalScope {
             scope.upcast::<GlobalScope>().mem_profiler_chan().run_with_memory_reporting(|| {
                 // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
                 // Step 1
-                while let Ok(event) = global.receive_event() {
+                while let Some(event) = global.receive_event() {
                     if scope.is_closing() {
                         break;
                     }
@@ -267,7 +267,7 @@ impl DedicatedWorkerGlobalScope {
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let (tx, rx) = channel();
+        let (tx, rx) = crossbeam_channel::unbounded();
         let chan = Box::new(SendableWorkerScriptChan {
             sender: tx,
             worker: self.worker.borrow().as_ref().unwrap().clone(),
@@ -275,33 +275,17 @@ impl DedicatedWorkerGlobalScope {
         (chan, Box::new(rx))
     }
 
-    #[allow(unsafe_code)]
-    fn receive_event(&self) -> Result<MixedMessage, RecvError> {
+    fn receive_event(&self) -> Option<MixedMessage> {
         let scope = self.upcast::<WorkerGlobalScope>();
-        let worker_port = &self.receiver;
-        let timer_event_port = &self.timer_event_port;
         let devtools_port = scope.from_devtools_receiver();
 
-        let sel = Select::new();
-        let mut worker_handle = sel.handle(worker_port);
-        let mut timer_event_handle = sel.handle(timer_event_port);
-        let mut devtools_handle = sel.handle(devtools_port);
-        unsafe {
-            worker_handle.add();
-            timer_event_handle.add();
-            if scope.from_devtools_sender().is_some() {
-                devtools_handle.add();
+        select! {
+            recv(self.receiver, msg) => msg.map(MixedMessage::FromWorker),
+            recv(self.timer_event_port, msg) => msg.map(MixedMessage::FromScheduler),
+            recv(scope.from_devtools_sender().map(|_| devtools_port), msg) => {
+                msg.map(MixedMessage::FromDevtools)
             }
-        }
-        let ret = sel.wait();
-        if ret == worker_handle.id() {
-            Ok(MixedMessage::FromWorker(worker_port.recv()?))
-        } else if ret == timer_event_handle.id() {
-            Ok(MixedMessage::FromScheduler(timer_event_port.recv()?))
-        } else if ret == devtools_handle.id() {
-            Ok(MixedMessage::FromDevtools(devtools_port.recv()?))
-        } else {
-            panic!("unexpected select result!")
+            default => None
         }
     }
 

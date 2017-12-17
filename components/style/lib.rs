@@ -32,6 +32,7 @@ extern crate atomic_refcell;
 extern crate bitflags;
 #[allow(unused_extern_crates)]
 extern crate byteorder;
+#[cfg(feature = "servo")] extern crate crossbeam_channel;
 #[cfg(feature = "gecko")]
 #[macro_use]
 #[no_link]

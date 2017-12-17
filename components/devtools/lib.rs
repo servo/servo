@@ -13,6 +13,7 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
+extern crate crossbeam_channel;
 extern crate devtools_traits;
 extern crate hyper;
 extern crate ipc_channel;
@@ -35,6 +36,7 @@ use actors::tab::TabActor;
 use actors::thread::ThreadActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
+use crossbeam_channel::{Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -47,7 +49,6 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use time::precise_time_ns;
 
@@ -125,7 +126,7 @@ struct ResponseStartUpdateMsg {
 
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
-    let (sender, receiver) = channel();
+    let (sender, receiver) = crossbeam_channel::unbounded();
     {
         let sender = sender.clone();
         thread::Builder::new().name("Devtools".to_owned()).spawn(move || {
@@ -472,11 +473,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         for stream in listener.incoming() {
             // connection succeeded
             sender_clone.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()))).unwrap();
+                    ChromeToDevtoolsControlMsg::AddClient(stream.unwrap())))
         }
     }).expect("Thread spawning failed");
 
-    while let Ok(msg) = receiver.recv() {
+    while let Some(msg) = receiver.recv() {
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();

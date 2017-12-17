@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+extern crate crossbeam_channel;
 extern crate gfx;
 extern crate ipc_channel;
 extern crate metrics;
@@ -19,6 +20,7 @@ extern crate webrender_api;
 // The traits are here instead of in layout so
 //   that these modules won't have to depend on layout.
 
+use crossbeam_channel::{Receiver, Sender};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
@@ -30,7 +32,6 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::LayoutMsg as ConstellationMsg;
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender};
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency

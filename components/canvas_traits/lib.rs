@@ -4,9 +4,11 @@
 
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
+#![feature(nonzero)]
 
 #![deny(unsafe_code)]
 
+extern crate crossbeam_channel;
 extern crate cssparser;
 extern crate euclid;
 extern crate gleam;

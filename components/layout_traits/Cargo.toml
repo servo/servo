@@ -10,6 +10,7 @@ name = "layout_traits"
 path = "lib.rs"
 
 [dependencies]
+crossbeam-channel = "0.2"
 gfx = {path = "../gfx"}
 ipc-channel = "0.10"
 metrics = {path = "../metrics"}
