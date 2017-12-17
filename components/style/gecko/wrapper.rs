@@ -1795,9 +1795,19 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         parent_node.and_then(|n| n.as_element())
     }
 
+    #[inline]
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         debug_assert!(self.implemented_pseudo_element().is_some());
         self.closest_non_native_anonymous_ancestor()
+    }
+
+    #[inline]
+    fn assigned_slot(&self) -> Option<Self> {
+        let slot = self.get_extended_slots()?._base.mAssignedSlot.mRawPtr;
+
+        unsafe {
+            Some(GeckoElement(&slot.as_ref()?._base._base._base._base))
+        }
     }
 
     #[inline]
