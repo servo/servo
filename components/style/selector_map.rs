@@ -106,6 +106,13 @@ pub struct SelectorMap<T: 'static> {
     pub count: usize,
 }
 
+impl<T: 'static> Default for SelectorMap<T> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // FIXME(Manishearth) the 'static bound can be removed when
 // our HashMap fork (hashglobe) is able to use NonZero,
 // or when stdlib gets fallible collections

@@ -1232,7 +1232,7 @@ impl Stylist {
             rule_hash_target.matches_user_and_author_rules();
 
         // Step 1: Normal user-agent rules.
-        if let Some(map) = self.cascade_data.user_agent.cascade_data.borrow_for_pseudo(pseudo_element) {
+        if let Some(map) = self.cascade_data.user_agent.cascade_data.rules.borrow_for_pseudo(pseudo_element) {
             map.get_all_matching_rules(
                 element,
                 &rule_hash_target,
@@ -1270,7 +1270,7 @@ impl Stylist {
         // Which may be more what you would probably expect.
         if matches_user_and_author_rules {
             // Step 3a: User normal rules.
-            if let Some(map) = self.cascade_data.user.borrow_for_pseudo(pseudo_element) {
+            if let Some(map) = self.cascade_data.user.rules.borrow_for_pseudo(pseudo_element) {
                 map.get_all_matching_rules(
                     element,
                     &rule_hash_target,
@@ -1281,15 +1281,15 @@ impl Stylist {
                     CascadeLevel::UserNormal,
                 );
             }
-        } else {
-            debug!("skipping user rules");
         }
 
         // Step 3b: XBL rules.
+        //
+        // TODO(emilio): Ensure cascade order is correct for Shadow DOM.
         let cut_off_inheritance = element.each_xbl_stylist(|stylist| {
             // ServoStyleSet::CreateXBLServoStyleSet() loads XBL style sheets
             // under eAuthorSheetFeatures level.
-            if let Some(map) = stylist.cascade_data.author.borrow_for_pseudo(pseudo_element) {
+            if let Some(map) = stylist.cascade_data.author.rules.borrow_for_pseudo(pseudo_element) {
                 // NOTE(emilio): This is needed because the XBL stylist may
                 // think it has a different quirks mode than the document.
                 //
@@ -1320,7 +1320,7 @@ impl Stylist {
             !cut_off_inheritance
         {
             // Step 3c: Author normal rules.
-            if let Some(map) = self.cascade_data.author.borrow_for_pseudo(pseudo_element) {
+            if let Some(map) = self.cascade_data.author.rules.borrow_for_pseudo(pseudo_element) {
                 map.get_all_matching_rules(
                     element,
                     &rule_hash_target,
@@ -1331,8 +1331,31 @@ impl Stylist {
                     CascadeLevel::AuthorNormal
                 );
             }
-        } else {
-            debug!("skipping author normal rules");
+
+            let mut current = rule_hash_target.assigned_slot();
+            while let Some(slot) = current {
+                // TODO(emilio): Ensure this is the expected cascade order,
+                // maybe we need to merge the sorting with the above
+                // get_all_matching_rules.
+                slot.each_xbl_stylist(|stylist| {
+                    let slotted_rules =
+                        stylist.cascade_data.author.slotted_rules.as_ref();
+                    if let Some(map) = slotted_rules.and_then(|r| r.borrow_for_pseudo(pseudo_element)) {
+                        map.get_all_matching_rules(
+                            element,
+                            &rule_hash_target,
+                            applicable_declarations,
+                            context,
+                            self.quirks_mode,
+                            flags_setter,
+                            CascadeLevel::AuthorNormal
+                        );
+                    }
+                });
+
+                current = slot.assigned_slot();
+            }
+
         }
 
         if !only_default_rules {
@@ -1368,8 +1391,6 @@ impl Stylist {
                     )
                 );
             }
-        } else {
-            debug!("skipping style attr and SMIL & animation rules");
         }
 
         //
@@ -1388,8 +1409,6 @@ impl Stylist {
                     )
                 );
             }
-        } else {
-            debug!("skipping transition rules");
         }
     }
 
@@ -1841,14 +1860,9 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     }
 }
 
-/// Data resulting from performing the CSS cascade that is specific to a given
-/// origin.
-///
-/// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
-/// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Debug)]
-struct CascadeData {
+/// A set of rules for element and pseudo-elements.
+#[derive(Debug, Default)]
+struct ElementAndPseudoRules {
     /// Rules from stylesheets at this `CascadeData`'s origin.
     element_map: SelectorMap<Rule>,
 
@@ -1859,6 +1873,76 @@ struct CascadeData {
     /// Figure out a good way to do a `PerNonAnonBox` and `PerAnonBox` (for
     /// `precomputed_values_for_pseudo`) without duplicating a lot of code.
     pseudos_map: PerPseudoElementMap<Box<SelectorMap<Rule>>>,
+}
+
+impl ElementAndPseudoRules {
+    #[inline(always)]
+    fn insert(
+        &mut self,
+        rule: Rule,
+        pseudo_element: Option<&PseudoElement>,
+        quirks_mode: QuirksMode,
+    ) -> Result<(), FailedAllocationError> {
+        debug_assert!(pseudo_element.map_or(true, |pseudo| !pseudo.is_precomputed()));
+
+        let map = match pseudo_element {
+            None => &mut self.element_map,
+            Some(pseudo) => {
+                self.pseudos_map.get_or_insert_with(
+                    &pseudo.canonical(),
+                    || Box::new(SelectorMap::new())
+                )
+            }
+        };
+
+        map.insert(rule, quirks_mode)
+    }
+
+    fn clear(&mut self) {
+        self.element_map.clear();
+        self.pseudos_map.clear();
+    }
+
+    #[inline]
+    fn borrow_for_pseudo(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
+        match pseudo {
+            Some(pseudo) => self.pseudos_map.get(&pseudo.canonical()).map(|p| &**p),
+            None => Some(&self.element_map),
+        }
+    }
+
+    /// Measures heap usage.
+    #[cfg(feature = "gecko")]
+    fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        sizes.mElementAndPseudosMaps += self.element_map.size_of(ops);
+
+        for elem in self.pseudos_map.iter() {
+            if let Some(ref elem) = *elem {
+                sizes.mElementAndPseudosMaps += <Box<_> as MallocSizeOf>::size_of(elem, ops);
+            }
+        }
+    }
+}
+
+/// Data resulting from performing the CSS cascade that is specific to a given
+/// origin.
+///
+/// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
+/// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Debug)]
+struct CascadeData {
+    /// The rules at this cascade level.
+    rules: ElementAndPseudoRules,
+
+    /// ::slotted() pseudo-element rules.
+    ///
+    /// We need to store them separately because an element needs to match scoped
+    /// pseudo-element rules in different style scopes.
+    ///
+    /// In particular, you need to go through all the style data in all the
+    /// containing style scopes starting from the closest assigned slot.
+    slotted_rules: Option<Box<ElementAndPseudoRules>>,
 
     /// A map with all the animations at this `CascadeData`'s origin, indexed
     /// by name.
@@ -1925,8 +2009,8 @@ struct CascadeData {
 impl CascadeData {
     fn new() -> Self {
         Self {
-            element_map: SelectorMap::new(),
-            pseudos_map: PerPseudoElementMap::default(),
+            rules: ElementAndPseudoRules::default(),
+            slotted_rules: None,
             animations: Default::default(),
             extra_data: ExtraStyleData::default(),
             invalidation_map: InvalidationMap::new(),
@@ -2015,8 +2099,10 @@ impl CascadeData {
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
-                        let map = match selector.pseudo_element() {
-                            Some(pseudo) if pseudo.is_precomputed() => {
+                        let pseudo_element = selector.pseudo_element();
+
+                        if let Some(pseudo) = pseudo_element {
+                            if pseudo.is_precomputed() {
                                 debug_assert!(selector.is_universal());
                                 debug_assert!(matches!(origin, Origin::UserAgent));
 
@@ -2030,15 +2116,9 @@ impl CascadeData {
                                         CascadeLevel::UANormal,
                                         selector.specificity()
                                     ));
-
                                 continue;
                             }
-                            None => &mut self.element_map,
-                            Some(pseudo) => {
-                                self.pseudos_map
-                                    .get_or_insert_with(&pseudo.canonical(), || Box::new(SelectorMap::new()))
-                            }
-                        };
+                        }
 
                         let hashes =
                             AncestorHashes::new(&selector, quirks_mode);
@@ -2050,7 +2130,15 @@ impl CascadeData {
                             self.rules_source_order
                         );
 
-                        map.insert(rule, quirks_mode)?;
+                        if selector.is_slotted() {
+                            if self.slotted_rules.is_none() {
+                                self.slotted_rules = Some(Default::default());
+                            }
+                            let slotted_rules = self.slotted_rules.as_mut().unwrap();
+                            slotted_rules.insert(rule, pseudo_element, quirks_mode)?;
+                        } else {
+                            self.rules.insert(rule, pseudo_element, quirks_mode)?;
+                        }
 
                         if rebuild_kind.should_rebuild_invalidation() {
                             self.invalidation_map
@@ -2223,18 +2311,10 @@ impl CascadeData {
         true
     }
 
-    #[inline]
-    fn borrow_for_pseudo(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
-        match pseudo {
-            Some(pseudo) => self.pseudos_map.get(&pseudo.canonical()).map(|p| &**p),
-            None => Some(&self.element_map),
-        }
-    }
-
     /// Clears the cascade data, but not the invalidation data.
     fn clear_cascade_data(&mut self) {
-        self.element_map.clear();
-        self.pseudos_map.clear();
+        self.rules.clear();
+        self.slotted_rules = None;
         self.animations.clear();
         self.extra_data.clear();
         self.rules_source_order = 0;
@@ -2257,12 +2337,9 @@ impl CascadeData {
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
     pub fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        sizes.mElementAndPseudosMaps += self.element_map.size_of(ops);
-
-        for elem in self.pseudos_map.iter() {
-            if let Some(ref elem) = *elem {
-                sizes.mElementAndPseudosMaps += <Box<_> as MallocSizeOf>::size_of(elem, ops);
-            }
+        self.rules.add_size_of(ops, sizes);
+        if let Some(ref slotted_rules) = self.slotted_rules {
+            slotted_rules.add_size_of(ops, sizes);
         }
 
         sizes.mOther += self.animations.size_of(ops);

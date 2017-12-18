@@ -98,11 +98,19 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
 
     /// Consumes the builder, producing a Selector.
     #[inline(always)]
-    pub fn build(&mut self, parsed_pseudo: bool) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
+    pub fn build(
+        &mut self,
+        parsed_pseudo: bool,
+        parsed_slotted: bool,
+    ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
         // Compute the specificity and flags.
         let mut spec = SpecificityAndFlags(specificity(self.simple_selectors.iter()));
         if parsed_pseudo {
             spec.0 |= HAS_PSEUDO_BIT;
+        }
+
+        if parsed_slotted {
+            spec.0 |= HAS_SLOTTED_BIT;
         }
 
         self.build_with_specificity_and_flags(spec)
@@ -188,17 +196,27 @@ fn split_from_end<T>(s: &[T], at: usize) -> (&[T], &[T]) {
 }
 
 pub const HAS_PSEUDO_BIT: u32 = 1 << 30;
+pub const HAS_SLOTTED_BIT: u32 = 1 << 31;
 
+/// We use ten bits for each specificity kind (id, class, element), and the two
+/// high bits for the pseudo and slotted flags.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SpecificityAndFlags(pub u32);
 
 impl SpecificityAndFlags {
+    #[inline]
     pub fn specificity(&self) -> u32 {
-        self.0 & !HAS_PSEUDO_BIT
+        self.0 & !(HAS_PSEUDO_BIT | HAS_SLOTTED_BIT)
     }
 
+    #[inline]
     pub fn has_pseudo_element(&self) -> bool {
         (self.0 & HAS_PSEUDO_BIT) != 0
+    }
+
+    #[inline]
+    pub fn is_slotted(&self) -> bool {
+        (self.0 & HAS_SLOTTED_BIT) != 0
     }
 }
 

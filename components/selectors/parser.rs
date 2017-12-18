@@ -445,14 +445,22 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 pub struct Selector<Impl: SelectorImpl>(ThinArc<SpecificityAndFlags, Component<Impl>>);
 
 impl<Impl: SelectorImpl> Selector<Impl> {
+    #[inline]
     pub fn specificity(&self) -> u32 {
         self.0.header.header.specificity()
     }
 
+    #[inline]
     pub fn has_pseudo_element(&self) -> bool {
         self.0.header.header.has_pseudo_element()
     }
 
+    #[inline]
+    pub fn is_slotted(&self) -> bool {
+        self.0.header.header.is_slotted()
+    }
+
+    #[inline]
     pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
         if !self.has_pseudo_element() {
             return None
@@ -1219,7 +1227,7 @@ where
         builder.push_combinator(combinator);
     }
 
-    Ok(Selector(builder.build(has_pseudo_element)))
+    Ok(Selector(builder.build(has_pseudo_element, slotted)))
 }
 
 impl<Impl: SelectorImpl> Selector<Impl> {
