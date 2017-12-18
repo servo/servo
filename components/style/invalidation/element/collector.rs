@@ -24,7 +24,7 @@ use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
 use smallvec::SmallVec;
 use stylesheets::origin::{Origin, OriginSet};
-use stylist::Stylist;
+use stylist::StyleRuleCascadeData;
 
 #[derive(Debug, PartialEq)]
 enum VisitedDependent {
@@ -57,7 +57,7 @@ where
 /// changes.
 pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
-    xbl_stylists: &'a [AtomicRef<'b, Stylist>],
+    shadow_rule_datas: &'a [(AtomicRef<'b, StyleRuleCascadeData>, QuirksMode)],
     cut_off_inheritance: bool,
     element: E,
     data: &'a mut ElementData,
@@ -68,7 +68,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
-        xbl_stylists: &'a [AtomicRef<'b, Stylist>],
+        shadow_rule_datas: &'a [(AtomicRef<'b, StyleRuleCascadeData>, QuirksMode)],
         cut_off_inheritance: bool,
         element: E,
         data: &'a mut ElementData,
@@ -84,7 +84,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
 
         Self {
             shared_context,
-            xbl_stylists,
+            shadow_rule_datas,
             cut_off_inheritance,
             element,
             data,
@@ -211,20 +211,18 @@ where
                 OriginSet::all()
             };
 
-            self.shared_context.stylist.each_invalidation_map(|invalidation_map, origin| {
+            self.shared_context.stylist.each_normal_rule_cascade_data(|cascade_data, origin| {
                 if document_origins.contains(origin.into()) {
-                    collector.collect_dependencies_in_invalidation_map(invalidation_map);
+                    collector.collect_dependencies_in_invalidation_map(cascade_data.invalidation_map());
                 }
             });
 
-            for stylist in self.xbl_stylists {
-                // FIXME(emilio): Replace with assert / remove when we
-                // figure out what to do with the quirks mode mismatches
+            for &(ref data, quirks_mode) in self.shadow_rule_datas {
+                // FIXME(emilio): Replace with assert / remove when we figure
+                // out what to do with the quirks mode mismatches
                 // (that is, when bug 1406875 is properly fixed).
-                collector.quirks_mode = stylist.quirks_mode();
-                stylist.each_invalidation_map(|invalidation_map, _| {
-                    collector.collect_dependencies_in_invalidation_map(invalidation_map);
-                })
+                collector.quirks_mode = quirks_mode;
+                collector.collect_dependencies_in_invalidation_map(data.invalidation_map());
             }
 
             collector.invalidates_self
