@@ -12,8 +12,8 @@ use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding}
 use display_list_builder::StackingContextCollectionState;
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use flow::{FlowFlags, EarlyAbsolutePositionInfo, OpaqueFlow};
+use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
+use flow::{FlowFlags, EarlyAbsolutePositionInfo, GetBaseFlow, OpaqueFlow};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::FragmentFlags;
@@ -1315,7 +1315,7 @@ impl Flow for InlineFlow {
 
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter_mut() {
-            flow::mut_base(kid).floats = Floats::new(writing_mode);
+            kid.mut_base().floats = Floats::new(writing_mode);
         }
 
         self.base.flags.remove(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
@@ -1423,7 +1423,7 @@ impl Flow for InlineFlow {
         // sizes down to them.
         let block_container_explicit_block_size = self.base.block_container_explicit_block_size;
         for kid in self.base.child_iter_mut() {
-            let kid_base = flow::mut_base(kid);
+            let kid_base = kid.mut_base();
 
             kid_base.block_container_inline_size = inline_size;
             kid_base.block_container_writing_mode = container_mode;
@@ -1524,14 +1524,14 @@ impl Flow for InlineFlow {
             match f.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     let block = FlowRef::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    block.mut_base().early_absolute_position_info = EarlyAbsolutePositionInfo {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     let block = FlowRef::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    block.mut_base().early_absolute_position_info = EarlyAbsolutePositionInfo {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
@@ -1757,7 +1757,7 @@ impl fmt::Debug for InlineFlow {
                "{:?}({:x}) {:?}",
                self.class(),
                self.base.debug_id(),
-               flow::base(self))
+               self.base())
     }
 }
 

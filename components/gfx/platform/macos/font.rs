@@ -69,11 +69,7 @@ impl FontHandle {
     /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
     /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.
     fn find_h_kern_subtable(&self) -> Option<CachedKernTable> {
-        let font_table = match self.table_for_tag(KERN) {
-            Some(table) => table,
-            None => return None
-        };
-
+        let font_table = self.table_for_tag(KERN)?;
         let mut result = CachedKernTable {
             font_table: font_table,
             pair_data_range: 0..0,

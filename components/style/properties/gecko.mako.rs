@@ -61,6 +61,7 @@ use values::{self, Auto, CustomIdent, Either, KeyframesName, None_};
 use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
 use values::computed::font::{FontSize, SingleFontFamily};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
+use values::computed::outline::OutlineStyle;
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -2348,10 +2349,10 @@ fn static_assert() {
         // cast + static_asserts
         let result = match v {
             % for value in border_style_keyword.values_for('gecko'):
-                Either::Second(border_style::T::${to_camel_case(value)}) =>
+                OutlineStyle::Other(border_style::T::${to_camel_case(value)}) =>
                     structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
             % endfor
-                Either::First(Auto) =>
+                OutlineStyle::Auto =>
                     structs::${border_style_keyword.gecko_constant('auto')} ${border_style_keyword.maybe_cast("u8")},
         };
         ${set_gecko_property("mOutlineStyle", "result")}
@@ -2378,10 +2379,10 @@ fn static_assert() {
         match ${get_gecko_property("mOutlineStyle")} ${border_style_keyword.maybe_cast("u32")} {
             % for value in border_style_keyword.values_for('gecko'):
             structs::${border_style_keyword.gecko_constant(value)} => {
-                Either::Second(border_style::T::${to_camel_case(value)})
+                OutlineStyle::Other(border_style::T::${to_camel_case(value)})
             },
             % endfor
-            structs::${border_style_keyword.gecko_constant('auto')} => Either::First(Auto),
+            structs::${border_style_keyword.gecko_constant('auto')} => OutlineStyle::Auto,
             % if border_style_keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for outline_style property: {:?}", x),
             % endif
@@ -3618,11 +3619,11 @@ fn static_assert() {
         if self.gecko.mWillChange.len() == 0 {
             T::Auto
         } else {
-            T::AnimateableFeatures(
-                self.gecko.mWillChange.iter().map(|gecko_atom| {
-                    CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
-                }).collect()
-            )
+            let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
+                CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
+            }).collect();
+
+            T::AnimateableFeatures(custom_idents.into_boxed_slice())
         }
     }
 
@@ -4228,8 +4229,11 @@ fn static_assert() {
             let ref gecko_quote_values = *self.gecko.mQuotes.mRawPtr;
             longhands::quotes::computed_value::T(
                 gecko_quote_values.mQuotePairs.iter().map(|gecko_pair| {
-                    (gecko_pair.first.to_string(), gecko_pair.second.to_string())
-                }).collect()
+                    (
+                        gecko_pair.first.to_string().into_boxed_str(),
+                        gecko_pair.second.to_string().into_boxed_str(),
+                    )
+                }).collect::<Vec<_>>().into_boxed_slice()
             )
         }
     }

@@ -141,6 +141,13 @@ impl DocumentLoader {
         !self.blocking_loads.is_empty()
     }
 
+    pub fn is_only_blocked_by_iframes(&self) -> bool {
+        self.blocking_loads.iter().all(|load| match *load {
+            LoadType::Subframe(_) => true,
+            _ => false
+        })
+    }
+
     pub fn inhibit_events(&mut self) {
         self.events_inhibited = true;
     }

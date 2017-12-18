@@ -262,7 +262,7 @@ impl AnimatedProperty {
             % for prop in data.longhands:
                 % if prop.animatable:
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
-                        // https://w3c.github.io/web-animations/#discrete-animation-type
+                        // https://drafts.csswg.org/web-animations/#discrete-animation-type
                         % if prop.animation_value_type == "discrete":
                             let value = if progress < 0.5 { from.clone() } else { to.clone() };
                         % else:
@@ -2833,7 +2833,7 @@ impl ComputeSquaredDistance for AnimatedFilterList {
 ///
 ///   border-top-color, border-color, border-top, border
 ///
-/// [property-order] https://w3c.github.io/web-animations/#calculating-computed-keyframes
+/// [property-order] https://drafts.csswg.org/web-animations/#calculating-computed-keyframes
 #[cfg(feature = "gecko")]
 pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Ordering {
     match (a.as_shorthand(), b.as_shorthand()) {

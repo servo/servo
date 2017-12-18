@@ -116,6 +116,21 @@ impl Default for StyleSystemOptions {
     }
 }
 
+impl StyleSystemOptions {
+    #[cfg(feature = "servo")]
+    /// On Gecko's nightly build?
+    pub fn is_nightly(&self) -> bool {
+        false
+    }
+
+    #[cfg(feature = "gecko")]
+    /// On Gecko's nightly build?
+    #[inline]
+    pub fn is_nightly(&self) -> bool {
+        structs::GECKO_IS_NIGHTLY
+    }
+}
+
 /// A shared style context.
 ///
 /// There's exactly one of these during a given restyle traversal, and it's

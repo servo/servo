@@ -9,7 +9,7 @@ use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
 use floats::SpeculatedFloatPlacement;
-use flow::{self, Flow, ImmutableFlowUtils, FlowFlags};
+use flow::{Flow, ImmutableFlowUtils, FlowFlags, GetBaseFlow};
 use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
 use generated_content::ResolveGeneratedContent;
 use incremental::RelayoutMode;
@@ -31,7 +31,7 @@ pub fn reflow(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: Re
         // Force reflow children during this traversal. This is needed when we failed
         // the float speculation of a block formatting context and need to fix it.
         if relayout_mode == RelayoutMode::Force {
-            flow::mut_base(flow)
+            flow.mut_base()
                 .restyle_damage
                 .insert(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
         }
@@ -40,7 +40,7 @@ pub fn reflow(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: Re
             assign_inline_sizes.process(flow);
         }
 
-        for kid in flow::child_iter_mut(flow) {
+        for kid in flow.mut_base().child_iter_mut() {
             doit(kid, assign_inline_sizes, assign_block_sizes, relayout_mode);
         }
 
@@ -87,11 +87,11 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
             stacking_context_position: &Point2D<Au>) {
         flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
 
-        for kid in flow::mut_base(flow).child_iter_mut() {
+        for kid in flow.mut_base().child_iter_mut() {
             let mut stacking_context_position = *stacking_context_position;
             if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
                 stacking_context_position = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0)) +
-                                            flow::base(kid).stacking_relative_position +
+                                            kid.base().stacking_relative_position +
                                             stacking_context_position.to_vector();
                 let relative_position = kid.as_block()
                     .stacking_relative_border_box(CoordinateSystem::Own);
@@ -112,17 +112,17 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
 }
 
 pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
-    if !flow::base(flow).restyle_damage.contains(ServoRestyleDamage::STORE_OVERFLOW) {
+    if !flow.base().restyle_damage.contains(ServoRestyleDamage::STORE_OVERFLOW) {
         return;
     }
 
-    for kid in flow::mut_base(flow).child_iter_mut() {
+    for kid in flow.mut_base().child_iter_mut() {
         store_overflow(layout_context, kid);
     }
 
     flow.store_overflow(layout_context);
 
-    flow::mut_base(flow)
+    flow.mut_base()
         .restyle_damage
         .remove(ServoRestyleDamage::STORE_OVERFLOW);
 }
@@ -131,22 +131,22 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
 /// given flow. This is needed to speculatively calculate the inline sizes of block formatting
 /// contexts. The speculation typically succeeds, but if it doesn't we have to lay it out again.
 pub fn guess_float_placement(flow: &mut Flow) {
-    if !flow::base(flow).restyle_damage.intersects(ServoRestyleDamage::REFLOW) {
+    if !flow.base().restyle_damage.intersects(ServoRestyleDamage::REFLOW) {
         return;
     }
 
     let mut floats_in = SpeculatedFloatPlacement::compute_floats_in_for_first_child(flow);
-    for kid in flow::mut_base(flow).child_iter_mut() {
-        if flow::base(kid).flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
+    for kid in flow.mut_base().child_iter_mut() {
+        if kid.base().flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
             // Do not propagate floats in or out, but do propogate between kids.
             guess_float_placement(kid);
         } else {
             floats_in.compute_floats_in(kid);
-            flow::mut_base(kid).speculated_float_placement_in = floats_in;
+            kid.mut_base().speculated_float_placement_in = floats_in;
             guess_float_placement(kid);
-            floats_in = flow::base(kid).speculated_float_placement_out;
+            floats_in = kid.base().speculated_float_placement_out;
         }
     }
     floats_in.compute_floats_out(flow);
-    flow::mut_base(flow).speculated_float_placement_out = floats_in
+    flow.mut_base().speculated_float_placement_out = floats_in
 }

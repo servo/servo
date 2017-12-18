@@ -547,12 +547,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 }
 
 impl SelectorImpl {
-    /// Returns the pseudo-element cascade type of the given `pseudo`.
-    #[inline]
-    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        pseudo.cascade_type()
-    }
-
     /// A helper to traverse each eagerly cascaded pseudo-element, executing
     /// `fun` on it.
     #[inline]

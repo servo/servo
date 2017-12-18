@@ -8,7 +8,7 @@
 # except according to those terms.
 
 from __future__ import print_function, unicode_literals
-from os import path, getcwd, listdir
+from os import path, listdir
 from time import time
 
 import sys
@@ -29,28 +29,30 @@ from servo.util import STATIC_RUST_LANG_ORG_DIST, URLOPEN_KWARGS
 @CommandProvider
 class MachCommands(CommandBase):
     def run_cargo(self, params, geckolib=False, check=False):
-        if geckolib:
-            self.set_use_stable_rust()
-            crate_dir = path.join('ports', 'geckolib')
-        else:
-            crate_dir = path.join('ports', 'servo')
+        if not params:
+            params = []
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()
         env = self.build_env(geckolib=geckolib)
 
-        if not params:
-            params = []
-
         if check:
             params = ['check'] + params
 
+        if geckolib:
+            # for c in $(cargo --list | tail -$(($(cargo --list | wc -l) - 1))); do
+            #   (cargo help $c 2>&1 | grep "\\--package" >/dev/null 2>&1) && echo $c
+            # done
+            if params[0] and params[0] in [
+                'bench', 'build', 'check', 'clean', 'doc', 'fmt', 'pkgid',
+                'run', 'rustc', 'rustdoc', 'test', 'update',
+            ]:
+                params[1:1] = ['--package', 'geckoservo']
+
+            self.set_use_stable_rust()
+
         build_start = time()
-        if self.context.topdir == getcwd():
-            with cd(crate_dir):
-                status = call(['cargo'] + params, env=env)
-        else:
-            status = call(['cargo'] + params, env=env)
+        status = call(['cargo'] + params, env=env)
         elapsed = time() - build_start
 
         notify_build_done(self.config, elapsed, status == 0)
@@ -94,7 +96,7 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo check")
     def check_geckolib(self, params):
-        return self.run_cargo(["-p", "geckoservo"] + (params or []), check=True, geckolib=True)
+        return self.run_cargo(params, check=True, geckolib=True)
 
     @Command('cargo-update',
              description='Same as update-cargo',

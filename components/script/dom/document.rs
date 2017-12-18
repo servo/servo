@@ -322,6 +322,7 @@ pub struct Document {
     dom_content_loaded_event_start: Cell<u64>,
     dom_content_loaded_event_end: Cell<u64>,
     dom_complete: Cell<u64>,
+    top_level_dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
@@ -1627,6 +1628,12 @@ impl Document {
         // asap_in_order_script_loaded.
 
         let loader = self.loader.borrow();
+
+        // Servo measures when the top-level content (not iframes) is loaded.
+        if (self.top_level_dom_complete.get() == 0) && loader.is_only_blocked_by_iframes() {
+            update_with_current_time_ms(&self.top_level_dom_complete);
+        }
+
         if loader.is_blocked() || loader.events_inhibited() {
             // Step 6.
             return;
@@ -1951,6 +1958,10 @@ impl Document {
         self.dom_complete.get()
     }
 
+    pub fn get_top_level_dom_complete(&self) -> u64 {
+        self.top_level_dom_complete.get()
+    }
+
     pub fn get_load_event_start(&self) -> u64 {
         self.load_event_start.get()
     }
@@ -2265,6 +2276,7 @@ impl Document {
             dom_content_loaded_event_start: Cell::new(Default::default()),
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
+            top_level_dom_complete: Cell::new(Default::default()),
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),

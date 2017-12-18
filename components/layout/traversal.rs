@@ -7,7 +7,7 @@
 use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use flow::{self, FlowFlags, Flow, ImmutableFlowUtils};
+use flow::{FlowFlags, Flow, GetBaseFlow, ImmutableFlowUtils};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
@@ -110,7 +110,7 @@ pub trait PreorderFlowTraversal {
         if self.should_process(flow) {
             self.process(flow);
         }
-        for kid in flow::child_iter_mut(flow) {
+        for kid in flow.mut_base().child_iter_mut() {
             self.traverse(kid);
         }
     }
@@ -125,7 +125,7 @@ pub trait PreorderFlowTraversal {
         if self.should_process(flow) {
             self.process(flow);
         }
-        for descendant_link in flow::mut_base(flow).abs_descendants.iter() {
+        for descendant_link in flow.mut_base().abs_descendants.iter() {
             self.traverse_absolute_flows(descendant_link)
         }
     }
@@ -145,7 +145,7 @@ pub trait PostorderFlowTraversal {
 
     /// Traverses the tree in postorder.
     fn traverse(&self, flow: &mut Flow) {
-        for kid in flow::child_iter_mut(flow) {
+        for kid in flow.mut_base().child_iter_mut() {
             self.traverse(kid);
         }
         if self.should_process(flow) {
@@ -171,7 +171,7 @@ pub trait InorderFlowTraversal {
             return;
         }
         self.process(flow, level);
-        for kid in flow::child_iter_mut(flow) {
+        for kid in flow.mut_base().child_iter_mut() {
             self.traverse(kid, level + 1);
         }
     }
@@ -226,12 +226,12 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.bubble_inline_sizes();
-        flow::mut_base(flow).restyle_damage.remove(ServoRestyleDamage::BUBBLE_ISIZES);
+        flow.mut_base().restyle_damage.remove(ServoRestyleDamage::BUBBLE_ISIZES);
     }
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.contains(ServoRestyleDamage::BUBBLE_ISIZES)
+        flow.base().restyle_damage.contains(ServoRestyleDamage::BUBBLE_ISIZES)
     }
 }
 
@@ -249,7 +249,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW)
+        flow.base().restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW)
     }
 }
 
@@ -278,7 +278,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        let base = flow::base(flow);
+        let base = flow.base();
         base.restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW) &&
         // The fragmentation countainer is responsible for calling Flow::fragment recursively
         !base.flags.contains(FlowFlags::CAN_BE_FRAGMENTED)
@@ -292,13 +292,13 @@ pub struct ComputeStackingRelativePositions<'a> {
 impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
     #[inline]
     fn should_process_subtree(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.contains(ServoRestyleDamage::REPOSITION)
+        flow.base().restyle_damage.contains(ServoRestyleDamage::REPOSITION)
     }
 
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.compute_stacking_relative_position(self.layout_context);
-        flow::mut_base(flow).restyle_damage.remove(ServoRestyleDamage::REPOSITION)
+        flow.mut_base().restyle_damage.remove(ServoRestyleDamage::REPOSITION)
     }
 }
 
@@ -310,15 +310,15 @@ impl<'a> BuildDisplayList<'a> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut Flow) {
         let parent_stacking_context_id = self.state.current_stacking_context_id;
-        self.state.current_stacking_context_id = flow::base(flow).stacking_context_id;
+        self.state.current_stacking_context_id = flow.base().stacking_context_id;
 
         let parent_clipping_and_scrolling = self.state.current_clipping_and_scrolling;
         self.state.current_clipping_and_scrolling = flow.clipping_and_scrolling();
 
         flow.build_display_list(&mut self.state);
-        flow::mut_base(flow).restyle_damage.remove(ServoRestyleDamage::REPAINT);
+        flow.mut_base().restyle_damage.remove(ServoRestyleDamage::REPAINT);
 
-        for kid in flow::child_iter_mut(flow) {
+        for kid in flow.mut_base().child_iter_mut() {
             self.traverse(kid);
         }
 

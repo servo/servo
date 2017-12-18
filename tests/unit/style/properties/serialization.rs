@@ -6,7 +6,7 @@ use properties::{parse, parse_input};
 use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
 use style::properties::parse_property_declaration_list;
-use style::values::{CustomIdent, RGBA, Auto};
+use style::values::{CustomIdent, RGBA};
 use style::values::generics::flex::FlexBasis;
 use style::values::specified::{BorderStyle, BorderSideWidth, Color};
 use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -511,7 +511,7 @@ mod shorthand_serialization {
     }
 
     mod outline {
-        use style::values::Either;
+        use style::values::specified::outline::OutlineStyle;
         use super::*;
 
         #[test]
@@ -519,7 +519,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = Either::Second(BorderStyle::Solid);
+            let style = OutlineStyle::Other(BorderStyle::Solid);
             let color = RGBA::new(255, 0, 0, 255).into();
 
             properties.push(PropertyDeclaration::OutlineWidth(width));
@@ -535,7 +535,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = Either::First(Auto);
+            let style = OutlineStyle::Auto;
             let color = RGBA::new(255, 0, 0, 255).into();
             properties.push(PropertyDeclaration::OutlineWidth(width));
             properties.push(PropertyDeclaration::OutlineStyle(style));

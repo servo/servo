@@ -12,7 +12,7 @@ use canvas_traits::canvas::CanvasMsg;
 use context::{LayoutContext, with_thread_local_font_context};
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use floats::ClearType;
-use flow::{self, ImmutableFlowUtils};
+use flow::{GetBaseFlow, ImmutableFlowUtils};
 use flow_ref::FlowRef;
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -232,7 +232,7 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::InlineBlock(ref info) => &info.flow_ref,
             };
 
-        flow::base(&**flow).restyle_damage
+        flow.base().restyle_damage
     }
 
     pub fn get_type(&self) -> &'static str {
@@ -1750,22 +1750,17 @@ impl Fragment {
 
         let character_breaking_strategy =
             text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
-        match self.calculate_split_position_using_breaking_strategy(character_breaking_strategy,
-                                                                    max_inline_size,
-                                                                    SplitOptions::empty()) {
-            None => None,
-            Some(split_info) => {
-                match split_info.inline_start {
-                    None => None,
-                    Some(split) => {
-                        Some(TruncationResult {
-                            split: split,
-                            text_run: split_info.text_run.clone(),
-                        })
-                    }
-                }
-            }
-        }
+
+        let split_info = self.calculate_split_position_using_breaking_strategy(
+                character_breaking_strategy,
+                max_inline_size,
+                SplitOptions::empty())?;
+
+        let split = split_info.inline_start?;
+        Some(TruncationResult {
+            split: split,
+            text_run: split_info.text_run.clone(),
+        })
     }
 
     /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
@@ -2617,11 +2612,11 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&block_flow.base().overflow);
             }
             SpecificFragmentInfo::InlineAbsolute(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&block_flow.base().overflow);
             }
             _ => (),
         }

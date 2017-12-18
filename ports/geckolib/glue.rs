@@ -267,8 +267,19 @@ fn traverse_subtree(
         None
     };
 
+    let is_restyle = element.get_data().is_some();
+
     let traversal = RecalcStyleOnly::new(shared_style_context);
-    driver::traverse_dom(&traversal, token, thread_pool);
+    let (used_parallel, stats) = driver::traverse_dom(&traversal, token, thread_pool);
+
+    if traversal_flags.contains(TraversalFlags::ParallelTraversal) &&
+       !traversal_flags.contains(TraversalFlags::AnimationOnly) &&
+       is_restyle && !element.is_native_anonymous() {
+       // We turn off parallel traversal for background tabs; this
+       // shouldn't count in telemetry. We're also focusing on restyles so
+       // we ensure that it's a restyle.
+       per_doc_data.record_traversal(used_parallel, stats);
+    }
 }
 
 /// Traverses the subtree rooted at `root` for restyling.
@@ -2017,7 +2028,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         parent_style_or_null.map(|x| &*x),
         cascade_flags,
         &metrics,
-        &rule_node
+        rule_node
     ).into()
 }
 
@@ -2207,8 +2218,9 @@ fn get_pseudo_style(
                                 &inputs,
                                 pseudo,
                                 &guards,
-                                inherited_styles,
-                                &metrics
+                                Some(inherited_styles),
+                                &metrics,
+                                CascadeFlags::empty(),
                             )
                     })
                 },
@@ -3633,16 +3645,16 @@ pub extern "C" fn Servo_ReparentStyle(
         }
     }
 
-    doc_data.stylist
-        .compute_style_with_inputs(&inputs,
-                                   pseudo.as_ref(),
-                                   &StylesheetGuards::same(&guard),
-                                   parent_style,
-                                   parent_style_ignoring_first_line,
-                                   layout_parent_style,
-                                   &metrics,
-                                   cascade_flags)
-        .into()
+    doc_data.stylist.compute_style_with_inputs(
+        &inputs,
+        pseudo.as_ref(),
+        &StylesheetGuards::same(&guard),
+        Some(parent_style),
+        Some(parent_style_ignoring_first_line),
+        Some(layout_parent_style),
+        &metrics,
+        cascade_flags,
+    ).into()
 }
 
 #[cfg(feature = "gecko_debug")]

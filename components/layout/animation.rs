@@ -5,7 +5,7 @@
 //! CSS transitions and animations.
 
 use context::LayoutContext;
-use flow::{self, Flow};
+use flow::{Flow, GetBaseFlow};
 use fnv::FnvHashMap;
 use gfx::display_list::OpaqueNode;
 use ipc_channel::ipc::IpcSender;
@@ -170,7 +170,7 @@ pub fn recalc_style_for_animations(context: &LayoutContext,
         }
     });
 
-    let base = flow::mut_base(flow);
+    let base = flow.mut_base();
     base.restyle_damage.insert(damage);
     for kid in base.children.iter_mut() {
         recalc_style_for_animations(context, kid, animations)
