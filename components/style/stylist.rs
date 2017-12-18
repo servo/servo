@@ -1292,6 +1292,10 @@ impl Stylist {
             if let Some(map) = stylist.cascade_data.author.borrow_for_pseudo(pseudo_element) {
                 // NOTE(emilio): This is needed because the XBL stylist may
                 // think it has a different quirks mode than the document.
+                //
+                // FIXME(emilio): this should use the same VisitedMatchingMode
+                // as `context`, write a test-case of :visited not working on
+                // Shadow DOM and fix it!
                 let mut matching_context = MatchingContext::new(
                     context.matching_mode,
                     context.bloom_filter,
