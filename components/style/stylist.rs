@@ -36,6 +36,7 @@ use selectors::visitor::SelectorVisitor;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallbitvec::SmallBitVec;
+use smallvec::SmallVec;
 use std::ops;
 use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
@@ -1285,9 +1286,41 @@ impl Stylist {
             }
         }
 
-        // Step 3b: XBL rules.
+        // Step 3b: XBL / Shadow DOM rules.
         //
-        // TODO(emilio): Ensure cascade order is correct for Shadow DOM.
+        // TODO(emilio): Cascade order here is wrong for Shadow DOM. In
+        // particular, normally document rules override ::slotted() rules, but
+        // for !important it should be the other way around. So probably we need
+        // to add some sort of AuthorScoped cascade level or something.
+        if !only_default_rules {
+            // Match slotted rules in reverse order, so that the outer slotted
+            // rules come before the inner rules (and thus have less priority).
+            let mut slots = SmallVec::<[_; 3]>::new();
+            let mut current = rule_hash_target.assigned_slot();
+            while let Some(slot) = current {
+                slots.push(slot);
+                current = slot.assigned_slot();
+            }
+
+            for slot in slots.iter().rev() {
+                slot.each_xbl_stylist(|stylist| {
+                    if let Some(map) = stylist.cascade_data.author.slotted_rules(pseudo_element) {
+                        map.get_all_matching_rules(
+                            element,
+                            &rule_hash_target,
+                            applicable_declarations,
+                            context,
+                            self.quirks_mode,
+                            flags_setter,
+                            CascadeLevel::AuthorNormal
+                        );
+                    }
+                });
+            }
+        }
+
+        // FIXME(emilio): It looks very wrong to match XBL / Shadow DOM rules
+        // even for getDefaultComputedStyle!
         let cut_off_inheritance = element.each_xbl_stylist(|stylist| {
             // ServoStyleSet::CreateXBLServoStyleSet() loads XBL style sheets
             // under eAuthorSheetFeatures level.
@@ -1333,29 +1366,6 @@ impl Stylist {
                     CascadeLevel::AuthorNormal
                 );
             }
-
-            let mut current = rule_hash_target.assigned_slot();
-            while let Some(slot) = current {
-                // TODO(emilio): Ensure this is the expected cascade order,
-                // maybe we need to merge the sorting with the above
-                // get_all_matching_rules.
-                slot.each_xbl_stylist(|stylist| {
-                    if let Some(map) = stylist.cascade_data.author.slotted_rules(pseudo_element) {
-                        map.get_all_matching_rules(
-                            element,
-                            &rule_hash_target,
-                            applicable_declarations,
-                            context,
-                            self.quirks_mode,
-                            flags_setter,
-                            CascadeLevel::AuthorNormal
-                        );
-                    }
-                });
-
-                current = slot.assigned_slot();
-            }
-
         }
 
         if !only_default_rules {
