@@ -668,6 +668,17 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
+        // If the elements are not assigned to the same slot they could match
+        // different ::slotted() rules in the slot scope.
+        //
+        // If two elements are assigned to different slots, even within the same
+        // shadow root, they could match different rules, due to the slot being
+        // assigned to yet another slot in another shadow root.
+        if target.element.assigned_slot() != candidate.element.assigned_slot() {
+            trace!("Miss: Different style scopes");
+            return None;
+        }
+
         if *target.get_local_name() != *candidate.element.get_local_name() {
             trace!("Miss: Local Name");
             return None;
