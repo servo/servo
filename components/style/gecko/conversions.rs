@@ -18,7 +18,7 @@ use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordData
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, ComputedUrl, Gradient, Image};
-use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
+use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage, TextAlign};
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
@@ -991,6 +991,26 @@ impl<L> VerticalAlign<L> {
                 VerticalAlign::MozMiddleWithBaseline
             },
             _ => panic!("unexpected enumerated value for vertical-align"),
+        }
+    }
+}
+
+impl TextAlign {
+    /// Obtain a specified value from a Gecko keyword value
+    ///
+    /// Intended for use with presentation attributes, not style structs
+    pub fn from_gecko_keyword(kw: u32) -> Self {
+        match kw  {
+            structs::NS_STYLE_TEXT_ALIGN_LEFT => TextAlign::Left,
+            structs::NS_STYLE_TEXT_ALIGN_RIGHT => TextAlign::Right,
+            structs::NS_STYLE_TEXT_ALIGN_CENTER => TextAlign::Center,
+            structs::NS_STYLE_TEXT_ALIGN_JUSTIFY => TextAlign::Justify,
+            structs::NS_STYLE_TEXT_ALIGN_MOZ_LEFT => TextAlign::MozLeft,
+            structs::NS_STYLE_TEXT_ALIGN_MOZ_RIGHT => TextAlign::MozRight,
+            structs::NS_STYLE_TEXT_ALIGN_MOZ_CENTER => TextAlign::MozCenter,
+            structs::NS_STYLE_TEXT_ALIGN_CHAR => TextAlign::Char,
+            structs::NS_STYLE_TEXT_ALIGN_END => TextAlign::End,
+            x => panic!("Found unexpected value in style struct for text-align property: {:?}", x),
         }
     }
 }

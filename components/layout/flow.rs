@@ -654,7 +654,7 @@ impl FlowFlags {
     #[inline]
     pub fn set_text_align(&mut self, value: TextAlign) {
         *self = (*self & !FlowFlags::TEXT_ALIGN) |
-                FlowFlags::from_bits(value.to_u32() << TEXT_ALIGN_SHIFT).unwrap();
+                FlowFlags::from_bits((value as u32) << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
