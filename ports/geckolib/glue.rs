@@ -4326,25 +4326,14 @@ pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(
 ) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let element = GeckoElement(element);
-    let mut has_dep = false;
 
     unsafe {
         Atom::with(local_name, |atom| {
-            has_dep = data.stylist.might_have_attribute_dependency(atom);
-
-            if !has_dep {
-                // TODO(emilio): Consider optimizing this storing attribute
-                // dependencies from UA sheets separately, so we could optimize
-                // the above lookup if cut_off_inheritance is true.
-                element.each_xbl_stylist(|stylist| {
-                    has_dep =
-                        has_dep || stylist.might_have_attribute_dependency(atom);
-                });
-            }
+            data.stylist.any_applicable_rule_data(element, |data, _| {
+                data.might_have_attribute_dependency(atom)
+            })
         })
     }
-
-    has_dep
 }
 
 #[no_mangle]
@@ -4358,17 +4347,9 @@ pub extern "C" fn Servo_StyleSet_HasStateDependency(
     let state = ElementState::from_bits_truncate(state);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
-    let mut has_dep = data.stylist.has_state_dependency(state);
-    if !has_dep {
-        // TODO(emilio): Consider optimizing this storing attribute
-        // dependencies from UA sheets separately, so we could optimize
-        // the above lookup if cut_off_inheritance is true.
-        element.each_xbl_stylist(|stylist| {
-            has_dep = has_dep || stylist.has_state_dependency(state);
-        });
-    }
-
-    has_dep
+    data.stylist.any_applicable_rule_data(element, |data, _| {
+        data.has_state_dependency(state)
+    })
 }
 
 #[no_mangle]

@@ -133,6 +133,7 @@ where
 }
 
 /// The type of rebuild that we need to do for a given stylesheet.
+#[derive(Clone, Copy, Debug)]
 pub enum SheetRebuildKind {
     /// A full rebuild, of both cascade data and invalidation data.
     Full,
