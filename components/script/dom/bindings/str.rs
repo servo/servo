@@ -302,6 +302,20 @@ impl DOMString {
     pub fn is_valid_week_string(&self) -> bool {
         parse_week_string(&*self.0).is_ok()
     }
+
+    /// A valid local date and time string should be {date}T{time}
+    /// where date and time are both valid
+    /// https://html.spec.whatwg.org/multipage/#valid-local-date-and-time-string
+    pub fn is_valid_local_date_and_time_string(&self) -> bool {
+
+    }
+
+    /// A valid local date and time string should be {date}T{time}
+    /// where date and time are both valid, and the time string must be as short as possible
+    /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
+    pub fn convert_valid_normalized_local_date_and_time_string(mut &self) {
+
+    }
 }
 
 impl Borrow<str> for DOMString {
@@ -539,6 +553,11 @@ fn parse_date_component(value: &str) -> Result<(u32, u32, u32), ()> {
 
     // Step 6
     Ok((year_int, month_int, day_int))
+}
+
+// https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
+fn parse_local_date_and_time_string(value: &str) ->  Result<(&str, &str), ()> {
+
 }
 
 fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {

@@ -1034,7 +1034,16 @@ impl HTMLInputElement {
             InputType::Time => {
                 let mut textinput = self.textinput.borrow_mut();
 
-                if ! textinput.single_line_content().is_valid_time_string() {
+                if !textinput.single_line_content().is_valid_time_string() {
+                    *textinput.single_line_content_mut() = "".into();
+                }
+            }
+            InputType::DatetimeLocal => {
+                let mut textinput = self.textinput.borrow_mut();
+                if textinput.single_line_content().is_valid_local_date_and_time_string() {
+                    *textinput.single_line_content_mut()
+                        .convert_valid_normalized_local_date_and_time_string();
+                } else {
                     *textinput.single_line_content_mut() = "".into();
                 }
             }
