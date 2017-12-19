@@ -560,6 +560,43 @@ fn parse_date_component(value: &str) -> Result<(u32, u32, u32), ()> {
     Ok((year_int, month_int, day_int))
 }
 
+/// https://html.spec.whatwg.org/multipage/#parse-a-time-component
+fn parse_time_component(value: &str) -> Result<(u32, u32, f32), ()> {
+    // Step 1
+    let mut iterator = value.split(':');
+    let hour = iterator.next().ok_or(())?;
+    if hour.len() != 2 {
+        return Err(());
+    }
+    let hour_int = hour.parse::<u32>().map_err(|_| ())?;
+
+    // Step 2
+    if hour_int > 23 {
+        return Err(());
+    }
+
+    // Step 3, 4
+    let minute = iterator.next().ok_or(())?;
+    if minute.len() != 2 {
+        return Err(());
+    }
+    let minute_int = minute.parse::<u32>().map_err(|_| ())?;
+
+    // Step 5
+    if minute_int > 59 {
+        return Err(());
+    }
+
+    // Step 6
+    let mut second_float: f32 = 0.0;
+    let second = iterator.next();
+    if second.is_some() {
+        second_float = second.unwrap().parse::<f32>().unwrap();
+    }
+    
+    Ok((hour_int, minute_int, second_float))
+}
+
 // https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
 fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, f32)), ()> {
     // Step 1, 2, 4
