@@ -14,6 +14,7 @@ import itertools
 import locale
 import os
 from os import path
+import platform
 import re
 import contextlib
 import subprocess
@@ -334,7 +335,10 @@ class CommandBase(object):
                 print "rustup is at version %s.%s.%s, Servo requires 1.8.0 or more recent." % version
                 print "Try running 'rustup self update'."
                 return 1
-            args = ["rustup" + BIN_SUFFIX, "run", "--install", self.toolchain()] + args
+            toolchain = self.toolchain()
+            if platform.system() == "Windows":
+                toolchain += "-x86_64-pc-windows-msvc"
+            args = ["rustup" + BIN_SUFFIX, "run", "--install", toolchain] + args
         else:
             args[0] += BIN_SUFFIX
         return call(args, **kwargs)
