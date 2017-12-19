@@ -12,6 +12,7 @@ use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 use itertools::{EitherOrBoth, Itertools};
+use num_traits::Zero;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
@@ -1042,12 +1043,21 @@ impl Animate for ComputedTransformOperation {
                 ))
             },
             (
+                &TransformOperation::Skew(ref fx, None),
+                &TransformOperation::Skew(ref tx, None),
+            ) => {
+                Ok(TransformOperation::Skew(
+                    fx.animate(tx, procedure)?,
+                    None,
+                ))
+            },
+            (
                 &TransformOperation::Skew(ref fx, ref fy),
                 &TransformOperation::Skew(ref tx, ref ty),
             ) => {
                 Ok(TransformOperation::Skew(
                     fx.animate(tx, procedure)?,
-                    fy.animate(ty, procedure)?,
+                    Some(fy.unwrap_or(Angle::zero()).animate(&ty.unwrap_or(Angle::zero()), procedure)?)
                 ))
             },
             (
@@ -1077,12 +1087,21 @@ impl Animate for ComputedTransformOperation {
                 ))
             },
             (
+                &TransformOperation::Translate(ref fx, None),
+                &TransformOperation::Translate(ref tx, None),
+            ) => {
+                Ok(TransformOperation::Translate(
+                    fx.animate(tx, procedure)?,
+                    None
+                ))
+            },
+            (
                 &TransformOperation::Translate(ref fx, ref fy),
                 &TransformOperation::Translate(ref tx, ref ty),
             ) => {
                 Ok(TransformOperation::Translate(
                     fx.animate(tx, procedure)?,
-                    fy.animate(ty, procedure)?
+                    Some(fy.unwrap_or(*fx).animate(&ty.unwrap_or(*tx), procedure)?)
                 ))
             },
             (
@@ -1141,6 +1160,24 @@ impl Animate for ComputedTransformOperation {
             ) => {
                 Ok(TransformOperation::ScaleZ(
                     animate_multiplicative_factor(*f, *t, procedure)?
+                ))
+            },
+            (
+                &TransformOperation::Scale(ref f, None),
+                &TransformOperation::Scale(ref t, None),
+            ) => {
+                Ok(TransformOperation::Scale(
+                    animate_multiplicative_factor(*f, *t, procedure)?,
+                    None
+                ))
+            },
+            (
+                &TransformOperation::Scale(ref fx, ref fy),
+                &TransformOperation::Scale(ref tx, ref ty),
+            ) => {
+                Ok(TransformOperation::Scale(
+                    animate_multiplicative_factor(*fx, *tx, procedure)?,
+                    Some(animate_multiplicative_factor(fy.unwrap_or(*fx), ty.unwrap_or(*tx), procedure)?),
                 ))
             },
             (
