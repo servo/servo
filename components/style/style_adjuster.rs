@@ -557,6 +557,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         layout_parent_style: &ComputedValues,
         flags: CascadeFlags,
     ) {
+        // Don't adjust visited styles, visited-dependent properties aren't
+        // affected by these adjustments and it'd be just wasted work anyway.
+        //
+        // It also doesn't make much sense to adjust them, since we don't
+        // cascade most properties anyway, and they wouldn't be looked up.
+        if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) {
+            return;
+        }
+
         self.adjust_for_visited(flags);
         #[cfg(feature = "gecko")]
         {
