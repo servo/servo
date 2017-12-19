@@ -178,6 +178,12 @@ impl DOMString {
         self.0.clear()
     }
 
+    /// Set string to  this `DOMString`
+    pub fn set_str(&mut self, string: &str) {
+        self.0.clear();
+        self.0.push_str(string);
+    }
+
     /// Shortens this String to the specified length.
     pub fn truncate(&mut self, new_len: usize) {
         self.0.truncate(new_len);
@@ -313,14 +319,15 @@ impl DOMString {
     /// A valid normalized local date and time string should be {date}T{time}
     /// where date and time are both valid, and the time string must be as short as possible
     /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
-    pub fn convert_valid_normalized_local_date_and_time_string(mut &self) {
-        let ((year, month, day), (hour, minute, second)) = parse_local_date_and_time_string(&*self.0)?;
-        if second > 0 {
-            &*self = format!("{}-{}-{}T{}:{}:{}", year, month, day, hour, minute, second)
+    pub fn convert_valid_normalized_local_date_and_time_string(&mut self) -> &str {
+        let ((year, month, day), (hour, minute, second)) = parse_local_date_and_time_string(&*self.0).unwrap();
+        if second > 0.0 {
+            self.set_str(&*format!("{}-{}-{}T{}:{}:{}", year, month, day, hour, minute, second));
         } else {
-            &*self = format!("{}-{}-{}T{}:{}", year, month, day, hour, minute)
+            self.set_str(&*format!("{}-{}-{}T{}:{}", year, month, day, hour, minute));
         }
     }
+
 }
 
 impl Borrow<str> for DOMString {
@@ -604,22 +611,19 @@ fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u
 
     // Step 3
     let date = iterator.next().ok_or(())?;
-    if !parse_date_string(date).is_some() {
-        return Err(());
-    }
+    let date_tuple = parse_date_component(date)?;
 
     // Step 5
     let time = iterator.next().ok_or(())?;
-    if !parse_time_string(date).is_some() {
-        return Err(());
-    }
+    let time_tuple = parse_time_component(date)?;
 
     // Step 6
     if iterator.next().is_some() {
         return Err(());
     }
 
-    (date, time)
+    // Step 7, 8, 9
+    Ok((date_tuple, time_tuple))
 }
 
 fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {
