@@ -178,6 +178,12 @@ impl DOMString {
         self.0.clear()
     }
 
+    /// Set string to this `DOMString`
+    pub fn set_str(&mut self, string: &str) {
+        self.0.clear();
+        self.0.push_str(string);
+    }
+
     /// Shortens this String to the specified length.
     pub fn truncate(&mut self, new_len: usize) {
         self.0.truncate(new_len);
@@ -302,6 +308,31 @@ impl DOMString {
     pub fn is_valid_week_string(&self) -> bool {
         parse_week_string(&*self.0).is_ok()
     }
+
+    /// A valid local date and time string should be {date}T{time}
+    /// where date and time are both valid
+    /// https://html.spec.whatwg.org/multipage/#valid-local-date-and-time-string
+    pub fn is_valid_local_date_and_time_string(&self) -> bool {
+        parse_local_date_and_time_string(&*self.0).is_ok()
+    }
+
+    /// A valid normalized local date and time string should be {date}T{time}
+    /// where date and time are both valid, and the time string must be as short as possible
+    /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
+    pub fn convert_valid_normalized_local_date_and_time_string(&mut self) {
+        let ((year, month, day), (hour, minute, second)) = parse_local_date_and_time_string(&*self.0).unwrap();
+        let year_str = format_zero(year, 4);
+        let month_str = format_zero(month, 2);
+        let day_str = format_zero(day, 2);
+        let hour_str = format_zero(hour, 2);
+        let minute_str = format_zero(minute, 2);
+        if second == 0.0 {
+            self.set_str(&*format!("{}-{}-{}T{}:{}", year_str, month_str, day_str, hour_str, minute_str));
+        } else {
+            self.set_str(&*format!("{}-{}-{}T{}:{}:{}", year_str, month_str, day_str, hour_str, minute_str, second));
+        }
+    }
+
 }
 
 impl Borrow<str> for DOMString {
@@ -541,6 +572,70 @@ fn parse_date_component(value: &str) -> Result<(u32, u32, u32), ()> {
     Ok((year_int, month_int, day_int))
 }
 
+/// https://html.spec.whatwg.org/multipage/#parse-a-time-component
+fn parse_time_component(value: &str) -> Result<(u32, u32, f32), ()> {
+    // Step 1
+    let mut iterator = value.split(':');
+    let hour = iterator.next().ok_or(())?;
+    if hour.len() != 2 {
+        return Err(());
+    }
+    let hour_int = hour.parse::<u32>().map_err(|_| ())?;
+
+    // Step 2
+    if hour_int > 23 {
+        return Err(());
+    }
+
+    // Step 3, 4
+    let minute = iterator.next().ok_or(())?;
+    if minute.len() != 2 {
+        return Err(());
+    }
+    let minute_int = minute.parse::<u32>().map_err(|_| ())?;
+
+    // Step 5
+    if minute_int > 59 {
+        return Err(());
+    }
+
+    // Step 6
+    let mut second_float: f32 = 0.0;
+    let second = iterator.next();
+    if second.is_some() {
+        second_float = second.unwrap().parse::<f32>().unwrap();
+    }
+
+    Ok((hour_int, minute_int, second_float))
+}
+
+// https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
+fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, f32)), ()> {
+    // Step 1, 2, 4
+    let mut iterator;
+    if value.contains('T') {
+        iterator = value.split('T');
+    } else {
+        iterator = value.split(' ');
+    }
+
+    // Step 3
+    let date = iterator.next().ok_or(())?;
+    let date_tuple = parse_date_component(date)?;
+
+    // Step 5
+    let time = iterator.next().ok_or(())?;
+    let time_tuple = parse_time_component(time)?;
+
+    // Step 6
+    if iterator.next().is_some() {
+        return Err(());
+    }
+
+    // Step 7, 8, 9
+    Ok((date_tuple, time_tuple))
+}
+
 fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {
     match month_num {
         1|3|5|7|8|10|12 => Ok(31),
@@ -568,4 +663,15 @@ fn max_week_in_year(year: u32) -> u32 {
 #[inline]
 fn is_leap_year(year: u32) -> bool {
     year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
+}
+
+#[inline]
+fn format_zero(value: u32, n: usize) -> String {
+    let mut val_str = value.to_string();
+    let mut len = val_str.len();
+    while len < n {
+        val_str = format!("{}{}", "0", val_str.clone());
+        len += 1;
+    }
+    val_str
 }
