@@ -556,8 +556,28 @@ fn parse_date_component(value: &str) -> Result<(u32, u32, u32), ()> {
 }
 
 // https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
-fn parse_local_date_and_time_string(value: &str) ->  Result<(&str, &str), ()> {
+fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, u32)), ()> {
+    // Step 1, 2, 4
+    let mut iterator = value.split('T');
 
+    // Step 3
+    let date = iterator.next().ok_or(())?;
+    if !parse_date_string(date).is_some() {
+        return Err(());
+    }
+
+    // Step 5
+    let time = iterator.next().ok_or(())?;
+    if !parse_time_string(date).is_some() {
+        return Err(());
+    }
+
+    // Step 6
+    if iterator.next().is_some() {
+        return Err(());
+    }
+
+    (date, time)
 }
 
 fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {
