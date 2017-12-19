@@ -178,7 +178,7 @@ impl DOMString {
         self.0.clear()
     }
 
-    /// Set string to  this `DOMString`
+    /// Set string to this `DOMString`
     pub fn set_str(&mut self, string: &str) {
         self.0.clear();
         self.0.push_str(string);
@@ -319,12 +319,12 @@ impl DOMString {
     /// A valid normalized local date and time string should be {date}T{time}
     /// where date and time are both valid, and the time string must be as short as possible
     /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
-    pub fn convert_valid_normalized_local_date_and_time_string(&mut self) -> &str {
-        let ((year, month, day), (hour, minute, second)) = parse_local_date_and_time_string(&*self.0).unwrap();
+    pub fn convert_valid_normalized_local_date_and_time_string(&mut self) {
+        let ((_year, _month, _day), (_hour, _minute, second)) = parse_local_date_and_time_string(&*self.0).unwrap();
         if second > 0.0 {
-            self.set_str(&*format!("{}-{}-{}T{}:{}:{}", year, month, day, hour, minute, second));
-        } else {
-            self.set_str(&*format!("{}-{}-{}T{}:{}", year, month, day, hour, minute));
+            let value = &*self.0.clone();
+            let datetime = value.rsplitn(2, ":").nth(1).unwrap();
+            self.set_str(&*datetime);
         }
     }
 
@@ -615,7 +615,7 @@ fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u
 
     // Step 5
     let time = iterator.next().ok_or(())?;
-    let time_tuple = parse_time_component(date)?;
+    let time_tuple = parse_time_component(time)?;
 
     // Step 6
     if iterator.next().is_some() {
