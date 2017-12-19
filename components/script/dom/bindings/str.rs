@@ -307,14 +307,19 @@ impl DOMString {
     /// where date and time are both valid
     /// https://html.spec.whatwg.org/multipage/#valid-local-date-and-time-string
     pub fn is_valid_local_date_and_time_string(&self) -> bool {
-
+        parse_local_date_and_time_string(&*self.0).is_ok()
     }
 
-    /// A valid local date and time string should be {date}T{time}
+    /// A valid normalized local date and time string should be {date}T{time}
     /// where date and time are both valid, and the time string must be as short as possible
     /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
     pub fn convert_valid_normalized_local_date_and_time_string(mut &self) {
-
+        let ((year, month, day), (hour, minute, second)) = parse_local_date_and_time_string(&*self.0)?;
+        if second > 0 {
+            &*self = format!("{}-{}-{}T{}:{}:{}", year, month, day, hour, minute, second)
+        } else {
+            &*self = format!("{}-{}-{}T{}:{}", year, month, day, hour, minute)
+        }
     }
 }
 
@@ -556,7 +561,7 @@ fn parse_date_component(value: &str) -> Result<(u32, u32, u32), ()> {
 }
 
 // https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
-fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, u32)), ()> {
+fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, f32)), ()> {
     // Step 1, 2, 4
     let mut iterator = value.split('T');
 
