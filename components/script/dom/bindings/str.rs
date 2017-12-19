@@ -600,7 +600,7 @@ fn parse_time_component(value: &str) -> Result<(u32, u32, f32), ()> {
     if second.is_some() {
         second_float = second.unwrap().parse::<f32>().unwrap();
     }
-    
+
     Ok((hour_int, minute_int, second_float))
 }
 
