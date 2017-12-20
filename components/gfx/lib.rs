@@ -5,6 +5,7 @@
 // For SIMD
 #![cfg_attr(feature = "unstable", feature(cfg_target_feature))]
 
+#![deny(warnings)]
 #![deny(unsafe_code)]
 
 extern crate app_units;

@@ -10,6 +10,7 @@
 
 //! A crate for deriving the MallocSizeOf trait.
 
+#![deny(warnings)]
 #[cfg(not(test))] extern crate proc_macro;
 #[macro_use] extern crate quote;
 extern crate syn;

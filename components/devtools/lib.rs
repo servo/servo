@@ -12,6 +12,7 @@
 
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 extern crate devtools_traits;
 extern crate hyper;

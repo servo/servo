@@ -5,6 +5,7 @@
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
 
+#![deny(warnings)]
 #![deny(unsafe_code)]
 
 extern crate cssparser;

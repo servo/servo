@@ -10,6 +10,7 @@
 //! It provides the same interface as https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
 //! so if those types are ever exported, we should be able to replace this implemtation.
 
+#![deny(warnings)]
 extern crate nonzero;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;

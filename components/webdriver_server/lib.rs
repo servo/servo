@@ -6,6 +6,7 @@
 #![crate_type = "rlib"]
 
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 extern crate base64;
 extern crate cookie as cookie_rs;

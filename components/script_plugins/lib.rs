@@ -14,7 +14,7 @@
 //!                       Use this for structs that correspond to a DOM type
 
 
-
+#![deny(warnings)]
 #![deny(unsafe_code)]
 #![feature(macro_vis_matcher)]
 #![feature(plugin)]

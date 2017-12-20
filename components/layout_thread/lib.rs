@@ -5,6 +5,7 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
+#![deny(warnings)]
 #![feature(mpsc_select)]
 
 extern crate app_units;

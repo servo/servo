@@ -7,6 +7,7 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
+#![deny(warnings)]
 
 extern crate app_units;
 extern crate atomic_refcell;

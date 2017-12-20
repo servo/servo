@@ -43,6 +43,7 @@
 //!   measured as well as the thing it points to. E.g.
 //!   `<Box<_> as MallocSizeOf>::size_of(field, ops)`.
 
+#![deny(warnings)]
 extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
