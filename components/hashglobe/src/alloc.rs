@@ -28,6 +28,7 @@ pub use self::platform::{alloc, dealloc, realloc};
 mod platform {
     extern crate libc;
 
+    #[cfg(not(any(target_os = "android")))]
     use std::ptr;
 
     use super::MIN_ALIGN;

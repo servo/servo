@@ -32,11 +32,11 @@ mac-rel-wpt4:
 
 mac-dev-unit:
   - ./mach clean-nightlies --keep 3 --force
-  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
-  - env ./mach test-unit
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig RUSTFLAGS=-Dwarnings ./mach build --dev
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig RUSTFLAGS=-Dwarnings ./mach test-unit
   - env ./mach package --dev
-  - env ./mach build-cef
-  - ./mach build-geckolib
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig RUSTFLAGS=-Dwarnings ./mach build-cef
+  - env RUSTFLAGS=-Dwarnings ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
@@ -80,13 +80,13 @@ linux-dev:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
-  - env CC=gcc-5 CXX=g++-5 ./mach build --dev
-  - env ./mach test-unit
+  - env CC=gcc-5 CXX=g++-5 RUSTFLAGS=-Dwarnings ./mach build --dev
+  - env CC=gcc-5 CXX=g++-5 RUSTFLAGS=-Dwarnings ./mach test-unit
   - env ./mach package --dev
-  - env ./mach build-cef
-  - env ./mach build --dev --no-default-features --features default-except-unstable
-  - ./mach build-geckolib
-  - ./mach test-stylo
+  - env CC=gcc-5 CXX=g++-5 RUSTFLAGS=-Dwarnings ./mach build-cef
+  - env CC=gcc-5 CXX=g++-5 RUSTFLAGS=-Dwarnings ./mach build --dev --no-default-features --features default-except-unstable
+  - env RUSTFLAGS=-Dwarnings ./mach build-geckolib
+  - env RUSTFLAGS=-Dwarnings ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
   - bash ./etc/ci/check_no_panic.sh
@@ -120,7 +120,7 @@ linux-nightly:
 
 android:
   - ./mach clean-nightlies --keep 3 --force
-  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --dev
+  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 RUSTFLAGS=-Dwarnings ./mach build --android --dev
   - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -134,18 +134,19 @@ android-nightly:
 
 arm32:
   - ./mach clean-nightlies --keep 3 --force
-  - env ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - env RUSTFLAGS=-Dwarnings ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 arm64:
   - ./mach clean-nightlies --keep 3 --force
-  - env ./mach build --rel --target=aarch64-unknown-linux-gnu
+  - env RUSTFLAGS=-Dwarnings ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 windows-msvc-dev:
   - mach.bat clean-nightlies --keep 3 --force
+  - set RUSTFLAGS=-D warnings
   - mach.bat build --dev
   - mach.bat test-unit
   - mach.bat package --dev
