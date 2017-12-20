@@ -555,18 +555,16 @@ where
 {
     match *selector {
         Component::Combinator(_) => unreachable!(),
-        Component::Slotted(ref selectors) => {
+        Component::Slotted(ref selector) => {
             context.shared.nesting_level += 1;
             let result =
                 element.assigned_slot().is_some() &&
-                selectors.iter().any(|s| {
-                    matches_complex_selector(
-                        s.iter(),
-                        element,
-                        context.shared,
-                        flags_setter,
-                    )
-                });
+                matches_complex_selector(
+                    selector.iter(),
+                    element,
+                    context.shared,
+                    flags_setter,
+                );
             context.shared.nesting_level -= 1;
             result
         }
