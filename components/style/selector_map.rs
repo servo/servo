@@ -433,7 +433,13 @@ fn specific_bucket_for<'a>(
         //
         // So inserting `span` in the rule hash makes sense since we want to
         // match the slotted <span>.
-        Component::Slotted(ref selector) => find_bucket(selector.iter()),
+        //
+        // FIXME(emilio, bug 1426516): The line below causes valgrind failures
+        // and it's probably a false positive, we should uncomment whenever
+        // jseward is back to confirm / whitelist it.
+        //
+        // Meanwhile taking the code path below is slower, but still correct.
+        // Component::Slotted(ref selector) => find_bucket(selector.iter()),
         _ => Bucket::Universal
     }
 }
