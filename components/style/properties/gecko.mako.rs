@@ -2951,10 +2951,12 @@ fn static_assert() {
         let count = other.gecko.m${type.capitalize()}${gecko_ffi_name}Count;
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = count;
 
-        // The length of mTransitions or mAnimations is often greater than m{Transition|Animation}XXCount,
-        // don't copy values over the count.
-        for (index, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate().take(count as usize) {
-            gecko.m${gecko_ffi_name} = other.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name};
+        let iter = self.gecko.m${type.capitalize()}s.iter_mut().zip(
+            other.gecko.m${type.capitalize()}s.iter().take(count as usize).cycle()
+        );
+
+        for (ours, others) in iter {
+            ours.m${gecko_ffi_name} = others.m${gecko_ffi_name};
         }
     }
 
@@ -3734,6 +3736,7 @@ fn static_assert() {
                                           count as usize,
                                           LayerType::${shorthand.title()});
         }
+        // FIXME(emilio): This may be bogus in the same way as bug 1426246.
         for (layer, other) in self.gecko.${layers_field_name}.mLayers.iter_mut()
                                   .zip(other.gecko.${layers_field_name}.mLayers.iter())
                                   .take(count as usize) {
