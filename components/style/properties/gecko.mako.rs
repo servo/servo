@@ -1789,16 +1789,14 @@ fn static_assert() {
 
     pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
         use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
-        use gecko_bindings::structs;
+        use gecko_bindings::structs::StyleBorderImageRepeat;
 
         % for i, side in enumerate(["H", "V"]):
-            let k = match v.${i} {
+            self.gecko.mBorderImageRepeat${side} = match v.${i} {
                 % for keyword in border_image_repeat_keywords:
-                RepeatKeyword::${keyword} => structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()},
+                RepeatKeyword::${keyword} => StyleBorderImageRepeat::${keyword},
                 % endfor
             };
-
-            self.gecko.mBorderImageRepeat${side} = k as u8;
         % endfor
     }
 
@@ -1813,14 +1811,13 @@ fn static_assert() {
 
     pub fn clone_border_image_repeat(&self) -> longhands::border_image_repeat::computed_value::T {
         use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
-        use gecko_bindings::structs;
+        use gecko_bindings::structs::StyleBorderImageRepeat;
 
         % for side in ["H", "V"]:
-        let servo_${side.lower()} = match self.gecko.mBorderImageRepeat${side} as u32 {
+        let servo_${side.lower()} = match self.gecko.mBorderImageRepeat${side} {
             % for keyword in border_image_repeat_keywords:
-            structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()} => RepeatKeyword::${keyword},
+            StyleBorderImageRepeat::${keyword} => RepeatKeyword::${keyword},
             % endfor
-            x => panic!("Found unexpected value in mBorderImageRepeat${side}: {:?}", x),
         };
         % endfor
         longhands::border_image_repeat::computed_value::T(servo_h, servo_v)
