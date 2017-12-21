@@ -97,18 +97,10 @@
 </%helpers:shorthand>
 
 macro_rules! try_parse_one {
-    ($input: expr, $var: ident, $prop_module: ident) => {
-        if $var.is_none() {
-            if let Ok(value) = $input.try($prop_module::SingleSpecifiedValue::parse) {
-                $var = Some(value);
-                continue;
-            }
-        }
-    };
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
             if let Ok(value) = $input.try(|i| {
-                $prop_module::SingleSpecifiedValue::parse($context, i)
+                $prop_module::single_value::parse($context, i)
             }) {
                 $var = Some(value);
                 continue;
@@ -122,7 +114,6 @@ macro_rules! try_parse_one {
                                     transition-timing-function
                                     transition-delay"
                     spec="https://drafts.csswg.org/css-transitions/#propdef-transition">
-    use parser::Parse;
     % for prop in "delay duration property timing_function".split():
     use properties::longhands::transition_${prop};
     % endfor
@@ -265,7 +256,6 @@ macro_rules! try_parse_one {
         props = "name duration timing_function delay iteration_count \
                  direction fill_mode play_state".split()
     %>
-    use parser::Parse;
     % for prop in props:
     use properties::longhands::animation_${prop};
     % endfor
@@ -296,9 +286,9 @@ macro_rules! try_parse_one {
                 try_parse_one!(context, input, timing_function, animation_timing_function);
                 try_parse_one!(context, input, delay, animation_delay);
                 try_parse_one!(context, input, iteration_count, animation_iteration_count);
-                try_parse_one!(input, direction, animation_direction);
-                try_parse_one!(input, fill_mode, animation_fill_mode);
-                try_parse_one!(input, play_state, animation_play_state);
+                try_parse_one!(context, input, direction, animation_direction);
+                try_parse_one!(context, input, fill_mode, animation_fill_mode);
+                try_parse_one!(context, input, play_state, animation_play_state);
                 try_parse_one!(context, input, name, animation_name);
 
                 parsed -= 1;
