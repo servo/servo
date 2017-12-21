@@ -674,7 +674,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return;
         }
 
-        self.frame_size = self.window.framebuffer_size();
+        self.frame_size = new_frame_size;
         self.window_rect = new_window_rect;
 
         self.send_window_size(WindowSizeType::Resize);
