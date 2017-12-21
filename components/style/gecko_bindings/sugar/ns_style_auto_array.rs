@@ -15,9 +15,6 @@ use std::slice::{Iter, IterMut};
 impl<T> Index<usize> for nsStyleAutoArray<T> {
     type Output = T;
     fn index(&self, index: usize) -> &T {
-        if index > self.len() {
-            panic!("out of range")
-        }
         match index {
             0 => &self.mFirstElement,
             _ => &self.mOtherElements[index - 1],
@@ -27,9 +24,6 @@ impl<T> Index<usize> for nsStyleAutoArray<T> {
 
 impl<T> IndexMut<usize> for nsStyleAutoArray<T> {
     fn index_mut(&mut self, index: usize) -> &mut T {
-        if index > self.len() {
-            panic!("out of range")
-        }
         match index {
             0 => &mut self.mFirstElement,
             _ => &mut self.mOtherElements[index - 1],
