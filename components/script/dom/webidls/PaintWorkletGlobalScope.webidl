@@ -6,4 +6,8 @@
 [Global=(Worklet,PaintWorklet), Pref="dom.worklet.enabled", Exposed=PaintWorklet]
 interface PaintWorkletGlobalScope : WorkletGlobalScope {
     [Throws] void registerPaint(DOMString name, VoidFunction paintCtor);
+    // This function is to be used only for testing, and should not be
+    // accessible outside of that use.
+    [Pref="dom.worklet.blockingsleep.enabled"]
+    void sleep(unsigned long long ms);
 };

@@ -7804,6 +7804,18 @@
      ],
      {}
     ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_paint_worklet_timeout.html",
+     [
+      [
+       "/_mozilla/mozilla/worklets/test_paint_worklet_timeout_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
    ]
   },
   "reftest_node": {
@@ -12697,6 +12709,16 @@
     ]
    ],
    "mozilla/worklets/test_paint_worklet_size_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
     [
      {}
     ]
@@ -72430,6 +72452,18 @@
   ],
   "mozilla/worklets/test_paint_worklet_size_ref.html": [
    "7c92e508e08d7d146354a5be7fa256ccbd465dde",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.html": [
+   "dde3d2d6359d39282cf8dfdfabebed735c7815a8",
+   "reftest"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.js": [
+   "83cdbd59c905de898b72ba47d3ae10bb95d76301",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
+   "193529394981b09b56404678124f6b08ff230a74",
    "support"
   ],
   "mozilla/worklets/test_worklet.html": [

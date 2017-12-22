@@ -1382,7 +1382,7 @@ impl FragmentDisplayListBuilding for Fragment {
             .map(|argument| argument.to_css_string())
             .collect();
 
-        let mut draw_result = match state.layout_context.registered_painters.get(&name) {
+        let draw_result = match state.layout_context.registered_painters.get(&name) {
             Some(painter) => {
                 debug!("Drawing a paint image {}({},{}).", name, size_in_px.width, size_in_px.height);
                 let properties = painter.properties().iter()
@@ -1397,19 +1397,22 @@ impl FragmentDisplayListBuilding for Fragment {
             },
         };
 
-        let webrender_image = WebRenderImageInfo {
-            width: draw_result.width,
-            height: draw_result.height,
-            format: draw_result.format,
-            key: draw_result.image_key,
-        };
+        if let Ok(draw_result) = draw_result {
+            let webrender_image = WebRenderImageInfo {
+                width: draw_result.width,
+                height: draw_result.height,
+                format: draw_result.format,
+                key: draw_result.image_key,
+            };
 
-        for url in draw_result.missing_image_urls.drain(..) {
-            debug!("Requesting missing image URL {}.", url);
-            state.layout_context.get_webrender_image_for_url(self.node, url, UsePlaceholder::No);
+            for url in draw_result.missing_image_urls.into_iter() {
+                debug!("Requesting missing image URL {}.", url);
+                state.layout_context.get_webrender_image_for_url(self.node, url, UsePlaceholder::No);
+            }
+            Some(webrender_image)
+        } else {
+            None
         }
-
-        Some(webrender_image)
     }
 
     fn build_display_list_for_background_gradient(&self,

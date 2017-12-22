@@ -100,8 +100,8 @@ use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowR
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
+use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::{ScrollState, UntrustedNodeAddress};
-use script_traits::DrawAPaintImageResult;
 use script_traits::Painter;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
@@ -1787,7 +1787,7 @@ impl Painter for RegisteredPainterImpl {
                           device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
                           properties: Vec<(Atom, String)>,
                           arguments: Vec<String>)
-                          -> DrawAPaintImageResult
+                          -> Result<DrawAPaintImageResult, PaintWorkletError>
     {
         self.painter.draw_a_paint_image(size, device_pixel_ratio, properties, arguments)
     }
