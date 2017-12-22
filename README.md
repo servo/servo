@@ -230,9 +230,13 @@ cp servobuild.example .servobuild
 
 ## Running
 
-Use `./mach run [url]` to run Servo. Like so,
+Run Servo with the command:
 
-``` shell
+```sh
+./servo [url] [arguments] # if you run with nightly build
+./mach run [url] [arguments] # if you run with mach
+
+# For example
 ./mach run https://www.google.com
 ```
 
