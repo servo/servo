@@ -925,26 +925,29 @@ impl fmt::Debug for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let child_count = self.parallel.children_count.load(Ordering::SeqCst);
         let child_count_string = if child_count > 0 {
-            format!(" children={}", child_count)
+            format!("\nchildren={}", child_count)
         } else {
             "".to_owned()
         };
 
         let absolute_descendants_string = if self.abs_descendants.len() > 0 {
-            format!(" abs-descendents={}", self.abs_descendants.len())
+            format!("\nabs-descendents={}", self.abs_descendants.len())
         } else {
             "".to_owned()
         };
 
         let damage_string = if self.restyle_damage != RestyleDamage::empty() {
-            format!(" damage={:?}", self.restyle_damage)
+            format!("\ndamage={:?}", self.restyle_damage)
         } else {
             "".to_owned()
         };
 
         write!(f,
-               "sc={:?} pos={:?}, {}{} floatspec-in={:?}, floatspec-out={:?}, \
-                overflow={:?}{}{}{}",
+               "\nsc={:?}\
+                \npos={:?}{}{}\
+                \nfloatspec-in={:?}\
+                \nfloatspec-out={:?}\
+                \noverflow={:?}{}{}{}",
                self.stacking_context_id,
                self.position,
                if self.flags.contains(FlowFlags::FLOATS_LEFT) { "FL" } else { "" },
