@@ -243,6 +243,13 @@ URL with servo).
 
 ### Commandline Arguments
 
+Usage:
+
+```sh
+./servo [url] [command] # if you run with nightly build
+./mach run [url] [command] # if you run with mach
+```
+
 - `-p INTERVAL` turns on the profiler and dumps info to the console every
   `INTERVAL` seconds
 - `-s SIZE` sets the tile size for painting; defaults to 512
