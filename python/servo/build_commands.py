@@ -167,6 +167,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
+    @CommandArgument('--very-verbose', '-vv',
+                     action='store_true',
+                     help='Print very verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandArgument('--with-debug-assertions',
@@ -174,8 +177,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Enable debug assertions in release')
     def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, verbose=False, debug_mozjs=False, params=None,
-              with_debug_assertions=False):
+              features=None, android=None, verbose=False, very_verbose=False,
+              debug_mozjs=False, params=None, with_debug_assertions=False):
 
         opts = params or []
         opts += ["--manifest-path", self.servo_manifest()]
@@ -223,6 +226,8 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+        if very_verbose:
+            opts += ["-vv"]
 
         if android:
             target = self.config["android"]["target"]
