@@ -30,69 +30,13 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         animation_value_type="discrete",
         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 % else:
-    <%helpers:longhand name="list-style-type" animation_value_type="discrete" boxed="True"
-                       spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
-        use values::CustomIdent;
-        use values::generics::CounterStyleOrNone;
-
-        pub use self::computed_value::T as SpecifiedValue;
-
-        pub mod computed_value {
-            use values::generics::CounterStyleOrNone;
-
-            /// <counter-style> | <string> | none
-            #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-            pub enum T {
-                CounterStyle(CounterStyleOrNone),
-                String(String),
-            }
-        }
-
-        #[cfg(feature = "gecko")]
-        impl SpecifiedValue {
-            /// Convert from gecko keyword to list-style-type.
-            ///
-            /// This should only be used for mapping type attribute to
-            /// list-style-type, and thus only values possible in that
-            /// attribute is considered here.
-            pub fn from_gecko_keyword(value: u32) -> Self {
-                use gecko_bindings::structs;
-                SpecifiedValue::CounterStyle(if value == structs::NS_STYLE_LIST_STYLE_NONE {
-                    CounterStyleOrNone::None
-                } else {
-                    <%
-                        values = """disc circle square decimal lower-roman
-                                    upper-roman lower-alpha upper-alpha""".split()
-                    %>
-                    CounterStyleOrNone::Name(CustomIdent(match value {
-                        % for style in values:
-                        structs::NS_STYLE_LIST_STYLE_${style.replace('-', '_').upper()} => atom!("${style}"),
-                        % endfor
-                        _ => unreachable!("Unknown counter style keyword value"),
-                    }))
-                })
-            }
-        }
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            computed_value::T::CounterStyle(CounterStyleOrNone::disc())
-        }
-
-        #[inline]
-        pub fn get_initial_specified_value() -> SpecifiedValue {
-            SpecifiedValue::CounterStyle(CounterStyleOrNone::disc())
-        }
-
-        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<SpecifiedValue, ParseError<'i>> {
-            Ok(if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
-                SpecifiedValue::CounterStyle(style)
-            } else {
-                SpecifiedValue::String(input.expect_string()?.as_ref().to_owned())
-            })
-        }
-    </%helpers:longhand>
+    ${helpers.predefined_type("list-style-type",
+                              "ListStyleType",
+                              "computed::ListStyleType::disc()",
+                              initial_specified_value="specified::ListStyleType::disc()",
+                              animation_value_type="discrete",
+                              boxed="True",
+                              spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 % endif
 
 ${helpers.predefined_type("list-style-image",

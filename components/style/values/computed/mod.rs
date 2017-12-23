@@ -55,6 +55,8 @@ pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNum
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{CSSPixelLength, NonNegativeLength, NonNegativeLengthOrPercentage};
 pub use self::list::{ListStyleImage, Quotes};
+#[cfg(feature = "gecko")]
+pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
 pub use self::position::{Position, GridAutoFlow, GridTemplateAreas};
