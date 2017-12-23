@@ -41,35 +41,35 @@ impl ListStyleType {
     pub fn from_gecko_keyword(value: u32) -> Self {
         use gecko_bindings::structs;
 
-        let counter_style = if value == structs::NS_STYLE_LIST_STYLE_NONE {
-            CounterStyleOrNone::None
-        } else {
-            CounterStyleOrNone::Name(CustomIdent(match value {
-                structs::NS_STYLE_LIST_STYLE_DISC => atom!("disc"),
-                structs::NS_STYLE_LIST_STYLE_CIRCLE => atom!("circle"),
-                structs::NS_STYLE_LIST_STYLE_SQUARE => atom!("square"),
-                structs::NS_STYLE_LIST_STYLE_DECIMAL => atom!("decimal"),
-                structs::NS_STYLE_LIST_STYLE_LOWER_ROMAN => atom!("lower-roman"),
-                structs::NS_STYLE_LIST_STYLE_UPPER_ROMAN => atom!("upper-roman"),
-                structs::NS_STYLE_LIST_STYLE_LOWER_ALPHA => atom!("lower-alpha"),
-                structs::NS_STYLE_LIST_STYLE_UPPER_ALPHA => atom!("upper-alpha"),
-                _ => unreachable!("Unknown counter style keyword value"),
-            }))
-        };
+        if value == structs::NS_STYLE_LIST_STYLE_NONE {
+            return ListStyleType::CounterStyle(CounterStyleOrNone::None);
+        }
 
-        ListStyleType::CounterStyle(counter_style)
+        ListStyleType::CounterStyle(CounterStyleOrNone::Name(CustomIdent(match value {
+            structs::NS_STYLE_LIST_STYLE_DISC => atom!("disc"),
+            structs::NS_STYLE_LIST_STYLE_CIRCLE => atom!("circle"),
+            structs::NS_STYLE_LIST_STYLE_SQUARE => atom!("square"),
+            structs::NS_STYLE_LIST_STYLE_DECIMAL => atom!("decimal"),
+            structs::NS_STYLE_LIST_STYLE_LOWER_ROMAN => atom!("lower-roman"),
+            structs::NS_STYLE_LIST_STYLE_UPPER_ROMAN => atom!("upper-roman"),
+            structs::NS_STYLE_LIST_STYLE_LOWER_ALPHA => atom!("lower-alpha"),
+            structs::NS_STYLE_LIST_STYLE_UPPER_ALPHA => atom!("upper-alpha"),
+            _ => unreachable!("Unknown counter style keyword value"),
+        })))
     }
 }
 
 #[cfg(feature = "gecko")]
 impl Parse for ListStyleType {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<ListStyleType, ParseError<'i>> {
-        Ok(if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
-            ListStyleType::CounterStyle(style)
-        } else {
-            ListStyleType::String(input.expect_string()?.as_ref().to_owned())
-        })
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
+            return Ok(ListStyleType::CounterStyle(style))
+        }
+
+        Ok(ListStyleType::String(input.expect_string()?.as_ref().to_owned()))
     }
 }
 
