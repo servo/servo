@@ -5,6 +5,8 @@
 //! `list` computed values.
 
 pub use values::specified::list::{ListStyleImage, Quotes};
+#[cfg(feature = "gecko")]
+pub use values::specified::list::ListStyleType;
 
 impl Quotes {
     /// Initial value for `quotes`.

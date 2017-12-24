@@ -9,7 +9,69 @@ use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
+#[cfg(feature = "gecko")]
+use values::CustomIdent;
+#[cfg(feature = "gecko")]
+use values::generics::CounterStyleOrNone;
 use values::specified::UrlOrNone;
+
+/// Specified and computed `list-style-type` property.
+#[cfg(feature = "gecko")]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub enum ListStyleType {
+    /// <counter-style> | none
+    CounterStyle(CounterStyleOrNone),
+    /// <string>
+    String(String),
+}
+
+#[cfg(feature = "gecko")]
+impl ListStyleType {
+    /// Initial specified value for `list-style-type`.
+    #[inline]
+    pub fn disc() -> Self {
+        ListStyleType::CounterStyle(CounterStyleOrNone::disc())
+    }
+
+    /// Convert from gecko keyword to list-style-type.
+    ///
+    /// This should only be used for mapping type attribute to
+    /// list-style-type, and thus only values possible in that
+    /// attribute is considered here.
+    pub fn from_gecko_keyword(value: u32) -> Self {
+        use gecko_bindings::structs;
+
+        if value == structs::NS_STYLE_LIST_STYLE_NONE {
+            return ListStyleType::CounterStyle(CounterStyleOrNone::None);
+        }
+
+        ListStyleType::CounterStyle(CounterStyleOrNone::Name(CustomIdent(match value {
+            structs::NS_STYLE_LIST_STYLE_DISC => atom!("disc"),
+            structs::NS_STYLE_LIST_STYLE_CIRCLE => atom!("circle"),
+            structs::NS_STYLE_LIST_STYLE_SQUARE => atom!("square"),
+            structs::NS_STYLE_LIST_STYLE_DECIMAL => atom!("decimal"),
+            structs::NS_STYLE_LIST_STYLE_LOWER_ROMAN => atom!("lower-roman"),
+            structs::NS_STYLE_LIST_STYLE_UPPER_ROMAN => atom!("upper-roman"),
+            structs::NS_STYLE_LIST_STYLE_LOWER_ALPHA => atom!("lower-alpha"),
+            structs::NS_STYLE_LIST_STYLE_UPPER_ALPHA => atom!("upper-alpha"),
+            _ => unreachable!("Unknown counter style keyword value"),
+        })))
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl Parse for ListStyleType {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
+            return Ok(ListStyleType::CounterStyle(style))
+        }
+
+        Ok(ListStyleType::String(input.expect_string()?.as_ref().to_owned()))
+    }
+}
 
 /// Specified and computed `list-style-image` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
