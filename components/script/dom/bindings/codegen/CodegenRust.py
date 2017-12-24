@@ -700,6 +700,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     assert not (isEnforceRange and isClamp)  # These are mutually exclusive
 
     if type.isSequence() or type.isRecord():
+        if isArgument and type_needs_auto_root(type):
+            isMember = "AutoRoot"
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember=isMember)
@@ -708,6 +710,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
+
+        if (isArgument and type_needs_auto_root(type)):
+            declType = CGTemplatedType("CustomAutoRooterGuard", declType)
 
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
@@ -1053,6 +1058,19 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 raise TypeError("Can't handle non-null, non-undefined default value here")
             return handleOptional("${val}.get()", declType, default)
 
+        if isMember == "AutoRoot":
+            declType = CGGeneric("JSVal")
+
+            if defaultValue is None:
+                default = None
+            elif isinstance(defaultValue, IDLNullValue):
+                default = "NullValue()"
+            elif isinstance(defaultValue, IDLUndefinedValue):
+                default = "UndefinedValue()"
+            else:
+                raise TypeError("Can't handle non-null, non-undefined default value here")
+            return handleOptional("${val}.get()", declType, default)
+
         declType = CGGeneric("HandleValue")
 
         if defaultValue is None:
@@ -1237,7 +1255,9 @@ class CGArgumentConverter(CGThing):
             treatNullAs=argument.treatNullAs,
             isEnforceRange=argument.enforceRange,
             isClamp=argument.clamp,
-            isMember="Variadic" if argument.variadic else False,
+            isMember="Variadic" if argument.variadic else
+                     "AutoRoot" if type_needs_auto_root(argument.type)
+                     else False,
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
         template = info.template
         default = info.default
@@ -1260,8 +1280,15 @@ class CGArgumentConverter(CGThing):
             else:
                 assert not default
 
+            arg = "arg%d" % index
+
             self.converter = instantiateJSToNativeConversionTemplate(
-                template, replacementVariables, declType, "arg%d" % index)
+                template, replacementVariables, declType, arg)
+
+            # TODO: Only for sequence<{any,object}> now
+            if type_needs_auto_root(argument.type):
+                self.converter.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (arg, arg)))
+
         else:
             assert argument.optional
             variadicConversion = {
@@ -5698,6 +5725,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::panic::maybe_resume_unwind',
         'js::panic::wrap_panic',
         'js::rust::GCMethods',
+        'js::rust::CustomAutoRooterGuard',
         'js::rust::define_methods',
         'js::rust::define_properties',
         'js::rust::get_object_class',
@@ -6419,6 +6447,20 @@ def type_needs_tracing(t):
         return False
 
     assert False, (t, type(t))
+
+
+def type_needs_auto_root(t):
+    """
+    Certain IDL types, such as `sequence<any>` or `sequence<object>` need to be
+    traced and wrapped via (Custom)AutoRooter
+    """
+    assert isinstance(t, IDLObject), (t, type(t))
+
+    if t.isType():
+        if t.isSequence() and (t.inner.isAny() or t.inner.isObject()):
+            return True
+
+    return False
 
 
 def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, variadic=False):
