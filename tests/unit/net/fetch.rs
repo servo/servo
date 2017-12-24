@@ -510,6 +510,13 @@ fn test_fetch_with_local_urls_only() {
     assert!(server_response.is_network_error());
 }
 
+// NOTE(emilio): If this test starts failing:
+//
+// openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+//   -keyout resources/privatekey_for_testing.key       \
+//   -out resources/self_signed_certificate_for_testing.crt
+//
+// And make sure to specify `localhost` as the server name.
 #[test]
 fn test_fetch_with_hsts() {
     static MESSAGE: &'static [u8] = b"";
