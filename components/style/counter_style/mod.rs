@@ -401,11 +401,10 @@ pub enum Symbol {
 impl Parse for Symbol {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
-        match input.next() {
-            Ok(&Token::QuotedString(ref s)) => Ok(Symbol::String(s.as_ref().to_owned())),
-            Ok(&Token::Ident(ref s)) => Ok(Symbol::Ident(s.as_ref().to_owned())),
-            Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
-            Err(e) => Err(e.into()),
+        match *input.next()? {
+            Token::QuotedString(ref s) => Ok(Symbol::String(s.as_ref().to_owned())),
+            Token::Ident(ref s) => Ok(Symbol::Ident(s.as_ref().to_owned())),
+            ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }
 }
@@ -470,11 +469,10 @@ impl Parse for Ranges {
 
 fn parse_bound<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Option<i32>, ParseError<'i>> {
     let location = input.current_source_location();
-    match input.next() {
-        Ok(&Token::Number { int_value: Some(v), .. }) => Ok(Some(v)),
-        Ok(&Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
-        Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
-        Err(e) => Err(e.into()),
+    match *input.next()? {
+        Token::Number { int_value: Some(v), .. } => Ok(Some(v)),
+        Token::Ident(ref ident) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
+        ref t => Err(location.new_unexpected_token_error(t.clone())),
     }
 }
 
