@@ -2191,7 +2191,7 @@ impl Flow for BlockFlow {
     }
 
     fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
-        print_tree.add_item(format!("↑↑ Fragment for block: {:?}", self.fragment));
+        print_tree.add_item(format!("↑↑ Fragment for block:{:?}", self.fragment));
     }
 }
 

@@ -2958,24 +2958,24 @@ impl Fragment {
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let border_padding_string = if !self.border_padding.is_zero() {
-            format!(" border_padding={:?}", self.border_padding)
+            format!("\nborder_padding={:?}", self.border_padding)
         } else {
             "".to_owned()
         };
 
         let margin_string = if !self.margin.is_zero() {
-            format!(" margin={:?}", self.margin)
+            format!("\nmargin={:?}", self.margin)
         } else {
             "".to_owned()
         };
 
         let damage_string = if self.restyle_damage != RestyleDamage::empty() {
-            format!(" damage={:?}", self.restyle_damage)
+            format!("\ndamage={:?}", self.restyle_damage)
         } else {
             "".to_owned()
         };
 
-        write!(f, "{}({}) [{:?}] border_box={:?}{}{}{}",
+        write!(f, "\n{}({}) [{:?}]\nborder_box={:?}{}{}{}",
             self.specific.get_type(),
             self.debug_id,
             self.specific,
