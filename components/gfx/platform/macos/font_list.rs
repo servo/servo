@@ -42,6 +42,4 @@ pub fn last_resort_font_families() -> Vec<String> {
     vec!("Arial Unicode MS".to_owned(), "Arial".to_owned())
 }
 
-#[cfg(target_os = "macos")]
 pub static SANS_SERIF_FONT_FAMILY: &'static str = "Helvetica";
-
