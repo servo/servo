@@ -910,81 +910,12 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}
 
-<%helpers:longhand name="touch-action"
-                   products="gecko"
-                   animation_value_type="discrete"
-                   gecko_pref="layout.css.touch_action.enabled"
-                   spec="https://compat.spec.whatwg.org/#touch-action">
-    use gecko_bindings::structs;
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    bitflags! {
-        /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(ToComputedValue)]
-        pub struct SpecifiedValue: u8 {
-            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8;
-            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8;
-            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8;
-            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8;
-            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8;
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::TOUCH_ACTION_NONE => dest.write_str("none"),
-                SpecifiedValue::TOUCH_ACTION_AUTO => dest.write_str("auto"),
-                SpecifiedValue::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
-                    dest.write_str("pan-x pan-y")
-                },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X) => {
-                    dest.write_str("pan-x")
-                },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
-                    dest.write_str("pan-y")
-                },
-                _ => panic!("invalid touch-action value"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue::TOUCH_ACTION_AUTO
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        // FIXME: remove clone() when lifetimes are non-lexical
-        try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(SpecifiedValue::TOUCH_ACTION_AUTO),
-            "none" => Ok(SpecifiedValue::TOUCH_ACTION_NONE),
-            "manipulation" => Ok(SpecifiedValue::TOUCH_ACTION_MANIPULATION),
-            "pan-x" => {
-                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X)
-                }
-            },
-            "pan-y" => {
-                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                }
-            },
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    impl_bitflags_conversions!(SpecifiedValue);
-</%helpers:longhand>
+${helpers.predefined_type(
+    "touch-action",
+    "TouchAction",
+    "computed::TouchAction::auto()",
+    products="gecko",
+    gecko_pref="layout.css.touch_action.enabled",
+    animation_value_type="discrete",
+    spec="https://compat.spec.whatwg.org/#touch-action",
+)}

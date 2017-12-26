@@ -42,6 +42,8 @@ pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettin
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
 pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, VerticalAlign, WillChange};
+#[cfg(feature = "gecko")]
+pub use self::box_::TouchAction;
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;

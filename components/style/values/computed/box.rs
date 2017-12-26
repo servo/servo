@@ -11,6 +11,8 @@ use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 
 pub use values::specified::box_::{AnimationName, OverflowClipBox, OverscrollBehavior};
 pub use values::specified::box_::{ScrollSnapType, WillChange};
+#[cfg(feature = "gecko")]
+pub use values::specified::box_::TouchAction;
 
 /// A computed value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;
