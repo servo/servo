@@ -40265,6 +40265,12 @@
      {}
     ]
    ],
+   "mozilla/xmldomparser.html": [
+    [
+     "/_mozilla/mozilla/xmldomparser.html",
+     {}
+    ]
+   ],
    "webgl/bufferSubData.html": [
     [
      "/_mozilla/webgl/bufferSubData.html",
@@ -72477,6 +72483,10 @@
   "mozilla/worklets/throw_exception.js": [
    "ebfdae19db68fed8e69142ef73842ac9921e4463",
    "support"
+  ],
+  "mozilla/xmldomparser.html": [
+   "bf343e8d7f4488fc2e2755fc2dc3c8fc83a8cb17",
+   "testharness"
   ],
   "webgl/OWNERS": [
    "f8e0703fe2cc88edd21ef2c94fcb2e1a8889f5ae",
