@@ -442,7 +442,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_gradient(&self.prim_info(),
                                       gradient,
                                       item.tile.to_sizef(),
-                                      webrender_api::LayoutSize::zero());
+                                      item.tile_spacing.to_sizef());
             }
             DisplayItem::RadialGradient(ref item) => {
                 let center = item.gradient.center.to_pointf();
@@ -459,7 +459,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_radial_gradient(&self.prim_info(),
                                              gradient,
                                              item.tile.to_sizef(),
-                                             webrender_api::LayoutSize::zero());
+                                             item.tile_spacing.to_sizef());
             }
             DisplayItem::Line(ref item) => {
                 builder.push_line(&self.prim_info(),
