@@ -729,6 +729,7 @@ pub struct GradientDisplayItem {
     ///
     /// Without tiles, the tile will be the same size as the background.
     pub tile: Size2D<Au>,
+    pub tile_spacing: Size2D<Au>,
 }
 
 /// Paints a radial gradient.
@@ -763,6 +764,7 @@ pub struct RadialGradientDisplayItem {
     ///
     /// Without tiles, the tile will be the same size as the background.
     pub tile: Size2D<Au>,
+    pub tile_spacing: Size2D<Au>,
 }
 
 /// A normal border, supporting CSS border styles.
