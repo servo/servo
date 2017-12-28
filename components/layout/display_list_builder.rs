@@ -1185,17 +1185,35 @@ fn tile_image_axis(repeat: BackgroundRepeatKeyword,
         BackgroundRepeatKeyword::NoRepeat => {
             *position += offset;
             *size = *tile_size;
-            return
         }
-        BackgroundRepeatKeyword::Repeat => (),
-        BackgroundRepeatKeyword::Space => tile_image_spaced(
-            position, size, tile_spacing, absolute_anchor_origin, *tile_size),
-        BackgroundRepeatKeyword::Round => tile_image_round(
-            position, size, absolute_anchor_origin, tile_size),
-    };
-    *position = clip_origin;
-    *size = clip_size;
-    tile_image(position, size, absolute_anchor_origin, *tile_size);
+        BackgroundRepeatKeyword::Repeat => {
+            *position = clip_origin;
+            *size = clip_size;
+            tile_image(position, size, absolute_anchor_origin, *tile_size);
+        }
+        BackgroundRepeatKeyword::Space => {
+            tile_image_spaced(
+                position,
+                size,
+                tile_spacing,
+                absolute_anchor_origin,
+                *tile_size);
+            let combined_tile_size = *tile_size + *tile_spacing;
+            *position = clip_origin;
+            *size = clip_size;
+            tile_image(position, size, absolute_anchor_origin, combined_tile_size);
+        }
+        BackgroundRepeatKeyword::Round => {
+            tile_image_round(
+                position,
+                size,
+                absolute_anchor_origin,
+                tile_size);
+            *position = clip_origin;
+            *size = clip_size;
+            tile_image(position, size, absolute_anchor_origin, *tile_size);
+        }
+    }
 }
 
 impl FragmentDisplayListBuilding for Fragment {
