@@ -562,6 +562,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                 isDefinitelyObject=False,
                                 isMember=False,
                                 isArgument=False,
+                                isAutoRooted=False,
                                 invalidEnumValueFatal=True,
                                 defaultValue=None,
                                 treatNullAs="Default",
@@ -700,19 +701,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     assert not (isEnforceRange and isClamp)  # These are mutually exclusive
 
     if type.isSequence() or type.isRecord():
-        if isArgument and type_needs_auto_root(type):
-            isMember = "AutoRoot"
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
-                                                isMember=isMember)
+                                                isMember=isMember,
+                                                isAutoRooted=isAutoRooted)
         declType = wrapInNativeContainerType(type, innerInfo.declType)
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
-
-        if (isArgument and type_needs_auto_root(type)):
-            declType = CGTemplatedType("CustomAutoRooterGuard", declType)
 
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
@@ -1043,23 +1040,14 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not isEnforceRange and not isClamp
         assert isMember != "Union"
 
-        if isMember == "Dictionary":
+        if isMember == "Dictionary" or isAutoRooted:
             # TODO: Need to properly root dictionaries
             # https://github.com/servo/servo/issues/6381
-            declType = CGGeneric("Heap<JSVal>")
-
-            if defaultValue is None:
-                default = None
-            elif isinstance(defaultValue, IDLNullValue):
-                default = "NullValue()"
-            elif isinstance(defaultValue, IDLUndefinedValue):
-                default = "UndefinedValue()"
+            if isMember == "Dictionary":
+                declType = CGGeneric("Heap<JSVal>")
+            # AutoRooter can trace properly inner raw GC thing pointers
             else:
-                raise TypeError("Can't handle non-null, non-undefined default value here")
-            return handleOptional("${val}.get()", declType, default)
-
-        if isMember == "AutoRoot":
-            declType = CGGeneric("JSVal")
+                declType = CGGeneric("JSVal")
 
             if defaultValue is None:
                 default = None
@@ -1255,9 +1243,8 @@ class CGArgumentConverter(CGThing):
             treatNullAs=argument.treatNullAs,
             isEnforceRange=argument.enforceRange,
             isClamp=argument.clamp,
-            isMember="Variadic" if argument.variadic else
-                     "AutoRoot" if type_needs_auto_root(argument.type)
-                     else False,
+            isMember="Variadic" if argument.variadic else False,
+            isAutoRooted=True if type_needs_auto_root(argument.type) else False,
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
         template = info.template
         default = info.default
@@ -1285,7 +1272,7 @@ class CGArgumentConverter(CGThing):
             self.converter = instantiateJSToNativeConversionTemplate(
                 template, replacementVariables, declType, arg)
 
-            # TODO: Only for sequence<{any,object}> now
+            # The auto rooting is done only after the conversion is performed
             if type_needs_auto_root(argument.type):
                 self.converter.append(CGGeneric("auto_root!(in(cx) let %s = %s);" % (arg, arg)))
 
@@ -6465,7 +6452,8 @@ def type_needs_auto_root(t):
 
 def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, variadic=False):
     info = getJSToNativeConversionInfo(
-        ty, descriptorProvider, isArgument=True)
+        ty, descriptorProvider, isArgument=True,
+        isAutoRooted=True if type_needs_auto_root(ty) else False)
     declType = info.declType
 
     if variadic:
@@ -6478,6 +6466,9 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
 
     if ty.isDictionary() and not type_needs_tracing(ty):
         declType = CGWrapper(declType, pre="&")
+
+    if type_needs_auto_root(ty):
+        declType = CGTemplatedType("CustomAutoRooterGuard", declType)
 
     return declType.define()
 
