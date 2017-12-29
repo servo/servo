@@ -681,7 +681,7 @@ fn build_border_radius(abs_bounds: &Rect<Au>,
 fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
                                       style: &ComputedValues)
                                       -> BorderRadii<Au> {
-    let mut radii = build_border_radius(&outer_rect, style.get_border());
+    let radii = build_border_radius(&outer_rect, style.get_border());
     if radii.is_square() {
         return radii;
     }
@@ -690,18 +690,7 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
     // border width), we need to adjust to border radius so that we are smaller
     // rectangle with the same border curve.
     let border_widths = style.logical_border_width().to_physical(style.writing_mode);
-    radii.top_left.width = cmp::max(Au(0), radii.top_left.width - border_widths.left);
-    radii.bottom_left.width = cmp::max(Au(0), radii.bottom_left.width - border_widths.left);
-
-    radii.top_right.width = cmp::max(Au(0), radii.top_right.width - border_widths.right);
-    radii.bottom_right.width = cmp::max(Au(0), radii.bottom_right.width - border_widths.right);
-
-    radii.top_left.height = cmp::max(Au(0), radii.top_left.height - border_widths.top);
-    radii.top_right.height = cmp::max(Au(0), radii.top_right.height - border_widths.top);
-
-    radii.bottom_left.height = cmp::max(Au(0), radii.bottom_left.height - border_widths.bottom);
-    radii.bottom_right.height = cmp::max(Au(0), radii.bottom_right.height - border_widths.bottom);
-    radii
+    calculate_inner_border_radii(radii, border_widths)
 }
 
 fn build_inner_border_box_for_border_rect(border_box: &Rect<Au>,
@@ -1041,6 +1030,24 @@ fn calculate_inner_bounds(mut bounds: Rect<Au>, offsets: SideOffsets2D<Au>) -> R
     bounds
 }
 
+fn calculate_inner_border_radii(
+    mut radii: BorderRadii<Au>,
+    offsets: SideOffsets2D<Au>
+) -> BorderRadii<Au> {
+    radii.top_left.width = cmp::max(Au(0), radii.top_left.width - offsets.left);
+    radii.bottom_left.width = cmp::max(Au(0), radii.bottom_left.width - offsets.left);
+
+    radii.top_right.width = cmp::max(Au(0), radii.top_right.width - offsets.right);
+    radii.bottom_right.width = cmp::max(Au(0), radii.bottom_right.width - offsets.right);
+
+    radii.top_left.height = cmp::max(Au(0), radii.top_left.height - offsets.top);
+    radii.top_right.height = cmp::max(Au(0), radii.top_right.height - offsets.top);
+
+    radii.bottom_left.height = cmp::max(Au(0), radii.bottom_left.height - offsets.bottom);
+    radii.bottom_right.height = cmp::max(Au(0), radii.bottom_right.height - offsets.bottom);
+    radii
+}
+
 
 /// For a given area and an image compute how big the
 /// image should be displayed on the background.
@@ -1272,20 +1279,23 @@ impl FragmentDisplayListBuilding for Fragment {
         let color_clip = get_cyclic(&background.background_clip.0,
                                     background.background_image.0.len() - 1);
 
+        // Adjust the clipping region as necessary to account for `border-radius`.
+        let mut border_radii = build_border_radius(absolute_bounds, style.get_border());
+
         match *color_clip {
             BackgroundClip::BorderBox => {}
             BackgroundClip::PaddingBox => {
                 let border = style.logical_border_width().to_physical(style.writing_mode);
                 bounds = calculate_inner_bounds(bounds, border);
+                border_radii = calculate_inner_border_radii(border_radii, border);
             }
             BackgroundClip::ContentBox => {
                 let border_padding = self.border_padding.to_physical(style.writing_mode);
                 bounds = calculate_inner_bounds(bounds, border_padding);
+                border_radii = calculate_inner_border_radii(border_radii, border_padding);
             }
         }
 
-        // Adjust the clipping region as necessary to account for `border-radius`.
-        let border_radii = build_border_radius(absolute_bounds, style.get_border());
         let clip = if !border_radii.is_square() {
             LocalClip::RoundedRect(bounds.to_rectf(), ComplexClipRegion::new(
                 bounds.to_rectf(),
