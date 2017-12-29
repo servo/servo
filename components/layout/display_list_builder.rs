@@ -1544,7 +1544,6 @@ impl FragmentDisplayListBuilding for Fragment {
                 Au::from(box_shadow.spread),
             );
 
-            // TODO(pcwalton): Multiple border radii; elliptical border radii.
             let base = state.create_base_display_item(&bounds,
                                                       LocalClip::from(clip.to_rectf()),
                                                       self.node,

@@ -775,8 +775,6 @@ pub struct NormalBorder {
     pub style: SideOffsets2D<border_style::T>,
 
     /// Border radii.
-    ///
-    /// TODO(pcwalton): Elliptical radii.
     pub radius: BorderRadii<Au>,
 }
 
@@ -845,8 +843,6 @@ pub struct BorderDisplayItem {
 }
 
 /// Information about the border radii.
-///
-/// TODO(pcwalton): Elliptical radii.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct BorderRadii<T> {
     pub top_left: Size2D<T>,
