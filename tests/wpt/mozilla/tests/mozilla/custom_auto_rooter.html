@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Types using Custom Auto Rooter work correctly</title>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+test(function() {
+  function assert_array_equals(lhs, rhs) {
+    assert_equals(lhs.length, rhs.length);
+    for (var i = 0; i < lhs.length; i++) {
+      assert_equals(lhs[i], rhs[i]);
+    }
+  }
+
+  var t = new TestBinding;
+
+  var seq = [5, "str", { key: "val" }, undefined];
+  assert_array_equals(seq, t.anySequencePassthrough(seq));
+
+  var seq = new Array(null, {'inner': 1, 'a': 'as'}, {'inner': 2}, null, undefined);
+  assert_array_equals(seq, t.anySequencePassthrough(seq));
+
+  var seq = new Array(null, {'inner': 1, 'a': 'as', 'toString': function() { seq = null; return Object.prototype.toString(this); }}, {'inner': 2}, null, undefined);
+  assert_array_equals(seq, t.anySequencePassthrough(seq));
+}, "sequence<any> conversion did not lose any values");
+</script>
+</html>

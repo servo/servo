@@ -32845,6 +32845,12 @@
      {}
     ]
    ],
+   "mozilla/custom_auto_rooter.html": [
+    [
+     "/_mozilla/mozilla/custom_auto_rooter.html",
+     {}
+    ]
+   ],
    "mozilla/deep_serialization_succeeds.html": [
     [
      "/_mozilla/mozilla/deep_serialization_succeeds.html",
@@ -66035,6 +66041,10 @@
   "mozilla/css-paint-api/valid-image-before-load.html": [
    "67d8cdd3e3a1656ba315fcbf6dae7236680bac16",
    "reftest"
+  ],
+  "mozilla/custom_auto_rooter.html": [
+   "6fe9fa5323c9d2b9af7cd04f9252acad7bced6b8",
+   "testharness"
   ],
   "mozilla/deep_serialization_succeeds.html": [
    "cb3d201d577c17d19babf1f6c04ba882fa42048e",

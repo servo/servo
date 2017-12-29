@@ -453,6 +453,10 @@ impl TestBindingMethods for TestBinding {
     #[allow(unsafe_code)]
     unsafe fn PassAnySequence(&self, _: *mut JSContext, _: CustomAutoRooterGuard<Vec<JSVal>>) {}
     #[allow(unsafe_code)]
+    unsafe fn AnySequencePassthrough(&self, _: *mut JSContext, seq: CustomAutoRooterGuard<Vec<JSVal>>) -> Vec<JSVal> {
+        (*seq).clone()
+    }
+    #[allow(unsafe_code)]
     unsafe fn PassObjectSequence(&self, _: *mut JSContext, _: CustomAutoRooterGuard<Vec<*mut JSObject>>) {}
     fn PassStringSequence(&self, _: Vec<DOMString>) {}
     fn PassInterfaceSequence(&self, _: Vec<DomRoot<Blob>>) {}
