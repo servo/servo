@@ -177,3 +177,102 @@ impl Parse for WillChange {
         Ok(WillChange::AnimateableFeatures(custom_idents.into_boxed_slice()))
     }
 }
+
+bitflags! {
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+    #[derive(ToComputedValue)]
+    /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+    pub struct TouchAction: u8 {
+        /// `none` variant
+        const TOUCH_ACTION_NONE = 1 << 0;
+        /// `auto` variant
+        const TOUCH_ACTION_AUTO = 1 << 1;
+        /// `pan-x` variant
+        const TOUCH_ACTION_PAN_X = 1 << 2;
+        /// `pan-y` variant
+        const TOUCH_ACTION_PAN_Y = 1 << 3;
+        /// `manipulation` variant
+        const TOUCH_ACTION_MANIPULATION = 1 << 4;
+    }
+}
+
+impl TouchAction {
+    #[inline]
+    /// Get default `touch-action` as `auto`
+    pub fn auto() -> TouchAction {
+        TouchAction::TOUCH_ACTION_AUTO
+    }
+}
+
+impl ToCss for TouchAction {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TouchAction::TOUCH_ACTION_NONE => dest.write_str("none"),
+            TouchAction::TOUCH_ACTION_AUTO => dest.write_str("auto"),
+            TouchAction::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
+            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y) => {
+                dest.write_str("pan-x pan-y")
+            },
+            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_X) => {
+                dest.write_str("pan-x")
+            },
+            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_Y) => {
+                dest.write_str("pan-y")
+            },
+            _ => panic!("invalid touch-action value"),
+        }
+    }
+}
+
+impl Parse for TouchAction {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<TouchAction, ParseError<'i>> {
+        try_match_ident_ignore_ascii_case! { input,
+            "auto" => Ok(TouchAction::TOUCH_ACTION_AUTO),
+            "none" => Ok(TouchAction::TOUCH_ACTION_NONE),
+            "manipulation" => Ok(TouchAction::TOUCH_ACTION_MANIPULATION),
+            "pan-x" => {
+                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
+                    Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
+                } else {
+                    Ok(TouchAction::TOUCH_ACTION_PAN_X)
+                }
+            },
+            "pan-y" => {
+                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
+                    Ok(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y)
+                } else {
+                    Ok(TouchAction::TOUCH_ACTION_PAN_Y)
+                }
+            },
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl_bitflags_conversions!(TouchAction);
+
+/// Asserts that all touch-action matches its NS_STYLE_TOUCH_ACTION_* value.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_touch_action_matches() {
+    use gecko_bindings::structs;
+
+    macro_rules! check_touch_action {
+        ( $( $a:ident => $b:path),*, ) => {
+            $(
+                debug_assert_eq!(structs::$a as u8, $b.bits());
+            )*
+        }
+    }
+
+    check_touch_action! {
+        NS_STYLE_TOUCH_ACTION_NONE => TouchAction::TOUCH_ACTION_NONE,
+        NS_STYLE_TOUCH_ACTION_AUTO => TouchAction::TOUCH_ACTION_AUTO,
+        NS_STYLE_TOUCH_ACTION_PAN_X => TouchAction::TOUCH_ACTION_PAN_X,
+        NS_STYLE_TOUCH_ACTION_PAN_Y => TouchAction::TOUCH_ACTION_PAN_Y,
+        NS_STYLE_TOUCH_ACTION_MANIPULATION => TouchAction::TOUCH_ACTION_MANIPULATION,
+    }
+}
