@@ -40,7 +40,7 @@ pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVa
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};
 pub use self::font::{FontVariantLigatures, FontVariantNumeric, FontFeatureSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XTextZoom, XLang};
-pub use self::box_::{AnimationIterationCount, AnimationName, OverscrollBehavior};
+pub use self::box_::{AnimationIterationCount, AnimationName, Display, OverscrollBehavior};
 pub use self::box_::{OverflowClipBox, ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
