@@ -7,14 +7,276 @@
 use Atom;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+#[cfg(feature = "servo")]
+use properties::{longhands, PropertyDeclaration};
 use std::fmt;
 use style_traits::{ParseError, ToCss};
 use values::CustomIdent;
 use values::KeyframesName;
+#[cfg(feature = "servo")]
+use values::computed::Context;
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use values::specified::{AllowQuirks, Number};
 use values::specified::length::LengthOrPercentage;
+
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+/// Defines an element’s display type, which consists of
+/// the two basic qualities of how an element generates boxes
+/// <https://drafts.csswg.org/css-display/#propdef-display>
+pub enum Display {
+    /// <display-outside> `inline` variant
+    Inline,
+    /// <display-outside> `block` variant
+    Block,
+    /// <display-legacy> `inline-block` variant
+    InlineBlock,
+    /// <display-inside> `table` variant
+    Table,
+    /// <display-legacy> `inline-table` variant
+    InlineTable,
+    /// <display-internal> `table-row-group` variant
+    TableRowGroup,
+    /// <display-internal> `table-header-group` variant
+    TableHeaderGroup,
+    /// <display-internal> `table-footer-group` variant
+    TableFooterGroup,
+    /// <display-internal> `table-row` variant
+    TableRow,
+    /// <display-internal> `table-column-group` variant
+    TableColumnGroup,
+    /// <display-internal> `table-column` variant
+    TableColumn,
+    /// <display-internal> `table-cell` variant
+    TableCell,
+    /// <display-internal> `table-caption` variant
+    TableCaption,
+    /// <display-listitem> `list-item` variant
+    ListItem,
+    /// <display-box> `none` variant
+    None,
+    /// <display-inside> `flex` variant
+    Flex,
+    /// <display-legacy> `inline-flex` variant
+    InlineFlex,
+    #[cfg(feature = "gecko")]
+    /// <display-inside> `grid` variant
+    Grid,
+    #[cfg(feature = "gecko")]
+    /// <display-legacy> `inline-grid` variant
+    InlineGrid,
+    #[cfg(feature = "gecko")]
+    /// <display-inside> `ruby` variant
+    Ruby,
+    #[cfg(feature = "gecko")]
+    /// <display-internal> `ruby-base` variant
+    RubyBase,
+    #[cfg(feature = "gecko")]
+    /// <display-internal> `ruby-base-container` variant
+    RubyBaseContainer,
+    #[cfg(feature = "gecko")]
+    /// <display-internal> `ruby-text` variant
+    RubyText,
+    #[cfg(feature = "gecko")]
+    /// <display-internal> `ruby-text-container` variant
+    RubyTextContainer,
+    #[cfg(feature = "gecko")]
+    /// <display-box> `contents` variant
+    Contents,
+    #[cfg(feature = "gecko")]
+    /// <display-inside> `flow` variant
+    FlowRoot,
+    #[cfg(feature = "gecko")]
+    /// `box` variant for `webkit`
+    WebkitBox,
+    #[cfg(feature = "gecko")]
+    /// `inline-box` variant for `webkit`
+    WebkitInlineBox,
+    #[cfg(feature = "gecko")]
+    /// `box` variant for `moz`
+    MozBox,
+    #[cfg(feature = "gecko")]
+    /// `inline-box` variant for `moz`
+    MozInlineBox,
+    #[cfg(feature = "gecko")]
+    /// `grid` variant for `moz`
+    MozGrid,
+    #[cfg(feature = "gecko")]
+    /// `inline-grid` variant for `moz`
+    MozInlineGrid,
+    #[cfg(feature = "gecko")]
+    /// `grid-group` variant for `moz`
+    MozGridGroup,
+    #[cfg(feature = "gecko")]
+    /// `grid-line` variant for `moz`
+    MozGridLine,
+    #[cfg(feature = "gecko")]
+    /// `stack` variant for `moz`
+    MozStack,
+    #[cfg(feature = "gecko")]
+    /// `inline-stack` variant for `moz`
+    MozInlineStack,
+    #[cfg(feature = "gecko")]
+    /// `deck` variant for `moz`
+    MozDeck,
+    #[cfg(feature = "gecko")]
+    /// `popup` variant for `moz`
+    MozPopup,
+    #[cfg(feature = "gecko")]
+    /// `group-box` variant for `moz`
+    MozGroupbox,
+}
+
+impl Display {
+    /// The initial display value.
+    #[inline]
+    pub fn inline() -> Self {
+        Display::Inline
+    }
+
+    /// Returns whether this "display" value is the display of a flex or
+    /// grid container.
+    ///
+    /// This is used to implement various style fixups.
+    pub fn is_item_container(&self) -> bool {
+        match *self {
+            Display::Flex | Display::InlineFlex => true,
+            #[cfg(feature = "gecko")]
+            Display::Grid | Display::InlineGrid => true,
+            _ => false,
+        }
+    }
+
+    /// Returns whether an element with this display type is a line
+    /// participant, which means it may lay its children on the same
+    /// line as itself.
+    pub fn is_line_participant(&self) -> bool {
+        match *self {
+            Display::Inline => true,
+            #[cfg(feature = "gecko")]
+            Display::Contents | Display::Ruby
+                | Display::RubyBaseContainer => true,
+            _ => false,
+        }
+    }
+
+    /// Whether `new_display` should be ignored, given a previous
+    /// `old_display` value.
+    ///
+    /// This is used to ignore `display: -moz-box` declarations after an
+    /// equivalent `display: -webkit-box` declaration, since the former
+    /// has a vastly different meaning. See bug 1107378 and bug 1407701.
+    ///
+    /// FIXME(emilio): This is a pretty decent hack, we should try to
+    /// remove it.
+    pub fn should_ignore_parsed_value(
+        _old_display: Self,
+        _new_display: Self,
+    ) -> bool {
+        #[cfg(feature = "gecko")] {
+            match (_old_display, _new_display) {
+                (Display::WebkitBox, Display::MozBox) |
+                (Display::WebkitInlineBox, Display::MozInlineBox) => {
+                    return true;
+                }
+                _ => {},
+            }
+        }
+
+        return false;
+    }
+
+    /// Returns whether this "display" value is one of the types for
+    /// ruby.
+    #[cfg(feature = "gecko")]
+    pub fn is_ruby_type(&self) -> bool {
+        matches!(*self,
+            Display::Ruby |
+            Display::RubyBase |
+            Display::RubyText |
+            Display::RubyBaseContainer |
+            Display::RubyTextContainer
+        )
+    }
+
+    /// Returns whether this "display" value is a ruby level container.
+    #[cfg(feature = "gecko")]
+    pub fn is_ruby_level_container(&self) -> bool {
+        matches!(*self,
+            Display::RubyBaseContainer |
+            Display::RubyTextContainer
+        )
+    }
+
+    /// Convert this display into an equivalent block display.
+    ///
+    /// Also used for style adjustments.
+    pub fn equivalent_block_display(&self, _is_root_element: bool) -> Self {
+        match *self {
+            // Values that have a corresponding block-outside version.
+            Display::InlineTable => Display::Table,
+            Display::InlineFlex => Display::Flex,
+
+            #[cfg(feature = "gecko")]
+            Display::InlineGrid => Display::Grid,
+            #[cfg(feature = "gecko")]
+            Display::WebkitInlineBox => Display::WebkitBox,
+
+            // Special handling for contents and list-item on the root
+            // element for Gecko.
+            #[cfg(feature = "gecko")]
+            Display::Contents | Display::ListItem if _is_root_element => Display::Block,
+
+            // These are not changed by blockification.
+            Display::None |
+            Display::Block |
+            Display::Flex |
+            Display::ListItem |
+            Display::Table => *self,
+
+            #[cfg(feature = "gecko")]
+            Display::Contents |
+            Display::FlowRoot |
+            Display::Grid |
+            Display::WebkitBox => *self,
+
+            // Everything else becomes block.
+            _ => Display::Block,
+        }
+
+    }
+
+    /// Convert this display into an inline-outside display.
+    ///
+    /// Ideally it should implement spec: https://drafts.csswg.org/css-display/#inlinify
+    /// but the spec isn't stable enough, so we copy what Gecko does for now.
+    #[cfg(feature = "gecko")]
+    pub fn inlinify(&self) -> Self {
+        match *self {
+            Display::Block |
+            Display::FlowRoot => Display::InlineBlock,
+            Display::Table => Display::InlineTable,
+            Display::Flex => Display::InlineFlex,
+            Display::Grid => Display::InlineGrid,
+            Display::MozBox => Display::MozInlineBox,
+            Display::MozStack => Display::MozInlineStack,
+            Display::WebkitBox => Display::WebkitInlineBox,
+            other => other,
+        }
+    }
+
+    #[cfg(feature = "servo")]
+    #[inline]
+    /// Custom cascade for the `display` property in servo
+    pub fn cascade_property_custom(
+        _declaration: &PropertyDeclaration,
+        context: &mut Context
+    ) {
+        longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
+        longhands::_servo_text_decorations_in_effect::derive_from_display(context);
+    }
+}
 
 /// A specified value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;
