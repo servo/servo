@@ -3626,18 +3626,10 @@ pub extern "C" fn Servo_ReparentStyle(
     if let Some(element) = element {
         if element.is_link() {
             cascade_flags.insert(CascadeFlags::IS_LINK);
-            if element.is_visited_link() &&
-                doc_data.visited_styles_enabled() {
+            if element.is_visited_link() && doc_data.visited_styles_enabled() {
                 cascade_flags.insert(CascadeFlags::IS_VISITED_LINK);
             }
         };
-
-        if element.is_native_anonymous() {
-            cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
-        }
-    }
-    if pseudo.is_some() {
-        cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
     }
 
     doc_data.stylist.compute_style_with_inputs(
