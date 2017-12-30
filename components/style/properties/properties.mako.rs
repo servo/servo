@@ -3084,9 +3084,6 @@ bitflags! {
         /// content.
         const PROHIBIT_DISPLAY_CONTENTS = 1 << 4;
 
-        /// Whether we're styling the ::-moz-fieldset-content anonymous box.
-        const IS_FIELDSET_CONTENT = 1 << 5;
-
         /// Whether we're computing the style of a link, either visited or
         /// unvisited.
         const IS_LINK = 1 << 6;

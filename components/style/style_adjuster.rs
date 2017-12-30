@@ -343,12 +343,12 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_fieldset_content(
         &mut self,
         layout_parent_style: &ComputedValues,
-        flags: CascadeFlags,
     ) {
-        use properties::CascadeFlags;
-        if !flags.contains(CascadeFlags::IS_FIELDSET_CONTENT) {
-            return;
+        match self.style.pseudo {
+            Some(ref p) if p.is_fieldset_content() => {},
+            _ => return,
         }
+
         debug_assert_eq!(self.style.get_box().clone_display(), Display::Block);
         // TODO We actually want style from parent rather than layout
         // parent, so that this fixup doesn't happen incorrectly when
@@ -570,7 +570,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_prohibited_display_contents(flags);
-            self.adjust_for_fieldset_content(layout_parent_style, flags);
+            self.adjust_for_fieldset_content(layout_parent_style);
         }
         self.adjust_for_top_layer();
         self.blockify_if_necessary(layout_parent_style, flags);

@@ -1987,10 +1987,6 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon box pseudo?");
 
-    let mut cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
-    if pseudo.is_fieldset_content() {
-        cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
-    }
     let metrics = get_metrics_provider_for_product();
 
     // If the pseudo element is PageContent, we should append the precomputed
@@ -2023,6 +2019,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         page_decls,
     );
 
+    let cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     data.stylist.precomputed_values_for_pseudo_with_rule_node(
         &guards,
         &pseudo,
@@ -3639,11 +3636,8 @@ pub extern "C" fn Servo_ReparentStyle(
             cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
         }
     }
-    if let Some(pseudo) = pseudo.as_ref() {
+    if pseudo.is_some() {
         cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
-        if pseudo.is_fieldset_content() {
-            cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
-        }
     }
 
     doc_data.stylist.compute_style_with_inputs(
