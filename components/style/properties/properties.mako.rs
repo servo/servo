@@ -3081,11 +3081,11 @@ bitflags! {
 
         /// Whether we're computing the style of a link, either visited or
         /// unvisited.
-        const IS_LINK = 1 << 6;
+        const IS_LINK = 1 << 4;
 
         /// Whether we're computing the style of a link element that happens to
         /// be visited.
-        const IS_VISITED_LINK = 1 << 7;
+        const IS_VISITED_LINK = 1 << 5;
     }
 }
 
