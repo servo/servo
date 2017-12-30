@@ -325,7 +325,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         // TODO: We should probably convert display:contents into display:none
         // in some cases too: https://drafts.csswg.org/css-display/#unbox
-        if !flags.contains(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS) ||
+        //
+        // FIXME(emilio): ::before and ::after should support display: contents,
+        // see bug 1418138.
+        if self.pseudo.is_none() ||
            self.style.get_box().clone_display() != Display::Contents {
             return;
         }
