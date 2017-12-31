@@ -236,13 +236,23 @@ impl<'ln> GeckoNode<'ln> {
 
     #[inline]
     fn flattened_tree_parent(&self) -> Option<Self> {
-        let fast_path = self.flattened_tree_parent_is_parent();
-        debug_assert!(fast_path == unsafe { bindings::Gecko_FlattenedTreeParentIsParent(self.0) });
-        if fast_path {
-            unsafe { self.0.mParent.as_ref().map(GeckoNode) }
-        } else {
-            unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).map(GeckoNode) }
+        // TODO(emilio): Measure and consider not doing this fast-path and take
+        // always the common path, it's only a function call and from profiles
+        // it seems that keeping this fast path makes the compiler not inline
+        // `flattened_tree_parent`.
+        if self.flattened_tree_parent_is_parent() {
+            debug_assert_eq!(
+                unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).map(GeckoNode) },
+                self.parent_node(),
+                "Fast path stopped holding!"
+            );
+
+            return self.parent_node();
         }
+
+        // NOTE(emilio): If this call is too expensive, we could manually
+        // inline more aggressively.
+        unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).map(GeckoNode) }
     }
 
     #[inline]

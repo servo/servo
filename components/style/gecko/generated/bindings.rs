@@ -504,8 +504,6 @@ extern "C" {
 } extern "C" {
  pub fn Gecko_IsInDocument ( node : RawGeckoNodeBorrowed , ) -> bool ; 
 } extern "C" {
- pub fn Gecko_FlattenedTreeParentIsParent ( node : RawGeckoNodeBorrowed , ) -> bool ; 
-} extern "C" {
  pub fn Gecko_IsSignificantChild ( node : RawGeckoNodeBorrowed , text_is_significant : bool , whitespace_is_significant : bool , ) -> bool ; 
 } extern "C" {
  pub fn Gecko_GetLastChild ( node : RawGeckoNodeBorrowed , ) -> RawGeckoNodeBorrowedOrNull ; 
