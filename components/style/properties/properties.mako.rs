@@ -3060,14 +3060,10 @@ bitflags! {
     pub struct CascadeFlags: u8 {
         /// Whether to inherit all styles from the parent. If this flag is not
         /// present, non-inherited styles are reset to their initial values.
-        const INHERIT_ALL = 1;
-
-        /// Whether to skip any display style fixup for root element, flex/grid
-        /// item, and ruby descendants.
-        const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 1 << 1;
+        const INHERIT_ALL = 1 << 0;
 
         /// Whether to only cascade properties that are visited dependent.
-        const VISITED_DEPENDENT_ONLY = 1 << 2;
+        const VISITED_DEPENDENT_ONLY = 1 << 1;
 
         /// Whether the given element we're styling is the document element,
         /// that is, matches :root.
@@ -3077,15 +3073,15 @@ bitflags! {
         ///
         /// This affects some style adjustments, like blockification, and means
         /// that it may affect global state, like the Device's root font-size.
-        const IS_ROOT_ELEMENT = 1 << 3;
+        const IS_ROOT_ELEMENT = 1 << 2;
 
         /// Whether we're computing the style of a link, either visited or
         /// unvisited.
-        const IS_LINK = 1 << 4;
+        const IS_LINK = 1 << 3;
 
         /// Whether we're computing the style of a link element that happens to
         /// be visited.
-        const IS_VISITED_LINK = 1 << 5;
+        const IS_VISITED_LINK = 1 << 4;
     }
 }
 
