@@ -460,10 +460,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
-    fn skip_root_and_item_based_display_fixup(&self) -> bool {
-        false
-    }
-
     unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
         self.element.insert_selector_flags(flags);
     }
