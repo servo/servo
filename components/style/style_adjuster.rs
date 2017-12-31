@@ -320,12 +320,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Native anonymous content converts display:contents into display:inline.
     #[cfg(feature = "gecko")]
-    fn adjust_for_prohibited_display_contents(&mut self, flags: CascadeFlags) {
-        use properties::CascadeFlags;
-
+    fn adjust_for_prohibited_display_contents(&mut self) {
         // TODO: We should probably convert display:contents into display:none
         // in some cases too: https://drafts.csswg.org/css-display/#unbox
-        if !flags.contains(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS) ||
+        //
+        // FIXME(emilio): ::before and ::after should support display: contents,
+        // see bug 1418138.
+        if self.style.pseudo.is_none() ||
            self.style.get_box().clone_display() != Display::Contents {
             return;
         }
@@ -569,7 +570,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_visited(flags);
         #[cfg(feature = "gecko")]
         {
-            self.adjust_for_prohibited_display_contents(flags);
+            self.adjust_for_prohibited_display_contents();
             self.adjust_for_fieldset_content(layout_parent_style);
         }
         self.adjust_for_top_layer();

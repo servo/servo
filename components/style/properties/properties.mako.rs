@@ -3079,18 +3079,13 @@ bitflags! {
         /// that it may affect global state, like the Device's root font-size.
         const IS_ROOT_ELEMENT = 1 << 3;
 
-        /// Whether to convert display:contents into display:inline.  This
-        /// is used by Gecko to prevent display:contents on generated
-        /// content.
-        const PROHIBIT_DISPLAY_CONTENTS = 1 << 4;
-
         /// Whether we're computing the style of a link, either visited or
         /// unvisited.
-        const IS_LINK = 1 << 6;
+        const IS_LINK = 1 << 4;
 
         /// Whether we're computing the style of a link element that happens to
         /// be visited.
-        const IS_VISITED_LINK = 1 << 7;
+        const IS_VISITED_LINK = 1 << 5;
     }
 }
 
