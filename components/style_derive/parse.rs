@@ -19,11 +19,25 @@ pub fn derive(input: DeriveInput) -> Tokens {
             "Parse is only supported for single-variant enums for now"
         );
 
+        let variant_attrs = cg::parse_variant_attrs::<ParseVariantAttrs>(variant);
         let identifier = cg::to_css_identifier(variant.ident.as_ref());
         let ident = &variant.ident;
+
         match_body = quote! {
             #match_body
             #identifier => Ok(#name::#ident),
+        };
+
+        let aliases = match variant_attrs.aliases {
+            Some(aliases) => aliases,
+            None => return,
+        };
+
+        for alias in aliases.split(",") {
+            match_body = quote! {
+                #match_body
+                #alias => Ok(#name::#ident),
+            };
         }
     });
 
@@ -72,4 +86,12 @@ pub fn derive(input: DeriveInput) -> Tokens {
         #parse_trait_impl
         #methods_impl
     }
+}
+
+#[darling(attributes(parse), default)]
+#[derive(Default, FromVariant)]
+struct ParseVariantAttrs {
+    /// The comma-separated list of aliases this variant should be aliased to at
+    /// parse time.
+    aliases: Option<String>,
 }
