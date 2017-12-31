@@ -2019,11 +2019,12 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         page_decls,
     );
 
+    let cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     data.stylist.precomputed_values_for_pseudo_with_rule_node(
         &guards,
         &pseudo,
         parent_style_or_null.map(|x| &*x),
-        CascadeFlags::empty(),
+        cascade_flags,
         &metrics,
         rule_node
     ).into()
@@ -3619,17 +3620,10 @@ pub extern "C" fn Servo_ReparentStyle(
     let element = element.map(GeckoElement);
 
     let mut cascade_flags = CascadeFlags::empty();
+    if style_to_reparent.is_anon_box() {
+        cascade_flags.insert(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
+    }
     if let Some(element) = element {
-        // NOTE(emilio): This relies on element.is_some() => pseudo.is_none(),
-        // which the caller guarantees, fortunately. But this doesn't handle the
-        // IS_ROOT_ELEMENT flag correctly!
-        //
-        // I think it's not possible to wrap a root element in a first-line
-        // frame (and reparenting only happens for ::first-line and its
-        // descendants), so this may be fine...
-        //
-        // We should just get rid of all these flags which pass element / pseudo
-        // state.
         if element.is_link() {
             cascade_flags.insert(CascadeFlags::IS_LINK);
             if element.is_visited_link() && doc_data.visited_styles_enabled() {
