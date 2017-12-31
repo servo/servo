@@ -542,6 +542,11 @@ where
 
         let mut cascade_flags = CascadeFlags::empty();
 
+        if self.element.skip_root_and_item_based_display_fixup() ||
+           pseudo.map_or(false, |p| p.skip_item_based_display_fixup()) {
+            cascade_flags.insert(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
+        }
+
         if pseudo.is_none() && self.element.is_link() {
             cascade_flags.insert(CascadeFlags::IS_LINK);
             if self.element.is_visited_link() &&

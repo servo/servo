@@ -28,12 +28,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         StyleAdjuster { style }
     }
 
-    /// Whether to skip any display style fixup flex/grid item, and ruby
-    /// descendants.
-    fn skip_item_based_display_fixup(&self) -> bool {
-        self.style.pseudo.as_ref().map_or(false, |p| p.skip_item_based_display_fixup())
-    }
-
     /// <https://fullscreen.spec.whatwg.org/#new-stacking-layer>
     ///
     ///    Any position value other than 'absolute' and 'fixed' are
@@ -72,11 +66,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             }
         }
 
-        blockify_if!(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
-        blockify_if!(
-            !self.skip_item_based_display_fixup() &&
-            layout_parent_style.get_box().clone_display().is_item_container()
-        );
+        if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
+            blockify_if!(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
+            blockify_if!(layout_parent_style.get_box().clone_display().is_item_container());
+        }
 
         let is_item_or_root = blockify;
 
@@ -454,7 +447,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_ruby(
         &mut self,
         layout_parent_style: &ComputedValues,
+        flags: CascadeFlags,
     ) {
+        use properties::CascadeFlags;
         use properties::computed_value_flags::ComputedValueFlags;
         use properties::longhands::unicode_bidi::computed_value::T as UnicodeBidi;
 
@@ -463,7 +458,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if self.should_suppress_linebreak(layout_parent_style) {
             self.style.flags.insert(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK);
             // Inlinify the display type if allowed.
-            if !self.skip_item_based_display_fixup() {
+            if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
                 let inline_display = self_display.inlinify();
                 if self_display != inline_display {
                     self.style.mutate_box().set_display(inline_display);
@@ -599,7 +594,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_text_decoration_lines(layout_parent_style);
         #[cfg(feature = "gecko")]
         {
-            self.adjust_for_ruby(layout_parent_style);
+            self.adjust_for_ruby(layout_parent_style, flags);
         }
         self.set_bits();
     }
