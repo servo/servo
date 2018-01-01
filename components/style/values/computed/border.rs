@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use values::animated::ToAnimatedZero;
-use values::computed::{Number, NumberOrPercentage};
+use values::computed::{Context, Number, NumberOrPercentage, ToComputedValue};
 use values::computed::length::{LengthOrPercentage, NonNegativeLength};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
@@ -15,6 +15,7 @@ use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::border::BorderSpacing as GenericBorderSpacing;
 use values::generics::rect::Rect;
 use values::generics::size::Size;
+use values::specified::border::{BorderImageRepeat as SpecifiedBorderImageRepeat, BorderImageRepeatKeyword};
 
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
@@ -79,5 +80,32 @@ impl ToAnimatedZero for BorderCornerRadius {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         // FIXME(nox): Why?
         Err(())
+    }
+}
+
+/// The computed value of the `border-image-repeat` property:
+///
+/// https://drafts.csswg.org/css-backgrounds/#propdef-border-image-repeat
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeatKeyword);
+
+impl BorderImageRepeat {
+    /// Returns the `stretch stretch` value.
+    pub fn repeat() -> Self {
+        BorderImageRepeat(BorderImageRepeatKeyword::Stretch, BorderImageRepeatKeyword::Stretch)
+    }
+}
+
+impl ToComputedValue for SpecifiedBorderImageRepeat {
+    type ComputedValue = BorderImageRepeat;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        BorderImageRepeat(self.0, self.1.unwrap_or(self.0))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        SpecifiedBorderImageRepeat(computed.0, Some(computed.1))
     }
 }

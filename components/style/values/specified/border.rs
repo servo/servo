@@ -171,3 +171,41 @@ impl Parse for BorderSpacing {
         }).map(GenericBorderSpacing)
     }
 }
+
+/// One of the keywords for `border-image-repeat`.
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[allow(missing_docs)]
+pub enum BorderImageRepeatKeyword {
+    Stretch,
+    Repeat,
+    Round,
+    Space
+}
+
+/// The specified value for the `border-image-repeat` property.
+///
+/// https://drafts.csswg.org/css-backgrounds/#propdef-border-image-repeat
+///
+/// `[ stretch | repeat | round | space ]{1,2}`
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub Option<BorderImageRepeatKeyword>);
+
+impl BorderImageRepeat {
+    /// Returns the `stretch` value.
+    #[inline]
+    pub fn repeat() -> Self {
+        BorderImageRepeat(BorderImageRepeatKeyword::Stretch, None)
+    }
+}
+
+impl Parse for BorderImageRepeat {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let first = BorderImageRepeatKeyword::parse(input)?;
+        let second = input.try(BorderImageRepeatKeyword::parse).ok();
+
+        Ok(BorderImageRepeat(first, second))
+    }
+}
