@@ -175,7 +175,7 @@ impl Parse for BorderSpacing {
 /// One of the keywords for `border-image-repeat`.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
 #[allow(missing_docs)]
-pub enum RepeatKeyword {
+pub enum BorderImageRepeatKeyword {
     Stretch,
     Repeat,
     Round,
@@ -188,13 +188,13 @@ pub enum RepeatKeyword {
 ///
 /// `[ stretch | repeat | round | space ]{1,2}`
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub struct BorderImageRepeat(pub RepeatKeyword, pub Option<RepeatKeyword>);
+pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub Option<BorderImageRepeatKeyword>);
 
 impl BorderImageRepeat {
     /// Returns the `stretch` value.
     #[inline]
     pub fn repeat() -> Self {
-        BorderImageRepeat(RepeatKeyword::Stretch, None)
+        BorderImageRepeat(BorderImageRepeatKeyword::Stretch, None)
     }
 }
 
@@ -203,8 +203,8 @@ impl Parse for BorderImageRepeat {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let first = RepeatKeyword::parse(input)?;
-        let second = input.try(RepeatKeyword::parse).ok();
+        let first = BorderImageRepeatKeyword::parse(input)?;
+        let second = input.try(BorderImageRepeatKeyword::parse).ok();
 
         Ok(BorderImageRepeat(first, second))
     }

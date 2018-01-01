@@ -15,7 +15,7 @@ use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::border::BorderSpacing as GenericBorderSpacing;
 use values::generics::rect::Rect;
 use values::generics::size::Size;
-use values::specified::border::{BorderImageRepeat as SpecifiedBorderImageRepeat, RepeatKeyword};
+use values::specified::border::{BorderImageRepeat as SpecifiedBorderImageRepeat, BorderImageRepeatKeyword};
 
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
@@ -87,12 +87,12 @@ impl ToAnimatedZero for BorderCornerRadius {
 ///
 /// https://drafts.csswg.org/css-backgrounds/#propdef-border-image-repeat
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub struct BorderImageRepeat(pub RepeatKeyword, pub RepeatKeyword);
+pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeatKeyword);
 
 impl BorderImageRepeat {
     /// Returns the `stretch stretch` value.
     pub fn repeat() -> Self {
-        BorderImageRepeat(RepeatKeyword::Stretch, RepeatKeyword::Stretch)
+        BorderImageRepeat(BorderImageRepeatKeyword::Stretch, BorderImageRepeatKeyword::Stretch)
     }
 }
 

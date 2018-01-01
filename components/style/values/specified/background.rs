@@ -48,7 +48,7 @@ impl BackgroundSize {
 /// One of the keywords for `background-repeat`.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
 #[allow(missing_docs)]
-pub enum RepeatKeyword {
+pub enum BackgroundRepeatKeyword {
     Repeat,
     Space,
     Round,
@@ -65,14 +65,14 @@ pub enum BackgroundRepeat {
     /// `repeat-y`
     RepeatY,
     /// `[repeat | space | round | no-repeat]{1,2}`
-    Keywords(RepeatKeyword, Option<RepeatKeyword>),
+    Keywords(BackgroundRepeatKeyword, Option<BackgroundRepeatKeyword>),
 }
 
 impl BackgroundRepeat {
     /// Returns the `repeat` value.
     #[inline]
     pub fn repeat() -> Self {
-        BackgroundRepeat::Keywords(RepeatKeyword::Repeat, None)
+        BackgroundRepeat::Keywords(BackgroundRepeatKeyword::Repeat, None)
     }
 }
 
@@ -89,7 +89,7 @@ impl Parse for BackgroundRepeat {
             _ => {},
         }
 
-        let horizontal = match RepeatKeyword::from_ident(&ident) {
+        let horizontal = match BackgroundRepeatKeyword::from_ident(&ident) {
             Ok(h) => h,
             Err(()) => {
                 return Err(input.new_custom_error(
@@ -98,7 +98,7 @@ impl Parse for BackgroundRepeat {
             }
         };
 
-        let vertical = input.try(RepeatKeyword::parse).ok();
+        let vertical = input.try(BackgroundRepeatKeyword::parse).ok();
         Ok(BackgroundRepeat::Keywords(horizontal, vertical))
     }
 }

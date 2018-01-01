@@ -72,8 +72,8 @@ use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndi
 use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
 use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
-use style::values::specified::background::RepeatKeyword as BackgroundRepeatKeyword;
-use style::values::specified::border::RepeatKeyword;
+use style::values::specified::background::BackgroundRepeatKeyword;
+use style::values::specified::border::BorderImageRepeatKeyword;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::ToCss;
@@ -100,12 +100,12 @@ impl ResolvePercentage for NumberOrPercentage {
     }
 }
 
-fn convert_repeat_mode(from: RepeatKeyword) -> RepeatMode {
+fn convert_repeat_mode(from: BorderImageRepeatKeyword) -> RepeatMode {
     match from {
-        RepeatKeyword::Stretch => RepeatMode::Stretch,
-        RepeatKeyword::Repeat => RepeatMode::Repeat,
-        RepeatKeyword::Round => RepeatMode::Round,
-        RepeatKeyword::Space => RepeatMode::Space,
+        BorderImageRepeatKeyword::Stretch => RepeatMode::Stretch,
+        BorderImageRepeatKeyword::Repeat => RepeatMode::Repeat,
+        BorderImageRepeatKeyword::Round => RepeatMode::Round,
+        BorderImageRepeatKeyword::Space => RepeatMode::Space,
     }
 }
 
