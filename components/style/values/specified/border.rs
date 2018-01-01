@@ -176,7 +176,7 @@ impl Parse for BorderSpacing {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
-pub enum RepeatKeyword {
+pub enum BorderImageRepeatKeyword {
     Stretch,
     Repeat,
     Round,
@@ -187,13 +187,13 @@ pub enum RepeatKeyword {
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub struct BorderImageRepeat(pub RepeatKeyword, pub Option<RepeatKeyword>);
+pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub Option<BorderImageRepeatKeyword>);
 
 impl BorderImageRepeat {
     /// Returns the `stretch` value.
     #[inline]
     pub fn stretch() -> Self {
-        BorderImageRepeat(RepeatKeyword::Stretch, None)
+        BorderImageRepeat(BorderImageRepeatKeyword::Stretch, None)
     }
 }
 
@@ -202,8 +202,8 @@ impl Parse for BorderImageRepeat {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let horizontal = RepeatKeyword::parse(input)?;
-        let vertical = input.try(RepeatKeyword::parse).ok();
+        let horizontal = BorderImageRepeatKeyword::parse(input)?;
+        let vertical = input.try(BorderImageRepeatKeyword::parse).ok();
         Ok(BorderImageRepeat(horizontal, vertical))
     }
 }

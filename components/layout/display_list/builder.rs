@@ -69,7 +69,6 @@ use style::values::computed::effects::SimpleShadow;
 use style::values::computed::pointing::Cursor;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
-use style::values::specified::border::RepeatKeyword;
 use style_traits::CSSPixel;
 use style_traits::ToCss;
 use style_traits::cursor::CursorKind;
