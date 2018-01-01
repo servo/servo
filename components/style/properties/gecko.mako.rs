@@ -1787,8 +1787,8 @@ fn static_assert() {
     border_image_repeat_keywords = ["Stretch", "Repeat", "Round", "Space"]
     %>
 
-    pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
-        use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
+    pub fn set_border_image_repeat(&mut self, v: values::computed::BorderImageRepeat) {
+        use values::specified::border::RepeatKeyword;
         use gecko_bindings::structs::StyleBorderImageRepeat;
 
         % for i, side in enumerate(["H", "V"]):
@@ -1809,8 +1809,8 @@ fn static_assert() {
         self.copy_border_image_repeat_from(other)
     }
 
-    pub fn clone_border_image_repeat(&self) -> longhands::border_image_repeat::computed_value::T {
-        use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
+    pub fn clone_border_image_repeat(&self) -> values::computed::BorderImageRepeat {
+        use values::specified::border::RepeatKeyword;
         use gecko_bindings::structs::StyleBorderImageRepeat;
 
         % for side in ["H", "V"]:
