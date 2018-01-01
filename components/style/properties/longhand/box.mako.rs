@@ -13,229 +13,36 @@
 //
 // We allow "display" to apply to placeholders because we need to make the
 // placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
-<%helpers:longhand name="display"
-                   animation_value_type="discrete"
-                   custom_cascade="${product == 'servo'}"
-                   flags="APPLIES_TO_PLACEHOLDER"
-                   spec="https://drafts.csswg.org/css-display/#propdef-display">
-    <%
-        values = """inline block inline-block
-            table inline-table table-row-group table-header-group table-footer-group
-            table-row table-column-group table-column table-cell table-caption
-            list-item none
-        """.split()
-        webkit_prefixed_values = "flex inline-flex".split()
-        values += webkit_prefixed_values
-        if product == "gecko":
-            values += """grid inline-grid ruby ruby-base ruby-base-container
-                ruby-text ruby-text-container contents flow-root -webkit-box
-                -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
-                -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
-                -moz-popup -moz-groupbox""".split()
-    %>
-    use style_traits::ToCss;
+${helpers.predefined_type(
+    "display",
+    "Display",
+    "computed::Display::inline()",
+    initial_specified_value="specified::Display::inline()",
+    animation_value_type="discrete",
+    needs_context=False,
+    custom_cascade= product == 'servo',
+    custom_cascade_function="specified::Display::cascade_property_custom",
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-display/#propdef-display",
+)}
 
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-        use super::SpecifiedValue as Display;
-
-        impl Display {
-            /// Returns whether this "display" value is the display of a flex or
-            /// grid container.
-            ///
-            /// This is used to implement various style fixups.
-            pub fn is_item_container(&self) -> bool {
-                matches!(*self,
-                         Display::Flex
-                         | Display::InlineFlex
-                         % if product == "gecko":
-                         | Display::Grid
-                         | Display::InlineGrid
-                         % endif
-                )
-            }
-
-            /// Returns whether an element with this display type is a line
-            /// participant, which means it may lay its children on the same
-            /// line as itself.
-            pub fn is_line_participant(&self) -> bool {
-                matches!(*self,
-                         Display::Inline
-                         % if product == "gecko":
-                         | Display::Contents
-                         | Display::Ruby
-                         | Display::RubyBaseContainer
-                         % endif
-                )
-            }
-
-            /// Whether `new_display` should be ignored, given a previous
-            /// `old_display` value.
-            ///
-            /// This is used to ignore `display: -moz-box` declarations after an
-            /// equivalent `display: -webkit-box` declaration, since the former
-            /// has a vastly different meaning. See bug 1107378 and bug 1407701.
-            ///
-            /// FIXME(emilio): This is a pretty decent hack, we should try to
-            /// remove it.
-            pub fn should_ignore_parsed_value(
-                _old_display: Self,
-                _new_display: Self,
-            ) -> bool {
-                #[cfg(feature = "gecko")]
-                {
-                    match (_old_display, _new_display) {
-                        (Display::WebkitBox, Display::MozBox) |
-                        (Display::WebkitInlineBox, Display::MozInlineBox) => {
-                            return true;
-                        }
-                        _ => {},
-                    }
-                }
-
-                return false;
-            }
-
-            /// Returns whether this "display" value is one of the types for
-            /// ruby.
-            #[cfg(feature = "gecko")]
-            pub fn is_ruby_type(&self) -> bool {
-                matches!(*self,
-                         Display::Ruby |
-                         Display::RubyBase |
-                         Display::RubyText |
-                         Display::RubyBaseContainer |
-                         Display::RubyTextContainer)
-            }
-
-            /// Returns whether this "display" value is a ruby level container.
-            #[cfg(feature = "gecko")]
-            pub fn is_ruby_level_container(&self) -> bool {
-                matches!(*self,
-                         Display::RubyBaseContainer |
-                         Display::RubyTextContainer)
-            }
-
-            /// Convert this display into an equivalent block display.
-            ///
-            /// Also used for style adjustments.
-            pub fn equivalent_block_display(&self, _is_root_element: bool) -> Self {
-                match *self {
-                    // Values that have a corresponding block-outside version.
-                    Display::InlineTable => Display::Table,
-                    Display::InlineFlex => Display::Flex,
-
-                    % if product == "gecko":
-                    Display::InlineGrid => Display::Grid,
-                    Display::WebkitInlineBox => Display::WebkitBox,
-                    % endif
-
-                    // Special handling for contents and list-item on the root
-                    // element for Gecko.
-                    % if product == "gecko":
-                    Display::Contents | Display::ListItem if _is_root_element => Display::Block,
-                    % endif
-
-                    // These are not changed by blockification.
-                    Display::None |
-                    Display::Block |
-                    Display::Flex |
-                    Display::ListItem |
-                    Display::Table => *self,
-
-                    % if product == "gecko":
-                    Display::Contents |
-                    Display::FlowRoot |
-                    Display::Grid |
-                    Display::WebkitBox => *self,
-                    % endif
-
-                    // Everything else becomes block.
-                    _ => Display::Block,
-                }
-
-            }
-
-            /// Convert this display into an inline-outside display.
-            ///
-            /// Ideally it should implement spec: https://drafts.csswg.org/css-display/#inlinify
-            /// but the spec isn't stable enough, so we copy what Gecko does for now.
-            #[cfg(feature = "gecko")]
-            pub fn inlinify(&self) -> Self {
-                match *self {
-                    Display::Block |
-                    Display::FlowRoot => Display::InlineBlock,
-                    Display::Table => Display::InlineTable,
-                    Display::Flex => Display::InlineFlex,
-                    Display::Grid => Display::InlineGrid,
-                    Display::MozBox => Display::MozInlineBox,
-                    Display::MozStack => Display::MozInlineStack,
-                    Display::WebkitBox => Display::WebkitInlineBox,
-                    other => other,
-                }
-            }
-        }
-    }
-
-    // FIXME(emilio): Why does this reinvent the wheel, again?
-    #[allow(non_camel_case_types)]
-    #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
-    #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-    pub enum SpecifiedValue {
-        % for value in values:
-            ${to_camel_case(value)},
-        % endfor
-    }
-
-    // TODO(emilio): derive.
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write,
-        {
-            match *self {
-                % for value in values:
-                    SpecifiedValue::${to_camel_case(value)} => dest.write_str("${value}"),
-                % endfor
-            }
-        }
-    }
-
-    /// The initial display value.
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::${to_camel_case(values[0])}
-    }
-
-    /// Parse a display value.
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            % for value in values:
-                "${value}" => {
-                    Ok(computed_value::T::${to_camel_case(value)})
-                },
-            % endfor
-            % for value in webkit_prefixed_values:
-                "-webkit-${value}" => {
-                    Ok(computed_value::T::${to_camel_case(value)})
-                },
-            % endfor
-        }
-    }
-
-    % if product == "servo":
-        fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   context: &mut computed::Context) {
-            longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
-            longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-        }
-    % endif
-
-    ${helpers.gecko_keyword_conversion(Keyword('display', ' '.join(values),
-                                               gecko_enum_prefix='StyleDisplay',
-                                               gecko_strip_moz_prefix=False))}
-
-</%helpers:longhand>
+// FIXME(emilio): Listing all the display values here is very unfortunate, we should teach C++ to use the
+// Rust enum directly, or generate the conversions to `StyleDisplay`.
+${helpers.gecko_keyword_conversion(
+    Keyword('display', """
+        inline block inline-block
+        table inline-table table-row-group table-header-group table-footer-group
+        table-row table-column-group table-column table-cell table-caption
+        list-item none flex inline-flex grid inline-grid ruby ruby-base ruby-base-container
+        ruby-text ruby-text-container contents flow-root -webkit-box
+        -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
+        -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
+        -moz-popup -moz-groupbox
+    """,
+    gecko_enum_prefix='StyleDisplay',
+    gecko_strip_moz_prefix=False),
+    type="::values::specified::Display"
+)}
 
 ${helpers.single_keyword("-moz-top-layer", "none top",
                          gecko_constant_prefix="NS_STYLE_TOP_LAYER",
