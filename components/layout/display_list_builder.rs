@@ -798,6 +798,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
                 position_to_offset(position, total_length)
             }
         };
+        assert!(offset.is_finite());
         stops.push(GradientStop {
             offset: offset,
             color: stop.color.to_gfx_color()
@@ -3270,6 +3271,9 @@ struct StopRun {
 }
 
 fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
+    if total_length == Au(0) {
+        return 0.0
+    }
     match position {
         LengthOrPercentage::Length(l) => l.to_i32_au() as f32 / total_length.0 as f32,
         LengthOrPercentage::Percentage(percentage) => percentage.0 as f32,
