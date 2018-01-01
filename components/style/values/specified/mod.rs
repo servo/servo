@@ -28,7 +28,7 @@ pub use self::angle::Angle;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
-pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
+pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth, BorderImageRepeat};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth, BorderSpacing};
 pub use self::font::{FontSize, FontSizeAdjust, FontSynthesis, FontWeight, FontVariantAlternates};
 pub use self::font::{FontFamily, FontLanguageOverride, FontVariantSettings, FontVariantEastAsian};

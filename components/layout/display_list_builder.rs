@@ -59,7 +59,6 @@ use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::longhands::background_origin::single_value::computed_value::T as BackgroundOrigin;
-use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
 use style::properties::style_structs;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::{Either, RGBA};
@@ -74,6 +73,7 @@ use style::values::generics::image::{GradientItem as GenericGradientItem, Gradie
 use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::background::RepeatKeyword as BackgroundRepeatKeyword;
+use style::values::specified::border::RepeatKeyword;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::ToCss;
