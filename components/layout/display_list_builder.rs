@@ -19,7 +19,7 @@ use flex::FlexFlow;
 use flow::{BaseFlow, Flow, FlowFlags};
 use flow_ref::FlowRef;
 use fnv::FnvHashMap;
-use fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
+use fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails, BorderDisplayItem};
@@ -48,7 +48,9 @@ use std::{cmp, f32};
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
-use style::computed_values::{background_attachment, background_clip, background_origin};
+use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
+use style::computed_values::background_clip::single_value::T as BackgroundClip;
+use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::computed_values::border_style::T as BorderStyle;
 use style::computed_values::cursor;
 use style::computed_values::image_rendering::T as ImageRendering;
@@ -58,7 +60,6 @@ use style::computed_values::position::T as StylePosition;
 use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
-use style::properties::longhands::background_origin::single_value::computed_value::T as BackgroundOrigin;
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
 use style::properties::style_structs;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -475,13 +476,18 @@ pub trait FragmentDisplayListBuilding {
                                                        display_list_section: DisplayListSection,
                                                        absolute_bounds: &Rect<Au>);
 
-    /// Computes the background size for an image with the given background area according to the
-    /// rules in CSS-BACKGROUNDS § 3.9.
-    fn compute_background_image_size(&self,
-                                     style: &ComputedValues,
-                                     bounds: &Rect<Au>,
-                                     image: &WebRenderImageInfo, index: usize)
-                                     -> Size2D<Au>;
+    /// Determines where to place an element background image or gradient.
+    ///
+    /// Photos have their resolution as intrinsic size while gradients have
+    /// no intrinsic size.
+    fn compute_background_placement(
+        &self,
+        state: &mut DisplayListBuildState,
+        style: &ComputedValues,
+        absolute_bounds: Rect<Au>,
+        intrinsic_size: Option<Size2D<Au>>,
+        index: usize
+    ) -> BackgroundPlacement;
 
     /// Adds the display items necessary to paint a webrender image of this fragment to the
     /// appropriate section of the display list.
@@ -489,8 +495,7 @@ pub trait FragmentDisplayListBuilding {
                                               state: &mut DisplayListBuildState,
                                               style: &ComputedValues,
                                               display_list_section: DisplayListSection,
-                                              absolute_bounds: &Rect<Au>,
-                                              clip: &LocalClip,
+                                              absolute_bounds: Rect<Au>,
                                               webrender_image: WebRenderImageInfo,
                                               index: usize);
 
@@ -510,7 +515,6 @@ pub trait FragmentDisplayListBuilding {
                                                   state: &mut DisplayListBuildState,
                                                   display_list_section: DisplayListSection,
                                                   absolute_bounds: Rect<Au>,
-                                                  clip: &LocalClip,
                                                   gradient: &Gradient,
                                                   style: &ComputedValues,
                                                   index: usize);
@@ -1025,6 +1029,201 @@ fn convert_ellipse_size_keyword(keyword: ShapeExtent,
     }
 }
 
+/// Subtract offsets from a bounding box.
+///
+/// As an example if the bounds are the border-box and the border
+/// is provided as offsets the result will be the padding-box.
+fn calculate_inner_bounds(mut bounds: Rect<Au>, offsets: SideOffsets2D<Au>) -> Rect<Au> {
+    bounds.origin.x += offsets.left;
+    bounds.origin.y += offsets.top;
+    bounds.size.width -= offsets.horizontal();
+    bounds.size.height -= offsets.vertical();
+    bounds
+}
+
+
+/// For a given area and an image compute how big the
+/// image should be displayed on the background.
+fn compute_background_image_size(bg_size: BackgroundSize<LengthOrPercentageOrAuto>,
+                                 bounds_size: Size2D<Au>,
+                                 intrinsic_size: Option<Size2D<Au>>)
+                                 -> Size2D<Au> {
+    match intrinsic_size {
+        None => {
+            match bg_size {
+                BackgroundSize::Cover | BackgroundSize::Contain => bounds_size,
+                BackgroundSize::Explicit { width, height } => {
+                    Size2D::new(
+                        MaybeAuto::from_style(width, bounds_size.width)
+                            .specified_or_default(bounds_size.width),
+                        MaybeAuto::from_style(height, bounds_size.height)
+                            .specified_or_default(bounds_size.height)
+                    )
+                }
+            }
+        }
+        Some(own_size) => {
+            // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
+            // wide.
+            let image_aspect_ratio = own_size.width.to_f32_px() / own_size.height.to_f32_px();
+            let bounds_aspect_ratio = bounds_size.width.to_f32_px() / bounds_size.height.to_f32_px();
+            match (bg_size, image_aspect_ratio < bounds_aspect_ratio) {
+                (BackgroundSize::Contain, false) | (BackgroundSize::Cover, true) => {
+                    Size2D::new(bounds_size.width,
+                                bounds_size.width.scale_by(image_aspect_ratio.recip()))
+                }
+
+                (BackgroundSize::Contain, true) | (BackgroundSize::Cover, false) => {
+                    Size2D::new(bounds_size.height.scale_by(image_aspect_ratio),
+                                bounds_size.height)
+                }
+
+                (BackgroundSize::Explicit { width, height: LengthOrPercentageOrAuto::Auto }, _) => {
+                    let width = MaybeAuto::from_style(width, bounds_size.width)
+                                            .specified_or_default(own_size.width);
+                    Size2D::new(width, width.scale_by(image_aspect_ratio.recip()))
+                }
+
+                (BackgroundSize::Explicit { width: LengthOrPercentageOrAuto::Auto, height }, _) => {
+                    let height = MaybeAuto::from_style(height, bounds_size.height)
+                                            .specified_or_default(own_size.height);
+                    Size2D::new(height.scale_by(image_aspect_ratio), height)
+                }
+
+                (BackgroundSize::Explicit { width, height }, _) => {
+                    Size2D::new(MaybeAuto::from_style(width, bounds_size.width)
+                                        .specified_or_default(own_size.width),
+                            MaybeAuto::from_style(height, bounds_size.height)
+                                        .specified_or_default(own_size.height))
+                }
+            }
+        }
+    }
+}
+
+fn tile_image_round(position: &mut Au,
+                    size: &mut Au,
+                    absolute_anchor_origin: Au,
+                    image_size: &mut Au) {
+    if *size == Au(0) || *image_size == Au(0) {
+        *position = Au(0);
+        *size =Au(0);
+        return;
+    }
+
+    let number_of_tiles = (size.to_f32_px() / image_size.to_f32_px()).round().max(1.0);
+    *image_size = *size / (number_of_tiles as i32);
+    tile_image(position, size, absolute_anchor_origin, *image_size);
+}
+
+fn tile_image_spaced(position: &mut Au,
+                     size: &mut Au,
+                     tile_spacing: &mut Au,
+                     absolute_anchor_origin: Au,
+                     image_size: Au) {
+    if *size == Au(0) || image_size == Au(0) {
+        *position = Au(0);
+        *size = Au(0);
+        *tile_spacing = Au(0);
+        return;
+    }
+
+    // Per the spec, if the space available is not enough for two images, just tile as
+    // normal but only display a single tile.
+    if image_size * 2 >= *size {
+        tile_image(position,
+                   size,
+                   absolute_anchor_origin,
+                   image_size);
+        *tile_spacing = Au(0);
+        *size = image_size;
+        return;
+    }
+
+    // Take the box size, remove room for two tiles on the edges, and then calculate how many
+    // other tiles fit in between them.
+    let size_remaining = *size - (image_size * 2);
+    let num_middle_tiles = (size_remaining.to_f32_px() / image_size.to_f32_px()).floor() as i32;
+
+    // Allocate the remaining space as padding between tiles. background-position is ignored
+    // as per the spec, so the position is just the box origin. We are also ignoring
+    // background-attachment here, which seems unspecced when combined with
+    // background-repeat: space.
+    let space_for_middle_tiles = image_size * num_middle_tiles;
+    *tile_spacing = (size_remaining - space_for_middle_tiles) / (num_middle_tiles + 1);
+}
+
+/// Tile an image
+fn tile_image(position: &mut Au,
+              size: &mut Au,
+              absolute_anchor_origin: Au,
+              image_size: Au) {
+    // Avoid division by zero below!
+    // Images with a zero width or height are not displayed.
+    // Therefore the positions do not matter and can be left unchanged.
+    // NOTE: A possible optimization is not to build
+    // display items in this case at all.
+    if image_size == Au(0) {
+        return
+    }
+
+    let delta_pixels = absolute_anchor_origin - *position;
+    let image_size_px = image_size.to_f32_px();
+    let tile_count = ((delta_pixels.to_f32_px() + image_size_px - 1.0) / image_size_px).floor();
+    let offset = image_size * (tile_count as i32);
+    let new_position = absolute_anchor_origin - offset;
+    *size = *position - new_position + *size;
+    *position = new_position;
+}
+
+/// For either the x or the y axis ajust various values to account for tiling.
+///
+/// This is done separately for both axes because the repeat keywords may differ.
+fn tile_image_axis(repeat: BackgroundRepeatKeyword,
+                   position: &mut Au,
+                   size: &mut Au,
+                   tile_size: &mut Au,
+                   tile_spacing: &mut Au,
+                   offset: Au,
+                   clip_origin: Au,
+                   clip_size: Au)
+{
+    let absolute_anchor_origin = *position + offset;
+    match repeat {
+        BackgroundRepeatKeyword::NoRepeat => {
+            *position += offset;
+            *size = *tile_size;
+        }
+        BackgroundRepeatKeyword::Repeat => {
+            *position = clip_origin;
+            *size = clip_size;
+            tile_image(position, size, absolute_anchor_origin, *tile_size);
+        }
+        BackgroundRepeatKeyword::Space => {
+            tile_image_spaced(
+                position,
+                size,
+                tile_spacing,
+                absolute_anchor_origin,
+                *tile_size);
+            let combined_tile_size = *tile_size + *tile_spacing;
+            *position = clip_origin;
+            *size = clip_size;
+            tile_image(position, size, absolute_anchor_origin, combined_tile_size);
+        }
+        BackgroundRepeatKeyword::Round => {
+            tile_image_round(
+                position,
+                size,
+                absolute_anchor_origin,
+                tile_size);
+            *position = clip_origin;
+            *size = clip_size;
+            tile_image(position, size, absolute_anchor_origin, *tile_size);
+        }
+    }
+}
+
 impl FragmentDisplayListBuilding for Fragment {
     fn collect_stacking_contexts_for_blocklike_fragment(&mut self,
                                                         state: &mut StackingContextCollectionState)
@@ -1074,20 +1273,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                     background.background_image.0.len() - 1);
 
         match *color_clip {
-            background_clip::single_value::T::BorderBox => {}
-            background_clip::single_value::T::PaddingBox => {
+            BackgroundClip::BorderBox => {}
+            BackgroundClip::PaddingBox => {
                 let border = style.logical_border_width().to_physical(style.writing_mode);
-                bounds.origin.x = bounds.origin.x + border.left;
-                bounds.origin.y = bounds.origin.y + border.top;
-                bounds.size.width = bounds.size.width - border.horizontal();
-                bounds.size.height = bounds.size.height - border.vertical();
+                bounds = calculate_inner_bounds(bounds, border);
             }
-            background_clip::single_value::T::ContentBox => {
+            BackgroundClip::ContentBox => {
                 let border_padding = self.border_padding.to_physical(style.writing_mode);
-                bounds.origin.x = bounds.origin.x + border_padding.left;
-                bounds.origin.y = bounds.origin.y + border_padding.top;
-                bounds.size.width = bounds.size.width - border_padding.horizontal();
-                bounds.size.height = bounds.size.height - border_padding.vertical();
+                bounds = calculate_inner_bounds(bounds, border_padding);
             }
         }
 
@@ -1126,7 +1319,6 @@ impl FragmentDisplayListBuilding for Fragment {
                     self.build_display_list_for_background_gradient(state,
                                                                     display_list_section,
                                                                     *absolute_bounds,
-                                                                    &clip,
                                                                     gradient,
                                                                     style,
                                                                     i);
@@ -1141,8 +1333,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             self.build_display_list_for_webrender_image(state,
                                                                         style,
                                                                         display_list_section,
-                                                                        &bounds,
-                                                                        &clip,
+                                                                        *absolute_bounds,
                                                                         webrender_image,
                                                                         i);
                         }
@@ -1169,8 +1360,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         self.build_display_list_for_webrender_image(state,
                                                                     style,
                                                                     display_list_section,
-                                                                    &bounds,
-                                                                    &clip,
+                                                                    *absolute_bounds,
                                                                     webrender_image,
                                                                     i);
                     }
@@ -1185,172 +1375,107 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
-    fn compute_background_image_size(&self,
-                                     style: &ComputedValues,
-                                     bounds: &Rect<Au>,
-                                     image: &WebRenderImageInfo,
-                                     index: usize)
-                                     -> Size2D<Au> {
-        // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
-        // wide.
-        let image_aspect_ratio = (image.width as f64) / (image.height as f64);
-        let bounds_aspect_ratio = bounds.size.width.to_f64_px() / bounds.size.height.to_f64_px();
-        let intrinsic_size = Size2D::new(Au::from_px(image.width as i32),
-                                         Au::from_px(image.height as i32));
-        let background_size = get_cyclic(&style.get_background().background_size.0, index).clone();
-        match (background_size, image_aspect_ratio < bounds_aspect_ratio) {
-            (BackgroundSize::Contain, false) | (BackgroundSize::Cover, true) => {
-                Size2D::new(bounds.size.width,
-                            Au::from_f64_px(bounds.size.width.to_f64_px() / image_aspect_ratio))
-            }
+    fn compute_background_placement(
+        &self,
+        state: &mut DisplayListBuildState,
+        style: &ComputedValues,
+        absolute_bounds: Rect<Au>,
+        intrinsic_size: Option<Size2D<Au>>,
+        index: usize
+    ) -> BackgroundPlacement {
+        let bg = style.get_background();
+        let bg_attachment = *get_cyclic(&bg.background_attachment.0, index);
+        let bg_clip = *get_cyclic(&bg.background_clip.0, index);
+        let bg_origin = *get_cyclic(&bg.background_origin.0, index);
+        let bg_position_x = get_cyclic(&bg.background_position_x.0, index);
+        let bg_position_y = get_cyclic(&bg.background_position_y.0, index);
+        let bg_repeat = get_cyclic(&bg.background_repeat.0, index);
+        let bg_size = *get_cyclic(&bg.background_size.0, index);
 
-            (BackgroundSize::Contain, true) | (BackgroundSize::Cover, false) => {
-                Size2D::new(Au::from_f64_px(bounds.size.height.to_f64_px() * image_aspect_ratio),
-                            bounds.size.height)
-            }
+        let css_clip = match bg_clip {
+            BackgroundClip::BorderBox => absolute_bounds,
+            BackgroundClip::PaddingBox => calculate_inner_bounds(
+                absolute_bounds,
+                style.logical_border_width().to_physical(style.writing_mode),
+            ),
+            BackgroundClip::ContentBox => calculate_inner_bounds(
+                absolute_bounds,
+                self.border_padding.to_physical(style.writing_mode),
+            ),
+        };
 
-            (BackgroundSize::Explicit { width, height: LengthOrPercentageOrAuto::Auto }, _) => {
-                let width = MaybeAuto::from_style(width, bounds.size.width)
-                                      .specified_or_default(intrinsic_size.width);
-                Size2D::new(width, Au::from_f64_px(width.to_f64_px() / image_aspect_ratio))
-            }
+        let mut bounds = match bg_attachment {
+            BackgroundAttachment::Scroll => match bg_origin {
+                BackgroundOrigin::BorderBox => absolute_bounds,
+                BackgroundOrigin::PaddingBox => calculate_inner_bounds(
+                    absolute_bounds,
+                    style.logical_border_width().to_physical(style.writing_mode),
+                ),
+                BackgroundOrigin::ContentBox => calculate_inner_bounds(
+                    absolute_bounds,
+                    self.border_padding.to_physical(style.writing_mode),
+                ),
+            },
+            BackgroundAttachment::Fixed => Rect::new(
+                Point2D::origin(),
+                // Get current viewport
+                state.layout_context.shared_context().viewport_size(),
+            ),
+        };
 
-            (BackgroundSize::Explicit { width: LengthOrPercentageOrAuto::Auto, height }, _) => {
-                let height = MaybeAuto::from_style(height, bounds.size.height)
-                                       .specified_or_default(intrinsic_size.height);
-                Size2D::new(Au::from_f64_px(height.to_f64_px() * image_aspect_ratio), height)
-            }
+        let mut tile_size = compute_background_image_size(bg_size, bounds.size, intrinsic_size);
 
-            (BackgroundSize::Explicit { width, height }, _) => {
-                Size2D::new(MaybeAuto::from_style(width, bounds.size.width)
-                                 .specified_or_default(intrinsic_size.width),
-                       MaybeAuto::from_style(height, bounds.size.height)
-                                 .specified_or_default(intrinsic_size.height))
-            }
-        }
+        let mut tile_spacing = Size2D::zero();
+        let own_position = bounds.size - intrinsic_size.unwrap_or(Size2D::zero());
+        let pos_x = bg_position_x.to_used_value(own_position.width);
+        let pos_y = bg_position_y.to_used_value(own_position.height);
+        tile_image_axis(
+            bg_repeat.0,
+            &mut bounds.origin.x,
+            &mut bounds.size.width,
+            &mut tile_size.width,
+            &mut tile_spacing.width,
+            pos_x,
+            css_clip.origin.x,
+            css_clip.size.width
+        );
+        tile_image_axis(
+            bg_repeat.1,
+            &mut bounds.origin.y,
+            &mut bounds.size.height,
+            &mut tile_size.height,
+            &mut tile_spacing.height,
+            pos_y,
+            css_clip.origin.y,
+            css_clip.size.height
+        );
+
+        BackgroundPlacement { bounds, tile_size, tile_spacing, css_clip }
     }
 
     fn build_display_list_for_webrender_image(&self,
                                               state: &mut DisplayListBuildState,
                                               style: &ComputedValues,
                                               display_list_section: DisplayListSection,
-                                              absolute_bounds: &Rect<Au>,
-                                              clip: &LocalClip,
+                                              absolute_bounds: Rect<Au>,
                                               webrender_image: WebRenderImageInfo,
                                               index: usize) {
         debug!("(building display list) building background image");
-        let background = style.get_background();
 
-        // Use `background-size` to get the size.
-        let mut bounds = *absolute_bounds;
-        let image_size = self.compute_background_image_size(style, &bounds,
-                                                            &webrender_image, index);
-
-        // Background image should be positioned on the padding box basis.
-        let border = style.logical_border_width().to_physical(style.writing_mode);
-
-        // Use 'background-origin' to get the origin value.
-        let origin = get_cyclic(&background.background_origin.0, index);
-        let (mut origin_x, mut origin_y) = match *origin {
-            background_origin::single_value::T::PaddingBox => {
-                (Au(0), Au(0))
-            }
-            background_origin::single_value::T::BorderBox => {
-                (-border.left, -border.top)
-            }
-            background_origin::single_value::T::ContentBox => {
-                let border_padding = self.border_padding.to_physical(self.style.writing_mode);
-                (border_padding.left - border.left, border_padding.top - border.top)
-            }
-        };
-
-        // Use `background-attachment` to get the initial virtual origin
-        let attachment = get_cyclic(&background.background_attachment.0, index);
-        let (virtual_origin_x, virtual_origin_y) = match *attachment {
-            background_attachment::single_value::T::Scroll => {
-                (absolute_bounds.origin.x, absolute_bounds.origin.y)
-            }
-            background_attachment::single_value::T::Fixed => {
-                // If the ‘background-attachment’ value for this image is ‘fixed’, then
-                // 'background-origin' has no effect.
-                origin_x = Au(0);
-                origin_y = Au(0);
-                (Au(0), Au(0))
-            }
-        };
-
-        let horiz_position = *get_cyclic(&background.background_position_x.0, index);
-        let vert_position = *get_cyclic(&background.background_position_y.0, index);
-        // Use `background-position` to get the offset.
-        let horizontal_position = horiz_position.to_used_value(bounds.size.width - image_size.width);
-        let vertical_position = vert_position.to_used_value(bounds.size.height - image_size.height);
-
-        // The anchor position for this background, based on both the background-attachment
-        // and background-position properties.
-        let anchor_origin_x = border.left + virtual_origin_x + origin_x + horizontal_position;
-        let anchor_origin_y = border.top + virtual_origin_y + origin_y + vertical_position;
-
-        let mut tile_spacing = Size2D::zero();
-        let mut stretch_size = image_size;
-
-        // Adjust origin and size based on background-repeat
-        let background_repeat = get_cyclic(&background.background_repeat.0, index);
-        match background_repeat.0 {
-            BackgroundRepeatKeyword::NoRepeat => {
-                bounds.origin.x = anchor_origin_x;
-                bounds.size.width = image_size.width;
-            }
-            BackgroundRepeatKeyword::Repeat => {
-                ImageFragmentInfo::tile_image(&mut bounds.origin.x,
-                                              &mut bounds.size.width,
-                                              anchor_origin_x,
-                                              image_size.width);
-            }
-            BackgroundRepeatKeyword::Space => {
-                ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.x,
-                                                     &mut bounds.size.width,
-                                                     &mut tile_spacing.width,
-                                                     anchor_origin_x,
-                                                     image_size.width);
-
-            }
-            BackgroundRepeatKeyword::Round => {
-                ImageFragmentInfo::tile_image_round(&mut bounds.origin.x,
-                                                    &mut bounds.size.width,
-                                                    anchor_origin_x,
-                                                    &mut stretch_size.width);
-            }
-        };
-        match background_repeat.1 {
-            BackgroundRepeatKeyword::NoRepeat => {
-                bounds.origin.y = anchor_origin_y;
-                bounds.size.height = image_size.height;
-            }
-            BackgroundRepeatKeyword::Repeat => {
-                ImageFragmentInfo::tile_image(&mut bounds.origin.y,
-                                              &mut bounds.size.height,
-                                              anchor_origin_y,
-                                              image_size.height);
-            }
-            BackgroundRepeatKeyword::Space => {
-                ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.y,
-                                                     &mut bounds.size.height,
-                                                     &mut tile_spacing.height,
-                                                     anchor_origin_y,
-                                                     image_size.height);
-
-            }
-            BackgroundRepeatKeyword::Round => {
-                ImageFragmentInfo::tile_image_round(&mut bounds.origin.y,
-                                                    &mut bounds.size.height,
-                                                    anchor_origin_y,
-                                                    &mut stretch_size.height);
-            }
-        };
+        let image = Size2D::new(
+            Au::from_px(webrender_image.width as i32),
+            Au::from_px(webrender_image.height as i32));
+        let placement = self.compute_background_placement(
+            state,
+            style,
+            absolute_bounds,
+            Some(image),
+            index
+        );
 
         // Create the image display item.
-        let base = state.create_base_display_item(&bounds,
-                                                  *clip,
+        let base = state.create_base_display_item(&placement.bounds,
+                                                  LocalClip::Rect(placement.css_clip.to_rectf()),
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
@@ -1360,8 +1485,8 @@ impl FragmentDisplayListBuilding for Fragment {
             base: base,
             webrender_image: webrender_image,
             image_data: None,
-            stretch_size: stretch_size,
-            tile_spacing: tile_spacing,
+            stretch_size: placement.tile_size,
+            tile_spacing: placement.tile_spacing,
             image_rendering: style.get_inheritedbox().image_rendering.clone(),
         })));
 
@@ -1420,80 +1545,15 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   state: &mut DisplayListBuildState,
                                                   display_list_section: DisplayListSection,
                                                   absolute_bounds: Rect<Au>,
-                                                  clip: &LocalClip,
                                                   gradient: &Gradient,
                                                   style: &ComputedValues,
-                                                  index: usize) {
-        // Calculate where the first "tile" needs to be placed on one axis.
-        // * base is the beginning of the visible area
-        // * start is the current "tile" position
-        // * tile is the length of the "tile"
-        // Returns a difference between start and new start.
-        // It holds that base - tile < start - diff <= base
-        fn get_first_tile(base: Au, start: Au, tile: Au) -> Au {
-            if tile == Au(0) {
-                return Au(0);
-            }
-            if start > base {
-                ((start - base) / tile + 1) * tile
-            } else {
-                ((base - start) / tile) * tile
-            }
-        }
+                                                  index: usize)
+    {
+        let placement = self.compute_background_placement(
+            state, style, absolute_bounds, None, index);
 
-        let bg = style.get_background();
-        let bg_origin = get_cyclic(&bg.background_origin.0, index).clone();
-        let bg_size = get_cyclic(&bg.background_size.0, index).clone();
-        let bg_position_x = get_cyclic(&bg.background_position_x.0, index).clone();
-        let bg_position_y = get_cyclic(&bg.background_position_y.0, index).clone();
-
-        let mut bounds = absolute_bounds;
-
-        match bg_origin {
-            BackgroundOrigin::BorderBox => {}
-            BackgroundOrigin::PaddingBox => {
-                let border = style.logical_border_width().to_physical(style.writing_mode);
-                bounds.origin.x += border.left;
-                bounds.origin.y += border.top;
-                bounds.size.width -= border.horizontal();
-                bounds.size.height -= border.vertical();
-            }
-            BackgroundOrigin::ContentBox => {
-                let border_padding = self.border_padding.to_physical(style.writing_mode);
-                bounds.origin.x += border_padding.left;
-                bounds.origin.y += border_padding.top;
-                bounds.size.width -= border_padding.horizontal();
-                bounds.size.height -= border_padding.vertical();
-            }
-        }
-
-        bounds.origin.x += bg_position_x.to_used_value(bounds.size.width);
-        bounds.origin.y += bg_position_y.to_used_value(bounds.size.height);
-
-        let tile = match bg_size {
-            BackgroundSize::Cover | BackgroundSize::Contain => bounds.size,
-            BackgroundSize::Explicit { width, height } => {
-                Size2D::new(
-                    MaybeAuto::from_style(width, bounds.size.width)
-                        .specified_or_default(bounds.size.width),
-                    MaybeAuto::from_style(height, bounds.size.height)
-                        .specified_or_default(bounds.size.height))
-            }
-        };
-
-        let diff_x = get_first_tile(absolute_bounds.origin.x,
-                                    bounds.origin.x,
-                                    tile.width);
-        let diff_y = get_first_tile(absolute_bounds.origin.y,
-                                    bounds.origin.y,
-                                    tile.height);
-        let tiled_bounds = Rect::new(
-            Point2D::new(bounds.origin.x - diff_x, bounds.origin.y - diff_y),
-            Size2D::new(absolute_bounds.size.width + diff_x,
-                        absolute_bounds.size.height + diff_y));
-
-        let base = state.create_base_display_item(&tiled_bounds,
-                                                  *clip,
+        let base = state.create_base_display_item(&placement.bounds,
+                                                  LocalClip::Rect(placement.css_clip.to_rectf()),
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
@@ -1501,19 +1561,20 @@ impl FragmentDisplayListBuilding for Fragment {
         let display_item = match gradient.kind {
             GradientKind::Linear(angle_or_corner) => {
                 let gradient = convert_linear_gradient(
-                    tile,
+                    placement.tile_size,
                     &gradient.items[..],
                     angle_or_corner,
                     gradient.repeating);
                 DisplayItem::Gradient(Box::new(GradientDisplayItem {
                     base: base,
                     gradient: gradient,
-                    tile: tile,
+                    tile: placement.tile_size,
+                    tile_spacing: placement.tile_spacing,
                 }))
             }
             GradientKind::Radial(shape, center, _angle) => {
                 let gradient = convert_radial_gradient(
-                    tile,
+                    placement.tile_size,
                     &gradient.items[..],
                     shape,
                     center,
@@ -1521,7 +1582,8 @@ impl FragmentDisplayListBuilding for Fragment {
                 DisplayItem::RadialGradient(Box::new(RadialGradientDisplayItem {
                     base: base,
                     gradient: gradient,
-                    tile: tile,
+                    tile: placement.tile_size,
+                    tile_spacing: placement.tile_spacing,
                 }))
             }
         };
@@ -3329,4 +3391,20 @@ pub enum BorderPaintingMode<'a> {
     Collapse(&'a CollapsedBordersForCell),
     /// Paint no borders.
     Hidden,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct BackgroundPlacement {
+    /// Rendering bounds. The background will start in the uppper-left corner
+    /// and fill the whole area.
+    bounds: Rect<Au>,
+    /// Background tile size. Some backgrounds are repeated. These are the
+    /// dimensions of a single image of the background.
+    tile_size: Size2D<Au>,
+    /// Spacing between tiles. Some backgrounds are not repeated seamless
+    /// but have seams between them like tiles in real life.
+    tile_spacing: Size2D<Au>,
+    /// A clip area. While the background is rendered according to all the
+    /// measures above it is only shown within these bounds.
+    css_clip: Rect<Au>,
 }
