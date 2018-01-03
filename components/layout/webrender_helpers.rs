@@ -8,7 +8,7 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Vector2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClipScrollNode};
 use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingRegion, DisplayItem};
 use gfx::display_list::{DisplayList, StackingContextType};
@@ -32,7 +32,7 @@ trait WebRenderDisplayItemConverter {
         builder: &mut DisplayListBuilder,
         clip_scroll_nodes: &[ClipScrollNode],
         clip_ids: &mut Vec<Option<ClipId>>,
-        current_clip_and_scroll_info: &mut ClipAndScrollInfo
+        current_clip_and_scroll_info: &mut ClipAndScrollInfo,
     );
 }
 
@@ -196,17 +196,33 @@ impl ToFilterOps for Vec<Filter> {
         let mut result = Vec::with_capacity(self.len());
         for filter in self.iter() {
             match *filter {
-                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius.px())),
-                GenericFilter::Brightness(amount) => result.push(webrender_api::FilterOp::Brightness(amount.0)),
-                GenericFilter::Contrast(amount) => result.push(webrender_api::FilterOp::Contrast(amount.0)),
-                GenericFilter::Grayscale(amount) => result.push(webrender_api::FilterOp::Grayscale(amount.0)),
-                GenericFilter::HueRotate(angle) => result.push(webrender_api::FilterOp::HueRotate(angle.radians())),
-                GenericFilter::Invert(amount) => result.push(webrender_api::FilterOp::Invert(amount.0)),
+                GenericFilter::Blur(radius) => {
+                    result.push(webrender_api::FilterOp::Blur(radius.px()))
+                },
+                GenericFilter::Brightness(amount) => {
+                    result.push(webrender_api::FilterOp::Brightness(amount.0))
+                },
+                GenericFilter::Contrast(amount) => {
+                    result.push(webrender_api::FilterOp::Contrast(amount.0))
+                },
+                GenericFilter::Grayscale(amount) => {
+                    result.push(webrender_api::FilterOp::Grayscale(amount.0))
+                },
+                GenericFilter::HueRotate(angle) => {
+                    result.push(webrender_api::FilterOp::HueRotate(angle.radians()))
+                },
+                GenericFilter::Invert(amount) => {
+                    result.push(webrender_api::FilterOp::Invert(amount.0))
+                },
                 GenericFilter::Opacity(amount) => {
                     result.push(webrender_api::FilterOp::Opacity(amount.0.into(), amount.0));
-                }
-                GenericFilter::Saturate(amount) => result.push(webrender_api::FilterOp::Saturate(amount.0)),
-                GenericFilter::Sepia(amount) => result.push(webrender_api::FilterOp::Sepia(amount.0)),
+                },
+                GenericFilter::Saturate(amount) => {
+                    result.push(webrender_api::FilterOp::Saturate(amount.0))
+                },
+                GenericFilter::Sepia(amount) => {
+                    result.push(webrender_api::FilterOp::Sepia(amount.0))
+                },
                 GenericFilter::DropShadow(ref shadow) => match *shadow {},
             }
         }
@@ -229,9 +245,11 @@ impl ToTransformStyle for TransformStyle {
 
 impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
-        let mut builder = DisplayListBuilder::with_capacity(pipeline_id.to_webrender(),
-                                                            self.bounds().size.to_sizef(),
-                                                            1024 * 1024); // 1 MB of space
+        let mut builder = DisplayListBuilder::with_capacity(
+            pipeline_id.to_webrender(),
+            self.bounds().size.to_sizef(),
+            1024 * 1024,
+        ); // 1 MB of space
 
         let mut current_clip_and_scroll_info = pipeline_id.root_clip_and_scroll_info();
         builder.push_clip_and_scroll_info(current_clip_and_scroll_info);
@@ -245,7 +263,7 @@ impl WebRenderDisplayListConverter for DisplayList {
                 &mut builder,
                 &self.clip_scroll_nodes,
                 &mut clip_ids,
-                &mut current_clip_and_scroll_info
+                &mut current_clip_and_scroll_info,
             );
         }
         builder
@@ -272,7 +290,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
         builder: &mut DisplayListBuilder,
         clip_scroll_nodes: &[ClipScrollNode],
         clip_ids: &mut Vec<Option<ClipId>>,
-        current_clip_and_scroll_info: &mut ClipAndScrollInfo
+        current_clip_and_scroll_info: &mut ClipAndScrollInfo,
     ) {
         let get_id = |clip_ids: &[Option<ClipId>], index: ClipScrollNodeIndex| -> ClipId {
             match clip_ids[index.0] {
@@ -297,12 +315,14 @@ impl WebRenderDisplayItemConverter for DisplayItem {
         match *self {
             DisplayItem::SolidColor(ref item) => {
                 builder.push_rect(&self.prim_info(), item.color);
-            }
+            },
             DisplayItem::Text(ref item) => {
                 let mut origin = item.baseline_origin.clone();
-                let mut glyphs = vec!();
+                let mut glyphs = vec![];
 
-                for slice in item.text_run.natural_word_slices_in_visual_order(&item.range) {
+                for slice in item.text_run
+                    .natural_word_slices_in_visual_order(&item.range)
+                {
                     for glyph in slice.glyphs.iter_glyphs_for_byte_range(&slice.range) {
                         let glyph_advance = if glyph.char_is_space() {
                             glyph.advance() + item.text_run.extra_word_spacing
@@ -321,29 +341,32 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             glyphs.push(glyph);
                         }
                         origin.x = origin.x + glyph_advance;
-                    };
+                    }
                 }
 
                 if glyphs.len() > 0 {
-                    builder.push_text(&self.prim_info(),
-                                      &glyphs,
-                                      item.text_run.font_key,
-                                      item.text_color,
-                                      None);
+                    builder.push_text(
+                        &self.prim_info(),
+                        &glyphs,
+                        item.text_run.font_key,
+                        item.text_color,
+                        None,
+                    );
                 }
-            }
+            },
             DisplayItem::Image(ref item) => {
                 if let Some(id) = item.webrender_image.key {
-                    if item.stretch_size.width > Au(0) &&
-                       item.stretch_size.height > Au(0) {
-                        builder.push_image(&self.prim_info(),
-                                           item.stretch_size.to_sizef(),
-                                           item.tile_spacing.to_sizef(),
-                                           item.image_rendering.to_image_rendering(),
-                                           id);
+                    if item.stretch_size.width > Au(0) && item.stretch_size.height > Au(0) {
+                        builder.push_image(
+                            &self.prim_info(),
+                            item.stretch_size.to_sizef(),
+                            item.tile_spacing.to_sizef(),
+                            item.image_rendering.to_image_rendering(),
+                            id,
+                        );
                     }
                 }
-            }
+            },
             DisplayItem::Border(ref item) => {
                 let widths = item.border_widths.to_border_widths();
 
@@ -373,26 +396,24 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             bottom: bottom,
                             radius: radius,
                         })
-                    }
-                    BorderDetails::Image(ref image) => {
-                        match image.image.key {
-                            None => return,
-                            Some(key) => {
-                                webrender_api::BorderDetails::Image(webrender_api::ImageBorder {
-                                    image_key: key,
-                                    patch: webrender_api::NinePatchDescriptor {
-                                        width: image.image.width,
-                                        height: image.image.height,
-                                        slice: image.slice,
-                                    },
-                                    fill: image.fill,
-                                    outset: image.outset,
-                                    repeat_horizontal: image.repeat_horizontal,
-                                    repeat_vertical: image.repeat_vertical,
-                                })
-                            }
-                        }
-                    }
+                    },
+                    BorderDetails::Image(ref image) => match image.image.key {
+                        None => return,
+                        Some(key) => {
+                            webrender_api::BorderDetails::Image(webrender_api::ImageBorder {
+                                image_key: key,
+                                patch: webrender_api::NinePatchDescriptor {
+                                    width: image.image.width,
+                                    height: image.image.height,
+                                    slice: image.slice,
+                                },
+                                fill: image.fill,
+                                outset: image.outset,
+                                repeat_horizontal: image.repeat_horizontal,
+                                repeat_vertical: image.repeat_vertical,
+                            })
+                        },
+                    },
                     BorderDetails::Gradient(ref gradient) => {
                         let extend_mode = if gradient.gradient.repeating {
                             ExtendMode::Repeat
@@ -401,32 +422,36 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         };
                         webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
                             gradient: builder.create_gradient(
-                                          gradient.gradient.start_point.to_pointf(),
-                                          gradient.gradient.end_point.to_pointf(),
-                                          gradient.gradient.stops.clone(),
-                                          extend_mode),
+                                gradient.gradient.start_point.to_pointf(),
+                                gradient.gradient.end_point.to_pointf(),
+                                gradient.gradient.stops.clone(),
+                                extend_mode,
+                            ),
                             outset: gradient.outset,
                         })
-                    }
+                    },
                     BorderDetails::RadialGradient(ref gradient) => {
                         let extend_mode = if gradient.gradient.repeating {
                             ExtendMode::Repeat
                         } else {
                             ExtendMode::Clamp
                         };
-                       webrender_api::BorderDetails::RadialGradient(webrender_api::RadialGradientBorder {
-                           gradient: builder.create_radial_gradient(
-                               gradient.gradient.center.to_pointf(),
-                               gradient.gradient.radius.to_sizef(),
-                               gradient.gradient.stops.clone(),
-                               extend_mode),
-                           outset: gradient.outset,
-                       })
-                    }
+                        webrender_api::BorderDetails::RadialGradient(
+                            webrender_api::RadialGradientBorder {
+                                gradient: builder.create_radial_gradient(
+                                    gradient.gradient.center.to_pointf(),
+                                    gradient.gradient.radius.to_sizef(),
+                                    gradient.gradient.stops.clone(),
+                                    extend_mode,
+                                ),
+                                outset: gradient.outset,
+                            },
+                        )
+                    },
                 };
 
                 builder.push_border(&self.prim_info(), widths, details);
-            }
+            },
             DisplayItem::Gradient(ref item) => {
                 let start_point = item.gradient.start_point.to_pointf();
                 let end_point = item.gradient.end_point.to_pointf();
@@ -435,15 +460,19 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 } else {
                     ExtendMode::Clamp
                 };
-                let gradient = builder.create_gradient(start_point,
-                                                       end_point,
-                                                       item.gradient.stops.clone(),
-                                                       extend_mode);
-                builder.push_gradient(&self.prim_info(),
-                                      gradient,
-                                      item.tile.to_sizef(),
-                                      item.tile_spacing.to_sizef());
-            }
+                let gradient = builder.create_gradient(
+                    start_point,
+                    end_point,
+                    item.gradient.stops.clone(),
+                    extend_mode,
+                );
+                builder.push_gradient(
+                    &self.prim_info(),
+                    gradient,
+                    item.tile.to_sizef(),
+                    item.tile_spacing.to_sizef(),
+                );
+            },
             DisplayItem::RadialGradient(ref item) => {
                 let center = item.gradient.center.to_pointf();
                 let radius = item.gradient.radius.to_sizef();
@@ -452,58 +481,68 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 } else {
                     ExtendMode::Clamp
                 };
-                let gradient = builder.create_radial_gradient(center,
-                                                              radius,
-                                                              item.gradient.stops.clone(),
-                                                              extend_mode);
-                builder.push_radial_gradient(&self.prim_info(),
-                                             gradient,
-                                             item.tile.to_sizef(),
-                                             item.tile_spacing.to_sizef());
-            }
+                let gradient = builder.create_radial_gradient(
+                    center,
+                    radius,
+                    item.gradient.stops.clone(),
+                    extend_mode,
+                );
+                builder.push_radial_gradient(
+                    &self.prim_info(),
+                    gradient,
+                    item.tile.to_sizef(),
+                    item.tile_spacing.to_sizef(),
+                );
+            },
             DisplayItem::Line(ref item) => {
-                builder.push_line(&self.prim_info(),
-                                  // TODO(gw): Use a better estimate for wavy line thickness.
-                                  (0.33 * item.base.bounds.size.height.to_f32_px()).ceil(),
-                                  webrender_api::LineOrientation::Horizontal,
-                                  &item.color,
-                                  item.style);
-            }
+                builder.push_line(
+                    &self.prim_info(),
+                    // TODO(gw): Use a better estimate for wavy line thickness.
+                    (0.33 * item.base.bounds.size.height.to_f32_px()).ceil(),
+                    webrender_api::LineOrientation::Horizontal,
+                    &item.color,
+                    item.style,
+                );
+            },
             DisplayItem::BoxShadow(ref item) => {
                 let box_bounds = item.box_bounds.to_rectf();
-                builder.push_box_shadow(&self.prim_info(),
-                                        box_bounds,
-                                        item.offset.to_vectorf(),
-                                        item.color,
-                                        item.blur_radius.to_f32_px(),
-                                        item.spread_radius.to_f32_px(),
-                                        item.border_radius.to_border_radius(),
-                                        item.clip_mode.to_clip_mode());
-            }
+                builder.push_box_shadow(
+                    &self.prim_info(),
+                    box_bounds,
+                    item.offset.to_vectorf(),
+                    item.color,
+                    item.blur_radius.to_f32_px(),
+                    item.spread_radius.to_f32_px(),
+                    item.border_radius.to_border_radius(),
+                    item.clip_mode.to_clip_mode(),
+                );
+            },
             DisplayItem::PushTextShadow(ref item) => {
-                builder.push_shadow(&self.prim_info(),
-                                    webrender_api::Shadow {
-                                        blur_radius: item.blur_radius.to_f32_px(),
-                                        offset: item.offset.to_vectorf(),
-                                        color: item.color,
-                                    });
-            }
+                builder.push_shadow(
+                    &self.prim_info(),
+                    webrender_api::Shadow {
+                        blur_radius: item.blur_radius.to_f32_px(),
+                        offset: item.offset.to_vectorf(),
+                        color: item.color,
+                    },
+                );
+            },
             DisplayItem::PopAllTextShadows(_) => {
                 builder.pop_all_shadows();
-            }
+            },
             DisplayItem::Iframe(ref item) => {
                 builder.push_iframe(&self.prim_info(), item.iframe.to_webrender());
-            }
+            },
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
                 debug_assert!(stacking_context.context_type == StackingContextType::Real);
 
-                let transform = stacking_context.transform.map(|transform| {
-                    LayoutTransform::from_untyped(&transform).into()
-                });
-                let perspective = stacking_context.perspective.map(|perspective| {
-                    LayoutTransform::from_untyped(&perspective)
-                });
+                let transform = stacking_context
+                    .transform
+                    .map(|transform| LayoutTransform::from_untyped(&transform).into());
+                let perspective = stacking_context
+                    .perspective
+                    .map(|perspective| LayoutTransform::from_untyped(&perspective));
 
                 builder.push_stacking_context(
                     &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds.to_rectf()),
@@ -512,9 +551,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     stacking_context.transform_style,
                     perspective,
                     stacking_context.mix_blend_mode,
-                    stacking_context.filters.to_filter_ops()
+                    stacking_context.filters.to_filter_ops(),
                 );
-            }
+            },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::DefineClipScrollNode(ref item) => {
                 let node = &clip_scroll_nodes[item.node_index.0];
@@ -522,26 +561,23 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let item_rect = node.clip.main.to_rectf();
 
                 let webrender_id = match node.node_type {
-                   ClipScrollNodeType::Clip => {
-                        builder.define_clip_with_parent(
-                            node.id,
-                            parent_id,
-                            item_rect,
-                            node.clip.get_complex_clips(),
-                            None
-                        )
-                    }
-                    ClipScrollNodeType::ScrollFrame(scroll_sensitivity) => {
-                        builder.define_scroll_frame_with_parent(
+                    ClipScrollNodeType::Clip => builder.define_clip_with_parent(
+                        node.id,
+                        parent_id,
+                        item_rect,
+                        node.clip.get_complex_clips(),
+                        None,
+                    ),
+                    ClipScrollNodeType::ScrollFrame(scroll_sensitivity) => builder
+                        .define_scroll_frame_with_parent(
                             node.id,
                             parent_id,
                             node.content_rect.to_rectf(),
                             node.clip.main.to_rectf(),
                             node.clip.get_complex_clips(),
                             None,
-                            scroll_sensitivity
-                        )
-                    }
+                            scroll_sensitivity,
+                        ),
                     ClipScrollNodeType::StickyFrame(ref sticky_data) => {
                         // TODO: Add define_sticky_frame_with_parent to WebRender.
                         builder.push_clip_id(parent_id);
@@ -555,12 +591,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         );
                         builder.pop_clip_id();
                         id
-                    }
+                    },
                 };
 
                 debug_assert!(node.id.is_none() || node.id == Some(webrender_id));
                 clip_ids[item.node_index.0] = Some(webrender_id);
-            }
+            },
         }
     }
 }
@@ -571,12 +607,15 @@ trait ToWebRenderClip {
 
 impl ToWebRenderClip for ClippingRegion {
     fn get_complex_clips(&self) -> Vec<ComplexClipRegion> {
-        self.complex.iter().map(|complex_clipping_region| {
-            ComplexClipRegion::new(
-                complex_clipping_region.rect.to_rectf(),
-                complex_clipping_region.radii.to_border_radius(),
-                ClipMode::Clip,
-             )
-        }).collect()
+        self.complex
+            .iter()
+            .map(|complex_clipping_region| {
+                ComplexClipRegion::new(
+                    complex_clipping_region.rect.to_rectf(),
+                    complex_clipping_region.radii.to_border_radius(),
+                    ClipMode::Clip,
+                )
+            })
+            .collect()
     }
 }
