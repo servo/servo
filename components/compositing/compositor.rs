@@ -1524,9 +1524,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
         let mut flags = self.webrender.get_debug_flags();
         let flag = match option {
-            WebRenderDebugOption::Profiler => webrender::DebugFlags::PROFILER_DBG,
-            WebRenderDebugOption::TextureCacheDebug => webrender::DebugFlags::TEXTURE_CACHE_DBG,
-            WebRenderDebugOption::RenderTargetDebug => webrender::DebugFlags::RENDER_TARGET_DBG,
+            WebRenderDebugOption::Profiler => {
+                webrender::DebugFlags::PROFILER_DBG |
+                webrender::DebugFlags::GPU_TIME_QUERIES |
+                webrender::DebugFlags::GPU_SAMPLE_QUERIES
+            }
+            WebRenderDebugOption::TextureCacheDebug => {
+                webrender::DebugFlags::TEXTURE_CACHE_DBG
+            }
+            WebRenderDebugOption::RenderTargetDebug => {
+                webrender::DebugFlags::RENDER_TARGET_DBG
+            }
         };
         flags.toggle(flag);
         self.webrender.set_debug_flags(flags);
