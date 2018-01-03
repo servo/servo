@@ -1244,7 +1244,7 @@ class CGArgumentConverter(CGThing):
             isEnforceRange=argument.enforceRange,
             isClamp=argument.clamp,
             isMember="Variadic" if argument.variadic else False,
-            isAutoRooted=True if type_needs_auto_root(argument.type) else False,
+            isAutoRooted=type_needs_auto_root(argument.type),
             allowTreatNonObjectAsNull=argument.allowTreatNonCallableAsNull())
         template = info.template
         default = info.default
@@ -6453,7 +6453,7 @@ def type_needs_auto_root(t):
 def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, variadic=False):
     info = getJSToNativeConversionInfo(
         ty, descriptorProvider, isArgument=True,
-        isAutoRooted=True if type_needs_auto_root(ty) else False)
+        isAutoRooted=type_needs_auto_root(ty))
     declType = info.declType
 
     if variadic:
