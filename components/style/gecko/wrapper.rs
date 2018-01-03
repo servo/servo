@@ -1787,7 +1787,7 @@ impl<'le> Eq for GeckoElement<'le> {}
 impl<'le> Hash for GeckoElement<'le> {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        (self.0 as *const _).hash(state);
+        (self.0 as *const RawGeckoElement).hash(state);
     }
 }
 
