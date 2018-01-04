@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Input Text Padding and Overflow: css-overflow-3</title>
+<link rel="author" title="Boaz Sender, Ali Juma, Robert Ma">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="match" href="reference/input-scrollable-region-001-ref.html">
+<meta name="assert" content="input text is preserved when the (input height
+                             minus the input padding minus the input border) is
+                             smaller than the height of the text">
+<style>
+input {
+  font-family: Ahem;
+  width: 100px;
+  margin: 0px;
+  border: 1px solid black;
+  height: 30px;
+  padding: 10px;
+  font-size: 18px;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+</style>
+<body>
+  <input type="text" value="foo">
+</body>

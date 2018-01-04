@@ -1,4 +1,6 @@
-var gEasingTests = [
+'use strict';
+
+const gEasingTests = [
   {
     desc: 'step-start function',
     easing: 'step-start',

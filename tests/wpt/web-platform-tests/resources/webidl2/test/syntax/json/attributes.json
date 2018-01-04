@@ -1,33 +1,5 @@
 [
     {
-        "type": "exception",
-        "name": "InvalidName",
-        "members": [
-            {
-                "type": "field",
-                "name": "reason",
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "array": false,
-                    "union": false,
-                    "idlType": "DOMString"
-                },
-                "extAttrs": []
-            }
-        ],
-        "inheritance": null,
-        "extAttrs": []
-    },
-    {
-        "type": "exception",
-        "name": "NoSuchPet",
-        "members": [],
-        "inheritance": null,
-        "extAttrs": []
-    },
-    {
         "type": "interface",
         "name": "Person",
         "partial": false,
@@ -42,7 +14,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "unsigned short"
                 },

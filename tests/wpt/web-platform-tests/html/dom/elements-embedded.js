@@ -11,6 +11,7 @@ var embeddedElements = {
     width: {type: "unsigned long", customGetter: true},
     height: {type: "unsigned long", customGetter: true},
     referrerPolicy: {type: "enum", keywords: ["", "no-referrer", "no-referrer-when-downgrade", "same-origin", "origin", "strict-origin", "origin-when-cross-origin", "strict-origin-when-cross-origin", "unsafe-url"]},
+    decoding: {type: "enum", keywords: ["async", "sync", "auto"], defaultVal: "auto", invalidVal: "auto"},
 
     // Obsolete
     name: "string",

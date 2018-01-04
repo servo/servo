@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>CSS Multi-column Layout Test: 'column-gap' with sub-pixel values</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-gap" title="4.1. 'column-gap'">
+<link rel="match" href="../reference/nothing.html" />
+<meta name="assert" content="Specified column-gap should never be rounded up to the nearest integer, or the second column in the tests might overflow the multicol container in the inline direction.">
+<style>
+  .multicol { margin:10px; float:left; columns:2; width:50px; column-gap:10.9px; column-fill:auto; height:50px; background:white; }
+  .filler { height:50px; }
+  .below-everything { position:relative; z-index:-1; float:right; width:20px; height:20px; background:red; }
+</style>
+
+<p>There should be nothing below.</p>
+
+<div class="multicol" style="column-gap:10px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.1px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.2px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.3px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.4px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.5px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.6px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.7px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.8px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:10.9px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>
+
+<div class="multicol" style="column-gap:11px;">
+  <div class="filler"></div>
+  <div class="below-everything"></div>
+</div>

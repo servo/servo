@@ -79,26 +79,20 @@ interface AbortSignal : EventTarget {
 };
 
 
-[NoInterfaceObject,
- Exposed=Window]
-interface NonElementParentNode {
+interface mixin NonElementParentNode {
   Element? getElementById(DOMString elementId);
 };
-Document implements NonElementParentNode;
-DocumentFragment implements NonElementParentNode;
+Document includes NonElementParentNode;
+DocumentFragment includes NonElementParentNode;
 
 
-[NoInterfaceObject,
- Exposed=Window]
-interface DocumentOrShadowRoot {
+interface mixin DocumentOrShadowRoot {
 };
-Document implements DocumentOrShadowRoot;
-ShadowRoot implements DocumentOrShadowRoot;
+Document includes DocumentOrShadowRoot;
+ShadowRoot includes DocumentOrShadowRoot;
 
 
-[NoInterfaceObject,
- Exposed=Window]
-interface ParentNode {
+interface mixin ParentNode {
   [SameObject] readonly attribute HTMLCollection children;
   readonly attribute Element? firstElementChild;
   readonly attribute Element? lastElementChild;
@@ -110,41 +104,35 @@ interface ParentNode {
   Element? querySelector(DOMString selectors);
   [NewObject] NodeList querySelectorAll(DOMString selectors);
 };
-Document implements ParentNode;
-DocumentFragment implements ParentNode;
-Element implements ParentNode;
+Document includes ParentNode;
+DocumentFragment includes ParentNode;
+Element includes ParentNode;
 
 
-[NoInterfaceObject,
- Exposed=Window]
-interface NonDocumentTypeChildNode {
+interface mixin NonDocumentTypeChildNode {
   readonly attribute Element? previousElementSibling;
   readonly attribute Element? nextElementSibling;
 };
-Element implements NonDocumentTypeChildNode;
-CharacterData implements NonDocumentTypeChildNode;
+Element includes NonDocumentTypeChildNode;
+CharacterData includes NonDocumentTypeChildNode;
 
 
-[NoInterfaceObject,
- Exposed=Window]
-interface ChildNode {
+interface mixin ChildNode {
   [Unscopable] void before((Node or DOMString)... nodes);
   [Unscopable] void after((Node or DOMString)... nodes);
   [Unscopable] void replaceWith((Node or DOMString)... nodes);
   [Unscopable] void remove();
 };
-DocumentType implements ChildNode;
-Element implements ChildNode;
-CharacterData implements ChildNode;
+DocumentType includes ChildNode;
+Element includes ChildNode;
+CharacterData includes ChildNode;
 
 
-[NoInterfaceObject,
- Exposed=Window]
-interface Slotable {
+interface mixin Slotable {
   readonly attribute HTMLSlotElement? assignedSlot;
 };
-Element implements Slotable;
-Text implements Slotable;
+Element includes Slotable;
+Text includes Slotable;
 
 
 [Exposed=Window]

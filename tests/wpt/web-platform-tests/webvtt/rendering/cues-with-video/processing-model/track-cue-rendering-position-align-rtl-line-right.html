@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<script src="/common/reftest-wait.js"></script>
+<link rel="match" href="track-cue-rendering-position-align-rtl-line-right-ref.html">
+<script>
+function addTrackWithRtlCueData(video, cueData) {
+  var track = video.addTextTrack('subtitles');
+  var cue = new VTTCue(0, 10, '\u05d0\u05d1\u05d2');
+  for (var prop in cueData)
+    cue[prop] = cueData[prop];
+  track.addCue(cue);
+  track.mode = 'showing';
+}
+</script>
+<style>
+video::cue {
+  font-size: 50px;
+  color: green;
+  background-color: green;
+}
+</style>
+<video width="320" height="240" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+  <source src="/media/white.webm" type="video/webm">
+  <source src="/media/white.mp4" type="video/mp4">
+  <script>
+  var video = document.currentScript.parentNode;
+  addTrackWithRtlCueData(video, { position: 50, positionAlign: 'line-right', align: 'end', size: 50, line: 0 });
+  </script>
+</video>
+</html>

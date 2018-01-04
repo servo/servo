@@ -5,44 +5,36 @@
         <link rel="author" title="Nokia" href="http://www.nokia.com/" />
         <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-radius" />
         <link rel="match" href="border-radius-011-ref.xht" />
-        <meta name="flags" content="" />
         <meta name="assert" content="If border-radius is zero, all corners are square." />
-        <style type="text/css"><![CDATA[
-		        	div
-            {
-        		width:200px;
-        		height: 100px;
+        <style>
+            div {
+                width: 200px;
+                height: 100px;
             }
-            #reference
-            {
-            	background: red;
-            	position: absolute;
-            	top: 100px;
-            	left: 30px;
+            #reference {
+                background: red;
+                position: absolute;
+                top: 150px;
+                left: 30px;
             }
-        	#test
-        	{
-        		position: absolute;
-        		border-radius: 0;
-        		background: white;
-        		top: 100px;
-        		left: 30px;
-        	}
-
-     ]]>
+            #test {
+                position: absolute;
+                border-radius: 0;
+                background: white;
+                top: 150px;
+                left: 30px;
+            }
         </style>
     </head>
     <body>
-    	<p>
-			A white rectangle with no border-radius property sits exactly on top of an exact same size red rectangle with border-radius set to zero.
-		</p>
-		<!-- PASS AND FAIL CRITERIA ARE IN THE LIST BELOW -->
-		<ul>
-			<li>PASS if no red is visible on the page.</li>
-			<li>FAIL if any red is visible.</li>
-		</ul>
+        <p>A white rectangle with no border-radius property sits exactly on top of an exact same size red rectangle with border-radius set to zero.</p>
+        <!-- PASS AND FAIL CRITERIA ARE IN THE LIST BELOW -->
+        <ul>
+            <li>PASS if no red is visible on the page.</li>
+            <li>FAIL if any red is visible.</li>
+        </ul>
         <!-- PLACE TEST CONTENT FROM HERE -->
-    	<div id="reference"></div>
-    	<div id="test"></div>
+        <div id="reference"></div>
+        <div id="test"></div>
     </body>
 </html>

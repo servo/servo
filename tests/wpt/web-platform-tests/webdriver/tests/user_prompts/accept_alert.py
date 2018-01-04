@@ -1,4 +1,5 @@
 from tests.support.asserts import assert_error, assert_success
+from tests.support.inline import inline
 
 
 def accept_alert(session):
@@ -25,14 +26,14 @@ def test_no_user_prompt(session):
 
 def test_accept_alert(session):
     # 18.2 step 3
-    session.execute_script("window.alert(\"Hello\");")
+    session.url = inline("<script>window.alert('Hello');</script>")
     response = accept_alert(session)
     assert_success(response)
 
 
 def test_accept_confirm(session):
     # 18.2 step 3
-    session.execute_script("window.result = window.confirm(\"Hello\");")
+    session.url = inline("<script>window.result = window.confirm('Hello');</script>")
     response = accept_alert(session)
     assert_success(response)
     assert session.execute_script("return window.result") is True
@@ -40,7 +41,7 @@ def test_accept_confirm(session):
 
 def test_accept_prompt(session):
     # 18.2 step 3
-    session.execute_script("window.result = window.prompt(\"Enter Your Name: \", \"Federer\");")
+    session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Federer');</script>")
     response = accept_alert(session)
     assert_success(response)
     assert session.execute_script("return window.result") == "Federer"

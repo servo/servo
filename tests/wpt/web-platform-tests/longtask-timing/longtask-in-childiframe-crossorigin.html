@@ -35,7 +35,7 @@
             assert_equals(attribution.containerId, 'child-iframe-id');
             assert_equals(attribution.containerName, 'child-iframe-name');
             assert_equals(attribution.containerSrc,
-                'http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html');
+                'resources/subframe-with-longtask.html');
             observer.disconnect();
             t.done();
         })
@@ -44,10 +44,11 @@
     const iframe = document.createElement('iframe');
     iframe.id = 'child-iframe-id';
     iframe.name = 'child-iframe-name';
+    // Simulate cross-origin by using sandbox.
+    iframe.sandbox = "allow-scripts";
     document.body.appendChild(iframe);
-    // TODO(panicker): simulate cross-origin instead
-    iframe.src = 'http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html';
-}, 'Performance longtask entries in child iframe are observable in parent.');
+    iframe.src = 'resources/subframe-with-longtask.html';
+}, 'Performance longtask entries in cross-origin child iframe are observable in parent.');
 </script>
 
 </body>

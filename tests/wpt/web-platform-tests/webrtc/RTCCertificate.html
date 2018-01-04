@@ -172,8 +172,9 @@
         assert_equals(typeof fingerprint, 'object',
           'Expect fingerprint to be an object (dictionary)');
 
-        // Can only do simple test as the allowed values may be extended
-        assert_true(/^[a-zA-Z\-]+$/.test(fingerprint.algorithm),
+        // https://www.iana.org/assignments/hash-function-text-names/hash-function-text-names.xml
+        const algorithms = ['md2', 'md5', 'sha-1', 'sha-224', 'sha-256', 'sha-384', 'sha-512'];
+        assert_in_array(fingerprint.algorithm, algorithms,
           'Expect fingerprint.algorithm to be string of algorithm identifier');
 
         assert_true(/^([0-9a-f]{2}\:)+[0-9a-f]{2}$/.test(fingerprint.value),

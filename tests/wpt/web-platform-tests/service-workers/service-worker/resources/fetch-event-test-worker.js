@@ -29,7 +29,7 @@ function handleReferrerFull(event) {
 
 function handleClientId(event) {
   var body;
-  if (event.clientId !== null) {
+  if (event.clientId !== "") {
     body = 'Client ID Found: ' + event.clientId;
   } else {
     body = 'Client ID Not Found';

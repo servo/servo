@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <!-- This tests a bug that can occur when content layer CSP is not told
+       about the CSP inherited from the parent document which leads to it not
+       applying it to content layer CSP checks (such as frame-src with
+       PlzNavigate on).
+       Also see crbug.com/778658. -->
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script>
+    var t = async_test("iframe still inherits correct CSP");
+  </script>
+
+  <iframe id="x" srcdoc="<a href='about:blank'>123</a>"></iframe>
+
+  <script>
+    window.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "frame-src");
+    });
+
+    x = document.getElementById('x');
+    x.location = "";
+
+    // While document.write is deprecated I did not find another way to reproduce
+    // the original exploit.
+    x.contentDocument.write(
+      '<script>window.addEventListener("securitypolicyviolation", function(e) {' +
+      '  window.top.postMessage(e.violatedDirective, "*");' +
+      '});</scr' + 'ipt>' +
+      '<iframe src="../support/fail.html"></iframe>'
+    );
+    x.contentDocument.close();
+  </script>
+  <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-src%20%27none%27''></script>
+</body>
+</html>

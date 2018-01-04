@@ -138,7 +138,7 @@ test(() => {
   }
 
   assert_equals(controller.close.length, 0, 'cancel has no parameters');
-  assert_equals(controller.constructor.length, 3, 'constructor has 3 parameters');
+  assert_equals(controller.constructor.length, 0, 'constructor has no parameters');
   assert_equals(controller.enqueue.length, 1, 'enqueue has 1 parameter');
   assert_equals(controller.error.length, 1, 'releaseLock has 1 parameter');
 

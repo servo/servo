@@ -26,11 +26,11 @@
           }, 'CSS.mm() produces mm length');
 
           test(function(){
-              var length = CSS.q(30);
+              var length = CSS.Q(30);
               assert_true(length instanceof CSSUnitValue);
               assert_equals(length.value, 30);
               assert_equals(length.unit, 'q');
-          }, 'CSS.q() produces q length');
+          }, 'CSS.Q() produces q length');
 
           test(function(){
               var length = CSS.in(40);

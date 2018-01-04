@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<title>text-decoration shorthand serialization</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-decoration-property">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block">
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<div style="text-decoration: underline"></div>
+<script>
+test(() => {
+  const style = getComputedStyle(document.querySelector('div'));
+  // Chrome serializes as "underline solid rgb(0, 0, 0)" while Edge, Firefox an
+  // Safari use "underline", which Chrome used to do as well. The spec should
+  // probably require "underline":
+  // https://github.com/w3c/csswg-drafts/issues/1564
+  assert_equals(style.getPropertyValue("text-decoration"), "underline");
+});
+</script>

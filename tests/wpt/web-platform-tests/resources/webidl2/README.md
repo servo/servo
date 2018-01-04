@@ -1,7 +1,7 @@
 
 # WebIDL 2
 
-[![NPM version](https://badge.fury.io/js/webidl2.png)](http://badge.fury.io/js/webidl2)
+[![NPM version](https://badge.fury.io/js/webidl2.svg)](http://badge.fury.io/js/webidl2)
 
 ## Purpose
 
@@ -9,26 +9,6 @@ This is a parser for the [WebIDL](http://dev.w3.org/2006/webapi/WebIDL/) languag
 you don't know what that is, then you probably don't need it. It is meant to be used
 both in Node and in the browser (the parser likely works in other JS environments, but
 not the test suite).
-
-### What of v1?
-
-There was a previous incarnation of this project. I had written it in the most quick
-and dirty manner that was handy because I required it as a dependency in an experiment.
-As these things tend to happen, some people started using that, which then had to be
-maintained. But since it was not built on solid foundations, it was painful to keep
-up to date with the specification, which is a bit of a moving target.
-
-So I started from scratch. Compared to the previous version (which used a parser generator)
-this one is about 6x less code (which translates to 4x smaller minified or 2x smaller
-minizipped) and 4x faster. The test suite is reasonably complete (95% coverage), much more
-than previously. This version is up to date with WebIDL, rather than a couple years' behind.
-It also has *far* better error reporting.
-
-The AST you get from parsing is very similar to the one you got in v1, but some adjustments
-have been made in order to be more systematic, and to map better to what's actually in the spec
-now. If you used v1, you will need to tweak your code but the result ought to be simpler and
-you ought to be able to be a fair bit less defensive against irregularities in the way
-information is represented.
 
 ## Installation
 
@@ -45,7 +25,6 @@ In the browser:
 ```
 
 ## Documentation
-
 
 The API to WebIDL2 is trivial: you parse a string of WebIDL and it returns a syntax tree.
 
@@ -103,7 +82,7 @@ The `parse()` method returns a tree object representing the parse tree of the ID
 Comment and white space are not represented in the AST.
 
 The root of this object is always an array of definitions (where definitions are
-any of interfaces, exceptions, callbacks, etc. — anything that can occur at the root
+any of interfaces, dictionaries, callbacks, etc. — anything that can occur at the root
 of the IDL).
 
 ### IDL Type
@@ -114,7 +93,7 @@ attached to a field called `idlType`:
 
 ```JS
 {
-  "array": false,
+  "sequence": false,
   "generic": null,
   "idlType": "void",
   "nullable": false,
@@ -124,8 +103,7 @@ attached to a field called `idlType`:
 
 Where the fields are as follows:
 
-* `array`: Either `false` to indicate that it is not an array, or a number for the level of
-  array nesting.
+* `sequence`: Boolean indicating if it is a sequence. Same as `generic === "sequence"`.
 * `generic`: String indicating the generic type (e.g. "Promise", "sequence"). `null`
   otherwise.
 * `idlType`: Can be different things depending on context. In most cases, this will just
@@ -136,40 +114,8 @@ Where the fields are as follows:
 * `nullable`: Boolean indicating whether this is nullable or not.
 * `union`: Boolean indicating whether this is a union type or not.
 
-#### Interactions between `nullable` and `array`
-
-A more complex data model for our AST would likely represent `Foo[][][]` as a series of
-nested types four levels deep with three anonymous array types eventually containing a
-`Foo` type. But experience shows that such structures are cumbersome to use, and so we
-have a simpler model in which the depth of the array is specified with the `array` field.
-
-This is all fine and well, and in the vast majority of cases is actually simpler. But it
-does run afoul of cases in which it is necessary to distinguish between `Foo[][][]?`,
-`Foo?[][][]`, `Foo[][]?[]`, or even `Foo?[]?[]?[]?`.
-
-For this, when a type is an array type an additional `nullableArray` field is made available
-that captures which of the arrays contain nullable elements. It contains booleans that are
-true if the given array depth contains nullable elements, and false otherwise (mapping that to
-the syntax, and item is true if there is a `?` preceding the `[]`). These examples ought to
-clarify the model:
-
-    Foo[][][]?
-        -> nullable: true
-        -> nullableArray: [false, false, false]
-    Foo?[][][]
-        -> nullable: false
-        -> nullableArray: [true, false, false]
-    Foo[][]?[]
-        -> nullable: false
-        -> nullableArray: [false, false, true]
-    Foo?[]?[]?[]?
-        -> nullable: true
-        -> nullableArray: [true, true, true]
-
-Of particular importance, please note that the overall type is only `nullable` if there is
-a `?` at the end.
-
 ### Interface
+
 Interfaces look like this:
 
 ```JS
@@ -193,12 +139,62 @@ Interfaces look like this:
 The fields are as follows:
 
 * `type`: Always "interface".
-* `name`: The name of the interface
+* `name`: The name of the interface.
 * `partial`: A boolean indicating whether it's a partial interface.
 * `members`: An array of interface members (attributes, operations, etc.). Empty if there are none.
 * `inheritance`: A string giving the name of an interface this one inherits from, `null` otherwise.
   **NOTE**: In v1 this was an array, but multiple inheritance is no longer supported so this didn't make
   sense.
+* `extAttrs`: A list of [extended attributes](#extended-attributes).
+
+### Interface mixins
+
+Interfaces mixins look like this:
+
+```JS
+{
+  "type": "interface mixin",
+  "name": "Animal",
+  "partial": false,
+  "members": [...],
+  "extAttrs": [...]
+}, {
+  "type": "interface mixin",
+  "name": "Human",
+  "partial": false,
+  "members": [...],
+  "extAttrs": [...]
+}
+```
+
+The fields are as follows:
+
+* `type`: Always "interface mixin".
+* `name`: The name of the interface mixin.
+* `partial`: A boolean indicating whether it's a partial interface mixin.
+* `members`: An array of interface members (attributes, operations, etc.). Empty if there are none.
+* `extAttrs`: A list of [extended attributes](#extended-attributes).
+
+### Namespace
+
+Namespaces look like this:
+
+```JS
+{
+  "type": "namespace",
+  "name": "Console",
+  "partial": false,
+  "members": [...],
+  "extAttrs": [...]
+}
+```
+
+The fields are as follows:
+
+* `type`: Always "namespace".
+* `name`: The name of the namespace.
+* `partial`: A boolean indicating whether it's a partial namespace.
+* `members`: An array of namespace members (attributes and operations). Empty if there are none.
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 
 ### Callback Interfaces
@@ -218,7 +214,6 @@ A callback looks like this:
     "sequence": false,
     "generic": null,
     "nullable": false,
-    "array": false,
     "union": false,
     "idlType": "void"
   },
@@ -252,7 +247,6 @@ A dictionary looks like this:
       "sequence": false,
       "generic": null,
       "nullable": true,
-      "array": false,
       "union": false,
       "idlType": "DOMString"
     },
@@ -285,47 +279,6 @@ All the members are fields as follows:
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 * `default`: A [default value](#default-and-const-values), absent if there is none.
 
-### Exception
-
-An exception looks like this:
-
-```JS
-{
-  "type": "exception",
-  "name": "HierarchyRequestError",
-  "members": [{
-    "type": "field",
-    "name": "code",
-    "idlType": {
-      "sequence": false,
-      "generic": null,
-      "nullable": false,
-      "array": false,
-      "union": false,
-      "idlType": "unsigned short"
-    },
-    "extAttrs": []
-  }],
-  "inheritance": "DOMException",
-  "extAttrs": []
-}
-```
-
-The fields are as follows:
-
-* `type`: Always "exception".
-* `name`: The exception name.
-* `members`: An array of members (constants or fields, where fields are described below).
-* `inheritance`: A string indicating which exception is being inherited from, `null` otherwise.
-* `extAttrs`: A list of [extended attributes](#extended-attributes).
-
-Members that aren't [constants](#constants) have the following fields:
-
-* `type`: Always "field".
-* `name`: The field's name.
-* `idlType`: An [IDL Type](#idl-type) describing what field's type.
-* `extAttrs`: A list of [extended attributes](#extended-attributes).
-
 ### Enum
 
 An enum looks like this:
@@ -335,9 +288,9 @@ An enum looks like this:
   "type": "enum",
   "name": "MealType",
   "values": [
-    "rice",
-    "noodles",
-    "other"
+    { "type": "string", "value": "rice" },
+    { "type": "string", "value": "noodles" },
+    { "type": "string", "value": "other" }
   ],
   "extAttrs": []
 }
@@ -347,7 +300,7 @@ The fields are as follows:
 
 * `type`: Always "enum".
 * `name`: The enum's name.
-* `value`: An array of values (strings).
+* `values`: An array of values.
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 
 ### Typedef
@@ -362,13 +315,11 @@ A typedef looks like this:
     "sequence": true,
     "generic": "sequence",
     "nullable": false,
-    "array": false,
     "union": false,
     "idlType": {
       "sequence": false,
       "generic": null,
       "nullable": false,
-      "array": false,
       "union": false,
       "idlType": "Point"
     }
@@ -385,7 +336,7 @@ The fields are as follows:
 * `name`: The typedef's name.
 * `idlType`: An [IDL Type](#idl-type) describing what typedef's type.
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
-* `typeExtAttrs`: A list of [extended attributes](#extended-attributes) that apply to the 
+* `typeExtAttrs`: A list of [extended attributes](#extended-attributes) that apply to the
 type rather than to the typedef as a whole.
 
 ### Implements
@@ -408,6 +359,26 @@ The fields are as follows:
 * `implements`: The interface that is being implemented by the target.
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 
+### Includes
+
+An includes definition looks like this:
+
+```JS
+{
+  "type": "includes",
+  "target": "Node",
+  "includes": "EventTarget",
+  "extAttrs": []
+}
+```
+
+The fields are as follows:
+
+* `type`: Always "includes".
+* `target`: The interface that includes an interface mixin.
+* `includes`: The interface mixin that is being included by the target.
+* `extAttrs`: A list of [extended attributes](#extended-attributes).
+
 ### Operation Member
 
 An operation looks like this:
@@ -416,16 +387,13 @@ An operation looks like this:
   "type": "operation",
   "getter": false,
   "setter": false,
-  "creator": false,
   "deleter": false,
-  "legacycaller": false,
   "static": false,
   "stringifier": false,
   "idlType": {
     "sequence": false,
     "generic": null,
     "nullable": false,
-    "array": false,
     "union": false,
     "idlType": "void"
   },
@@ -438,7 +406,6 @@ An operation looks like this:
       "sequence": false,
       "generic": null,
       "nullable": false,
-      "array": false,
       "union": false,
       "idlType": "long"
     },
@@ -453,9 +420,7 @@ The fields are as follows:
 * `type`: Always "operation".
 * `getter`: True if a getter operation.
 * `setter`: True if a setter operation.
-* `creator`: True if a creator operation.
 * `deleter`: True if a deleter operation.
-* `legacycaller`: True if a legacycaller operation.
 * `static`: True if a static operation.
 * `stringifier`: True if a stringifier operation.
 * `idlType`: An [IDL Type](#idl-type) of what the operation returns. If a stringifier, may be absent.
@@ -478,7 +443,6 @@ An attribute member looks like this:
     "sequence": false,
     "generic": null,
     "nullable": false,
-    "array": false,
     "union": false,
     "idlType": "RegExp"
   },
@@ -525,96 +489,6 @@ The fields are as follows:
 * `value`: The constant value as described by [Const Values](#default-and-const-values)
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 
-### Serializer Member
-
-Serializers come in many shapes, which are best understood by looking at the
-examples below that map the IDL to the produced AST.
-
-```JS
-// serializer;
-{
-  "type": "serializer",
-  "extAttrs": []
-}
-
-// serializer DOMString serialize();
-{
-  "type": "serializer",
-  "idlType": {
-    "sequence": false,
-    "generic": null,
-    "nullable": false,
-    "array": false,
-    "union": false,
-    "idlType": "DOMString"
-  },
-  "operation": {
-    "name": "serialize",
-    "arguments": []
-  },
-  "extAttrs": []
-}
-
-// serializer = { from, to, amount, description };
-{
-  "type": "serializer",
-  "patternMap": true,
-  "names": [
-    "from",
-    "to",
-    "amount",
-    "description"
-  ],
-  "extAttrs": []
-}
-
-// serializer = number;
-{
-  "type": "serializer",
-  "name": "number",
-  "extAttrs": []
-}
-
-// serializer = [ name, number ];
-{
-  "type": "serializer",
-  "patternList": true,
-  "names": [
-    "name",
-    "number"
-  ],
-  "extAttrs": []
-}
-
-```
-
-The common fields are as follows:
-
-* `type`: Always "serializer".
-* `extAttrs`: A list of [extended attributes](#extended-attributes).
-
-For a simple serializer, that's all there is. If the serializer is an operation, it will
-have:
-
-* `idlType`: An [IDL Type](#idl-type) describing what the serializer returns.
-* `operation`: An object with the following fields:
-    * `name`: The name of the operation.
-    * `arguments`: An array of [arguments](#arguments) for the operation.
-
-If the serializer is a pattern map:
-
-* `patternMap`: Always true.
-* `names`: An array of names in the pattern map.
-
-If the serializer is a pattern list:
-
-* `patternList`: Always true.
-* `names`: An array of names in the pattern list.
-
-Finally, if the serializer is a named serializer:
-
-* `name`: The serializer's name.
-
 ### Iterator Member
 
 Iterator members look like this
@@ -624,16 +498,13 @@ Iterator members look like this
   "type": "iterator",
   "getter": false,
   "setter": false,
-  "creator": false,
   "deleter": false,
-  "legacycaller": false,
   "static": false,
   "stringifier": false,
   "idlType": {
     "sequence": false,
     "generic": null,
     "nullable": false,
-    "array": false,
     "union": false,
     "idlType": "Session2"
   },
@@ -660,7 +531,6 @@ The arguments (e.g. for an operation) look like this:
       "sequence": false,
       "generic": null,
       "nullable": false,
-      "array": false,
       "union": false,
       "idlType": "long"
     },
@@ -686,6 +556,7 @@ Extended attributes are arrays of items that look like this:
   "extAttrs": [{
     "name": "TreatNullAs",
     "arguments": null,
+    "type": "extended-attribute",
     "rhs": {
       "type": "identifier",
       "value": "EmptyString"
@@ -703,6 +574,7 @@ The fields are as follows:
   whereas the lack thereof will yield a `null`. If there is an `rhs` field then
   they are the right-hand side's arguments, otherwise they apply to the extended
   attribute directly.
+* `type`: Always `"extended-attribute"`.
 * `rhs`: If there is a right-hand side, this will capture its `type` (which can be
   "identifier" or "identifier-list") and its `value`.
 * `typePair`: If the extended attribute is a `MapClass` this will capture the
@@ -717,7 +589,7 @@ values, all of which have the following fields:
 
 For string, number, boolean, and sequence:
 
-* `value`: The value of the given type. For sequence, the only possible value is `[]`.
+* `value`: The value of the given type, as a string. For sequence, the only possible value is `[]`.
 
 For Infinity:
 
@@ -787,8 +659,3 @@ In order to test in the browser, get inside `test/web` and run `make-web-tests.j
 will generate a `browser-tests.html` file that you can open in a browser. As of this
 writing tests pass in the latest Firefox, Chrome, Opera, and Safari. Testing on IE
 and older versions will happen progressively.
-
-## TODO
-
-* add some tests to address coverage limitations
-* add a push API for processors that need to process things like comments

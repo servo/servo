@@ -1,0 +1,14 @@
+WEBVTT
+Paint-on text in cues with <timestamp> markup.
+
+1
+00:00:00.000 --> 00:00:30.500 align:start position:20%
+This <00:00:05.000>cue <00:00:10.000>is <00:00:15.000>painted <00:00:20.000>on.
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+I <00:00:35.000>said <00:00:40.000>Bear <00:00:45.000>is <00:00:50.000>coming!!!!
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%
+I <00:01:05.000>said <00:01:10.000>Bear <00:01:15.000>is <00:01:20.000>coming <00:01:25.000>now!!!!

@@ -108,7 +108,7 @@ CR AT EOL, INDENT TABS: html/test2.js: 42
 
 
 def test_lint_no_files(caplog):
-    rv = lint(_dummy_repo, [], "normal", False)
+    rv = lint(_dummy_repo, [], "normal")
     assert rv == 0
     assert caplog.text == ""
 
@@ -116,7 +116,7 @@ def test_lint_no_files(caplog):
 def test_lint_ignored_file(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["broken_ignored.html"], "normal", False)
+            rv = lint(_dummy_repo, ["broken_ignored.html"], "normal")
             assert rv == 0
             assert not mocked_check_path.called
             assert not mocked_check_file_contents.called
@@ -128,7 +128,7 @@ def test_lint_not_existing_file(caplog):
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
             # really long path-linted filename
             name = "a" * 256 + ".html"
-            rv = lint(_dummy_repo, [name], "normal", False)
+            rv = lint(_dummy_repo, [name], "normal")
             assert rv == 0
             assert not mocked_check_path.called
             assert not mocked_check_file_contents.called
@@ -138,7 +138,7 @@ def test_lint_not_existing_file(caplog):
 def test_lint_passing(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["okay.html"], "normal", False)
+            rv = lint(_dummy_repo, ["okay.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -148,7 +148,7 @@ def test_lint_passing(caplog):
 def test_lint_failing(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["broken.html"], "normal", False)
+            rv = lint(_dummy_repo, ["broken.html"], "normal")
             assert rv == 1
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -159,7 +159,7 @@ def test_lint_failing(caplog):
 def test_ref_existent_relative(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/existent_relative.html"], "normal", False)
+            rv = lint(_dummy_repo, ["ref/existent_relative.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -169,7 +169,7 @@ def test_ref_existent_relative(caplog):
 def test_ref_existent_root_relative(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/existent_root_relative.html"], "normal", False)
+            rv = lint(_dummy_repo, ["ref/existent_root_relative.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -179,7 +179,7 @@ def test_ref_existent_root_relative(caplog):
 def test_ref_non_existent_relative(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/non_existent_relative.html"], "normal", False)
+            rv = lint(_dummy_repo, ["ref/non_existent_relative.html"], "normal")
             assert rv == 1
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -191,7 +191,7 @@ def test_ref_non_existent_relative(caplog):
 def test_ref_non_existent_root_relative(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/non_existent_root_relative.html"], "normal", False)
+            rv = lint(_dummy_repo, ["ref/non_existent_root_relative.html"], "normal")
             assert rv == 1
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -204,7 +204,7 @@ def test_ref_non_existent_root_relative(caplog):
 def test_ref_absolute_url(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/absolute.html"], "normal", False)
+            rv = lint(_dummy_repo, ["ref/absolute.html"], "normal")
             assert rv == 1
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -216,7 +216,7 @@ def test_ref_absolute_url(caplog):
 def test_ref_same_file_empty(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/same_file_empty.html"], "normal", False)
+            rv = lint(_dummy_repo, ["ref/same_file_empty.html"], "normal")
             assert rv == 1
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -227,7 +227,7 @@ def test_ref_same_file_empty(caplog):
 def test_ref_same_file_path(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/same_file_path.html"], "normal", False)
+            rv = lint(_dummy_repo, ["ref/same_file_path.html"], "normal")
             assert rv == 1
             assert mocked_check_path.call_count == 1
             assert mocked_check_file_contents.call_count == 1
@@ -238,7 +238,7 @@ def test_ref_same_file_path(caplog):
 def test_lint_passing_and_failing(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["broken.html", "okay.html"], "normal", False)
+            rv = lint(_dummy_repo, ["broken.html", "okay.html"], "normal")
             assert rv == 1
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -250,7 +250,7 @@ def test_lint_passing_and_failing(caplog):
 def test_check_css_globally_unique_identical_test(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/match/a.html", "css-unique/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/match/a.html", "css/css-unique/a.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -260,7 +260,7 @@ def test_check_css_globally_unique_identical_test(caplog):
 def test_check_css_globally_unique_different_test(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/not-match/a.html", "css-unique/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/not-match/a.html", "css/css-unique/a.html"], "normal")
             assert rv == 2
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -270,7 +270,7 @@ def test_check_css_globally_unique_different_test(caplog):
 def test_check_css_globally_unique_different_spec_test(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/selectors/a.html", "css-unique/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/selectors/a.html", "css/css-unique/a.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -280,7 +280,7 @@ def test_check_css_globally_unique_different_spec_test(caplog):
 def test_check_css_globally_unique_support_ignored(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/support/a.html", "css-unique/support/tools/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/support/a.html", "css/css-unique/support/tools/a.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -290,7 +290,7 @@ def test_check_css_globally_unique_support_ignored(caplog):
 def test_check_css_globally_unique_support_identical(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/support/a.html", "css-unique/match/support/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/support/a.html", "css/css-unique/match/support/a.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -300,7 +300,7 @@ def test_check_css_globally_unique_support_identical(caplog):
 def test_check_css_globally_unique_support_different(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/not-match/support/a.html", "css-unique/support/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/not-match/support/a.html", "css/css-unique/support/a.html"], "normal")
             assert rv == 2
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -310,7 +310,7 @@ def test_check_css_globally_unique_support_different(caplog):
 def test_check_css_globally_unique_test_support(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/support/a.html", "css-unique/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/support/a.html", "css/css-unique/a.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -320,7 +320,7 @@ def test_check_css_globally_unique_test_support(caplog):
 def test_check_css_globally_unique_ref_identical(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/a-ref.html", "css-unique/match/a-ref.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/a-ref.html", "css/css-unique/match/a-ref.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -330,7 +330,7 @@ def test_check_css_globally_unique_ref_identical(caplog):
 def test_check_css_globally_unique_ref_different(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/not-match/a-ref.html", "css-unique/a-ref.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/not-match/a-ref.html", "css/css-unique/a-ref.html"], "normal")
             assert rv == 2
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -340,7 +340,7 @@ def test_check_css_globally_unique_ref_different(caplog):
 def test_check_css_globally_unique_test_ref(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/a-ref.html", "css-unique/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/a-ref.html", "css/css-unique/a.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -350,7 +350,7 @@ def test_check_css_globally_unique_test_ref(caplog):
 def test_check_css_globally_unique_ignored(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/tools/a.html", "css-unique/not-match/tools/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/tools/a.html", "css/css-unique/not-match/tools/a.html"], "normal")
             assert rv == 0
             assert mocked_check_path.call_count == 2
             assert mocked_check_file_contents.call_count == 2
@@ -360,10 +360,10 @@ def test_check_css_globally_unique_ignored(caplog):
 def test_check_css_globally_unique_ignored_dir(caplog):
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["css-unique/support/a.html", "css/work-in-progress/foo/support/a.html"], "normal", True)
+            rv = lint(_dummy_repo, ["css/css-unique/support/a.html"], "normal")
             assert rv == 0
-            assert mocked_check_path.call_count == 2
-            assert mocked_check_file_contents.call_count == 2
+            assert mocked_check_path.call_count == 1
+            assert mocked_check_file_contents.call_count == 1
     assert caplog.text == ""
 
 
@@ -390,7 +390,7 @@ def test_main_with_args():
         sys.argv = ['./lint', 'a', 'b', 'c']
         with _mock_lint('lint', return_value=True) as m:
             lint_mod.main(**vars(create_parser().parse_args()))
-            m.assert_called_once_with(repo_root, ['a', 'b', 'c'], "normal", False)
+            m.assert_called_once_with(repo_root, ['a', 'b', 'c'], "normal")
     finally:
         sys.argv = orig_argv
 
@@ -402,7 +402,7 @@ def test_main_no_args():
         with _mock_lint('lint', return_value=True) as m:
             with _mock_lint('changed_files', return_value=['foo', 'bar']) as m2:
                 lint_mod.main(**vars(create_parser().parse_args()))
-                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal", False)
+                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal")
     finally:
         sys.argv = orig_argv
 
@@ -414,6 +414,6 @@ def test_main_all():
         with _mock_lint('lint', return_value=True) as m:
             with _mock_lint('all_filesystem_paths', return_value=['foo', 'bar']) as m2:
                 lint_mod.main(**vars(create_parser().parse_args()))
-                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal", False)
+                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal")
     finally:
         sys.argv = orig_argv

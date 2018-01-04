@@ -1,8 +1,7 @@
 //This file requires server-side substitutions and must be included as constants.js?pipe=sub
 
 var PORT = "{{ports[ws][0]}}";
-//FIXME: Add support for wss
-var PORT_SSL = "{{ports[ws][0]}}";
+var PORT_SSL = "{{ports[wss][0]}}";
 
 var SCHEME_DOMAIN_PORT;
 if (location.search == '?wss') {

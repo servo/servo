@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Cookies: cookieStore handles special cookie names correctly</title>
+<link rel="help" href="https://github.com/WICG/cookie-store">
+<link rel="author" href="pwnall@chromium.org" title="Victor Costan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(async testCase => {
+  await promise_rejects(testCase, new TypeError(), cookieStore.set(
+      '__Secure-cookie-name', 'secure-cookie-value'));
+
+  try { await cookieStore.delete('__Secure-cookie-name'); } catch (e) {}
+}, 'cookieStore.set with __Secure- name on insecure origin');
+
+promise_test(async testCase => {
+  await promise_rejects(testCase, new TypeError(), cookieStore.set(
+      '__Host-cookie-name', 'host-cookie-value'));
+
+  try { await cookieStore.delete('__Host-cookie-name'); } catch (e) {}
+}, 'cookieStore.set with __Host- name on insecure origin');
+
+promise_test(async testCase => {
+  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
+      '__Secure-cookie-name', 'secure-cookie-value'));
+}, 'cookieStore.delete with __Secure- name on insecure origin');
+
+promise_test(async testCase => {
+  await promise_rejects(testCase, new TypeError(), cookieStore.delete(
+      '__Host-cookie-name', 'host-cookie-value'));
+}, 'cookieStore.delete with __Host- name on insecure origin');
+
+</script>

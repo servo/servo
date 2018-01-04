@@ -8,17 +8,25 @@ class WebDriverException(Exception):
 
     def __init__(self, message, stacktrace=None):
         super(WebDriverException, self)
+        self.message = message
         self.stacktrace = stacktrace
 
     def __repr__(self):
-        return "<%s http_status=%d>" % (self.__class__.__name__, self.http_status)
+        return "<%s http_status=%s>" % (self.__class__.__name__, self.http_status)
 
     def __str__(self):
-        return ("%s (%d)\n"
-            "\n"
+        message = "%s (%s): %s\n" % (self.status_code, self.http_status, self.message)
+        if self.stacktrace:
+            message += ("\n"
             "Remote-end stacktrace:\n"
             "\n"
-            "%s" % (self.status_code, self.http_status, self.stacktrace))
+            "%s" % self.stacktrace)
+        return message
+
+
+class ElementClickInterceptedException(WebDriverException):
+    http_status = 400
+    status_code = "element click intercepted"
 
 
 class ElementNotSelectableException(WebDriverException):
@@ -53,7 +61,7 @@ class InvalidElementCoordinatesException(WebDriverException):
 
 class InvalidElementStateException(WebDriverException):
     http_status = 400
-    status_code = "invalid cookie domain"
+    status_code = "invalid element state"
 
 
 class InvalidSelectorException(WebDriverException):
@@ -107,7 +115,7 @@ class SessionNotCreatedException(WebDriverException):
 
 
 class StaleElementReferenceException(WebDriverException):
-    http_status = 400
+    http_status = 404
     status_code = "stale element reference"
 
 

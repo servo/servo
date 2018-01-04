@@ -1,0 +1,21 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>textarea multiline placeholder (CRLF)</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-placeholder">
+<meta name="assert" content="textarea element's placeholder preserves newlines (CRLF)">
+<link rel="match" href="/html/form-elements/the-textarea-element/multiline-placeholder-ref.html">
+<link rel="stylesheet" href="support/placeholder.css">
+<textarea rows="5" placeholder="this is
+a multiline
+
+placeholder"></textarea>
+<textarea rows="5" placeholder="this is&#xd;&#xa;a multiline&#xd;&#xa;&#xd;&#xa;placeholder"></textarea>
+<textarea rows="5" id="dynamic"></textarea>
+<script>
+  document.querySelector("#dynamic")
+          .setAttribute("placeholder", "this is\r\na multiline\r\n\r\nplaceholder");
+  document.documentElement.classList.remove("reftest-wait");
+</script>
+</html>
+

@@ -1980,6 +1980,7 @@
     "html/elements/style/scoped-model-novalid.html": "Element \u201cstyle\u201d not allowed as child of element \u201cdiv\u201d in this context. (Suppressing further errors from this subtree.)",
     "html/elements/style/scoped-multiple-adjacent-novalid.html": "Element \u201cstyle\u201d not allowed as child of element \u201cdiv\u201d in this context. (Suppressing further errors from this subtree.)",
     "html/elements/style/scoped-novalid.html": "Element \u201cstyle\u201d not allowed as child of element \u201cdiv\u201d in this context. (Suppressing further errors from this subtree.)",
+    "html/elements/style/type-novalid.html": " The only allowed value for the \u201ctype\u201d attribute for the \u201cstyle\u201d element is \u201ctext/css\u201d (with no parameters). (But the attribute is not needed and should be omitted altogether.)",
     "html/elements/sub/model-novalid.html": "End tag \u201cp\u201d implied, but there were open elements.",
     "html/elements/sup/model-novalid.html": "End tag \u201cp\u201d implied, but there were open elements.",
     "html/elements/table/integrity/Alexis_of_Russia-novalid.html": "Bad value \u201ccopyright\u201d for attribute \u201crel\u201d on element \u201clink\u201d: Bad list of link-type keywords: The keyword \u201ccopyright\u201d for the \u201crel\u201d attribute should not be used. Consider using \u201clicense\u201d instead.",

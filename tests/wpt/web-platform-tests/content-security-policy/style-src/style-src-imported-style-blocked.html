@@ -12,8 +12,13 @@
       document.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
         assert_equals("style-src", e.violatedDirective);
       }));
+
+      var l = document.createElement("link");
+      l.setAttribute("href", "/content-security-policy/style-src/resources/style-src-import.sub.css");
+      l.setAttribute("rel", "stylesheet");
+      l.setAttribute("type", "text/css");
+      document.head.appendChild(l);
     </script>
-    <link href="/content-security-policy/style-src/resources/style-src-import.sub.css" rel=stylesheet type=text/css>
 </head>
 <body>
     <div id='log'></div>

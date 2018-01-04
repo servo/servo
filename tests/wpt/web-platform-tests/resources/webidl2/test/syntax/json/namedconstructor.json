@@ -9,6 +9,7 @@
             {
                 "name": "NamedConstructor",
                 "arguments": null,
+                "type": "extended-attribute",
                 "rhs": {
                     "type": "identifier",
                     "value": "Audio"
@@ -25,13 +26,13 @@
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },
                         "name": "src"
                     }
                 ],
+                "type": "extended-attribute",
                 "rhs": {
                     "type": "identifier",
                     "value": "Audio"

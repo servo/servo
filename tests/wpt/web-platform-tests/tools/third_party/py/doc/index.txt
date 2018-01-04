@@ -1,0 +1,39 @@
+.. py documentation master file, created by
+   sphinx-quickstart on Thu Oct 21 08:30:10 2010.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to py's documentation!
+=================================
+
+see :ref:`CHANGELOG <changelog>` for latest changes.
+
+.. _`pytest distribution`: http://pytest.org
+
+Contents:
+
+.. toctree::
+
+   install
+   path
+   code
+   io
+   log
+   xml
+   misc
+
+   :maxdepth: 2
+
+.. toctree::
+    :hidden:
+
+    announce/release-2.0.0
+    changelog
+    announce/*
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`search`
+

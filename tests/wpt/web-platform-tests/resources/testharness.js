@@ -1569,11 +1569,6 @@ policies and contribution forms [3].
         this._add_cleanup(callback);
     };
 
-    Test.prototype.force_timeout = function() {
-        this.set_status(this.TIMEOUT);
-        this.phase = this.phases.HAS_RESULT;
-    };
-
     Test.prototype.set_timeout = function()
     {
         if (this.timeout_length !== null) {
@@ -1599,6 +1594,8 @@ policies and contribution forms [3].
         this.phase = this.phases.HAS_RESULT;
         this.done();
     };
+
+    Test.prototype.force_timeout = Test.prototype.timeout;
 
     Test.prototype.done = function()
     {
@@ -1711,7 +1708,13 @@ policies and contribution forms [3].
         this.tests = new Array();
 
         var this_obj = this;
-        remote.onerror = function(error) { this_obj.remote_error(error); };
+        // If remote context is cross origin assigning to onerror is not
+        // possible, so silently catch those errors.
+        try {
+          remote.onerror = function(error) { this_obj.remote_error(error); };
+        } catch (e) {
+          // Ignore.
+        }
 
         // Keeping a reference to the remote object and the message handler until
         // remote_done() is seen prevents the remote object and its message channel
@@ -2084,11 +2087,7 @@ policies and contribution forms [3].
         var message_port;
 
         if (is_service_worker(worker)) {
-            // Microsoft Edge's implementation of ServiceWorker doesn't support MessagePort yet.
-            // Feature detection isn't a straightforward option here; it's only possible in the
-            // worker's script context.
-            var isMicrosoftEdgeBrowser = navigator.userAgent.includes("Edge");
-            if (window.MessageChannel && !isMicrosoftEdgeBrowser) {
+            if (window.MessageChannel) {
                 // The ServiceWorker's implicit MessagePort is currently not
                 // reliably accessible from the ServiceWorkerGlobalScope due to
                 // Blink setting MessageEvent.source to null for messages sent
