@@ -11,5 +11,4 @@ pub struct HTMLPictureElement {
 }
 
 impl HTMLPictureElement {
-  
 }
