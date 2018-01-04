@@ -345,18 +345,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
             None
         }
     }
-
-    #[inline]
-    fn can_be_fragmented(&self) -> bool {
-        // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
-        // Maybe this isn’t useful for Gecko?
-        false
-    }
-
-    unsafe fn set_can_be_fragmented(&self, _value: bool) {
-        // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
-        // Maybe this isn’t useful for Gecko?
-    }
 }
 
 /// A wrapper on top of two kind of iterators, depending on the parent being
