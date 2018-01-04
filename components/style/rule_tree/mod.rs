@@ -864,7 +864,8 @@ impl StrongRuleNode {
         WeakRuleNode::from_ptr(self.ptr())
     }
 
-    fn parent(&self) -> Option<&StrongRuleNode> {
+    /// Get the parent rule node of this rule node.
+    pub fn parent(&self) -> Option<&StrongRuleNode> {
         self.get().parent.as_ref()
     }
 

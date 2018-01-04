@@ -283,6 +283,12 @@ impl PropertyDeclarationBlock {
         self.longhands.contains(id)
     }
 
+    /// Returns whether this block contains any reset longhand.
+    #[inline]
+    pub fn contains_any_reset(&self) -> bool {
+        self.longhands.contains_any_reset()
+    }
+
     /// Get a declaration for a given property.
     ///
     /// NOTE: This is linear time.
