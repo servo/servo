@@ -297,9 +297,8 @@ class CommandBase(object):
     def set_use_geckolib_toolchain(self, use_geckolib_toolchain=True):
         self._use_geckolib_toolchain = use_geckolib_toolchain
         if use_geckolib_toolchain:
-            # Cargo maintainer's position is that CARGO_INCREMENTAL is a nightly-only feature
-            # and should not be used on the stable channel.
-            # https://github.com/rust-lang/cargo/issues/3835
+            # We use Cargo Nightly 1.24 with Rust 1.22,
+            # it passes `-C incremental` to rustc, which is new in Rust 1.24.
             self.config["build"]["incremental"] = False
 
     def toolchain(self):
