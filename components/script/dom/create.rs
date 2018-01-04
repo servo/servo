@@ -54,6 +54,7 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlparagraphelement::HTMLParagraphElement;
 use dom::htmlparamelement::HTMLParamElement;
+use dom::htmlpictureelement::HTMLPictureElement;
 use dom::htmlpreelement::HTMLPreElement;
 use dom::htmlprogresselement::HTMLProgressElement;
 use dom::htmlquoteelement::HTMLQuoteElement;
