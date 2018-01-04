@@ -2752,16 +2752,16 @@ impl<'a> StyleBuilder<'a> {
         % endif
 
         % if not property.style_struct.inherited:
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_RESET_STYLE);
+        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
         self.modified_reset = true;
         % endif
 
         % if property.ident == "content":
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_CONTENT);
+        self.flags.insert(ComputedValueFlags::INHERITS_CONTENT);
         % endif
 
         % if property.ident == "display":
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_DISPLAY);
+        self.flags.insert(ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
         self.${property.style_struct.ident}.mutate()
