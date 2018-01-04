@@ -1353,13 +1353,14 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             return false
         }
 
-        if node.can_be_fragmented() || node.style(self.style_context()).is_multicol() {
-            return false
-        }
-
         let mut set_has_newly_constructed_flow_flag = false;
         let result = {
             let style = node.style(self.style_context());
+
+            if style.can_be_fragmented() || style.is_multicol() {
+                return false
+            }
+
             let damage = node.restyle_damage();
             let mut data = node.mutate_layout_data().unwrap();
 
@@ -1657,16 +1658,9 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
     }
 
     #[inline(always)]
-    fn set_flow_construction_result(self, mut result: ConstructionResult) {
-        if self.can_be_fragmented() {
-            if let ConstructionResult::Flow(ref mut flow, _) = result {
-                FlowRef::deref_mut(flow).mut_base().flags.insert(FlowFlags::CAN_BE_FRAGMENTED);
-            }
-        }
-
+    fn set_flow_construction_result(self, result: ConstructionResult) {
         let mut layout_data = self.mutate_layout_data().unwrap();
         let dst = self.construction_result_mut(&mut *layout_data);
-
         *dst = result;
     }
 
