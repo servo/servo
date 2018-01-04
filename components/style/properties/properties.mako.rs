@@ -687,14 +687,6 @@ impl LonghandId {
     fn is_early_property(&self) -> bool {
         matches!(*self,
             % if product == 'gecko':
-            // We need to know the number of animations / transition-properties
-            // before setting the rest of the related longhands, see #15923.
-            //
-            // FIXME(emilio): Looks to me that we could just do this in Gecko
-            // instead of making them early properties. Indeed, the spec
-            // mentions _used_ values, not computed values, so this looks wrong.
-            LonghandId::AnimationName |
-            LonghandId::TransitionProperty |
 
             // Needed to properly compute the writing mode, to resolve logical
             // properties, and similar stuff. In this block instead of along
