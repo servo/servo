@@ -3298,7 +3298,8 @@ fn static_assert() {
 
     pub fn transition_combined_duration_at(&self, index: usize) -> f32 {
         // https://drafts.csswg.org/css-transitions/#transition-combined-duration
-        self.gecko.mTransitions[index].mDuration.max(0.0) + self.gecko.mTransitions[index].mDelay
+        self.gecko.mTransitions[index % self.gecko.mTransitionDurationCount as usize].mDuration.max(0.0)
+            + self.gecko.mTransitions[index % self.gecko.mTransitionDelayCount as usize].mDelay
     }
 
     pub fn set_transition_property<I>(&mut self, v: I)
