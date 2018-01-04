@@ -506,7 +506,7 @@ bitflags! {
         const PAINT = 0x04;
         /// `strict` variant, turns on all types of containment
         const STRICT = 0x8;
-        /// `strict bits` variant
+        /// variant with all the bits that contain: strict turns on
         const STRICT_BITS = Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits;
     }
 }
@@ -543,28 +543,24 @@ impl ToCss for Contain {
 
 impl Parse for Contain {
     /// none | strict | content | [ size || layout || style || paint ]
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<Contain, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Contain, ParseError<'i>> {
         let mut result = Contain::empty();
-
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(result)
-        }
-        if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
-            result.insert(Contain::STRICT | Contain::STRICT_BITS);
-            return Ok(result)
-        }
-
         while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
                 "layout" => Some(Contain::LAYOUT),
                 "style" => Some(Contain::STYLE),
                 "paint" => Some(Contain::PAINT),
+                "strict" if result.is_empty() => return Ok(Contain::STRICT | Contain::STRICT_BITS),
+                "none" if result.is_empty() => return Ok(result),
                 _ => None
             };
+
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
             };
             result.insert(flag);
         }
