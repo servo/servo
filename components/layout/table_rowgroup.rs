@@ -9,8 +9,8 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list_builder::{StackingContextCollectionFlags, StackingContextCollectionState};
+use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};

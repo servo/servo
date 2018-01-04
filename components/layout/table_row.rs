@@ -9,9 +9,9 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
-use display_list_builder::StackingContextCollectionState;
+use display_list::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list::{DisplayListBuildState, StackingContextCollectionFlags};
+use display_list::StackingContextCollectionState;
 use euclid::Point2D;
 use flow::{EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, GetBaseFlow, OpaqueFlow};
 use flow_list::MutFlowListIterator;

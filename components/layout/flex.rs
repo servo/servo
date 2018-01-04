@@ -9,8 +9,8 @@
 use app_units::{Au, MAX_AU};
 use block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
-use display_list_builder::StackingContextCollectionState;
+use display_list::{DisplayListBuildState, FlexFlowDisplayListBuilding};
+use display_list::StackingContextCollectionState;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, GetBaseFlow, ImmutableFlowUtils, OpaqueFlow, FlowFlags};
