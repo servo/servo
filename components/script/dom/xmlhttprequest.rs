@@ -1129,7 +1129,7 @@ impl XMLHttpRequest {
 
         // Step 2
         let bytes = self.response.borrow();
-        rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+        rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
         ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut()).ok().and_then(|()| {
             self.response_arraybuffer.set(array_buffer.get());
             Some(NonNullJSObjectPtr::new_unchecked(array_buffer.get()))

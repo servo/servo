@@ -26,6 +26,7 @@ use hyper::mime::{Attr, Mime};
 use js::jsapi::Heap;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
+use js::jsapi::JSObject;
 use js::jsval::{self, JSVal};
 use js::typedarray::{ArrayBuffer, CreateWith};
 use servo_atoms::Atom;
@@ -261,7 +262,7 @@ impl FileReader {
     fn perform_readasarraybuffer(result: &DomRefCell<Option<FileReaderResult>>,
         cx: *mut JSContext, _: ReadMetaData, bytes: &[u8]) {
         unsafe {
-            rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+            rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
             assert!(ArrayBuffer::create(cx, CreateWith::Slice(bytes), array_buffer.handle_mut()).is_ok());
 
             *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
