@@ -1,7 +1,2 @@
-ideal_width = 80
 match_block_trailing_comma = true
-max_width = 120
-newline_style = "Unix"
-normalize_comments = false
-struct_lit_multiline_style = "ForceMulti"
-where_trailing_comma = true
+binop_separator = "Back"
