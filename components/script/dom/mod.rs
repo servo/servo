@@ -348,6 +348,7 @@ pub mod htmloptionscollection;
 pub mod htmloutputelement;
 pub mod htmlparagraphelement;
 pub mod htmlparamelement;
+pub mod htmlpictureelement;
 pub mod htmlpreelement;
 pub mod htmlprogresselement;
 pub mod htmlquoteelement;
