@@ -51,7 +51,10 @@ def get_timeout_multiplier(test_type, run_info_data, **kwargs):
         else:
             return 2
     elif run_info_data["debug"] or run_info_data.get("asan"):
-        return 3
+        if run_info_data.get("ccov"):
+            return 4
+        else:
+            return 3
     return 1
 
 

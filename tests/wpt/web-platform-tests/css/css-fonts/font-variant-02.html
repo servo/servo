@@ -23,9 +23,9 @@
   }
   .outer {
     font-variant-ligatures: common-ligatures  discretionary-ligatures historical-ligatures contextual;
-    font-variant-position: sub;
+    font-variant-numeric: oldstyle-nums;
     font-variant-caps: small-caps;
-    font-variant-east-asian: jis04;
+    font-variant-east-asian: jis90;
   }
   .child {
     color: green;
@@ -36,6 +36,6 @@
 <p>Test passes if the two lines below are identical, with (in purple) eight check marks (✓),
 and then (in green) eight crosses (✗). </p>
 <section class="test">
-	<p class="outer">CDGFEJHa<span class="inner child">CDGFEJHa</span></p>
+	<p class="outer">CDGFEJQa<span class="inner child">CDGFEJQa</span></p>
 	<p class="ref">AAAAAAAA<span class="child">BBBBBBBB</span></p>
 </section>

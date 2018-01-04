@@ -15,17 +15,41 @@ const defaultAmount = Object.freeze({
   currency: "USD",
   value: "1.0",
 });
+const defaultNumberAmount = Object.freeze({
+  currency: "USD",
+  value: 1.0,
+});
 const defaultTotal = Object.freeze({
   label: "Default Total",
   amount: defaultAmount,
 });
+const defaultNumberTotal = Object.freeze({
+  label: "Default Number Total",
+  amount: defaultNumberAmount,
+});
 const defaultDetails = Object.freeze({
   total: defaultTotal,
+  displayItems: [
+    {
+      label: "Default Display Item",
+      amount: defaultAmount,
+    },
+  ],
+});
+const defaultNumberDetails = Object.freeze({
+  total: defaultNumberTotal,
+  displayItems: [
+    {
+      label: "Default Display Item",
+      amount: defaultNumberAmount,
+    },
+  ],
 });
 
 // Avoid false positives, this should always pass
 function smokeTest() {
   new PaymentRequest(defaultMethods, defaultDetails);
+  new PaymentRequest(defaultMethods, defaultNumberDetails);
 }
 test(() => {
   smokeTest();
@@ -177,6 +201,7 @@ const invalidTotalAmounts = invalidAmounts.concat([
   "-1.0",
   "-1.00",
   "-1000.000",
+  -10,
 ]);
 test(() => {
   smokeTest();

@@ -38,68 +38,24 @@ dictionary SecurityPolicyViolationEventInit : EventInit {
     long           lineNumber;
     long           columnNumber;
 };
-
-[
-    Constructor(DOMString type, optional EventInit eventInitDict),
-    Exposed=(Window,Worker)
-] interface Event {
-    readonly attribute DOMString type;
-    readonly attribute EventTarget? target;
-    readonly attribute EventTarget? currentTarget;
-    [MeasureAs=EventComposedPath, CallWith=ScriptState] sequence<EventTarget> composedPath();
-
-    const unsigned short NONE = 0;
-    const unsigned short CAPTURING_PHASE = 1;
-    const unsigned short AT_TARGET = 2;
-    const unsigned short BUBBLING_PHASE = 3;
-    readonly attribute unsigned short eventPhase;
-
-    [Measure] void stopPropagation();
-    [Measure] void stopImmediatePropagation();
-
-    readonly attribute boolean bubbles;
-    readonly attribute boolean cancelable;
-    void preventDefault();
-    readonly attribute boolean defaultPrevented;
-
-    [MeasureAs=EventComposed] readonly attribute boolean composed;
-
-    [Unforgeable] readonly attribute boolean isTrusted;
-
-    [CallWith=ScriptState] readonly attribute DOMHighResTimeStamp timeStamp;
-
-    [Measure] void initEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false);
-
-    // Non-standard APIs
-    [MeasureAs=EventSrcElement] readonly attribute EventTarget srcElement;
-    [MeasureAs=EventReturnValue, CallWith=ScriptState, ImplementedAs=legacyReturnValue] attribute boolean returnValue;
-    [MeasureAs=EventCancelBubble, CallWith=ScriptState] attribute boolean cancelBubble;
-    [MeasureAs=EventPath, CallWith=ScriptState] readonly attribute EventTarget[] path;
-};
-
-[
-    Constructor(),
-    CheckSecurity=Receiver,
-    Exposed=(Window,Worker),
-    ImmutablePrototype
-] interface EventTarget {
-    [Custom=(CallPrologue,CallEpilogue)] void addEventListener(DOMString type, EventListener? listener, optional (AddEventListenerOptions or boolean) options);
-    [Custom=(CallPrologue,CallEpilogue)] void removeEventListener(DOMString type, EventListener? listener, optional (EventListenerOptions or boolean) options);
-    [ImplementedAs=dispatchEventForBindings, RaisesException] boolean dispatchEvent(Event event);
-};
-
 </script>
 <script>
-    (function() {
-        var idl_array = new IdlArray();
-        var idls = document.getElementById('idl').textContent;
-        idl_array.add_idls(idls);
+function do_test(dom_idl) {
+    var idl_array = new IdlArray();
+    idl_array.add_untested_idls(dom_idl);
+    var idls = document.getElementById('idl').textContent;
+    idl_array.add_idls(idls);
 
-        window.event_to_test = new SecurityPolicyViolationEvent({});
+    window.event_to_test = new SecurityPolicyViolationEvent({});
 
-        idl_array.add_objects({
-          SecurityPolicyViolationEvent: ['event_to_test']
-        });
-        idl_array.test();
-    })();
+    idl_array.add_objects({
+        SecurityPolicyViolationEvent: ['event_to_test']
+    });
+    idl_array.test();
+}
+
+promise_test(function() {
+    return fetch("/interfaces/dom.idl").then(response => response.text())
+                                       .then(do_test);
+}, "Test driver");
 </script>

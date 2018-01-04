@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Animations Test: inherited animation-delay with mismatched animation-name length</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animations">
+<link rel="match" href="animation-common-ref.html">
+<style>
+div:after {
+  content: '';
+  display: block;
+  width: 100px;
+  height: 100px;
+  background: red;
+  animation: doesntmatter 50s linear infinite,
+             bg 100s step-end infinite;
+  animation-play-state: paused;
+  animation-delay: inherit;
+}
+
+@keyframes bg {
+  50% { background: green; }
+}
+</style>
+<div style="animation-delay: -50s"></div>

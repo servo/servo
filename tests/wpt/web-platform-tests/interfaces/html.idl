@@ -4,7 +4,9 @@ interface HTMLAllCollection {
   readonly attribute unsigned long length;
   getter Element? (unsigned long index);
   getter (HTMLCollection or Element)? namedItem(DOMString name);
-  legacycaller (HTMLCollection or Element)? item(optional DOMString nameOrIndex);
+  (HTMLCollection or Element)? item(optional DOMString nameOrIndex);
+
+  // Note: HTMLAllCollection objects have a custom [[Call]] internal method and an [[IsHTMLDDA]] internal slot.
 };
 
 [Exposed=Window]
@@ -84,8 +86,8 @@ partial interface Document {
   // special event handler IDL attributes that only apply to Document objects
   [LenientThis] attribute EventHandler onreadystatechange;
 };
-Document implements GlobalEventHandlers;
-Document implements DocumentAndElementEventHandlers;
+Document includes GlobalEventHandlers;
+Document includes DocumentAndElementEventHandlers;
 
 [Exposed=Window,
  HTMLConstructor]
@@ -115,9 +117,9 @@ dictionary FocusOptions {
   boolean preventScroll = false;
 };
 
-HTMLElement implements GlobalEventHandlers;
-HTMLElement implements DocumentAndElementEventHandlers;
-HTMLElement implements ElementContentEditable;
+HTMLElement includes GlobalEventHandlers;
+HTMLElement includes DocumentAndElementEventHandlers;
+HTMLElement includes ElementContentEditable;
 
 // Note: intentionally not [HTMLConstructor]
 interface HTMLUnknownElement : HTMLElement { };
@@ -168,13 +170,12 @@ interface HTMLLinkElement : HTMLElement {
   [CEReactions] attribute DOMString type;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
   [CEReactions] attribute DOMString referrerPolicy;
-  [CEReactions] attribute USVString scope;
   [CEReactions] attribute DOMString workerType;
   [CEReactions] attribute DOMString updateViaCache;
 
   // also has obsolete members
 };
-HTMLLinkElement implements LinkStyle;
+HTMLLinkElement includes LinkStyle;
 
 [Exposed=Window,
  HTMLConstructor]
@@ -193,7 +194,7 @@ interface HTMLStyleElement : HTMLElement {
   [CEReactions] attribute DOMString nonce;
   [CEReactions] attribute DOMString type;
 };
-HTMLStyleElement implements LinkStyle;
+HTMLStyleElement includes LinkStyle;
 
 [Exposed=Window,
  HTMLConstructor]
@@ -201,7 +202,7 @@ interface HTMLBodyElement : HTMLElement {
   // also has obsolete members
 };
 
-HTMLBodyElement implements WindowEventHandlers;
+HTMLBodyElement includes WindowEventHandlers;
 
 [Exposed=Window,
  HTMLConstructor]
@@ -293,7 +294,7 @@ interface HTMLAnchorElement : HTMLElement {
 
   // also has obsolete members
 };
-HTMLAnchorElement implements HTMLHyperlinkElementUtils;
+HTMLAnchorElement includes HTMLHyperlinkElementUtils;
 
 [Exposed=Window,
  HTMLConstructor]
@@ -317,9 +318,7 @@ interface HTMLBRElement : HTMLElement {
   // also has obsolete members
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface HTMLHyperlinkElementUtils {
+interface mixin HTMLHyperlinkElementUtils {
   [CEReactions] stringifier attribute USVString href;
   readonly attribute USVString origin;
   [CEReactions] attribute USVString protocol;
@@ -686,7 +685,7 @@ interface HTMLAreaElement : HTMLElement {
 
   // also has obsolete members
 };
-HTMLAreaElement implements HTMLHyperlinkElementUtils;
+HTMLAreaElement includes HTMLHyperlinkElementUtils;
 
 [Exposed=Window,
  HTMLConstructor]
@@ -817,7 +816,6 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions] attribute DOMString formTarget;
   [CEReactions] attribute unsigned long height;
   attribute boolean indeterminate;
-  [CEReactions] attribute DOMString inputMode;
   readonly attribute HTMLElement? list;
   [CEReactions] attribute DOMString max;
   [CEReactions] attribute long maxLength;
@@ -961,7 +959,6 @@ interface HTMLTextAreaElement : HTMLElement {
   [CEReactions] attribute DOMString dirName;
   [CEReactions] attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
-  [CEReactions] attribute DOMString inputMode;
   [CEReactions] attribute long maxLength;
   [CEReactions] attribute long minLength;
   [CEReactions] attribute DOMString name;
@@ -1129,6 +1126,7 @@ interface HTMLTemplateElement : HTMLElement {
 interface HTMLSlotElement : HTMLElement {
   [CEReactions] attribute DOMString name;
   sequence<Node> assignedNodes(optional AssignedNodesOptions options);
+  sequence<Element> assignedElements(optional AssignedNodesOptions options);
 };
 
 dictionary AssignedNodesOptions {
@@ -1174,32 +1172,30 @@ interface CanvasRenderingContext2D {
   // back-reference to the canvas
   readonly attribute HTMLCanvasElement canvas;
 };
-CanvasRenderingContext2D implements CanvasState;
-CanvasRenderingContext2D implements CanvasTransform;
-CanvasRenderingContext2D implements CanvasCompositing;
-CanvasRenderingContext2D implements CanvasImageSmoothing;
-CanvasRenderingContext2D implements CanvasFillStrokeStyles;
-CanvasRenderingContext2D implements CanvasShadowStyles;
-CanvasRenderingContext2D implements CanvasFilters;
-CanvasRenderingContext2D implements CanvasRect;
-CanvasRenderingContext2D implements CanvasDrawPath;
-CanvasRenderingContext2D implements CanvasUserInterface;
-CanvasRenderingContext2D implements CanvasText;
-CanvasRenderingContext2D implements CanvasDrawImage;
-CanvasRenderingContext2D implements CanvasImageData;
-CanvasRenderingContext2D implements CanvasPathDrawingStyles;
-CanvasRenderingContext2D implements CanvasTextDrawingStyles;
-CanvasRenderingContext2D implements CanvasPath;
+CanvasRenderingContext2D includes CanvasState;
+CanvasRenderingContext2D includes CanvasTransform;
+CanvasRenderingContext2D includes CanvasCompositing;
+CanvasRenderingContext2D includes CanvasImageSmoothing;
+CanvasRenderingContext2D includes CanvasFillStrokeStyles;
+CanvasRenderingContext2D includes CanvasShadowStyles;
+CanvasRenderingContext2D includes CanvasFilters;
+CanvasRenderingContext2D includes CanvasRect;
+CanvasRenderingContext2D includes CanvasDrawPath;
+CanvasRenderingContext2D includes CanvasUserInterface;
+CanvasRenderingContext2D includes CanvasText;
+CanvasRenderingContext2D includes CanvasDrawImage;
+CanvasRenderingContext2D includes CanvasImageData;
+CanvasRenderingContext2D includes CanvasPathDrawingStyles;
+CanvasRenderingContext2D includes CanvasTextDrawingStyles;
+CanvasRenderingContext2D includes CanvasPath;
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasState {
+interface mixin CanvasState {
   // state
   void save(); // push state on state stack
   void restore(); // pop state stack and restore state
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasTransform {
+interface mixin CanvasTransform {
   // transformations (default transform is the identity matrix)
   void scale(unrestricted double x, unrestricted double y);
   void rotate(unrestricted double angle);
@@ -1210,37 +1206,30 @@ interface CanvasTransform {
   void setTransform(unrestricted double a, unrestricted double b, unrestricted double c, unrestricted double d, unrestricted double e, unrestricted double f);
   void setTransform(optional DOMMatrix2DInit transform);
   void resetTransform();
-
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasCompositing {
+interface mixin CanvasCompositing {
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
   attribute DOMString globalCompositeOperation; // (default source-over)
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasImageSmoothing {
+interface mixin CanvasImageSmoothing {
   // image smoothing
   attribute boolean imageSmoothingEnabled; // (default true)
   attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
-
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasFillStrokeStyles {
+interface mixin CanvasFillStrokeStyles {
   // colors and styles (see also the CanvasPathDrawingStyles and CanvasTextDrawingStyles interfaces)
   attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
   attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
   CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
   CanvasPattern? createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
-
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasShadowStyles {
+interface mixin CanvasShadowStyles {
   // shadows
   attribute unrestricted double shadowOffsetX; // (default 0)
   attribute unrestricted double shadowOffsetY; // (default 0)
@@ -1248,22 +1237,19 @@ interface CanvasShadowStyles {
   attribute DOMString shadowColor; // (default transparent black)
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasFilters {
+interface mixin CanvasFilters {
   // filters
   attribute DOMString filter; // (default "none")
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasRect {
+interface mixin CanvasRect {
   // rects
   void clearRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   void fillRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
   void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasDrawPath {
+interface mixin CanvasDrawPath {
   // path API (see also CanvasPath)
   void beginPath();
   void fill(optional CanvasFillRule fillRule = "nonzero");
@@ -1279,34 +1265,28 @@ interface CanvasDrawPath {
   boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface CanvasUserInterface {
+interface mixin CanvasUserInterface {
   void drawFocusIfNeeded(Element element);
   void drawFocusIfNeeded(Path2D path, Element element);
   void scrollPathIntoView();
   void scrollPathIntoView(Path2D path);
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface CanvasText {
+interface mixin CanvasText {
   // text (see also the CanvasPathDrawingStyles and CanvasTextDrawingStyles interfaces)
   void fillText(DOMString text, unrestricted double x, unrestricted double y, optional unrestricted double maxWidth);
   void strokeText(DOMString text, unrestricted double x, unrestricted double y, optional unrestricted double maxWidth);
   TextMetrics measureText(DOMString text);
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasDrawImage {
+interface mixin CanvasDrawImage {
   // drawing images
   void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy);
   void drawImage(CanvasImageSource image, unrestricted double dx, unrestricted double dy, unrestricted double dw, unrestricted double dh);
   void drawImage(CanvasImageSource image, unrestricted double sx, unrestricted double sy, unrestricted double sw, unrestricted double sh, unrestricted double dx, unrestricted double dy, unrestricted double dw, unrestricted double dh);
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasImageData {
+interface mixin CanvasImageData {
   // pixel manipulation
   ImageData createImageData(long sw, long sh);
   ImageData createImageData(ImageData imagedata);
@@ -1321,8 +1301,7 @@ enum CanvasTextAlign { "start", "end", "left", "right", "center" };
 enum CanvasTextBaseline { "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" };
 enum CanvasDirection { "ltr", "rtl", "inherit" };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasPathDrawingStyles {
+interface mixin CanvasPathDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
   attribute CanvasLineCap lineCap; // (default "butt")
@@ -1335,9 +1314,7 @@ interface CanvasPathDrawingStyles {
   attribute unrestricted double lineDashOffset;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface CanvasTextDrawingStyles {
+interface mixin CanvasTextDrawingStyles {
   // text
   attribute DOMString font; // (default 10px sans-serif)
   attribute CanvasTextAlign textAlign; // (default: "start")
@@ -1345,8 +1322,7 @@ interface CanvasTextDrawingStyles {
   attribute CanvasDirection direction; // (default: "inherit")
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface CanvasPath {
+interface mixin CanvasPath {
   // shared path API methods
   void closePath();
   void moveTo(unrestricted double x, unrestricted double y);
@@ -1409,7 +1385,7 @@ interface ImageData {
 interface Path2D {
   void addPath(Path2D path, optional DOMMatrix2DInit transform);
 };
-Path2D implements CanvasPath;
+Path2D includes CanvasPath;
 
 [Exposed=Window]
 interface ImageBitmapRenderingContext {
@@ -1448,19 +1424,19 @@ interface OffscreenCanvasRenderingContext2D {
   readonly attribute OffscreenCanvas canvas;
 };
 
-OffscreenCanvasRenderingContext2D implements CanvasState;
-OffscreenCanvasRenderingContext2D implements CanvasTransform;
-OffscreenCanvasRenderingContext2D implements CanvasCompositing;
-OffscreenCanvasRenderingContext2D implements CanvasImageSmoothing;
-OffscreenCanvasRenderingContext2D implements CanvasFillStrokeStyles;
-OffscreenCanvasRenderingContext2D implements CanvasShadowStyles;
-OffscreenCanvasRenderingContext2D implements CanvasFilters;
-OffscreenCanvasRenderingContext2D implements CanvasRect;
-OffscreenCanvasRenderingContext2D implements CanvasDrawPath;
-OffscreenCanvasRenderingContext2D implements CanvasDrawImage;
-OffscreenCanvasRenderingContext2D implements CanvasImageData;
-OffscreenCanvasRenderingContext2D implements CanvasPathDrawingStyles;
-OffscreenCanvasRenderingContext2D implements CanvasPath;
+OffscreenCanvasRenderingContext2D includes CanvasState;
+OffscreenCanvasRenderingContext2D includes CanvasTransform;
+OffscreenCanvasRenderingContext2D includes CanvasCompositing;
+OffscreenCanvasRenderingContext2D includes CanvasImageSmoothing;
+OffscreenCanvasRenderingContext2D includes CanvasFillStrokeStyles;
+OffscreenCanvasRenderingContext2D includes CanvasShadowStyles;
+OffscreenCanvasRenderingContext2D includes CanvasFilters;
+OffscreenCanvasRenderingContext2D includes CanvasRect;
+OffscreenCanvasRenderingContext2D includes CanvasDrawPath;
+OffscreenCanvasRenderingContext2D includes CanvasDrawImage;
+OffscreenCanvasRenderingContext2D includes CanvasImageData;
+OffscreenCanvasRenderingContext2D includes CanvasPathDrawingStyles;
+OffscreenCanvasRenderingContext2D includes CanvasPath;
 
 
 [Exposed=Window]
@@ -1474,11 +1450,10 @@ dictionary ElementDefinitionOptions {
   DOMString extends;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface ElementContentEditable {
+interface mixin ElementContentEditable {
   [CEReactions] attribute DOMString contentEditable;
   readonly attribute boolean isContentEditable;
+  [CEReactions] attribute DOMString inputMode;
 };
 
 [Exposed=Window,
@@ -1529,7 +1504,9 @@ dictionary DragEventInit : MouseEventInit {
   DataTransfer? dataTransfer = null;
 };
 
-[PrimaryGlobal, LegacyUnenumerableNamedProperties]
+[Global=Window,
+ Exposed=Window,
+ LegacyUnenumerableNamedProperties]
 interface Window : EventTarget {
   // the current browsing context
   [Unforgeable] readonly attribute WindowProxy window;
@@ -1583,8 +1560,8 @@ interface Window : EventTarget {
 
   // also has obsolete members
 };
-Window implements GlobalEventHandlers;
-Window implements WindowEventHandlers;
+Window includes GlobalEventHandlers;
+Window includes WindowEventHandlers;
 
 callback FrameRequestCallback = void (DOMHighResTimeStamp time);
 
@@ -1692,8 +1669,7 @@ interface ApplicationCache : EventTarget {
   attribute EventHandler onobsolete;
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorOnLine {
+interface mixin NavigatorOnLine {
   readonly attribute boolean onLine;
 };
 
@@ -1737,9 +1713,7 @@ typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 callback OnBeforeUnloadEventHandlerNonNull = DOMString? (Event event);
 typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 
-[Exposed=Window,
- NoInterfaceObject]
-interface GlobalEventHandlers {
+interface mixin GlobalEventHandlers {
   attribute EventHandler onabort;
   attribute EventHandler onauxclick;
   attribute EventHandler onblur;
@@ -1804,9 +1778,7 @@ interface GlobalEventHandlers {
   attribute EventHandler onwaiting;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface WindowEventHandlers {
+interface mixin WindowEventHandlers {
   attribute EventHandler onafterprint;
   attribute EventHandler onbeforeprint;
   attribute OnBeforeUnloadEventHandler onbeforeunload;
@@ -1825,9 +1797,7 @@ interface WindowEventHandlers {
   attribute EventHandler onunload;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface DocumentAndElementEventHandlers {
+interface mixin DocumentAndElementEventHandlers {
   attribute EventHandler oncopy;
   attribute EventHandler oncut;
   attribute EventHandler onpaste;
@@ -1835,8 +1805,7 @@ interface DocumentAndElementEventHandlers {
 
 typedef (DOMString or Function) TimerHandler;
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowOrWorkerGlobalScope {
+interface mixin WindowOrWorkerGlobalScope {
   [Replaceable] readonly attribute USVString origin;
 
   // base64 utility methods
@@ -1853,23 +1822,22 @@ interface WindowOrWorkerGlobalScope {
   Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options);
   Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, long sx, long sy, long sw, long sh, optional ImageBitmapOptions options);
 };
-Window implements WindowOrWorkerGlobalScope;
-WorkerGlobalScope implements WindowOrWorkerGlobalScope;
+Window includes WindowOrWorkerGlobalScope;
+WorkerGlobalScope includes WindowOrWorkerGlobalScope;
 
 [Exposed=Window]
 interface Navigator {
   // objects implementing this interface also implement the interfaces given below
 };
-Navigator implements NavigatorID;
-Navigator implements NavigatorLanguage;
-Navigator implements NavigatorOnLine;
-Navigator implements NavigatorContentUtils;
-Navigator implements NavigatorCookies;
-Navigator implements NavigatorPlugins;
-Navigator implements NavigatorConcurrentHardware;
+Navigator includes NavigatorID;
+Navigator includes NavigatorLanguage;
+Navigator includes NavigatorOnLine;
+Navigator includes NavigatorContentUtils;
+Navigator includes NavigatorCookies;
+Navigator includes NavigatorPlugins;
+Navigator includes NavigatorConcurrentHardware;
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorID {
+interface mixin NavigatorID {
   readonly attribute DOMString appCodeName; // constant "Mozilla"
   readonly attribute DOMString appName; // constant "Netscape"
   readonly attribute DOMString appVersion;
@@ -1888,28 +1856,21 @@ partial interface NavigatorID {
   [Exposed=Window] readonly attribute DOMString oscpu;
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorLanguage {
+interface mixin NavigatorLanguage {
   readonly attribute DOMString language;
   readonly attribute FrozenArray<DOMString> languages;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface NavigatorContentUtils {
+interface mixin NavigatorContentUtils {
   void registerProtocolHandler(DOMString scheme, USVString url, DOMString title);
   void unregisterProtocolHandler(DOMString scheme, USVString url);
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface NavigatorCookies {
+interface mixin NavigatorCookies {
   readonly attribute boolean cookieEnabled;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface NavigatorPlugins {
+interface mixin NavigatorPlugins {
   [SameObject] readonly attribute PluginArray plugins;
   [SameObject] readonly attribute MimeTypeArray mimeTypes;
   boolean javaEnabled();
@@ -2124,8 +2085,7 @@ interface SharedWorkerGlobalScope : WorkerGlobalScope {
   attribute EventHandler onconnect;
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface AbstractWorker {
+interface mixin AbstractWorker {
   attribute EventHandler onerror;
 };
 
@@ -2146,26 +2106,25 @@ dictionary WorkerOptions {
 
 enum WorkerType { "classic", "module" };
 
-Worker implements AbstractWorker;
+Worker includes AbstractWorker;
 
 [Constructor(USVString scriptURL, optional (DOMString or WorkerOptions) options),
  Exposed=(Window,Worker)]
 interface SharedWorker : EventTarget {
   readonly attribute MessagePort port;
 };
-SharedWorker implements AbstractWorker;
+SharedWorker includes AbstractWorker;
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface NavigatorConcurrentHardware {
+interface mixin NavigatorConcurrentHardware {
   readonly attribute unsigned long long hardwareConcurrency;
 };
 
 [Exposed=Worker]
 interface WorkerNavigator {};
-WorkerNavigator implements NavigatorID;
-WorkerNavigator implements NavigatorLanguage;
-WorkerNavigator implements NavigatorOnLine;
-WorkerNavigator implements NavigatorConcurrentHardware;
+WorkerNavigator includes NavigatorID;
+WorkerNavigator includes NavigatorLanguage;
+WorkerNavigator includes NavigatorOnLine;
+WorkerNavigator includes NavigatorConcurrentHardware;
 
 [Exposed=Worker]
 interface WorkerLocation {
@@ -2190,19 +2149,15 @@ interface Storage {
   void clear();
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface WindowSessionStorage {
+interface mixin WindowSessionStorage {
   readonly attribute Storage sessionStorage;
 };
-Window implements WindowSessionStorage;
+Window includes WindowSessionStorage;
 
-[Exposed=Window,
- NoInterfaceObject]
-interface WindowLocalStorage {
+interface mixin WindowLocalStorage {
   readonly attribute Storage localStorage;
 };
-Window implements WindowLocalStorage;
+Window includes WindowLocalStorage;
 
 [Exposed=Window,
  Constructor(DOMString type, optional StorageEventInit eventInitDict)]
@@ -2251,7 +2206,7 @@ interface HTMLFrameSetElement : HTMLElement {
   [CEReactions] attribute DOMString cols;
   [CEReactions] attribute DOMString rows;
 };
-HTMLFrameSetElement implements WindowEventHandlers;
+HTMLFrameSetElement includes WindowEventHandlers;
 
 [Exposed=Window,
  HTMLConstructor]

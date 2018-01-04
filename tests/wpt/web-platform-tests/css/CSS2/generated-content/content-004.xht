@@ -5,17 +5,18 @@
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <link rel="match" href="../../reference/ref-filled-green-100px-square-only.html" />
         <meta name="flags" content="image" />
         <meta name="assert" content="The 'content' property properly handles the 'url()' function as a value." />
         <style type="text/css">
             div:before
             {
-                content: url('support/green15x15.png');
+                content: url('../support/green_box.png');
             }
         </style>
     </head>
     <body>
-        <p>Test passes if there is a green box below.</p>
+        <p>Test passes if there is a filled green square.</p>
         <div></div>
     </body>
 </html>

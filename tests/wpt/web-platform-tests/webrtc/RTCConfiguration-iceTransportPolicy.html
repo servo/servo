@@ -64,7 +64,7 @@
     assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
 
     pc.setConfiguration({ iceTransportPolicy: 'relay' });
-    assert_equals(pc.getConfiguration(), iceTransportPolicy, 'relay');
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'relay');
   }, `setConfiguration({ iceTransportPolicy: 'relay' }) with initial iceTransportPolicy all should succeed`);
 
   test(() => {
@@ -72,7 +72,7 @@
     assert_equals(pc.getConfiguration().iceTransportPolicy, 'relay');
 
     pc.setConfiguration({ iceTransportPolicy: 'all' });
-    assert_equals(pc.getConfiguration(), iceTransportPolicy, 'all');
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
   }, `setConfiguration({ iceTransportPolicy: 'all' }) with initial iceTransportPolicy relay should succeed`);
 
   test(() => {
@@ -81,7 +81,7 @@
 
     // default value for iceTransportPolicy is all
     pc.setConfiguration({});
-    assert_equals(pc.getConfiguration(), iceTransportPolicy, 'all');
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
   }, `setConfiguration({}) with initial iceTransportPolicy relay should set new value to all`);
 
   config_test(makePc => {

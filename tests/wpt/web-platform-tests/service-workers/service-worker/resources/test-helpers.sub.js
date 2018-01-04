@@ -201,20 +201,12 @@ function test_websocket(test, frame, url) {
     });
 }
 
-function login(test) {
-  return test_login(test, 'http://{{domains[www1]}}:{{ports[http][0]}}',
-                    'username1', 'password1', 'cookie1')
-    .then(function() {
-        return test_login(test, 'http://{{host}}:{{ports[http][0]}}',
-                          'username2', 'password2', 'cookie2');
-      });
-}
-
 function login_https(test) {
-  return test_login(test, 'https://{{domains[www1]}}:{{ports[https][0]}}',
+  var host_info = get_host_info();
+  return test_login(test, host_info.HTTPS_REMOTE_ORIGIN,
                     'username1s', 'password1s', 'cookie1')
     .then(function() {
-        return test_login(test, 'https://{{host}}:{{ports[https][0]}}',
+        return test_login(test, host_info.HTTPS_ORIGIN,
                           'username2s', 'password2s', 'cookie2');
       });
 }
@@ -254,4 +246,14 @@ function register_using_link(script, options) {
         link.onerror = reject;
       })
     .then(() => navigator.serviceWorker.getRegistration(scope));
+}
+
+function with_sandboxed_iframe(url, sandbox) {
+  return new Promise(function(resolve) {
+      var frame = document.createElement('iframe');
+      frame.sandbox = sandbox;
+      frame.src = url;
+      frame.onload = function() { resolve(frame); };
+      document.body.appendChild(frame);
+    });
 }

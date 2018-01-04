@@ -7,7 +7,7 @@ interface Dictionary {
 };
 
 
-interface Dictionary {
+interface Dictionary2 {
   readonly attribute unsigned long propertyCount;
 
   float getProperty(DOMString propertyName);

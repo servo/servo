@@ -11,13 +11,13 @@
 async_test(t => {
     const errorFrame = document.createElement("iframe");
 
-    errorFrame.addEventListener("load", function () {
+    errorFrame.addEventListener("load", t.step_func(function () {
         errorFrame.contentWindow.addEventListener(
             "beforeunload", t.unreached_func("Navigated instead of downloading"));
 
         errorFrame.contentDocument.querySelector("#error-url").click();
         t.step_timeout(() => t.done(), 1000);
-    });
+    }));
     errorFrame.src = "resources/a-download-404.html";
     document.body.appendChild(errorFrame);
 }, "Do not navigate to 404 for anchor with download");

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Nested position:sticky table elements should render correctly</title>
+<link rel="match" href="position-sticky-table-parts-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that nested position:sticky table elements render correctly" />
+
+<style>
+.scroller {
+  position: relative;
+  width: 100px;
+  height: 250px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.contents {
+  height: 700px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+.child, td, th {
+  height: 50px;
+  width: 50px;
+  padding: 0;
+}
+
+.child {
+  background: green;
+}
+
+table * {
+  position: sticky;
+  top: 5px;
+}
+
+.indicator {
+  position: absolute;
+  left: 0;
+  background-color: red;
+  height: 50px;
+  width: 50px;
+}
+
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.body.offsetTop;
+  document.getElementById('scroller1').scrollTop = 150;
+});
+</script>
+
+<div id="scroller1" class="scroller">
+  <div class="contents">
+    <div class="indicator" style="top: 155px;"></div>
+    <table>
+      <tbody>
+        <tr><td><div class="child"></div></td></tr>
+        <tr><td></td></tr>
+        <tr><td></td></tr>
+        <tr><td></td></tr>
+        <tr><td></td></tr>
+        <tr><td></td></tr>
+        <tr><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div>There should be a green square at the top of the scroll view and no red visible.</div>

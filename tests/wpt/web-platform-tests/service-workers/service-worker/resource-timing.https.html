@@ -8,13 +8,25 @@ function resourceUrl(path) {
     return get_host_info()['HTTPS_ORIGIN'] + base_path() + path;
 }
 
-function verify(performance, resource, description) {
-    var entry = performance.getEntriesByName(resourceUrl(resource))[0];
+function crossOriginUrl(path) {
+    return get_host_info()['HTTPS_REMOTE_ORIGIN'] + base_path() + path;
+}
+
+function verify(performance, resource, mode, description) {
+    var url = mode === 'cross-origin' ? crossOriginUrl(resource)
+                                      : resourceUrl(resource);
+    var entryList = performance.getEntries();
+    var entry = performance.getEntriesByName(url)[0];
     assert_greater_than(entry.workerStart, 0, description);
     assert_greater_than_equal(entry.workerStart, entry.startTime, description);
     assert_less_than_equal(entry.workerStart, entry.fetchStart, description);
-    assert_greater_than_equal(entry.responseStart, entry.fetchStart, description);
-    assert_greater_than_equal(entry.responseEnd, entry.responseStart, description);
+    if (mode === 'cross-origin') {
+      assert_equals(entry.responseStart, 0, description);
+      assert_greater_than_equal(entry.responseEnd, entry.fetchStart, description);
+    } else {
+      assert_greater_than_equal(entry.responseStart, entry.fetchStart, description);
+      assert_greater_than_equal(entry.responseEnd, entry.responseStart, description);
+    }
     assert_greater_than(entry.responseEnd, entry.fetchStart, description);
     assert_greater_than(entry.duration, 0, description);
     if (resource.indexOf('redirect.py') != -1) {
@@ -27,7 +39,7 @@ function verify(performance, resource, description) {
 
 async_test(function(t) {
     var worker_url = 'resources/resource-timing-worker.js';
-    var scope = 'resources/resource-timing-iframe.html';
+    var scope = 'resources/resource-timing-iframe.sub.html';
     var registration;
 
     service_worker_unregister_and_register(t, worker_url, scope)
@@ -40,10 +52,20 @@ async_test(function(t) {
         })
       .then(function(frame) {
           var performance = frame.contentWindow.performance;
-          verify(performance, 'resources/dummy.js', 'Generated response');
-          verify(performance, 'resources/empty.js', 'Network fallback');
+          verify(performance, 'resources/dummy.js', 'same-origin',
+                 'Generated response');
+          verify(performance, 'resources/empty.js', 'same-origin',
+                 'Network fallback');
           verify(performance, 'resources/redirect.py?Redirect=empty.js',
-                 'Redirect');
+                 'same-origin', 'Redirect');
+          verify(performance, 'resources/missing.jpg', 'same-origin',
+                 'Network fallback image');
+
+          // Test that worker start is available on cross-origin no-cors
+          // subresources.
+          verify(performance, 'resources/missing.jpg', 'cross-origin',
+                 'Network fallback cross-origin image');
+
           frame.remove();
           return registration.unregister();
         })

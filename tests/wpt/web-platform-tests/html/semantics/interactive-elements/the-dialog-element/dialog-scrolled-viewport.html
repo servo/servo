@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    margin: 0;
+}
+
+dialog {
+    padding : 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body style="height: 10000px; width: 10000px">
+<div style="position: absolute; top: 5000px; left: 5000px; width: 20px;">
+    <dialog style="top: 1200px; left: 1200px; right: auto; height: 100px; width: 50%;">
+    </dialog>
+</div>
+<script>
+"use strict";
+function checkPosition(dialog) {
+    assert_equals(dialog.offsetParent, null);
+    assert_equals(dialog.offsetTop, 1200);
+    assert_equals(dialog.offsetLeft, 1200);
+    // Since dialog's 'width' is '50%', the expected width is half of the
+    // viewport width, but viewport width may be odd.
+    var expectedWidth = document.documentElement.clientWidth / 2;
+    assert_approx_equals(dialog.clientWidth, expectedWidth, 0.5);
+}
+
+test(function() {
+  // The dialog should be onscreen with a width of 50% of the viewport. It is the child of a
+  // narrow element positioned off screen, but its containing block is the initial containing
+  // block, so its position and percent lengths are relative to that.
+  window.scroll(1000, 1000);
+  var dialog = document.querySelector('dialog');
+  dialog.showModal();
+  checkPosition(dialog);
+  dialog.close();
+}, "Tests modal dialog's containing block is the initial containing block");
+</script>
+</body>
+</html>

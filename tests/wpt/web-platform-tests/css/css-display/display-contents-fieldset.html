@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents and HTML fieldset and legend elements</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-html">
+<link rel="match" href="display-contents-pass-ref.html">
+<style>
+  fieldset, legend {
+    all: initial;
+    border: 10px solid red;
+    display: contents;
+  }
+</style>
+<p>You should see the word PASS below.</p>
+P<fieldset>A<legend>S</legend>S</fieldset>

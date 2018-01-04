@@ -12,7 +12,7 @@ var metadataElements = {
     rel: "string",
     as: {
       type: "enum",
-      keywords: ["fetch", "audio", "document", "embed", "font", "image", "manifest", "object", "report", "script", "serviceworker", "sharedworker", "style", "track", "video", "worker", "xslt"],
+      keywords: ["fetch", "audio", "document", "embed", "font", "image", "manifest", "object", "report", "script", "sharedworker", "style", "track", "video", "worker", "xslt"],
       defaultVal: "",
       invalidVal: ""
     },
@@ -24,19 +24,6 @@ var metadataElements = {
     type: "string",
     sizes: "settable tokenlist",
     referrerPolicy: {type: "enum", keywords: ["", "no-referrer", "no-referrer-when-downgrade", "same-origin", "origin", "strict-origin", "origin-when-cross-origin", "strict-origin-when-cross-origin", "unsafe-url"]},
-    scope: "string",
-    workerType: {
-      type: "enum",
-      keywords: ["classic", "module"],
-      defaultVal: "classic",
-      invalidVal: "",
-    },
-    updateViaCache: {
-      type: "enum",
-      keywords: ["imports", "all", "none"],
-      defaultVal: "imports",
-      invalidVal: "imports"
-    },
 
     // Obsolete
     charset: "string",

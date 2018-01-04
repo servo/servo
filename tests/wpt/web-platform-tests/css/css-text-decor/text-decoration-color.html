@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: CSS3 text-decoration-color</title>
+        <link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-decoration-color">
+        <link rel="match" href="reference/text-decoration-color-ref.html">
+        <style>
+            .underline {
+                text-decoration: underline;
+            }
+            .overline {
+                text-decoration: overline;
+            }
+            .line-through {
+                text-decoration: line-through;
+            }
+            #blue-underline {
+                text-decoration: underline;
+                text-decoration-color: blue;
+            }
+            #gray-overline {
+                text-decoration: overline;
+                text-decoration-color: gray;
+            }
+            #green-line-through {
+                text-decoration: line-through;
+                text-decoration-color: green;
+            }
+            #transparent-fill {
+                -webkit-text-fill-color: transparent;
+                -webkit-text-stroke-width: 1px;
+                -webkit-text-stroke-color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <h3>Each line of this test should match its text decoration color description:</h3>
+
+        <!-- Valid values for underline, overline and line-through text decoration lines -->
+        <div class="underline" style="color: gray; text-decoration-color: blue;">Gray text with blue underline</div><br/>
+        <div class="overline" style="color: green; text-decoration-color: black;">Green text with black overline</div><br/>
+        <div class="line-through" style="text-decoration-color: gold;">Black text with gold line-through</div><br/>
+
+        <!-- Mix of underline, overline and line-through with different colors for each -->
+        <div>
+            <span id="blue-underline">
+                <span id="gray-overline">
+                    <span id="green-line-through">Black text with blue underline, gray overline and green line-through</span>
+                </span>
+            </span>
+        </div><br/>
+
+        <!-- Test behavior on subscript and superscript text -->
+        <div>
+            <span id="green-line-through">
+                <sub id="gray-overline">subscript text</sub>
+                <sup id="blue-underline">superscript text</sup>
+            </span>
+        </div><br/>
+
+        <!-- Test with text-fill-color and text-stroke-color values set -->
+        <div class="underline" id="transparent-fill" style="text-decoration-color: green;">Transparent fill with black stroke text and green underline</div><br/>
+    </body>
+</html>

@@ -52,7 +52,9 @@ var miscElements = {
   },
 
   // Global attributes should exist even on unknown elements
-  undefinedelement: {},
+  undefinedelement: {
+    inputMode: {type: "enum", keywords: ["none", "text", "tel", "url", "email", "numeric", "decimal", "search"]},
+  },
 };
 
 mergeElements(miscElements);

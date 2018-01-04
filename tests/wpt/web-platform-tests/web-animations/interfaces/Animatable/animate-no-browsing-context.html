@@ -1,8 +1,8 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Animatable.animate tests in combination with elements in documents
+<title>Animatable.animate in combination with elements in documents
        without a browsing context</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#dom-animatable-animate">
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animatable-animate">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -76,16 +76,15 @@ promise_test(t => {
     const div = xhrdoc.getElementById('test');
     anim = div.animate(null);
     anim.timeline = document.timeline;
-    assert_equals(anim.playState, 'pending',
-                  'The animation should be initially pending');
+    assert_true(anim.pending, 'The animation should be initially pending');
     return waitForAnimationFrames(2);
   }).then(() => {
     // Because the element is in a document without a browsing context, it will
     // not be rendered and hence the user agent will never deem it ready to
     // animate.
-    assert_equals(anim.playState, 'pending',
-                  'The animation should still be pending after replacing'
-                  + ' the document timeline');
+    assert_true(anim.pending,
+                'The animation should still be pending after replacing'
+                + ' the document timeline');
   });
 }, 'Replacing the timeline of an animation targetting an element in a'
    + ' document without a browsing context leaves it in the pending state');

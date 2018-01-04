@@ -2,8 +2,10 @@ from tests.support.asserts import assert_error, assert_dialog_handled, assert_sa
 from tests.support.fixtures import create_dialog
 from tests.support.inline import inline
 
+
 def read_global(session, name):
     return session.execute_script("return %s;" % name)
+
 
 def get_active_element(session):
     return session.transport.send("GET", "session/%s/element/active" % session.session_id)
@@ -67,7 +69,7 @@ def test_handle_prompt_dismiss(new_session, add_browser_capabilites):
     response = get_active_element(session)
     assert_is_active_element(session, response)
     assert_dialog_handled(session, "dismiss #2")
-    assert read_global(session, "dismiss2") is None
+    assert read_global(session, "dismiss2") is False
 
     create_dialog(session)("prompt", text="dismiss #3", result_var="dismiss3")
 
@@ -244,7 +246,7 @@ def test_success_iframe_content(session):
     assert_is_active_element(session, response)
 
 
-def test_sucess_without_body(session):
+def test_missing_document_element(session):
     session.url = inline("<body></body>")
     session.execute_script("""
         if (document.body.remove) {
@@ -254,4 +256,4 @@ def test_sucess_without_body(session):
         }""")
 
     response = get_active_element(session)
-    assert_is_active_element(session, response)
+    assert_error(response, "no such element")

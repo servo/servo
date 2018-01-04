@@ -7,16 +7,18 @@
     setup({allow_uncaught_exception: true});
 
     window.log = [];
-
-    window.addEventListener("error", ev => log.push(ev.error));
-
     const test_load = async_test(
         "Test that loading a graph in which a module is already " +
-        "errored results in that module's error.");
+        "errored results in an error.");
+
+    window.addEventListener("error", ev => {
+      test_load.step(() => assert_equals(ev.error.constructor, SyntaxError));
+      log.push(ev.message);
+    });
+
     window.addEventListener("load", test_load.step_func_done(ev => {
-      const exn = log[0];
-      assert_array_equals(log, [exn, 1, exn, 2]);
-      assert_equals(exn.constructor, SyntaxError);
+      const msg = log[0];
+      assert_array_equals(log, [msg, 1, msg, 2]);
     }));
 
     function unreachable() { log.push("unexpected"); }

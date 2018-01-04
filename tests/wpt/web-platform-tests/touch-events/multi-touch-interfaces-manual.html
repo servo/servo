@@ -147,127 +147,127 @@
             default:
                 break;
             }
-       });
+        });
     }
 
     function is_touch_over_element(touch, element) {
-      var bounds = element.getBoundingClientRect();
-      return touch.pageX >= bounds.left && touch.pageX <= bounds.right &&
-          touch.pageY >= bounds.top && touch.pageY <= bounds.bottom;
+        var bounds = element.getBoundingClientRect();
+        return touch.pageX >= bounds.left && touch.pageX <= bounds.right &&
+               touch.pageY >= bounds.top && touch.pageY <= bounds.bottom;
     }
 
     function check_touch_clientXY(touch) {
-      assert_equals(touch.clientX, touch.pageX - window.pageXOffset, "touch.clientX is touch.pageX - window.pageXOffset.");
-      assert_equals(touch.clientY, touch.pageY - window.pageYOffset, "touch.clientY is touch.pageY - window.pageYOffset.");
+        assert_equals(touch.clientX, touch.pageX - window.pageXOffset, "touch.clientX is touch.pageX - window.pageXOffset.");
+        assert_equals(touch.clientY, touch.pageY - window.pageYOffset, "touch.clientY is touch.pageY - window.pageYOffset.");
     }
 
     function run() {
-		var target0 = document.getElementById("target0");
-		var target1 = document.getElementById("target1");
+        var target0 = document.getElementById("target0");
+        var target1 = document.getElementById("target1");
 
-		var test_touchstart = async_test("touchstart event received");
-		var test_touchmove = async_test("touchmove event received");
-		var test_touchend = async_test("touchend event received");
-		var test_mousedown = async_test("Interaction with mouse events");
+        var test_touchstart = async_test("touchstart event received");
+        var test_touchmove = async_test("touchmove event received");
+        var test_touchend = async_test("touchend event received");
+        var test_mousedown = async_test("Interaction with mouse events");
 
-		var touchstart_received = 0;
-		var touchmove_received = false;
-		var touchend_received = false;
-		var invalid_touchmove_received = false;
+        var touchstart_received = 0;
+        var touchmove_received = false;
+        var touchend_received = false;
+        var invalid_touchmove_received = false;
 
-		on_event(target0, "touchstart", function onTouchStart(ev) {
-			ev.preventDefault();
+        on_event(target0, "touchstart", function onTouchStart(ev) {
+            ev.preventDefault();
 
-			if(!touchstart_received) {
-				// Check event ordering TA: 1.6.2
-				test_touchstart.step(function() {
-					assert_false(touchmove_received, "touchstart precedes touchmove");
-					assert_false(touchend_received, "touchstart precedes touchend");
-				});
-				test_touchstart.done();
-				test_mousedown.done(); // If we got here, then the mouse event test is not needed.
-			}
+            if(!touchstart_received) {
+                // Check event ordering TA: 1.6.2
+                test_touchstart.step(function() {
+                    assert_false(touchmove_received, "touchstart precedes touchmove");
+                    assert_false(touchend_received, "touchstart precedes touchend");
+                });
+                test_touchstart.done();
+                test_mousedown.done(); // If we got here, then the mouse event test is not needed.
+            }
 
-			if(++touchstart_received <= 2)
-				check_TouchEvent(ev);
-		});
+            if(++touchstart_received <= 2)
+                check_TouchEvent(ev);
+        });
 
-		on_event(target0, "touchmove", function onTouchMove(ev) {
-			ev.preventDefault();
+        on_event(target0, "touchmove", function onTouchMove(ev) {
+            ev.preventDefault();
 
-			if (touchmove_received)
-			  return;
-			touchmove_received = true;
+            if (touchmove_received)
+              return;
+            touchmove_received = true;
 
-			test_touchmove.step(function() {
-				assert_true(touchstart_received>0, "touchmove follows touchstart");
-				assert_false(touchend_received, "touchmove precedes touchend");
-			});
-			test_touchmove.done();
+            test_touchmove.step(function() {
+                assert_true(touchstart_received>0, "touchmove follows touchstart");
+                assert_false(touchend_received, "touchmove precedes touchend");
+            });
+            test_touchmove.done();
 
-			check_TouchEvent(ev);
-		});
+            check_TouchEvent(ev);
+        });
 
-		on_event(target1, "touchmove", function onTouchMove(ev) {
-			invalid_touchmove_received = true;
-		});
+        on_event(target1, "touchmove", function onTouchMove(ev) {
+            invalid_touchmove_received = true;
+        });
 
-		on_event(window, "touchend", function onTouchEnd(ev) {
-			touchend_received = true;
+        on_event(window, "touchend", function onTouchEnd(ev) {
+            touchend_received = true;
 
-			test_touchend.step(function() {
-				assert_true(touchstart_received>0, "touchend follows touchstart");
-				assert_true(touchmove_received, "touchend follows touchmove");
-				assert_false(invalid_touchmove_received, "touchmove dispatched to correct target");
-			});
-			test_touchend.done();
+            test_touchend.step(function() {
+                assert_true(touchstart_received>0, "touchend follows touchstart");
+                assert_true(touchmove_received, "touchend follows touchmove");
+                assert_false(invalid_touchmove_received, "touchmove dispatched to correct target");
+            });
+            test_touchend.done();
 
-			check_TouchEvent(ev);
-			done();
-		});
+            check_TouchEvent(ev);
+            done();
+        });
 
-		on_event(target0, "mousedown", function onMouseDown(ev) {
-			test_mousedown.step(function() {
-				assert_true(touchstart_received,
-					"The touchstart event must be dispatched before any mouse " +
-					"events. (If this fails, it might mean that the user agent does " +
-					"not implement W3C touch events at all.)"
-				);
-			});
-			test_mousedown.done();
+        on_event(target0, "mousedown", function onMouseDown(ev) {
+            test_mousedown.step(function() {
+                assert_true(touchstart_received,
+                    "The touchstart event must be dispatched before any mouse " +
+                    "events. (If this fails, it might mean that the user agent does " +
+                    "not implement W3C touch events at all.)"
+                );
+            });
+            test_mousedown.done();
 
-			if (!touchstart_received) {
-				// Abort the tests.  If touch events are not supported, then most of
-				// the other event handlers will never be called, and the test will
-				// time out with misleading results.
-				done();
-			}
-		});
-	}
+            if (!touchstart_received) {
+                // Abort the tests.  If touch events are not supported, then most of
+                // the other event handlers will never be called, and the test will
+                // time out with misleading results.
+                done();
+            }
+        });
+    }
 </script>
 <style>
-	div {
-		margin: 0em;
-		padding: 2em;
-	}
-	#target0 {
-		background: yellow;
-		border: 1px solid orange;
-	}
-	#target1 {
-		background: lightblue;
-		border: 1px solid blue;
-	}
+    div {
+        margin: 0em;
+        padding: 2em;
+    }
+    #target0 {
+        background: yellow;
+        border: 1px solid orange;
+    }
+    #target1 {
+        background: lightblue;
+        border: 1px solid blue;
+    }
 </style>
 </head>
 <body onload="run()">
-	<h1>Touch Events: multi-touch interface tests</h1>
-	<div id="target0">
-		Touch this box with one finger, then another one...
-	</div>
-	<div id="target1">
-		...then drag to this box and lift your fingers.
-	</div>
-	<div id="log"></div>
+    <h1>Touch Events: multi-touch interface tests</h1>
+    <div id="target0">
+        Touch this box with one finger, then another one...
+    </div>
+    <div id="target1">
+        ...then drag to this box and lift your fingers.
+    </div>
+    <div id="log"></div>
 </body>
 </html>

@@ -1,0 +1,14 @@
+WEBVTT
+Cue text fragment with <c> class markup is mapped to HTML <span> element with CSS classes.
+
+1
+00:00:00.000 --> 00:00:30.500 align:start position:20%
+<c.black>Bear is Coming!!!!!</c>
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+<c.green>I said Bear is coming!!!!</c>
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%
+I said <c.red.uppercase>Bear is coming now</c>!!!!

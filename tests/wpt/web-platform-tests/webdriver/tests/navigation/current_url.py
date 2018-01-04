@@ -4,6 +4,7 @@ import types
 
 from tests.support.inline import inline
 from tests.support.asserts import assert_error, assert_success
+from tests.support.wait import wait
 
 alert_doc = inline("<script>window.alert()</script>")
 frame_doc = inline("<p>frame")
@@ -75,8 +76,11 @@ def test_set_malformed_url(session):
     assert_error(result, "invalid argument")
 
 def test_get_current_url_after_modified_location(session):
+    start = session.transport.send("GET", "session/%s/url" % session.session_id)
     session.execute_script("window.location.href = 'about:blank#wd_test_modification'")
-
+    wait(session,
+         lambda s: s.transport.send("GET", "session/%s/url" % session.session_id) != start.body["value"],
+         "URL did not change")
     result = session.transport.send("GET", "session/%s/url" % session.session_id)
 
     assert_success(result, "about:blank#wd_test_modification")

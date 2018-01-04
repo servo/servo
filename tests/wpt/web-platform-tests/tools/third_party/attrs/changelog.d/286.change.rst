@@ -1,0 +1,2 @@
+``ctypes`` is optional now however if it's missing, a bare ``super()`` will not work in slots classes.
+This should only happen in special environments like Google App Engine.

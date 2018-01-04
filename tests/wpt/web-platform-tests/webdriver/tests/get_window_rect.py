@@ -151,11 +151,10 @@ def test_payload(session):
     assert response.status == 200
     assert isinstance(response.body["value"], dict)
     value = response.body["value"]
-    assert "width" in value
-    assert "height" in value
-    assert "x" in value
-    assert "y" in value
-    assert isinstance(value["width"], int)
-    assert isinstance(value["height"], int)
-    assert isinstance(value["x"], int)
-    assert isinstance(value["y"], int)
+    expected = session.execute_script("""return {
+         x: window.screenX,
+         y: window.screenY,
+         width: window.outerWidth,
+         height: window.outerHeight
+    }""")
+    assert expected == value

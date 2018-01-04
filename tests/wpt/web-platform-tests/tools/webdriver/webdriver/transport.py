@@ -19,6 +19,7 @@ class Response(object):
         self.body = body
 
     def __repr__(self):
+        cls_name = self.__class__.__name__
         if self.error:
             return "<%s status=%s error=%s>" % (cls_name, self.status, repr(self.error))
         return "<% status=%s body=%s>" % (cls_name, self.status, json.dumps(self.body))

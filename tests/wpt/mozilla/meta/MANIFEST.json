@@ -59973,7 +59973,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "28c20b33fcbd818a46005dcbf53473f8b8346c89",
+   "3e30a95c5b79cc3752c21739da62f47b37c025e5",
    "support"
   ],
   "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [

@@ -8,6 +8,7 @@
 <link rel="help" href="https://dom.spec.whatwg.org/#concept-create-element">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../resources/custom-elements-helpers.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -71,17 +72,14 @@ test(function () {
 document.body.removeChild(iframe);
 
 test(function () {
-    var windowlessDocument = document.implementation.createHTMLDocument();
-    windowlessDocument.open();
-    windowlessDocument.write('<my-custom-element></my-custom-element>');
-    windowlessDocument.close();
+    var windowlessDocument = (new DOMParser()).parseFromString('<my-custom-element></my-custom-element>', "text/html");
 
     var instance = windowlessDocument.querySelector('my-custom-element');
 
     assert_true(instance instanceof HTMLElement);
     assert_false(instance instanceof MyCustomElement);
 
-}, 'HTML parser must use the registry of window.document in a document created by document.implementation.createHTMLDocument()');
+}, 'HTML parser must use the registry of window.document in a document created by DOMParser');
 
 test(function () {
     var windowlessDocument = document.implementation.createDocument ('http://www.w3.org/1999/xhtml', 'html', null);
@@ -108,18 +106,50 @@ test(function () {
 promise_test(function () {
     return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '../resources/empty-html-document.html');
+        xhr.open('GET', '../resources/my-custom-element-html-document.html');
         xhr.overrideMimeType('text/xml');
         xhr.onload = function () { resolve(xhr.responseXML); }
         xhr.onerror = function () { reject('Failed to fetch the document'); }
         xhr.send();
     }).then(function (doc) {
-        doc.documentElement.innerHTML = '<my-custom-element></my-custom-element>';
         var instance = doc.querySelector('my-custom-element');
         assert_true(instance instanceof Element);
-        assert_false(instance instanceof MyCustomElement);        
+        assert_false(instance instanceof MyCustomElement);
+
+        doc.documentElement.innerHTML = '<my-custom-element></my-custom-element>';
+        var instance2 = doc.querySelector('my-custom-element');
+        assert_true(instance2 instanceof Element);
+        assert_false(instance2 instanceof MyCustomElement);
     });
 }, 'HTML parser must use the registry of window.document in a document created by XMLHttpRequest');
+
+test_with_window(function (contentWindow, contentDocument) {
+    const element = define_custom_element_in_window(contentWindow, 'my-custom-element', []);
+    // document-open-steps spec doesn't match most browsers; see https://github.com/whatwg/html/issues/1698.
+    // However, as explained in https://github.com/whatwg/html/issues/1698#issuecomment-298748641
+    // the custom element registry will be replaced after document-open-steps.
+    contentDocument.write('<my-custom-element></my-custom-element>');
+
+    var instance = contentDocument.querySelector('my-custom-element');
+
+    assert_true(instance instanceof contentWindow.HTMLElement);
+    assert_false(instance instanceof element.class);
+
+}, 'document.write() must not instantiate a custom element without a defined insertion point');
+
+test_with_window(function (contentWindow, contentDocument) {
+    const element = define_custom_element_in_window(contentWindow, 'my-custom-element', []);
+    // document-open-steps spec doesn't match most browsers; see https://github.com/whatwg/html/issues/1698.
+    // However, as explained in https://github.com/whatwg/html/issues/1698#issuecomment-298748641
+    // the custom element registry will be replaced after document-open-steps.
+    contentDocument.writeln('<my-custom-element></my-custom-element>');
+
+    var instance = contentDocument.querySelector('my-custom-element');
+
+    assert_true(instance instanceof contentWindow.HTMLElement);
+    assert_false(instance instanceof element.class);
+
+}, 'document.writeln() must not instantiate a custom element without a defined insertion point');
 
 </script>
 </body>

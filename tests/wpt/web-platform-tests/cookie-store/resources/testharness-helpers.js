@@ -12,7 +12,7 @@ const kExtraObserverDelay = 0;  // For builtin implementation
 // document.open();
 // document.write(`
 //   <script>delete cookieStore</script>
-//   <script src="https://wicg.github.io/async-cookies-api/cookies.js">
+//   <script src="https://wicg.github.io/cookie-store/cookies.js">
 //   </script>
 // `);
 // document.close()

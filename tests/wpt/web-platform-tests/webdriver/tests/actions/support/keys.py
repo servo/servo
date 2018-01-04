@@ -20,6 +20,7 @@ The Keys implementation.
 """
 
 from inspect import getmembers
+import sys
 
 
 class Keys(object):
@@ -740,3 +741,8 @@ ALL_EVENTS = {
         "value": u"\ue040",
     }
 }
+
+if sys.platform == 'darwin':
+    MODIFIER_KEY = Keys.META
+else:
+    MODIFIER_KEY = Keys.CONTROL

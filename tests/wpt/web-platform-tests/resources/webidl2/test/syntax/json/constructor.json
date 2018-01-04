@@ -14,7 +14,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -31,7 +30,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -48,7 +46,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -65,7 +62,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -77,7 +73,9 @@
         "extAttrs": [
             {
                 "name": "Constructor",
-                "arguments": null
+                "arguments": null,
+                "type": "extended-attribute",
+                "rhs": null
             },
             {
                 "name": "Constructor",
@@ -90,13 +88,14 @@
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "float"
                         },
                         "name": "radius"
                     }
-                ]
+                ],
+                "type": "extended-attribute",
+                "rhs": null
             }
         ]
     }

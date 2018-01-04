@@ -231,6 +231,13 @@ def trickle(request, response, delays):
     content = resolve_content(response)
     offset = [0]
 
+    if not ("Cache-Control" in response.headers or
+            "Pragma" in response.headers or
+            "Expires" in response.headers):
+        response.headers.set("Cache-Control", "no-cache, no-store, must-revalidate")
+        response.headers.set("Pragma", "no-cache")
+        response.headers.set("Expires", "0")
+
     def add_content(delays, repeat=False):
         for i, (item_type, value) in enumerate(delays):
             if item_type == "bytes":

@@ -90,4 +90,11 @@ promise_test(() => {
   }));
 }, 'Writable stream: invalid strategy.size return value');
 
+test(() => {
+  assert_throws(new TypeError(), () => new WritableStream(undefined, {
+    size: 'not a function',
+    highWaterMark: NaN
+  }), 'WritableStream constructor should throw a TypeError');
+}, 'Writable stream: invalid size beats invalid highWaterMark');
+
 done();

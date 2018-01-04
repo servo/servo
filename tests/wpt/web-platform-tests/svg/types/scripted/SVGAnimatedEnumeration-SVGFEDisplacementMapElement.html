@@ -1,0 +1,91 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGFEDisplacementMapElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGFEDisplacementMapElement.
+
+  var feDisplacementMapElement = document.createElementNS("http://www.w3.org/2000/svg", "feDisplacementMap");
+  feDisplacementMapElement.setAttribute("xChannelSelector", "R");
+  feDisplacementMapElement.setAttribute("yChannelSelector", "R");
+
+  // xChannelSelector
+  // Check initial 'xChannelSelector' value.
+  assert_true(feDisplacementMapElement.xChannelSelector instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feDisplacementMapElement.xChannelSelector.baseVal), "number");
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_R);
+
+  // Switch to 'G'.
+  feDisplacementMapElement.xChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_G;
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_G);
+  assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "G");
+
+  // Switch to 'B'.
+  feDisplacementMapElement.xChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_B;
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_B);
+  assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "B");
+
+  // Switch to 'A'.
+  feDisplacementMapElement.xChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_A;
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
+
+  // Try setting invalid values.
+  assert_throws(new TypeError(), function() { feDisplacementMapElement.xChannelSelector.baseVal = 5; });
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
+
+  assert_throws(new TypeError(), function() { feDisplacementMapElement.xChannelSelector.baseVal = -1; });
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
+
+  assert_throws(new TypeError(), function() { feDisplacementMapElement.xChannelSelector.baseVal = 0; });
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "A");
+
+  // Switch to 'R'.
+  feDisplacementMapElement.xChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_R;
+  assert_equals(feDisplacementMapElement.xChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_R);
+  assert_equals(feDisplacementMapElement.getAttribute('xChannelSelector'), "R");
+
+  // yChannelSelector
+  // Check initial 'yChannelSelector' value.
+  assert_true(feDisplacementMapElement.yChannelSelector instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feDisplacementMapElement.yChannelSelector.baseVal), "number");
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_R);
+
+  // Switch to 'G'.
+  feDisplacementMapElement.yChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_G;
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_G);
+  assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "G");
+
+  // Switch to 'B'.
+  feDisplacementMapElement.yChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_B;
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_B);
+  assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "B");
+
+  // Switch to 'A'.
+  feDisplacementMapElement.yChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_A;
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
+
+  // Try setting invalid values.
+  assert_throws(new TypeError(), function() { feDisplacementMapElement.yChannelSelector.baseVal = 5; });
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
+
+  assert_throws(new TypeError(), function() { feDisplacementMapElement.yChannelSelector.baseVal = -1; });
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
+
+  assert_throws(new TypeError(), function() { feDisplacementMapElement.yChannelSelector.baseVal = 0; });
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_A);
+  assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "A");
+
+  // Switch to 'R'.
+  feDisplacementMapElement.yChannelSelector.baseVal = SVGFEDisplacementMapElement.SVG_CHANNEL_R;
+  assert_equals(feDisplacementMapElement.yChannelSelector.baseVal, SVGFEDisplacementMapElement.SVG_CHANNEL_R);
+  assert_equals(feDisplacementMapElement.getAttribute('yChannelSelector'), "R");
+});
+</script>

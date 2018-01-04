@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>offset-distance interpolation</title>
+    <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+    <link rel="help" href="https://drafts.fxtf.org/motion-1/#offset-distance-property">
+    <meta name="assert" content="offset-distance supports animation.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/interpolation-testcommon.js"></script>
+  </head>
+  <body>
+    <script>
+      'use strict';
+
+      test_no_interpolation({
+        property: 'offset-path',
+        from: "path('M 0 0 L 100 100 M 100 200 L 200 200 Z L 200 100 Z')",
+        to: "ray(0deg closest-side)",
+      });
+
+      test_no_interpolation({
+        property: 'offset-path',
+        from: "ray(0deg closest-corner)",
+        to: "none",
+      });
+
+      // No interpolation to a ray from the initial value 'none'.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'none',
+        to: 'ray(20deg closest-side)',
+      });
+
+      // Interpolation between rays.
+      test_interpolation({
+        property: 'offset-path',
+        from: 'ray(10deg sides contain)',
+        to: 'ray(50deg sides contain)'
+      }, [
+        {at: -1, expect: 'ray(-30deg sides contain)'},
+        {at: 0, expect: 'ray(10deg sides contain)'},
+        {at: 0.125, expect: 'ray(15deg sides contain)'},
+        {at: 0.875, expect: 'ray(45deg sides contain)'},
+        {at: 1, expect: 'ray(50deg sides contain)'},
+        {at: 2, expect: 'ray(90deg sides contain)'},
+      ]);
+
+      test_interpolation({
+        property: 'offset-path',
+        from: 'ray(-10deg farthest-corner)',
+        to: 'ray(-50deg farthest-corner)'
+      }, [
+        {at: -1, expect: 'ray(30deg farthest-corner)'},
+        {at: 0, expect: 'ray(-10deg farthest-corner)'},
+        {at: 0.125, expect: 'ray(-15deg farthest-corner)'},
+        {at: 0.875, expect: 'ray(-45deg farthest-corner)'},
+        {at: 1, expect: 'ray(-50deg farthest-corner)'},
+        {at: 2, expect: 'ray(-90deg farthest-corner)'},
+      ]);
+
+      // No interpolation between different sizes and/or different containment.
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'ray(200deg farthest-side)',
+        to: 'ray(300deg sides)'
+      });
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'ray(200deg sides contain)',
+        to: 'ray(300deg sides)'
+      });
+      test_no_interpolation({
+        property: 'offset-path',
+        from: 'ray(200deg farthest-side contain)',
+        to: 'ray(300deg sides)'
+      });
+    </script>
+  </body>
+</html>

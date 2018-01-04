@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>TextTrack's addCue and removeCue</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+    var video = document.createElement("video");
+    var trackElement = document.createElement("track");
+
+    trackElement.onload = t.step_func_done(function() {
+        var cues = trackElement.track.cues;
+        // Test cues loaded from the file.
+        assert_equals(cues.length, 4);
+        assert_equals(cues.getCueById("1").startTime, 0);
+        assert_equals(cues[1].startTime, 31);
+        assert_equals(cues[2].startTime, 61);
+        assert_equals(cues.getCueById("4").startTime, 121);
+        assert_object_equals(cues.getCueById("junk"), undefined);
+
+        // Create a new cue, check values.
+        var textCue = new VTTCue(33, 3.4, "Sausage?");
+        assert_equals(textCue.track, null);
+        assert_equals(textCue.id, "");
+        assert_equals(textCue.startTime, 33);
+        assert_equals(textCue.endTime, 3.4);
+        assert_equals(textCue.pauseOnExit, false);
+        assert_equals(textCue.vertical, "");
+        assert_equals(textCue.snapToLines, true);
+        assert_equals(textCue.line, "auto");
+        assert_equals(textCue.position, "auto");
+        assert_equals(textCue.size, 100);
+        assert_equals(textCue.align, "center");
+
+        // Remove the unadded track, make sure it throws correctly.
+        assert_throws("NotFoundError", function() { trackElement.track.removeCue(textCue); });
+
+        // Add the new cue to a track, make sure it is inserted correctly.
+        trackElement.track.addCue(textCue);
+        assert_equals(textCue.track, trackElement.track);
+        assert_equals(cues[1].startTime, 31);
+        assert_equals(cues[2].startTime, 33);
+        assert_equals(cues[3].startTime, 61);
+
+        // create a new cue and add it to a track created with
+        // video.addTextTrack, make sure it is inserted correctly.
+        var newTrack = video.addTextTrack("subtitles", "French subtitles", "fr");
+        newTrack.mode = "showing";
+        var newCue = new VTTCue(0, 1, "Test!");
+        newTrack.addCue(newCue);
+        assert_equals(newCue, newTrack.cues[0])
+        assert_equals(newCue.track, newTrack);
+        assert_equals(newCue.id, "");
+        assert_equals(newCue.startTime, 0);
+        assert_equals(newCue.endTime, 1);
+        assert_equals(newCue.pauseOnExit, false);
+        assert_equals(newCue.vertical, "");
+        assert_equals(newCue.snapToLines, true);
+        assert_equals(newCue.line, "auto");
+        assert_equals(newCue.position, "auto");
+        assert_equals(newCue.size, 100);
+        assert_equals(newCue.align, "center");
+
+        trackElement.track.removeCue(textCue);
+        assert_equals(textCue.track, null);
+        assert_equals(cues[1].startTime, 31);
+        assert_equals(cues[2].startTime, 61);
+
+        // Remove a cue added from the WebVTT file.
+        textCue = cues[2];
+        trackElement.track.removeCue(textCue);
+        assert_equals(textCue.track, null);
+        assert_equals(cues[1].startTime, 31);
+        assert_equals(cues[2].startTime, 121);
+
+        // Try to remove the cue again.
+        assert_throws("NotFoundError", function() { trackElement.track.removeCue(textCue); });
+
+        // Add a cue before all the existing cues.
+        trackElement.track.addCue(new VTTCue(0, 31, "I am first"));
+        assert_equals(cues[0].startTime, 0);
+        assert_equals(cues[0].endTime, 31);
+        assert_equals(cues[1].startTime, 0);
+        assert_equals(cues[1].endTime, 30.5);
+        assert_equals(cues[2].startTime, 31);
+    });
+
+    trackElement.src = "resources/settings.vtt";
+    trackElement.kind = "captions";
+    trackElement.default = true;
+    video.appendChild(trackElement);
+});
+</script>
