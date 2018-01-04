@@ -93,7 +93,7 @@ impl Gamepad {
         );
 
         let cx = global.get_cx();
-        rooted!(in (cx) let mut array = ptr::null_mut());
+        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
             let _ = Float64Array::create(cx, CreateWith::Slice(&state.axes), array.handle_mut());
         }

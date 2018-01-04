@@ -186,7 +186,7 @@ pub unsafe fn create_interface_prototype_object(
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
 
     if !unscopable_names.is_empty() {
-        rooted!(in(cx) let mut unscopable_obj = ptr::null_mut());
+        rooted!(in(cx) let mut unscopable_obj = ptr::null_mut::<JSObject>());
         create_unscopable_object(cx, unscopable_names, unscopable_obj.handle_mut());
 
         let unscopable_symbol = GetWellKnownSymbol(cx, SymbolCode::unscopables);
@@ -231,7 +231,7 @@ pub unsafe fn create_named_constructors(
         global: HandleObject,
         named_constructors: &[(ConstructorClassHook, &[u8], u32)],
         interface_prototype_object: HandleObject) {
-    rooted!(in(cx) let mut constructor = ptr::null_mut());
+    rooted!(in(cx) let mut constructor = ptr::null_mut::<JSObject>());
 
     for &(native, name, arity) in named_constructors {
         assert!(*name.last().unwrap() == b'\0');

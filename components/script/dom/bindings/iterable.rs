@@ -16,7 +16,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{HandleValue, Heap, JSContext, MutableHandleObject};
+use js::jsapi::{HandleValue, Heap, JSContext, MutableHandleObject, JSObject};
 use js::jsval::UndefinedValue;
 use std::cell::Cell;
 use std::ptr;
@@ -76,7 +76,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     pub fn Next(&self, cx: *mut JSContext) -> Fallible<NonNullJSObjectPtr> {
         let index = self.index.get();
         rooted!(in(cx) let mut value = UndefinedValue());
-        rooted!(in(cx) let mut rval = ptr::null_mut());
+        rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
         let result = if index >= self.iterable.get_iterable_length() {
             dict_return(cx, rval.handle_mut(), true, value.handle())
         } else {
