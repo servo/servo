@@ -239,7 +239,7 @@ impl CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean
-    fn is_origin_clean(&self,
+    pub fn is_origin_clean(&self,
                        image: CanvasImageSource)
                            -> bool {
         match image {
@@ -277,7 +277,7 @@ impl CanvasRenderingContext2D {
     // is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
     //
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
-    fn draw_image(&self,
+    pub fn draw_image(&self,
                   image: CanvasImageSource,
                   sx: f64,
                   sy: f64,
@@ -322,7 +322,7 @@ impl CanvasRenderingContext2D {
         result
     }
 
-    fn draw_html_canvas_element(&self,
+    pub fn draw_html_canvas_element(&self,
                                 canvas: &HTMLCanvasElement,
                                 sx: f64,
                                 sy: f64,
@@ -390,7 +390,7 @@ impl CanvasRenderingContext2D {
         Ok(())
     }
 
-    fn fetch_and_draw_image_data(&self,
+    pub fn fetch_and_draw_image_data(&self,
                                  url: ServoUrl,
                                  sx: f64,
                                  sy: f64,
@@ -464,7 +464,7 @@ impl CanvasRenderingContext2D {
         Ok(())
     }
 
-    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<i32>)> {
+    pub fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<i32>)> {
         let img = match self.request_image_from_cache(url) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
@@ -486,7 +486,7 @@ impl CanvasRenderingContext2D {
     }
 
     #[inline]
-    fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
+    pub fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
         let response = self.image_cache
             .find_image_or_metadata(url.clone(),
                                     UsePlaceholder::No,
@@ -572,7 +572,7 @@ impl CanvasRenderingContext2D {
         self.origin_clean.get()
     }
 
-    fn set_origin_unclean(&self) {
+    pub fn set_origin_unclean(&self) {
         self.origin_clean.set(false)
     }
 }

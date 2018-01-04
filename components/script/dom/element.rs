@@ -69,6 +69,7 @@ use dom::node::{ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, NodeFlags, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::offscreencanvas::{OffscreenCanvas, LayoutOffscreenCanvasHelpers};
 use dom::promise::Promise;
 use dom::servoparser::ServoParser;
 use dom::text::Text;
