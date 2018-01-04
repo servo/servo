@@ -1034,7 +1034,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         }
 
-        // TODO(gw): Support zoom (WR issue #28).
         if let Some(combined_event) = last_combined_event {
             let scroll_location = match combined_event.scroll_location {
                 ScrollLocation::Delta(delta) => {
