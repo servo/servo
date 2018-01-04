@@ -294,9 +294,8 @@ class CommandBase(object):
             self.config["tools"]["rust-root"] = path.join(
                 self.context.sharedir, "rust", self.rust_path())
         if use_stable_rust:
-            # Cargo maintainer's position is that CARGO_INCREMENTAL is a nightly-only feature
-            # and should not be used on the stable channel.
-            # https://github.com/rust-lang/cargo/issues/3835
+            # We use Cargo Nightly 1.24 with Rust 1.22,
+            # it passes `-C incremental` to rustc, which is new in Rust 1.24.
             self.config["build"]["incremental"] = False
 
     def use_stable_rust(self):
