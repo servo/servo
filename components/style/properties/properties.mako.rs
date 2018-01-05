@@ -2058,6 +2058,18 @@ pub mod style_structs {
                     .take(self.transition_property_count())
                     .any(|t| t.seconds() > 0.)
             }
+        % elif style_struct.name == "Column":
+            /// Whether this is a multicol style.
+            #[cfg(feature = "servo")]
+            pub fn is_multicol(&self) -> bool {
+                match self.column_width {
+                    Either::First(_width) => true,
+                    Either::Second(_auto) => match self.column_count {
+                        Either::First(_n) => true,
+                        Either::Second(_auto) => false,
+                    }
+                }
+            }
         % endif
     }
 
@@ -2276,17 +2288,16 @@ impl ComputedValuesInner {
         }
     }
 
+    /// Whether the current style or any of its ancestors is multicolumn.
+    #[inline]
+    pub fn can_be_fragmented(&self) -> bool {
+        self.flags.contains(ComputedValueFlags::CAN_BE_FRAGMENTED)
+    }
+
     /// Whether the current style is multicolumn.
     #[inline]
     pub fn is_multicol(&self) -> bool {
-        let style = self.get_column();
-        match style.column_width {
-            Either::First(_width) => true,
-            Either::Second(_auto) => match style.column_count {
-                Either::First(_n) => true,
-                Either::Second(_auto) => false,
-            }
-        }
+        self.get_column().is_multicol()
     }
 
     /// Resolves the currentColor keyword.
@@ -2761,16 +2772,16 @@ impl<'a> StyleBuilder<'a> {
         % endif
 
         % if not property.style_struct.inherited:
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_RESET_STYLE);
+        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
         self.modified_reset = true;
         % endif
 
         % if property.ident == "content":
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_CONTENT);
+        self.flags.insert(ComputedValueFlags::INHERITS_CONTENT);
         % endif
 
         % if property.ident == "display":
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_DISPLAY);
+        self.flags.insert(ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
         self.${property.style_struct.ident}.mutate()
