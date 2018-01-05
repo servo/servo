@@ -8,9 +8,10 @@
 use fnv::FnvHashMap;
 use logical_geometry::WritingMode;
 use properties::{ComputedValues, StyleBuilder};
-use rule_tree::StrongRuleNode;
+use rule_tree::{StrongRuleNode, StyleSource};
 use selector_parser::PseudoElement;
 use servo_arc::Arc;
+use shared_lock::StylesheetGuards;
 use smallvec::SmallVec;
 use values::computed::NonNegativeLength;
 
@@ -81,12 +82,44 @@ impl RuleCache {
         }
     }
 
+    /// Walk the rule tree and return a rule node for using as the key
+    /// for rule cache.
+    ///
+    /// It currently skips a rule node when it is neither from a style
+    /// rule, nor containing any declaration of reset property. We don't
+    /// skip style rule so that we don't need to walk a long way in the
+    /// worst case. Skipping declarations rule nodes should be enough
+    /// to address common cases that rule cache would fail to share
+    /// when using the rule node directly, like preshint, style attrs,
+    /// and animations.
+    fn get_rule_node_for_cache<'r>(
+        guards: &StylesheetGuards,
+        mut rule_node: Option<&'r StrongRuleNode>
+    ) -> Option<&'r StrongRuleNode> {
+        while let Some(node) = rule_node {
+            match *node.style_source() {
+                StyleSource::Declarations(ref decls) => {
+                    let cascade_level = node.cascade_level();
+                    let decls = decls.read_with(cascade_level.guard(guards));
+                    if decls.contains_any_reset() {
+                        break;
+                    }
+                }
+                StyleSource::None => {}
+                StyleSource::Style(_) => break,
+            }
+            rule_node = node.parent();
+        }
+        rule_node
+    }
+
     /// Finds a node in the properties matched cache.
     ///
     /// This needs to receive a `StyleBuilder` with the `early` properties
     /// already applied.
     pub fn find(
         &self,
+        guards: &StylesheetGuards,
         builder_with_early_props: &StyleBuilder,
     ) -> Option<&ComputedValues> {
         if builder_with_early_props.is_style_if_visited() {
@@ -102,7 +135,8 @@ impl RuleCache {
             return None;
         }
 
-        let rules = builder_with_early_props.rules.as_ref()?;
+        let rules = builder_with_early_props.rules.as_ref();
+        let rules = Self::get_rule_node_for_cache(guards, rules)?;
         let cached_values = self.map.get(rules)?;
 
         for &(ref conditions, ref values) in cached_values.iter() {
@@ -119,6 +153,7 @@ impl RuleCache {
     /// Returns whether the style was inserted into the cache.
     pub fn insert_if_possible(
         &mut self,
+        guards: &StylesheetGuards,
         style: &Arc<ComputedValues>,
         pseudo: Option<&PseudoElement>,
         conditions: &RuleCacheConditions,
@@ -138,8 +173,9 @@ impl RuleCache {
             return false;
         }
 
-        let rules = match style.rules {
-            Some(ref r) => r.clone(),
+        let rules = style.rules.as_ref();
+        let rules = match Self::get_rule_node_for_cache(guards, rules) {
+            Some(r) => r.clone(),
             None => return false,
         };
 

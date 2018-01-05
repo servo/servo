@@ -309,6 +309,16 @@ impl LonghandIdSet {
         true
     }
 
+    /// Returns whether this set contains any longhand that `other` also contains.
+    pub fn contains_any(&self, other: &Self) -> bool {
+        for (self_cell, other_cell) in self.storage.iter().zip(other.storage.iter()) {
+            if (*self_cell & *other_cell) != 0 {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Create an empty set
     #[inline]
     pub fn new() -> LonghandIdSet {
@@ -320,6 +330,13 @@ impl LonghandIdSet {
     pub fn contains(&self, id: LonghandId) -> bool {
         let bit = id as usize;
         (self.storage[bit / 32] & (1 << (bit % 32))) != 0
+    }
+
+    /// Return whether this set contains any reset longhand.
+    #[inline]
+    pub fn contains_any_reset(&self) -> bool {
+        ${static_longhand_id_set("RESET", lambda p: not p.style_struct.inherited)}
+        self.contains_any(&RESET)
     }
 
     /// Add the given property to the set
@@ -3157,6 +3174,7 @@ pub fn cascade(
         device,
         pseudo,
         rule_node,
+        guards,
         iter_declarations,
         parent_style,
         parent_style_ignoring_first_line,
@@ -3176,6 +3194,7 @@ pub fn apply_declarations<'a, F, I>(
     device: &Device,
     pseudo: Option<<&PseudoElement>,
     rules: &StrongRuleNode,
+    guards: &StylesheetGuards,
     iter_declarations: F,
     parent_style: Option<<&ComputedValues>,
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
@@ -3478,7 +3497,7 @@ where
             % endif
             }
 
-            if let Some(style) = rule_cache.and_then(|c| c.find(&context.builder)) {
+            if let Some(style) = rule_cache.and_then(|c| c.find(guards, &context.builder)) {
                 context.builder.copy_reset_from(style);
                 apply_reset = false;
             }
