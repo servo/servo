@@ -553,18 +553,8 @@ impl Parse for Contain {
                 "layout" => Some(Contain::LAYOUT),
                 "style" => Some(Contain::STYLE),
                 "paint" => Some(Contain::PAINT),
-                "strict" => {
-                    if result.is_empty() {
-                        return Ok(Contain::STRICT | Contain::STRICT_BITS)
-                    }
-                    None
-                },
-                "none" => {
-                    if result.is_empty() {
-                        return Ok(result)
-                    }
-                    None
-                },
+                "strict" if result.is_empty() => return Ok(Contain::STRICT | Contain::STRICT_BITS),
+                "none" if result.is_empty() => return Ok(result),
                 _ => None
             };
 
