@@ -11,10 +11,13 @@ tasks:
     workerType: '{{ taskcluster.docker.workerType }}'
     extra:
       github:
-        events: []
+        events:
+          - pull_request.opened
+          - pull_request.reopened
+          - pull_request.synchronize
     payload:
       maxRunTime: 3600
-      image: servobrowser/servo-linux-dev
+      image: 'servobrowser/servo-linux-dev:servo-linux-build-deps-2017-06-30'
       command:
         - /bin/bash
         - '--login'
@@ -31,4 +34,4 @@ tasks:
       description: Run Linux tests.
       owner: '{{ event.head.user.email }}'
       source: '{{ event.head.repo.url }}'
-
+allowPullRequests: public
