@@ -794,7 +794,6 @@ impl BlockFlow {
                 self.base.floats = Floats::new(self.fragment.style.writing_mode);
             }
 
-            let mut margin_collapse_info = MarginCollapseInfo::new();
             let writing_mode = self.base.floats.writing_mode;
             self.base.floats.translate(LogicalSize::new(
                 writing_mode, -self.fragment.inline_start_offset(), Au(0)));
@@ -807,7 +806,7 @@ impl BlockFlow {
                 margins_may_collapse == MarginsMayCollapseFlag::MarginsMayCollapse &&
                 !self.base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) &&
                 self.fragment.border_padding.block_start == Au(0);
-            margin_collapse_info.initialize_block_start_margin(
+            let mut margin_collapse_info = MarginCollapseInfo::initialize_block_start_margin(
                 &self.fragment,
                 can_collapse_block_start_margin_with_kids);
 
