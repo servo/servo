@@ -2948,8 +2948,8 @@ fn static_assert() {
         let count = other.gecko.m${type.capitalize()}${gecko_ffi_name}Count;
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = count;
 
-        let iter = self.gecko.m${type.capitalize()}s.iter_mut().zip(
-            other.gecko.m${type.capitalize()}s.iter().take(count as usize).cycle()
+        let iter = self.gecko.m${type.capitalize()}s.iter_mut().take(count as usize).zip(
+            other.gecko.m${type.capitalize()}s.iter()
         );
 
         for (ours, others) in iter {
@@ -2982,7 +2982,7 @@ fn static_assert() {
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = input_len as u32;
-        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
             gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
         }
     }
@@ -3007,7 +3007,7 @@ fn static_assert() {
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
         self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
-        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
             gecko.mTimingFunction = servo.into();
         }
     }
@@ -3064,7 +3064,7 @@ fn static_assert() {
 
         self.gecko.mAnimation${gecko_ffi_name}Count = input_len as u32;
 
-        for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
             let result = match servo {
                 % for value in keyword.gecko_values():
                     Keyword::${to_camel_case(value)} =>
@@ -3298,7 +3298,8 @@ fn static_assert() {
 
     pub fn transition_combined_duration_at(&self, index: usize) -> f32 {
         // https://drafts.csswg.org/css-transitions/#transition-combined-duration
-        self.gecko.mTransitions[index].mDuration.max(0.0) + self.gecko.mTransitions[index].mDelay
+        self.gecko.mTransitions[index % self.gecko.mTransitionDurationCount as usize].mDuration.max(0.0)
+            + self.gecko.mTransitions[index % self.gecko.mTransitionDelayCount as usize].mDelay
     }
 
     pub fn set_transition_property<I>(&mut self, v: I)
@@ -3332,7 +3333,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties;
         if self.gecko.mTransitionPropertyCount == 1 &&
             self.gecko.mTransitions[0].mProperty == eCSSPropertyExtra_all_properties &&
-            self.gecko.mTransitions[0].mDuration.max(0.0) + self.gecko.mTransitions[0].mDelay <= 0.0f32 {
+            self.transition_combined_duration_at(0) <= 0.0f32 {
             return false;
         }
 
@@ -3389,7 +3390,15 @@ fn static_assert() {
     ${impl_transition_count('property', 'Property')}
 
     pub fn animations_equals(&self, other: &Self) -> bool {
-        unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
+        return self.gecko.mAnimationNameCount == other.gecko.mAnimationNameCount
+            && self.gecko.mAnimationDelayCount == other.gecko.mAnimationDelayCount
+            && self.gecko.mAnimationDirectionCount == other.gecko.mAnimationDirectionCount
+            && self.gecko.mAnimationDurationCount == other.gecko.mAnimationDurationCount
+            && self.gecko.mAnimationFillModeCount == other.gecko.mAnimationFillModeCount
+            && self.gecko.mAnimationIterationCountCount == other.gecko.mAnimationIterationCountCount
+            && self.gecko.mAnimationPlayStateCount == other.gecko.mAnimationPlayStateCount
+            && self.gecko.mAnimationTimingFunctionCount == other.gecko.mAnimationTimingFunctionCount
+            && unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
     }
 
     pub fn set_animation_name<I>(&mut self, v: I)
@@ -3456,7 +3465,7 @@ fn static_assert() {
         self.gecko.mAnimations.ensure_len(input_len);
 
         self.gecko.mAnimationIterationCountCount = input_len as u32;
-        for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
             match servo {
                 AnimationIterationCount::Number(n) => gecko.mIterationCount = n,
                 AnimationIterationCount::Infinite => gecko.mIterationCount = f32::INFINITY,
