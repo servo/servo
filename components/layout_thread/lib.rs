@@ -69,7 +69,6 @@ use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::context::malloc_size_of_persistent_local_context;
-use layout::display_list_builder::ToGfxColor;
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleDamage};
@@ -131,6 +130,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
+use style::properties::longhands::background_image::get_initial_value as get_initial_background_image;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
@@ -140,6 +140,7 @@ use style::thread_state::{self, ThreadState};
 use style::timer::Timer;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
+use style::values::computed::Color;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
@@ -962,6 +963,7 @@ impl LayoutThread {
                 metadata.clone(),
                 sender.clone(),
                 || {
+            determine_root_background(layout_root);
             layout_root.mut_base().stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              self.viewport_size).to_vector();
@@ -1048,7 +1050,9 @@ impl LayoutThread {
             self.webrender_api.set_display_list(
                 self.webrender_document,
                 webrender_api::Epoch(epoch.0),
-                Some(get_root_flow_background_color(layout_root)),
+                // Do not provide an explicit background color.
+                // Webrender paints the screen white before displaying anything.
+                None,
                 viewport_size,
                 builder.finalize(),
                 true,
@@ -1664,35 +1668,46 @@ impl ProfilerMetadataFactory for LayoutThread {
     }
 }
 
-// The default computed value for background-color is transparent (see
-// http://dev.w3.org/csswg/css-backgrounds/#background-color). However, we
-// need to propagate the background color from the root HTML/Body
-// element (http://dev.w3.org/csswg/css-backgrounds/#special-backgrounds) if
-// it is non-transparent. The phrase in the spec "If the canvas background
-// is not opaque, what shows through is UA-dependent." is handled by rust-layers
-// clearing the frame buffer to white. This ensures that setting a background
-// color on an iframe element, while the iframe content itself has a default
-// transparent background color is handled correctly.
-fn get_root_flow_background_color(flow: &mut Flow) -> webrender_api::ColorF {
-    let transparent = webrender_api::ColorF { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
-    if !flow.is_block_like() {
-        return transparent;
+/// Propagate background if necessary from the <body> to the document root.
+///
+/// Backgrounds by default are transparent. This ensures that iframes
+/// are displayed with a background from the surrounding context.
+///
+/// Spec: https://drafts.csswg.org/css-backgrounds/#body-background
+fn determine_root_background(root_flow: &mut Flow) {
+    if !root_flow.is_block_like() {
+        return;
     }
+    let root_block = root_flow.as_mut_block();
+    {
+        let root_bg = root_block.fragment.style.get_background();
+        // If the root <html> element already has a background do nothing.
+        // The background will be rendered correctly without changes.
+        if root_bg.background_image != get_initial_background_image() ||
+            root_bg.background_color != Color::transparent() {
+            debug!("Some background found for root element.");
+            return;
+        }
+    }
+    debug!("Root element without background. Trying to propagate child element background.");
 
-    let block_flow = flow.as_mut_block();
-    let kid = match block_flow.base.children.iter_mut().next() {
-        None => return transparent,
+    let kid = match root_block.base.children.iter_mut().rev().next() {
+        None => return,
+        Some(ref kid) if !kid.is_block_like() => return,
         Some(kid) => kid,
     };
-    if !kid.is_block_like() {
-        return transparent;
-    }
-
-    let kid_block_flow = kid.as_block();
-    kid_block_flow.fragment
-                  .style
-                  .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
-                  .to_gfx_color()
+    let kid_mut_block = kid.as_mut_block();
+    let kid_background = ServoArc::make_mut(&mut kid_mut_block.fragment.style).mutate_background();
+    // Copy background from <body> to <html> element.
+    let root_style = ServoArc::make_mut(&mut root_block.fragment.style);
+    *root_style.mutate_background() = kid_background.clone();
+    // According to the spec all attributes should be set to their initial values
+    // but this is not strictly needed as only backgrounds are drawn if either a
+    // background-color or a background-image is present.
+    // This is to prevent that background images are displayed multiple times
+    // and overlap each other.
+    kid_background.set_background_image(get_initial_background_image());
+    kid_background.set_background_color(Color::transparent());
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
