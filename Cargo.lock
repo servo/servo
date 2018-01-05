@@ -51,7 +51,7 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -143,7 +143,7 @@ version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -204,7 +204,7 @@ version = "0.0.1"
 dependencies = [
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
 ]
 
@@ -303,7 +303,7 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "nonzero 0.0.1",
  "offscreen_gl_context 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]
@@ -324,7 +324,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "clap 2.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -500,7 +500,7 @@ dependencies = [
  "net_traits 0.0.1",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "servo_rand 0.0.1",
  "servo_remutex 0.0.1",
@@ -569,7 +569,7 @@ dependencies = [
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "procedural-masquerade 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -713,7 +713,7 @@ dependencies = [
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -729,7 +729,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "msg 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_url 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -777,8 +777,8 @@ dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
- "serde_derive 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -902,7 +902,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1081,7 +1081,7 @@ dependencies = [
  "net_traits 0.0.1",
  "ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "range 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
  "servo_arc 0.0.1",
@@ -1118,7 +1118,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "range 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1292,7 +1292,7 @@ dependencies = [
  "cookie 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_bytes 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1387,7 +1387,7 @@ dependencies = [
  "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "mio 0.6.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1486,7 +1486,7 @@ dependencies = [
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.19.0",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_arc 0.0.1",
  "servo_atoms 0.0.1",
@@ -1726,8 +1726,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
- "serde_derive 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_codegen 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1916,7 +1916,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "nonzero 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]
 
@@ -1951,7 +1951,7 @@ dependencies = [
  "net_traits 0.0.1",
  "openssl 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-websocket 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
@@ -2014,7 +2014,7 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "msg 0.0.1",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
  "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2043,7 +2043,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "nonzero"
 version = "0.0.1"
 dependencies = [
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2145,7 +2145,7 @@ dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2346,7 +2346,7 @@ dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "task_info 0.0.1",
@@ -2371,7 +2371,7 @@ dependencies = [
  "energymon 0.3.0 (git+https://github.com/energymon/energymon-rust.git)",
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "signpost 0.1.0 (git+https://github.com/pcwalton/signpost.git)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2414,7 +2414,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2497,8 +2497,8 @@ version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
- "serde_derive 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2605,7 +2605,7 @@ dependencies = [
  "script_plugins 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.19.0",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
  "servo_arc 0.0.1",
@@ -2702,7 +2702,7 @@ dependencies = [
  "net_traits 0.0.1",
  "profile_traits 0.0.1",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "style_traits 0.0.1",
@@ -2751,10 +2751,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "serde"
-version = "1.0.23"
-source = "git+https://github.com/gankro/serde?branch=deserialize_from_enums3#fc6117367ef974fb2d3b2017c21c375d34823415"
+version = "1.0.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde_derive 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2762,23 +2762,23 @@ name = "serde_bytes"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.23"
-source = "git+https://github.com/gankro/serde?branch=deserialize_from_enums3#fc6117367ef974fb2d3b2017c21c375d34823415"
+version = "1.0.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive_internals 0.17.0 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde_derive_internals 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "serde_derive_internals"
-version = "0.17.0"
-source = "git+https://github.com/gankro/serde?branch=deserialize_from_enums3#fc6117367ef974fb2d3b2017c21c375d34823415"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2792,7 +2792,7 @@ dependencies = [
  "dtoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "itoa 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2920,7 +2920,7 @@ name = "servo_arc"
 version = "0.0.1"
 dependencies = [
  "nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "stable_deref_trait 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2944,7 +2944,7 @@ dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
  "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2999,7 +2999,7 @@ version = "0.0.1"
 dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_rand 0.0.1",
  "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3082,7 +3082,7 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_shared 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_codegen 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_shared 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3145,7 +3145,7 @@ dependencies = [
  "rayon 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_arc 0.0.1",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
@@ -3205,7 +3205,7 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "selectors 0.19.0",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_arc 0.0.1",
  "servo_atoms 0.0.1",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
@@ -3364,7 +3364,7 @@ name = "toml"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3412,8 +3412,8 @@ version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
- "serde_derive 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3467,7 +3467,7 @@ name = "url_serde"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3499,7 +3499,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3567,7 +3567,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.56.1"
-source = "git+https://github.com/servo/webrender#1142dfc557c319119a5117450718c5b67a93cb9f"
+source = "git+https://github.com/servo/webrender#92959212d069eace3cf1c5f939458108de4432b5"
 dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3595,7 +3595,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.56.1"
-source = "git+https://github.com/servo/webrender#1142dfc557c319119a5117450718c5b67a93cb9f"
+source = "git+https://github.com/servo/webrender#92959212d069eace3cf1c5f939458108de4432b5"
 dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3606,8 +3606,8 @@ dependencies = [
  "dwrote 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
- "serde_derive 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3633,7 +3633,7 @@ dependencies = [
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "rust-webvr-api 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3961,10 +3961,10 @@ dependencies = [
 "checksum semver 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"
 "checksum semver 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7a3186ec9e65071a2095434b1f5bb24838d4e8e130f584c790f6033c79943537"
 "checksum semver-parser 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
-"checksum serde 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)" = "<none>"
+"checksum serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)" = "db99f3919e20faa51bb2996057f5031d8685019b5a06139b1ce761da671b8526"
 "checksum serde_bytes 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7a73f5ad9bb83e1e407254c7a355f4efdaffe3c1442fc0657ddb8b9b6b225655"
-"checksum serde_derive 1.0.23 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)" = "<none>"
-"checksum serde_derive_internals 0.17.0 (git+https://github.com/gankro/serde?branch=deserialize_from_enums3)" = "<none>"
+"checksum serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)" = "f4ba7591cfe93755e89eeecdbcc668885624829b020050e6aec99c2a03bd3fd0"
+"checksum serde_derive_internals 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6e03f1c9530c3fb0a0a5c9b826bdd9246a5921ae995d75f512ac917fc4dd55b5"
 "checksum serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "48b04779552e92037212c3615370f6bd57a40ebba7f20e554ff9f55e41a69a7b"
 "checksum servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "21069a884c33fe6ee596975e1f3849ed88c4ec857fbaf11d33672d8ebe051217"
 "checksum servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93f799b649b4a2bf362398910eca35240704c7e765e780349b2bb1070d892262"
