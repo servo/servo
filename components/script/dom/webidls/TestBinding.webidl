@@ -263,6 +263,9 @@ interface TestBinding {
   void passCallbackFunction(Function fun);
   void passCallbackInterface(EventListener listener);
   void passSequence(sequence<long> seq);
+  void passAnySequence(sequence<any> seq);
+  sequence<any> anySequencePassthrough(sequence<any> seq);
+  void passObjectSequence(sequence<object> seq);
   void passStringSequence(sequence<DOMString> seq);
   void passInterfaceSequence(sequence<Blob> seq);
 
