@@ -512,8 +512,14 @@ impl Parse for PositiveInteger {
 /// PositiveInteger | auto
 pub type PositiveIntegerOrAuto = Either<PositiveInteger, Auto>;
 
-#[allow(missing_docs)]
+/// <url> | none
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
+
+impl Default for UrlOrNone {
+    fn default() -> Self {
+        Either::Second(None_)
+    }
+}
 
 /// The specified value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;

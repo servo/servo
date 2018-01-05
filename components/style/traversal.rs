@@ -13,7 +13,7 @@ use selector_parser::PseudoElement;
 use selectors::NthIndexCache;
 use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
-use style_resolver::{PseudoElementResolution, StyleResolverForElement};
+use style_resolver::{PropertyCascading, PseudoElementResolution, StyleResolverForElement};
 use stylist::RuleInclusion;
 use traversal_flags::TraversalFlags;
 
@@ -311,7 +311,9 @@ where
     debug_assert!(rule_inclusion == RuleInclusion::DefaultOnly ||
                   ignore_existing_style ||
                   pseudo.map_or(false, |p| p.is_before_or_after()) ||
-                  element.borrow_data().map_or(true, |d| !d.has_styles()),
+                  element.borrow_data().map_or(true, |d| {
+                      !d.has_styles() || !d.styles.primary().is_complete()
+                  }),
                   "Why are we here?");
     let mut ancestors_requiring_style_resolution = SmallVec::<[E; 16]>::new();
 
@@ -324,8 +326,10 @@ where
         if rule_inclusion == RuleInclusion::All && !ignore_existing_style {
             if let Some(data) = current.borrow_data() {
                 if let Some(ancestor_style) = data.styles.get_primary() {
-                    style = Some(ancestor_style.clone());
-                    break;
+                    if ancestor_style.is_complete() {
+                        style = Some(ancestor_style.clone());
+                        break;
+                    }
                 }
             }
         }
@@ -357,11 +361,16 @@ where
         // Actually `PseudoElementResolution` doesn't really matter here.
         // (but it does matter below!).
         let primary_style =
-            StyleResolverForElement::new(*ancestor, context, rule_inclusion, PseudoElementResolution::IfApplicable)
-                .resolve_primary_style(
-                    style.as_ref().map(|s| &**s),
-                    layout_parent_style.as_ref().map(|s| &**s)
-                );
+            StyleResolverForElement::new(
+                *ancestor,
+                context,
+                rule_inclusion,
+                PseudoElementResolution::IfApplicable,
+                PropertyCascading::ForceAll,
+            ).resolve_primary_style(
+                style.as_ref().map(|s| &**s),
+                layout_parent_style.as_ref().map(|s| &**s)
+            );
 
         let is_display_contents = primary_style.style().is_display_contents();
 
@@ -374,7 +383,13 @@ where
     }
 
     context.thread_local.bloom_filter.assert_complete(element);
-    StyleResolverForElement::new(element, context, rule_inclusion, PseudoElementResolution::Force)
+    StyleResolverForElement::new(
+        element,
+        context,
+        rule_inclusion,
+        PseudoElementResolution::Force,
+        PropertyCascading::ForceAll,
+    )
         .resolve_style(
             style.as_ref().map(|s| &**s),
             layout_parent_style.as_ref().map(|s| &**s)
@@ -607,7 +622,8 @@ where
                                 element,
                                 context,
                                 RuleInclusion::All,
-                                PseudoElementResolution::IfApplicable
+                                PseudoElementResolution::IfApplicable,
+                                PropertyCascading::AllowSkippingForDisplayNone,
                             );
 
                         resolver.resolve_style_with_default_parents()
@@ -636,7 +652,8 @@ where
                     element,
                     context,
                     RuleInclusion::All,
-                    PseudoElementResolution::IfApplicable
+                    PseudoElementResolution::IfApplicable,
+                    PropertyCascading::AllowSkippingForDisplayNone,
                 );
 
             resolver.cascade_styles_with_default_parents(cascade_inputs)
@@ -652,7 +669,8 @@ where
                         element,
                         context,
                         RuleInclusion::All,
-                        PseudoElementResolution::IfApplicable
+                        PseudoElementResolution::IfApplicable,
+                        PropertyCascading::AllowSkippingForDisplayNone,
                     );
 
                 resolver.cascade_styles_with_default_parents(cascade_inputs)

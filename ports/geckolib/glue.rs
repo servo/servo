@@ -804,7 +804,8 @@ fn resolve_rules_for_element_with_context<'a>(
     mut context: StyleContext<GeckoElement<'a>>,
     rules: StrongRuleNode
 ) -> Arc<ComputedValues> {
-    use style::style_resolver::{PseudoElementResolution, StyleResolverForElement};
+    use style::style_resolver::{PropertyCascading, PseudoElementResolution};
+    use style::style_resolver::StyleResolverForElement;
 
     // This currently ignores visited styles, which seems acceptable, as
     // existing browsers don't appear to animate visited styles.
@@ -815,11 +816,13 @@ fn resolve_rules_for_element_with_context<'a>(
         };
 
     // Actually `PseudoElementResolution` doesn't matter.
-    StyleResolverForElement::new(element,
-                                 &mut context,
-                                 RuleInclusion::All,
-                                 PseudoElementResolution::IfApplicable)
-        .cascade_style_and_visited_with_default_parents(inputs).0
+    StyleResolverForElement::new(
+        element,
+        &mut context,
+        RuleInclusion::All,
+        PseudoElementResolution::IfApplicable,
+        PropertyCascading::ForceAll,
+    ).cascade_style_and_visited_with_default_parents(inputs).0
 }
 
 #[no_mangle]
@@ -3550,7 +3553,13 @@ pub extern "C" fn Servo_ResolveStyleLazily(
                     /* matching_func = */ None,
                 )
             }
-            None => Some(styles.primary().clone()),
+            None => {
+                if styles.primary().is_complete() {
+                    Some(styles.primary().clone())
+                } else {
+                    None
+                }
+            }
         }
     };
 

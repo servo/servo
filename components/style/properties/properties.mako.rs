@@ -33,6 +33,7 @@ use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::ParserContext;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
+use properties::longhands::display::SpecifiedValue::None as display_none;
 use rule_cache::{RuleCache, RuleCacheConditions};
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
@@ -2122,6 +2123,12 @@ impl ComputedValues {
         self.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED)
     }
 
+    /// Whether this style is a complete style, i.e. properties are not
+    /// skipped for optimization.
+    pub fn is_complete(&self) -> bool {
+        !self.flags.contains(ComputedValueFlags::SKIPS_OTHER_CATEGORY)
+    }
+
     /// Gets a reference to the rule node. Panic if no rule node exists.
     pub fn rules(&self) -> &StrongRuleNode {
         self.rules.as_ref().unwrap()
@@ -3078,6 +3085,11 @@ bitflags! {
         /// Whether we're computing the style of a link element that happens to
         /// be visited.
         const IS_VISITED_LINK = 1 << 5;
+
+        /// Whether skipping cascading properties in other category is allowed
+        /// when it is a display:none root. It should only be set if we are
+        /// doing traversal, and the result is not exposed to script.
+        const ALLOW_SKIPPING_OTHER_CATEGORY = 1 << 6;
     }
 }
 
@@ -3263,14 +3275,31 @@ where
     // To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
     let mut apply_reset = true;
+    let skip_other_category;
     % for category_to_cascade_now in ["early", "other"]:
         % if category_to_cascade_now == "early":
             // Pull these out so that we can compute them in a specific order
             // without introducing more iterations.
             let mut font_size = None;
             let mut font_family = None;
+            // Pull these out in early category so that we can cut cascading
+            // for display:none element.
+            let mut has_display_none = None;
+            % if product == "gecko":
+                let mut moz_binding = None;
+            % endif
         % endif
         for (declaration, cascade_level) in iter_declarations() {
+            % if category_to_cascade_now == "other":
+                // Skip other category if we don't need them. It is easier to
+                // write here rather than wrapping the whole loop.
+                // XXX Actually rustc cannot move this check out from loop
+                // body with opt-level=2, see rust-lang/rust#46542.
+                if skip_other_category {
+                    break;
+                }
+            % endif
+
             let declaration_id = declaration.id();
             let longhand_id = match declaration_id {
                 PropertyDeclarationId::Longhand(id) => id,
@@ -3288,6 +3317,32 @@ where
             if !apply_reset && !longhand_id.inherited() {
                 continue;
             }
+
+            % if category_to_cascade_now == "early":
+                // Pull out display:none as well as -moz-binding for optimization.
+                match longhand_id {
+                    LonghandId::Display => {
+                        if has_display_none.is_none() {
+                            has_display_none = Some(*declaration == PropertyDeclaration::Display(display_none));
+                        }
+                    }
+                    % if product == "gecko":
+                    LonghandId::MozBinding => {
+                        if moz_binding.is_none() {
+                            if let PropertyDeclaration::MozBinding(ref value) = *declaration {
+                                moz_binding = Some(value.clone());
+                            } else {
+                                // In case we have variable / CSS-wide keyword value for
+                                // -moz-binding, just disable display:none optimization.
+                                has_display_none = Some(false);
+                                moz_binding = Some(Default::default());
+                            }
+                        }
+                    }
+                    % endif
+                    _ => {}
+                }
+            % endif
 
             if
                 % if category_to_cascade_now == "early":
@@ -3478,9 +3533,38 @@ where
             % endif
             }
 
+            % if product == "gecko":
+            skip_other_category = has_display_none.unwrap_or(false) &&
+                flags.contains(CascadeFlags::ALLOW_SKIPPING_OTHER_CATEGORY) &&
+                // Don't apply this optimization to pseudo-elements for now.
+                pseudo.is_none();
+            % else:
+            // FIXME It is disabled for Servo for now until we can fix
+            // getComputedStyle for Servo as well.
+            skip_other_category = false;
+            % endif
+
             if let Some(style) = rule_cache.and_then(|c| c.find(&context.builder)) {
                 context.builder.copy_reset_from(style);
                 apply_reset = false;
+            } else if skip_other_category {
+                // display:none optimization would skip cascading the whole
+                // other category, and thus if we couldn't find reset styles
+                // from the rule cache, we need to cascade display here.
+                let display = PropertyDeclaration::Display(display_none);
+                CASCADE_PROPERTY[LonghandId::Display as usize](&display, &mut context);
+                % if product == "gecko":
+                if let Some(value) = moz_binding {
+                    let moz_binding = PropertyDeclaration::MozBinding(value);
+                    CASCADE_PROPERTY[LonghandId::MozBinding as usize](&moz_binding, &mut context);
+                }
+                % endif
+                context.builder.flags.insert(ComputedValueFlags::SKIPS_OTHER_CATEGORY);
+                // XXX Should we make it uncacheable? If stuff which requires
+                // complete style data, e.g. getComputedStyle, gets this cached
+                // style, it would return wrong value. But it seems that we
+                // are currently not sharing this cache with that usage so we
+                // should be fine.
             }
         % endif // category == "early"
     % endfor

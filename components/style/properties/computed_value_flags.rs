@@ -62,6 +62,11 @@ bitflags! {
 
         /// A flag to mark a style which is a visited style.
         const IS_STYLE_IF_VISITED = 1 << 9;
+
+        /// A flag used to mark styles which don't have properties in other
+        /// category cascaded properly. Currently it is used for display:none
+        /// optimization.
+        const SKIPS_OTHER_CATEGORY = 1 << 10;
     }
 }
 
