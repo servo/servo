@@ -161,27 +161,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
     }
 </%helpers:single_keyword_computed>
 
-<%helpers:longhand name="-servo-display-for-hypothetical-box"
-                   animation_value_type="none"
-                   derived_from="display"
-                   products="servo"
-                   spec="Internal (not web-exposed)">
-    pub use super::display::{SpecifiedValue, get_initial_value};
-    pub use super::display::{parse};
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    #[inline]
-    pub fn derive_from_display(context: &mut Context) {
-        let d = context.style().get_box().clone_display();
-        context.builder.set__servo_display_for_hypothetical_box(d);
-    }
-
-</%helpers:longhand>
-
-
 ${helpers.predefined_type(
     "vertical-align",
     "VerticalAlign",
