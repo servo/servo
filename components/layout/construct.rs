@@ -1485,7 +1485,7 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             }
             Some(LayoutNodeType::Element(_)) => {
                 let style = node.style(self.style_context());
-                let original_display = style.get_box()._servo_display_for_hypothetical_box;
+                let original_display = style.get_box().original_display;
                 let munged_display = match original_display {
                     Display::Inline | Display::InlineBlock => original_display,
                     _ => style.get_box().display,

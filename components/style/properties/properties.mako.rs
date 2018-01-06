@@ -1863,6 +1863,10 @@ pub mod style_structs {
                 /// The font hash, used for font caching.
                 pub hash: u64,
             % endif
+            % if style_struct.name == "Box":
+                /// The original font which is equivalent to `mOriginalDisplay` in gecko
+                pub original_display: longhands::display::computed_value::T,
+            % endif
         }
         % if style_struct.name == "Font":
 
@@ -2002,16 +2006,14 @@ pub mod style_structs {
                     self.text_decoration_line.contains(longhands::text_decoration_line::SpecifiedValue::LINE_THROUGH)
                 }
             % elif style_struct.name == "Box":
-                /// Sets the display property, but without touching
-                /// __servo_display_for_hypothetical_box, except when the
-                /// adjustment comes from root or item display fixups.
-                pub fn set_adjusted_display(&mut self,
-                                            dpy: longhands::display::computed_value::T,
-                                            is_item_or_root: bool) {
+                /// Sets the display property, but without touching original_display,
+                /// except when the adjustment comes from root or item display fixups.
+                pub fn set_original_display(
+                    &mut self,
+                    dpy: longhands::display::computed_value::T
+                ) {
                     self.set_display(dpy);
-                    if is_item_or_root {
-                        self.set__servo_display_for_hypothetical_box(dpy);
-                    }
+                    self.original_display = dpy;
                 }
             % endif
         }
@@ -3047,6 +3049,9 @@ mod lazy_static_module {
                         % endfor
                         % if style_struct.name == "Font":
                             hash: 0,
+                        % endif
+                        % if style_struct.name == "Box":
+                            original_display: longhands::display::get_initial_value(),
                         % endif
                     }),
                 % endfor
