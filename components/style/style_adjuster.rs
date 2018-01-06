@@ -84,10 +84,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let blockified_display =
             display.equivalent_block_display(flags.contains(CascadeFlags::IS_ROOT_ELEMENT));
         if display != blockified_display {
-            self.style.mutate_box().set_adjusted_display(
-                blockified_display,
-                is_item_or_root,
-            );
+            self.style.mutate_box().set_original_display(blockified_display, is_item_or_root);
         }
     }
 
@@ -211,10 +208,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         if self.style.get_box().clone_display() == Display::Inline {
-            self.style.mutate_box().set_adjusted_display(Display::InlineBlock,
-                                                         false);
+            self.style.mutate_box().set_original_display(Display::InlineBlock, false);
         }
-
 
         // When 'contain: paint', update overflow from 'visible' to 'clip'.
         if self.style.get_box().clone_contain().contains(SpecifiedValue::PAINT) {
