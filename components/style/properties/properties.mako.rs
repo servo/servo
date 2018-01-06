@@ -1863,6 +1863,10 @@ pub mod style_structs {
                 /// The font hash, used for font caching.
                 pub hash: u64,
             % endif
+            % if style_struct.name == "Box":
+                /// The original font which is equivalent to `mOriginalDisplay` in gecko
+                pub original_display: longhands::display::computed_value::T,
+            % endif
         }
         % if style_struct.name == "Font":
 
@@ -1893,6 +1897,14 @@ pub mod style_structs {
                             self.${longhand.ident} = longhands::${longhand.ident}::computed_value
                                                               ::T(v.into_iter().collect());
                         }
+                    % elif longhand.ident == "display":
+                        /// Set ${longhand.name}.
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
+                            self.display = v;
+                            self.original_display = v;
+                        }
                     % else:
                         /// Set ${longhand.name}.
                         #[allow(non_snake_case)]
@@ -1901,13 +1913,22 @@ pub mod style_structs {
                             self.${longhand.ident} = v;
                         }
                     % endif
-                    /// Set ${longhand.name} from other struct.
-                    #[allow(non_snake_case)]
-                    #[inline]
-                    pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
-                        self.${longhand.ident} = other.${longhand.ident}.clone();
-                    }
-
+                    % if longhand.ident == "display":
+                        /// Set ${longhand.name} from other struct.
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn copy_display_from(&mut self, other: &Self) {
+                            self.display = other.display.clone();
+                            self.original_display = other.original_display.clone();
+                        }
+                    % else:
+                        /// Set ${longhand.name} from other struct.
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
+                            self.${longhand.ident} = other.${longhand.ident}.clone();
+                        }
+                    % endif
                     /// Reset ${longhand.name} from the initial struct.
                     #[allow(non_snake_case)]
                     #[inline]
@@ -2002,15 +2023,16 @@ pub mod style_structs {
                     self.text_decoration_line.contains(longhands::text_decoration_line::SpecifiedValue::LINE_THROUGH)
                 }
             % elif style_struct.name == "Box":
-                /// Sets the display property, but without touching
-                /// __servo_display_for_hypothetical_box, except when the
-                /// adjustment comes from root or item display fixups.
-                pub fn set_adjusted_display(&mut self,
-                                            dpy: longhands::display::computed_value::T,
-                                            is_item_or_root: bool) {
+                /// Sets the display property, but without touching original_display,
+                /// except when the adjustment comes from root or item display fixups.
+                pub fn set_adjusted_display(
+                    &mut self,
+                    dpy: longhands::display::computed_value::T,
+                    is_item_or_root: bool
+                ) {
                     self.set_display(dpy);
                     if is_item_or_root {
-                        self.set__servo_display_for_hypothetical_box(dpy);
+                        self.original_display = dpy;
                     }
                 }
             % endif
@@ -3047,6 +3069,9 @@ mod lazy_static_module {
                         % endfor
                         % if style_struct.name == "Font":
                             hash: 0,
+                        % endif
+                        % if style_struct.name == "Box":
+                            original_display: longhands::display::get_initial_value(),
                         % endif
                     }),
                 % endfor
