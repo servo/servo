@@ -260,7 +260,6 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     if let Some(val) = PREFS.get("js.mem.gc.dynamic_mark_slice.enabled").as_boolean() {
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_DYNAMIC_MARK_SLICE, val as u32);
     }
-    // TODO: handle js.mem.gc.refresh_frame_slices.enabled
     if let Some(val) = PREFS.get("js.mem.gc.dynamic_heap_growth.enabled").as_boolean() {
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_DYNAMIC_HEAP_GROWTH, val as u32);
     }
