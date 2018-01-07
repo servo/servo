@@ -4,6 +4,7 @@ env:
 
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach run -r -o output.png
   - ./mach test-wpt-failure
@@ -15,6 +16,7 @@ mac-rel-wpt1:
 
 mac-rel-wpt2:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
@@ -22,12 +24,14 @@ mac-rel-wpt2:
 
 mac-rel-wpt3:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-rel-wpt4:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
@@ -36,6 +40,7 @@ mac-rel-wpt4:
 
 mac-dev-unit:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --dev
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach test-unit
   - ./mach package --dev
@@ -46,6 +51,7 @@ mac-dev-unit:
 
 mac-rel-css1:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 5 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
@@ -54,34 +60,40 @@ mac-rel-css1:
 
 mac-rel-css2:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 6 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
 
 mac-nightly:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly mac
 
 linux-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env CC=gcc-5 CXX=g++-5 ./mach build --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-rel-nogate:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env CC=gcc-5 CXX=g++-5 ./mach build --release
   - python ./etc/ci/chaos_monkey_test.py
   - env CC=gcc-5 CXX=g++-5 RUSTFLAGS= bash ./etc/ci/mutation_test.sh
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-dev:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
   - env CC=gcc-5 CXX=g++-5 ./mach build --dev
@@ -97,6 +109,7 @@ linux-dev:
 
 linux-rel-wpt:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env CC=gcc-5 CXX=g++-5 ./mach build --release --with-debug-assertions
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
@@ -105,6 +118,7 @@ linux-rel-wpt:
 
 linux-rel-css:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env CC=gcc-5 CXX=g++-5 ./mach build --release --with-debug-assertions
   - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
@@ -115,6 +129,7 @@ linux-rel-css:
 
 linux-nightly:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env CC=gcc-5 CXX=g++-5 ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly linux
@@ -124,6 +139,7 @@ linux-nightly:
 
 android:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --dev
   - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
@@ -132,23 +148,27 @@ android:
 
 android-nightly:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --release
   - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --release
   - ./mach upload-nightly android
 
 arm32:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 arm64:
   - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
   - ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 windows-msvc-dev:
+  - mach.bat clean-cargo-cache --keep 3 --force
   - mach.bat clean-nightlies --keep 3 --force
   - mach.bat build --dev
   - mach.bat test-unit
@@ -157,6 +177,7 @@ windows-msvc-dev:
   - mach.bat test-stylo
 
 windows-msvc-nightly:
+  - mach.bat clean-cargo-cache --keep 3 --force
   - mach.bat clean-nightlies --keep 3 --force
   - mach.bat build --release
   - mach.bat package --release

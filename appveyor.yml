@@ -59,6 +59,9 @@ install:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
+  - set CARGO_HOME=C:\Users\appveyor\.cargo
+  - mach clean-nightlies --keep 2 --force
+  - mach clean-cargo-cache --keep 2 --force
   - mach build -d -v
   - mach test-unit
 
