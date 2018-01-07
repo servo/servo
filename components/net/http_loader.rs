@@ -699,7 +699,6 @@ pub fn http_redirect_fetch(request: &mut Request,
 
 fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {
     match *url_origin {
-        // TODO (servo/servo#15569) Set "Origin: null" when hyper supports it
         ImmutableOrigin::Opaque(_) => None,
         ImmutableOrigin::Tuple(ref scheme, ref host, ref port) =>
             Some(HyperOrigin::new(scheme.clone(), host.to_string(), Some(port.clone())))
