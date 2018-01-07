@@ -487,7 +487,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             width: size.width as u32,
             height: size.height as u32,
             stride: None,
-            format: if alpha { webrender_api::ImageFormat::BGRA8 } else { webrender_api::ImageFormat::RGB8 },
+            format: webrender_api::ImageFormat::BGRA8,
             offset: 0,
             is_opaque: !alpha,
         }
