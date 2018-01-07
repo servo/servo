@@ -10,7 +10,7 @@
 use app_units::Au;
 use display_list::ToLayout;
 use euclid::Point2D;
-use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClipScrollNode};
+use gfx::display_list::{BorderDetails, BorderRadii, ClipScrollNode};
 use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingRegion, DisplayItem};
 use gfx::display_list::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
@@ -30,19 +30,6 @@ trait WebRenderDisplayItemConverter {
         clip_ids: &mut Vec<Option<ClipId>>,
         current_clip_and_scroll_info: &mut ClipAndScrollInfo,
     );
-}
-
-trait ToBoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_api::BoxShadowClipMode;
-}
-
-impl ToBoxShadowClipMode for BoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_api::BoxShadowClipMode {
-        match *self {
-            BoxShadowClipMode::Inset => webrender_api::BoxShadowClipMode::Inset,
-            BoxShadowClipMode::Outset => webrender_api::BoxShadowClipMode::Outset,
-        }
-    }
 }
 
 pub trait ToBorderRadius {
@@ -331,7 +318,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     item.blur_radius.to_f32_px(),
                     item.spread_radius.to_f32_px(),
                     item.border_radius.to_border_radius(),
-                    item.clip_mode.to_clip_mode(),
+                    item.clip_mode,
                 );
             },
             DisplayItem::PushTextShadow(ref item) => {

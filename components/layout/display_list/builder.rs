@@ -27,7 +27,7 @@ use fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFrag
 use fragment::SpecificFragmentInfo;
 use gfx::display_list;
 use gfx::display_list::{BaseDisplayItem, BorderDetails, BorderDisplayItem, BLUR_INFLATION_FACTOR};
-use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClipScrollNode};
+use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClipScrollNode};
 use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use gfx::display_list::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{DisplayListSection, GradientDisplayItem, IframeDisplayItem, ImageBorder};
@@ -77,7 +77,7 @@ use style_traits::CSSPixel;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_api::{ClipId, ClipMode, ColorF, ComplexClipRegion, LineStyle};
+use webrender_api::{BoxShadowClipMode, ClipId, ClipMode, ColorF, ComplexClipRegion, LineStyle};
 use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, StickyOffsetBounds};
 
 trait ResolvePercentage {
