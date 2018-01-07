@@ -6,7 +6,7 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list::DisplayListBuildState;
 use flow::{FlowFlags, Flow, GetBaseFlow, ImmutableFlowUtils};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;

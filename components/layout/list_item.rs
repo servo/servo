@@ -10,8 +10,8 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::{LayoutContext, with_thread_local_font_context};
-use display_list_builder::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
-use display_list_builder::StackingContextCollectionState;
+use display_list::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
+use display_list::StackingContextCollectionState;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow};

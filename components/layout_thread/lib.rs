@@ -69,7 +69,7 @@ use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::context::malloc_size_of_persistent_local_context;
-use layout::display_list_builder::ToGfxColor;
+use layout::display_list::{ToGfxColor, WebRenderDisplayListConverter};
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, RelayoutMode, SpecialRestyleDamage};
@@ -81,7 +81,6 @@ use layout::query::{process_node_geometry_request, process_node_scroll_area_requ
 use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
 use layout::sequential;
 use layout::traversal::{ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows};
-use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
