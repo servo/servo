@@ -963,7 +963,7 @@ impl LayoutThread {
                 metadata.clone(),
                 sender.clone(),
                 || {
-            determine_root_background(layout_root);
+            determine_root_background(document, layout_root);
             layout_root.mut_base().stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              self.viewport_size).to_vector();
@@ -1674,7 +1674,7 @@ impl ProfilerMetadataFactory for LayoutThread {
 /// are displayed with a background from the surrounding context.
 ///
 /// Spec: https://drafts.csswg.org/css-backgrounds/#body-background
-fn determine_root_background(root_flow: &mut Flow) {
+fn determine_root_background(document: Option<&ServoLayoutDocument>, root_flow: &mut Flow) {
     if !root_flow.is_block_like() {
         return;
     }
@@ -1691,23 +1691,63 @@ fn determine_root_background(root_flow: &mut Flow) {
     }
     debug!("Root element without background. Trying to propagate child element background.");
 
-    let kid = match root_block.base.children.iter_mut().rev().next() {
-        None => return,
-        Some(ref kid) if !kid.is_block_like() => return,
-        Some(kid) => kid,
+    // Try to find the body node opaque id.
+    let mut body_node = None;
+    if let Some(root) = document.and_then(ServoLayoutDocument::root_element) {
+        for child in root.as_node().dom_children() {
+            if let Some(element) = child.as_element() {
+                if element.get_namespace() == "http://www.w3.org/1999/xhtml" && element.get_local_name() == "body" {
+                    body_node = Some(child.opaque());
+                }
+            }
+        }
     };
-    let kid_mut_block = kid.as_mut_block();
-    let kid_background = ServoArc::make_mut(&mut kid_mut_block.fragment.style).mutate_background();
-    // Copy background from <body> to <html> element.
-    let root_style = ServoArc::make_mut(&mut root_block.fragment.style);
-    *root_style.mutate_background() = kid_background.clone();
-    // According to the spec all attributes should be set to their initial values
-    // but this is not strictly needed as only backgrounds are drawn if either a
-    // background-color or a background-image is present.
-    // This is to prevent that background images are displayed multiple times
-    // and overlap each other.
-    kid_background.set_background_image(get_initial_background_image());
-    kid_background.set_background_color(Color::transparent());
+    if body_node.is_none() {
+        return
+    }
+    let body_node = body_node.unwrap();
+    debug!("Body element {:?} found.", body_node);
+
+    'children: for kid_mut in root_block.base.children.iter_mut() {
+        if kid_mut.is_block_like() {
+            let kid_mut_block = kid_mut.as_mut_block();
+            if kid_mut_block.fragment.node == body_node {
+                let kid_background = ServoArc::make_mut(&mut kid_mut_block.fragment.style).mutate_background();
+                // Copy background from <body> to <html> element.
+                let root_style = ServoArc::make_mut(&mut root_block.fragment.style);
+                *root_style.mutate_background() = kid_background.clone();
+                // According to the spec all attributes should be set to their initial values
+                // but this is not strictly needed as only backgrounds are drawn if either a
+                // background-color or a background-image is present.
+                // This is to prevent that background images are displayed multiple times
+                // and overlap each other.
+                kid_background.set_background_image(get_initial_background_image());
+                kid_background.set_background_color(Color::transparent());
+                break 'children;
+            }
+        }
+        if kid_mut.is_inline_flow() {
+            let kid_mut_inline = kid_mut.as_mut_inline();
+            debug!("Testing an inline.");
+            for fragment in kid_mut_inline.fragments.fragments.as_mut_slice() {
+                debug!("Testing inline fragment: {:?}", fragment.node);
+                if fragment.node == body_node {
+                    let kid_background = ServoArc::make_mut(&mut fragment.style).mutate_background();
+                    // Copy background from <body> to <html> element.
+                    let root_style = ServoArc::make_mut(&mut root_block.fragment.style);
+                    *root_style.mutate_background() = kid_background.clone();
+                    // According to the spec all attributes should be set to their initial values
+                    // but this is not strictly needed as only backgrounds are drawn if either a
+                    // background-color or a background-image is present.
+                    // This is to prevent that background images are displayed multiple times
+                    // and overlap each other.
+                    kid_background.set_background_image(get_initial_background_image());
+                    kid_background.set_background_color(Color::transparent());
+                    break 'children;
+                }
+            }
+        }
+    }
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
