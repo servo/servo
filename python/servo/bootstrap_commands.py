@@ -493,7 +493,10 @@ class MachCommands(CommandBase):
                                 print("Removing `{}`{} package from {}".format(*print_msg))
                                 for crate_path in crate_paths:
                                     if os.path.exists(crate_path):
-                                        delete(crate_path)
+                                        try:
+                                            delete(crate_path)
+                                        except:
+                                            print("Delete %s failed!" % crate_path)
                             else:
                                 print("Would remove `{}`{} package from {}".format(*print_msg))
 
