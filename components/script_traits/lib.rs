@@ -869,7 +869,7 @@ pub trait Painter: SpeculativePainter {
                           zoom: TypedScale<f32, CSSPixel, DevicePixel>,
                           properties: Vec<(Atom, String)>,
                           arguments: Vec<String>)
-                          -> DrawAPaintImageResult;
+                          -> Result<DrawAPaintImageResult, PaintWorkletError>;
 }
 
 impl fmt::Debug for Painter {

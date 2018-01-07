@@ -59,12 +59,16 @@ where
         }
 
         if let Some(ref i) = self.line_num {
-            dest.write_str(" ")?;
+            if self.is_span {
+                dest.write_str(" ")?;
+            }
             i.to_css(dest)?;
         }
 
         if let Some(ref s) = self.ident {
-            dest.write_str(" ")?;
+            if self.is_span || self.line_num.is_some() {
+                dest.write_str(" ")?;
+            }
             s.to_css(dest)?;
         }
 

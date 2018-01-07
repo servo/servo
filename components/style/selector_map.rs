@@ -415,6 +415,31 @@ fn specific_bucket_for<'a>(
                 lower_name: &selector.lower_name,
             }
         }
+        // ::slotted(..) isn't a normal pseudo-element, so we can insert it on
+        // the rule hash normally without much problem. For example, in a
+        // selector like:
+        //
+        //   div::slotted(span)::before
+        //
+        // It looks like:
+        //
+        //  [
+        //    LocalName(div),
+        //    Combinator(SlotAssignment),
+        //    Slotted(span),
+        //    Combinator::PseudoElement,
+        //    PseudoElement(::before),
+        //  ]
+        //
+        // So inserting `span` in the rule hash makes sense since we want to
+        // match the slotted <span>.
+        //
+        // FIXME(emilio, bug 1426516): The line below causes valgrind failures
+        // and it's probably a false positive, we should uncomment whenever
+        // jseward is back to confirm / whitelist it.
+        //
+        // Meanwhile taking the code path below is slower, but still correct.
+        // Component::Slotted(ref selector) => find_bucket(selector.iter()),
         _ => Bucket::Universal
     }
 }

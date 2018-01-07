@@ -13,229 +13,36 @@
 //
 // We allow "display" to apply to placeholders because we need to make the
 // placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
-<%helpers:longhand name="display"
-                   animation_value_type="discrete"
-                   custom_cascade="${product == 'servo'}"
-                   flags="APPLIES_TO_PLACEHOLDER"
-                   spec="https://drafts.csswg.org/css-display/#propdef-display">
-    <%
-        values = """inline block inline-block
-            table inline-table table-row-group table-header-group table-footer-group
-            table-row table-column-group table-column table-cell table-caption
-            list-item none
-        """.split()
-        webkit_prefixed_values = "flex inline-flex".split()
-        values += webkit_prefixed_values
-        if product == "gecko":
-            values += """grid inline-grid ruby ruby-base ruby-base-container
-                ruby-text ruby-text-container contents flow-root -webkit-box
-                -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
-                -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
-                -moz-popup -moz-groupbox""".split()
-    %>
-    use style_traits::ToCss;
+${helpers.predefined_type(
+    "display",
+    "Display",
+    "computed::Display::inline()",
+    initial_specified_value="specified::Display::inline()",
+    animation_value_type="discrete",
+    needs_context=False,
+    custom_cascade= product == 'servo',
+    custom_cascade_function="specified::Display::cascade_property_custom",
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-display/#propdef-display",
+)}
 
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-        use super::SpecifiedValue as Display;
-
-        impl Display {
-            /// Returns whether this "display" value is the display of a flex or
-            /// grid container.
-            ///
-            /// This is used to implement various style fixups.
-            pub fn is_item_container(&self) -> bool {
-                matches!(*self,
-                         Display::Flex
-                         | Display::InlineFlex
-                         % if product == "gecko":
-                         | Display::Grid
-                         | Display::InlineGrid
-                         % endif
-                )
-            }
-
-            /// Returns whether an element with this display type is a line
-            /// participant, which means it may lay its children on the same
-            /// line as itself.
-            pub fn is_line_participant(&self) -> bool {
-                matches!(*self,
-                         Display::Inline
-                         % if product == "gecko":
-                         | Display::Contents
-                         | Display::Ruby
-                         | Display::RubyBaseContainer
-                         % endif
-                )
-            }
-
-            /// Whether `new_display` should be ignored, given a previous
-            /// `old_display` value.
-            ///
-            /// This is used to ignore `display: -moz-box` declarations after an
-            /// equivalent `display: -webkit-box` declaration, since the former
-            /// has a vastly different meaning. See bug 1107378 and bug 1407701.
-            ///
-            /// FIXME(emilio): This is a pretty decent hack, we should try to
-            /// remove it.
-            pub fn should_ignore_parsed_value(
-                _old_display: Self,
-                _new_display: Self,
-            ) -> bool {
-                #[cfg(feature = "gecko")]
-                {
-                    match (_old_display, _new_display) {
-                        (Display::WebkitBox, Display::MozBox) |
-                        (Display::WebkitInlineBox, Display::MozInlineBox) => {
-                            return true;
-                        }
-                        _ => {},
-                    }
-                }
-
-                return false;
-            }
-
-            /// Returns whether this "display" value is one of the types for
-            /// ruby.
-            #[cfg(feature = "gecko")]
-            pub fn is_ruby_type(&self) -> bool {
-                matches!(*self,
-                         Display::Ruby |
-                         Display::RubyBase |
-                         Display::RubyText |
-                         Display::RubyBaseContainer |
-                         Display::RubyTextContainer)
-            }
-
-            /// Returns whether this "display" value is a ruby level container.
-            #[cfg(feature = "gecko")]
-            pub fn is_ruby_level_container(&self) -> bool {
-                matches!(*self,
-                         Display::RubyBaseContainer |
-                         Display::RubyTextContainer)
-            }
-
-            /// Convert this display into an equivalent block display.
-            ///
-            /// Also used for style adjustments.
-            pub fn equivalent_block_display(&self, _is_root_element: bool) -> Self {
-                match *self {
-                    // Values that have a corresponding block-outside version.
-                    Display::InlineTable => Display::Table,
-                    Display::InlineFlex => Display::Flex,
-
-                    % if product == "gecko":
-                    Display::InlineGrid => Display::Grid,
-                    Display::WebkitInlineBox => Display::WebkitBox,
-                    % endif
-
-                    // Special handling for contents and list-item on the root
-                    // element for Gecko.
-                    % if product == "gecko":
-                    Display::Contents | Display::ListItem if _is_root_element => Display::Block,
-                    % endif
-
-                    // These are not changed by blockification.
-                    Display::None |
-                    Display::Block |
-                    Display::Flex |
-                    Display::ListItem |
-                    Display::Table => *self,
-
-                    % if product == "gecko":
-                    Display::Contents |
-                    Display::FlowRoot |
-                    Display::Grid |
-                    Display::WebkitBox => *self,
-                    % endif
-
-                    // Everything else becomes block.
-                    _ => Display::Block,
-                }
-
-            }
-
-            /// Convert this display into an inline-outside display.
-            ///
-            /// Ideally it should implement spec: https://drafts.csswg.org/css-display/#inlinify
-            /// but the spec isn't stable enough, so we copy what Gecko does for now.
-            #[cfg(feature = "gecko")]
-            pub fn inlinify(&self) -> Self {
-                match *self {
-                    Display::Block |
-                    Display::FlowRoot => Display::InlineBlock,
-                    Display::Table => Display::InlineTable,
-                    Display::Flex => Display::InlineFlex,
-                    Display::Grid => Display::InlineGrid,
-                    Display::MozBox => Display::MozInlineBox,
-                    Display::MozStack => Display::MozInlineStack,
-                    Display::WebkitBox => Display::WebkitInlineBox,
-                    other => other,
-                }
-            }
-        }
-    }
-
-    // FIXME(emilio): Why does this reinvent the wheel, again?
-    #[allow(non_camel_case_types)]
-    #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
-    #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-    pub enum SpecifiedValue {
-        % for value in values:
-            ${to_camel_case(value)},
-        % endfor
-    }
-
-    // TODO(emilio): derive.
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write,
-        {
-            match *self {
-                % for value in values:
-                    SpecifiedValue::${to_camel_case(value)} => dest.write_str("${value}"),
-                % endfor
-            }
-        }
-    }
-
-    /// The initial display value.
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::${to_camel_case(values[0])}
-    }
-
-    /// Parse a display value.
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            % for value in values:
-                "${value}" => {
-                    Ok(computed_value::T::${to_camel_case(value)})
-                },
-            % endfor
-            % for value in webkit_prefixed_values:
-                "-webkit-${value}" => {
-                    Ok(computed_value::T::${to_camel_case(value)})
-                },
-            % endfor
-        }
-    }
-
-    % if product == "servo":
-        fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   context: &mut computed::Context) {
-            longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
-            longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-        }
-    % endif
-
-    ${helpers.gecko_keyword_conversion(Keyword('display', ' '.join(values),
-                                               gecko_enum_prefix='StyleDisplay',
-                                               gecko_strip_moz_prefix=False))}
-
-</%helpers:longhand>
+// FIXME(emilio): Listing all the display values here is very unfortunate, we should teach C++ to use the
+// Rust enum directly, or generate the conversions to `StyleDisplay`.
+${helpers.gecko_keyword_conversion(
+    Keyword('display', """
+        inline block inline-block
+        table inline-table table-row-group table-header-group table-footer-group
+        table-row table-column-group table-column table-cell table-caption
+        list-item none flex inline-flex grid inline-grid ruby ruby-base ruby-base-container
+        ruby-text ruby-text-container contents flow-root -webkit-box
+        -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
+        -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
+        -moz-popup -moz-groupbox
+    """,
+    gecko_enum_prefix='StyleDisplay',
+    gecko_strip_moz_prefix=False),
+    type="::values::specified::Display"
+)}
 
 ${helpers.single_keyword("-moz-top-layer", "none top",
                          gecko_constant_prefix="NS_STYLE_TOP_LAYER",
@@ -736,100 +543,14 @@ ${helpers.predefined_type("transform-origin",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-transforms/#transform-origin-property")}
 
-// FIXME: `size` and `content` values are not implemented and `strict` is implemented
-// like `content`(layout style paint) in gecko. We should implement `size` and `content`,
-// also update the glue once they are implemented in gecko.
-<%helpers:longhand name="contain" animation_value_type="discrete" products="gecko"
-                   flags="FIXPOS_CB"
-                   gecko_pref="layout.css.contain.enabled",
-                   spec="https://drafts.csswg.org/css-contain/#contain-property">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    bitflags! {
-        #[derive(MallocSizeOf, ToComputedValue)]
-        pub struct SpecifiedValue: u8 {
-            const LAYOUT = 0x01;
-            const STYLE = 0x02;
-            const PAINT = 0x04;
-            const STRICT = 0x8;
-            const STRICT_BITS = SpecifiedValue::LAYOUT.bits | SpecifiedValue::STYLE.bits | SpecifiedValue::PAINT.bits;
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.is_empty() {
-                return dest.write_str("none")
-            }
-            if self.contains(SpecifiedValue::STRICT) {
-                return dest.write_str("strict")
-            }
-
-            let mut has_any = false;
-            macro_rules! maybe_write_value {
-                ($ident:path => $str:expr) => {
-                    if self.contains($ident) {
-                        if has_any {
-                            dest.write_str(" ")?;
-                        }
-                        has_any = true;
-                        dest.write_str($str)?;
-                    }
-                }
-            }
-            maybe_write_value!(SpecifiedValue::LAYOUT => "layout");
-            maybe_write_value!(SpecifiedValue::STYLE => "style");
-            maybe_write_value!(SpecifiedValue::PAINT => "paint");
-
-            debug_assert!(has_any);
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::empty()
-    }
-
-    /// none | strict | content | [ size || layout || style || paint ]
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        let mut result = SpecifiedValue::empty();
-
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(result)
-        }
-        if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
-            result.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
-            return Ok(result)
-        }
-
-        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &name,
-                "layout" => Some(SpecifiedValue::LAYOUT),
-                "style" => Some(SpecifiedValue::STYLE),
-                "paint" => Some(SpecifiedValue::PAINT),
-                _ => None
-            };
-            let flag = match flag {
-                Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
-            };
-            result.insert(flag);
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("contain",
+                          "Contain",
+                          "specified::Contain::empty()",
+                          animation_value_type="discrete",
+                          products="gecko",
+                          flags="FIXPOS_CB",
+                          gecko_pref="layout.css.contain.enabled",
+                          spec="https://drafts.csswg.org/css-contain/#contain-property")}
 
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
@@ -881,62 +602,14 @@ ${helpers.single_keyword("-moz-orient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animation_value_type="discrete")}
 
-<%helpers:longhand name="will-change" products="gecko" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-will-change/#will-change">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::CustomIdent;
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-    pub enum SpecifiedValue {
-        Auto,
-        AnimateableFeatures(Vec<CustomIdent>),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Auto => dest.write_str("auto"),
-                SpecifiedValue::AnimateableFeatures(ref features) => {
-                    let (first, rest) = features.split_first().unwrap();
-                    first.to_css(dest)?;
-                    for feature in rest {
-                        dest.write_str(", ")?;
-                        feature.to_css(dest)?;
-                    }
-                    Ok(())
-                }
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Auto
-    }
-
-    /// auto | <animateable-feature>#
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(computed_value::T::Auto)
-        } else {
-            input.parse_comma_separated(|i| {
-                let location = i.current_source_location();
-                CustomIdent::from_ident(location, i.expect_ident()?, &[
-                    "will-change",
-                    "none",
-                    "all",
-                    "auto",
-                ])
-            }).map(SpecifiedValue::AnimateableFeatures)
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type(
+    "will-change",
+    "WillChange",
+    "computed::WillChange::auto()",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-will-change/#will-change"
+)}
 
 ${helpers.predefined_type(
     "shape-image-threshold", "Opacity", "0.0",
@@ -958,81 +631,12 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}
 
-<%helpers:longhand name="touch-action"
-                   products="gecko"
-                   animation_value_type="discrete"
-                   gecko_pref="layout.css.touch_action.enabled"
-                   spec="https://compat.spec.whatwg.org/#touch-action">
-    use gecko_bindings::structs;
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    bitflags! {
-        /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(ToComputedValue)]
-        pub struct SpecifiedValue: u8 {
-            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8;
-            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8;
-            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8;
-            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8;
-            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8;
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::TOUCH_ACTION_NONE => dest.write_str("none"),
-                SpecifiedValue::TOUCH_ACTION_AUTO => dest.write_str("auto"),
-                SpecifiedValue::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
-                    dest.write_str("pan-x pan-y")
-                },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X) => {
-                    dest.write_str("pan-x")
-                },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
-                    dest.write_str("pan-y")
-                },
-                _ => panic!("invalid touch-action value"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue::TOUCH_ACTION_AUTO
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        // FIXME: remove clone() when lifetimes are non-lexical
-        try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(SpecifiedValue::TOUCH_ACTION_AUTO),
-            "none" => Ok(SpecifiedValue::TOUCH_ACTION_NONE),
-            "manipulation" => Ok(SpecifiedValue::TOUCH_ACTION_MANIPULATION),
-            "pan-x" => {
-                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X)
-                }
-            },
-            "pan-y" => {
-                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                }
-            },
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    impl_bitflags_conversions!(SpecifiedValue);
-</%helpers:longhand>
+${helpers.predefined_type(
+    "touch-action",
+    "TouchAction",
+    "computed::TouchAction::auto()",
+    products="gecko",
+    gecko_pref="layout.css.touch_action.enabled",
+    animation_value_type="discrete",
+    spec="https://compat.spec.whatwg.org/#touch-action",
+)}

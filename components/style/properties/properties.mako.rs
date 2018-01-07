@@ -309,6 +309,16 @@ impl LonghandIdSet {
         true
     }
 
+    /// Returns whether this set contains any longhand that `other` also contains.
+    pub fn contains_any(&self, other: &Self) -> bool {
+        for (self_cell, other_cell) in self.storage.iter().zip(other.storage.iter()) {
+            if (*self_cell & *other_cell) != 0 {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Create an empty set
     #[inline]
     pub fn new() -> LonghandIdSet {
@@ -320,6 +330,13 @@ impl LonghandIdSet {
     pub fn contains(&self, id: LonghandId) -> bool {
         let bit = id as usize;
         (self.storage[bit / 32] & (1 << (bit % 32))) != 0
+    }
+
+    /// Return whether this set contains any reset longhand.
+    #[inline]
+    pub fn contains_any_reset(&self) -> bool {
+        ${static_longhand_id_set("RESET", lambda p: not p.style_struct.inherited)}
+        self.contains_any(&RESET)
     }
 
     /// Add the given property to the set
@@ -687,14 +704,6 @@ impl LonghandId {
     fn is_early_property(&self) -> bool {
         matches!(*self,
             % if product == 'gecko':
-            // We need to know the number of animations / transition-properties
-            // before setting the rest of the related longhands, see #15923.
-            //
-            // FIXME(emilio): Looks to me that we could just do this in Gecko
-            // instead of making them early properties. Indeed, the spec
-            // mentions _used_ values, not computed values, so this looks wrong.
-            LonghandId::AnimationName |
-            LonghandId::TransitionProperty |
 
             // Needed to properly compute the writing mode, to resolve logical
             // properties, and similar stuff. In this block instead of along
@@ -2049,6 +2058,18 @@ pub mod style_structs {
                     .take(self.transition_property_count())
                     .any(|t| t.seconds() > 0.)
             }
+        % elif style_struct.name == "Column":
+            /// Whether this is a multicol style.
+            #[cfg(feature = "servo")]
+            pub fn is_multicol(&self) -> bool {
+                match self.column_width {
+                    Either::First(_width) => true,
+                    Either::Second(_auto) => match self.column_count {
+                        Either::First(_n) => true,
+                        Either::Second(_auto) => false,
+                    }
+                }
+            }
         % endif
     }
 
@@ -2267,17 +2288,16 @@ impl ComputedValuesInner {
         }
     }
 
+    /// Whether the current style or any of its ancestors is multicolumn.
+    #[inline]
+    pub fn can_be_fragmented(&self) -> bool {
+        self.flags.contains(ComputedValueFlags::CAN_BE_FRAGMENTED)
+    }
+
     /// Whether the current style is multicolumn.
     #[inline]
     pub fn is_multicol(&self) -> bool {
-        let style = self.get_column();
-        match style.column_width {
-            Either::First(_width) => true,
-            Either::Second(_auto) => match style.column_count {
-                Either::First(_n) => true,
-                Either::Second(_auto) => false,
-            }
-        }
+        self.get_column().is_multicol()
     }
 
     /// Resolves the currentColor keyword.
@@ -2752,16 +2772,16 @@ impl<'a> StyleBuilder<'a> {
         % endif
 
         % if not property.style_struct.inherited:
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_RESET_STYLE);
+        self.flags.insert(ComputedValueFlags::INHERITS_RESET_STYLE);
         self.modified_reset = true;
         % endif
 
         % if property.ident == "content":
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_CONTENT);
+        self.flags.insert(ComputedValueFlags::INHERITS_CONTENT);
         % endif
 
         % if property.ident == "display":
-        self.flags.insert(::properties::computed_value_flags::ComputedValueFlags::INHERITS_DISPLAY);
+        self.flags.insert(ComputedValueFlags::INHERITS_DISPLAY);
         % endif
 
         self.${property.style_struct.ident}.mutate()
@@ -3079,21 +3099,13 @@ bitflags! {
         /// that it may affect global state, like the Device's root font-size.
         const IS_ROOT_ELEMENT = 1 << 3;
 
-        /// Whether to convert display:contents into display:inline.  This
-        /// is used by Gecko to prevent display:contents on generated
-        /// content.
-        const PROHIBIT_DISPLAY_CONTENTS = 1 << 4;
-
-        /// Whether we're styling the ::-moz-fieldset-content anonymous box.
-        const IS_FIELDSET_CONTENT = 1 << 5;
-
         /// Whether we're computing the style of a link, either visited or
         /// unvisited.
-        const IS_LINK = 1 << 6;
+        const IS_LINK = 1 << 4;
 
         /// Whether we're computing the style of a link element that happens to
         /// be visited.
-        const IS_VISITED_LINK = 1 << 7;
+        const IS_VISITED_LINK = 1 << 5;
     }
 }
 
@@ -3173,6 +3185,7 @@ pub fn cascade(
         device,
         pseudo,
         rule_node,
+        guards,
         iter_declarations,
         parent_style,
         parent_style_ignoring_first_line,
@@ -3192,6 +3205,7 @@ pub fn apply_declarations<'a, F, I>(
     device: &Device,
     pseudo: Option<<&PseudoElement>,
     rules: &StrongRuleNode,
+    guards: &StylesheetGuards,
     iter_declarations: F,
     parent_style: Option<<&ComputedValues>,
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
@@ -3494,7 +3508,7 @@ where
             % endif
             }
 
-            if let Some(style) = rule_cache.and_then(|c| c.find(&context.builder)) {
+            if let Some(style) = rule_cache.and_then(|c| c.find(guards, &context.builder)) {
                 context.builder.copy_reset_from(style);
                 apply_reset = false;
             }

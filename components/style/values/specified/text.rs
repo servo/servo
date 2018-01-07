@@ -10,7 +10,8 @@ use parser::{Parse, ParserContext};
 use properties::{longhands, PropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use style_traits::{ParseError, StyleParseErrorKind};
+use std::fmt;
+use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
 use values::computed::text::TextOverflow as ComputedTextOverflow;
@@ -347,5 +348,173 @@ impl Parse for TextDecorationLine {
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
+    }
+}
+
+macro_rules! define_text_align_keyword {
+    ($($name: ident => $discriminant: expr,)+) => {
+        /// Specified value of text-align keyword value.
+        #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+        #[allow(missing_docs)]
+        pub enum TextAlignKeyword {
+            $(
+                $name = $discriminant,
+            )+
+        }
+
+        impl TextAlignKeyword {
+            /// Construct a TextAlignKeyword from u32.
+            pub fn from_u32(discriminant: u32) -> Option<TextAlignKeyword> {
+                match discriminant {
+                    $(
+                        $discriminant => Some(TextAlignKeyword::$name),
+                    )+
+                    _ => None
+                }
+            }
+        }
+    }
+}
+
+// FIXME(emilio): Why reinventing the world?
+#[cfg(feature = "gecko")]
+define_text_align_keyword! {
+    Start => 0,
+    End => 1,
+    Left => 2,
+    Right => 3,
+    Center => 4,
+    Justify => 5,
+    MozCenter => 6,
+    MozLeft => 7,
+    MozRight => 8,
+    Char => 10,
+}
+
+#[cfg(feature = "servo")]
+define_text_align_keyword! {
+    Start => 0,
+    End => 1,
+    Left => 2,
+    Right => 3,
+    Center => 4,
+    Justify => 5,
+    ServoCenter => 6,
+    ServoLeft => 7,
+    ServoRight => 8,
+}
+
+impl TextAlignKeyword {
+    /// Return the initial value of TextAlignKeyword.
+    #[inline]
+    pub fn start() -> TextAlignKeyword {
+        TextAlignKeyword::Start
+    }
+}
+
+/// Specified value of text-align property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum TextAlign {
+    /// Keyword value of text-align property.
+    Keyword(TextAlignKeyword),
+    /// `match-parent` value of text-align property. It has a different handling
+    /// unlike other keywords.
+    #[cfg(feature = "gecko")]
+    MatchParent,
+    /// `MozCenterOrInherit` value of text-align property. It cannot be parsed,
+    /// only set directly on the elements and it has a different handling
+    /// unlike other values.
+    #[cfg(feature = "gecko")]
+    MozCenterOrInherit,
+
+}
+
+impl Parse for TextAlign {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        // MozCenterOrInherit cannot be parsed, only set directly on the elements
+        if let Ok(key) = input.try(TextAlignKeyword::parse) {
+            return Ok(TextAlign::Keyword(key));
+        }
+        #[cfg(feature = "gecko")]
+        {
+            input.expect_ident_matching("match-parent")?;
+            return Ok(TextAlign::MatchParent);
+        }
+        #[cfg(feature = "servo")]
+        {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+    }
+}
+
+impl ToCss for TextAlign {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TextAlign::Keyword(key) => key.to_css(dest),
+            #[cfg(feature = "gecko")]
+            TextAlign::MatchParent => dest.write_str("match-parent"),
+            #[cfg(feature = "gecko")]
+            TextAlign::MozCenterOrInherit => Ok(()),
+        }
+    }
+}
+
+impl TextAlign {
+    /// Convert an enumerated value coming from Gecko to a `TextAlign`.
+    #[cfg(feature = "gecko")]
+    pub fn from_gecko_keyword(kw: u32) -> Self {
+        use gecko_bindings::structs::NS_STYLE_TEXT_ALIGN_MATCH_PARENT;
+        if kw == NS_STYLE_TEXT_ALIGN_MATCH_PARENT {
+            TextAlign::MatchParent
+        } else {
+            TextAlign::Keyword(TextAlignKeyword::from_gecko_keyword(kw))
+        }
+    }
+}
+
+impl ToComputedValue for TextAlign {
+    type ComputedValue = TextAlignKeyword;
+
+    #[inline]
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        match *self {
+            TextAlign::Keyword(key) => key,
+            #[cfg(feature = "gecko")]
+            TextAlign::MatchParent => {
+                // on the root <html> element we should still respect the dir
+                // but the parent dir of that element is LTR even if it's <html dir=rtl>
+                // and will only be RTL if certain prefs have been set.
+                // In that case, the default behavior here will set it to left,
+                // but we want to set it to right -- instead set it to the default (`start`),
+                // which will do the right thing in this case (but not the general case)
+                if _context.is_root_element {
+                    return TextAlignKeyword::start();
+                }
+                let parent = _context.builder.get_parent_inheritedtext().clone_text_align();
+                let ltr = _context.builder.inherited_writing_mode().is_bidi_ltr();
+                match (parent, ltr) {
+                    (TextAlignKeyword::Start, true) => TextAlignKeyword::Left,
+                    (TextAlignKeyword::Start, false) => TextAlignKeyword::Right,
+                    (TextAlignKeyword::End, true) => TextAlignKeyword::Right,
+                    (TextAlignKeyword::End, false) => TextAlignKeyword::Left,
+                    _ => parent
+                }
+            },
+            #[cfg(feature = "gecko")]
+            TextAlign::MozCenterOrInherit => {
+                let parent = _context.builder.get_parent_inheritedtext().clone_text_align();
+                if parent == TextAlignKeyword::Start {
+                    TextAlignKeyword::Center
+                } else {
+                    parent
+                }
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        TextAlign::Keyword(*computed)
     }
 }

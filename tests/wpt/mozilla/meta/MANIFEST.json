@@ -7804,6 +7804,18 @@
      ],
      {}
     ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_paint_worklet_timeout.html",
+     [
+      [
+       "/_mozilla/mozilla/worklets/test_paint_worklet_timeout_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
    ]
   },
   "reftest_node": {
@@ -12697,6 +12709,16 @@
     ]
    ],
    "mozilla/worklets/test_paint_worklet_size_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
     [
      {}
     ]
@@ -32845,6 +32867,12 @@
      {}
     ]
    ],
+   "mozilla/custom_auto_rooter.html": [
+    [
+     "/_mozilla/mozilla/custom_auto_rooter.html",
+     {}
+    ]
+   ],
    "mozilla/deep_serialization_succeeds.html": [
     [
      "/_mozilla/mozilla/deep_serialization_succeeds.html",
@@ -40192,6 +40220,12 @@
    "mozilla/window_performance.html": [
     [
      "/_mozilla/mozilla/window_performance.html",
+     {}
+    ]
+   ],
+   "mozilla/window_performance_topLevelDomComplete.html": [
+    [
+     "/_mozilla/mozilla/window_performance_topLevelDomComplete.html",
      {}
     ]
    ],
@@ -66030,6 +66064,10 @@
    "67d8cdd3e3a1656ba315fcbf6dae7236680bac16",
    "reftest"
   ],
+  "mozilla/custom_auto_rooter.html": [
+   "3466095fb0846b848c948dd1596764fff456fa9b",
+   "testharness"
+  ],
   "mozilla/deep_serialization_succeeds.html": [
    "cb3d201d577c17d19babf1f6c04ba882fa42048e",
    "testharness"
@@ -72342,6 +72380,10 @@
    "f03283e68b82d972ad21f674243070643ef89489",
    "testharness"
   ],
+  "mozilla/window_performance_topLevelDomComplete.html": [
+   "4b953e63ffa6bf4ed1bc9a2baaea457d46502b9d",
+   "testharness"
+  ],
   "mozilla/window_requestAnimationFrame.html": [
    "86310f3e4b88cce70ef92b56e4f65f034999096e",
    "testharness"
@@ -72420,6 +72462,18 @@
   ],
   "mozilla/worklets/test_paint_worklet_size_ref.html": [
    "7c92e508e08d7d146354a5be7fa256ccbd465dde",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.html": [
+   "dde3d2d6359d39282cf8dfdfabebed735c7815a8",
+   "reftest"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.js": [
+   "3e4ff24fc85ad2956b741ff1785cecfb9641d792",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
+   "193529394981b09b56404678124f6b08ff230a74",
    "support"
   ],
   "mozilla/worklets/test_worklet.html": [

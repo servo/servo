@@ -20,11 +20,11 @@ matrix:
         - export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
         - export CC=gcc-5 CXX=g++-5
       script:
-         - ./mach build -d --verbose
-         - ./mach test-unit
+         - RUSTFLAGS='-D warnings' ./mach build -d --verbose
+         - RUSTFLAGS='-D warnings' ./mach test-unit
          - ./mach clean
-         - ./mach build-geckolib
-         - ./mach test-stylo
+         - RUSTFLAGS='-D warnings' ./mach build-geckolib
+         - RUSTFLAGS='-D warnings' ./mach test-stylo
          - bash etc/ci/lockfile_changed.sh
       cache:
         directories:

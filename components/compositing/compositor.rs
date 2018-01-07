@@ -674,7 +674,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return;
         }
 
-        self.frame_size = self.window.framebuffer_size();
+        self.frame_size = new_frame_size;
         self.window_rect = new_window_rect;
 
         self.send_window_size(WindowSizeType::Resize);
@@ -1034,7 +1034,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         }
 
-        // TODO(gw): Support zoom (WR issue #28).
         if let Some(combined_event) = last_combined_event {
             let scroll_location = match combined_event.scroll_location {
                 ScrollLocation::Delta(delta) => {
@@ -1524,9 +1523,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
         let mut flags = self.webrender.get_debug_flags();
         let flag = match option {
-            WebRenderDebugOption::Profiler => webrender::DebugFlags::PROFILER_DBG,
-            WebRenderDebugOption::TextureCacheDebug => webrender::DebugFlags::TEXTURE_CACHE_DBG,
-            WebRenderDebugOption::RenderTargetDebug => webrender::DebugFlags::RENDER_TARGET_DBG,
+            WebRenderDebugOption::Profiler => {
+                webrender::DebugFlags::PROFILER_DBG |
+                webrender::DebugFlags::GPU_TIME_QUERIES |
+                webrender::DebugFlags::GPU_SAMPLE_QUERIES
+            }
+            WebRenderDebugOption::TextureCacheDebug => {
+                webrender::DebugFlags::TEXTURE_CACHE_DBG
+            }
+            WebRenderDebugOption::RenderTargetDebug => {
+                webrender::DebugFlags::RENDER_TARGET_DBG
+            }
         };
         flags.toggle(flag);
         self.webrender.set_debug_flags(flags);

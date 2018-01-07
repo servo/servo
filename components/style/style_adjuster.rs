@@ -104,6 +104,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.is_pseudo_element() {
             self.style.flags.insert(ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE);
         }
+
+        #[cfg(feature = "servo")]
+        {
+            if self.style.inherited_flags().contains(ComputedValueFlags::CAN_BE_FRAGMENTED) ||
+                self.style.get_parent_column().is_multicol()
+            {
+                self.style.flags.insert(ComputedValueFlags::CAN_BE_FRAGMENTED);
+            }
+        }
     }
 
     /// Adjust the style for text style.
@@ -320,12 +329,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// Native anonymous content converts display:contents into display:inline.
     #[cfg(feature = "gecko")]
-    fn adjust_for_prohibited_display_contents(&mut self, flags: CascadeFlags) {
-        use properties::CascadeFlags;
-
+    fn adjust_for_prohibited_display_contents(&mut self) {
         // TODO: We should probably convert display:contents into display:none
         // in some cases too: https://drafts.csswg.org/css-display/#unbox
-        if !flags.contains(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS) ||
+        //
+        // FIXME(emilio): ::before and ::after should support display: contents,
+        // see bug 1418138.
+        if self.style.pseudo.is_none() ||
            self.style.get_box().clone_display() != Display::Contents {
             return;
         }
@@ -343,12 +353,12 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_fieldset_content(
         &mut self,
         layout_parent_style: &ComputedValues,
-        flags: CascadeFlags,
     ) {
-        use properties::CascadeFlags;
-        if !flags.contains(CascadeFlags::IS_FIELDSET_CONTENT) {
-            return;
+        match self.style.pseudo {
+            Some(ref p) if p.is_fieldset_content() => {},
+            _ => return,
         }
+
         debug_assert_eq!(self.style.get_box().clone_display(), Display::Block);
         // TODO We actually want style from parent rather than layout
         // parent, so that this fixup doesn't happen incorrectly when
@@ -557,11 +567,20 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         layout_parent_style: &ComputedValues,
         flags: CascadeFlags,
     ) {
+        // Don't adjust visited styles, visited-dependent properties aren't
+        // affected by these adjustments and it'd be just wasted work anyway.
+        //
+        // It also doesn't make much sense to adjust them, since we don't
+        // cascade most properties anyway, and they wouldn't be looked up.
+        if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) {
+            return;
+        }
+
         self.adjust_for_visited(flags);
         #[cfg(feature = "gecko")]
         {
-            self.adjust_for_prohibited_display_contents(flags);
-            self.adjust_for_fieldset_content(layout_parent_style, flags);
+            self.adjust_for_prohibited_display_contents();
+            self.adjust_for_fieldset_content(layout_parent_style);
         }
         self.adjust_for_top_layer();
         self.blockify_if_necessary(layout_parent_style, flags);

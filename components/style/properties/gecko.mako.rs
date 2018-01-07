@@ -61,6 +61,7 @@ use values::{self, Auto, CustomIdent, Either, KeyframesName, None_};
 use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
 use values::computed::font::{FontSize, SingleFontFamily};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
+use values::computed::outline::OutlineStyle;
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -298,10 +299,6 @@ impl ComputedValuesInner {
     pub fn has_moz_binding(&self) -> bool {
         !self.get_box().gecko.mBinding.mRawPtr.is_null()
     }
-
-    // FIXME(bholley): Implement this properly.
-    #[inline]
-    pub fn is_multicol(&self) -> bool { false }
 
     pub fn to_declaration_block(&self, property: PropertyDeclarationId) -> PropertyDeclarationBlock {
         let value = match property {
@@ -1788,16 +1785,14 @@ fn static_assert() {
 
     pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
         use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
-        use gecko_bindings::structs;
+        use gecko_bindings::structs::StyleBorderImageRepeat;
 
         % for i, side in enumerate(["H", "V"]):
-            let k = match v.${i} {
+            self.gecko.mBorderImageRepeat${side} = match v.${i} {
                 % for keyword in border_image_repeat_keywords:
-                RepeatKeyword::${keyword} => structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()},
+                RepeatKeyword::${keyword} => StyleBorderImageRepeat::${keyword},
                 % endfor
             };
-
-            self.gecko.mBorderImageRepeat${side} = k as u8;
         % endfor
     }
 
@@ -1812,14 +1807,13 @@ fn static_assert() {
 
     pub fn clone_border_image_repeat(&self) -> longhands::border_image_repeat::computed_value::T {
         use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
-        use gecko_bindings::structs;
+        use gecko_bindings::structs::StyleBorderImageRepeat;
 
         % for side in ["H", "V"]:
-        let servo_${side.lower()} = match self.gecko.mBorderImageRepeat${side} as u32 {
+        let servo_${side.lower()} = match self.gecko.mBorderImageRepeat${side} {
             % for keyword in border_image_repeat_keywords:
-            structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()} => RepeatKeyword::${keyword},
+            StyleBorderImageRepeat::${keyword} => RepeatKeyword::${keyword},
             % endfor
-            x => panic!("Found unexpected value in mBorderImageRepeat${side}: {:?}", x),
         };
         % endfor
         longhands::border_image_repeat::computed_value::T(servo_h, servo_v)
@@ -2348,10 +2342,10 @@ fn static_assert() {
         // cast + static_asserts
         let result = match v {
             % for value in border_style_keyword.values_for('gecko'):
-                Either::Second(border_style::T::${to_camel_case(value)}) =>
+                OutlineStyle::Other(border_style::T::${to_camel_case(value)}) =>
                     structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
             % endfor
-                Either::First(Auto) =>
+                OutlineStyle::Auto =>
                     structs::${border_style_keyword.gecko_constant('auto')} ${border_style_keyword.maybe_cast("u8")},
         };
         ${set_gecko_property("mOutlineStyle", "result")}
@@ -2378,10 +2372,10 @@ fn static_assert() {
         match ${get_gecko_property("mOutlineStyle")} ${border_style_keyword.maybe_cast("u32")} {
             % for value in border_style_keyword.values_for('gecko'):
             structs::${border_style_keyword.gecko_constant(value)} => {
-                Either::Second(border_style::T::${to_camel_case(value)})
+                OutlineStyle::Other(border_style::T::${to_camel_case(value)})
             },
             % endfor
-            structs::${border_style_keyword.gecko_constant('auto')} => Either::First(Auto),
+            structs::${border_style_keyword.gecko_constant('auto')} => OutlineStyle::Auto,
             % if border_style_keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for outline_style property: {:?}", x),
             % endif
@@ -2950,10 +2944,12 @@ fn static_assert() {
         let count = other.gecko.m${type.capitalize()}${gecko_ffi_name}Count;
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = count;
 
-        // The length of mTransitions or mAnimations is often greater than m{Transition|Animation}XXCount,
-        // don't copy values over the count.
-        for (index, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate().take(count as usize) {
-            gecko.m${gecko_ffi_name} = other.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name};
+        let iter = self.gecko.m${type.capitalize()}s.iter_mut().take(count as usize).zip(
+            other.gecko.m${type.capitalize()}s.iter()
+        );
+
+        for (ours, others) in iter {
+            ours.m${gecko_ffi_name} = others.m${gecko_ffi_name};
         }
     }
 
@@ -2982,7 +2978,7 @@ fn static_assert() {
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
         self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = input_len as u32;
-        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
             gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
         }
     }
@@ -3007,7 +3003,7 @@ fn static_assert() {
         self.gecko.m${type.capitalize()}s.ensure_len(input_len);
 
         self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
-        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
             gecko.mTimingFunction = servo.into();
         }
     }
@@ -3064,7 +3060,7 @@ fn static_assert() {
 
         self.gecko.mAnimation${gecko_ffi_name}Count = input_len as u32;
 
-        for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
             let result = match servo {
                 % for value in keyword.gecko_values():
                     Keyword::${to_camel_case(value)} =>
@@ -3298,7 +3294,8 @@ fn static_assert() {
 
     pub fn transition_combined_duration_at(&self, index: usize) -> f32 {
         // https://drafts.csswg.org/css-transitions/#transition-combined-duration
-        self.gecko.mTransitions[index].mDuration.max(0.0) + self.gecko.mTransitions[index].mDelay
+        self.gecko.mTransitions[index % self.gecko.mTransitionDurationCount as usize].mDuration.max(0.0)
+            + self.gecko.mTransitions[index % self.gecko.mTransitionDelayCount as usize].mDelay
     }
 
     pub fn set_transition_property<I>(&mut self, v: I)
@@ -3332,7 +3329,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties;
         if self.gecko.mTransitionPropertyCount == 1 &&
             self.gecko.mTransitions[0].mProperty == eCSSPropertyExtra_all_properties &&
-            self.gecko.mTransitions[0].mDuration.max(0.0) + self.gecko.mTransitions[0].mDelay <= 0.0f32 {
+            self.transition_combined_duration_at(0) <= 0.0f32 {
             return false;
         }
 
@@ -3389,7 +3386,15 @@ fn static_assert() {
     ${impl_transition_count('property', 'Property')}
 
     pub fn animations_equals(&self, other: &Self) -> bool {
-        unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
+        return self.gecko.mAnimationNameCount == other.gecko.mAnimationNameCount
+            && self.gecko.mAnimationDelayCount == other.gecko.mAnimationDelayCount
+            && self.gecko.mAnimationDirectionCount == other.gecko.mAnimationDirectionCount
+            && self.gecko.mAnimationDurationCount == other.gecko.mAnimationDurationCount
+            && self.gecko.mAnimationFillModeCount == other.gecko.mAnimationFillModeCount
+            && self.gecko.mAnimationIterationCountCount == other.gecko.mAnimationIterationCountCount
+            && self.gecko.mAnimationPlayStateCount == other.gecko.mAnimationPlayStateCount
+            && self.gecko.mAnimationTimingFunctionCount == other.gecko.mAnimationTimingFunctionCount
+            && unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
     }
 
     pub fn set_animation_name<I>(&mut self, v: I)
@@ -3456,7 +3461,7 @@ fn static_assert() {
         self.gecko.mAnimations.ensure_len(input_len);
 
         self.gecko.mAnimationIterationCountCount = input_len as u32;
-        for (gecko, servo) in self.gecko.mAnimations.iter_mut().zip(v.cycle()) {
+        for (gecko, servo) in self.gecko.mAnimations.iter_mut().take(input_len as usize).zip(v) {
             match servo {
                 AnimationIterationCount::Number(n) => gecko.mIterationCount = n,
                 AnimationIterationCount::Infinite => gecko.mIterationCount = f32::INFINITY,
@@ -3618,11 +3623,11 @@ fn static_assert() {
         if self.gecko.mWillChange.len() == 0 {
             T::Auto
         } else {
-            T::AnimateableFeatures(
-                self.gecko.mWillChange.iter().map(|gecko_atom| {
-                    CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
-                }).collect()
-            )
+            let custom_idents: Vec<CustomIdent> = self.gecko.mWillChange.iter().map(|gecko_atom| {
+                CustomIdent((gecko_atom.mRawPtr as *mut nsAtom).into())
+            }).collect();
+
+            T::AnimateableFeatures(custom_idents.into_boxed_slice())
         }
     }
 
@@ -3733,6 +3738,7 @@ fn static_assert() {
                                           count as usize,
                                           LayerType::${shorthand.title()});
         }
+        // FIXME(emilio): This may be bogus in the same way as bug 1426246.
         for (layer, other) in self.gecko.${layers_field_name}.mLayers.iter_mut()
                                   .zip(other.gecko.${layers_field_name}.mLayers.iter())
                                   .take(count as usize) {
@@ -4228,8 +4234,11 @@ fn static_assert() {
             let ref gecko_quote_values = *self.gecko.mQuotes.mRawPtr;
             longhands::quotes::computed_value::T(
                 gecko_quote_values.mQuotePairs.iter().map(|gecko_pair| {
-                    (gecko_pair.first.to_string(), gecko_pair.second.to_string())
-                }).collect()
+                    (
+                        gecko_pair.first.to_string().into_boxed_str(),
+                        gecko_pair.second.to_string().into_boxed_str(),
+                    )
+                }).collect::<Vec<_>>().into_boxed_slice()
             )
         }
     }

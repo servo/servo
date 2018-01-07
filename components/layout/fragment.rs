@@ -12,7 +12,7 @@ use canvas_traits::canvas::CanvasMsg;
 use context::{LayoutContext, with_thread_local_font_context};
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use floats::ClearType;
-use flow::{self, ImmutableFlowUtils};
+use flow::{GetBaseFlow, ImmutableFlowUtils};
 use flow_ref::FlowRef;
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -232,7 +232,7 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::InlineBlock(ref info) => &info.flow_ref,
             };
 
-        flow::base(&**flow).restyle_damage
+        flow.base().restyle_damage
     }
 
     pub fn get_type(&self) -> &'static str {
@@ -420,77 +420,6 @@ impl ImageFragmentInfo {
             image: image,
             metadata: metadata,
         }
-    }
-
-    pub fn tile_image_round(position: &mut Au,
-                            size: &mut Au,
-                            absolute_anchor_origin: Au,
-                            image_size: &mut Au) {
-        if *size == Au(0) || *image_size == Au(0) {
-            *position = Au(0);
-            *size =Au(0);
-            return;
-        }
-
-        let number_of_tiles = (size.to_f32_px() / image_size.to_f32_px()).round().max(1.0);
-        *image_size = *size / (number_of_tiles as i32);
-        ImageFragmentInfo::tile_image(position, size, absolute_anchor_origin, *image_size);
-    }
-
-    pub fn tile_image_spaced(position: &mut Au,
-                             size: &mut Au,
-                             tile_spacing: &mut Au,
-                             absolute_anchor_origin: Au,
-                             image_size: Au) {
-        if *size == Au(0) || image_size == Au(0) {
-            *position = Au(0);
-            *size = Au(0);
-            *tile_spacing = Au(0);
-            return;
-        }
-
-        // Per the spec, if the space available is not enough for two images, just tile as
-        // normal but only display a single tile.
-        if image_size * 2 >= *size {
-            ImageFragmentInfo::tile_image(position,
-                                          size,
-                                          absolute_anchor_origin,
-                                          image_size);
-            *tile_spacing = Au(0);
-            *size = image_size;
-            return;
-        }
-
-        // Take the box size, remove room for two tiles on the edges, and then calculate how many
-        // other tiles fit in between them.
-        let size_remaining = *size - (image_size * 2);
-        let num_middle_tiles = (size_remaining.to_f32_px() / image_size.to_f32_px()).floor() as i32;
-
-        // Allocate the remaining space as padding between tiles. background-position is ignored
-        // as per the spec, so the position is just the box origin. We are also ignoring
-        // background-attachment here, which seems unspecced when combined with
-        // background-repeat: space.
-        let space_for_middle_tiles = image_size * num_middle_tiles;
-        *tile_spacing = (size_remaining - space_for_middle_tiles) / (num_middle_tiles + 1);
-    }
-
-    /// Tile an image
-    pub fn tile_image(position: &mut Au,
-                      size: &mut Au,
-                      absolute_anchor_origin: Au,
-                      image_size: Au) {
-        // Avoid division by zero below!
-        if image_size == Au(0) {
-            return
-        }
-
-        let delta_pixels = absolute_anchor_origin - *position;
-        let image_size_px = image_size.to_f32_px();
-        let tile_count = ((delta_pixels.to_f32_px() + image_size_px - 1.0) / image_size_px).floor();
-        let offset = image_size * (tile_count as i32);
-        let new_position = absolute_anchor_origin - offset;
-        *size = *position - new_position + *size;
-        *position = new_position;
     }
 }
 
@@ -2612,11 +2541,11 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&block_flow.base().overflow);
             }
             SpecificFragmentInfo::InlineAbsolute(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow.union(&flow::base(block_flow).overflow);
+                overflow.union(&block_flow.base().overflow);
             }
             _ => (),
         }
@@ -2958,24 +2887,24 @@ impl Fragment {
 impl fmt::Debug for Fragment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let border_padding_string = if !self.border_padding.is_zero() {
-            format!(" border_padding={:?}", self.border_padding)
+            format!("\nborder_padding={:?}", self.border_padding)
         } else {
             "".to_owned()
         };
 
         let margin_string = if !self.margin.is_zero() {
-            format!(" margin={:?}", self.margin)
+            format!("\nmargin={:?}", self.margin)
         } else {
             "".to_owned()
         };
 
         let damage_string = if self.restyle_damage != RestyleDamage::empty() {
-            format!(" damage={:?}", self.restyle_damage)
+            format!("\ndamage={:?}", self.restyle_damage)
         } else {
             "".to_owned()
         };
 
-        write!(f, "{}({}) [{:?}] border_box={:?}{}{}{}",
+        write!(f, "\n{}({}) [{:?}]\nborder_box={:?}{}{}{}",
             self.specific.get_type(),
             self.debug_id,
             self.specific,

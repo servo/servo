@@ -109,7 +109,6 @@ pub unsafe trait HasArcFFI : HasFFI {
     ///
     /// &GeckoType -> &Arc<ServoType>
     fn as_arc<'a>(ptr: &'a &Self::FFIType) -> &'a RawOffsetArc<Self> {
-        debug_assert!(!(ptr as *const _).is_null());
         unsafe {
             transmute::<&&Self::FFIType, &RawOffsetArc<Self>>(ptr)
         }

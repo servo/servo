@@ -39,6 +39,7 @@ byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = "0.10"
+chrono = "0.4"
 cssparser = "0.23.0"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
@@ -64,7 +65,7 @@ metrics = {path = "../metrics"}
 mitochondria = "1.1.2"
 mime = "0.2.1"
 mime_guess = "1.8.0"
-mozjs = { version = "0.1.8", features = ["promises"]}
+mozjs = { version = "0.1.10", features = ["promises"]}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 nonzero = {path = "../nonzero"}

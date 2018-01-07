@@ -29,7 +29,9 @@ rand = [
   "uuid",
   "ws",
 ]
-num = []
+num = [
+  "chrono",
+]
 
 [ignore]
 # Ignored packages with duplicated versions

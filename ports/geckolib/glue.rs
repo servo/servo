@@ -192,6 +192,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     traversal_flags::assert_traversal_flags_match();
     specified::font::assert_variant_east_asian_matches();
     specified::font::assert_variant_ligatures_matches();
+    specified::box_::assert_touch_action_matches();
 
     // Initialize the dummy url data
     unsafe { DUMMY_URL_DATA = dummy_url_data; }
@@ -267,8 +268,19 @@ fn traverse_subtree(
         None
     };
 
+    let is_restyle = element.get_data().is_some();
+
     let traversal = RecalcStyleOnly::new(shared_style_context);
-    driver::traverse_dom(&traversal, token, thread_pool);
+    let (used_parallel, stats) = driver::traverse_dom(&traversal, token, thread_pool);
+
+    if traversal_flags.contains(TraversalFlags::ParallelTraversal) &&
+       !traversal_flags.contains(TraversalFlags::AnimationOnly) &&
+       is_restyle && !element.is_native_anonymous() {
+       // We turn off parallel traversal for background tabs; this
+       // shouldn't count in telemetry. We're also focusing on restyles so
+       // we ensure that it's a restyle.
+       per_doc_data.record_traversal(used_parallel, stats);
+    }
 }
 
 /// Traverses the subtree rooted at `root` for restyling.
@@ -1975,10 +1987,6 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon box pseudo?");
 
-    let mut cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
-    if pseudo.is_fieldset_content() {
-        cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
-    }
     let metrics = get_metrics_provider_for_product();
 
     // If the pseudo element is PageContent, we should append the precomputed
@@ -2011,13 +2019,14 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         page_decls,
     );
 
+    let cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     data.stylist.precomputed_values_for_pseudo_with_rule_node(
         &guards,
         &pseudo,
         parent_style_or_null.map(|x| &*x),
         cascade_flags,
         &metrics,
-        &rule_node
+        rule_node
     ).into()
 }
 
@@ -2207,8 +2216,9 @@ fn get_pseudo_style(
                                 &inputs,
                                 pseudo,
                                 &guards,
-                                inherited_styles,
-                                &metrics
+                                Some(inherited_styles),
+                                &metrics,
+                                CascadeFlags::empty(),
                             )
                     })
                 },
@@ -3616,33 +3626,22 @@ pub extern "C" fn Servo_ReparentStyle(
     if let Some(element) = element {
         if element.is_link() {
             cascade_flags.insert(CascadeFlags::IS_LINK);
-            if element.is_visited_link() &&
-                doc_data.visited_styles_enabled() {
+            if element.is_visited_link() && doc_data.visited_styles_enabled() {
                 cascade_flags.insert(CascadeFlags::IS_VISITED_LINK);
             }
         };
-
-        if element.is_native_anonymous() {
-            cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
-        }
-    }
-    if let Some(pseudo) = pseudo.as_ref() {
-        cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
-        if pseudo.is_fieldset_content() {
-            cascade_flags.insert(CascadeFlags::IS_FIELDSET_CONTENT);
-        }
     }
 
-    doc_data.stylist
-        .compute_style_with_inputs(&inputs,
-                                   pseudo.as_ref(),
-                                   &StylesheetGuards::same(&guard),
-                                   parent_style,
-                                   parent_style_ignoring_first_line,
-                                   layout_parent_style,
-                                   &metrics,
-                                   cascade_flags)
-        .into()
+    doc_data.stylist.compute_style_with_inputs(
+        &inputs,
+        pseudo.as_ref(),
+        &StylesheetGuards::same(&guard),
+        Some(parent_style),
+        Some(parent_style_ignoring_first_line),
+        Some(layout_parent_style),
+        &metrics,
+        cascade_flags,
+    ).into()
 }
 
 #[cfg(feature = "gecko_debug")]

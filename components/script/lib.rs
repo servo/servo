@@ -31,6 +31,7 @@ extern crate bluetooth_traits;
 extern crate byteorder;
 extern crate canvas_traits;
 extern crate caseless;
+extern crate chrono;
 extern crate cookie as cookie_rs;
 #[macro_use] extern crate cssparser;
 #[macro_use] extern crate deny_public_fields;

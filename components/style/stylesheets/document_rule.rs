@@ -101,11 +101,11 @@ macro_rules! parse_quoted_or_unquoted_string {
             let start = input.position();
             input.parse_entirely(|input| {
                 let location = input.current_source_location();
-                match input.next() {
-                    Ok(&Token::QuotedString(ref value)) =>
-                        Ok($url_matching_function(value.as_ref().to_owned())),
-                    Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
-                    Err(e) => Err(e.into()),
+                match *input.next()? {
+                    Token::QuotedString(ref value) => {
+                        Ok($url_matching_function(value.as_ref().to_owned()))
+                    },
+                    ref t => Err(location.new_unexpected_token_error(t.clone())),
                 }
             }).or_else(|_: ParseError| {
                 while let Ok(_) = input.next() {}

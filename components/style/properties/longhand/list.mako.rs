@@ -30,181 +30,28 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         animation_value_type="discrete",
         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 % else:
-    <%helpers:longhand name="list-style-type" animation_value_type="discrete" boxed="True"
-                       spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
-        use values::CustomIdent;
-        use values::generics::CounterStyleOrNone;
-
-        pub use self::computed_value::T as SpecifiedValue;
-
-        pub mod computed_value {
-            use values::generics::CounterStyleOrNone;
-
-            /// <counter-style> | <string> | none
-            #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-            pub enum T {
-                CounterStyle(CounterStyleOrNone),
-                String(String),
-            }
-        }
-
-        #[cfg(feature = "gecko")]
-        impl SpecifiedValue {
-            /// Convert from gecko keyword to list-style-type.
-            ///
-            /// This should only be used for mapping type attribute to
-            /// list-style-type, and thus only values possible in that
-            /// attribute is considered here.
-            pub fn from_gecko_keyword(value: u32) -> Self {
-                use gecko_bindings::structs;
-                SpecifiedValue::CounterStyle(if value == structs::NS_STYLE_LIST_STYLE_NONE {
-                    CounterStyleOrNone::None
-                } else {
-                    <%
-                        values = """disc circle square decimal lower-roman
-                                    upper-roman lower-alpha upper-alpha""".split()
-                    %>
-                    CounterStyleOrNone::Name(CustomIdent(match value {
-                        % for style in values:
-                        structs::NS_STYLE_LIST_STYLE_${style.replace('-', '_').upper()} => atom!("${style}"),
-                        % endfor
-                        _ => unreachable!("Unknown counter style keyword value"),
-                    }))
-                })
-            }
-        }
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            computed_value::T::CounterStyle(CounterStyleOrNone::disc())
-        }
-
-        #[inline]
-        pub fn get_initial_specified_value() -> SpecifiedValue {
-            SpecifiedValue::CounterStyle(CounterStyleOrNone::disc())
-        }
-
-        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<SpecifiedValue, ParseError<'i>> {
-            Ok(if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
-                SpecifiedValue::CounterStyle(style)
-            } else {
-                SpecifiedValue::String(input.expect_string()?.as_ref().to_owned())
-            })
-        }
-    </%helpers:longhand>
+    ${helpers.predefined_type("list-style-type",
+                              "ListStyleType",
+                              "computed::ListStyleType::disc()",
+                              initial_specified_value="specified::ListStyleType::disc()",
+                              animation_value_type="discrete",
+                              boxed="True",
+                              spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 % endif
 
-<%helpers:longhand name="list-style-image" animation_value_type="discrete"
-                   boxed="${product == 'gecko'}"
-                   spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
-    use values::specified::UrlOrNone;
-    pub use self::computed_value::T as SpecifiedValue;
+${helpers.predefined_type("list-style-image",
+                          "ListStyleImage",
+                          initial_value="specified::ListStyleImage::none()",
+                          initial_specified_value="specified::ListStyleImage::none()",
+                          animation_value_type="discrete",
+                          boxed=product == "gecko",
+                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
 
-    pub mod computed_value {
-        use values::specified::UrlOrNone;
-
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-        pub struct T(pub UrlOrNone);
-
-        // FIXME(nox): This is wrong, there are different types for specified
-        // and computed URLs in Servo.
-        trivial_to_computed_value!(T);
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Either::Second(None_))
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(Either::Second(None_))
-    }
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
-        % if product == "gecko":
-        let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
-        if let Either::First(ref mut url) = value {
-            url.build_image_value();
-        }
-        % else :
-        let value = input.try(|input| UrlOrNone::parse(context, input))?;
-        % endif
-
-        return Ok(SpecifiedValue(value));
-    }
-</%helpers:longhand>
-
-<%helpers:longhand name="quotes" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-content/#propdef-quotes">
-    use cssparser::serialize_string;
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub use self::computed_value::T as SpecifiedValue;
-
-    pub mod computed_value {
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-        pub struct T(pub Vec<(String, String)>);
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.0.is_empty() {
-                return dest.write_str("none")
-            }
-
-            let mut first = true;
-            for pair in &self.0 {
-                if !first {
-                    dest.write_str(" ")?;
-                }
-                first = false;
-                serialize_string(&*pair.0, dest)?;
-                dest.write_str(" ")?;
-                serialize_string(&*pair.1, dest)?;
-            }
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![
-            ("\u{201c}".to_owned(), "\u{201d}".to_owned()),
-            ("\u{2018}".to_owned(), "\u{2019}".to_owned()),
-        ])
-    }
-
-    pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue(Vec::new()))
-        }
-
-        let mut quotes = Vec::new();
-        loop {
-            let location = input.current_source_location();
-            let first = match input.next() {
-                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
-                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-                Err(_) => break,
-            };
-            let location = input.current_source_location();
-            let second = match input.next() {
-                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
-                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-                Err(e) => return Err(e.into()),
-            };
-            quotes.push((first, second))
-        }
-        if !quotes.is_empty() {
-            Ok(SpecifiedValue(quotes))
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("quotes",
+                          "Quotes",
+                          "computed::Quotes::get_initial_value()",
+                          animation_value_type="discrete",
+                          spec="https://drafts.csswg.org/css-content/#propdef-quotes")}
 
 ${helpers.predefined_type("-moz-image-region",
                           "ClipRectOrAuto",

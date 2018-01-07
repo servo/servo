@@ -257,7 +257,6 @@ ${helpers.predefined_type("object-position",
                               "computed::NonNegativeLengthOrPercentage::zero()",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
                               animation_value_type="NonNegativeLengthOrPercentage",
-                              gecko_pref="layout.css.grid.enabled",
                               products="gecko")}
 
     % for range in ["start", "end"]:
@@ -267,7 +266,6 @@ ${helpers.predefined_type("object-position",
                                   animation_value_type="discrete",
                                   spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
                                   products="gecko",
-                                  gecko_pref="layout.css.grid.enabled",
                                   boxed=True)}
     % endfor
 
@@ -279,7 +277,6 @@ ${helpers.predefined_type("object-position",
                               animation_value_type="discrete",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
                               products="gecko",
-                              gecko_pref="layout.css.grid.enabled",
                               boxed=True)}
 
     ${helpers.predefined_type("grid-template-%ss" % kind,
@@ -288,7 +285,6 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
-                              gecko_pref="layout.css.grid.enabled",
                               animation_value_type="discrete")}
 
 % endfor
@@ -298,7 +294,6 @@ ${helpers.predefined_type("grid-auto-flow",
                           initial_value="computed::GridAutoFlow::row()",
                           products="gecko",
                           animation_value_type="discrete",
-                          gecko_pref="layout.css.grid.enabled",
                           spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow")}
 
 ${helpers.predefined_type("grid-template-areas",
@@ -306,6 +301,5 @@ ${helpers.predefined_type("grid-template-areas",
                           initial_value="computed::GridTemplateAreas::none()",
                           products="gecko",
                           animation_value_type="discrete",
-                          gecko_pref="layout.css.grid.enabled",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas")}

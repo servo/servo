@@ -566,9 +566,10 @@ where
             }
             cascade_flags.insert(CascadeFlags::VISITED_DEPENDENT_ONLY);
         }
-        if self.element.is_native_anonymous() || pseudo.is_some() {
-            cascade_flags.insert(CascadeFlags::PROHIBIT_DISPLAY_CONTENTS);
-        } else if self.element.is_root() {
+        if !self.element.is_native_anonymous() &&
+            pseudo.is_none() &&
+            self.element.is_root()
+        {
             cascade_flags.insert(CascadeFlags::IS_ROOT_ELEMENT);
         }
 
@@ -596,7 +597,12 @@ where
         self.context
             .thread_local
             .rule_cache
-            .insert_if_possible(&values, pseudo, &conditions);
+            .insert_if_possible(
+                &self.context.shared.guards,
+                &values,
+                pseudo,
+                &conditions
+            );
 
         values
     }

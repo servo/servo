@@ -1,0 +1,18 @@
+<html>
+<head>
+  <title>Performance toLevelDomComplete</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+async_test(function(t) {
+  window.onload = t.step_func(function() {
+    assert_true(performance.timing.domLoading <= performance.timing.topLevelDomComplete);
+    assert_true(performance.timing.topLevelDomComplete <= performance.timing.domComplete);
+    t.done();
+  });
+}, "performance.topLevelDomComplete");
+</script>
+</body>
+</html>

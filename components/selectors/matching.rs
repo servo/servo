@@ -72,14 +72,24 @@ pub fn matches_selector_list<E>(
 where
     E: Element
 {
-    selector_list.0.iter().any(|selector| {
-        matches_selector(selector,
-                         0,
-                         None,
-                         element,
-                         context,
-                         &mut |_, _| {})
-    })
+    // This is pretty much any(..) but manually inlined because the compiler
+    // refuses to do so from querySelector / querySelectorAll.
+    for selector in &selector_list.0 {
+        let matches = matches_selector(
+            selector,
+            0,
+            None,
+            element,
+            context,
+            &mut |_, _| {},
+        );
+
+        if matches {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[inline(always)]
@@ -393,6 +403,9 @@ where
 
             element.parent_element()
         }
+        Combinator::SlotAssignment => {
+            element.assigned_slot()
+        }
         Combinator::PseudoElement => {
             element.pseudo_element_originating_element()
         }
@@ -453,6 +466,7 @@ where
         }
         Combinator::Child |
         Combinator::Descendant |
+        Combinator::SlotAssignment |
         Combinator::PseudoElement => {
             SelectorMatchingResult::NotMatchedGlobally
         }
@@ -541,6 +555,19 @@ where
 {
     match *selector {
         Component::Combinator(_) => unreachable!(),
+        Component::Slotted(ref selector) => {
+            context.shared.nesting_level += 1;
+            let result =
+                element.assigned_slot().is_some() &&
+                matches_complex_selector(
+                    selector.iter(),
+                    element,
+                    context.shared,
+                    flags_setter,
+                );
+            context.shared.nesting_level -= 1;
+            result
+        }
         Component::PseudoElement(ref pseudo) => {
             element.match_pseudo_element(pseudo, context.shared)
         }

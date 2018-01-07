@@ -264,12 +264,23 @@ fn complex_selector_specificity<Impl>(mut iter: slice::Iter<Component<Impl>>)
                                       -> Specificity
     where Impl: SelectorImpl
 {
-    fn simple_selector_specificity<Impl>(simple_selector: &Component<Impl>,
-                                         specificity: &mut Specificity)
-        where Impl: SelectorImpl
+    fn simple_selector_specificity<Impl>(
+        simple_selector: &Component<Impl>,
+        specificity: &mut Specificity,
+    )
+    where
+        Impl: SelectorImpl
     {
         match *simple_selector {
             Component::Combinator(..) => unreachable!(),
+            // FIXME(emilio): Spec doesn't define any particular specificity for
+            // ::slotted(), so apply the general rule for pseudos per:
+            //
+            // https://github.com/w3c/csswg-drafts/issues/1915
+            //
+            // Though other engines compute it dynamically, so maybe we should
+            // do that instead, eventually.
+            Component::Slotted(..) |
             Component::PseudoElement(..) |
             Component::LocalName(..) => {
                 specificity.element_selectors += 1

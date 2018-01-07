@@ -9,7 +9,7 @@
 //! as possible.
 
 use context::{LayoutContext, with_thread_local_font_context};
-use flow::{self, Flow, FlowFlags, ImmutableFlowUtils};
+use flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
@@ -132,8 +132,8 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
 
     #[inline]
     fn should_process_subtree(&mut self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT) ||
-            flow::base(flow).flags.intersects(FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN)
+        flow.base().restyle_damage.intersects(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT) ||
+            flow.base().flags.intersects(FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN)
     }
 }
 
@@ -311,9 +311,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                 &quotes.0[self.traversal.quote as usize]
             };
         if close {
-            close_quote.clone()
+            close_quote.to_string()
         } else {
-            open_quote.clone()
+            open_quote.to_string()
         }
     }
 }

@@ -413,6 +413,15 @@ trait PrivateMatchMethods: TElement {
             }
         }
 
+        #[cfg(feature = "servo")]
+        {
+            // We may need to set or propagate the CAN_BE_FRAGMENTED bit
+            // on our children.
+            if old_values.is_multicol() != new_values.is_multicol() {
+                return ChildCascadeRequirement::MustCascadeChildren;
+            }
+        }
+
         // We could prove that, if our children don't inherit reset
         // properties, we can stop the cascade.
         ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
@@ -504,7 +513,6 @@ pub trait MatchMethods : TElement {
         mut new_styles: ResolvedElementStyles,
         important_rules_changed: bool,
     ) -> ChildCascadeRequirement {
-        use dom::TNode;
         use std::cmp;
 
         self.process_animations(
@@ -517,24 +525,6 @@ pub trait MatchMethods : TElement {
 
         // First of all, update the styles.
         let old_styles = data.set_styles(new_styles);
-
-        // Propagate the "can be fragmented" bit. It would be nice to
-        // encapsulate this better.
-        if cfg!(feature = "servo") {
-            let layout_parent =
-                self.inheritance_parent().map(|e| e.layout_parent());
-            let layout_parent_data =
-                layout_parent.as_ref().and_then(|e| e.borrow_data());
-            let layout_parent_style =
-                layout_parent_data.as_ref().map(|d| d.styles.primary());
-
-            if let Some(ref p) = layout_parent_style {
-                let can_be_fragmented =
-                    p.is_multicol() ||
-                    layout_parent.as_ref().unwrap().as_node().can_be_fragmented();
-                unsafe { self.as_node().set_can_be_fragmented(can_be_fragmented); }
-            }
-        }
 
         let new_primary_style = data.styles.primary.as_ref().unwrap();
 

@@ -203,7 +203,7 @@ impl FontList {
     // Only used in the unlikely case where no font xml mapping files are found.
     fn fallback_font_families() -> Vec<FontFamily> {
         let alternatives = [
-            ("san-serif", "Roboto-Regular.ttf"),
+            ("sans-serif", "Roboto-Regular.ttf"),
             ("Droid Sans", "DroidSans.ttf"),
         ];
 
