@@ -3,6 +3,7 @@ version: 1.0.{build}
 environment:
   CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
   RUST_BACKTRACE: 1
+  RUSTFLAGS: -Dwarnings
   # The appveyor image we use has a pretty huge set of things installed... we make the
   # initial PATH something sane so we know what to expect
   PATH: "C:\\windows\\system32;\
@@ -48,7 +49,6 @@ cache:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
-  - set RUSTFLAGS=-D warnings
   - mach build -d -v
   - mach test-unit
 
