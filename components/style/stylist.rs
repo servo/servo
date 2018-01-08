@@ -467,7 +467,7 @@ impl Stylist {
     pub fn num_revalidation_selectors(&self) -> usize {
         self.cascade_data.iter_origins()
             .map(|(data, _)| {
-                data.normal_style_rule_data.selectors_for_cache_revalidation.len() +
+                data.normal_rule_data.selectors_for_cache_revalidation.len() +
                 data.slotted_rule_data.as_ref().map_or(0, |d| {
                     d.selectors_for_cache_revalidation.len()
                 })
@@ -478,7 +478,7 @@ impl Stylist {
     pub fn num_invalidations(&self) -> usize {
         self.cascade_data.iter_origins()
             .map(|(data, _)| {
-                data.normal_style_rule_data.invalidation_map.len() +
+                data.normal_rule_data.invalidation_map.len() +
                 data.slotted_rule_data.as_ref().map_or(0, |d| d.invalidation_map.len())
             }).sum()
     }
@@ -488,7 +488,7 @@ impl Stylist {
     pub fn has_document_state_dependency(&self, state: DocumentState) -> bool {
         self.cascade_data.iter_origins()
             .any(|(d, _)| {
-                d.normal_style_rule_data.has_document_state_dependency(state)
+                d.normal_rule_data.has_document_state_dependency(state)
             })
     }
 
@@ -611,7 +611,7 @@ impl Stylist {
         F: FnMut(&'a StyleRuleCascadeData, Origin),
     {
         for (data, origin) in self.cascade_data.iter_origins() {
-            f(&data.normal_style_rule_data, origin);
+            f(&data.normal_rule_data, origin);
         }
     }
 
@@ -622,7 +622,7 @@ impl Stylist {
         E: TElement,
         F: FnMut(&StyleRuleCascadeData, QuirksMode) -> bool,
     {
-        if f(&self.cascade_data.user_agent.cascade_data.normal_style_rule_data, self.quirks_mode()) {
+        if f(&self.cascade_data.user_agent.cascade_data.normal_rule_data, self.quirks_mode()) {
             return true;
         }
 
@@ -636,8 +636,8 @@ impl Stylist {
             return maybe;
         }
 
-        f(&self.cascade_data.author.normal_style_rule_data, self.quirks_mode()) ||
-        f(&self.cascade_data.user.normal_style_rule_data, self.quirks_mode())
+        f(&self.cascade_data.author.normal_rule_data, self.quirks_mode()) ||
+        f(&self.cascade_data.user.normal_rule_data, self.quirks_mode())
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1449,7 +1449,7 @@ impl Stylist {
     /// Returns the cascade data for the normal rules.
     #[inline]
     pub fn normal_author_cascade_data(&self) -> &StyleRuleCascadeData {
-        &self.cascade_data.author.normal_style_rule_data
+        &self.cascade_data.author.normal_rule_data
     }
 
     /// Returns the cascade data for the slotted rules in this scope, if any.
@@ -1498,7 +1498,7 @@ impl Stylist {
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = SmallBitVec::new();
         for (data, _) in self.cascade_data.iter_origins() {
-            data.normal_style_rule_data.selectors_for_cache_revalidation.lookup(
+            data.normal_rule_data.selectors_for_cache_revalidation.lookup(
                 element,
                 self.quirks_mode,
                 |selector_and_hashes| {
@@ -2111,7 +2111,7 @@ impl StyleRuleCascadeData {
 struct CascadeData {
     /// The data coming from normal style rules that apply to elements at this
     /// cascade level.
-    normal_style_rule_data: StyleRuleCascadeData,
+    normal_rule_data: StyleRuleCascadeData,
 
     /// The data coming from ::slotted() pseudo-element rules.
     ///
@@ -2146,7 +2146,7 @@ struct CascadeData {
 impl CascadeData {
     fn new() -> Self {
         Self {
-            normal_style_rule_data: StyleRuleCascadeData::new(),
+            normal_rule_data: StyleRuleCascadeData::new(),
             slotted_rule_data: None,
             animations: Default::default(),
             extra_data: ExtraStyleData::default(),
@@ -2159,7 +2159,7 @@ impl CascadeData {
 
     #[inline]
     fn normal_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
-        self.normal_style_rule_data.rules(pseudo)
+        self.normal_rule_data.rules(pseudo)
     }
 
     #[inline]
@@ -2276,7 +2276,7 @@ impl CascadeData {
                             }
                             self.slotted_rule_data.as_mut().unwrap()
                         } else {
-                            &mut self.normal_style_rule_data
+                            &mut self.normal_rule_data
                         };
 
                         style_rule_cascade_data.insert(
@@ -2436,7 +2436,7 @@ impl CascadeData {
 
     /// Clears the cascade data, but not the invalidation data.
     fn clear_cascade_data(&mut self) {
-        self.normal_style_rule_data.clear_cascade_data();
+        self.normal_rule_data.clear_cascade_data();
         if let Some(ref mut slotted_rule_data) = self.slotted_rule_data {
             slotted_rule_data.clear_cascade_data();
         }
@@ -2449,7 +2449,7 @@ impl CascadeData {
 
     fn clear(&mut self) {
         self.clear_cascade_data();
-        self.normal_style_rule_data.clear();
+        self.normal_rule_data.clear();
         if let Some(ref mut slotted_rule_data) = self.slotted_rule_data {
             slotted_rule_data.clear();
         }
@@ -2459,7 +2459,7 @@ impl CascadeData {
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
     fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        self.normal_style_rule_data.add_size_of(ops, sizes);
+        self.normal_rule_data.add_size_of(ops, sizes);
         if let Some(ref slotted_rules) = self.slotted_rule_data {
             slotted_rules.add_size_of(ops, sizes);
         }
