@@ -14,7 +14,7 @@
     const types = ["float", "integer", "identifier", "string", "whitespace", "other"];
     while (str.length > 0) {
       let matched = false;
-      for (const i in types) {
+      for (var i in types) {
         const type = types[i];
         str = str.replace(re[type], tok => {
           tokens.push({ type, value: tok });
@@ -120,10 +120,10 @@
             "multiline-comment": /^\/\*((?:.|\n|\r)*?)\*\//
           };
           const wsTypes = [];
-          for (const k in re) wsTypes.push(k);
+          for (var k in re) wsTypes.push(k);
           while (w.length) {
             let matched = false;
-            for (const i in wsTypes) {
+            for (var i in wsTypes) {
               const type = wsTypes[i];
               w = w.replace(re[type], (tok, m1) => {
                 store.push({ type: type + (pea ? ("-" + pea) : ""), value: m1 });
