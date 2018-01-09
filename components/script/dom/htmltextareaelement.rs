@@ -64,11 +64,14 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
         let text = (*self.unsafe_get()).textinput.borrow_for_layout().get_content();
-        String::from(if text.is_empty() {
-            (*self.unsafe_get()).placeholder.borrow_for_layout().clone()
+        if text.is_empty() {
+            (*self.unsafe_get()).placeholder
+                .borrow_for_layout()
+                .replace("\r\n", "\n")
+                .replace("\r", "\n")
         } else {
-            text
-        })
+            text.into()
+        }
     }
 
     #[allow(unrooted_must_root)]
@@ -138,7 +141,6 @@ impl HTMLTextAreaElement {
         let has_value = !self.textinput.borrow().is_empty();
         let el = self.upcast::<Element>();
         el.set_placeholder_shown_state(has_placeholder && !has_value);
-        el.set_placeholder_shown_state(has_placeholder);
     }
 }
 
