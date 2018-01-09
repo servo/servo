@@ -680,7 +680,36 @@ impl LonghandId {
 
     /// Returns true if the property is one that is ignored when document
     /// colors are disabled.
-    fn is_ignored_when_document_colors_disabled(&self) -> bool {
+    fn is_ignored_when_document_colors_disabled(
+        &self,
+        cascade_level: CascadeLevel,
+        pseudo: Option<<&PseudoElement>,
+    ) -> bool {
+        let is_ua_or_user_rule = matches!(
+            cascade_level,
+            CascadeLevel::UANormal |
+            CascadeLevel::UserNormal |
+            CascadeLevel::UserImportant |
+            CascadeLevel::UAImportant
+        );
+
+        if is_ua_or_user_rule {
+            return false;
+        }
+
+        let is_style_attribute = matches!(
+            cascade_level,
+            CascadeLevel::StyleAttributeNormal |
+            CascadeLevel::StyleAttributeImportant
+        );
+        // Don't override colors on pseudo-element's style attributes. The
+        // background-color on ::-moz-color-swatch is an example. Those are set
+        // as an author style (via the style attribute), but it's pretty
+        // important for it to show up for obvious reasons :)
+        if pseudo.is_some() && is_style_attribute {
+            return false;
+        }
+
         matches!(*self,
             ${" | ".join([("LonghandId::" + p.camel_case)
                           for p in data.longhands if p.ignored_when_colors_disabled])}
@@ -3383,12 +3412,11 @@ where
             // marked as ignored in that mode, unless they come from a UA or
             // user style sheet.
             if ignore_colors &&
-               longhand_id.is_ignored_when_document_colors_disabled() &&
-               !matches!(cascade_level,
-                         CascadeLevel::UANormal |
-                         CascadeLevel::UserNormal |
-                         CascadeLevel::UserImportant |
-                         CascadeLevel::UAImportant) {
+               longhand_id.is_ignored_when_document_colors_disabled(
+                   cascade_level,
+                   context.builder.pseudo
+                )
+            {
                 let non_transparent_background = match *declaration {
                     PropertyDeclaration::BackgroundColor(ref color) => {
                         // Treat background-color a bit differently.  If the specified
