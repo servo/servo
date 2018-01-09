@@ -303,6 +303,38 @@ impl DOMString {
         parse_week_string(&*self.0).is_ok()
     }
 
+    pub fn is_valid_number_string(&self) -> bool {
+        // For now this is a re-implementation of the algorithm found at
+        // https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-floating-point-number
+
+        // Trim whitespace from the string. This is step 6 of the algo, done here at the beginning
+        let input = self.0.trim();
+
+        let mut position = 0;
+        let mut value = 1;
+        let mut divisor = 1;
+
+        // Check for - or + as the first character
+        if let Some(first_char) = input.get(&position) {
+            if first_char == "-" {
+                value = -1;
+                divisor = -1;
+            }
+            // If the first char is "+" then the string is invalid
+            if first_char == "+" {
+                return false;
+            }
+        }
+
+        // Check for a string beginning with .
+        if let Some(period_char) = input.get(&position) {
+            if period_char == "." {
+            }
+        }
+
+        true
+    }
+
     /// A valid normalized local date and time string should be "{date}T{time}"
     /// where date and time are both valid, and the time string must be as short as possible
     /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
