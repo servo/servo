@@ -996,19 +996,19 @@ impl HTMLInputElement {
             InputType::Date => {
                 let mut textinput = self.textinput.borrow_mut();
                 if !textinput.single_line_content().is_valid_date_string() {
-                    *textinput.single_line_content_mut() = "".into();
+                    textinput.single_line_content_mut().clear();
                 }
             }
             InputType::Month => {
                 let mut textinput = self.textinput.borrow_mut();
                 if !textinput.single_line_content().is_valid_month_string() {
-                    *textinput.single_line_content_mut() = "".into();
+                    textinput.single_line_content_mut().clear();
                 }
             }
             InputType::Week => {
                 let mut textinput = self.textinput.borrow_mut();
                 if !textinput.single_line_content().is_valid_week_string() {
-                    *textinput.single_line_content_mut() = "".into();
+                    textinput.single_line_content_mut().clear();
                 }
             }
             InputType::Color => {
@@ -1034,8 +1034,15 @@ impl HTMLInputElement {
             InputType::Time => {
                 let mut textinput = self.textinput.borrow_mut();
 
-                if ! textinput.single_line_content().is_valid_time_string() {
-                    *textinput.single_line_content_mut() = "".into();
+                if !textinput.single_line_content().is_valid_time_string() {
+                    textinput.single_line_content_mut().clear();
+                }
+            }
+            InputType::DatetimeLocal => {
+                let mut textinput = self.textinput.borrow_mut();
+                if textinput.single_line_content_mut()
+                    .convert_valid_normalized_local_date_and_time_string().is_err() {
+                        textinput.single_line_content_mut().clear();
                 }
             }
             // TODO: Implement more value sanitization algorithms for different types of inputs

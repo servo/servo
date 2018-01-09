@@ -302,6 +302,20 @@ impl DOMString {
     pub fn is_valid_week_string(&self) -> bool {
         parse_week_string(&*self.0).is_ok()
     }
+
+    /// A valid normalized local date and time string should be "{date}T{time}"
+    /// where date and time are both valid, and the time string must be as short as possible
+    /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
+    pub fn convert_valid_normalized_local_date_and_time_string(&mut self) -> Result<(), ()> {
+        let ((year, month, day), (hour, minute, second)) = parse_local_date_and_time_string(&*self.0)?;
+        if second == 0.0 {
+            self.0 = format!("{:04}-{:02}-{:02}T{:02}:{:02}", year, month, day, hour, minute);
+        } else {
+            self.0 = format!("{:04}-{:02}-{:02}T{:02}:{:02}:{}", year, month, day, hour, minute, second);
+        }
+        Ok(())
+    }
+
 }
 
 impl Borrow<str> for DOMString {
@@ -539,6 +553,84 @@ fn parse_date_component(value: &str) -> Result<(u32, u32, u32), ()> {
 
     // Step 6
     Ok((year_int, month_int, day_int))
+}
+
+/// https://html.spec.whatwg.org/multipage/#parse-a-time-component
+fn parse_time_component(value: &str) -> Result<(u32, u32, f32), ()> {
+    // Step 1
+    let mut iterator = value.split(':');
+    let hour = iterator.next().ok_or(())?;
+    if hour.len() != 2 {
+        return Err(());
+    }
+    let hour_int = hour.parse::<u32>().map_err(|_| ())?;
+
+    // Step 2
+    if hour_int > 23 {
+        return Err(());
+    }
+
+    // Step 3, 4
+    let minute = iterator.next().ok_or(())?;
+    if minute.len() != 2 {
+        return Err(());
+    }
+    let minute_int = minute.parse::<u32>().map_err(|_| ())?;
+
+    // Step 5
+    if minute_int > 59 {
+        return Err(());
+    }
+
+    // Step 6, 7
+    let second_float = match iterator.next() {
+        Some(second) => {
+            let mut second_iterator = second.split('.');
+            if second_iterator.next().ok_or(())?.len() != 2 {
+                return Err(());
+            }
+            match second_iterator.next() {
+                Some(second_last) => {
+                    if second_last.len() > 3 {
+                        return Err(());
+                    }
+                },
+                None => {}
+            }
+
+            second.parse::<f32>().map_err(|_| ())?
+        },
+        None => 0.0
+    };
+
+    // Step 8
+    Ok((hour_int, minute_int, second_float))
+}
+
+// https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
+fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, f32)), ()> {
+    // Step 1, 2, 4
+    let mut iterator = if value.contains('T') {
+        value.split('T')
+    } else {
+        value.split(' ')
+    };
+
+    // Step 3
+    let date = iterator.next().ok_or(())?;
+    let date_tuple = parse_date_component(date)?;
+
+    // Step 5
+    let time = iterator.next().ok_or(())?;
+    let time_tuple = parse_time_component(time)?;
+
+    // Step 6
+    if iterator.next().is_some() {
+        return Err(());
+    }
+
+    // Step 7, 8, 9
+    Ok((date_tuple, time_tuple))
 }
 
 fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {

@@ -13,7 +13,8 @@ use dom::TElement;
 use element_state::ElementState;
 use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::invalidation_map::*;
-use invalidation::element::invalidator::{InvalidationVector, Invalidation, InvalidationProcessor};
+use invalidation::element::invalidator::{DescendantInvalidationLists, InvalidationVector};
+use invalidation::element::invalidator::{Invalidation, InvalidationProcessor};
 use invalidation::element::restyle_hints::RestyleHint;
 use selector_map::SelectorMap;
 use selector_parser::Snapshot;
@@ -23,7 +24,7 @@ use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
 use smallvec::SmallVec;
 use stylesheets::origin::{Origin, OriginSet};
-use stylist::Stylist;
+use stylist::StyleRuleCascadeData;
 
 #[derive(Debug, PartialEq)]
 enum VisitedDependent {
@@ -47,7 +48,7 @@ where
     classes_removed: &'a SmallVec<[Atom; 8]>,
     classes_added: &'a SmallVec<[Atom; 8]>,
     state_changes: ElementState,
-    descendant_invalidations: &'a mut InvalidationVector<'selectors>,
+    descendant_invalidations: &'a mut DescendantInvalidationLists<'selectors>,
     sibling_invalidations: &'a mut InvalidationVector<'selectors>,
     invalidates_self: bool,
 }
@@ -56,7 +57,7 @@ where
 /// changes.
 pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
-    xbl_stylists: &'a [AtomicRef<'b, Stylist>],
+    shadow_rule_datas: &'a [(AtomicRef<'b, StyleRuleCascadeData>, QuirksMode)],
     cut_off_inheritance: bool,
     element: E,
     data: &'a mut ElementData,
@@ -67,7 +68,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
-        xbl_stylists: &'a [AtomicRef<'b, Stylist>],
+        shadow_rule_datas: &'a [(AtomicRef<'b, StyleRuleCascadeData>, QuirksMode)],
         cut_off_inheritance: bool,
         element: E,
         data: &'a mut ElementData,
@@ -83,7 +84,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
 
         Self {
             shared_context,
-            xbl_stylists,
+            shadow_rule_datas,
             cut_off_inheritance,
             element,
             data,
@@ -109,7 +110,7 @@ where
         &mut self,
         element: E,
         _self_invalidations: &mut InvalidationVector<'a>,
-        descendant_invalidations: &mut InvalidationVector<'a>,
+        descendant_invalidations: &mut DescendantInvalidationLists<'a>,
         sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool {
         debug_assert!(element.has_snapshot(), "Why bothering?");
@@ -210,20 +211,18 @@ where
                 OriginSet::all()
             };
 
-            self.shared_context.stylist.each_invalidation_map(|invalidation_map, origin| {
+            self.shared_context.stylist.each_normal_rule_cascade_data(|cascade_data, origin| {
                 if document_origins.contains(origin.into()) {
-                    collector.collect_dependencies_in_invalidation_map(invalidation_map);
+                    collector.collect_dependencies_in_invalidation_map(cascade_data.invalidation_map());
                 }
             });
 
-            for stylist in self.xbl_stylists {
-                // FIXME(emilio): Replace with assert / remove when we
-                // figure out what to do with the quirks mode mismatches
+            for &(ref data, quirks_mode) in self.shadow_rule_datas {
+                // FIXME(emilio): Replace with assert / remove when we figure
+                // out what to do with the quirks mode mismatches
                 // (that is, when bug 1406875 is properly fixed).
-                collector.quirks_mode = stylist.quirks_mode();
-                stylist.each_invalidation_map(|invalidation_map, _| {
-                    collector.collect_dependencies_in_invalidation_map(invalidation_map);
-                })
+                collector.quirks_mode = quirks_mode;
+                collector.collect_dependencies_in_invalidation_map(data.invalidation_map());
             }
 
             collector.invalidates_self
@@ -236,7 +235,10 @@ where
         //
         // This number is completely made-up, but the page that made us add this
         // code generated 1960+ invalidations (bug 1420741).
-        if descendant_invalidations.len() > 150 {
+        //
+        // We don't look at slotted_descendants because those don't propagate
+        // down more than one level anyway.
+        if descendant_invalidations.dom_descendants.len() > 150 {
             self.data.hint.insert(RestyleHint::RESTYLE_DESCENDANTS);
         }
 
@@ -509,36 +511,52 @@ where
     }
 
     fn note_dependency(&mut self, dependency: &'selectors Dependency) {
-        if dependency.affects_self() {
+        debug_assert!(self.dependency_may_be_relevant(dependency));
+
+        let invalidation_kind = dependency.invalidation_kind();
+        if matches!(invalidation_kind, DependencyInvalidationKind::Element) {
             self.invalidates_self = true;
+            return;
         }
 
-        if dependency.affects_descendants() {
-            debug_assert_ne!(dependency.selector_offset, 0);
-            debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
-            debug_assert!(!dependency.affects_later_siblings());
-            self.descendant_invalidations.push(Invalidation::new(
-                &dependency.selector,
-                dependency.selector.len() - dependency.selector_offset + 1,
-            ));
-        } else if dependency.affects_later_siblings() {
-            debug_assert_ne!(dependency.selector_offset, 0);
-            debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
-            self.sibling_invalidations.push(Invalidation::new(
-                &dependency.selector,
-                dependency.selector.len() - dependency.selector_offset + 1,
-            ));
+        debug_assert_ne!(dependency.selector_offset, 0);
+        debug_assert_ne!(
+            dependency.selector_offset,
+            dependency.selector.len()
+        );
+
+        let invalidation = Invalidation::new(
+            &dependency.selector,
+            dependency.selector.len() - dependency.selector_offset + 1,
+        );
+
+        match invalidation_kind {
+            DependencyInvalidationKind::Element => unreachable!(),
+            DependencyInvalidationKind::ElementAndDescendants => {
+                self.invalidates_self = true;
+                self.descendant_invalidations.dom_descendants.push(invalidation);
+            }
+            DependencyInvalidationKind::Descendants => {
+                self.descendant_invalidations.dom_descendants.push(invalidation);
+            }
+            DependencyInvalidationKind::Siblings => {
+                self.sibling_invalidations.push(invalidation);
+            }
+            DependencyInvalidationKind::SlottedElements => {
+                self.descendant_invalidations.slotted_descendants.push(invalidation);
+            }
         }
     }
 
     /// Returns whether `dependency` may cause us to invalidate the style of
     /// more elements than what we've already invalidated.
     fn dependency_may_be_relevant(&self, dependency: &Dependency) -> bool {
-        if dependency.affects_descendants() || dependency.affects_later_siblings() {
-            return true;
+        match dependency.invalidation_kind() {
+            DependencyInvalidationKind::Element => !self.invalidates_self,
+            DependencyInvalidationKind::SlottedElements => self.element.is_html_slot_element(),
+            DependencyInvalidationKind::ElementAndDescendants |
+            DependencyInvalidationKind::Siblings |
+            DependencyInvalidationKind::Descendants => true,
         }
-
-        debug_assert!(dependency.affects_self());
-        !self.invalidates_self
     }
 }

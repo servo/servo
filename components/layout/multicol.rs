@@ -10,7 +10,7 @@ use ServoArc;
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
+use display_list::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, FragmentationContext, GetBaseFlow};

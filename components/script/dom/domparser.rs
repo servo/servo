@@ -77,7 +77,6 @@ impl DOMParserMethods for DOMParser {
                 Ok(document)
             }
             Text_xml | Application_xml | Application_xhtml_xml => {
-                // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
                                              HasBrowsingContext::No,
                                              Some(url.clone()),
@@ -86,12 +85,13 @@ impl DOMParserMethods for DOMParser {
                                              Some(content_type),
                                              None,
                                              DocumentActivity::Inactive,
-                                             DocumentSource::NotFromParser,
+                                             DocumentSource::FromParser,
                                              loader,
                                              None,
                                              None,
                                              Default::default());
                 ServoParser::parse_xml_document(&document, s, url);
+                document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
         }

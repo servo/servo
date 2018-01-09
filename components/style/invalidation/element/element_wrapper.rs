@@ -351,6 +351,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
+    fn assigned_slot(&self) -> Option<Self> {
+        self.element.assigned_slot()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+    }
+
     fn blocks_ancestor_combinators(&self) -> bool {
         self.element.blocks_ancestor_combinators()
     }

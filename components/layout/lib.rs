@@ -51,7 +51,7 @@ mod block;
 pub mod construct;
 pub mod context;
 pub mod data;
-pub mod display_list_builder;
+pub mod display_list;
 mod flex;
 mod floats;
 pub mod flow;
@@ -79,7 +79,6 @@ mod table_rowgroup;
 mod table_wrapper;
 mod text;
 pub mod traversal;
-pub mod webrender_helpers;
 pub mod wrapper;
 
 // For unit tests:

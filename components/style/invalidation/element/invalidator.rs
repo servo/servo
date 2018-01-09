@@ -39,7 +39,7 @@ where
         &mut self,
         element: E,
         self_invalidations: &mut InvalidationVector<'a>,
-        descendant_invalidations: &mut InvalidationVector<'a>,
+        descendant_invalidations: &mut DescendantInvalidationLists<'a>,
         sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool;
 
@@ -56,6 +56,25 @@ where
 
     /// Executes an action when any descendant of `Self` is invalidated.
     fn invalidated_descendants(&mut self, element: E, child: E);
+}
+
+/// Different invalidation lists for descendants.
+#[derive(Debug, Default)]
+pub struct DescendantInvalidationLists<'a> {
+    /// Invalidations for normal DOM children and pseudo-elements.
+    ///
+    /// TODO(emilio): Having a list of invalidations just for pseudo-elements
+    /// may save some work here and there.
+    pub dom_descendants: InvalidationVector<'a>,
+    /// Invalidations for slotted children of an element.
+    pub slotted_descendants: InvalidationVector<'a>,
+}
+
+impl<'a> DescendantInvalidationLists<'a> {
+    fn is_empty(&self) -> bool {
+        self.dom_descendants.is_empty() &&
+        self.slotted_descendants.is_empty()
+    }
 }
 
 /// The struct that takes care of encapsulating all the logic on where and how
@@ -75,13 +94,22 @@ where
 /// A vector of invalidations, optimized for small invalidation sets.
 pub type InvalidationVector<'a> = SmallVec<[Invalidation<'a>; 10]>;
 
+/// The kind of descendant invalidation we're processing.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DescendantInvalidationKind {
+    /// A DOM descendant invalidation.
+    Dom,
+    /// A ::slotted() descendant invalidation.
+    Slotted,
+}
+
 /// The kind of invalidation we're processing.
 ///
 /// We can use this to avoid pushing invalidations of the same kind to our
 /// descendants or siblings.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum InvalidationKind {
-    Descendant,
+    Descendant(DescendantInvalidationKind),
     Sibling,
 }
 
@@ -126,21 +154,27 @@ impl<'a> Invalidation<'a> {
         //
         // We should be able to do better here!
         match self.selector.combinator_at_parse_order(self.offset - 1) {
+            Combinator::Descendant |
+            Combinator::LaterSibling |
+            Combinator::PseudoElement => true,
+            Combinator::SlotAssignment |
             Combinator::NextSibling |
             Combinator::Child => false,
-            _ => true,
         }
     }
 
     fn kind(&self) -> InvalidationKind {
         if self.offset == 0 {
-            return InvalidationKind::Descendant;
+            return InvalidationKind::Descendant(DescendantInvalidationKind::Dom);
         }
 
-        if self.selector.combinator_at_parse_order(self.offset - 1).is_ancestor() {
-            InvalidationKind::Descendant
-        } else {
-            InvalidationKind::Sibling
+        match self.selector.combinator_at_parse_order(self.offset - 1) {
+            Combinator::Child |
+            Combinator::Descendant |
+            Combinator::PseudoElement => InvalidationKind::Descendant(DescendantInvalidationKind::Dom),
+            Combinator::SlotAssignment => InvalidationKind::Descendant(DescendantInvalidationKind::Slotted),
+            Combinator::NextSibling |
+            Combinator::LaterSibling => InvalidationKind::Sibling,
         }
     }
 }
@@ -230,7 +264,7 @@ where
         debug!("StyleTreeInvalidator::invalidate({:?})", self.element);
 
         let mut self_invalidations = InvalidationVector::new();
-        let mut descendant_invalidations = InvalidationVector::new();
+        let mut descendant_invalidations = DescendantInvalidationLists::default();
         let mut sibling_invalidations = InvalidationVector::new();
 
         let mut invalidated_self = self.processor.collect_invalidations(
@@ -242,7 +276,7 @@ where
 
         debug!("Collected invalidations (self: {}): ", invalidated_self);
         debug!(" > self: {}, {:?}", self_invalidations.len(), self_invalidations);
-        debug!(" > descendants: {}, {:?}", descendant_invalidations.len(), descendant_invalidations);
+        debug!(" > descendants: {:?}", descendant_invalidations);
         debug!(" > siblings: {}, {:?}", sibling_invalidations.len(), sibling_invalidations);
 
         let invalidated_self_from_collection = invalidated_self;
@@ -251,6 +285,7 @@ where
             &self_invalidations,
             &mut descendant_invalidations,
             &mut sibling_invalidations,
+            DescendantInvalidationKind::Dom,
         );
 
         if invalidated_self && !invalidated_self_from_collection {
@@ -260,7 +295,11 @@ where
         let invalidated_descendants = self.invalidate_descendants(&descendant_invalidations);
         let invalidated_siblings = self.invalidate_siblings(&mut sibling_invalidations);
 
-        InvalidationResult { invalidated_self, invalidated_descendants, invalidated_siblings }
+        InvalidationResult {
+            invalidated_self,
+            invalidated_descendants,
+            invalidated_siblings,
+        }
     }
 
     /// Go through later DOM siblings, invalidating style as needed using the
@@ -286,7 +325,8 @@ where
                 self.processor,
             );
 
-            let mut invalidations_for_descendants = InvalidationVector::new();
+            let mut invalidations_for_descendants =
+                DescendantInvalidationLists::default();
             let invalidated_sibling =
                 sibling_invalidator.process_sibling_invalidations(
                     &mut invalidations_for_descendants,
@@ -301,7 +341,7 @@ where
 
             any_invalidated |=
                 sibling_invalidator.invalidate_descendants(
-                    &invalidations_for_descendants
+                    &invalidations_for_descendants,
                 );
 
             if sibling_invalidations.is_empty() {
@@ -324,7 +364,8 @@ where
         let result = self.invalidate_child(
             child,
             invalidations,
-            &mut sibling_invalidations
+            &mut sibling_invalidations,
+            DescendantInvalidationKind::Dom,
         );
 
         // Roots of NAC subtrees can indeed generate sibling invalidations, but
@@ -344,8 +385,10 @@ where
         child: E,
         invalidations: &[Invalidation<'b>],
         sibling_invalidations: &mut InvalidationVector<'b>,
+        descendant_invalidation_kind: DescendantInvalidationKind,
     ) -> bool {
-        let mut invalidations_for_descendants = InvalidationVector::new();
+        let mut invalidations_for_descendants =
+            DescendantInvalidationLists::default();
 
         let mut invalidated_child = false;
         let invalidated_descendants = {
@@ -366,13 +409,16 @@ where
                     invalidations,
                     &mut invalidations_for_descendants,
                     sibling_invalidations,
+                    descendant_invalidation_kind,
                 );
 
             if invalidated_child {
                 child_invalidator.processor.invalidated_self(child);
             }
 
-            child_invalidator.invalidate_descendants(&invalidations_for_descendants)
+            child_invalidator.invalidate_descendants(
+                &invalidations_for_descendants,
+            )
         };
 
         // The child may not be a flattened tree child of the current element,
@@ -418,10 +464,6 @@ where
             //
             // This probably needs a shadow root check on `child` here, and
             // recursing if that's the case.
-            //
-            // Also, what's the deal with HTML <content>? We don't need to
-            // support that for now, though we probably need to recurse into the
-            // distributed children too.
             let child = match child.as_element() {
                 Some(e) => e,
                 None => continue,
@@ -431,17 +473,93 @@ where
                 child,
                 invalidations,
                 &mut sibling_invalidations,
+                DescendantInvalidationKind::Dom,
             );
         }
 
         any_descendant
     }
 
-    /// Given a descendant invalidation list, go through the current element's
-    /// descendants, and invalidate style on them.
-    fn invalidate_descendants(
+    fn invalidate_slotted_elements(
         &mut self,
         invalidations: &[Invalidation<'b>],
+    ) -> bool {
+        if invalidations.is_empty() {
+            return false;
+        }
+
+        let mut any = false;
+
+        let mut sibling_invalidations = InvalidationVector::new();
+        let element = self.element;
+        for node in element.slotted_nodes() {
+            let element = match node.as_element() {
+                Some(e) => e,
+                None => continue,
+            };
+
+            any |= self.invalidate_child(
+                element,
+                invalidations,
+                &mut sibling_invalidations,
+                DescendantInvalidationKind::Slotted,
+            );
+
+            debug_assert!(
+                sibling_invalidations.is_empty(),
+                "::slotted() shouldn't have sibling combinators to the right, \
+                 this makes no sense! {:?}",
+                sibling_invalidations
+            );
+        }
+
+        any
+    }
+
+    fn invalidate_non_slotted_descendants(
+        &mut self,
+        invalidations: &[Invalidation<'b>],
+    ) -> bool {
+        if invalidations.is_empty() {
+            return false;
+        }
+
+        if self.processor.light_tree_only() {
+            let node = self.element.as_node();
+            return self.invalidate_dom_descendants_of(node, invalidations);
+        }
+
+        let mut any_descendant = false;
+
+        if let Some(anon_content) = self.element.xbl_binding_anonymous_content() {
+            any_descendant |=
+                self.invalidate_dom_descendants_of(anon_content, invalidations);
+        }
+
+        if let Some(before) = self.element.before_pseudo_element() {
+            any_descendant |=
+                self.invalidate_pseudo_element_or_nac(before, invalidations);
+        }
+
+        let node = self.element.as_node();
+        any_descendant |=
+            self.invalidate_dom_descendants_of(node, invalidations);
+
+        if let Some(after) = self.element.after_pseudo_element() {
+            any_descendant |=
+                self.invalidate_pseudo_element_or_nac(after, invalidations);
+        }
+
+        any_descendant |= self.invalidate_nac(invalidations);
+
+        any_descendant
+    }
+
+    /// Given the descendant invalidation lists, go through the current
+    /// element's descendants, and invalidate style on them.
+    fn invalidate_descendants(
+        &mut self,
+        invalidations: &DescendantInvalidationLists<'b>,
     ) -> bool {
         if invalidations.is_empty() {
             return false;
@@ -465,35 +583,12 @@ where
             }
         }
 
-        if self.processor.light_tree_only() {
-            let node = self.element.as_node();
-            return self.invalidate_dom_descendants_of(node, invalidations);
-        }
-
         let mut any_descendant = false;
 
-        if let Some(anon_content) = self.element.xbl_binding_anonymous_content() {
-            any_descendant |=
-                self.invalidate_dom_descendants_of(anon_content, invalidations);
-        }
-
-        // TODO(emilio): Having a list of invalidations just for pseudo-elements
-        // may save some work here and there.
-        if let Some(before) = self.element.before_pseudo_element() {
-            any_descendant |=
-                self.invalidate_pseudo_element_or_nac(before, invalidations);
-        }
-
-        let node = self.element.as_node();
         any_descendant |=
-            self.invalidate_dom_descendants_of(node, invalidations);
-
-        if let Some(after) = self.element.after_pseudo_element() {
-            any_descendant |=
-                self.invalidate_pseudo_element_or_nac(after, invalidations);
-        }
-
-        any_descendant |= self.invalidate_nac(invalidations);
+            self.invalidate_non_slotted_descendants(&invalidations.dom_descendants);
+        any_descendant |=
+            self.invalidate_slotted_elements(&invalidations.slotted_descendants);
 
         any_descendant
     }
@@ -511,7 +606,7 @@ where
     /// Returns whether invalidated the current element's style.
     fn process_sibling_invalidations(
         &mut self,
-        descendant_invalidations: &mut InvalidationVector<'b>,
+        descendant_invalidations: &mut DescendantInvalidationLists<'b>,
         sibling_invalidations: &mut InvalidationVector<'b>,
     ) -> bool {
         let mut i = 0;
@@ -547,8 +642,9 @@ where
     fn process_descendant_invalidations(
         &mut self,
         invalidations: &[Invalidation<'b>],
-        descendant_invalidations: &mut InvalidationVector<'b>,
+        descendant_invalidations: &mut DescendantInvalidationLists<'b>,
         sibling_invalidations: &mut InvalidationVector<'b>,
+        descendant_invalidation_kind: DescendantInvalidationKind,
     ) -> bool {
         let mut invalidated = false;
 
@@ -557,14 +653,19 @@ where
                 invalidation,
                 descendant_invalidations,
                 sibling_invalidations,
-                InvalidationKind::Descendant,
+                InvalidationKind::Descendant(descendant_invalidation_kind),
             );
 
             invalidated |= result.invalidated_self;
             if invalidation.effective_for_next() {
                 let mut invalidation = invalidation.clone();
                 invalidation.matched_by_any_previous |= result.matched;
-                descendant_invalidations.push(invalidation.clone());
+                debug_assert_eq!(
+                    descendant_invalidation_kind,
+                    DescendantInvalidationKind::Dom,
+                    "Slotted invalidations don't propagate."
+                );
+                descendant_invalidations.dom_descendants.push(invalidation);
             }
         }
 
@@ -580,7 +681,7 @@ where
     fn process_invalidation(
         &mut self,
         invalidation: &Invalidation<'b>,
-        descendant_invalidations: &mut InvalidationVector<'b>,
+        descendant_invalidations: &mut DescendantInvalidationLists<'b>,
         sibling_invalidations: &mut InvalidationVector<'b>,
         invalidation_kind: InvalidationKind,
     ) -> SingleInvalidationResult {
@@ -732,8 +833,11 @@ where
                            already been matched before");
                 } else {
                     match next_invalidation_kind {
-                        InvalidationKind::Descendant => {
-                            descendant_invalidations.push(next_invalidation);
+                        InvalidationKind::Descendant(DescendantInvalidationKind::Dom) => {
+                            descendant_invalidations.dom_descendants.push(next_invalidation);
+                        }
+                        InvalidationKind::Descendant(DescendantInvalidationKind::Slotted) => {
+                            descendant_invalidations.slotted_descendants.push(next_invalidation);
                         }
                         InvalidationKind::Sibling => {
                             sibling_invalidations.push(next_invalidation);
