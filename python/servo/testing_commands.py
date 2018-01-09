@@ -259,7 +259,7 @@ class MachCommands(CommandBase):
         env["RUST_BACKTRACE"] = "1"
 
         # Work around https://github.com/rust-lang/cargo/issues/4790
-        del env["RUSTDOCFLAGS"]
+        env.pop("RUSTDOCFLAGS", None)
 
         if "msvc" in host_triple():
             # on MSVC, we need some DLLs in the path. They were copied
