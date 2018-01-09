@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -28,8 +29,10 @@ use dom::node::{Node, NodeFlags};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
+use dom::window::ReflowReason;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use script_layout_interface::message::ReflowGoal;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
@@ -399,6 +402,27 @@ impl HTMLElementMethods for HTMLElement {
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
 
         rect.size.height.to_nearest_px()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+    fn InnerText(&self) -> DOMString {
+        let node = self.upcast::<Node>();
+        let window = window_from_node(node);
+        let element = self.upcast::<Element>();
+
+        // Step 1.
+        let element_not_rendered = !node.is_in_doc() || !element.has_css_layout_box();
+        if element_not_rendered {
+            return node.GetTextContent().unwrap();
+        }
+
+        window.reflow(ReflowGoal::ElementInnerTextQuery(node.to_trusted_node_address()), ReflowReason::Query);
+        DOMString::from(window.layout().element_inner_text())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+    fn SetInnerText(&self, _: DOMString) {
+        // XXX (ferjm) implement this.
     }
 }
 
