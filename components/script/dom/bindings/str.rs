@@ -303,30 +303,28 @@ impl DOMString {
         parse_week_string(&*self.0).is_ok()
     }
 
-    /// https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-floating-point-number
-    /// The rust default String::parse<f64>() is extremely close, and this just fills in the gaps.
+    /// A valid number is the same as what rust considers to be valid,
+    /// except for +1., NaN, and Infinity.
+    /// https://html.spec.whatwg.org/multipage/#valid-floating-point-number
     pub fn is_valid_number_string(&self) -> bool {
         let input = &self.0;
-        let parsed_result = input.parse::<f64>();
-        match parsed_result {
+        match input.parse::<f64>() {
             Ok(val) => {
+                // "Infinite" values like 2e308 are allowed by rust, but are not by the spec
                 if val.is_infinite() {
                     return false;
                 }
-                // Edge case. Rust's formatter will interpret "1." as 1,
-                // but we want that to be invalid.
-                if input.ends_with(".") {
-                    return false;
-                }
-                // Another edge case. Rust interprets the literal "NaN" to be NaN
+                // Check for the literal "NaN", which is parsed by Rust as NaN
                 if val.is_nan() {
                     return false;
                 }
-                // Finally, if the value starts with "+", it is invalid
+                if input.ends_with(".") {
+                    return false;
+                }
                 if input.starts_with("+") {
                     return false;
                 }
-                return true;
+                true
             }
             Err(_) => {
                 false
