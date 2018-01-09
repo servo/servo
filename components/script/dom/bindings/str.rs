@@ -18,6 +18,7 @@ use std::ops;
 use std::ops::{Deref, DerefMut};
 use std::str;
 use std::str::{Bytes, FromStr};
+use std::f64;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -303,36 +304,35 @@ impl DOMString {
         parse_week_string(&*self.0).is_ok()
     }
 
+    /// https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-floating-point-number
+    /// The rust default String::parse<f64>() is extremely close, and this just fills in the gaps.
     pub fn is_valid_number_string(&self) -> bool {
-        // For now this is a re-implementation of the algorithm found at
-        // https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#valid-floating-point-number
-
-        // Trim whitespace from the string. This is step 6 of the algo, done here at the beginning
-        let input = self.0.trim();
-
-        let mut position = 0;
-        let mut value = 1;
-        let mut divisor = 1;
-
-        // Check for - or + as the first character
-        if let Some(first_char) = input.get(&position) {
-            if first_char == "-" {
-                value = -1;
-                divisor = -1;
+        let input = &self.0;
+        let parsed_result = input.parse::<f64>();
+        match parsed_result {
+            Ok(val) => {
+                if val.is_infinite() {
+                    return false;
+                }
+                // Edge case. Rust's formatter will interpret "1." as 1,
+                // but we want that to be invalid.
+                if input.ends_with(".") {
+                    return false;
+                }
+                // Another edge case. Rust interprets the literal "NaN" to be NaN
+                if val.is_nan() {
+                    return false;
+                }
+                // Finally, if the value starts with "+", it is invalid
+                if input.starts_with("+") {
+                    return false;
+                }
+                return true;
             }
-            // If the first char is "+" then the string is invalid
-            if first_char == "+" {
-                return false;
+            Err(_) => {
+                false
             }
         }
-
-        // Check for a string beginning with .
-        if let Some(period_char) = input.get(&position) {
-            if period_char == "." {
-            }
-        }
-
-        true
     }
 
     /// A valid normalized local date and time string should be "{date}T{time}"
