@@ -418,7 +418,8 @@ class WebTestHttpd(object):
 
             _host, self.port = self.httpd.socket.getsockname()
         except Exception:
-            self.logger.error('Init failed! You may need to modify your hosts file. Refer to README.md.')
+            self.logger.error("Failed to start HTTP server. "
+                              "You may need to edit /etc/hosts or similar, see README.md.")
             raise
 
     def start(self, block=False):

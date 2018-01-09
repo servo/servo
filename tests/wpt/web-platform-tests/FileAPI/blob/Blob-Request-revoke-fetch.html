@@ -1,0 +1,41 @@
+<!doctype html>
+<title>Revoking blob URL used with Request/fetch</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(function(t) {
+    const blob = new Blob(["test"]);
+    const url = URL.createObjectURL(blob);
+    const request = new Request(url);
+
+    // Revoke the object URL.  Request should take a reference to the blob as
+    // soon as it receives it in open(), so the request succeeds even though we
+    // revoke the URL before calling fetch().
+    URL.revokeObjectURL(url);
+
+    return fetch(request).then(response => response.text()).then(text => {
+      assert_equals(text, 'test');
+    });
+}, "Revoke blob URL after creating Request, will fetch");
+
+promise_test(function(t) {
+    const blob = new Blob(["test"]);
+    const url = URL.createObjectURL(blob);
+
+    return fetch(url).then(response => response.text()).then(text => {
+      assert_equals(text, 'test');
+    });
+
+    // Revoke the object URL. fetch should have already resolved the blob URL.
+    URL.revokeObjectURL(url);
+}, "Revoke blob URL after fetch, will fetch");
+
+promise_test(t => {
+    const blob = new Blob(["test"]);
+    const url = URL.createObjectURL(blob);
+    URL.revokeObjectURL(url);
+    const request = new Request(url);
+    return promise_rejects(t, new TypeError, fetch(request));
+}, "Revoke blob URL before creating Request, network error (after fetch)")
+</script>

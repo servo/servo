@@ -8,16 +8,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -31,20 +28,17 @@
                             "sequence": true,
                             "generic": "sequence",
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": {
                                 "sequence": false,
                                 "generic": "record",
                                 "nullable": false,
-                                "array": false,
                                 "union": false,
                                 "idlType": [
                                     {
                                         "sequence": false,
                                         "generic": null,
                                         "nullable": false,
-                                        "array": false,
                                         "union": false,
                                         "idlType": "ByteString"
                                     },
@@ -52,7 +46,6 @@
                                         "sequence": false,
                                         "generic": null,
                                         "nullable": false,
-                                        "array": false,
                                         "union": false,
                                         "idlType": "any"
                                     }
@@ -68,23 +61,19 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": "record",
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": [
                         {
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },
@@ -92,14 +81,12 @@
                             "sequence": false,
                             "generic": null,
                             "nullable": true,
-                            "array": false,
                             "union": true,
                             "idlType": [
                                 {
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
-                                    "array": false,
                                     "union": false,
                                     "idlType": "float"
                                 },
@@ -107,7 +94,6 @@
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
-                                    "array": false,
                                     "union": false,
                                     "idlType": "DOMString"
                                 }
@@ -123,16 +109,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "record"
                 },
@@ -154,14 +137,12 @@
                             "sequence": false,
                             "generic": "record",
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": [
                                 {
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
-                                    "array": false,
                                     "union": false,
                                     "idlType": "USVString"
                                 },
@@ -169,7 +150,6 @@
                                     "sequence": false,
                                     "generic": null,
                                     "nullable": false,
-                                    "array": false,
                                     "union": false,
                                     "idlType": "USVString"
                                 }
@@ -177,8 +157,60 @@
                         },
                         "name": "init"
                     }
-                ]
+                ],
+                "type": "extended-attribute",
+                "rhs": null
             }
         ]
+    },
+    {
+        "type": "interface",
+        "name": "Bar",
+        "partial": false,
+        "members": [
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "deleter": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": "record",
+                    "nullable": false,
+                    "union": false,
+                    "idlType": [
+                        {
+                            "sequence": false,
+                            "generic": null,
+                            "nullable": false,
+                            "union": false,
+                            "idlType": "DOMString"
+                        },
+                        {
+                            "sequence": false,
+                            "generic": null,
+                            "nullable": false,
+                            "union": false,
+                            "idlType": "float",
+                            "extAttrs": [
+                                {
+                                    "name": "XAttr",
+                                    "arguments": null,
+                                    "type": "extended-attribute",
+                                    "rhs": null
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "name": "bar",
+                "arguments": [],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
     }
 ]

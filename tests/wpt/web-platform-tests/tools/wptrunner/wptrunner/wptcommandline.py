@@ -79,6 +79,9 @@ scheme host and port.""")
     mode_group.add_argument("--verify", action="store_true",
                             default=False,
                             help="Run a stability check on the selected tests")
+    mode_group.add_argument("--verify-log-full", action="store_true",
+                            default=False,
+                            help="Output per-iteration test results when running verify")
 
     test_selection_group = parser.add_argument_group("Test Selection")
     test_selection_group.add_argument("--test-types", action="store",
@@ -91,6 +94,8 @@ scheme host and port.""")
                                       help="URL prefix to exclude")
     test_selection_group.add_argument("--include-manifest", type=abs_path,
                                       help="Path to manifest listing tests to include")
+    test_selection_group.add_argument("--skip-timeout", action="store_true",
+                                      help="Skip tests that are expected to time out")
     test_selection_group.add_argument("--tag", action="append", dest="tags",
                                       help="Labels applied to tests to include in the run. Labels starting dir: are equivalent to top-level directories.")
 

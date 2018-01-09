@@ -31,7 +31,7 @@ promise_test(() => {
 }, "* for credentialed fetches only matches literally")
 
 promise_test(() => {
-  const headers =  "header(Access-Control-Allow-Origin,*)|header(Access-Control-Expose-Headers,set-cookie)"
+  const headers =  "header(Access-Control-Allow-Origin,*)|header(Access-Control-Expose-Headers,set-cookie\\,*)"
   return fetch(url + sharedHeaders + headers).then(resp => {
     assert_equals(resp.status, 200)
     assert_equals(resp.type , "cors")

@@ -11,7 +11,7 @@ def test_allowed_path_length():
     for idx in range(5):
         filename = basename + idx * "a"
 
-        errors = check_path("/foo/", filename, False)
+        errors = check_path("/foo/", filename)
         check_errors(errors)
         assert errors == []
 
@@ -23,7 +23,7 @@ def test_forbidden_path_length():
         filename = basename + idx * "a"
         message = "/%s longer than maximum path length (%s > 150)" % (filename, 146 + idx)
 
-        errors = check_path("/foo/", filename, False)
+        errors = check_path("/foo/", filename)
         check_errors(errors)
         assert errors == [("PATH LENGTH", message, filename, None)]
 
@@ -36,6 +36,6 @@ def test_forbidden_path_endings(path_ending, generated):
     message = ("path ends with %s which collides with generated tests from %s files" %
                (path_ending, generated))
 
-    errors = check_path("/foo/", path, False)
+    errors = check_path("/foo/", path)
     check_errors(errors)
     assert errors == [("WORKER COLLISION", message, path, None)]

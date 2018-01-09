@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents and unusual HTML elements as display:none</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-html">
+<link rel="match" href="display-contents-pass-ref.html">
+<style>
+  body { overflow: hidden }
+  br, wbr, meter, progress, canvas, embed, object, audio, iframe, img, video,
+  input, textarea, select {
+    display: contents;
+    border: 10px solid red;
+    width: 200px; height: 200px;
+  }
+</style>
+<p>You should see the word PASS below.</p>
+<div>
+  <meter></meter>
+  <progress></progress>
+  <canvas></canvas>
+  <embed>
+  <object>FAIL</object>
+  <audio controls></audio>
+  <iframe></iframe>
+  <img>
+  <video></video>
+  <input></input>
+  <textarea></textarea>
+  <select></select>
+</div>
+P<br>A<wbr>S<br>S

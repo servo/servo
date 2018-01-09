@@ -43,7 +43,7 @@ registerPaint('geometry', class {
         ctx.strokeStyle = 'green';
         if (serializedStrings[0] != "--bar: [null]")
             ctx.strokeStyle = 'red';
-        if (serializedStrings[1] != "--foo: [CSSStyleValue= bar]")
+        if (serializedStrings[1] != "--foo: [CSSUnparsedValue= bar]")
             ctx.strokeStyle = 'blue';
         if (serializedStrings[2] != "align-items: [CSSKeywordValue=normal]")
             ctx.strokeStyle = 'yellow';

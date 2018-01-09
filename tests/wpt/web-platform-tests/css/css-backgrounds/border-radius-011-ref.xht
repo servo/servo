@@ -3,29 +3,22 @@
     <head>
         <title>CSS Test: Border radius reference</title>
         <link rel="author" title="Nokia" href="http://www.nokia.com/" />
-        <style type="text/css">
-    	/* <![CDATA[ */
-        	div
-        	{
-        		border:2px solid #a1a1a1;
-        		background:#dddddd;
-        		width:200px;
-        		height: 100px;
-			}
-        /* ]]> */
+        <style>
+            div {
+                position: absolute;
+                top: 150px;
+                width: 200px;
+                height: 100px;
+            }
         </style>
     </head>
     <body>
-    	<p>
-			There should be two boxes, each with corners that have no rounding.
-		</p>
-		<ul>
-			<li>PASS if the two boxes below are the same, each with sharp corner joins (no rounding).</li>
-			<li>FAIL if corner joins have any rounding.</li>
-		</ul>
+        <p>A white rectangle with no border-radius property sits exactly on top of an exact same size red rectangle with border-radius set to zero.</p>
+        <ul>
+            <li>PASS if no red is visible on the page.</li>
+            <li>FAIL if any red is visible.</li>
+        </ul>
 
-    	<div></div>
-		<p><br/></p>
-    	<div></div>
+        <div></div>
     </body>
 </html>

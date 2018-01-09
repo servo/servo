@@ -10,7 +10,7 @@
   <script>
     test(function() {
       element.attributeStyleMap.set('width', new CSSUnitValue(42, 'px'));
-      element.attributeStyleMap.update('width', length => new CSSSimpleLength(length.value + 20, length.type))
+      element.attributeStyleMap.update('width', length => new CSSUnitValue(length.value + 20, length.unit))
       assert_equals(element.attributeStyleMap.get('width').value, 62, 'update expected to apply callback to old value in map');
     });
   </script>

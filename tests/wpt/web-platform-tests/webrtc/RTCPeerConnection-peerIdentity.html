@@ -284,7 +284,7 @@
       pc2.setRemoteDescription(offer))
     .then(() =>
       assert_rtcerror_rejection('idp-execution-failure',
-        peerIdentityPromise,
+        peerIdentityPromise1,
         `Expect first peerIdentity promise to be rejected with RTCError('idp-execution-failure')`))
     .then(() => {
       const peerIdentityPromise2 = pc2.peerIdentity;

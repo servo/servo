@@ -1,10 +1,6 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<html>
-<head>
+<!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-</head>
-<body>
 <script>
 
 function makeCanvas() {
@@ -86,6 +82,22 @@ function makeInvalidBlob() {
   });
 }
 
+function makeBrokenImage() {
+  return new Promise(resolve => {
+    const image = new Image();
+    image.src = "data,x";
+    image.onerror = () => resolve(image);
+  });
+}
+
+function makeAvailableButBrokenImage() {
+  return new Promise(resolve => {
+    const image = new Image();
+    image.src = "/images/broken.png";
+    image.onload = () => resolve(image);
+  });
+}
+
 imageSourceTypes = [
   { name: 'HTMLImageElement',  factory: makeImage },
   { name: 'HTMLVideoElement',  factory: makeVideo },
@@ -152,36 +164,48 @@ promise_test( t => {
 }, "createImageBitmap with null image source rejects with a TypeError.");
 
 promise_test( t => {
-  return promise_rejects(t, new DOMException('', 'InvalidStateError'),
+  return promise_rejects(t, "InvalidStateError",
     createImageBitmap(new Image()));
 }, "createImageBitmap with empty image source rejects with a InvalidStateError.");
 
 promise_test( t => {
-  return promise_rejects(t, new DOMException('', 'InvalidStateError'),
+  return promise_rejects(t, "InvalidStateError",
     createImageBitmap(document.createElement('video')));
 }, "createImageBitmap with empty video source rejects with a InvalidStateError.");
 
 promise_test( t => {
   return makeOversizedCanvas().then(canvas => {
-    return promise_rejects(t, new DOMException('', 'InvalidStateError'),
+    return promise_rejects(t, "InvalidStateError",
         createImageBitmap(canvas));
   });
 }, "createImageBitmap with an oversized canvas source rejects with a RangeError.");
 
 promise_test( t => {
   return makeOversizedOffscreenCanvas().then(offscreenCanvas => {
-    return promise_rejects(t, new DOMException('', 'InvalidStateError'),
+    return promise_rejects(t, "InvalidStateError",
         createImageBitmap(offscreenCanvas));
   });
 }, "createImageBitmap with an invalid OffscreenCanvas source rejects with a RangeError.");
 
 promise_test( t => {
   return makeInvalidBlob().then(blob => {
-    return promise_rejects(t, new DOMException('', 'InvalidStateError'),
+    return promise_rejects(t, "InvalidStateError",
         createImageBitmap(blob));
   });
 }, "createImageBitmap with an undecodable blob source rejects with an InvalidStateError.");
 
+promise_test( t => {
+  return makeBrokenImage().then(image => {
+    return promise_rejects(t, "InvalidStateError",
+        createImageBitmap(image));
+  });
+}, "createImageBitmap with a broken image source rejects with an InvalidStateError.");
+
+promise_test( t => {
+  return makeAvailableButBrokenImage().then(image => {
+    return promise_rejects(t, "InvalidStateError",
+        createImageBitmap(image));
+  });
+}, "createImageBitmap with an available but undecodable image source rejects with an InvalidStateError.");
+
 </script>
-</body>
-</html>

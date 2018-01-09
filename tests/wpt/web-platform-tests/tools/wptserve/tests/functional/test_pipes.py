@@ -76,5 +76,11 @@ class TestTrickle(TestUsingServer):
         self.assertEqual(resp.read(), expected)
         self.assertGreater(6, t1-t0)
 
+    def test_headers(self):
+        resp = self.request("/document.txt", query="pipe=trickle(d0.01)")
+        self.assertEqual(resp.info()["Cache-Control"], "no-cache, no-store, must-revalidate")
+        self.assertEqual(resp.info()["Pragma"], "no-cache")
+        self.assertEqual(resp.info()["Expires"], "0")
+
 if __name__ == '__main__':
     unittest.main()

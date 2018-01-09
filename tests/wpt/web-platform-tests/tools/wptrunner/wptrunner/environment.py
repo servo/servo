@@ -37,8 +37,6 @@ def do_delayed_imports(logger, test_paths):
     try:
         from tools.serve import serve
     except ImportError:
-        from wpt_tools.serve import serve
-    except ImportError:
         failed.append("serve")
 
     try:
@@ -86,7 +84,6 @@ class TestEnvironment(object):
         self.ssl_env = ssl_env
         self.server = None
         self.config = None
-        self.external_config = None
         self.pause_after_test = pause_after_test
         self.test_server_port = options.pop("test_server_port", True)
         self.debug_info = debug_info
@@ -105,9 +102,10 @@ class TestEnvironment(object):
             cm.__enter__(self.options)
         self.setup_server_logging()
         self.config = self.load_config()
-        serve.set_computed_defaults(self.config)
-        self.external_config, self.servers = serve.start(self.config, self.ssl_env,
-                                                         self.get_routes())
+        ports = serve.get_ports(self.config, self.ssl_env)
+        self.config = serve.normalise_config(self.config, ports)
+        self.servers = serve.start(self.config, self.ssl_env,
+                                   self.get_routes())
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
         return self
@@ -159,6 +157,8 @@ class TestEnvironment(object):
 
         config["key_file"] = key_file
         config["certificate"] = certificate
+
+        serve.set_computed_defaults(config)
 
         return config
 

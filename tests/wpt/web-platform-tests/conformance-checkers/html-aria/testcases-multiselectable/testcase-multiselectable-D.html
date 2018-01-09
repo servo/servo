@@ -2,7 +2,7 @@
 <html><head>
     <title>ARIA 1.0 Test Case: Listbox role with multiseclect</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <style type="text/css">
+    <style>
       div[aria-selected="true"] {color:white;background-color:black;}
     </style>
   </head>
@@ -15,7 +15,7 @@
       <div role="option" aria-selected="false" id="ID3" onmousedown="handle2(event)">Option 3 (test for shift click selected)</div> 
     </div>
     
-    <script type="text/javascript">  
+    <script>  
      function handle1(e) {
         var node=document.getElementById('ID1');
         node.focus();

@@ -10,7 +10,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "long"
                 },
@@ -32,11 +31,39 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "long"
                 },
                 "readonly": true,
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "SetLikeExt",
+        "partial": false,
+        "members": [
+            {
+                "type": "setlike",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "union": false,
+                    "idlType": "long",
+                    "extAttrs": [
+                        {
+                            "name": "XAttr",
+                            "arguments": null,
+                            "type": "extended-attribute",
+                            "rhs": null
+                        }
+                    ]
+                },
+                "readonly": false,
                 "extAttrs": []
             }
         ],

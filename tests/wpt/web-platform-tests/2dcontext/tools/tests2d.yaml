@@ -2092,6 +2092,15 @@
   code: |
     var g = ctx.createLinearGradient(0, 0, 100, 0);
     @assert throws SYNTAX_ERR g.addColorStop(0, "");
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'rgb(NaN%, NaN%, NaN%)');
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'null');
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'undefined');
+    @assert throws SYNTAX_ERR g.addColorStop(0, null);
+    @assert throws SYNTAX_ERR g.addColorStop(0, undefined);
+
+    var g = ctx.createRadialGradient(0, 0, 0, 100, 0, 0);
+    @assert throws SYNTAX_ERR g.addColorStop(0, "");
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'rgb(NaN%, NaN%, NaN%)');
     @assert throws SYNTAX_ERR g.addColorStop(0, 'null');
     @assert throws SYNTAX_ERR g.addColorStop(0, 'undefined');
     @assert throws SYNTAX_ERR g.addColorStop(0, null);

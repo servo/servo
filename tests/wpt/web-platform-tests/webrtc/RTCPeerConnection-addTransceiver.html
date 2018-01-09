@@ -80,6 +80,8 @@
    */
   test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
     assert_idl_attribute(pc, 'addTransceiver');
     assert_throws(new TypeError(), () => pc.addTransceiver('invalid'));
   }, 'addTransceiver() with string argument as invalid kind should throw TypeError');
@@ -125,6 +127,7 @@
    */
   test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     assert_idl_attribute(pc, 'addTransceiver');
 
@@ -170,6 +173,7 @@
 
   test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     assert_idl_attribute(pc, 'addTransceiver');
 
@@ -214,18 +218,24 @@
 
   test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
     const transceiver = pc.addTransceiver('audio', { direction: 'sendonly' });
     assert_equals(transceiver.direction, 'sendonly');
   }, `addTransceiver() with direction sendonly should have result transceiver.direction be the same`);
 
   test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
     const transceiver = pc.addTransceiver('audio', { direction: 'inactive' });
     assert_equals(transceiver.direction, 'inactive');
   }, `addTransceiver() with direction inactive should have result transceiver.direction be the same`);
 
   test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
     assert_idl_attribute(pc, 'addTransceiver');
     assert_throws(new TypeError(), () =>
       pc.addTransceiver('audio', { direction: 'invalid' }));
@@ -238,8 +248,9 @@
    */
   test(t => {
     const pc = new RTCPeerConnection();
-    const track = generateMediaStreamTrack('audio');
+    t.add_cleanup(() => pc.close());
 
+    const track = generateMediaStreamTrack('audio');
     const transceiver = pc.addTransceiver(track);
     const { sender, receiver } = transceiver;
 
@@ -276,8 +287,9 @@
 
   test(t => {
     const pc = new RTCPeerConnection();
-    const track = generateMediaStreamTrack('audio');
+    t.add_cleanup(() => pc.close());
 
+    const track = generateMediaStreamTrack('audio');
     const transceiver1 = pc.addTransceiver(track);
     const transceiver2 = pc.addTransceiver(track);
 
@@ -302,7 +314,6 @@
 
   }, 'addTransceiver(track) multiple times should create multiple transceivers');
 
-
   /*
     5.1.  addTransceiver
       6.  Verify that each rid value in sendEncodings is composed only of
@@ -310,8 +321,9 @@
           of 16 characters. If one of the RIDs does not meet these requirements,
           throw a TypeError.
    */
-  test(() => {
+  test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     assert_idl_attribute(pc, 'addTransceiver');
 
     assert_throws(new TypeError(), () =>
@@ -322,8 +334,9 @@
       }));
   }, 'addTransceiver() with rid containing invalid non-alphanumeric characters should throw TypeError');
 
-  test(() => {
+  test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     assert_idl_attribute(pc, 'addTransceiver');
 
     assert_throws(new TypeError(), () =>
@@ -334,8 +347,9 @@
       }));
   }, 'addTransceiver() with rid longer than 16 characters should throw TypeError');
 
-  test(() => {
+  test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     pc.addTransceiver('audio', {
       sendEncodings: [{
         rid: 'foo'
@@ -353,8 +367,9 @@
         Aside from rid , all read-only parameters in the RTCRtpEncodingParameters
         dictionaries, such as ssrc, must be left unset, or an error will be thrown.
    */
-  test(() => {
+  test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     assert_throws('InvalidAccessError', () =>
       pc.addTransceiver('audio', {
@@ -364,8 +379,9 @@
       }));
   }, `addTransceiver() with readonly ssrc set should throw InvalidAccessError`);
 
-  test(() => {
+  test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     assert_throws('InvalidAccessError', () =>
       pc.addTransceiver('audio', {
@@ -377,8 +393,9 @@
       }));
   }, `addTransceiver() with readonly rtx set should throw InvalidAccessError`);
 
-  test(() => {
+  test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     assert_throws('InvalidAccessError', () =>
       pc.addTransceiver('audio', {
@@ -390,8 +407,10 @@
       }));
   }, `addTransceiver() with readonly fec set should throw InvalidAccessError`);
 
-  test(() => {
+  test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
     pc.addTransceiver('audio', {
       sendEncodings: [{
         dtx: 'enabled',

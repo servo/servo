@@ -11,7 +11,6 @@
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
-                        "array": false,
                         "union": false,
                         "idlType": "long"
                     },
@@ -19,7 +18,6 @@
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
-                        "array": false,
                         "union": false,
                         "idlType": "float"
                     }
@@ -43,7 +41,6 @@
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
-                        "array": false,
                         "union": false,
                         "idlType": "long"
                     },
@@ -51,12 +48,57 @@
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
-                        "array": false,
                         "union": false,
                         "idlType": "float"
                     }
                 ],
                 "readonly": true,
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "I",
+        "partial": false,
+        "members": [
+            {
+                "type": "maplike",
+                "idlType": [
+                    {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "union": false,
+                        "idlType": "DOMString",
+                        "extAttrs": [
+                            {
+                                "name": "XAttr2",
+                                "arguments": null,
+                                "type": "extended-attribute",
+                                "rhs": null
+                            }
+                        ]
+                    },
+                    {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "union": false,
+                        "idlType": "long",
+                        "extAttrs": [
+                            {
+                                "name": "XAttr3",
+                                "arguments": null,
+                                "type": "extended-attribute",
+                                "rhs": null
+                            }
+                        ]
+                    }
+                ],
+                "readonly": false,
                 "extAttrs": []
             }
         ],

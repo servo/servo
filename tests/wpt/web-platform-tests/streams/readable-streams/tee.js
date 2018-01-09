@@ -207,6 +207,20 @@ promise_test(t => {
 
 }, 'ReadableStream teeing: failing to cancel the original stream should cause cancel() to reject on branches');
 
+test(t => {
+
+  let controller;
+  const stream = new ReadableStream({ start(c) { controller = c; } });
+  const [branch1, branch2] = stream.tee();
+
+  const promise = controller.error("error");
+
+  branch1.cancel().catch(_=>_);
+  branch2.cancel().catch(_=>_);
+
+  return promise;
+}, 'ReadableStream teeing: erroring a teed stream should properly handle canceled branches');
+
 promise_test(() => {
 
   let controller;

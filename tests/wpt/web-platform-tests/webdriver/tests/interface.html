@@ -1,15 +1,38 @@
-<!doctype html>
-<meta charset=utf-8>
-<title>WebDriver interface test</title>
-<script src=/resources/testharness.js></script>
-<script src=/resources/testharnessreport.js></script>
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
+<script type=text/plain class=untested>
+[Exposed=Window]
+interface Navigator {
+  // objects implementing this interface also implement the interfaces given below
+};
+</script>
+<script type=text/plain>
+Navigator includes NavigatorAutomationInformation;
 
+interface mixin NavigatorAutomationInformation {
+    readonly attribute boolean webdriver;
+    // always returns true
+};
+</script>
 <script>
-var t = new IdlArray();
-t.add_untested_idls("interface Navigator {};");
-t.add_idls("partial interface Navigator { readonly attribute boolean webdriver; };");
-t.add_objects({Navigator: ["navigator"]});
-t.test();
+"use strict";
+
+if ("webdriver" in navigator) {
+  test(() => assert_true(navigator.webdriver), "navigator.webdriver is always true");
+  var idlArray = new IdlArray();
+  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
+    if (node.className == "untested") {
+      idlArray.add_untested_idls(node.textContent);
+    } else {
+      idlArray.add_idls(node.textContent);
+    }
+  });
+  idlArray.test();
+} else {
+  done();
+}
 </script>

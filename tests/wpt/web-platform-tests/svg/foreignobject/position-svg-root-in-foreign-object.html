@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG: svg root child of foreignObject should be positionable</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://svgwg.org/svg2-draft/embedded.html#ForeignObjectElement">
+<link rel="match" href="position-svg-root-in-foreign-object-ref.html">
+<p>You should see the word PASS and no red below.</p>
+<svg>
+  <foreignObject>
+    PASS
+    <svg style="position:absolute; left: -1000px; width:100px; height: 100px; background: red"></svg>
+  </foreignObject>
+</svg>

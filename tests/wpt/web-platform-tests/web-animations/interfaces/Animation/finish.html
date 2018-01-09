@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Animation.finish()</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#dom-animation-finish">
+<title>Animation.finish</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-finish">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -10,32 +10,32 @@
 <script>
 'use strict';
 
-var gKeyFrames = { 'marginLeft': ['100px', '200px'] };
+const gKeyFrames = { 'marginLeft': ['100px', '200px'] };
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.playbackRate = 0;
 
-  assert_throws({name: 'InvalidStateError'}, function() {
+  assert_throws({name: 'InvalidStateError'}, () => {
     animation.finish();
   });
 }, 'Test exceptions when finishing non-running animation');
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames,
-                              {duration : 100 * MS_PER_SEC,
-                               iterations : Infinity});
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames,
+                                { duration : 100 * MS_PER_SEC,
+                                  iterations : Infinity });
 
-  assert_throws({name: 'InvalidStateError'}, function() {
+  assert_throws({name: 'InvalidStateError'}, () => {
     animation.finish();
   });
 }, 'Test exceptions when finishing infinite animation');
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.finish();
 
   assert_equals(animation.currentTime, 100 * MS_PER_SEC,
@@ -43,9 +43,9 @@ test(function(t) {
                 'of the active duration');
 }, 'Test finishing of animation');
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
    // 1s past effect end
   animation.currentTime =
     animation.effect.getComputedTiming().endTime + 1 * MS_PER_SEC;
@@ -56,11 +56,11 @@ test(function(t) {
                 'end of the active duration');
 }, 'Test finishing of animation with a current time past the effect end');
 
-promise_test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.currentTime = 100 * MS_PER_SEC;
-  return animation.finished.then(function() {
+  return animation.finished.then(() => {
     animation.playbackRate = -1;
     animation.finish();
 
@@ -70,11 +70,11 @@ promise_test(function(t) {
   });
 }, 'Test finishing of reversed animation');
 
-promise_test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.currentTime = 100 * MS_PER_SEC;
-  return animation.finished.then(function() {
+  return animation.finished.then(() => {
     animation.playbackRate = -1;
     animation.currentTime = -1000;
     animation.finish();
@@ -85,11 +85,11 @@ promise_test(function(t) {
   });
 }, 'Test finishing of reversed animation with a current time less than zero');
 
-promise_test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.pause();
-  return animation.ready.then(function() {
+  return animation.ready.then(() => {
     animation.finish();
 
     assert_equals(animation.playState, 'finished',
@@ -102,9 +102,9 @@ promise_test(function(t) {
   });
 }, 'Test finish() while paused');
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.pause();
   // Update playbackRate so we can test that the calculated startTime
   // respects it
@@ -121,9 +121,9 @@ test(function(t) {
                      'be set after calling finish()');
 }, 'Test finish() while pause-pending with positive playbackRate');
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.pause();
   animation.playbackRate = -2;
   animation.finish();
@@ -136,9 +136,9 @@ test(function(t) {
                 'set after calling finish()');
 }, 'Test finish() while pause-pending with negative playbackRate');
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
   animation.playbackRate = 0.5;
   animation.finish();
 
@@ -155,10 +155,10 @@ test(function(t) {
 // - In that case even after calling finish() we should still be pending but
 //   the current time should be updated
 
-promise_test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
-  return animation.ready.then(function() {
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+  return animation.ready.then(() => {
     animation.pause();
     animation.play();
     // We are now in the unusual situation of being play-pending whilst having
@@ -172,13 +172,13 @@ promise_test(function(t) {
   });
 }, 'Test finish() during aborted pause');
 
-promise_test(function(t) {
-  var div = createDiv(t);
+promise_test(t => {
+  const div = createDiv(t);
   div.style.marginLeft = '10px';
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
-  return animation.ready.then(function() {
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+  return animation.ready.then(() => {
     animation.finish();
-    var marginLeft = parseFloat(getComputedStyle(div).marginLeft);
+    const marginLeft = parseFloat(getComputedStyle(div).marginLeft);
 
     assert_equals(marginLeft, 10,
                   'The computed style should be reset when finish() is ' +
@@ -186,34 +186,34 @@ promise_test(function(t) {
   });
 }, 'Test resetting of computed style');
 
-promise_test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
-  var resolvedFinished = false;
-  animation.finished.then(function() {
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(gKeyFrames, 100 * MS_PER_SEC);
+  let resolvedFinished = false;
+  animation.finished.then(() => {
     resolvedFinished = true;
   });
 
-  return animation.ready.then(function() {
+  return animation.ready.then(() => {
     animation.finish();
-  }).then(function() {
+  }).then(() => {
     assert_true(resolvedFinished,
       'Animation.finished should be resolved soon after ' +
       'Animation.finish()');
   });
 }, 'Test finish() resolves finished promise synchronously');
 
-promise_test(function(t) {
-  var effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
-  var animation = new Animation(effect, document.timeline);
-  var resolvedFinished = false;
-  animation.finished.then(function() {
+promise_test(t => {
+  const effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
+  const animation = new Animation(effect, document.timeline);
+  let resolvedFinished = false;
+  animation.finished.then(() => {
     resolvedFinished = true;
   });
 
-  return animation.ready.then(function() {
+  return animation.ready.then(() => {
     animation.finish();
-  }).then(function() {
+  }).then(() => {
     assert_true(resolvedFinished,
                 'Animation.finished should be resolved soon after ' +
                 'Animation.finish()');
@@ -221,20 +221,20 @@ promise_test(function(t) {
 }, 'Test finish() resolves finished promise synchronously with an animation ' +
    'without a target');
 
-promise_test(function(t) {
-  var effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
-  var animation = new Animation(effect, document.timeline);
+promise_test(t => {
+  const effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
+  const animation = new Animation(effect, document.timeline);
   animation.play();
 
-  var resolvedFinished = false;
-  animation.finished.then(function() {
+  let resolvedFinished = false;
+  animation.finished.then(() => {
     resolvedFinished = true;
   });
 
-  return animation.ready.then(function() {
+  return animation.ready.then(() => {
     animation.currentTime = animation.effect.getComputedTiming().endTime - 1;
     return waitForAnimationFrames(2);
-  }).then(function() {
+  }).then(() => {
     assert_true(resolvedFinished,
                 'Animation.finished should be resolved soon after ' +
                 'Animation finishes normally');

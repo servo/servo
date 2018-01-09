@@ -9,21 +9,28 @@
 <script>
   async_test(t => {
     window.addEventListener('message', t.step_func(e => {
-      assert_equals(e.data, 'longtask+cross-origin-unreachable+script+++');
+      assert_equals(e.data['entryType'], 'longtask');
+      assert_equals(e.data['frame-attribution'], 'cross-origin-unreachable');
+      assert_equals(e.data['task-attribution'], 'script');
+      assert_equals(e.data['containerId'], '');
+      assert_equals(e.data['containerName'], '');
+      assert_equals(e.data['containerSrc'], '');
       t.done();
     }));
-}, 'Performance longtask entries in parent are observable in child iframe.');
+    const observingFrame = document.createElement('iframe');
+    observingFrame.id = 'observing-iframe-id';
+    observingFrame.name = 'observing-iframe-name';
+    document.body.appendChild(observingFrame);
+    observingFrame.src = 'resources/subframe-observing-longtask.html'
+
+    /* Create a cross-origin iframe that generates a long task. */
+    const longtaskFrame = document.createElement('iframe');
+    longtaskFrame.id = 'longtask-iframe-id';
+    longtaskFrame.name = 'longtask-iframe-name';
+    // Simulate cross-origin by using sandbox.
+    longtaskFrame.sandbox = "allow-scripts";
+    document.body.appendChild(longtaskFrame);
+    longtaskFrame.src = 'resources/subframe-with-longtask.html'
+}, 'Performance longtask entries from cross-origin iframe are observable in its sibling.');
 </script>
-
-<iframe src="resources/subframe-observing-longtask.html"></iframe>
-
-<script>
-  /* Create a cross-origin iframe that generates a long task. */
-  const iframe = document.createElement('iframe');
-  iframe.id = 'child-iframe-id';
-  iframe.name = 'child-iframe-name';
-  document.body.appendChild(iframe);
-  iframe.src = 'http://www1.web-platform.test:8000/longtask-timing/resources/subframe-with-longtask.html';
-</script>
-
 </body>

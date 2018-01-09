@@ -12,7 +12,7 @@ interface C {
   void f(B x);
 };
 
-interface A {
+interface D {
   /* f1 */ void f(DOMString a);
   /* f2 */ void f([AllowAny] DOMString a, DOMString b, float... c);
   /* f3 */ void f();

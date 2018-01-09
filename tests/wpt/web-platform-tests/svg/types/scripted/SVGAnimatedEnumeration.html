@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<title>SVGAnimatedEnumeration interface - utilizing the clipPathUnits property of SVGClipPathElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the SVGAnimatedEnumeration API - utilizing the clipPathUnits property of SVGClipPathElement.
+
+  var clipPathElement = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+
+  // Check initial clipPathUnits value.
+  assert_true(clipPathElement.clipPathUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(clipPathElement.clipPathUnits.baseVal), "number");
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Check that enumerations are static, caching value in a local variable and modifying it, should have no effect.
+  var enumRef = clipPathElement.clipPathUnits.baseVal;
+  enumRef = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(enumRef, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Check assigning various valid and invalid values.
+  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = 3; });
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = -1; });
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // ECMA-262, 9.7, "ToUint16"
+  clipPathElement.clipPathUnits.baseVal = '1';
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // ECMA-262, 9.7, "ToUint16"
+  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = 'aString'; });
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  clipPathElement.clipPathUnits.baseVal = 2;
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_throws(new TypeError(), function() { clipPathElement.clipPathUnits.baseVal = clipPathElement; });
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+});
+</script>

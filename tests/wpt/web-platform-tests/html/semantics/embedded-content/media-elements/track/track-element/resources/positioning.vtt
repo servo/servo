@@ -1,0 +1,21 @@
+WEBVTT
+Valid horizontal positioning values.
+
+1
+00:00:00.000 --> 00:00:30.500 position:0%
+Bear is Coming!!!!!
+Positioning on the left bottom.
+
+2
+00:00:31.000 --> 00:00:45.500 position:50%
+I said Bear is coming!!!!
+Positioning on the bottom middle.
+
+00:00:46.000 --> 00:01:00.500
+I said Bear is coming!!!!
+Default positioning on the bottom middle still.
+
+3
+00:01:01.000 --> 00:02:00.500 position:100%
+I said Bear is coming now!!!!
+Positioning on the bottom right.

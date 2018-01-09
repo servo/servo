@@ -1,0 +1,44 @@
+environment:
+  COVERALLS_REPO_TOKEN:
+    secure: 2NJ5Ct55cHJ9WEg3xbSqCuv0rdgzzb6pnzOIG5OkMbTndw3wOBrXntWFoQrXiMFi
+    # this is pytest's token in coveralls.io, encrypted
+    # using pytestbot account as detailed here:
+    # https://www.appveyor.com/docs/build-configuration#secure-variables
+
+  matrix:
+  # coveralls is not in the default env list
+  - TOXENV: "coveralls"
+  # note: please use "tox --listenvs" to populate the build matrix below
+  - TOXENV: "linting"
+  - TOXENV: "py27"
+  - TOXENV: "py34"
+  - TOXENV: "py35"
+  - TOXENV: "py36"
+  - TOXENV: "pypy"
+  - TOXENV: "py27-pexpect"
+  - TOXENV: "py27-xdist"
+  - TOXENV: "py27-trial"
+  - TOXENV: "py27-numpy"
+  - TOXENV: "py27-pluggymaster"
+  - TOXENV: "py36-pexpect"
+  - TOXENV: "py36-xdist"
+  - TOXENV: "py36-trial"
+  - TOXENV: "py36-numpy"
+  - TOXENV: "py36-pluggymaster"
+  - TOXENV: "py27-nobyte"
+  - TOXENV: "doctesting"
+  - TOXENV: "py35-freeze"
+  - TOXENV: "docs"
+
+install:
+  - echo Installed Pythons
+  - dir c:\Python*
+
+  - if "%TOXENV%" == "pypy" call scripts\install-pypy.bat
+
+  - C:\Python36\python -m pip install --upgrade --pre tox
+
+build: false  # Not a C# project, build stuff at the test step instead.
+
+test_script:
+  - call scripts\call-tox.bat

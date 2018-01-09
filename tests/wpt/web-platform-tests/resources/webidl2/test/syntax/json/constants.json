@@ -22,7 +22,7 @@
                 "name": "negative",
                 "value": {
                     "type": "number",
-                    "value": -1
+                    "value": "-1"
                 },
                 "extAttrs": []
             },
@@ -33,7 +33,7 @@
                 "name": "LF",
                 "value": {
                     "type": "number",
-                    "value": 10
+                    "value": "10"
                 },
                 "extAttrs": []
             },
@@ -44,7 +44,7 @@
                 "name": "BIT_MASK",
                 "value": {
                     "type": "number",
-                    "value": 64512
+                    "value": "0x0000fc00"
                 },
                 "extAttrs": []
             },
@@ -55,7 +55,7 @@
                 "name": "AVOGADRO",
                 "value": {
                     "type": "number",
-                    "value": 6.022e+23
+                    "value": "6.022e23"
                 },
                 "extAttrs": []
             },
@@ -88,49 +88,6 @@
                 "name": "notanumber",
                 "value": {
                     "type": "NaN"
-                },
-                "extAttrs": []
-            }
-        ],
-        "inheritance": null,
-        "extAttrs": []
-    },
-    {
-        "type": "exception",
-        "name": "Error",
-        "members": [
-            {
-                "type": "const",
-                "nullable": false,
-                "idlType": "short",
-                "name": "ERR_UNKNOWN",
-                "value": {
-                    "type": "number",
-                    "value": 0
-                },
-                "extAttrs": []
-            },
-            {
-                "type": "const",
-                "nullable": false,
-                "idlType": "short",
-                "name": "ERR_OUT_OF_MEMORY",
-                "value": {
-                    "type": "number",
-                    "value": 1
-                },
-                "extAttrs": []
-            },
-            {
-                "type": "field",
-                "name": "errorCode",
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "array": false,
-                    "union": false,
-                    "idlType": "short"
                 },
                 "extAttrs": []
             }

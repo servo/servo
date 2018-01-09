@@ -1,13 +1,20 @@
 import logging
 import sys
 import threading
+from Queue import Empty
 from StringIO import StringIO
 from multiprocessing import Queue
 
-from mozlog import commandline, stdadapter
+from mozlog import commandline, stdadapter, set_default_logger
+from mozlog.structuredlog import StructuredLogger
 
 def setup(args, defaults):
-    logger = commandline.setup_logging("web-platform-tests", args, defaults)
+    logger = args.pop('log', None)
+    if logger:
+        set_default_logger(logger)
+        StructuredLogger._logger_states["web-platform-tests"] = logger._state
+    else:
+        logger = commandline.setup_logging("web-platform-tests", args, defaults)
     setup_stdlib_logger()
 
     for name in args.keys():
@@ -43,7 +50,6 @@ class LogLevelRewriter(object):
             data = data.copy()
             data["level"] = self.to_level
         return self.inner(data)
-
 
 
 class LogThread(threading.Thread):
@@ -120,5 +126,10 @@ class CaptureIO(object):
                 self.logging_queue.put(None)
                 if self.logging_thread is not None:
                     self.logging_thread.join(10)
+                while not self.logging_queue.empty():
+                    try:
+                        self.logger.warning("Dropping log message: %r", self.logging_queue.get())
+                    except Exception:
+                        pass
                 self.logging_queue.close()
                 self.logger.info("queue closed")

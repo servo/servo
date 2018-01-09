@@ -17,13 +17,19 @@
         {
             var xhr = new XMLHttpRequest();
 
-            xhr.open("POST", "http://nonexistent-origin.{{host}}}:{{ports[http][0]}}", false);
+            xhr.open("POST", "http://nonexistent-origin.{{host}}:{{ports[http][0]}}", false);
 
             assert_throws("NetworkError", function()
             {
                 xhr.send("Test Message");
             });
             assert_equals(xhr.readyState, 4)
+
+        }, "http URL");
+
+        test(function()
+        {
+            var xhr = new XMLHttpRequest();
 
             xhr.open("GET", "data:text/html;charset=utf-8;base64,PT0NUWVBFIGh0bWw%2BDQo8", false);
 
@@ -33,7 +39,7 @@
             });
             assert_equals(xhr.readyState, 4)
 
-        });
+        }, "data URL");
     </script>
 </body>
 </html>

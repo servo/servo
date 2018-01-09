@@ -114,6 +114,46 @@
     }, "createElement.setAttribute.");
 </script>
 
+<!-- Custom Element -->
+<script nonce="abc">
+  var eventList = [];
+  class NonceElement extends HTMLElement {
+    static get observedAttributes() {
+      return ['nonce'];
+    }
+
+    constructor() {
+      super();
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      eventList.push({
+        type: "AttributeChanged",
+        name: name,
+        oldValue: oldValue,
+        newValue: newValue
+      });
+    }
+
+    connectedCallback() {
+      eventList.push({
+        type: "Connected",
+      });
+    }
+  }
+
+  customElements.define("nonce-element", NonceElement);
+</script>
+<nonce-element nonce="abc"></nonce-element>
+<script nonce="abc">
+  test(t => {
+    assert_equals(eventList.length, 3);
+    assert_object_equals(eventList[0], { type: "AttributeChanged", name: "nonce", oldValue: null, newValue: "abc" });
+    assert_object_equals(eventList[1], { type: "Connected" });
+    assert_object_equals(eventList[2], { type: "AttributeChanged", name: "nonce", oldValue: "abc", newValue: "" });
+  }, "Custom elements expose the correct events.");
+</script>
+
 <!-- CSS Leakage -->
 <style>
     #cssTest { display: block; }

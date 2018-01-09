@@ -16,32 +16,32 @@
 var body = document.getElementsByTagName('body')[0];
 var createIframeThen = function (callback) {
   var iframe = document.createElement('iframe');
-  iframe.src = "echo-cookie.html";
+  iframe.src = "/cookies/resources/echo-cookie.html";
   body.appendChild(iframe);
   iframe.onload = callback;
   return iframe;
 };
 var testCookiePathFromDOM = function (testCase, test) {
   var iframe = createIframeThen(test.step_func(function () {
-    iframe.contentWindow.setCookie(testCase.name, testCase.path);
-    var cookieSet = iframe.contentWindow.isCookieSet(testCase.name, testCase.path);
+    iframe.contentWindow.setCookie('dom-' + testCase.name, testCase.path);
+    var cookieSet = iframe.contentWindow.isCookieSet('dom-' + testCase.name, testCase.path);
     if (testCase.match === false) {
       assert_equals(cookieSet, null);
     } else {
       assert_not_equals(cookieSet, null);
     }
 
-    iframe.contentWindow.expireCookie(testCase.name, testCase.path);
+    iframe.contentWindow.expireCookie('dom-' + testCase.name, testCase.path);
     test.done();
   }));
 };
 var testCookiePathFromHeader = function (testCase, test) {
   var iframe = createIframeThen(test.step_func(function () {
-    iframe.contentWindow.fetchCookieThen(testCase.name, testCase.path).then(test.step_func(function (response) {
+    iframe.contentWindow.fetchCookieThen('header-' + testCase.name, testCase.path).then(test.step_func(function (response) {
       assert_true(response.ok);
 
-      var cookieSet = iframe.contentWindow.isCookieSet(testCase.name, testCase.path);
-      iframe.contentWindow.expireCookie(testCase.name, testCase.path);
+      var cookieSet = iframe.contentWindow.isCookieSet('header-' + testCase.name, testCase.path);
+      iframe.contentWindow.expireCookie('header-' + testCase.name, testCase.path);
       if (testCase.match === false) {
         assert_equals(cookieSet, null);
       } else {
@@ -70,7 +70,7 @@ var tests = [{
   "path": "/cookies/",
 }, {
   "name": "match-exact-page",
-  "path": "/cookies/path/echo-cookie.html",
+  "path": "/cookies/resources/echo-cookie.html",
 }, {
   "name": "no-match",
   "path": "/cook",
@@ -82,9 +82,9 @@ var tests = [{
 }];
 
 var domTests = tests.map(function (testCase) {
-  var testName = "`document.cookie` on /cookies/path/echo-cookie.html sets cookie with path: " + testCase.path;
+  var testName = "`document.cookie` on /cookies/resources/echo-cookie.html sets cookie with path: " + testCase.path;
   if (testCase.match === false) {
-    testName = "`document.cookie` on /cookies/path/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
+    testName = "`document.cookie` on /cookies/resources/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
   }
   return [
     testName,
@@ -95,9 +95,9 @@ var domTests = tests.map(function (testCase) {
 });
 
 var headerTests = tests.map(function (testCase) {
-  var testName = "`Set-Cookie` on /cookies/path/echo-cookie.html sets cookie with path: " + testCase.path;
+  var testName = "`Set-Cookie` on /cookies/resources/echo-cookie.html sets cookie with path: " + testCase.path;
   if (testCase.match === false) {
-    testName = "`Set-Cookie` on /cookies/path/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
+    testName = "`Set-Cookie` on /cookies/resources/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
   }
   return [
     testName,

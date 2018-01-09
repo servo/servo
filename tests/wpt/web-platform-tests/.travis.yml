@@ -63,7 +63,7 @@ matrix:
             - fonts-liberation
       env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
-        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=chrome:unstable
+        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=chrome:dev
     - os: linux
       python: "2.7"
       env:
@@ -94,7 +94,7 @@ matrix:
     - env: JOB=build_css SCRIPT=css/build-css-testsuites.sh
     - env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
-        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=chrome:unstable
+        - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=chrome:dev
     - env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=sauce:MicrosoftEdge:14.14393 PLATFORM='Windows 10'

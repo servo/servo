@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>cssom-view - scroll-behavior: smooth</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#smooth-scrolling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .filler { height: 10000px }
+
+  .smooth {
+    scroll-behavior: smooth;
+  }
+
+  #scrollable {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="testContainer">
+  <div id="scrollable">
+    <div class="filler"></div>
+  </div>
+  <div class="filler"></div>
+</div>
+<script>
+  test(() => {
+    scrollable.scrollTo(0, 5000);
+    assert_equals(scrollable.scrollTop, 5000, "Initially scrolls instantly");
+    scrollable.scrollTo(0, 0);
+    scrollable.className = "smooth";
+    scrollable.scrollTo(0, 5000);
+    assert_less_than(scrollable.scrollTop, 5000, "scroll-behavior:smooth should not scroll instantly");
+    scrollable.className = "";
+    scrollable.scrollTo(0, 0);
+  }, "scroll-behavior: smooth on DIV element");
+
+  test(() => {
+    window.scrollTo(0, 5000);
+    assert_equals(window.scrollY, 5000, "Initially scrolls instantly");
+    window.scrollTo(0, 0);
+    document.documentElement.className = "smooth";
+    assert_less_than(window.scrollY, 5000, "scroll-behavior:smooth should not scroll instantly");
+    document.documentElement.className = "";
+    window.scrollTo(0, 0);
+  }, "HTML element scroll-behavior should propagate to viewport");
+
+  test(() => {
+    window.scrollTo(0, 5000);
+    assert_equals(window.scrollY, 5000, "Initially scrolls instantly");
+    window.scrollTo(0, 0);
+    document.body.className = "smooth";
+    window.scrollTo(0, 5000);
+    assert_equals(window.scrollY, 5000, "scroll-behavior:smooth on BODY should scroll viewport instantly");
+    document.body.className = "";
+    window.scrollTo(0, 0);
+  }, "BODY element scroll-behavior should not propagate to viewport");
+
+  testContainer.style.display = "none";
+</script>

@@ -15,6 +15,7 @@ objects.forEach(function(object) {
     var uncalled = "t.step(function() { assert_unreached('First event handler.') })"
     var button = document.createElement('button');
     button.onclick = object; // event handler listener is registered here
+    assert_equals(button.onclick, object);
     button.addEventListener('click', t.step_func(function () { assert_equals(++i, 2) }), false);
     button.setAttribute('onclick', uncalled);
     button.addEventListener('click', t.step_func(function () { assert_equals(++i, 3) }), false);
@@ -35,6 +36,7 @@ primitives.forEach(function(primitive) {
     var uncalled = "t.step(function() { assert_unreached('First event handler.') })"
     var button = document.createElement('button');
     button.onclick = primitive;
+    assert_equals(button.onclick, null);
     button.addEventListener('click', t.step_func(function () { assert_equals(++i, 1) }), false);
     button.setAttribute('onclick', uncalled); // event handler listener is registered here
     button.addEventListener('click', t.step_func(function () { assert_equals(++i, 3) }), false);

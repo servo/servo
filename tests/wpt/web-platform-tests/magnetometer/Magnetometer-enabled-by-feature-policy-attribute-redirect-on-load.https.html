@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script src="/generic-sensor/generic-sensor-feature-policy-test.sub.js"></script>
+<script>
+"use strict";
+
+run_fp_tests_enabled_by_attribute_redirect_on_load(Magnetometer);
+run_fp_tests_enabled_by_attribute_redirect_on_load(UncalibratedMagnetometer);
+</script>
+</body>

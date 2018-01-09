@@ -156,6 +156,22 @@ promise_test(function(t) {
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
+            OUT_SCOPE + 'url=' + encodeURIComponent(SCOPE1) + '#ref',
+            SCOPE1 + '#ref',
+            [[SCOPE1 + '#ref'], [], []]);
+      });
+  }, 'Normal redirect to same-origin scope with a hash fragment.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            OUT_SCOPE + 'url=' + encodeURIComponent(SCOPE1 + '#ref2') + '#ref',
+            SCOPE1 + '#ref2',
+            [[SCOPE1 + '#ref2'], [], []]);
+      });
+  }, 'Normal redirect to same-origin scope with different hash fragments.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
             OUT_SCOPE + 'url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
             OTHER_ORIGIN_SCOPE,
             [[], [], [OTHER_ORIGIN_SCOPE]]);
@@ -179,6 +195,27 @@ promise_test(function(t) {
             [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE1), SCOPE1], [], []]);
       });
   }, 'SW-fallbacked redirect to same-origin same-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'url=' + encodeURIComponent(SCOPE1) + '#ref',
+            SCOPE1 + '#ref',
+            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE1) + '#ref',
+              SCOPE1 + '#ref'],
+             [], []]);
+      });
+  }, 'SW-fallbacked redirect to same-origin same-scope with a hash fragment.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'url=' + encodeURIComponent(SCOPE1 + '#ref2') + '#ref',
+            SCOPE1 + '#ref2',
+            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE1 + '#ref2') + '#ref',
+              SCOPE1 + '#ref2'],
+             [], []]);
+      });
+  }, 'SW-fallbacked redirect to same-origin same-scope with different hash ' +
+     'fragments.');
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(
@@ -218,6 +255,27 @@ promise_test(function(t) {
             [[SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE)], [], []]);
       });
   }, 'SW-generated redirect to same-origin out-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE) + '#ref',
+            OUT_SCOPE + '#ref',
+            [[SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE) + '#ref'],
+              [], []]);
+      });
+  }, 'SW-generated redirect to same-origin out-scope with a hash fragment.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE + '#ref2') +
+            '#ref',
+            OUT_SCOPE + '#ref2',
+            [[SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE + '#ref2') +
+              '#ref'],
+             [], []]);
+      });
+  }, 'SW-generated redirect to same-origin out-scope with different hash' +
+     'fragments.');
 promise_test(function(t) {
     return setup_environment(t).then(function() {
         return test_redirect(

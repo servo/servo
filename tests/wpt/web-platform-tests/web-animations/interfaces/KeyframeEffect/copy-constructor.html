@@ -2,9 +2,9 @@
 <meta charset=utf-8>
 <title>KeyframeEffect and KeyframeEffectReadOnly copy constructor</title>
 <link rel="help"
-      href="https://w3c.github.io/web-animations/#dom-keyframeeffect-keyframeeffect-source">
+      href="https://drafts.csswg.org/web-animations/#dom-keyframeeffect-keyframeeffect-source">
 <link rel="help"
-      href="https://w3c.github.io/web-animations/#dom-keyframeeffectreadonly-keyframeeffectreadonly-source">
+      href="https://drafts.csswg.org/web-animations/#dom-keyframeeffectreadonly-keyframeeffectreadonly-source">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -13,13 +13,13 @@
 <script>
 'use strict';
 
-test(function(t) {
+test(t => {
   const effect = new KeyframeEffectReadOnly(createDiv(t), null);
   const copiedEffect = new KeyframeEffectReadOnly(effect);
   assert_equals(copiedEffect.target, effect.target, 'same target');
 }, 'Copied KeyframeEffectReadOnly has the same target');
 
-test(function(t) {
+test(t => {
   const effect =
     new KeyframeEffectReadOnly(null,
                                [ { marginLeft: '0px' },
@@ -52,7 +52,7 @@ test(function(t) {
   }
 }, 'Copied KeyframeEffectReadOnly has the same keyframes');
 
-test(function(t) {
+test(t => {
   const effect =
     new KeyframeEffectReadOnly(null, null,
                                { iterationComposite: 'accumulate' });
@@ -64,7 +64,7 @@ test(function(t) {
                 'same compositeOperation');
 }, 'Copied KeyframeEffectReadOnly has the same KeyframeEffectOptions');
 
-test(function(t) {
+test(t => {
   const effect = new KeyframeEffectReadOnly(null, null,
                                             { duration: 100 * MS_PER_SEC,
                                               delay: -1 * MS_PER_SEC,
@@ -90,7 +90,7 @@ test(function(t) {
   assert_equals(timingA.easing, timingB.easing, 'same easing');
 }, 'Copied KeyframeEffectReadOnly has the same timing content');
 
-test(function(t) {
+test(t => {
   const effect = new KeyframeEffectReadOnly(createDiv(t), null);
   assert_equals(effect.constructor.name, 'KeyframeEffectReadOnly');
   assert_equals(effect.timing.constructor.name,

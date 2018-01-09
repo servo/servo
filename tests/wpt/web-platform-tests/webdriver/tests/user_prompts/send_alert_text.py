@@ -1,6 +1,7 @@
 import pytest
 
 from tests.support.asserts import assert_error, assert_success
+from tests.support.inline import inline
 
 def send_alert_text(session, body=None):
     return session.transport.send("POST", "session/{session_id}/alert/text"
@@ -12,7 +13,7 @@ def send_alert_text(session, body=None):
 @pytest.mark.parametrize("text", [None, {}, [], 42, True])
 def test_invalid_input(session, text):
     # 18.4 step 2
-    session.execute_script("window.result = window.prompt(\"Enter Your Name: \", \"Name\");")
+    session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Name');</script>")
     response = send_alert_text(session, {"text": text})
     assert_error(response, "invalid argument")
 
@@ -35,7 +36,7 @@ def test_no_user_prompt(session):
 
 def test_alert_element_not_interactable(session):
     # 18.4 step 5
-    session.execute_script("window.alert(\"Hello\");")
+    session.url = inline("<script>window.alert('Hello');</script>")
     body = {"text": "Federer"}
     response = send_alert_text(session, body)
     assert_error(response, "element not interactable")
@@ -43,7 +44,7 @@ def test_alert_element_not_interactable(session):
 
 def test_confirm_element_not_interactable(session):
     # 18.4 step 5
-    session.execute_script("window.confirm(\"Hello\");")
+    session.url = inline("<script>window.confirm('Hello');</script>")
     body = {"text": "Federer"}
     response = send_alert_text(session, body)
     assert_error(response, "element not interactable")
@@ -51,7 +52,7 @@ def test_confirm_element_not_interactable(session):
 
 def test_send_alert_text(session):
     # 18.4 step 6
-    session.execute_script("window.result = window.prompt(\"Enter Your Name: \", \"Name\");")
+    session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Name');</script>")
     body = {"text": "Federer"}
     send_response = send_alert_text(session, body)
     assert_success(send_response)
@@ -63,7 +64,7 @@ def test_send_alert_text(session):
 
 def test_send_alert_text_with_whitespace(session):
     # 18.4 step 6
-    session.execute_script("window.result = window.prompt(\"Enter Your Name: \", \"Name\");")
+    session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Name');</script>")
     body = {"text": " Fed erer "}
     send_response = send_alert_text(session, body)
     assert_success(send_response)

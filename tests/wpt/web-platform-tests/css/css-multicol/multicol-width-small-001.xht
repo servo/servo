@@ -10,7 +10,7 @@
   <meta name="flags" content="ahem" />
   <meta name="assert" content="This test checks that a set 'column-width' which is small with regards to width of multi-column element." />
   <style type="text/css"><![CDATA[
-  div
+  body > div
   {
   background-color: yellow;
   border: gray solid 1em;
@@ -23,20 +23,23 @@
   column-gap: 0;
   column-width: 1em;
   }
+  div > div { overflow: hidden; }
 
   span {color: blue;}
   ]]></style>
  </head>
  <body>
   <div>
-  Bl ac
-    <span>
-    bl ue
-    </span>
-    <span>
-    bl ue
-    </span>
-  Bl ac
+    <div>
+      Bl ac
+      <span>
+        bl ue
+      </span>
+      <span>
+        bl ue
+      </span>
+      Bl ac
+    </div>
   </div>
 
   <!--

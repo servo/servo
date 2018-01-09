@@ -5,41 +5,8 @@
   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/" />
   <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-08-09 -->
   <meta name="flags" content="" />
-  <style type="text/css"><![CDATA[
-  div#rel-pos-wrapper
-  {
-  font: 1.25em/1 serif;
-  position: relative;
-  }
-
-  div#rel-pos-wrapper > div
-  {
-  background-color: blue;
-  font-size: 1em;
-  height: 3em;
-  position: absolute;
-  width: 1em;
-  }
-
-  div#first-column-rule
-  {
-  left: 14em;
-  top: auto;
-  }
-
-  div#second-column-rule
-  {
-  left: 29em;
-  top: auto;
-  }
-   ]]></style>
  </head>
  <body>
-
-  <div id="rel-pos-wrapper">
-	<div id="first-column-rule"></div>
-	<div id="second-column-rule"></div>
-  </div>
-
+   <div style="font: 1.25em/1 Ahem; width:12em; height:3em; margin-left:12em; border-left:1em solid blue; border-right:1em solid blue;"></div>
  </body>
 </html>

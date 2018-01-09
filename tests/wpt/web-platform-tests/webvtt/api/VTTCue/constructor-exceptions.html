@@ -1,0 +1,25 @@
+<!doctype html>
+<title>VTTCue constructor exceptions</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+    assert_throws(new TypeError, function() { new VTTCue(NaN, 0, 'foo'); });
+    assert_throws(new TypeError, function() { new VTTCue(Infinity, 0, 'foo'); });
+    assert_throws(new TypeError, function() { new VTTCue('tomorrow', 0, 'foo'); });
+}, document.title+', non-finite start time');
+test(function() {
+    assert_throws(new TypeError, function() { new VTTCue(0, NaN, 'foo'); });
+    assert_throws(new TypeError, function() { new VTTCue(0, Infinity, 'foo'); });
+    assert_throws(new TypeError, function() { new VTTCue(0, 'tomorrow', 'foo'); });
+}, document.title+', non-finite end time');
+test(function() {
+    var start = { valueOf: function() { return 42; } };
+    var end = { valueOf: function() { return 84; } };
+    var cue = new VTTCue(start, end, 'bar');
+    assert_equals(cue.startTime, 42);
+    assert_equals(cue.endTime, 84);
+    assert_equals(cue.text, 'bar');
+}, document.title+', valueOf');
+</script>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Referrer with the same-origin policy</title>
+<meta name="referrer" content="same-origin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="module">
+
+// "name" parameter is necessary for bypassing the module map.
+
+import { referrer as referrerSame } from "./resources/referrer-checker.py?name=same";
+
+import { referrer as referrerRemote } from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/module/resources/referrer-checker.py?name=remote";
+
+import { referrer as referrerSameSame } from "./resources/import-referrer-checker.sub.js?name=same_same";
+
+import { referrer as referrerSameRemote } from "./resources/import-remote-origin-referrer-checker.sub.js?name=same_remote";
+
+import { referrer as referrerRemoteRemote } from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/module/resources/import-referrer-checker.sub.js?name=remote_remote";
+
+test(t => {
+  assert_equals(
+      referrerSame, location.href,
+      "Referrer should be sent for the same-origin top-level script.");
+}, "Importing a same-origin top-level script with the same-origin policy.");
+
+test(t => {
+  assert_equals(
+      referrerRemote, "",
+      "Referrer should not be sent for the remote-origin top-level script.");
+}, "Importing a remote-origin top-level script with the same-origin policy.");
+
+test(t => {
+  const path =
+      new URL("resources/import-referrer-checker.sub.js", location.href);
+  assert_equals(
+      referrerSameSame, path + `?name=same_same`,
+      "Referrer should be sent for the same-origin descendant script.");
+}, "Importing a same-origin descendant script from a same-origin top-level " +
+   "script with the same-origin policy.");
+
+test(t => {
+  assert_equals(
+      referrerSameRemote, "",
+      "Referrer should not be sent for the remote-origin descendant script.");
+}, "Importing a remote-origin descendant script from a same-origin top-level " +
+   "script with the same-origin policy.");
+
+test(t => {
+  assert_equals(
+      referrerRemoteRemote, "",
+      "Referrer should not be sent for the remote-origin descendant script " +
+      "even if it is imported from the script in the same remote-origin.");
+}, "Importing a remote-origin descendant script from a remote-origin " +
+   "top-level script with the same-origin policy.");
+
+</script>
+</body>
+</html>
