@@ -255,11 +255,8 @@ class MachCommands(CommandBase):
 
         packages.discard('stylo')
 
-        env = self.build_env()
+        env = self.build_env(test_unit=True)
         env["RUST_BACKTRACE"] = "1"
-
-        # Work around https://github.com/rust-lang/cargo/issues/4790
-        del env["RUSTDOCFLAGS"]
 
         if "msvc" in host_triple():
             # on MSVC, we need some DLLs in the path. They were copied

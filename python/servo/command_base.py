@@ -388,7 +388,7 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -486,7 +486,10 @@ class CommandBase(object):
         if hosts_file_path:
             env['HOST_FILE'] = hosts_file_path
 
-        env['RUSTDOCFLAGS'] = "--document-private-items"
+        if not test_unit:
+            # This wrapper script is in bash and doesn't work on Windows
+            # where we want to run doctests as part of `./mach test-unit`
+            env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
 
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
