@@ -1,3 +1,7 @@
+env:
+  CCACHE: sccache
+  RUSTC_WRAPPER: sccache
+
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
