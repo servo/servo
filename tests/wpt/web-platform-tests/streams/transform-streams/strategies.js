@@ -67,7 +67,6 @@ test(() => {
   const ts = new TransformStream();
   const writer = ts.writable.getWriter();
   assert_equals(writer.desiredSize, 1, 'default writable HWM is 1');
-  // There should be no size function, but a size function that always returns 1 is indistinguishable.
   writer.write(undefined);
   assert_equals(writer.desiredSize, 0, 'default chunk size is 1');
 }, 'default writable strategy should be equivalent to { highWaterMark: 1 }');
@@ -88,5 +87,69 @@ promise_test(t => {
   const writePromise = ts.writable.getWriter().write();
   return ts.readable.getReader().read().then(() => writePromise);
 }, 'default readable strategy should be equivalent to { highWaterMark: 0 }');
+
+test(() => {
+  assert_throws(new RangeError(), () => new TransformStream(undefined, { highWaterMark: -1 }),
+                'should throw RangeError for negative writableHighWaterMark');
+  assert_throws(new RangeError(), () => new TransformStream(undefined, undefined, { highWaterMark: -1 }),
+                'should throw RangeError for negative readableHighWaterMark');
+  assert_throws(new RangeError(), () => new TransformStream(undefined, { highWaterMark: NaN }),
+                'should throw RangeError for NaN writableHighWaterMark');
+  assert_throws(new RangeError(), () => new TransformStream(undefined, undefined, { highWaterMark: NaN }),
+                'should throw RangeError for NaN readableHighWaterMark');
+}, 'a RangeError should be thrown for an invalid highWaterMark');
+
+const objectThatConvertsTo42 = {
+  toString() {
+    return '42';
+  }
+};
+
+test(() => {
+  const ts = new TransformStream(undefined, { highWaterMark: objectThatConvertsTo42 });
+  const writer = ts.writable.getWriter();
+  assert_equals(writer.desiredSize, 42, 'writable HWM is 42');
+}, 'writableStrategy highWaterMark should be converted to a number');
+
+test(() => {
+  const ts = new TransformStream({
+    start(controller) {
+      assert_equals(controller.desiredSize, 42, 'desiredSize should be 42');
+    }
+  }, undefined, { highWaterMark: objectThatConvertsTo42 });
+}, 'readableStrategy highWaterMark should be converted to a number');
+
+promise_test(t => {
+  const ts = new TransformStream(undefined, undefined, {
+    size() { return NaN; },
+    highWaterMark: 1
+  });
+  const writer = ts.writable.getWriter();
+  return promise_rejects(t, new RangeError(), writer.write(), 'write should reject');
+}, 'a bad readableStrategy size function should cause writer.write() to reject on an identity transform');
+
+promise_test(t => {
+  const ts = new TransformStream({
+    transform(chunk, controller) {
+      // This assert has the important side-effect of catching the error, so transform() does not throw.
+      assert_throws(new RangeError(), () => controller.enqueue(chunk), 'enqueue should throw');
+    }
+  }, undefined, {
+    size() {
+      return -1;
+    },
+    highWaterMark: 1
+  });
+
+  const writer = ts.writable.getWriter();
+  return writer.write().then(() => {
+    return Promise.all([
+      promise_rejects(t, new RangeError(), writer.ready, 'ready should reject'),
+      promise_rejects(t, new RangeError(), writer.closed, 'closed should reject'),
+      promise_rejects(t, new RangeError(), ts.readable.getReader().closed, 'readable closed should reject')
+    ]);
+  });
+}, 'a bad readableStrategy size function should error the stream on enqueue even when transformer.transform() ' +
+   'catches the exception');
 
 done();

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>GeolocationSensor Test: onerror</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://wicg.github.io/geolocation-sensor/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<h2>Precondition</h2>
+<ol>
+  <li>
+    Disable the Geolocation sensor or run test on a device without Geolocation sensor.
+  </li>
+</ol>
+<script>
+
+runGenericSensorOnerror(GeolocationSensor);
+
+</script>

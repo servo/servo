@@ -54,7 +54,7 @@
 
       Object.keys(data).forEach(function(prop){
         test(function(){
-          assert_own_property(myDiv.style, prop)
+          assert_true(prop in myDiv.style)
         }, prop)
 
         if ('initial' in data[prop]) test(function(){
@@ -66,7 +66,7 @@
         var syntaxTests = data[prop]
         Object.keys(syntaxTests).forEach(function(testcase){
           test(function(){
-            assert_own_property(myDiv.style, prop)
+            assert_true(prop in myDiv.style)
             myDiv.style[prop] = syntaxTests[testcase][0]
             assert_equals(myDiv.style[prop], syntaxTests[testcase][0], testcase)
             assert_equals(getComputedStyle(myDiv)[prop], syntaxTests[testcase][1], testcase)

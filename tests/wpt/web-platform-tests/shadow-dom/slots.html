@@ -22,6 +22,12 @@ test(() => {
   assert_equals(n.c1.assignedSlot, n.s1);
   assert_array_equals(n.s1.assignedNodes(), [n.c1]);
 }, 'Slots: Basic.');
+
+test(() => {
+  let n = createTestTree(test_basic);
+
+  assert_array_equals(n.s1.assignedElements(), [n.c1]);
+}, 'Slots: Basic, elements only.');
 </script>
 
 <div id="test_basic_closed">
@@ -41,6 +47,12 @@ test(() => {
   assert_equals(n.c1.assignedSlot, null);
   assert_array_equals(n.s1.assignedNodes(), [n.c1]);
 }, 'Slots: Slots in closed.');
+
+test(() => {
+  let n = createTestTree(test_basic_closed);
+
+  assert_array_equals(n.s1.assignedElements(), [n.c1]);
+}, 'Slots: Slots in closed, elements only.');
 </script>
 
 <div id="test_slot_not_in_shadow">
@@ -54,6 +66,12 @@ test(() => {
 
   assert_array_equals(n.s1.assignedNodes(), []);
 }, 'Slots: Slots not in a shadow tree.');
+
+test(() => {
+  let n = createTestTree(test_slot_not_in_shadow);
+
+  assert_array_equals(n.s1.assignedElements(), []);
+}, 'Slots: Slots not in a shadow tree, elements only.');
 </script>
 
 <div id="test_slot_not_in_shadow_2">
@@ -86,7 +104,7 @@ test(() => {
   assert_array_equals(n.s1.assignedNodes({ flatten: true }), []);
   assert_array_equals(n.s2.assignedNodes({ flatten: true }), []);
   assert_array_equals(n.s3.assignedNodes({ flatten: true }), []);
-}, 'Slots: Distributed nooes for Slots not in a shadow tree.');
+}, 'Slots: Distributed nodes for Slots not in a shadow tree.');
 </script>
 
 <div id="test_slot_name_matching">

@@ -74,29 +74,20 @@ promise_test(t => {
 
 }, 'close: returning a rejected promise should cause writer close() and ready to reject');
 
-promise_test(t => {
-  const ws = new WritableStream({
+test(() => {
+  assert_throws(error1, () => new WritableStream({
     get close() {
       throw error1;
     }
-  });
+  }), 'constructor should throw');
+}, 'close: throwing getter should cause constructor to throw');
 
-  const writer = ws.getWriter();
-
-  return promise_rejects(t, error1, writer.close(), 'close should reject with the thrown error');
-}, 'close: throwing getter should cause writer close() to reject');
-
-promise_test(t => {
-  const ws = new WritableStream({
+test(() => {
+  assert_throws(error1, () => new WritableStream({
     get write() {
       throw error1;
     }
-  });
-
-  const writer = ws.getWriter();
-
-  return promise_rejects(t, error1, writer.write('a'), 'write should reject with the thrown error')
-  .then(() => promise_rejects(t, error1, writer.closed, 'closed should reject with the thrown error'));
+  }), 'constructor should throw');
 }, 'write: throwing getter should cause write() and closed to reject');
 
 promise_test(t => {
@@ -173,29 +164,18 @@ promise_test(t => {
 
 }, 'write: returning a rejected promise (second write) should cause writer write() and ready to reject');
 
-promise_test(t => {
-  const ws = new WritableStream({
+test(() => {
+  assert_throws(new TypeError(), () => new WritableStream({
     abort: { apply() {} }
-  });
-
-  return promise_rejects(t, new TypeError(), ws.abort(error1), 'abort should reject with TypeError').then(() => {
-    const writer = ws.getWriter();
-    return promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError');
-  });
+  }), 'constructor should throw');
 }, 'abort: non-function abort method with .apply');
 
-promise_test(t => {
-  const abortReason = new Error('different string');
-  const ws = new WritableStream({
+test(() => {
+  assert_throws(error1, () => new WritableStream({
     get abort() {
       throw error1;
     }
-  });
-
-  const writer = ws.getWriter();
-
-  return promise_rejects(t, error1, writer.abort(abortReason), 'abort should reject with the thrown error')
-  .then(() => promise_rejects(t, new TypeError(), writer.closed, 'closed should reject with a TypeError'));
+  }), 'constructor should throw');
 }, 'abort: throwing getter should cause abort() and closed to reject');
 
 promise_test(t => {

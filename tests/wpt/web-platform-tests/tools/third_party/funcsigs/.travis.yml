@@ -1,0 +1,17 @@
+language: python
+python:
+  - 2.6
+  - 2.7
+  - 3.2
+  - 3.3
+  - pypy
+install:
+  - pip install -r requirements/development.txt -r requirements/production.txt
+  - python setup.py install
+script:
+  - coverage run setup.py test
+  - coverage report --show-missing
+after_success:
+  - coveralls
+notifications:
+    email: aaron.iles+travis-ci@gmail.com

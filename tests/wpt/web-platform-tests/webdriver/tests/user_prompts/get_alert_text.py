@@ -1,4 +1,5 @@
 from tests.support.asserts import assert_error, assert_success
+from tests.support.inline import inline
 
 
 def get_dialog_text(session):
@@ -25,7 +26,7 @@ def test_no_user_prompt(session):
 
 def test_get_alert_text(session):
     # 18.3 step 3
-    session.execute_script("window.alert(\"Hello\");")
+    session.url = inline("<script>window.alert('Hello');</script>")
     response = get_dialog_text(session)
     assert_success(response)
     assert isinstance(response.body, dict)
@@ -37,7 +38,7 @@ def test_get_alert_text(session):
 
 def test_get_confirm_text(session):
     # 18.3 step 3
-    session.execute_script("window.confirm(\"Hello\");")
+    session.url = inline("<script>window.confirm('Hello');</script>")
     response = get_dialog_text(session)
     assert_success(response)
     assert isinstance(response.body, dict)
@@ -49,7 +50,7 @@ def test_get_confirm_text(session):
 
 def test_get_prompt_text(session):
     # 18.3 step 3
-    session.execute_script("window.prompt(\"Enter Your Name: \", \"Federer\");")
+    session.url = inline("<script>window.prompt('Enter Your Name: ', 'Federer');</script>")
     response = get_dialog_text(session)
     assert_success(response)
     assert isinstance(response.body, dict)

@@ -3,11 +3,11 @@
 // found in the LICENSE file.
 
 // This test makes sure browsers behave reasonably when asked to allocate a
-// large number of WebAssembly.Memory objects at once.
+// larger number of WebAssembly.Memory objects at once.
 test(function() {
   let memories = [];
   try {
-    for (let i = 0; i < 600; i++) {
+    for (let i = 0; i < 20; i++) {
       memories.push(new WebAssembly.Memory({initial: 1}));
     }
   } catch (e) {

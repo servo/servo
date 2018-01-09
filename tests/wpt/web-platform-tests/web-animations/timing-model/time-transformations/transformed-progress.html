@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Tests for the transformed progress</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#calculating-the-transformed-progress">
+<title>Transformed progress</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#calculating-the-transformed-progress">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -12,14 +12,14 @@
 <script>
 'use strict';
 
-gEasingTests.forEach(params => {
-  test(function(t) {
+for (const params of gEasingTests) {
+  test(t => {
     const target = createDiv(t);
     const anim   = target.animate(null, { duration: 1000,
                                           fill: 'forwards',
                                           easing: params.easing });
 
-    [ 0, 250, 500, 750, 1000 ].forEach(sampleTime => {
+    for (const sampleTime of [0, 250, 500, 750, 1000]) {
       anim.currentTime = sampleTime;
       const portion = sampleTime / anim.effect.getComputedTiming().duration;
       const expectedProgress = params.easingFunction(portion);
@@ -27,15 +27,15 @@ gEasingTests.forEach(params => {
                            expectedProgress,
                            0.01,
                            'The progress should be approximately ' +
-                           expectedProgress + ` at ${sampleTime}ms`);
-    });
-  }, 'Transformed progress for ' + params.desc);
-});
+                           `${expectedProgress} at ${sampleTime}ms`);
+    }
+  }, `Transformed progress for ${params.desc}`);
+}
 
 // Additional tests for various boundary conditions of step timing functions and
 // frames timing functions.
 
-var gStepAndFramesTimingFunctionTests = [
+const gStepAndFramesTimingFunctionTests = [
   {
     description: 'Test bounds point of step-start easing',
     effect:     {
@@ -291,18 +291,18 @@ var gStepAndFramesTimingFunctionTests = [
   }
 ];
 
-gStepAndFramesTimingFunctionTests.forEach(function(options) {
-  test(function(t) {
-    var target = createDiv(t);
-    var animation = target.animate(null, options.effect);
-    options.conditions.forEach(function(condition) {
+for (const options of gStepAndFramesTimingFunctionTests) {
+  test(t => {
+    const target = createDiv(t);
+    const animation = target.animate(null, options.effect);
+    for (const condition of options.conditions) {
       animation.currentTime = condition.currentTime;
       assert_equals(animation.effect.getComputedTiming().progress,
                     condition.progress,
-                    'Progress at ' + animation.currentTime + 'ms');
-    });
+                    `Progress at ${animation.currentTime}ms`);
+    }
   }, options.description);
-});
+}
 
 </script>
 </body>

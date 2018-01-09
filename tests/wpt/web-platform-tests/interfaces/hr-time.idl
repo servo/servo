@@ -1,0 +1,13 @@
+typedef double DOMHighResTimeStamp;
+
+[Exposed=(Window,Worker)]
+interface Performance : EventTarget {
+    DOMHighResTimeStamp now();
+    readonly attribute DOMHighResTimeStamp timeOrigin;
+    [Default] object              toJSON();
+};
+
+partial interface WindowOrWorkerGlobalScope {
+    [Replaceable]
+    readonly attribute Performance performance;
+};

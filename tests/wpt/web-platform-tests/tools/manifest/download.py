@@ -1,14 +1,17 @@
+from __future__ import absolute_import
+
 import argparse
 import gzip
 import json
 import io
-import log
 import os
 from datetime import datetime, timedelta
 
-import urllib2
+from six.moves.urllib.request import urlopen
 
-from vcs import Git
+from .vcs import Git
+
+from . import log
 
 here = os.path.dirname(__file__)
 
@@ -37,7 +40,7 @@ def git_commits(repo_root):
 
 def github_url(commits):
     try:
-        resp = urllib2.urlopen("https://api.github.com/repos/w3c/web-platform-tests/releases")
+        resp = urlopen("https://api.github.com/repos/w3c/web-platform-tests/releases")
     except Exception:
         return None
 
@@ -76,7 +79,7 @@ def download_manifest(manifest_path, commits_func, url_func, force=False):
 
     logger.info("Downloading manifest from %s" % url)
     try:
-        resp = urllib2.urlopen(url)
+        resp = urlopen(url)
     except Exception:
         logger.warning("Downloading pregenerated manifest failed")
         return False

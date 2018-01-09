@@ -18,8 +18,30 @@
     async_test(function(t) {
       var link = document.createElement("link")
       link.rel = "stylesheet"
-      link.onerror = t.step_func_done(function(){})
+      link.onerror = t.step_func_done()
       link.onload = t.unreached_func("Unexpected load event")
+      link.href = get_url(mime)
+      document.body.appendChild(link)
+    }, "URL query: " + mime)
+  })
+
+  fails.forEach(function(mime) {
+    async_test(function(t) {
+      var link = document.createElement("link")
+      link.rel = "stylesheet"
+      link.onerror = t.step_func_done()
+      link.onload = t.unreached_func("Unexpected load event")
+      link.href = get_url(mime)
+      document.body.appendChild(link)
+    }, "Revalidated URL query: " + mime)
+  })
+
+  passes.forEach(function(mime) {
+    async_test(function(t) {
+      var link = document.createElement("link")
+      link.rel = "stylesheet"
+      link.onerror = t.unreached_func("Unexpected error event")
+      link.onload = t.step_func_done()
       link.href = get_url(mime)
       document.body.appendChild(link)
     }, "URL query: " + mime)
@@ -30,9 +52,9 @@
       var link = document.createElement("link")
       link.rel = "stylesheet"
       link.onerror = t.unreached_func("Unexpected error event")
-      link.onload = t.step_func_done(function(){})
+      link.onload = t.step_func_done()
       link.href = get_url(mime)
       document.body.appendChild(link)
-    }, "URL query: " + mime)
+    }, "Revalidated URL query: " + mime)
   })
 </script>

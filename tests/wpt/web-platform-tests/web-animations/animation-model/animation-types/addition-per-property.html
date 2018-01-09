@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Tests for animation type of addition</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#animation-types">
+<title>Addition for each property</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#animation-types">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -17,16 +17,15 @@ html {
 <script>
 'use strict';
 
-for (var property in gCSSProperties) {
+for (const property in gCSSProperties) {
   if (!isSupported(property)) {
     continue;
   }
 
-  var animationTypes = gCSSProperties[property].types;
-  var setupFunction = gCSSProperties[property].setup;
-  animationTypes.forEach(function(animationType) {
-    var typeObject;
-    var animationTypeString;
+  const setupFunction = gCSSProperties[property].setup;
+  for (const animationType of gCSSProperties[property].types) {
+    let typeObject;
+    let animationTypeString;
     if (typeof animationType === 'string') {
       typeObject = types[animationType];
       animationTypeString = animationType;
@@ -39,13 +38,13 @@ for (var property in gCSSProperties) {
     // First, test that the animation type object has 'testAddition'.
     // We use test() function here so that we can continue the remainder tests
     // even if this test fails.
-    test(function(t) {
+    test(t => {
       assert_own_property(typeObject, 'testAddition', animationTypeString +
                           ' should have testAddition property');
       assert_equals(typeof typeObject.testAddition, 'function',
                     'testAddition method should be a function');
-    }, property + ' (type: ' + animationTypeString +
-       ') has testAddition function');
+    }, `${property} (type: ${animationTypeString}) has testAddition`
+       + ' function');
 
     if (typeObject.testAddition &&
         typeof typeObject.testAddition === 'function') {
@@ -53,6 +52,6 @@ for (var property in gCSSProperties) {
                               setupFunction,
                               animationType.options);
     }
-  });
+  }
 }
 </script>

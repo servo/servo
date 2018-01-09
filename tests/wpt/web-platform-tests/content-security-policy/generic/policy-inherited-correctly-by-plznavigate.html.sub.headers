@@ -1,0 +1,5 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: policy-inherited-correctly-by-plznavigate={{$id:uuid()}}; Path=/content-security-policy/generic/
+Content-Security-Policy: frame-src 'none'; script-src 'self' 'unsafe-inline'; report-uri  ../support/report.py?op=put&reportID={{$id}}

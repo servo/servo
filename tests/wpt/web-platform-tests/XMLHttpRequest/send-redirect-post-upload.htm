@@ -15,8 +15,8 @@
     <div id="log"></div>
 
     <script type="text/javascript">
-    function testRedirectPost(code, shouldResendPost) {
-        var test = async_test(document.title + " (" + code + ")");
+    function testRedirectPost(params) {
+        var test = async_test(document.title + " (" + params.name + ")");
         var actual = [];
         // We check upload.onprogress with a boolean because it *might* fire more than once
         var progressFiredReadyState1 = false;
@@ -24,13 +24,13 @@
         var expectedHeaders, expectedEvents;
 
         // 307 redirects should resend the POST data, and events and headers will be a little different..
-        if(shouldResendPost) {
+        if(params.expectResendPost) {
             expectedHeaders = {
-                "X-Request-Content-Length": "11988",
+                "X-Request-Content-Length": "12000",
                 "X-Request-Content-Type": "text/plain;charset=UTF-8",
                 "X-Request-Method": "POST",
                 "X-Request-Query": "NO",
-                "Content-Length": "11988"
+                "Content-Length": "12000"
             }
             expectedEvents = [
                 "xhr onreadystatechange 1",
@@ -63,6 +63,10 @@
                 "xhr loadend 4"
             ];
         }
+        // Override expectations if provided.
+        if(params.expectedContentType)
+          expectedHeaders["X-Request-Content-Type"] = params.expectedContentType;
+
         test.step(function()
         {
             var xhr = new XMLHttpRequest();
@@ -105,20 +109,24 @@
                 }
 
                 assert_array_equals(actual, expectedEvents, "events firing in expected order and states");
+                if (params.expectedBody)
+                  assert_equals(xhr.response, params.expectedBody, 'request body was resent');
                 test.done();
             });
 
-            xhr.open("POST", "./resources/redirect.py?location=content.py&code=" + code, true);
-            xhr.send((new Array(1000)).join("Test Message"));
+            xhr.open("POST", "./resources/redirect.py?location=content.py&code=" + params.code, true);
+            xhr.send(params.body);
         });
     }
 
+    const stringBody = "Test Message".repeat(1000);
+    const blobBody = new Blob(new Array(1000).fill("Test Message"));
 
-    testRedirectPost(301, false);
-    testRedirectPost(302, false);
-    testRedirectPost(303, false);
-    testRedirectPost(307, true);
-
+    testRedirectPost({name: "301", code: 301, expectResendPost: false, body: stringBody});
+    testRedirectPost({name: "302", code: 302, expectResendPost: false, body: stringBody});
+    testRedirectPost({name: "303", code: 303, expectResendPost: false, body: stringBody});
+    testRedirectPost({name: "307 (string)", code: 307, expectResendPost: true,  body: stringBody, expectedBody: stringBody });
+    testRedirectPost({name: "307 (blob)", code: 307, expectResendPost: true, body: blobBody, expectedBody: stringBody, expectedContentType: "NO" });
     </script>
 </body>
 </html>

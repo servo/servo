@@ -11,6 +11,11 @@ test(function () {
 }, 'initPopStateEvent');
 
 test(function () {
+  var popStateEvent = new PopStateEvent("popstate");
+  assert_equals(popStateEvent.state, null, "the PopStateEvent.state");
+}, "Initial value of PopStateEvent.state must be null");
+
+test(function () {
   var state = history.state;
   var data;
   window.addEventListener('popstate', function (e) {

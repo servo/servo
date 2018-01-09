@@ -44,11 +44,6 @@
       assert_equals(doc.referrer, document.URL, "The document's referrer should be its creator document's address.");
       assert_equals(iframe.contentWindow.parent.document, document);
     }, "Check the document properties corresponding to the creator browsing context");
-
-    test(function () {
-      assert_equals(iframe.contentWindow.history.length, 1, "The history.length should be 1.");
-    }, "Check the history.length of the created browsing context");
-
     </script>
   </body>
 </html>

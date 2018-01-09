@@ -15,9 +15,14 @@
           return;
         // TODO(panicker): include containerType.
         const attribution = longtask.attribution[0];
-        const entryContents = longtask.entryType + '+' + longtask.name + '+' +
-          attribution.name + '+' + attribution.containerId + '+' +
-            attribution.containerName + '+' + attribution.containerSrc;
+        const entryContents = {
+          'entryType': longtask.entryType,
+          'frame-attribution': longtask.name,
+          'task-attribution': attribution.name,
+          'containerId': attribution.containerId,
+          'containerName': attribution.containerName,
+          'containerSrc': attribution.containerSrc
+        };
         top.postMessage(entryContents, '*');
       }
     });

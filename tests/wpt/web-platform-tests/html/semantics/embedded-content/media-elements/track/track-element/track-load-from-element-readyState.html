@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Load event on HTMLTrackElement and LOADED readyState on TextTrack when src is set on the element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+  <track src="resources/webvtt-file.vtt" default>
+  <script>
+  async_test(function(t) {
+    var track = document.querySelector("track");
+    track.onload = t.step_func_done(function() {
+      assert_equals(track.readyState, HTMLTrackElement.LOADED);
+    });
+  });
+  </script>
+</video>

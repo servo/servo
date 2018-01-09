@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Dynamic insertion on empty display: contents element with pseudo-elements</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel=match href="display-contents-dynamic-pseudo-insertion-001-ref.html">
+<style>
+.contents {
+  display: contents;
+  border: 10px solid red;
+}
+.contents::before {
+  content: "A";
+}
+.contents::after {
+  content: "SS";
+}
+</style>
+<div class="contents"></div>
+<script>
+document.body.offsetTop;
+let span = document.createElement('span');
+span.innerHTML = "P";
+let contents = document.querySelector('.contents');
+contents.parentNode.insertBefore(span, contents);
+</script>

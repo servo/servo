@@ -10,19 +10,19 @@ policies and contribution forms [3].
 
 'use strict';
 
-var MS_PER_SEC = 1000;
+const MS_PER_SEC = 1000;
 
 // The recommended minimum precision to use for time values[1].
 //
-// [1] https://w3c.github.io/web-animations/#precision-of-time-values
-var TIME_PRECISION = 0.0005; // ms
+// [1] https://drafts.csswg.org/web-animations/#precision-of-time-values
+const TIME_PRECISION = 0.0005; // ms
 
 // Allow implementations to substitute an alternative method for comparing
 // times based on their precision requirements.
 if (!window.assert_times_equal) {
-  window.assert_times_equal = function(actual, expected, description) {
+  window.assert_times_equal = (actual, expected, description) => {
     assert_approx_equals(actual, expected, TIME_PRECISION, description);
-  }
+  };
 }
 
 // creates div element, appends it to the document body and
@@ -38,9 +38,9 @@ function createElement(test, tagName, doc) {
   if (!doc) {
     doc = document;
   }
-  var element = doc.createElement(tagName || 'div');
+  const element = doc.createElement(tagName || 'div');
   doc.body.appendChild(element);
-  test.add_cleanup(function() {
+  test.add_cleanup(() => {
     element.remove();
   });
   return element;
@@ -61,16 +61,16 @@ function createStyle(test, rules, doc) {
   if (!doc) {
     doc = document;
   }
-  var extraStyle = doc.createElement('style');
+  const extraStyle = doc.createElement('style');
   doc.head.appendChild(extraStyle);
   if (rules) {
-    var sheet = extraStyle.sheet;
-    for (var selector in rules) {
-      sheet.insertRule(selector + '{' + rules[selector] + '}',
+    const sheet = extraStyle.sheet;
+    for (const selector in rules) {
+      sheet.insertRule(`${selector}{${rules[selector]}}`,
                        sheet.cssRules.length);
     }
   }
-  test.add_cleanup(function() {
+  test.add_cleanup(() => {
     extraStyle.remove();
   });
 }
@@ -78,37 +78,37 @@ function createStyle(test, rules, doc) {
 // Create a pseudo element
 function createPseudo(test, type) {
   createStyle(test, { '@keyframes anim': '',
-                      ['.pseudo::' + type]: 'animation: anim 10s; ' +
+                      [`.pseudo::${type}`]: 'animation: anim 10s; ' +
                                             'content: \'\';'  });
-  var div = createDiv(test);
+  const div = createDiv(test);
   div.classList.add('pseudo');
-  var anims = document.getAnimations();
+  const anims = document.getAnimations();
   assert_true(anims.length >= 1);
-  var anim = anims[anims.length - 1];
+  const anim = anims[anims.length - 1];
   assert_equals(anim.effect.target.parentElement, div);
-  assert_equals(anim.effect.target.type, '::' + type);
+  assert_equals(anim.effect.target.type, `::${type}`);
   anim.cancel();
   return anim.effect.target;
 }
 
 // Cubic bezier with control points (0, 0), (x1, y1), (x2, y2), and (1, 1).
 function cubicBezier(x1, y1, x2, y2) {
-  function xForT(t) {
-    var omt = 1-t;
+  const xForT = t => {
+    const omt = 1-t;
     return 3 * omt * omt * t * x1 + 3 * omt * t * t * x2 + t * t * t;
-  }
+  };
 
-  function yForT(t) {
-    var omt = 1-t;
+  const yForT = t => {
+    const omt = 1-t;
     return 3 * omt * omt * t * y1 + 3 * omt * t * t * y2 + t * t * t;
-  }
+  };
 
-  function tForX(x) {
+  const tForX = x => {
     // Binary subdivision.
-    var mint = 0, maxt = 1;
-    for (var i = 0; i < 30; ++i) {
-      var guesst = (mint + maxt) / 2;
-      var guessx = xForT(guesst);
+    let mint = 0, maxt = 1;
+    for (let i = 0; i < 30; ++i) {
+      const guesst = (mint + maxt) / 2;
+      const guessx = xForT(guesst);
       if (x < guessx) {
         maxt = guesst;
       } else {
@@ -116,9 +116,9 @@ function cubicBezier(x1, y1, x2, y2) {
       }
     }
     return (mint + maxt) / 2;
-  }
+  };
 
-  return function bezierClosure(x) {
+  return x => {
     if (x == 0) {
       return 0;
     }
@@ -126,31 +126,29 @@ function cubicBezier(x1, y1, x2, y2) {
       return 1;
     }
     return yForT(tForX(x));
-  }
+  };
 }
 
 function stepEnd(nsteps) {
-  return function stepEndClosure(x) {
-    return Math.floor(x * nsteps) / nsteps;
-  }
+  return x => Math.floor(x * nsteps) / nsteps;
 }
 
 function stepStart(nsteps) {
-  return function stepStartClosure(x) {
-    var result = Math.floor(x * nsteps + 1.0) / nsteps;
+  return x => {
+    const result = Math.floor(x * nsteps + 1.0) / nsteps;
     return (result > 1.0) ? 1.0 : result;
-  }
+  };
 }
 
 function framesTiming(nframes) {
-  return function framesClosure(x) {
-    var result = Math.floor(x * nframes) / (nframes - 1);
+  return x => {
+    const result = Math.floor(x * nframes) / (nframes - 1);
     return (result > 1.0 && x <= 1.0) ? 1.0 : result;
-  }
+  };
 }
 
 function waitForAnimationFrames(frameCount) {
-  return new Promise(function(resolve, reject) {
+  return new Promise(resolve => {
     function handleFrame() {
       if (--frameCount <= 0) {
         resolve();
@@ -166,8 +164,8 @@ function waitForAnimationFrames(frameCount) {
 // as recorded using document.timeline.currentTime (i.e. frame time not
 // wall-clock time).
 function waitForAnimationFramesWithDelay(minDelay) {
-  var startTime = document.timeline.currentTime;
-  return new Promise(function(resolve) {
+  const startTime = document.timeline.currentTime;
+  return new Promise(resolve => {
     (function handleFrame() {
       if (document.timeline.currentTime - startTime >= minDelay) {
         resolve();
@@ -178,10 +176,24 @@ function waitForAnimationFramesWithDelay(minDelay) {
   });
 }
 
+
+// Waits for a requestAnimationFrame callback in the next refresh driver tick.
+function waitForNextFrame() {
+  const timeAtStart = document.timeline.currentTime;
+  return new Promise(resolve => {
+    window.requestAnimationFrame(() => {
+      if (timeAtStart === document.timeline.currentTime) {
+        window.requestAnimationFrame(resolve);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 // Returns 'matrix()' or 'matrix3d()' function string generated from an array.
 function createMatrixFromArray(array) {
-  return (array.length == 16 ? 'matrix3d' : 'matrix') +
-         '(' + array.join() + ')';
+  return (array.length == 16 ? 'matrix3d' : 'matrix') + `(${array.join()})`;
 }
 
 // Returns 'matrix3d()' function string equivalent to
@@ -193,11 +205,11 @@ function rotate3dToMatrix3d(x, y, z, radian) {
 // Returns an array of the 4x4 matrix equivalent to 'rotate3d(x, y, z, radian)'.
 // https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined
 function rotate3dToMatrix(x, y, z, radian) {
-  var sc = Math.sin(radian / 2) * Math.cos(radian / 2);
-  var sq = Math.sin(radian / 2) * Math.sin(radian / 2);
+  const sc = Math.sin(radian / 2) * Math.cos(radian / 2);
+  const sq = Math.sin(radian / 2) * Math.sin(radian / 2);
 
   // Normalize the vector.
-  var length = Math.sqrt(x*x + y*y + z*z);
+  const length = Math.sqrt(x*x + y*y + z*z);
   x /= length;
   y /= length;
   z /= length;
@@ -224,21 +236,21 @@ function rotate3dToMatrix(x, y, z, radian) {
 
 // Compare matrix string like 'matrix(1, 0, 0, 1, 100, 0)' with tolerances.
 function assert_matrix_equals(actual, expected, description) {
-  var matrixRegExp = /^matrix(?:3d)*\((.+)\)/;
+  const matrixRegExp = /^matrix(?:3d)*\((.+)\)/;
   assert_regexp_match(actual, matrixRegExp,
     'Actual value is not a matrix')
   assert_regexp_match(expected, matrixRegExp,
     'Expected value is not a matrix');
 
-  var actualMatrixArray =
+  const actualMatrixArray =
     actual.match(matrixRegExp)[1].split(',').map(Number);
-  var expectedMatrixArray =
+  const expectedMatrixArray =
     expected.match(matrixRegExp)[1].split(',').map(Number);
 
   assert_equals(actualMatrixArray.length, expectedMatrixArray.length,
-    'dimension of the matrix: ' + description);
-  for (var i = 0; i < actualMatrixArray.length; i++) {
+    `dimension of the matrix: ${description}`);
+  for (let i = 0; i < actualMatrixArray.length; i++) {
     assert_approx_equals(actualMatrixArray[i], expectedMatrixArray[i], 0.0001,
-      'expected ' + expected + ' but got ' + actual + ": " + description);
+      `expected ${expected} but got ${actual}: ${description}`);
   }
 }

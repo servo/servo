@@ -1,0 +1,56 @@
+<script>
+function with_iframe(url) {
+  return new Promise(function(resolve) {
+      var frame = document.createElement('iframe');
+      frame.src = url;
+      frame.onload = function() { resolve(frame); };
+      document.body.appendChild(frame);
+    });
+}
+
+function with_sandboxed_iframe(url, sandbox) {
+  return new Promise(function(resolve) {
+      var frame = document.createElement('iframe');
+      frame.sandbox = sandbox;
+      frame.src = url;
+      frame.onload = function() { resolve(frame); };
+      document.body.appendChild(frame);
+    });
+}
+
+function fetch_in_worker() {
+  return new Promise((resolve) => {
+    var blob = new Blob([
+      "fetch('" + location.href + "_workerfetch', {mode: 'no-cors'})" +
+      "  .then(() => { self.postMessage('OK'); });"]);
+    var url = URL.createObjectURL(blob);
+    var worker = new Worker(url);
+    worker.onmessage = resolve;
+  });
+}
+
+window.onmessage = function (e) {
+  var id = e.data['id'];
+  fetch(location.href + "_fetch", {mode: 'no-cors'})
+    .then(function() {
+        return fetch_in_worker();
+      })
+    .then(function() {
+        return with_iframe(location.href + "_iframe");
+      })
+    .then(function() {
+        return with_sandboxed_iframe(location.href + "_script",
+                                     "allow-scripts");
+      })
+    .then(function() {
+        return with_sandboxed_iframe(location.href + "_script-origin",
+                                     "allow-scripts allow-same-origin");
+      })
+    .then(function() {
+        window.top.postMessage({id: id, result: 'done'}, '*');
+      })
+    .catch(function(e) {
+        window.top.postMessage({id: id, result: 'error: ' + e.toString()}, '*');
+      });
+};
+</script>

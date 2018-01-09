@@ -1,0 +1,22 @@
+WEBVTT
+Cue alignment may only be start, middle, or end.  These are all misspelled and so will default to middle.
+
+1
+00:00:00.000 --> 00:00:30.500 align:starta
+Bear is Coming!!!!!
+Erroneous alignment value -> middle.
+
+2
+00:00:31.000 --> 00:01:00.500 align:-start
+I said Bear is coming!!!!
+Erroneous alignment value --> middle.
+
+3
+00:01:01.000 --> 00:02:00.500 align: end
+I said Bear is coming now!!!!
+Erroneous alignment value with surplus whitespace --> middle.
+
+4
+00:02:01.000 --> 100:20:00.500 align:piugjk
+I said Bear is coming now!!!!
+Erroneous alignment value -> middle.

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: Generated ::before and ::after with display:contents inside flex</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-pass-ref.html">
+<style>
+    .flex { display: inline-flex; flex-direction: column }
+    .flex::before { display: contents; content: "A" }
+    .flex::after { display: contents; content: "S" }
+</style>
+<!-- The before and after pseudo elements do not generate boxes due to
+     display:contents, so that their generated text content constitutes a
+     contiguous sequence of child text runs which means they end up in the same
+     flex item. -->
+<p>You should see the word PASS below.</p>
+P<div class="flex"></div>S

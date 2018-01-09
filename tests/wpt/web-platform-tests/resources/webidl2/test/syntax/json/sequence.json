@@ -8,16 +8,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -31,13 +28,11 @@
                             "sequence": true,
                             "generic": "sequence",
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": {
                                 "sequence": false,
                                 "generic": null,
                                 "nullable": false,
-                                "array": false,
                                 "union": false,
                                 "idlType": "float"
                             }
@@ -51,22 +46,18 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": true,
                     "generic": "sequence",
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": {
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
-                        "array": false,
                         "union": false,
                         "idlType": "float"
                     }
@@ -89,16 +80,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "sequence"
                 },
@@ -109,5 +97,61 @@
         ],
         "inheritance": null,
         "extAttrs": []
-    }    
+    },
+
+    {
+        "type": "interface",
+        "name": "I",
+        "partial": false,
+        "members": [
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "deleter": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "union": false,
+                    "idlType": "void"
+                },
+                "name": "f1",
+                "arguments": [
+                    {
+                        "optional": false,
+                        "variadic": false,
+                        "extAttrs": [],
+                        "idlType": {
+                            "sequence": true,
+                            "generic": "sequence",
+                            "nullable": false,
+                            "union": false,
+                            "idlType": {
+                                "sequence": false,
+                                "generic": null,
+                                "nullable": false,
+                                "union": false,
+                                "idlType": "long",
+                                "extAttrs": [
+                                    {
+                                        "name": "XAttr",
+                                        "arguments": null,
+                                        "type": "extended-attribute",
+                                        "rhs": null
+                                    }
+                                ]
+                            }
+                        },
+                        "name": "arg"
+                    }
+                ],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    }
 ]

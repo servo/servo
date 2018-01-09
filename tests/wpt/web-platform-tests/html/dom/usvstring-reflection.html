@@ -1,0 +1,89 @@
+<!doctype html>
+<title>USVString test relate to url</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+// Unpaired surrogate codepoints present in USVString are replaced
+// with U+FFFD. %EF%BF%BD is UTF-8 encoding of U+FFFD.
+'use strict';
+test(() => {
+  location.hash = '\uD999';
+  assert_equals(location.hash, '#%EF%BF%BD');
+}, "location : unpaired surrogate codepoint should be replaced with U+FFFD");
+
+test(() => {
+  var w = window.open("about:blank#\uD800");
+  assert_equals(w.location.hash, '#%EF%BF%BD');
+}, "window.open : unpaired surrogate codepoint should be replaced with U+FFFD");
+
+test(() => {
+  var w = document.open("about:blank#\uD800", "", "");
+  assert_equals(w.location.hash, '#%EF%BF%BD');
+}, "document.open : unpaired surrogate codepoint should be replaced with U+FFFD");
+
+test(() => {
+  var element = document.createElement("a");
+  element.ping = '\uD989';
+  assert_equals(element.ping, '\uFFFD');
+}, "anchor : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var element = document.createElement("area");
+  element.ping = '\uDA99';
+  assert_equals(element.ping, '\uFFFD');
+}, "area : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var element = document.createElement("base");
+  element.href = '\uD989';
+  assert_equals(element.href.endsWith('%EF%BF%BD'), true);
+}, "base : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var src = new EventSource('\uD899');
+  assert_equals(src.url.endsWith('%EF%BF%BD'), true);
+}, "EventSource : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var element = document.createElement("frame");
+  element.src = '\uDCA9';
+  element.longDesc = '\uDCA8';
+  assert_equals(element.src.endsWith('%EF%BF%BD'), true);
+  assert_equals(element.longDesc.endsWith('%EF%BF%BD'), true);
+}, "frame : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var element = document.createElement("iframe");
+  element.src = '\uDC89';
+  element.longDesc = '\uDC88';
+  assert_equals(element.src.endsWith('%EF%BF%BD'), true);
+  assert_equals(element.longDesc.endsWith('%EF%BF%BD'), true);
+}, "iframe : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var element = document.createElement("link");
+  element.href = '\uDB89';
+  assert_equals(element.href.endsWith('%EF%BF%BD'), true);
+}, "link : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var element = document.createElement("source");
+  element.src = '\uDDDD';
+  element.srcset = '\uD800';
+  assert_equals(element.src.endsWith('%EF%BF%BD'), true);
+  assert_equals(element.srcset, '\uFFFD');
+}, "source : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  const event = new StorageEvent('storage', {
+    url: window.location.href + '\uD999',
+  });
+  assert_equals(event.url, window.location.href + "\uFFFD");
+}, "storage event : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var wsocket = new EventSource('ws://www.example.com/socketserve\uD899/');
+  assert_true(wsocket.url.endsWith('ws://www.example.com/socketserve%EF%BF%BD/'));
+}, "websocket url : unpaired surrogate codepoint should be replaced with U+FFFD")
+</script>

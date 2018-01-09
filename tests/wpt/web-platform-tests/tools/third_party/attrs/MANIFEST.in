@@ -1,0 +1,19 @@
+include LICENSE *.rst *.toml
+
+# Don't package GitHub-specific files.
+exclude *.md .travis.yml
+
+# Tests
+include tox.ini .coveragerc conftest.py dev-requirements.txt docs-requirements.txt
+recursive-include tests *.py
+
+# Documentation
+include docs/Makefile docs/docutils.conf
+recursive-include docs *.png
+recursive-include docs *.svg
+recursive-include docs *.py
+recursive-include docs *.rst
+prune docs/_build
+
+# Changelog news fragments -- is empty on releases.
+prune changelog.d

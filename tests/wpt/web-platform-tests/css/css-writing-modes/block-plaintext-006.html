@@ -6,6 +6,7 @@
 
 <link rel="author" title="Richard Ishida" href='mailto:ishida@w3.org'/>
 <link rel="help" href='http://www.w3.org/TR/css-writing-modes-3/#text-direction'/>
+<link rel="match" href="reference/block-plaintext-006.html"/>
 <meta name="assert" content='If unicode-bidi:plaintext is applied to a pre element, each line of characters after a linebreak is displayed according to the first strong character after the linebreak.'/>
 <style type="text/css">
 .test pre { unicode-bidi: plaintext; }
@@ -20,7 +21,7 @@ input { margin: 5px; }
     font-style: normal;
     }
 .test, .ref { font-family: ezra_silregular, serif; }
-pre { font-family: ezra_silregular, serif; height:5em; width: 100%; border: 0; font-size: 1em; }
+pre { font-family: ezra_silregular, serif; width: 100%; border: 0; margin: 0; font-size: 1em; }
 </style>
 </head>
 <body>
@@ -36,10 +37,11 @@ Key to entities used below:
 
 
 <div class="test">
-<pre>
+<pre><!-- comment token so following LF character isn't ignored by the HTML parser -->
 &gt; a &gt; &#x5d1; &gt; c &gt;
 &gt; &#x5d0; &gt; b &gt; &#x5d2; &gt;
 &gt; a &gt; &#x5d1; &gt; c &gt;
+<!-- need a blank line for whitespace to appear-->
 </pre>
 </div>
 

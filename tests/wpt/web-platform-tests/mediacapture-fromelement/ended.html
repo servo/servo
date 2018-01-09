@@ -3,10 +3,6 @@
 <head>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="/common/vendor-prefix.js"
-        data-prefixed-prototypes=
-        '[{"ancestors":["HTMLMediaElement"],"name":"captureStream"}]'>
-</script>
 </head>
 <body>
 <script>
@@ -20,6 +16,8 @@ var makeAsyncTest = function(filename) {
     video.src = "/media/" + filename;
     video.onerror = this.unreached_func("<video> error");
     video.play();
+
+    assert_true('captureStream' in video);
 
     var stream = video.captureStream();
 

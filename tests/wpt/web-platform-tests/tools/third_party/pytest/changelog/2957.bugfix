@@ -1,0 +1,1 @@
+Always escape null bytes when setting ``PYTEST_CURRENT_TEST``.

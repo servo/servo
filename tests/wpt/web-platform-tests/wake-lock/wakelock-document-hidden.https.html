@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>screen wake lock will not be actived in hidden document</title>
+<link rel="help" href="https://w3c.github.io/wake-lock/#dfn-requesting-the-wake-lock">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(async t => {
+  const wakeLock = await navigator.getWakeLock("screen");
+  const request = wakeLock.createRequest();
+  assert_true(wakeLock.active, "the active is true when wake lock is acquired");
+  const eventWatcher = new EventWatcher(t, document, "visibilitychange");
+  const win = window.open("about:blank", "_blank");
+
+  await eventWatcher.wait_for("visibilitychange");
+  assert_true(document.hidden, "document is hidden when new window is opened");
+  assert_false(wakeLock.active, "the active is false when document is hidden");
+  win.close();
+
+  await eventWatcher.wait_for("visibilitychange");
+  assert_false(document.hidden, "document is visiable when new window is closed");
+  assert_true(wakeLock.active, "the active is true when document regains visibility");
+  request.cancel();
+}, "Test that screen wake lock will not be actived in hidden document");
+
+</script>

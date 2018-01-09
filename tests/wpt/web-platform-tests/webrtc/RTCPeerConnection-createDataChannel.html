@@ -375,7 +375,7 @@ promise_test(t => {
     assert_not_equals(channel1.id, null,
       'Expect channel1.id to be assigned');
 
-    assert_greater_than_equals(channel1.id, 0,
+    assert_greater_than_equal(channel1.id, 0,
       'Expect channel1.id to be set to valid unsigned short');
 
     assert_less_than(channel1.id, 65535,
@@ -386,7 +386,7 @@ promise_test(t => {
     assert_not_equals(channel2.id, null,
       'Expect channel2.id to be assigned');
 
-    assert_greater_than_equals(channel2.id, 0,
+    assert_greater_than_equal(channel2.id, 0,
       'Expect channel2.id to be set to valid unsigned short');
 
     assert_less_than(channel2.id, 65535,

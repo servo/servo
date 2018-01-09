@@ -1,30 +1,27 @@
 <!DOCTYPE HTML>
-<html>
-<head>
-  <title>Media documents: video</title>
-  <link rel="author" title="Michael Ventnor" href="mailto:mventnor@mozilla.com">
-  <link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
-  <link rel="help" href="https://html.spec.whatwg.org/multipage/#read-media">
-  <script src="/resources/testharness.js"></script>
-  <script src="/resources/testharnessreport.js"></script>
-
+<meta charset="utf-8">
+<title>Media documents: video</title>
+<link rel="author" title="Michael Ventnor" href="mailto:mventnor@mozilla.com">
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#read-media">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id="log"></div>
 <script>
-  var t = async_test("The document for a standalone media file should have one child in the body.");
-
-  function frameLoaded() {
-    var testframe = document.getElementById('testframe');
-    assert_equals(testframe.contentDocument.contentType, "video/webm");
+async_test(function() {
+  var testframe = document.createElement('iframe');
+  var url = getVideoURI("/media/A4");
+  var contentType = getMediaContentType(url);
+  testframe.onload = this.step_func_done(function() {
+    assert_equals(testframe.contentDocument.contentType, contentType);
     var testframeChildren = testframe.contentDocument.body.childNodes;
     assert_equals(testframeChildren.length, 1, "Body of image document has 1 child");
     assert_equals(testframeChildren[0].nodeName, "VIDEO", "Only child of body must be an <video> element");
     assert_equals(testframeChildren[0].namespaceURI, "http://www.w3.org/1999/xhtml",
                   "Only child of body must be an HTML element");
-    t.done();
-  }
+  });
+  testframe.src = url;
+  document.body.appendChild(testframe);
+}, "The document for a standalone media file should have one child in the body.");
 </script>
-</head>
-<body>
-  <div id="log"></div>
-  <iframe id="testframe" onload="t.step(frameLoaded)" src="/media/white.webm"></iframe>
-</body>
-</html>

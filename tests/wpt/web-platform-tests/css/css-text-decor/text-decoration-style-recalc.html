@@ -1,0 +1,19 @@
+<!doctype html>
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-decoration-style">
+<link rel="match" href="reference/text-decoration-style-recalc-ref.html">
+<style>
+    div {
+        font-size: 50px;
+        text-decoration: underline solid green;
+    }
+</style>
+<script>
+    onload = function() {
+        target.style.textDecorationStyle = "dashed";
+    };
+</script>
+<p>Test that changes in text-decoration-style are recalculated correctly. PASS
+if the text below has a dashed green underline, and not a solid green underline.</p>
+<div id="target">
+    Filler text
+</div>

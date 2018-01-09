@@ -48,5 +48,5 @@ function validateCodecCapability(codec) {
 }
 
 function validateHeaderExtensionCapability(headerExt) {
-  assert_optional_string_field(uri);
+  assert_optional_string_field(headerExt, 'uri');
 }

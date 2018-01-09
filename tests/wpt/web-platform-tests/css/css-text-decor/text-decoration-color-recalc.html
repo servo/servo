@@ -1,0 +1,19 @@
+<!doctype html>
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-decoration-color">
+<link rel="match" href="reference/text-decoration-color-recalc-ref.html">
+<style>
+    div {
+        font-size: 50px;
+        text-decoration: underline solid red;
+    }
+</style>
+<script>
+    onload = function() {
+        target.style.textDecorationColor = "green";
+    };
+</script>
+<p>Test that changes in text-decoration-color are recalculated correctly. PASS
+if the text below has a solid green underline, and no red.</p>
+<div id="target">
+    Filler text
+</div>

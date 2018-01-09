@@ -29,3 +29,7 @@ LAYOUTTESTS APIS:*
 ## CSSWG-only checks ##
 
 SUPPORT-WRONG-DIR:*
+
+## Unnecessary checks ##
+
+WEB-PLATFORM.TEST:*

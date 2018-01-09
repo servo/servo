@@ -70,7 +70,7 @@ test(function () {
   assertSelectedIndex(select, 0);
   select.selectedIndex = 2;
   assertSelectedIndex(select, 2);
-  this.add_cleanup(() => select.selectedIndex = 0);
+  this.add_cleanup(() => { select.selectedIndex = 0; });
 }, "set (HTMLSelectElement)");
 
 test(function () {
@@ -78,7 +78,7 @@ test(function () {
   assertSelectedIndex(select, 0);
   select.options.selectedIndex = 2;
   assertSelectedIndex(select, 2);
-  this.add_cleanup(() => select.selectedIndex = 0);
+  this.add_cleanup(() => { select.selectedIndex = 0; });
 }, "set (HTMLOptionsCollection)");
 
 test(function () {

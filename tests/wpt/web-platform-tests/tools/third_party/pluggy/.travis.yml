@@ -1,0 +1,48 @@
+sudo: false
+language: python
+
+matrix:
+  include:
+    - python: '3.6'
+      env: TOXENV=check
+    - python: '3.6'
+      env: TOXENV=docs
+    - python: '2.7'
+      env: TOXENV=py27-pytestrelease
+    - python: '3.4'
+      env: TOXENV=py34-pytestrelease
+    - python: '3.5'
+      env: TOXENV=py35-pytestrelease
+    - python: '3.6'
+      env: TOXENV=py36-pytestrelease
+    - python: 'pypy'
+      env: TOXENV=pypy-pytestrelease
+    - python: 'nightly'
+      env: TOXENV=py37-pytestrelease
+    - python: '2.7'
+      env: TOXENV=py27-pytestmaster
+    - python: '2.7'
+      env: TOXENV=py27-pytestfeatures
+    - python: '3.6'
+      env: TOXENV=py36-pytestmaster
+    - python: '3.6'
+      env: TOXENV=py36-pytestfeatures
+    - python: '3.6'
+      env: TOXENV=benchmark
+
+install:
+  - pip install -U setuptools pip
+  - pip install -U tox
+
+script:
+  - tox
+
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#pytest"
+    on_success: change
+    on_failure: change
+    skip_join: true
+#  email:
+#    - pytest-commit@python.org

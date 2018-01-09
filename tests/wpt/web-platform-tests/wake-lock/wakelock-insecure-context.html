@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Wake Lock API is not exposed in an insecure context</title>
+<link rel="help" href="https://w3c.github.io/wake-lock/#wake-locks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(t => {
+  assert_false("getWakeLock" in navigator, "'getWakeLock' must not be exposed");
+}, "Wake Lock API is not exposed in an insecure context");
+
+</script>
