@@ -26,6 +26,7 @@ unstable = [
     "script/unstable",
 ]
 web-bluetooth = ["bluetooth"]
+gonk = [ "servo_config/gonk" ]
 
 [dependencies]
 bluetooth_traits = {path = "../bluetooth_traits"}

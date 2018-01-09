@@ -6,11 +6,11 @@
 //! For linux based platforms, it uses the XDG base directory spec but provides
 //! similar abstractions for non-linux platforms.
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 use android_injected_glue;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::env;
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 use std::ffi::CStr;
 use std::path::PathBuf;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
@@ -23,12 +23,11 @@ pub fn default_config_dir() -> Option<PathBuf> {
     Some(config_dir)
 }
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 #[allow(unsafe_code)]
 pub fn default_config_dir() -> Option<PathBuf> {
-    let dir = unsafe {
-        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
-    };
+    let dir =
+        unsafe { CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath) };
     Some(PathBuf::from(dir.to_str().unwrap()))
 }
 
@@ -39,12 +38,11 @@ pub fn default_data_dir() -> Option<PathBuf> {
     Some(data_dir)
 }
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 #[allow(unsafe_code)]
 pub fn default_data_dir() -> Option<PathBuf> {
-    let dir = unsafe {
-        CStr::from_ptr((*android_injected_glue::get_app().activity).internalDataPath)
-    };
+    let dir =
+        unsafe { CStr::from_ptr((*android_injected_glue::get_app().activity).internalDataPath) };
     Some(PathBuf::from(dir.to_str().unwrap()))
 }
 
@@ -55,14 +53,13 @@ pub fn default_cache_dir() -> Option<PathBuf> {
     Some(cache_dir)
 }
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 #[allow(unsafe_code)]
 pub fn default_cache_dir() -> Option<PathBuf> {
     // TODO: Use JNI to call context.getCacheDir().
     // There is no equivalent function in NDK/NativeActivity.
-    let dir = unsafe {
-        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
-    };
+    let dir =
+        unsafe { CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath) };
     Some(PathBuf::from(dir.to_str().unwrap()))
 }
 
@@ -88,4 +85,19 @@ pub fn default_config_dir() -> Option<PathBuf> {
     };
     config_dir.push("Servo");
     Some(config_dir)
+}
+
+#[cfg(feature = "gonk")]
+pub fn default_config_dir() -> Option<PathBuf> {
+    Some("/data/local/servo".into())
+}
+
+#[cfg(feature = "gonk")]
+pub fn default_data_dir() -> Option<PathBuf> {
+    Some("/data/local/servo".into())
+}
+
+#[cfg(feature = "gonk")]
+pub fn default_cache_dir() -> Option<PathBuf> {
+    Some("/data/local/servo".into())
 }

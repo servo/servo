@@ -2949,7 +2949,6 @@ dependencies = [
 name = "servo_config"
 version = "0.0.1"
 dependencies = [
- "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3864,6 +3863,7 @@ dependencies = [
 "checksum harfbuzz-sys 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)" = "52aa65c5649a0a2f1b27ab30093b3cc84681e17ddb552267e21948c5a6fa6b05"
 "checksum heartbeats-simple 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9ad003ce233955e9d95f2c69cde84e68302ba9ba4a673d351c9bff93c738aadc"
 "checksum heartbeats-simple-sys 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e1a408c0011427cc0e0049f7861c70377819aedfc006e8c901b1c70fd98fb1a4"
+"checksum hex 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d6a22814455d41612f41161581c2883c0c6a1c41852729b17d5ed88f01e153aa"
 "checksum html5ever 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e579ac8647178ab915d400d7d22938bda5cd351c6c62e1c294d56884ccfc75fe"
 "checksum httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a6e7a63e511f9edffbab707141fbb8707d1a3098615fb2adbd5769cdfcc9b17d"
 "checksum hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)" = "368cb56b2740ebf4230520e2b90ebb0461e69034d85d1945febd9b3971426db2"

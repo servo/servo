@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 use android_injected_glue;
-#[cfg(not(target_os = "android"))]
+#[cfg(any(not(target_os = "android"), feature = "gonk"))]
 use std::env;
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 use std::ffi::CStr;
 use std::fs::File;
 use std::io::{self, Read};
@@ -24,7 +24,7 @@ pub fn set_resources_path(path: Option<String>) {
     *dir = path;
 }
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", not(feature = "gonk")))]
 #[allow(unsafe_code)]
 pub fn resources_dir_path() -> io::Result<PathBuf> {
     let mut dir = CMD_RESOURCE_DIR.lock().unwrap();
@@ -33,15 +33,14 @@ pub fn resources_dir_path() -> io::Result<PathBuf> {
         return Ok(PathBuf::from(path));
     }
 
-    let data_path = unsafe {
-        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
-    };
+    let data_path =
+        unsafe { CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath) };
     let path = PathBuf::from(data_path.to_str().unwrap());
     *dir = Some(path.to_str().unwrap().to_owned());
     Ok(path)
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(any(not(target_os = "android"), feature = "gonk"))]
 pub fn resources_dir_path() -> io::Result<PathBuf> {
     let mut dir = CMD_RESOURCE_DIR.lock().unwrap();
 
