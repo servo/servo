@@ -115,7 +115,7 @@ sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip me
 sudo emerge net-misc/curl media-libs/freeglut \
     media-libs/freetype media-libs/mesa dev-util/gperf \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
-    x11-libs/libXmu media-libs/glu x11-base/xorg-server
+    x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang
 ```
 #### On Windows (MSVC)
 
