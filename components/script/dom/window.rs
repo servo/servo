@@ -1898,6 +1898,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::StyleQuery(_n) => "\tStyleQuery",
         ReflowGoal::TextIndexQuery(..) => "\tTextIndexQuery",
         ReflowGoal::TickAnimations => "\tTickAnimations",
+        ReflowGoal::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
     });
 
     debug_msg.push_str(match *reason {

@@ -121,6 +121,7 @@ pub enum ReflowGoal {
     StyleQuery(TrustedNodeAddress),
     TextIndexQuery(TrustedNodeAddress, Point2D<f32>),
     NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
+    ElementInnerTextQuery(TrustedNodeAddress),
 }
 
 impl ReflowGoal {
@@ -129,12 +130,13 @@ impl ReflowGoal {
     pub fn needs_display_list(&self) -> bool {
         match *self {
             ReflowGoal::NodesFromPointQuery(..) | ReflowGoal::TextIndexQuery(..) |
-            ReflowGoal::TickAnimations | ReflowGoal::Full => true,
+            ReflowGoal::TickAnimations | ReflowGoal::ElementInnerTextQuery(_) |
+            ReflowGoal::Full => true,
             ReflowGoal::ContentBoxQuery(_) | ReflowGoal::ContentBoxesQuery(_) |
             ReflowGoal::NodeGeometryQuery(_) | ReflowGoal::NodeScrollGeometryQuery(_) |
             ReflowGoal::NodeScrollIdQuery(_) |
             ReflowGoal::ResolvedStyleQuery(..) | ReflowGoal::OffsetParentQuery(_) |
-            ReflowGoal::StyleQuery(_)  => false,
+            ReflowGoal::StyleQuery(_) => false,
         }
     }
 
@@ -148,6 +150,7 @@ impl ReflowGoal {
             ReflowGoal::NodeScrollIdQuery(_) | ReflowGoal::ResolvedStyleQuery(..) |
             ReflowGoal::OffsetParentQuery(_) => false,
             ReflowGoal::NodesFromPointQuery(..) | ReflowGoal::Full |
+            ReflowGoal::ElementInnerTextQuery(_) |
             ReflowGoal::TickAnimations => true,
         }
     }
