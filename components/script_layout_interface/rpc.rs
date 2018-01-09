@@ -38,7 +38,8 @@ pub trait LayoutRPC {
     fn text_index(&self) -> TextIndexResponse;
     /// Requests the list of nodes from the given point.
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
-
+    /// Query layout to get the inner text for a given element.
+    fn element_inner_text(&self) -> String;
 }
 
 pub struct ContentBoxResponse(pub Option<Rect<Au>>);
