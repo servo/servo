@@ -2,6 +2,7 @@ version: 1.0.{build}
 
 environment:
   CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
+  CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
   RUSTFLAGS: -Dwarnings
   # The appveyor image we use has a pretty huge set of things installed... we make the
