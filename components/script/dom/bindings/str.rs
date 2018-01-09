@@ -18,7 +18,6 @@ use std::ops;
 use std::ops::{Deref, DerefMut};
 use std::str;
 use std::str::{Bytes, FromStr};
-use std::f64;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
