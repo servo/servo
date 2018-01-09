@@ -63,6 +63,25 @@ pub struct Dependency {
     pub selector_offset: usize,
 }
 
+/// The kind of elements down the tree this dependency may affect.
+#[derive(Debug, Eq, PartialEq)]
+pub enum DependencyInvalidationKind {
+    /// This dependency may affect the element that changed itself.
+    Element,
+    /// This dependency affects the style of the element itself, and also the
+    /// style of its descendants.
+    ///
+    /// TODO(emilio): Each time this feels more of a hack for eager pseudos...
+    ElementAndDescendants,
+    /// This dependency may affect descendants down the tree.
+    Descendants,
+    /// This dependency may affect siblings to the right of the element that
+    /// changed.
+    Siblings,
+    /// This dependency may affect slotted elements of the element that changed.
+    SlottedElements,
+}
+
 impl Dependency {
     /// Returns the combinator to the right of the partial selector this
     /// dependency represents.
@@ -76,28 +95,19 @@ impl Dependency {
         Some(self.selector.combinator_at_match_order(self.selector_offset - 1))
     }
 
-    /// Whether this dependency affects the style of the element.
-    ///
-    /// NOTE(emilio): pseudo-elements need to be here to account for eager
-    /// pseudos, since they just grab the style from the originating element.
-    ///
-    /// TODO(emilio): We could look at the selector itself to see if it's an
-    /// eager pseudo, and return false here if not.
-    pub fn affects_self(&self) -> bool {
-        matches!(self.combinator(), None | Some(Combinator::PseudoElement))
-    }
-
-    /// Whether this dependency may affect style of any of our descendants.
-    pub fn affects_descendants(&self) -> bool {
-        matches!(self.combinator(), Some(Combinator::PseudoElement) |
-                                    Some(Combinator::Child) |
-                                    Some(Combinator::Descendant))
-    }
-
-    /// Whether this dependency may affect style of any of our later siblings.
-    pub fn affects_later_siblings(&self) -> bool {
-        matches!(self.combinator(), Some(Combinator::NextSibling) |
-                                    Some(Combinator::LaterSibling))
+    /// The kind of invalidation that this would generate.
+    pub fn invalidation_kind(&self) -> DependencyInvalidationKind {
+        match self.combinator() {
+            None => DependencyInvalidationKind::Element,
+            Some(Combinator::Child) |
+            Some(Combinator::Descendant) => DependencyInvalidationKind::Descendants,
+            Some(Combinator::LaterSibling) |
+            Some(Combinator::NextSibling) => DependencyInvalidationKind::Siblings,
+            // TODO(emilio): We could look at the selector itself to see if it's
+            // an eager pseudo, and return only Descendants here if not.
+            Some(Combinator::PseudoElement) => DependencyInvalidationKind::ElementAndDescendants,
+            Some(Combinator::SlotAssignment) => DependencyInvalidationKind::SlottedElements,
+        }
     }
 }
 

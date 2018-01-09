@@ -8,7 +8,8 @@
 use Atom;
 use context::QuirksMode;
 use dom::{TDocument, TElement, TNode};
-use invalidation::element::invalidator::{Invalidation, InvalidationProcessor, InvalidationVector};
+use invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
+use invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
 use selectors::{Element, NthIndexCache, SelectorList};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode};
@@ -143,7 +144,7 @@ where
         &mut self,
         element: E,
         self_invalidations: &mut InvalidationVector<'a>,
-        descendant_invalidations: &mut InvalidationVector<'a>,
+        descendant_invalidations: &mut DescendantInvalidationLists<'a>,
         _sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool {
         // TODO(emilio): If the element is not a root element, and
@@ -163,7 +164,7 @@ where
 
         let target_vector =
             if self.matching_context.scope_element.is_some() {
-                descendant_invalidations
+                &mut descendant_invalidations.dom_descendants
             } else {
                 self_invalidations
             };

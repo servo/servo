@@ -31,7 +31,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use stylist::Stylist;
+use stylist::{StyleRuleCascadeData, Stylist};
 use traversal_flags::TraversalFlags;
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
@@ -416,6 +416,20 @@ pub trait TElement
         F: FnMut(Self),
     {}
 
+    /// Return whether this element is an element in the HTML namespace.
+    fn is_html_element(&self) -> bool;
+
+    /// Returns whether this element is a <html:slot> element.
+    fn is_html_slot_element(&self) -> bool {
+        self.get_local_name() == &*local_name!("slot") &&
+        self.is_html_element()
+    }
+
+    /// Return the list of slotted nodes of this node.
+    fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
+        &[]
+    }
+
     /// For a given NAC element, return the closest non-NAC ancestor, which is
     /// guaranteed to exist.
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
@@ -758,6 +772,41 @@ pub trait TElement
         F: FnMut(AtomicRef<'a, Stylist>),
     {
         false
+    }
+
+    /// Executes the callback for each applicable style rule data which isn't
+    /// the main document's data (which stores UA / author rules).
+    ///
+    /// Returns whether normal document author rules should apply.
+    fn each_applicable_non_document_style_rule_data<'a, F>(&self, mut f: F) -> bool
+    where
+        Self: 'a,
+        F: FnMut(AtomicRef<'a, StyleRuleCascadeData>, QuirksMode),
+    {
+        let cut_off_inheritance = self.each_xbl_stylist(|stylist| {
+            let quirks_mode = stylist.quirks_mode();
+            f(
+                AtomicRef::map(stylist, |stylist| stylist.normal_author_cascade_data()),
+                quirks_mode,
+            )
+        });
+
+        let mut current = self.assigned_slot();
+        while let Some(slot) = current {
+            slot.each_xbl_stylist(|stylist| {
+                let quirks_mode = stylist.quirks_mode();
+                if stylist.slotted_author_cascade_data().is_some() {
+                    f(
+                        AtomicRef::map(stylist, |stylist| stylist.slotted_author_cascade_data().unwrap()),
+                        quirks_mode,
+                    )
+                }
+            });
+
+            current = slot.assigned_slot();
+        }
+
+        cut_off_inheritance
     }
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a FnvHashMap.
