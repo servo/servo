@@ -303,6 +303,16 @@ impl DOMString {
         parse_week_string(&*self.0).is_ok()
     }
 
+    /// A valid number is the same as what rust considers to be valid,
+    /// except for +1., NaN, and Infinity.
+    /// https://html.spec.whatwg.org/multipage/#valid-floating-point-number
+    pub fn is_valid_number_string(&self) -> bool {
+        let input = &self.0;
+        input.parse::<f64>().ok().map_or(false, |val| {
+            !(val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+"))
+        })
+    }
+
     /// A valid normalized local date and time string should be "{date}T{time}"
     /// where date and time are both valid, and the time string must be as short as possible
     /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
