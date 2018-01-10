@@ -15,7 +15,7 @@ use style::str::char_is_whitespace;
 use text::glyph::{ByteIndex, GlyphStore};
 use unicode_bidi as bidi;
 use webrender_api;
-use xi_unicode::LineBreakIterator;
+use xi_unicode::LineBreakLeafIter;
 
 thread_local! {
     static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, ByteIndex, usize)>> =
@@ -177,9 +177,11 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 }
 
 impl<'a> TextRun {
-    pub fn new(font: &mut Font, text: String, options: &ShapingOptions, bidi_level: bidi::Level) -> TextRun {
-        let glyphs = TextRun::break_and_shape(font, &text, options);
-        TextRun {
+    /// Constructs a new text run. Also returns if there is a line break at the beginning
+    pub fn new(font: &mut Font, text: String, options: &ShapingOptions,
+               bidi_level: bidi::Level, breaker: &mut Option<LineBreakLeafIter>) -> (TextRun, bool) {
+        let (glyphs, break_at_zero) = TextRun::break_and_shape(font, &text, options, breaker);
+        (TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
             font_template: font.handle.template(),
@@ -188,15 +190,35 @@ impl<'a> TextRun {
             glyphs: Arc::new(glyphs),
             bidi_level: bidi_level,
             extra_word_spacing: Au(0),
-        }
+        }, break_at_zero)
     }
 
-    pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions)
-                           -> Vec<GlyphRun> {
+    pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions,
+                           breaker: &mut Option<LineBreakLeafIter>) -> (Vec<GlyphRun>, bool) {
         let mut glyphs = vec!();
         let mut slice = 0..0;
 
-        for (idx, _is_hard_break) in LineBreakIterator::new(text) {
+        let mut finished = false;
+        let mut break_at_zero = false;
+
+        if breaker.is_none() {
+            if text.len() == 0 {
+                return (glyphs, true)
+            }
+            *breaker = Some(LineBreakLeafIter::new(&text, 0));
+        }
+
+        let breaker = breaker.as_mut().unwrap();
+
+        while !finished {
+            let (idx, _is_hard_break) = breaker.next(text);
+            if idx == text.len() {
+                finished = true;
+            }
+            if idx == 0 {
+                break_at_zero = true;
+            }
+
             // Extend the slice to the next UAX#14 line break opportunity.
             slice.end = idx;
             let word = &text[slice.clone()];
@@ -230,7 +252,7 @@ impl<'a> TextRun {
             }
             slice.start = whitespace.end;
         }
-        glyphs
+        (glyphs, break_at_zero)
     }
 
     pub fn ascent(&self) -> Au {
@@ -300,6 +322,14 @@ impl<'a> TextRun {
                 None
             }
         })
+    }
+
+    pub fn on_glyph_run_boundary(&self, index: ByteIndex) -> bool {
+        if let Some(glyph_index) = self.index_of_first_glyph_run_containing(index) {
+            self.glyphs[glyph_index].range.begin() == index
+        } else {
+            true
+        }
     }
 
     /// Returns the index in the range of the first glyph advancing over given advance

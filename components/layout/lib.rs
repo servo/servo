@@ -42,6 +42,7 @@ extern crate style_traits;
 extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate webrender_api;
+extern crate xi_unicode;
 
 #[macro_use]
 pub mod layout_debug;
