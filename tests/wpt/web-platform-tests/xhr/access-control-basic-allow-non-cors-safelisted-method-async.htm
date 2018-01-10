@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests cross-origin async request with non-CORS-safelisted method</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async_test((test) => {
+      const xhr = new XMLHttpRequest;
+
+      xhr.onload = test.step_func_done(() => {
+        assert_equals(xhr.responseText, "PASS: Cross-domain access allowed.\nPASS: PUT data received");
+      });
+
+      xhr.onerror = test.unreached_func("Unexpected error.");
+
+      xhr.open("PUT", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/xhr/resources/access-control-basic-put-allow.py");
+      xhr.setRequestHeader("Content-Type", "text/plain; charset=UTF-8");
+      xhr.send("PASS: PUT data received");
+    }, "Allow async PUT request");
+    </script>
+  </body>
+</html>

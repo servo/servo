@@ -86,4 +86,10 @@ test(() => {
   var wsocket = new EventSource('ws://www.example.com/socketserve\uD899/');
   assert_true(wsocket.url.endsWith('ws://www.example.com/socketserve%EF%BF%BD/'));
 }, "websocket url : unpaired surrogate codepoint should be replaced with U+FFFD")
+
+test(() => {
+  var w = window.open("about:blank#\uD800");
+  assert_equals(w.document.URL, 'about:blank#%EF%BF%BD');
+  assert_equals(w.document.documentURI, 'about:blank#%EF%BF%BD');
+}, "Document URLs: unpaired surrogate codepoint should be replaced with U+FFFD")
 </script>

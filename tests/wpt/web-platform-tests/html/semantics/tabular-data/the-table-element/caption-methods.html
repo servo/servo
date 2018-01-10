@@ -55,6 +55,33 @@
     </tr>
     </tbody>
   </table>
+  <table id="table10" style="display:none">
+    <tbody>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+    </tbody>
+    <caption>caption 10</caption>
+  </table>
+  <table id="table11" style="display:none">
+    <caption id="caption11">caption 11</caption>
+  </table>
+  <table id="table12" style="display:none">
+    <caption>caption 1</caption>
+    <caption>caption 2</caption>
+  </table>
+  <table id="table13" style="display:none">
+  </table>
+  <table id="table14" style="display:none">
+    <tbody>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+    </tbody>
+    <caption id="caption14">caption 14</caption>
+  </table>
   <script>
     test(function () {
       var table0 = document.getElementById('table0');
@@ -158,6 +185,92 @@
         table9.caption = caption;
       });
     }, "Assigning a foreign caption to table.caption")
+
+    test(function() {
+      var table = document.createElement("table");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table.caption = caption;
+
+      assert_equals(caption.parentNode, table);
+      assert_equals(table.firstChild, caption);
+      assert_equals(table.caption.innerHTML, "new caption");
+    }, "Set table.caption when the table doesn't already have a caption")
+
+    test(function() {
+      var table10 = document.getElementById("table10");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table10.caption = caption;
+
+      assert_equals(caption.parentNode, table10);
+      assert_equals(table10.firstChild, caption);
+      assert_equals(table10.caption.innerHTML, "new caption");
+
+      var captions = table10.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Set table.caption when the table has a caption child but with other siblings before it")
+
+    test(function() {
+      var table11 = document.getElementById("table11");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table11.caption = caption;
+
+      assert_equals(caption.parentNode, table11);
+      assert_equals(table11.firstChild, caption);
+      assert_equals(table11.caption.innerHTML, "new caption");
+
+      var captions = table11.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Set table.caption when the table has a caption descendant")
+
+    test(function() {
+      var table12 = document.getElementById("table12");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table12.caption = caption;
+
+      assert_equals(caption.parentNode, table12);
+      assert_equals(table12.firstChild, caption);
+      assert_equals(table12.caption.innerHTML, "new caption");
+
+      var captions = table12.getElementsByTagName('caption');
+      assert_equals(captions.length, 2);
+      assert_equals(captions[0].innerHTML, "new caption");
+      assert_equals(captions[1].innerHTML, "caption 2");
+    }, "Set table.caption when the table has two caption children")
+
+    promise_test(async t => {
+      var table13 = document.getElementById("table13");
+      var iframe = document.createElement("iframe");
+      iframe.srcdoc = '<table><caption id="caption13">caption 13</caption></table>';
+      document.body.appendChild(iframe);
+
+      var iframeWatcher = new EventWatcher(t, iframe, "load");
+      await iframeWatcher.wait_for("load");
+      var caption = iframe.contentWindow.document.getElementById("caption13");
+      table13.caption = caption;
+
+      assert_equals(caption.parentNode, table13);
+      assert_equals(table13.firstChild, caption);
+      assert_equals(table13.caption.innerHTML, "caption 13");
+
+      var captions = table13.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Assigning a caption has a different owner document to table.caption")
+
+    test(function() {
+      var table14 = document.getElementById("table14");
+      var caption = document.getElementById("caption14");
+      table14.caption = caption;
+
+      assert_equals(caption.parentNode, table14);
+      assert_equals(table14.firstChild, caption);
+
+      var captions = table14.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Assigning the caption already in the table to table.caption")
   </script>
 </body>
 </html>

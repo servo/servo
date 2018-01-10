@@ -8,68 +8,41 @@
 <link rel="stylesheet" href="/common/canvas-tests.css">
 <body>
 <script>
-(function() {
+function testCanvasDisplayingPattern(canvas)
+{
+    var tolerance = 5; // for creating ImageBitmap from a video, the tolerance needs to be high
+    _assertPixelApprox(canvas, 5,5, 255,0,0,255, "5,5", "255,0,0,255", tolerance);
+    _assertPixelApprox(canvas, 15,5, 0,255,0,255, "15,5", "0,255,0,255", tolerance);
+    _assertPixelApprox(canvas, 5,15, 0,0,255,255, "5,15", "0,0,255,255", tolerance);
+    _assertPixelApprox(canvas, 15,15, 0,0,0,255, "15,15", "0,0,0,255", tolerance);
+}
+
+function testDrawImageBitmap(source, args = [])
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = 20;
+    canvas.height = 20;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return createImageBitmap(source, ...args).then(imageBitmap => {
+        ctx.drawImage(imageBitmap, 0, 0);
+        testCanvasDisplayingPattern(canvas);
+    });
+}
+
+for (let { name, factory } of imageSourceTypes) {
     promise_test(function() {
-        return new Promise(function(resolve, reject) {
-            var img = new Image();
-            img.onload = function() { resolve(img); };
-            img.src = "/images/pattern.png";
-        }).then(function(img) {
+        return factory().then(function(img) {
             return testDrawImageBitmap(img);
         });
-    }, "createImageBitmap from a HTMLImageElement, and drawImage on the created ImageBitmap");
+    }, `createImageBitmap from ${name}, and drawImage on the created ImageBitmap`);
 
     promise_test(function() {
-        return new Promise(function(resolve, reject) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", '/images/pattern.png');
-            xhr.responseType = 'blob';
-            xhr.send();
-            xhr.onload = function() {
-                blob = xhr.response;
-                resolve(blob);
-            };
-        }).then(function(blob) {
-            return testDrawImageBitmap(blob);
+        return factory().then(function(img) {
+            return testDrawImageBitmap(img, [20, 20, -20, -20]);
         });
-    }, "createImageBitmap from a Blob, and drawImage on the created ImageBitmap");
-
-    promise_test(function() {
-        var testCanvas = document.createElement("canvas");
-        initializeTestCanvas(testCanvas);
-        return testDrawImageBitmap(testCanvas);
-    }, "createImageBitmap from a HTMLCanvasElement, and drawImage on the created ImageBitmap");
-
-    promise_test(function() {
-        var testCanvas = document.createElement("canvas");
-        initializeTestCanvas(testCanvas);
-        return new Promise(function(resolve, reject) {
-            createImageBitmap(testCanvas).then(function(bitmap) {
-                resolve(bitmap);
-            });
-        }).then(function(bitmap) {
-            return testDrawImageBitmap(bitmap);
-        });
-    }, "createImageBitmap from an ImageBitmap, and drawImage on the created ImageBitmap");
-
-    promise_test(function() {
-        var imgData = new ImageData(20, 20);
-        initializeImageData(imgData, 20, 20);
-        return testDrawImageBitmap(imgData);
-    }, "createImageBitmap from an ImageData, and drawImage on the created ImageBitmap");
-
-    promise_test(function() {
-        return new Promise(function(resolve, reject) {
-            var video = document.createElement("video");
-            video.oncanplaythrough = function() {
-                resolve(video);
-            };
-            video.src = "/images/pattern.ogv";
-        }).then(function(video) {
-            return testDrawImageBitmap(video);
-        });
-    }, "createImageBitmap from a HTMLVideoElement, and drawImage on the created ImageBitmap");
-})();
+    }, `createImageBitmap from ${name} with negative sw/sh, and drawImage on the created ImageBitmap`);
+}
 </script>
 </body>
 </html>

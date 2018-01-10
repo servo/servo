@@ -26,10 +26,6 @@ async_test(function(t) {
             header_names.hasOwnProperty('accept'),
             'request includes "Accept" header as inserted by Fetch'
           );
-          assert_true(
-            header_names.hasOwnProperty('upgrade-insecure-requests'),
-            'request specifies "Upgrade-Insecure Requests header as inserted by Fetch'
-          );
 
           return service_worker_unregister_and_done(t, scope);
         })
