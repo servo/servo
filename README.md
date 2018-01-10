@@ -143,6 +143,10 @@ sudo emerge net-misc/curl media-libs/freeglut \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang
 ```
+with the following environment variable set:
+```sh
+export LIBCLANG_PATH="/usr/lib64/llvm/*/lib64"
+```
 #### On Windows (MSVC)
 
 1. Install Python for Windows (https://www.python.org/downloads/release/python-2714/). The Windows x86-64 MSI installer is fine.
