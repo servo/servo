@@ -2271,10 +2271,9 @@ impl CascadeData {
                         );
 
                         let style_rule_cascade_data = if selector.is_slotted() {
-                            if self.slotted_rule_data.is_none() {
-                                self.slotted_rule_data = Some(Box::new(StyleRuleCascadeData::new()));
-                            }
-                            self.slotted_rule_data.as_mut().unwrap()
+                            self.slotted_rule_data.get_or_insert_with(|| {
+                                Box::new(StyleRuleCascadeData::new())
+                            })
                         } else {
                             &mut self.normal_rule_data
                         };
