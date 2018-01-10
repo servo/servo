@@ -58,6 +58,8 @@ pub use self::percentage::Percentage;
 pub use self::position::{Position, PositionComponent, GridAutoFlow, GridTemplateAreas};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
+#[cfg(feature = "gecko")]
+pub use self::svg::MozContextProperties;
 pub use self::table::XSpan;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, TextDecorationLine};
 pub use self::text::{TextAlign, TextAlignKeyword, TextOverflow, WordSpacing};

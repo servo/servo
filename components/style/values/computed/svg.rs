@@ -13,6 +13,9 @@ use values::generics::svg as generic;
 
 pub use values::specified::SVGPaintOrder;
 
+#[cfg(feature = "gecko")]
+pub use values::specified::MozContextProperties;
+
 /// Computed SVG Paint value
 pub type SVGPaint = generic::SVGPaint<RGBA, ComputedUrl>;
 /// Computed SVG Paint Kind value
