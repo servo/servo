@@ -566,7 +566,11 @@ impl LineBreaker {
             self.pending_line.green_zone = line_bounds.size;
             false
         } else {
-            fragment.white_space().allow_wrap()
+            if fragment.suppress_line_break_before() {
+                false
+            } else {
+                fragment.white_space().allow_wrap()
+            }
         };
 
         debug!("LineBreaker: trying to append to line {} \
