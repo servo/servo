@@ -1,0 +1,4 @@
+#!/bin/sh
+# Skip the strip-private and strip-hidden rustdoc passes
+# https://github.com/rust-lang/rust/issues/15347
+rustdoc --no-defaults --passes collapse-docs --passes unindent-comments --passes strip-priv-imports "$@"

@@ -16,7 +16,6 @@ import shutil
 from socket import error as socket_error
 import StringIO
 import sys
-import tarfile
 import zipfile
 import urllib2
 import certifi
@@ -148,10 +147,8 @@ def download_file(desc, src, dst):
 
 
 def extract(src, dst, movedir=None):
-    if src.endswith(".zip"):
-        zipfile.ZipFile(src).extractall(dst)
-    else:
-        tarfile.open(src).extractall(dst)
+    assert src.endswith(".zip")
+    zipfile.ZipFile(src).extractall(dst)
 
     if movedir:
         for f in os.listdir(movedir):

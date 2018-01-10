@@ -6,22 +6,11 @@
 
 # Tool options
 [tools]
-# Where Rust compiler and other downloads will be stored.  Can be
-# shared by multiple Servo repositories.  Defaults to <servo-repo>/.servo
-cache-dir = "./.servo"
-
-# Where Cargo stores all of its clones  Defaults to <servo-repo>/.cargo
-cargo-home-dir = "./.cargo"
-
-# If system-rust is true, will use rustc/rustdoc from the path, or if
-# rust-root is specified, will make sure that rust-root is in the path
-# when building. Similarly for Cargo. This takes care of PATH as well as
-# [DY]LD_LIBRARY_PATH.
-# rust-root and cargo-root default to <servo-repo>/
-system-rust = false
-#rust-root = "/path/to/rust"
-system-cargo = false
-#cargo-root = "/path/to/cargo"
+# If use-rustup is set to false, mach will run for example "cargo build"
+# instead of "rustup run --install <toolchain> cargo build"
+# It is then the user’s responsibility to ensure that cargo and especially rustc
+# in $PATH are versions compatible with Servo.
+use-rustup = true
 
 # If rustc-with-gold is true, will try to find and use gold linker with rustc.
 # Defaults to true

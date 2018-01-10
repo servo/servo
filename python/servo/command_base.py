@@ -7,12 +7,15 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 import gzip
 import itertools
 import locale
 import os
 from os import path
+import platform
+import re
 import contextlib
 import subprocess
 from subprocess import PIPE
@@ -138,6 +141,18 @@ def call(*args, **kwargs):
     return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
+def check_output(*args, **kwargs):
+    """Wrap `subprocess.call`, printing the command if verbose=True."""
+    verbose = kwargs.pop('verbose', False)
+    if verbose:
+        print(' '.join(args[0]))
+    if 'env' in kwargs:
+        kwargs['env'] = normalize_env(kwargs['env'])
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    return subprocess.check_output(*args, shell=sys.platform == 'win32', **kwargs)
+
+
 def check_call(*args, **kwargs):
     """Wrap `subprocess.check_call`, printing the command if verbose=True.
 
@@ -254,10 +269,7 @@ class CommandBase(object):
 
         context.sharedir = self.config["tools"]["cache-dir"]
 
-        self.config["tools"].setdefault("system-rust", False)
-        self.config["tools"].setdefault("system-cargo", False)
-        self.config["tools"].setdefault("rust-root", "")
-        self.config["tools"].setdefault("cargo-root", "")
+        self.config["tools"].setdefault("use-rustup", True)
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         self.config.setdefault("build", {})
@@ -276,63 +288,63 @@ class CommandBase(object):
         # Set default android target
         self.handle_android_target("armv7-linux-androideabi")
 
-        self.set_cargo_root()
-        self.set_use_stable_rust(False)
+        self.set_use_geckolib_toolchain(False)
 
-    _use_stable_rust = False
-    _rust_stable_version = None
-    _rust_nightly_date = None
+    _use_geckolib_toolchain = False
+    _geckolib_toolchain = None
+    _default_toolchain = None
 
-    def set_cargo_root(self):
-        if not self.config["tools"]["system-cargo"]:
-            self.config["tools"]["cargo-root"] = path.join(
-                self.context.sharedir, "cargo", self.rust_nightly_date())
-
-    def set_use_stable_rust(self, use_stable_rust=True):
-        self._use_stable_rust = use_stable_rust
-        if not self.config["tools"]["system-rust"]:
-            self.config["tools"]["rust-root"] = path.join(
-                self.context.sharedir, "rust", self.rust_path())
-        if use_stable_rust:
+    def set_use_geckolib_toolchain(self, use_geckolib_toolchain=True):
+        self._use_geckolib_toolchain = use_geckolib_toolchain
+        if use_geckolib_toolchain:
             # Cargo maintainer's position is that CARGO_INCREMENTAL is a nightly-only feature
             # and should not be used on the stable channel.
             # https://github.com/rust-lang/cargo/issues/3835
             self.config["build"]["incremental"] = False
 
-    def use_stable_rust(self):
-        return self._use_stable_rust
-
-    def rust_install_dir(self):
-        if self._use_stable_rust:
-            return self.rust_stable_version()
+    def toolchain(self):
+        if self._use_geckolib_toolchain:
+            return self.geckolib_toolchain()
         else:
-            return self.rust_nightly_date()
+            return self.default_toolchain()
 
-    def rust_path(self):
-        if self._use_stable_rust:
-            version = self.rust_stable_version()
-        else:
-            version = "nightly"
-
-        subdir = "rustc-%s-%s" % (version, host_triple())
-        return os.path.join(self.rust_install_dir(), subdir)
-
-    def rust_stable_version(self):
-        if self._rust_stable_version is None:
-            filename = path.join("rust-stable-version")
+    def geckolib_toolchain(self):
+        if self._geckolib_toolchain is None:
+            filename = path.join(self.context.topdir, "geckolib-rust-toolchain")
             with open(filename) as f:
-                self._rust_stable_version = f.read().strip()
-        return self._rust_stable_version
+                self._geckolib_toolchain = f.read().strip()
+        return self._geckolib_toolchain
 
-    def rust_nightly_date(self):
-        if self._rust_nightly_date is None:
+    def default_toolchain(self):
+        if self._default_toolchain is None:
             filename = path.join(self.context.topdir, "rust-toolchain")
             with open(filename) as f:
-                toolchain = f.read().strip()
-                prefix = "nightly-"
-                assert toolchain.startswith(prefix)
-                self._rust_nightly_date = toolchain[len(prefix):]
-        return self._rust_nightly_date
+                self._default_toolchain = f.read().strip()
+        return self._default_toolchain
+
+    def call_rustup_run(self, args, **kwargs):
+        if self.config["tools"]["use-rustup"]:
+            try:
+                version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
+            except OSError as e:
+                if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
+                    print "It looks like rustup is not installed. See instructions at " \
+                          "https://github.com/servo/servo/#setting-up-your-environment"
+                    print
+                    return 1
+                raise
+            version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
+            if version < (1, 8, 0):
+                print "rustup is at version %s.%s.%s, Servo requires 1.8.0 or more recent." % version
+                print "Try running 'rustup self update'."
+                return 1
+            toolchain = self.toolchain()
+            if platform.system() == "Windows":
+                toolchain += "-x86_64-pc-windows-msvc"
+            args = ["rustup" + BIN_SUFFIX, "run", "--install", toolchain] + args
+        else:
+            args[0] += BIN_SUFFIX
+        return call(args, **kwargs)
 
     def get_top_dir(self):
         return self.context.topdir
@@ -388,7 +400,7 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -423,29 +435,9 @@ class CommandBase(object):
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if not self.config["tools"]["system-rust"] \
-                or self.config["tools"]["rust-root"]:
-            env["RUST_ROOT"] = self.config["tools"]["rust-root"]
-            # These paths are for when rust-root points to an unpacked installer
-            extra_path += [path.join(self.config["tools"]["rust-root"], "rustc", "bin")]
-            extra_lib += [path.join(self.config["tools"]["rust-root"], "rustc", "lib")]
-            # These paths are for when rust-root points to a rustc sysroot
-            extra_path += [path.join(self.config["tools"]["rust-root"], "bin")]
-            extra_lib += [path.join(self.config["tools"]["rust-root"], "lib")]
-
-        if not self.config["tools"]["system-cargo"] \
-                or self.config["tools"]["cargo-root"]:
-            # This path is for when rust-root points to an unpacked installer
-            extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "cargo", "bin")]
-            # This path is for when rust-root points to a rustc sysroot
-            extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "bin")]
-
         if extra_path:
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
 
-        env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
 
@@ -486,7 +478,10 @@ class CommandBase(object):
         if hosts_file_path:
             env['HOST_FILE'] = hosts_file_path
 
-        env['RUSTDOCFLAGS'] = "--document-private-items"
+        if not test_unit:
+            # This wrapper script is in bash and doesn't work on Windows
+            # where we want to run doctests as part of `./mach test-unit`
+            env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
 
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
@@ -588,32 +583,9 @@ class CommandBase(object):
 
         target_platform = target or host_triple()
 
-        rust_root = self.config["tools"]["rust-root"]
-        rustc_path = path.join(
-            rust_root, "rustc", "bin", "rustc" + BIN_SUFFIX
-        )
-        rustc_binary_exists = path.exists(rustc_path)
-
-        base_target_path = path.join(rust_root, "rustc", "lib", "rustlib")
-
-        target_path = path.join(base_target_path, target_platform)
-        target_exists = path.exists(target_path)
-
         # Always check if all needed MSVC dependencies are installed
         if "msvc" in target_platform:
             Registrar.dispatch("bootstrap", context=self.context)
-
-        if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
-            print("Looking for rustc at %s" % (rustc_path))
-            Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]),
-                               stable=self._use_stable_rust)
-
-        cargo_path = path.join(self.config["tools"]["cargo-root"], "cargo", "bin",
-                               "cargo" + BIN_SUFFIX)
-        cargo_binary_exists = path.exists(cargo_path)
-
-        if not self.config["tools"]["system-cargo"] and not cargo_binary_exists:
-            Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
 

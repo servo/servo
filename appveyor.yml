@@ -37,9 +37,18 @@ branches:
     - master
 
 cache:
+  - C:\Users\appveyor\.rustup -> rust-toolchain
+  - C:\Users\appveyor\.cargo -> rust-toolchain
   - .servo -> rust-toolchain
-  - .cargo -> rust-toolchain
   - .ccache
+
+install:
+  - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain none
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - rustup -V
+  - mach rustc --version
+  - mach cargo --version
 
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:

@@ -19,6 +19,8 @@ matrix:
         - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime -y
         - export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
         - export CC=gcc-5 CXX=g++-5
+        - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
+        - source ~/.profile
       script:
          - ./mach build -d --verbose
          - ./mach test-unit
@@ -28,8 +30,9 @@ matrix:
          - bash etc/ci/lockfile_changed.sh
       cache:
         directories:
-          - .cargo
           - .servo
+          - $HOME/.cargo
+          - $HOME/.rustup
           - $HOME/.ccache
       before_cache:
         - ./mach clean-nightlies --keep 2 --force
