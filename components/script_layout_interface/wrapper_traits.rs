@@ -398,22 +398,20 @@ pub trait ThreadSafeLayoutElement
                             &style_pseudo,
                             Some(data.styles.primary()),
                             CascadeFlags::empty(),
-                            &ServoMetricsProvider)
-                            .clone()
+                            &ServoMetricsProvider,
+                        )
                     }
                     PseudoElementCascadeType::Lazy => {
-                        context.stylist
-                               .lazily_compute_pseudo_element_style(
-                                   &context.guards,
-                                   unsafe { &self.unsafe_get() },
-                                   &style_pseudo,
-                                   RuleInclusion::All,
-                                   data.styles.primary(),
-                                   /* is_probe = */ false,
-                                   &ServoMetricsProvider,
-                                   /* matching_func = */ None)
-                               .unwrap()
-                               .clone()
+                        context.stylist.lazily_compute_pseudo_element_style(
+                           &context.guards,
+                           unsafe { self.unsafe_get() },
+                           &style_pseudo,
+                           RuleInclusion::All,
+                           data.styles.primary(),
+                           /* is_probe = */ false,
+                           &ServoMetricsProvider,
+                           /* matching_func = */ None,
+                        ).unwrap()
                     }
                 }
             }
@@ -424,7 +422,7 @@ pub trait ThreadSafeLayoutElement
     fn selected_style(&self) -> Arc<ComputedValues> {
         let data = self.style_data();
         data.styles.pseudos
-            .get(&PseudoElement::Selection).map(|s| s)
+            .get(&PseudoElement::Selection)
             .unwrap_or(data.styles.primary())
             .clone()
     }

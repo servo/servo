@@ -2260,17 +2260,16 @@ fn get_pseudo_style(
             };
             let guards = StylesheetGuards::same(guard);
             let metrics = get_metrics_provider_for_product();
-            doc_data.stylist
-                .lazily_compute_pseudo_element_style(
-                    &guards,
-                    &element,
-                    &pseudo,
-                    rule_inclusion,
-                    base,
-                    is_probe,
-                    &metrics,
-                    matching_func,
-                )
+            doc_data.stylist.lazily_compute_pseudo_element_style(
+                &guards,
+                element,
+                &pseudo,
+                rule_inclusion,
+                base,
+                is_probe,
+                &metrics,
+                matching_func,
+            )
         },
     };
 
