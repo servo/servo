@@ -245,6 +245,9 @@ class CommandBase(object):
             self.config[category][key] = path.join(context.topdir,
                                                    self.config[category][key])
 
+        if not hasattr(self.context, "bootstrapped"):
+            self.context.bootstrapped = False
+
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
             with open(config_path) as f:
@@ -570,6 +573,18 @@ class CommandBase(object):
             self.config["android"]["toolchain_name"] = target + "-4.9"
             return True
         return False
+
+    def ensure_bootstrapped(self, target=None):
+        if self.context.bootstrapped:
+            return
+
+        target_platform = target or host_triple()
+
+        # Always check if all needed MSVC dependencies are installed
+        if "msvc" in target_platform:
+            Registrar.dispatch("bootstrap", context=self.context)
+
+        self.context.bootstrapped = True
 
     def ensure_clobbered(self, target_dir=None):
         if target_dir is None:

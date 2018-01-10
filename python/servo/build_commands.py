@@ -244,6 +244,7 @@ class MachCommands(CommandBase):
             if not android:
                 android = self.handle_android_target(target)
 
+        self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
 
         if debug_mozjs:
@@ -406,6 +407,7 @@ class MachCommands(CommandBase):
                      help='Enable debug assertions in release')
     def build_cef(self, jobs=None, verbose=False, release=False,
                   with_debug_assertions=False):
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
 
         ret = None
@@ -458,6 +460,7 @@ class MachCommands(CommandBase):
                      help='Build in release mode')
     def build_geckolib(self, jobs=None, verbose=False, release=False):
         self.set_use_geckolib_toolchain()
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
 
         env = self.build_env(is_build=True, geckolib=True)
@@ -498,6 +501,8 @@ class MachCommands(CommandBase):
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def clean(self, manifest_path=None, params=[], verbose=False):
+        self.ensure_bootstrapped()
+
         opts = []
         if manifest_path:
             opts += ["--manifest-path", manifest_path]

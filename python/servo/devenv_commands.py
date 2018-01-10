@@ -32,6 +32,7 @@ class MachCommands(CommandBase):
         if not params:
             params = []
 
+        self.ensure_bootstrapped()
         self.ensure_clobbered()
         env = self.build_env(geckolib=geckolib)
 
@@ -193,6 +194,8 @@ class MachCommands(CommandBase):
             sys.exit(1)
 
         if params or all_packages:
+            self.ensure_bootstrapped()
+
             with cd(self.context.topdir):
                 self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
 
@@ -206,6 +209,7 @@ class MachCommands(CommandBase):
         if params is None:
             params = []
 
+        self.ensure_bootstrapped()
         return self.call_rustup_run(["rustc"] + params, env=self.build_env())
 
     @Command('rustc-geckolib',
@@ -219,6 +223,7 @@ class MachCommands(CommandBase):
             params = []
 
         self.set_use_geckolib_toolchain()
+        self.ensure_bootstrapped()
         env = self.build_env(geckolib=True)
 
         return self.call_rustup_run(["rustc"] + params, env=env)
@@ -264,5 +269,7 @@ class MachCommands(CommandBase):
              description='Fetch Rust, Cargo and Cargo dependencies',
              category='devenv')
     def fetch(self):
+        self.ensure_bootstrapped()
+
         with cd(self.context.topdir):
             return self.call_rustup_run(["cargo", "fetch"], env=self.build_env())

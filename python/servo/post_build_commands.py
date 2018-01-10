@@ -216,6 +216,7 @@ class PostBuildCommands(CommandBase):
         toolchain_path = path.dirname(path.dirname(rustc_path))
         rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
 
+        self.ensure_bootstrapped()
         docs = path.join(self.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
