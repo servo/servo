@@ -6,6 +6,22 @@
 <script src="touch-support.js"></script>
 <body>
 <script>
+[
+  "webkitRadiusX",
+  "webkitRadiusY",
+  "webkitRotationAngle",
+  "webkitForce",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in Touch.prototype,
+                 "Should not be supported on the prototype");
+
+    var touch = document.createTouch(window, window, 0, 0, 0, 0, 0);
+    assert_false(name in touch,
+                 "Should not be supported on the instance");
+  }, "Touch::" + name);
+});
+
 test(function() {
   assert_false("identifiedTouch" in TouchList.prototype,
                "Should not be supported on the prototype");
@@ -14,4 +30,13 @@ test(function() {
   assert_false("identifiedTouch" in touchList,
                "Should not be supported on the instance");
 }, "TouchList::identifiedTouch");
+
+test(function() {
+  assert_false("initTouchEvent" in TouchEvent.prototype,
+               "Should not be supported on the prototype");
+
+  var touchEvent = document.createEvent("touchevent");
+  assert_false("initTouchEvent" in touchEvent,
+               "Should not be supported on the instance");
+}, "TouchEvent::initTouchEvent");
 </script>

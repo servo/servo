@@ -54,7 +54,7 @@
                     "userAgent should return the value sent in the " +
                     "User-Agent header");
     });
-    request.open("GET", "/XMLHttpRequest/resources/inspect-headers.py?" +
+    request.open("GET", "/xhr/resources/inspect-headers.py?" +
                         "filter_name=User-Agent");
     request.send();
   }, "userAgent value");

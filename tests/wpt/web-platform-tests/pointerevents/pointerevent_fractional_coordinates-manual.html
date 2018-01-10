@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events coordinates can have fractional value<</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <style>
+            #innerFrame {
+                transform: scale(5);
+                width: 60px;
+                height: 60px;
+                margin-left: 120px;
+                margin-top: 120px;
+                border: 0.01px solid black;
+            }
+        </style>
+        <script>
+            var eventList = [
+                  "pointerdown",
+                  "pointerup",
+                  "pointermove",
+                  "pointerover",
+                  "pointerout",
+                  "pointerenter",
+                  "pointerleave"];
+            var eventsRecieved = {};
+            var clickedTargetList = [];
+
+            function resetTestState() {
+                eventsRecieved = {};
+                clickedTargetList = [];
+                ['s1', 's2', 's3'].forEach(function(id){
+                    var target = document.getElementById('innerFrame').contentDocument.getElementById(id);
+                    target.style.background = "black"
+                });
+            }
+
+            function checkPointerEventCoordinates(event) {
+              if (event.clientX != Math.floor(event.clientX) || event.clientY != Math.floor(event.clientY))
+                eventsRecieved[event.type] = true;
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointerevent events in capturing", ALL_POINTERS);
+                var innerFrame = document.getElementById('innerFrame');
+                var innerDocument = innerFrame.contentDocument;
+                ['s1', 's2', 's3'].forEach(function(id){
+                    var target = innerDocument.getElementById(id);
+                    eventList.forEach(function(eventName) {
+                        on_event(target, eventName, checkPointerEventCoordinates);
+                    });
+
+                    on_event(target, "click", function (event) {
+                      if (!(event.target.id in clickedTargetList)) {
+                          clickedTargetList.push(event.target.id);
+                          event.target.style.background = "red"
+                      }
+                      if (clickedTargetList.length == 3) {
+                          test(function () {
+                              if (Object.keys(eventsRecieved).length != eventList.length){
+                                  eventList.forEach(function(eventName){
+                                     assert_true(eventName in eventsRecieved, eventName + " should have fractional coordinates");
+                                  });
+                              }
+                          }, expectedPointerType);
+                          test_pointerEvent.done();
+                      }
+                    });
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events coordinates support fractional value</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks pointer events has fractional client coordinates
+            <ol>
+                 <li>Move your pointer over one black square</li>
+                 <li>Press down the pointer (i.e. press left button with mouse or touch the screen with finger or pen).</li>
+                 <li>Release the pointer.</li>
+                 <li>Move to next black square and repreat 2 and 3</li>
+            </ol>
+
+            Test passes if pointer events has fractional coordinates.
+        </h4>
+        <iframe id=innerFrame src="resources/pointerevent_fractional_coordinates-iframe.html"></iframe>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>
+

@@ -5,6 +5,8 @@
 <link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
 <link rel="match" href="display-contents-pass-ref.html">
 <style>
+    /* Disable kerning because kerning may differ for different node tree. */
+    html { font-kerning: none; font-feature-settings: "kern" off; }
     .flex { display: inline-flex; flex-direction: column }
     .flex::before { display: contents; content: "A" }
     .flex::after { display: contents; content: "S" }

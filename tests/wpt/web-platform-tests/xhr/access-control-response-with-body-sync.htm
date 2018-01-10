@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests body from CORS preflight response and actual response with sync request</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+test(() => {
+  const xhr = new XMLHttpRequest;
+
+  xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN+
+      "/xhr/resources/access-control-allow-with-body.py", false);
+  xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+  xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+  xhr.send();
+
+  assert_equals(xhr.status, 200);
+  assert_equals(xhr.responseText, "PASS");
+});
+    </script>
+  </body>
+</html>
