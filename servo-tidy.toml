@@ -42,6 +42,7 @@ packages = [
   "semver",
   "toml",
   "unicase",
+  "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
