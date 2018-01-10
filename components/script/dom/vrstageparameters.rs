@@ -38,7 +38,7 @@ impl VRStageParameters {
     #[allow(unsafe_code)]
     pub fn new(parameters: WebVRStageParameters, global: &GlobalScope) -> DomRoot<VRStageParameters> {
         let cx = global.get_cx();
-        rooted!(in (cx) let mut array = ptr::null_mut());
+        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
         unsafe {
             let _ = Float32Array::create(cx, CreateWith::Slice(&parameters.sitting_to_standing_transform),
                                                                array.handle_mut());

@@ -29,7 +29,7 @@ use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObject;
 use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
-use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext};
+use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
@@ -436,7 +436,7 @@ impl CustomElementDefinition {
         let cx = window.get_cx();
         // Step 2
         rooted!(in(cx) let constructor = ObjectValue(self.constructor.callback()));
-        rooted!(in(cx) let mut element = ptr::null_mut());
+        rooted!(in(cx) let mut element = ptr::null_mut::<JSObject>());
         {
             // Go into the constructor's compartment
             let _ac = JSAutoCompartment::new(cx, self.constructor.callback());
@@ -545,7 +545,7 @@ fn run_upgrade_constructor(constructor: &Rc<Function>, element: &Element) -> Err
     rooted!(in(cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(cx) let mut element_val = UndefinedValue());
     unsafe { element.to_jsval(cx, element_val.handle_mut()); }
-    rooted!(in(cx) let mut construct_result = ptr::null_mut());
+    rooted!(in(cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Go into the constructor's compartment
         let _ac = JSAutoCompartment::new(cx, constructor.callback());

@@ -81,7 +81,7 @@ use html5ever::LocalName;
 use html5ever::interface::QualName;
 use js::glue::UnwrapObject;
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsapi::HandleObject;
 use js::jsapi::MutableHandleObject;
 use script_thread::ScriptThread;
@@ -111,7 +111,7 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
 
     {
         let _ac = JSAutoCompartment::new(window.get_cx(), callee.get());
-        rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut());
+        rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
         rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
 
         if definition.is_autonomous() {

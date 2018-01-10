@@ -36,7 +36,7 @@ impl ImageData {
         let len = width * height * 4;
         unsafe {
             let cx = global.get_cx();
-            rooted!(in (cx) let mut js_object = ptr::null_mut());
+            rooted!(in (cx) let mut js_object = ptr::null_mut::<JSObject>());
             let data = match data {
                 Some(ref mut d) => {
                     d.resize(len as usize, 0);
@@ -103,7 +103,7 @@ impl ImageData {
         } else {
             let len = width * height * 4;
             let cx = global.get_cx();
-            rooted!(in (cx) let mut array = ptr::null_mut());
+            rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
             Uint8ClampedArray::create(cx, CreateWith::Length(len), array.handle_mut()).unwrap();
             (*imagedata).data.set(array.get());
         }

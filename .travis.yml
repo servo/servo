@@ -40,6 +40,7 @@ matrix:
       env:
         CCACHE=/usr/bin/ccache
         RUSTFLAGS=-Dwarnings
+        CARGO_INCREMENTAL=0
       addons:
         apt:
           sources:

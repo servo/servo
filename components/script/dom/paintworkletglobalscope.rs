@@ -35,6 +35,7 @@ use js::jsapi::Heap;
 use js::jsapi::IsCallable;
 use js::jsapi::IsConstructor;
 use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
 use js::jsapi::JS_NewArrayObject;
@@ -240,7 +241,7 @@ impl PaintWorkletGlobalScope {
             Entry::Vacant(entry) => {
                 // Step 5.2-5.3
                 let args = HandleValueArray::new();
-                rooted!(in(cx) let mut result = null_mut());
+                rooted!(in(cx) let mut result = null_mut::<JSObject>());
                 unsafe { Construct1(cx, class_constructor.handle(), &args, result.handle_mut()); }
                 paint_instance.set(ObjectValue(result.get()));
                 if unsafe { JS_IsExceptionPending(cx) } {
