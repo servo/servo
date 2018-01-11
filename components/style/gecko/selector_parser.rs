@@ -277,8 +277,15 @@ impl NonTSPseudoClass {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelectorImpl;
 
+/// A struct holding the members necessary to invalidate document state
+/// selectors.
+pub struct InvalidationMatchingData {
+    /// The document state that has changed, which makes it always match.
+    pub document_state: DocumentState,
+}
+
 impl ::selectors::SelectorImpl for SelectorImpl {
-    type ExtraMatchingData = ();
+    type ExtraMatchingData = InvalidationMatchingData;
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;
