@@ -216,6 +216,16 @@ unsafe fn dummy_url_data() -> &'static RefPtr<URLExtraData> {
     RefPtr::from_ptr_ref(&DUMMY_URL_DATA)
 }
 
+#[allow(dead_code)]
+fn is_main_thread() -> bool {
+    unsafe { bindings::Gecko_IsMainThread() }
+}
+
+#[allow(dead_code)]
+fn is_in_servo_traversal() -> bool {
+    unsafe { bindings::Gecko_IsInServoTraversal() }
+}
+
 fn create_shared_context<'a>(
     global_style_data: &GlobalStyleData,
     guard: &'a SharedRwLockReadGuard,
@@ -1335,6 +1345,7 @@ fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
 unsafe fn read_locked_arc_unchecked<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
     where Locked<T>: HasArcFFI, F: FnOnce(&T) -> R
 {
+    debug_assert!(is_main_thread() && !is_in_servo_traversal());
     read_locked_arc(raw, func)
 }
 
