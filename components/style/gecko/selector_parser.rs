@@ -278,6 +278,7 @@ impl NonTSPseudoClass {
 pub struct SelectorImpl;
 
 impl ::selectors::SelectorImpl for SelectorImpl {
+    type ExtraMatchingData = ();
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;

@@ -377,6 +377,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
+    type ExtraMatchingData = !;
     type AttrValue = String;
     type Identifier = Atom;
     type ClassName = Atom;
