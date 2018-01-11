@@ -10,7 +10,7 @@ use invalidation::element::invalidator::{DescendantInvalidationLists, Invalidati
 use invalidation::element::invalidator::{Invalidation, InvalidationProcessor};
 use invalidation::element::state_and_attributes;
 use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, VisitedHandlingMode};
-use stylist::StyleRuleCascadeData;
+use stylist::CascadeData;
 
 /// A struct holding the members necessary to invalidate document state
 /// selectors.
@@ -34,7 +34,7 @@ pub struct DocumentStateInvalidationProcessor<'a, E: TElement> {
     // TODO(emilio): We might want to just run everything for every possible
     // binding along with the document data, or just apply the XBL stuff to the
     // bound subtrees.
-    rules: &'a StyleRuleCascadeData,
+    rules: &'a CascadeData,
     matching_context: MatchingContext<'a, E::Impl>,
     document_states_changed: DocumentState,
 }
@@ -43,7 +43,7 @@ impl<'a, E: TElement> DocumentStateInvalidationProcessor<'a, E> {
     /// Creates a new DocumentStateInvalidationProcessor.
     #[inline]
     pub fn new(
-        rules: &'a StyleRuleCascadeData,
+        rules: &'a CascadeData,
         document_states_changed: DocumentState,
         quirks_mode: QuirksMode,
     ) -> Self {

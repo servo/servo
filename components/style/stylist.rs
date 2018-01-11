@@ -188,7 +188,8 @@ struct DocumentCascadeData {
     per_origin: PerOrigin<()>,
 }
 
-struct DocumentCascadeDataIter<'a> {
+/// An iterator over the cascade data of a given document.
+pub struct DocumentCascadeDataIter<'a> {
     iter: PerOriginIter<'a, ()>,
     cascade_data: &'a DocumentCascadeData,
 }
@@ -436,6 +437,18 @@ impl Stylist {
         }
     }
 
+    /// Returns the cascade data for the author level.
+    #[inline]
+    pub fn author_cascade_data(&self) -> &CascadeData {
+        &self.cascade_data.author
+    }
+
+    /// Iterate through all the cascade datas from the document.
+    #[inline]
+    pub fn iter_origins(&self) -> DocumentCascadeDataIter {
+        self.cascade_data.iter_origins()
+    }
+
     /// Iterate over the extra data in origin order.
     #[inline]
     pub fn iter_extra_data_origins(&self) -> ExtraStyleDataIterator {
@@ -466,30 +479,22 @@ impl Stylist {
     /// Returns the number of revalidation_selectors.
     pub fn num_revalidation_selectors(&self) -> usize {
         self.cascade_data.iter_origins()
-            .map(|(data, _)| {
-                data.normal_rule_data.selectors_for_cache_revalidation.len() +
-                data.slotted_rule_data.as_ref().map_or(0, |d| {
-                    d.selectors_for_cache_revalidation.len()
-                })
-            }).sum()
+            .map(|(data, _)| data.selectors_for_cache_revalidation.len())
+            .sum()
     }
 
     /// Returns the number of entries in invalidation maps.
     pub fn num_invalidations(&self) -> usize {
         self.cascade_data.iter_origins()
-            .map(|(data, _)| {
-                data.normal_rule_data.invalidation_map.len() +
-                data.slotted_rule_data.as_ref().map_or(0, |d| d.invalidation_map.len())
-            }).sum()
+            .map(|(data, _)| data.invalidation_map.len())
+            .sum()
     }
 
     /// Returns whether the given DocumentState bit is relied upon by a selector
     /// of some rule.
     pub fn has_document_state_dependency(&self, state: DocumentState) -> bool {
         self.cascade_data.iter_origins()
-            .any(|(d, _)| {
-                d.normal_rule_data.has_document_state_dependency(state)
-            })
+            .any(|(d, _)| d.document_state_dependencies.intersects(state))
     }
 
     /// Flush the list of stylesheets if they changed, ensuring the stylist is
@@ -605,24 +610,14 @@ impl Stylist {
         self.stylesheets.remove_stylesheet(Some(&self.device), sheet, guard)
     }
 
-    /// Executes `f` on each of the normal rule cascade datas in this styleset.
-    pub fn each_normal_rule_cascade_data<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut(&'a StyleRuleCascadeData, Origin),
-    {
-        for (data, origin) in self.cascade_data.iter_origins() {
-            f(&data.normal_rule_data, origin);
-        }
-    }
-
     /// Returns whether for any of the applicable style rule data a given
     /// condition is true.
     pub fn any_applicable_rule_data<E, F>(&self, element: E, mut f: F) -> bool
     where
         E: TElement,
-        F: FnMut(&StyleRuleCascadeData, QuirksMode) -> bool,
+        F: FnMut(&CascadeData, QuirksMode) -> bool,
     {
-        if f(&self.cascade_data.user_agent.cascade_data.normal_rule_data, self.quirks_mode()) {
+        if f(&self.cascade_data.user_agent.cascade_data, self.quirks_mode()) {
             return true;
         }
 
@@ -636,8 +631,8 @@ impl Stylist {
             return maybe;
         }
 
-        f(&self.cascade_data.author.normal_rule_data, self.quirks_mode()) ||
-        f(&self.cascade_data.user.normal_rule_data, self.quirks_mode())
+        f(&self.cascade_data.author, self.quirks_mode()) ||
+        f(&self.cascade_data.user, self.quirks_mode())
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1446,18 +1441,6 @@ impl Stylist {
         })
     }
 
-    /// Returns the cascade data for the normal rules.
-    #[inline]
-    pub fn normal_author_cascade_data(&self) -> &StyleRuleCascadeData {
-        &self.cascade_data.author.normal_rule_data
-    }
-
-    /// Returns the cascade data for the slotted rules in this scope, if any.
-    #[inline]
-    pub fn slotted_author_cascade_data(&self) -> Option<&StyleRuleCascadeData> {
-        self.cascade_data.author.slotted_rule_data.as_ref().map(|d| &**d)
-    }
-
     /// Returns the registered `@keyframes` animation for the specified name.
     ///
     /// FIXME(emilio): This needs to account for the element rules.
@@ -1498,7 +1481,7 @@ impl Stylist {
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = SmallBitVec::new();
         for (data, _) in self.cascade_data.iter_origins() {
-            data.normal_rule_data.selectors_for_cache_revalidation.lookup(
+            data.selectors_for_cache_revalidation.lookup(
                 element,
                 self.quirks_mode,
                 |selector_and_hashes| {
@@ -1918,7 +1901,7 @@ impl ElementAndPseudoRules {
     }
 
     #[inline]
-    fn borrow_for_pseudo(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
+    fn rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
         match pseudo {
             Some(pseudo) => self.pseudos_map.get(&pseudo.canonical()).map(|p| &**p),
             None => Some(&self.element_map),
@@ -1938,12 +1921,26 @@ impl ElementAndPseudoRules {
     }
 }
 
-/// Cascade data generated from style rules.
-#[derive(Debug)]
+/// Data resulting from performing the CSS cascade that is specific to a given
+/// origin.
+///
+/// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
+/// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-pub struct StyleRuleCascadeData {
-    /// The actual style rules.
-    rules: ElementAndPseudoRules,
+#[derive(Debug)]
+pub struct CascadeData {
+    /// The data coming from normal style rules that apply to elements at this
+    /// cascade level.
+    normal_rules: ElementAndPseudoRules,
+
+    /// The data coming from ::slotted() pseudo-element rules.
+    ///
+    /// We need to store them separately because an element needs to match
+    /// ::slotted() pseudo-element rules in different shadow roots.
+    ///
+    /// In particular, we need to go through all the style data in all the
+    /// containing style scopes starting from the closest assigned slot.
+    slotted_rules: Option<Box<ElementAndPseudoRules>>,
 
     /// The invalidation map for these rules.
     invalidation_map: InvalidationMap,
@@ -1985,142 +1982,6 @@ pub struct StyleRuleCascadeData {
     /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
-}
-
-impl StyleRuleCascadeData {
-    #[inline(always)]
-    fn insert(
-        &mut self,
-        rule: Rule,
-        pseudo_element: Option<&PseudoElement>,
-        quirks_mode: QuirksMode,
-        rebuild_kind: SheetRebuildKind,
-    ) -> Result<(), FailedAllocationError> {
-        if rebuild_kind.should_rebuild_invalidation() {
-            self.invalidation_map.note_selector(&rule.selector, quirks_mode)?;
-            let mut visitor = StylistSelectorVisitor {
-                needs_revalidation: false,
-                passed_rightmost_selector: false,
-                attribute_dependencies: &mut self.attribute_dependencies,
-                style_attribute_dependency: &mut self.style_attribute_dependency,
-                state_dependencies: &mut self.state_dependencies,
-                document_state_dependencies: &mut self.document_state_dependencies,
-                mapped_ids: &mut self.mapped_ids,
-            };
-
-            rule.selector.visit(&mut visitor);
-
-            if visitor.needs_revalidation {
-                self.selectors_for_cache_revalidation.insert(
-                    RevalidationSelectorAndHashes::new(
-                        rule.selector.clone(),
-                        rule.hashes.clone(),
-                    ),
-                    quirks_mode
-                )?;
-            }
-        }
-
-        self.rules.insert(rule, pseudo_element, quirks_mode)
-    }
-
-    /// Returns the invalidation map.
-    #[inline]
-    pub fn invalidation_map(&self) -> &InvalidationMap {
-        &self.invalidation_map
-    }
-
-    #[cfg(feature = "gecko")]
-    fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        self.rules.add_size_of(ops, sizes);
-        sizes.mInvalidationMap += self.invalidation_map.size_of(ops);
-        sizes.mRevalidationSelectors += self.selectors_for_cache_revalidation.size_of(ops);
-    }
-
-    fn clear_cascade_data(&mut self) {
-        self.rules.clear();
-    }
-
-    fn clear(&mut self) {
-        self.clear_cascade_data();
-        self.invalidation_map.clear();
-        self.attribute_dependencies.clear();
-        self.style_attribute_dependency = false;
-        self.state_dependencies = ElementState::empty();
-        self.document_state_dependencies = DocumentState::empty();
-        self.mapped_ids.clear();
-        self.selectors_for_cache_revalidation.clear();
-    }
-
-    /// Returns whether the given attribute might appear in an attribute
-    /// selector of some rule.
-    #[inline]
-    pub fn might_have_attribute_dependency(
-        &self,
-        local_name: &LocalName,
-    ) -> bool {
-        if *local_name == local_name!("style") {
-            return self.style_attribute_dependency
-        }
-
-        self.attribute_dependencies.might_contain_hash(local_name.get_hash())
-    }
-
-    /// Returns whether the given ElementState bit is relied upon by a selector
-    /// of some rule.
-    #[inline]
-    pub fn has_state_dependency(&self, state: ElementState) -> bool {
-        self.state_dependencies.intersects(state)
-    }
-
-    /// Returns whether the given DocumentState bit is relied upon by a selector
-    /// of some rule in the stylist.
-    #[inline]
-    fn has_document_state_dependency(&self, state: DocumentState) -> bool {
-        self.document_state_dependencies.intersects(state)
-    }
-}
-
-impl StyleRuleCascadeData {
-    fn new() -> Self {
-        Self {
-            rules: ElementAndPseudoRules::default(),
-            invalidation_map: InvalidationMap::new(),
-            attribute_dependencies: NonCountingBloomFilter::new(),
-            style_attribute_dependency: false,
-            state_dependencies: ElementState::empty(),
-            document_state_dependencies: DocumentState::empty(),
-            mapped_ids: NonCountingBloomFilter::new(),
-            selectors_for_cache_revalidation: SelectorMap::new(),
-        }
-    }
-
-    #[inline]
-    fn rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
-        self.rules.borrow_for_pseudo(pseudo)
-    }
-}
-
-/// Data resulting from performing the CSS cascade that is specific to a given
-/// origin.
-///
-/// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
-/// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Debug)]
-struct CascadeData {
-    /// The data coming from normal style rules that apply to elements at this
-    /// cascade level.
-    normal_rule_data: StyleRuleCascadeData,
-
-    /// The data coming from ::slotted() pseudo-element rules.
-    ///
-    /// We need to store them separately because an element needs to match
-    /// ::slotted() pseudo-element rules in different shadow roots.
-    ///
-    /// In particular, we need to go through all the style data in all the
-    /// containing style scopes starting from the closest assigned slot.
-    slotted_rule_data: Option<Box<StyleRuleCascadeData>>,
 
     /// A map with all the animations at this `CascadeData`'s origin, indexed
     /// by name.
@@ -2146,8 +2007,15 @@ struct CascadeData {
 impl CascadeData {
     fn new() -> Self {
         Self {
-            normal_rule_data: StyleRuleCascadeData::new(),
-            slotted_rule_data: None,
+            normal_rules: ElementAndPseudoRules::default(),
+            slotted_rules: None,
+            invalidation_map: InvalidationMap::new(),
+            attribute_dependencies: NonCountingBloomFilter::new(),
+            style_attribute_dependency: false,
+            state_dependencies: ElementState::empty(),
+            document_state_dependencies: DocumentState::empty(),
+            mapped_ids: NonCountingBloomFilter::new(),
+            selectors_for_cache_revalidation: SelectorMap::new(),
             animations: Default::default(),
             extra_data: ExtraStyleData::default(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),
@@ -2157,14 +2025,39 @@ impl CascadeData {
         }
     }
 
+    /// Returns the invalidation map.
+    pub fn invalidation_map(&self) -> &InvalidationMap {
+        &self.invalidation_map
+    }
+
+    /// Returns whether the given ElementState bit is relied upon by a selector
+    /// of some rule.
+    #[inline]
+    pub fn has_state_dependency(&self, state: ElementState) -> bool {
+        self.state_dependencies.intersects(state)
+    }
+
+    /// Returns whether the given attribute might appear in an attribute
+    /// selector of some rule.
+    #[inline]
+    pub fn might_have_attribute_dependency(
+        &self,
+        local_name: &LocalName,
+    ) -> bool {
+        if *local_name == local_name!("style") {
+            return self.style_attribute_dependency
+        }
+
+        self.attribute_dependencies.might_contain_hash(local_name.get_hash())
+    }
     #[inline]
     fn normal_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
-        self.normal_rule_data.rules(pseudo)
+        self.normal_rules.rules(pseudo)
     }
 
     #[inline]
     fn slotted_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
-        self.slotted_rule_data.as_ref().and_then(|d| d.rules(pseudo))
+        self.slotted_rules.as_ref().and_then(|d| d.rules(pseudo))
     }
 
     /// Collects all the applicable media query results into `results`.
@@ -2270,19 +2163,43 @@ impl CascadeData {
                             self.rules_source_order
                         );
 
-                        let style_rule_cascade_data = if selector.is_slotted() {
-                            self.slotted_rule_data.get_or_insert_with(|| {
-                                Box::new(StyleRuleCascadeData::new())
+                        if rebuild_kind.should_rebuild_invalidation() {
+                            self.invalidation_map.note_selector(&rule.selector, quirks_mode)?;
+                            let mut visitor = StylistSelectorVisitor {
+                                needs_revalidation: false,
+                                passed_rightmost_selector: false,
+                                attribute_dependencies: &mut self.attribute_dependencies,
+                                style_attribute_dependency: &mut self.style_attribute_dependency,
+                                state_dependencies: &mut self.state_dependencies,
+                                document_state_dependencies: &mut self.document_state_dependencies,
+                                mapped_ids: &mut self.mapped_ids,
+                            };
+
+                            rule.selector.visit(&mut visitor);
+
+                            if visitor.needs_revalidation {
+                                self.selectors_for_cache_revalidation.insert(
+                                    RevalidationSelectorAndHashes::new(
+                                        rule.selector.clone(),
+                                        rule.hashes.clone(),
+                                    ),
+                                    quirks_mode
+                                )?;
+                            }
+                        }
+
+                        let rules = if selector.is_slotted() {
+                            self.slotted_rules.get_or_insert_with(|| {
+                                Box::new(Default::default())
                             })
                         } else {
-                            &mut self.normal_rule_data
+                            &mut self.normal_rules
                         };
 
-                        style_rule_cascade_data.insert(
+                        rules.insert(
                             rule,
                             pseudo_element,
                             quirks_mode,
-                            rebuild_kind,
                         )?;
                     }
                     self.rules_source_order += 1;
@@ -2435,9 +2352,9 @@ impl CascadeData {
 
     /// Clears the cascade data, but not the invalidation data.
     fn clear_cascade_data(&mut self) {
-        self.normal_rule_data.clear_cascade_data();
-        if let Some(ref mut slotted_rule_data) = self.slotted_rule_data {
-            slotted_rule_data.clear_cascade_data();
+        self.normal_rules.clear();
+        if let Some(ref mut slotted_rules) = self.slotted_rules {
+            slotted_rules.clear();
         }
         self.animations.clear();
         self.extra_data.clear();
@@ -2448,20 +2365,25 @@ impl CascadeData {
 
     fn clear(&mut self) {
         self.clear_cascade_data();
-        self.normal_rule_data.clear();
-        if let Some(ref mut slotted_rule_data) = self.slotted_rule_data {
-            slotted_rule_data.clear();
-        }
+        self.invalidation_map.clear();
+        self.attribute_dependencies.clear();
+        self.style_attribute_dependency = false;
+        self.state_dependencies = ElementState::empty();
+        self.document_state_dependencies = DocumentState::empty();
+        self.mapped_ids.clear();
+        self.selectors_for_cache_revalidation.clear();
         self.effective_media_query_results.clear();
     }
 
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
     fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        self.normal_rule_data.add_size_of(ops, sizes);
-        if let Some(ref slotted_rules) = self.slotted_rule_data {
+        self.normal_rules.add_size_of(ops, sizes);
+        if let Some(ref slotted_rules) = self.slotted_rules {
             slotted_rules.add_size_of(ops, sizes);
         }
+        sizes.mInvalidationMap += self.invalidation_map.size_of(ops);
+        sizes.mRevalidationSelectors += self.selectors_for_cache_revalidation.size_of(ops);
         sizes.mOther += self.animations.size_of(ops);
         sizes.mOther += self.effective_media_query_results.size_of(ops);
         sizes.mOther += self.extra_data.size_of(ops);
