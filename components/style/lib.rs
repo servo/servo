@@ -26,8 +26,6 @@
 #![deny(warnings)]
 #![deny(missing_docs)]
 
-#![cfg_attr(feature = "servo", feature(never_type))]
-
 #![recursion_limit = "500"]  // For define_css_keyword_enum! in -moz-appearance
 
 extern crate app_units;
