@@ -10,9 +10,10 @@ pub use self::builder::InlineFlowDisplayListBuilding;
 pub use self::builder::ListItemFlowDisplayListBuilding;
 pub use self::builder::StackingContextCollectionFlags;
 pub use self::builder::StackingContextCollectionState;
-pub use self::builder::ToGfxColor;
+pub use self::conversions::ToLayout;
 pub use self::webrender_helpers::WebRenderDisplayListConverter;
 
 mod background;
 mod builder;
+mod conversions;
 mod webrender_helpers;

@@ -9,7 +9,7 @@
 // FIXME(rust-lang/rust#26264): Remove GenericEndingShape and GenericGradientItem.
 
 use app_units::Au;
-use display_list::ToGfxColor;
+use display_list::ToLayout;
 use euclid::{Point2D, Size2D, Vector2D};
 use gfx::display_list;
 use model::MaybeAuto;
@@ -364,7 +364,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem], total_length: Au) -> 
         assert!(offset.is_finite());
         stops.push(GradientStop {
             offset: offset,
-            color: stop.color.to_gfx_color(),
+            color: stop.color.to_layout(),
         })
     }
     stops
