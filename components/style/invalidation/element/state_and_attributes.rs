@@ -93,6 +93,50 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     }
 }
 
+
+/// Whether we should process the descendants of a given element for style
+/// invalidation.
+pub fn should_process_descendants(data: &ElementData) -> bool {
+    !data.styles.is_display_none() &&
+        !data.hint.contains(RestyleHint::RESTYLE_DESCENDANTS)
+}
+
+/// Propagates the bits after invalidating a descendant child.
+pub fn invalidated_descendants<E>(element: E, child: E)
+where
+    E: TElement,
+{
+    if child.get_data().is_none() {
+        return;
+    }
+
+    // The child may not be a flattened tree child of the current element,
+    // but may be arbitrarily deep.
+    //
+    // Since we keep the traversal flags in terms of the flattened tree,
+    // we need to propagate it as appropriate.
+    let mut current = child.traversal_parent();
+    while let Some(parent) = current.take() {
+        unsafe { parent.set_dirty_descendants() };
+        current = parent.traversal_parent();
+
+        if parent == element {
+            break;
+        }
+    }
+}
+
+/// Sets the appropriate restyle hint after invalidating the style of a given
+/// element.
+pub fn invalidated_self<E>(element: E)
+where
+    E: TElement,
+{
+    if let Some(mut data) = element.mutate_data() {
+        data.hint.insert(RestyleHint::RESTYLE_SELF);
+    }
+}
+
 impl<'a, 'b: 'a, E: 'a> InvalidationProcessor<'a, E> for StateAndAttrInvalidationProcessor<'a, 'b, E>
 where
     E: TElement,
@@ -251,17 +295,15 @@ where
 
     fn should_process_descendants(&mut self, element: E) -> bool {
         if element == self.element {
-            return !self.data.styles.is_display_none() &&
-                !self.data.hint.contains(RestyleHint::RESTYLE_DESCENDANTS)
+            return should_process_descendants(&self.data)
         }
 
         let data = match element.borrow_data() {
+            Some(d) => d,
             None => return false,
-            Some(data) => data,
         };
 
-        !data.styles.is_display_none() &&
-            !data.hint.contains(RestyleHint::RESTYLE_DESCENDANTS)
+        should_process_descendants(&data)
     }
 
     fn recursion_limit_exceeded(&mut self, element: E) {
@@ -276,31 +318,12 @@ where
     }
 
     fn invalidated_descendants(&mut self, element: E, child: E) {
-        if child.get_data().is_none() {
-            return;
-        }
-
-        // The child may not be a flattened tree child of the current element,
-        // but may be arbitrarily deep.
-        //
-        // Since we keep the traversal flags in terms of the flattened tree,
-        // we need to propagate it as appropriate.
-        let mut current = child.traversal_parent();
-        while let Some(parent) = current.take() {
-            unsafe { parent.set_dirty_descendants() };
-            current = parent.traversal_parent();
-
-            if parent == element {
-                break;
-            }
-        }
+        invalidated_descendants(element, child)
     }
 
     fn invalidated_self(&mut self, element: E) {
         debug_assert_ne!(element, self.element);
-        if let Some(mut data) = element.mutate_data() {
-            data.hint.insert(RestyleHint::RESTYLE_SELF);
-        }
+        invalidated_self(element);
     }
 }
 
