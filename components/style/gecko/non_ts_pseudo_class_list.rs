@@ -116,9 +116,6 @@ macro_rules! apply_non_ts_list {
             ],
             string: [
                 ("lang", Lang, lang, _, _),
-            ],
-            keyword: [
-                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, _),
             ]
         }
     }
