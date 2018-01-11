@@ -73,7 +73,7 @@ linux-rel-nogate:
   - ./mach clean-nightlies --keep 3 --force
   - env CC=gcc-5 CXX=g++-5 ./mach build --release
   - python ./etc/ci/chaos_monkey_test.py
-  - env CC=gcc-5 CXX=g++-5 bash ./etc/ci/mutation_test.sh
+  - env CC=gcc-5 CXX=g++-5 RUSTFLAGS= bash ./etc/ci/mutation_test.sh
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
