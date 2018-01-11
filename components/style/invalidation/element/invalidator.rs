@@ -505,6 +505,9 @@ where
                 DescendantInvalidationKind::Slotted,
             );
 
+            // FIXME(emilio): Need to handle nested slotted nodes if `element`
+            // is itself a <slot>.
+
             debug_assert!(
                 sibling_invalidations.is_empty(),
                 "::slotted() shouldn't have sibling combinators to the right, \
