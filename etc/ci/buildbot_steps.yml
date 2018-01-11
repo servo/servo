@@ -1,5 +1,6 @@
 env:
   RUSTFLAGS: -Dwarnings
+  CARGO_INCREMENTAL: "0"
 
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force

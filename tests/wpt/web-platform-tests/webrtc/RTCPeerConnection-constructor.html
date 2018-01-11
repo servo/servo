@@ -73,7 +73,7 @@ for (const attr in initialState) {
     if (!window.pc) {
       window.pc = new RTCPeerConnection;
     }
-    assert_equals(pc[attr], initialState[attr]);
+    assert_equals(window.pc[attr], initialState[attr]);
   }, attr + ' initial value');
 }
 </script>

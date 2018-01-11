@@ -10,22 +10,45 @@
 const WORKER =
   'resources/fetch-event-respond-with-readable-stream-worker.js';
 const SCOPE =
-  'resources/fetch-event-respond-with-readable-stream-iframe.html';
-// Called by the iframe when done.
-var done;
-var done_was_called = new Promise(resolve => done = resolve);
+  'resources/blank.html';
 
-promise_test(t => {
-    return service_worker_unregister_and_register(t, WORKER, SCOPE)
-      .then(reg => {
-           add_completion_callback(() => reg.unregister());
-           return wait_for_state(t, reg.installing, 'activated');
-         })
-      .then(() => with_iframe(SCOPE))
-      .then(iframe => {
-          t.add_cleanup(() => iframe.remove())
-        })
-      .then(() => done_was_called)
-      .then(result => assert_equals(result, 'PASS'));
-  }, 'Respond with a Response built from a ReadableStream');
+// Register a service worker, then create an iframe at url.
+function iframeTest(url, callback, name) {
+  return promise_test(async t => {
+    const reg = await service_worker_unregister_and_register(t, WORKER, SCOPE);
+    add_completion_callback(() => reg.unregister());
+    await wait_for_state(t, reg.installing, 'activated');
+    const iframe = await with_iframe(url);
+    const iwin = iframe.contentWindow;
+    t.add_cleanup(() => iframe.remove());
+    await callback(t, iwin);
+  }, name);
+}
+
+iframeTest(SCOPE, async (t, iwin) => {
+  const response = await iwin.fetch('?stream');
+  assert_equals(await response.text(), 'PASS');
+}, 'Subresource built from a ReadableStream');
+
+iframeTest(SCOPE + '?stream', (t, iwin) => {
+  assert_equals(iwin.document.body.textContent, 'PASS');
+}, 'Main resource built from a ReadableStream');
+
+iframeTest(SCOPE, async (t, iwin) => {
+  const response = await iwin.fetch('?stream&delay');
+  assert_equals(await response.text(), 'PASS');
+}, 'Subresource built from a ReadableStream - delayed');
+
+iframeTest(SCOPE + '?stream&delay', (t, iwin) => {
+  assert_equals(iwin.document.body.textContent, 'PASS');
+}, 'Main resource built from a ReadableStream - delayed');
+
+iframeTest(SCOPE, async (t, iwin) => {
+  const response = await iwin.fetch('?stream&use-fetch-stream');
+  assert_equals(await response.text(), 'PASS\n');
+}, 'Subresource built from a ReadableStream - fetch stream');
+
+iframeTest(SCOPE + '?stream&use-fetch-stream', (t, iwin) => {
+  assert_equals(iwin.document.body.textContent, 'PASS\n');
+}, 'Main resource built from a ReadableStream - fetch stream');
 </script>

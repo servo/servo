@@ -21,6 +21,15 @@ _addTest(function(canvas, ctx) {
 
 var g = ctx.createLinearGradient(0, 0, 100, 0);
 assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, ""); });
+assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'rgb(NaN%, NaN%, NaN%)'); });
+assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'null'); });
+assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'undefined'); });
+assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, null); });
+assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, undefined); });
+
+var g = ctx.createRadialGradient(0, 0, 0, 100, 0, 0);
+assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, ""); });
+assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'rgb(NaN%, NaN%, NaN%)'); });
 assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'null'); });
 assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, 'undefined'); });
 assert_throws("SYNTAX_ERR", function() { g.addColorStop(0, null); });

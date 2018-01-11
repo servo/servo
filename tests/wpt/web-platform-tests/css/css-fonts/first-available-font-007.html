@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS-fonts: inline level box content height and first available font, missing U+0020</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-3/#first-available-font">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#first-available-font">
+<link rel="match" href="first-available-font-005-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="The height of the content area of an inline-level depends only on the first available font, which is the first one to include U+0020.">
+<style>
+/* Two Arbitrary fonts with different metrics. One has a taller ascender, the other a deeper descender. */
+@font-face {
+  font-family: 'A-no-space';
+  font-style: normal;
+  font-weight: 400;
+  src:  url(support/Revalia.woff) format('woff');
+  unicode-range: U+0061;
+}
+@font-face {
+  font-family: 'B';
+  font-style: normal;
+  font-weight: 400;
+  src: url(support/AD.woff) format('woff');
+}
+
+div {
+  font-size: 50px;
+  display: inline-block;
+  width: 40px;
+  overflow: hidden;
+}
+
+span { color: transparent; }
+
+div:nth-of-type(1) {
+  font-family: B;
+}
+div:nth-of-type(1) span { background: red; }
+
+/* The second div should have the same first available font as the first one, since A-no-space does no include U+0020.
+   Both div's span's should thefore overflap exactly, with the white one hiding the red.
+ */
+div:nth-of-type(2) {
+  font-family: A-no-space, B;
+  margin-left: -40px;
+}
+div:nth-of-type(2) span { background: white; }
+</style>
+
+<p>Test passes if there is <strong>no red</strong> below.
+
+<div><span>aaaaa</span></div><div><span>aaaaa</span></div>

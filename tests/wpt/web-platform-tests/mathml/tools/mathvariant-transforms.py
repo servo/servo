@@ -83,7 +83,7 @@ for mathvariant in mathvariantTransforms:
     source ='\
 <link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS3.SSS1.tab2"/>\n\
 <link rel="match" href="mathvariant-%s-ref.html"/>\n\
-<meta name="assert" content="Verify that a single-char <mi> with a %s mathvariant is equivalent to an <mi> with the transformed unicode character.">\n'
+<meta name="assert" content="Verify that a single-char <mtext> with a %s mathvariant is equivalent to an <mtext> with the transformed unicode character.">\n'
     reftest.write(source % (mathvariant, mathvariant))
     source = '\
 <style>\n\
@@ -111,8 +111,8 @@ for mathvariant in mathvariantTransforms:
     charIndex = 0
     for baseChar in mathvariantTransforms[mathvariant]:
         transformedChar = mathvariantTransforms[mathvariant][baseChar]
-        reftest.write('  <span><math><mi mathvariant="%s">&#x%0X;</mi></math>=<span>%05X</span></span>' % (mathvariant, baseChar, transformedChar))
-        reftestReference.write('  <span><math><mi>&#x%0X;</mi></math>=<span>%05X</span></span>' % (transformedChar, transformedChar))
+        reftest.write('  <span><math><mtext mathvariant="%s">&#x%0X;</mtext></math>=<span>%05X</span></span>' % (mathvariant, baseChar, transformedChar))
+        reftestReference.write('  <span><math><mtext>&#x%0X;</mtext></math>=<span>%05X</span></span>' % (transformedChar, transformedChar))
         charIndex += 1
         if charIndex % 10 == 0:
             reftest.write('<br/>')

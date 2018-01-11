@@ -1,0 +1,5 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: report-uri-does-not-respect-base-uri={{$id:uuid()}}; Path=/content-security-policy/base-uri
+Content-Security-Policy: script-src 'self' 'unsafe-inline'; img-src 'none'; report-uri ../support/report.py?op=put&reportID={{$id}}

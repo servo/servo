@@ -1,0 +1,23 @@
+WEBVTT
+Any HTML markup that is not supported should be ignored.
+
+1
+00:00:00.000 --> 00:00:30.500 align:start position:20%
+<h1>Bear is Coming!!!!!</h1>
+<p>And what kind of a bear it is - just have <a href="webpage.html">look</a>.</p>
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+<ul>
+  <li>I said Bear is coming!!!!</li>
+  <li>I said Bear is still coming!!!!</li>
+</ul>
+
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%
+<ol>
+  <li>I said Bear is coming now!!!!</li>
+  <li><img src="bear.png" alt="mighty bear"></li>
+  <li><video src="bear_ad.webm" controls></video></li>
+</ol>

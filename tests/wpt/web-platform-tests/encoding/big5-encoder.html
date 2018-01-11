@@ -15,8 +15,8 @@
 
  encode("ab", "ab", "very basic")
  // edge cases
- encode("\u9EA6", "%26%2340614%3B", "Highest-pointer BMP character excluded from encoder");
- encode("\uD858\uDE6B", "%26%23156267%3B", "Highest-pointer character excluded from encoder");
+ encode("\u9EA6", "&%2340614;", "Highest-pointer BMP character excluded from encoder");
+ encode("\uD858\uDE6B", "&%23156267;", "Highest-pointer character excluded from encoder");
  encode("\u3000", "%A1@", "Lowest-pointer character included in encoder");
  encode("\u20AC", "%A3%E1", "Euro; the highest-pointer character before a range of 30 unmapped pointers");
  encode("\u4E00", "%A4@", "The lowest-pointer character after the range of 30 unmapped pointers");
@@ -24,8 +24,8 @@
  encode("\uFFE2", "%C8%CD", "The lowest-pointer character after the range of 41 unmapped pointers");
  encode("\u79D4", "%FE%FE", "The last character in the index");
  // not in index
- encode("\u2603", "%26%239731%3B", "The canonical BMP test character that is not in the index");
- encode("\uD83D\uDCA9", "%26%23128169%3B", "The canonical astral test character that is not in the index");
+ encode("\u2603", "&%239731;", "The canonical BMP test character that is not in the index");
+ encode("\uD83D\uDCA9", "&%23128169;", "The canonical astral test character that is not in the index");
  // duplicate low bits
  encode("\uD840\uDFB5", "%FDj", "A Plane 2 character whose low 16 bits match a BMP character that has a lower pointer");
  // prefer last

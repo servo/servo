@@ -41,6 +41,7 @@
     assert_equals(trackEvent.receiver, receiver);
     assert_equals(trackEvent.track, track);
     assert_array_equals(trackEvent.streams, []);
+    assert_equals(trackEvent.streams, trackEvent.streams); // [SameObject]
     assert_equals(trackEvent.transceiver, transceiver);
 
     assert_equals(trackEvent.type, 'track');

@@ -5,47 +5,33 @@
 <title>multicol | break-inside: avoid-column</title>
 <link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
 <link rel="help" href="http://www.w3.org/TR/css3-multicol/#column-breaks"/>
-<link rel="match" href="multicol-br-inside-avoidcolumn-ref.xht"/>
+<link rel="match" href="../reference/ref-filled-green-200px-square.html"/>
 <meta name="flags" content=""/>
 <style type="text/css"><![CDATA[
-html {
-	width: 800px;
-	background: white;
+.multicol {
+  column-count: 2;
+  column-gap: 0;
+  column-fill: auto;
+  overflow: hidden;
+  width: 200px;
+  height: 300px;
 }
-body {
-	background: black;
-	column-count: 3;
-	column-gap: 0;
-	column-fill: auto;
-	height: 300px;
+.multicol > div {
+  height: 200px;
+  break-inside: avoid-column;
+  background: green;
 }
-h1 {
-	column-span: all;
-	color: white;
-}
-div { background: red;
-	height: 150px;
-	break-inside: avoid-column;
-}
-span {
-	float: left;
+.multicol > div.red {
+  background:red;
 }
 ]]></style>
 </head>
 <body>
-<h1>You should not see the word FAIL</h1>
-
-<div>
-	<span>FAIL</span>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div></div>
+  <div></div>
+  <div class="red"></div>
 </div>
-
-<div>
-	<span>FAIL</span>
-</div>
-
-<div>
-	<span>FAIL</span>
-</div>
-
 </body>
 </html>

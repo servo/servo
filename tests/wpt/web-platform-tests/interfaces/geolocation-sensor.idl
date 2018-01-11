@@ -1,4 +1,4 @@
-[Constructor(optional SensorOptions options), Exposed=Window]
+[Constructor(optional SensorOptions options), SecureContext, Exposed=Window]
 interface GeolocationSensor : Sensor {
   readonly attribute unrestricted double? latitude;
   readonly attribute unrestricted double? longitude;

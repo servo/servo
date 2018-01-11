@@ -11,6 +11,8 @@ use values::computed::{NonNegativeNumber, NonNegativeLengthOrPercentage, Number}
 use values::computed::Opacity;
 use values::generics::svg as generic;
 
+pub use values::specified::SVGPaintOrder;
+
 /// Computed SVG Paint value
 pub type SVGPaint = generic::SVGPaint<RGBA, ComputedUrl>;
 /// Computed SVG Paint Kind value

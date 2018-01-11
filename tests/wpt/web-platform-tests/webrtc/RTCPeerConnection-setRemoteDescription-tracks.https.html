@@ -24,11 +24,11 @@
     const callee = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
-      let localTrack = tracks[0];
+      const localTrack = tracks[0];
       caller.addTrack(localTrack);
-      let offerPromise = performOffer(caller, callee);
+      const offerPromise = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
-        let remoteTrack = trackEvent.track;
+        const remoteTrack = trackEvent.track;
         assert_equals(remoteTrack.id, localTrack.id,
                       'Expected local and remote track IDs to match.');
         assert_equals(trackEvent.streams.length, 0,
@@ -47,15 +47,15 @@
     const callee = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
-      let localTrack = tracks[0];
-      let localStream = streams[0];
+      const localTrack = tracks[0];
+      const localStream = streams[0];
       caller.addTrack(localTrack, localStream);
-      let offerPromise = performOffer(caller, callee);
+      const offerPromise = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
         assert_equals(trackEvent.streams.length, 1,
                       'Expected track event to fire with a single stream.');
-        let remoteTrack = trackEvent.track;
-        let remoteStream = trackEvent.streams[0];
+        const remoteTrack = trackEvent.track;
+        const remoteStream = trackEvent.streams[0];
         assert_equals(remoteTrack.id, localTrack.id,
                       'Expected local and remote track IDs to match.');
         assert_equals(remoteStream.id, localStream.id,
@@ -74,19 +74,47 @@
   async_test(t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
+    let eventSequence = '';
+    return getUserMediaTracksAndStreams(1)
+    .then(t.step_func(([tracks, streams]) => {
+      const ontrackResolver = new Resolver();
+      callee.ontrack = () => {
+        eventSequence += 'ontrack;';
+        ontrackResolver.resolve();
+      }
+      caller.addTrack(tracks[0]);
+      return Promise.all([
+        ontrackResolver.promise,
+        performOffer(caller, callee).then(() => {
+          eventSequence += 'setRemoteDescription;';
+        })
+      ]);
+    }))
+    .then(t.step_func(() => {
+      assert_equals(eventSequence, 'ontrack;setRemoteDescription;');
+      t.done();
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'ontrack fires before setRemoteDescription resolves.');
+
+  async_test(t => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
-      let localTrack1 = tracks[0];
-      let localTrack2 = tracks[1];
-      let localStream = streams[0];
+      const localTrack1 = tracks[0];
+      const localTrack2 = tracks[1];
+      const localStream = streams[0];
       caller.addTrack(localTrack1, localStream);
       caller.addTrack(localTrack2, localStream);
-      let offerPromise = performOffer(caller, callee);
+      const offerPromise = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
         assert_equals(trackEvent.streams.length, 1,
                       'Expected track event to fire with a single stream.');
-        let remoteTrack1 = trackEvent.track;
-        let remoteStream = trackEvent.streams[0];
+        const remoteTrack1 = trackEvent.track;
+        const remoteStream = trackEvent.streams[0];
         assert_equals(remoteTrack1.id, localTrack1.id,
                       'Expected first remote track ID to match first local track ID.');
         assert_equals(remoteStream.getTracks().length, 2,
@@ -94,7 +122,7 @@
         callee.ontrack = t.step_func(trackEvent => {
           assert_equals(trackEvent.streams.length, 1,
                         'Expected track event to fire with a single stream.');
-          let remoteTrack2 = trackEvent.track;
+          const remoteTrack2 = trackEvent.track;
           assert_equals(trackEvent.streams[0], remoteStream,
                         'Expected both track events to fire with the same remote stream.');
           assert_equals(remoteTrack2.id, localTrack2.id,
@@ -151,17 +179,53 @@
   async_test(t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
+    let eventSequence = '';
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
-      let localTrack = tracks[0];
-      let localStreams = streams;
+      const localTracks = tracks;
+      const localStream = streams[0];
+      caller.addTrack(localTracks[0], localStream);
+      const offerPromise = performOffer(caller, callee);
+      callee.ontrack = t.step_func(trackEvent => {
+        callee.ontrack = null;
+        const remoteStream = trackEvent.streams[0];
+        const onaddtrackResolver = new Resolver();
+        remoteStream.onaddtrack = () => {
+          eventSequence += 'stream.onaddtrack;';
+          onaddtrackResolver.resolve();
+        }
+        caller.addTrack(localTracks[1], localStream);
+        Promise.all([
+          onaddtrackResolver.promise,
+          performOffer(caller, callee).then(() => {
+            eventSequence += 'setRemoteDescription;';
+          })
+        ]).then(t.step_func(() => {
+          assert_equals(eventSequence, 'stream.onaddtrack;setRemoteDescription;');
+          t.done();
+        }));
+      });
+      return offerPromise;
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'stream.onaddtrack fires before setRemoteDescription resolves.');
+
+  async_test(t => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    return getUserMediaTracksAndStreams(2)
+    .then(t.step_func(([tracks, streams]) => {
+      const localTrack = tracks[0];
+      const localStreams = streams;
       caller.addTrack(localTrack, localStreams[0], localStreams[1]);
-      let performOffer = performOffer(caller, callee);
+      const performOffer = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
         assert_equals(trackEvent.streams.length, 2,
                       'Expected the track event to fire with two streams.');
-        let remoteTrack = trackEvent.track;
-        let remoteStreams = trackEvent.streams;
+        const remoteTrack = trackEvent.track;
+        const remoteStreams = trackEvent.streams;
         assert_equals(remoteTrack.id, localTrack.id,
                       'Expected local and remote track IDs to match.');
         assert_equals(remoteStreams[0].id, localStreams[0].id,
@@ -184,38 +248,10 @@
   async_test(t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
-    let eventSequence = '';
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       caller.addTrack(tracks[0]);
-      let ontrackResolver = new Resolver();
-      callee.ontrack = () => {
-        eventSequence += 'ontrack;';
-        ontrackResolver.resolve();
-      }
-      return Promise.all([
-        ontrackResolver.promise,
-        performOffer(caller, callee).then(() => {
-          eventSequence += 'setRemoteDescription;';
-        })
-      ]);
-    }))
-    .then(t.step_func(() => {
-      assert_equals(eventSequence, 'ontrack;setRemoteDescription;');
-      t.done();
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
-  }, 'ontrack fires before setRemoteDescription resolves.');
-
-  async_test(t => {
-    const caller = new RTCPeerConnection();
-    const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      caller.addTrack(tracks[0]);
-      let offerPromise = performOffer(caller, callee);
+      const offerPromise = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
         assert_array_equals(callee.getReceivers(), [trackEvent.receiver]);
         t.done();
@@ -232,11 +268,11 @@
     const callee = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
-      let sender = caller.addTrack(tracks[0]);
-      assert_true(sender != null);
-      let offerPromise = performOffer(caller, callee);
+      const sender = caller.addTrack(tracks[0]);
+      assert_not_equals(sender, null);
+      const offerPromise = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
-        let receivers = callee.getReceivers();
+        const receivers = callee.getReceivers();
         assert_equals(receivers.length, 1,
                       'Expected getReceivers() to be the track event\'s receiver.');
         caller.removeTrack(sender);
@@ -259,9 +295,9 @@
     const callee = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
-      let sender = caller.addTrack(tracks[0], streams[0]);
-      assert_true(sender != null);
-      let offerPromise = performOffer(caller, callee);
+      const sender = caller.addTrack(tracks[0], streams[0]);
+      assert_not_equals(sender, null);
+      const offerPromise = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
         assert_not_equals(trackEvent.track, null);
         assert_equals(trackEvent.streams.length, 1);
@@ -279,21 +315,55 @@
     .catch(t.step_func(reason => {
       assert_unreached(reason);
     }));
-  }, 'removeTrack() causes onremovetrack and the track to be removed from the stream.');
+  }, 'removeTrack() makes stream.onremovetrack fire and the track to be removed from the stream.');
+
+  async_test(t => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    let eventSequence = '';
+    return getUserMediaTracksAndStreams(1)
+    .then(t.step_func(([tracks, streams]) => {
+      const sender = caller.addTrack(tracks[0], streams[0]);
+      assert_not_equals(sender, null);
+      const offerPromise = performOffer(caller, callee);
+      callee.ontrack = t.step_func(trackEvent => {
+        const remoteStream = trackEvent.streams[0];
+        const onremovetrackResolver = new Resolver();
+        remoteStream.onremovetrack = t.step_func(removeEvent => {
+          eventSequence += 'stream.onremovetrack;';
+          onremovetrackResolver.resolve();
+        });
+        caller.removeTrack(sender);
+        return Promise.all([
+          onremovetrackResolver.promise,
+          performOffer(caller, callee).then(() => {
+            eventSequence += 'setRemoteDescription;';
+          })
+        ]).then(t.step_func(() => {
+          assert_equals(eventSequence, 'stream.onremovetrack;setRemoteDescription;');
+          t.done();
+        }));
+      });
+      return offerPromise;
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'stream.onremovetrack fires before setRemoteDescription resolves.');
 
   async_test(t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
-      let sender = caller.addTrack(tracks[0]);
-      assert_true(sender != null);
-      let offerPromise = performOffer(caller, callee);
+      const sender = caller.addTrack(tracks[0]);
+      assert_not_equals(sender, null);
+      const offerPromise = performOffer(caller, callee);
       callee.ontrack = t.step_func(trackEvent => {
-        assert_not_equals(trackEvent.track, null);
+        const remoteTrack = trackEvent.track;
         caller.removeTrack(sender);
         performOffer(caller, callee);
-        trackEvent.track.onmute = t.step_func(() => {
+        remoteTrack.onmute = t.step_func(() => {
           assert_true(trackEvent.track.muted);
           t.done();
         });
@@ -303,6 +373,54 @@
     .catch(t.step_func(reason => {
       assert_unreached(reason);
     }));
-  }, 'removeTrack() causes onmute and the track to be muted.');
+  }, 'removeTrack() makes track.onmute fire and the track to be muted.');
 
+  async_test(t => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    let eventSequence = '';
+    return getUserMediaTracksAndStreams(1)
+    .then(t.step_func(([tracks, streams]) => {
+      const sender = caller.addTrack(tracks[0]);
+      assert_not_equals(sender, null);
+      const offerPromise = performOffer(caller, callee);
+      callee.ontrack = t.step_func(trackEvent => {
+        const remoteTrack = trackEvent.track;
+        const onmuteResolver = new Resolver();
+        remoteTrack.onmute = t.step_func(() => {
+          eventSequence += 'track.onmute;';
+          onmuteResolver.resolve();
+        });
+        caller.removeTrack(sender);
+        return Promise.all([
+          onmuteResolver.promise,
+          performOffer(caller, callee).then(() => {
+            eventSequence += 'setRemoteDescription;';
+          })
+        ]).then(t.step_func(() => {
+          assert_equals(eventSequence, 'track.onmute;setRemoteDescription;');
+          t.done();
+        }));
+      });
+      return offerPromise;
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'track.onmute fires before setRemoteDescription resolves.');
+
+  async_test(t => {
+    const pc = new RTCPeerConnection();
+    return getUserMediaTracksAndStreams(1)
+    .then(t.step_func(([tracks, streams]) => {
+      const sender = pc.addTrack(tracks[0]);
+      assert_not_equals(sender, null);
+      pc.removeTrack(sender);
+      pc.removeTrack(sender);
+      t.done();
+    }))
+    .catch(t.step_func(reason => {
+      assert_unreached(reason);
+    }));
+  }, 'removeTrack() twice is safe.');
 </script>

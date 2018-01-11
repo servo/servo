@@ -507,7 +507,7 @@ partial interface RTCPeerConnection {
 
 interface RTCSctpTransport {
     readonly attribute RTCDtlsTransport transport;
-    readonly attribute unsigned long    maxMessageSize;
+    readonly attribute unrestricted double maxMessageSize;
 };
 
 interface RTCDataChannel : EventTarget {

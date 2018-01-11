@@ -16,11 +16,6 @@
 body {
   background: red;
 }
-@media (min-width: 1ch) {
-  body {
-    background: green;
-  }
-}
 p {
   font-size: 24px;
 }
@@ -28,5 +23,15 @@ p {
 </head>
 <body>
   <p>This should have a green background.</p>
+  <script>
+    document.body.offsetTop;
+  </script>
+  <style>
+    @media (min-width: 1ch) {
+      body {
+        background: green;
+      }
+    }
+  </style>
 </body>
 </html>

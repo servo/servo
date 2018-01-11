@@ -34,7 +34,7 @@ from mach.decorators import (
 
 from servo.command_base import (
     BuildNotFound, CommandBase,
-    call, cd, check_call, set_osmesa_env,
+    call, check_call, set_osmesa_env,
 )
 from servo.util import host_triple
 
@@ -255,11 +255,8 @@ class MachCommands(CommandBase):
 
         packages.discard('stylo')
 
-        env = self.build_env()
+        env = self.build_env(test_unit=True)
         env["RUST_BACKTRACE"] = "1"
-
-        # Work around https://github.com/rust-lang/cargo/issues/4790
-        del env["RUSTDOCFLAGS"]
 
         if "msvc" in host_triple():
             # on MSVC, we need some DLLs in the path. They were copied
@@ -268,7 +265,7 @@ class MachCommands(CommandBase):
 
         features = self.servo_features()
         if len(packages) > 0:
-            args = ["cargo", "bench" if bench else "test"]
+            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.servo_manifest()]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
@@ -281,7 +278,7 @@ class MachCommands(CommandBase):
             if nocapture:
                 args += ["--", "--nocapture"]
 
-            err = call(args, env=env, cwd=self.servo_crate())
+            err = self.call_rustup_run(args, env=env)
             if err is not 0:
                 return err
 
@@ -293,17 +290,19 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
     def test_stylo(self, release=False, test_name=None):
-        self.set_use_stable_rust()
+        self.set_use_geckolib_toolchain()
         self.ensure_bootstrapped()
 
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
-        args = (["cargo", "test", "-p", "stylo_tests"] +
-                (["--release"] if release else []) + (test_name or []))
-        with cd(path.join("ports", "geckolib")):
-            return call(args, env=env)
+        args = (
+            ["cargo", "test", "--manifest-path", self.geckolib_manifest(), "-p", "stylo_tests"] +
+            (["--release"] if release else []) +
+            (test_name or [])
+        )
+        return self.call_rustup_run(args, env=env)
 
     @Command('test-content',
              description='Run the content tests',

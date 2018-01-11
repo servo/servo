@@ -25,6 +25,13 @@ test(() => {
   assert_array_equals(n.s1.assignedNodes(), []);
   assert_array_equals(n.s1.assignedNodes({ flatten: true }), [n.f1]);
 }, 'Slots fallback: Basic.');
+
+test(() => {
+  let n = createTestTree(test1);
+
+  assert_array_equals(n.s1.assignedElements(), []);
+  assert_array_equals(n.s1.assignedElements({ flatten: true }), [n.f1]);
+}, 'Slots fallback: Basic, elements only.');
 </script>
 
 <div id="test2">
@@ -52,6 +59,16 @@ test(() => {
   assert_array_equals(n.s1.assignedNodes({ flatten: true }), [n.f1]);
   assert_array_equals(n.s2.assignedNodes({ flatten: true }), [n.f1]);
 }, 'Slots fallback: Slots in Slots.');
+
+test(() => {
+  let n = createTestTree(test2);
+
+  assert_array_equals(n.s1.assignedElements(), []);
+  assert_array_equals(n.s2.assignedElements(), []);
+
+  assert_array_equals(n.s1.assignedElements({ flatten: true }), [n.f1]);
+  assert_array_equals(n.s2.assignedElements({ flatten: true }), [n.f1]);
+}, 'Slots fallback: Slots in Slots, elements only.');
 </script>
 
 <div id="test3">
@@ -109,7 +126,7 @@ test(() => {
 
   assert_array_equals(n.s1.assignedNodes({ flatten: true }), [n.c1]);
   assert_array_equals(n.s2.assignedNodes({ flatten: true }), [n.c1]);
-}, 'Slots fallback: Slots in Slots: Assinged nodes should be used as fallback contents of another slot');
+}, 'Slots fallback: Slots in Slots: Assigned nodes should be used as fallback contents of another slot');
 </script>
 
 <div id="test5">
@@ -151,6 +168,20 @@ test(() => {
   assert_array_equals(n.s3.assignedNodes({ flatten: true }), [n.c1, n.f2]);
   assert_array_equals(n.s4.assignedNodes({ flatten: true }), [n.c1, n.f2, n.f4]);
 }, 'Slots fallback: Complex case.');
+
+test(() => {
+  let n = createTestTree(test5);
+
+  assert_array_equals(n.s1.assignedElements(), [n.c1]);
+  assert_array_equals(n.s2.assignedElements(), []);
+  assert_array_equals(n.s3.assignedElements(), [n.s2]);
+  assert_array_equals(n.s4.assignedElements(), []);
+
+  assert_array_equals(n.s1.assignedElements({ flatten: true }), [n.c1]);
+  assert_array_equals(n.s2.assignedElements({ flatten: true }), [n.c1, n.f2]);
+  assert_array_equals(n.s3.assignedElements({ flatten: true }), [n.c1, n.f2]);
+  assert_array_equals(n.s4.assignedElements({ flatten: true }), [n.c1, n.f2, n.f4]);
+}, 'Slots fallback: Complex case, elements only.');
 
 test(() => {
   let n = createTestTree(test5);

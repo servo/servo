@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Current iteration tests</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#current-iteration">
+<title>Current iteration</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#current-iteration">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -38,11 +38,11 @@ function runTests(tests, description) {
   }
 }
 
-async_test(function(t) {
-  var div = createDiv(t);
-  var anim = div.animate({ opacity: [ 0, 1 ] }, { delay: 1 });
+async_test(t => {
+  const div = createDiv(t);
+  const anim = div.animate({ opacity: [ 0, 1 ] }, { delay: 1 });
   assert_equals(anim.effect.getComputedTiming().currentIteration, null);
-  anim.finished.then(t.step_func(function() {
+  anim.finished.then(t.step_func(() => {
     assert_equals(anim.effect.getComputedTiming().currentIteration, null);
     t.done();
   }));

@@ -18,26 +18,6 @@
   float: left;
 }
 
-.fc0 { grid-template-rows: minmax(auto, 0px);}
-.fc40 { grid-template-rows: minmax(auto, 40px); }
-.fc80 { grid-template-rows: minmax(auto, 80px); }
-.fc110 { grid-template-rows: auto; }
-
-.fc0x2 { grid-template-rows: repeat(2, minmax(auto, 0px));}
-.fc40x2 { grid-template-rows: repeat(2, minmax(auto, 40px)); }
-.fc80x2 { grid-template-rows: repeat(2, minmax(auto, 80px)); }
-.fc110x2 { grid-template-rows: auto auto; }
-
-.fc0p { grid-template-rows: minmax(auto, 0%); }
-.fc30p { grid-template-rows: minmax(auto, 30px); }
-.fc90p { grid-template-rows: minmax(auto, 90px); }
-.fc110p { grid-template-rows: auto; }
-
-.fc0px2 { grid-template-rows: repeat(2, minmax(auto, 0%)); }
-.fc30px2 { grid-template-rows: repeat(2, minmax(auto, 30px)); }
-.fc90px2 { grid-template-rows: repeat(2, minmax(auto, 90px)); }
-.fc110px2 { grid-template-rows: auto auto; }
-
 .item {
   font: 10px/1 Ahem;
   background: cyan;
@@ -68,68 +48,68 @@ div.grid > div { writing-mode: vertical-lr; }
 
 <p>The test passes if it has the same output than the reference.</p>
 
-<div class="grid fc0">
+<div class="grid" style="grid-template-rows: 30px;">
   <div class="item">XXX</div>
   <div class="test firstRow"></div>
 </div>
 
-<div class="grid fc0x2">
+<div class="grid" style="grid-template-rows: 30px 0px;">
   <div class="item">XXX</div>
   <div class="spanningItem">XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid fc40">
+<div class="grid" style="grid-template-rows: 40px;">
   <div class="item">XXX XXX</div>
   <div class="test firstRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: auto auto;">
+<div class="grid" style="grid-template-rows: 32.5px 32.5px;">
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: minmax(auto, 40px) auto;">
+<div class="grid" style="grid-template-rows: 40px 25px;">
   <div class="item">XXX XXX</div>
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid fc80">
+<div class="grid" style="grid-template-rows: 80px;">
   <div class="item">XXX XXX XXX</div>
   <div class="test firstRow"></div>
 </div>
 
-<div class="grid fc80x2">
+<div class="grid" style="grid-template-rows: 47.5px 47.5px;">
   <div class="spanningItem">XXX XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: auto minmax(auto, 80px)">
+<div class="grid" style="grid-template-rows: 25px 70px;">
   <div class="item secondRow">XXX XXX XXX</div>
   <div class="spanningItem">XXX XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: minmax(auto, 20px) 50%;">
+<div class="grid" style="grid-template-rows: 20px 50px;">
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: minmax(10px, 40px) minmax(auto, 40px);">
+<div class="grid" style="grid-template-rows: 40px 40px;">
   <div class="item">XXXXX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: auto minmax(10%, 200px);">
+<div class="grid" style="grid-template-rows: 15px 80px;">
   <div class="item secondRow">XXXXX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
@@ -139,68 +119,68 @@ div.grid > div { writing-mode: vertical-lr; }
 <br clear="all">
 <br clear="all">
 
-<div class="grid" style="grid-template-rows: minmax(auto, 40px) max-content;">
+<div class="grid" style="grid-template-rows: 12.5px 82.5px;">
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: minmax(auto, 40px) max-content;">
+<div class="grid" style="grid-template-rows: 50px 45px;">
   <div class="item">XXXXX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: minmax(auto, 40px) max-content;">
+<div class="grid" style="grid-template-rows: 0px 95px;">
   <div class="item secondRow">XXXXX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: min-content minmax(auto, 40px);">
+<div class="grid" style="grid-template-rows: 12.5px 40px;">
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: min-content minmax(auto, 40px);">
+<div class="grid" style="grid-template-rows: 50px 40px;">
   <div class="item">XXXXX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: min-content minmax(auto, 40px);">
+<div class="grid" style="grid-template-rows: 0px 50px;">
   <div class="item secondRow">XXXXX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: minmax(auto, 30px) min-content max-content">
+<div class="grid" style="grid-template-rows: auto min-content max-content">
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
   <div class="test thirdRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: min-content minmax(auto, 30px) max-content">
+<div class="grid" style="grid-template-rows: min-content auto max-content">
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
   <div class="test thirdRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: min-content max-content minmax(auto, 30px)">
+<div class="grid" style="grid-template-rows: min-content max-content auto">
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
   <div class="test thirdRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: minmax(auto, 30px) min-content max-content">
+<div class="grid" style="grid-template-rows: 30px 0px 60px;">
   <div class="item" style="grid-row: 1">XXX XX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
@@ -208,7 +188,7 @@ div.grid > div { writing-mode: vertical-lr; }
   <div class="test thirdRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: min-content minmax(auto, 30px) max-content">
+<div class="grid" style="grid-template-rows: 30px 0px 60px;">
   <div class="item" style="grid-row: 1">XXX XX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
@@ -216,7 +196,7 @@ div.grid > div { writing-mode: vertical-lr; }
   <div class="test thirdRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: min-content max-content minmax(auto, 30px)">
+<div class="grid" style="grid-template-rows: 0px 90px 0px;">
   <div class="item" style="grid-row: 2">XXX XX</div>
   <div class="spanningItem">XXX XX XXX</div>
   <div class="test firstRow"></div>
@@ -227,48 +207,48 @@ div.grid > div { writing-mode: vertical-lr; }
 <br clear="all">
 <br clear="all">
 
-<div class="grid fc0p">
+<div class="grid" style="grid-template-rows: 30px;">
   <div class="item">XXX</div>
   <div class="test firstRow"></div>
 </div>
 
-<div class="grid fc0px2">
+<div class="grid" style="grid-template-rows: 30px 0px;">
   <div class="item">XXX</div>
   <div class="spanningItem">XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid fc30p">
+<div class="grid" style="grid-template-rows: 30px;">
   <div class="item">XX XX</div>
   <div class="test firstRow"></div>
 </div>
 
-<div class="grid fc30px2">
+<div class="grid" style="grid-template-rows: 30px 30px;">
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid fc30px2">
+<div class="grid" style="grid-template-rows: 30px 30px;">
   <div class="item secondRow">X X X</div>
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid fc90p">
+<div class="grid" style="grid-template-rows: 90px;">
   <div class="item">XXX XXX XXX</div>
   <div class="test firstRow"></div>
 </div>
 
-<div class="grid fc90px2">
+<div class="grid" style="grid-template-rows: 47.5px 47.5px;">
   <div class="spanningItem">XXX XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: auto minmax(auto, 90px)">
+<div class="grid" style="grid-template-rows: 15px 80px;">
   <div class="item secondRow">XXX XXX XXX</div>
   <div class="spanningItem">XXX XXX XXX</div>
   <div class="test firstRow"></div>
@@ -278,45 +258,45 @@ div.grid > div { writing-mode: vertical-lr; }
 <br clear="all">
 <br clear="all">
 
-<div class="grid fc110">
+<div class="grid" style="grid-template-rows: 70px;">
   <div class="item">XXX XXX</div>
   <div class="test firstRow"></div>
 </div>
 
-<div class="grid fc110x2">
+<div class="grid" style="grid-template-rows: 32.5px 32.5px;">
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid fc110x2">
+<div class="grid" style="grid-template-rows: 70px 0px;">
   <div class="item">XXX XXX</div>
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: auto auto;">
+<div class="grid" style="grid-template-rows: 32.5px 32.5px;">
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: auto auto;">
+<div class="grid" style="grid-template-rows: 45px 20px;">
   <div class="item secondRow">XX</div>
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: max-content auto;">
+<div class="grid" style="grid-template-rows: 92.5px 12.5px;">
   <div class="spanningItem" style="grid-column: 1;">XX XX XX XX</div>
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>
   <div class="test secondRow"></div>
 </div>
 
-<div class="grid" style="grid-template-rows: auto min-content;">
+<div class="grid" style="grid-template-rows: 82.5px 12.5px;">
   <div class="spanningItem" style="grid-column: 1;">XX XX XX XX</div>
   <div class="spanningItem">XXX XXX</div>
   <div class="test firstRow"></div>

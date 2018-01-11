@@ -22,7 +22,7 @@ use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::{JSAutoCompartment, JSObject};
 use js::jsval::UndefinedValue;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{CoreResourceMsg, FetchChannels};
@@ -510,7 +510,7 @@ impl TaskOnce for MessageReceivedTask {
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {
-                            rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+                            rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
                             assert!(ArrayBuffer::create(cx,
                                                         CreateWith::Slice(&data),
                                                         array_buffer.handle_mut())

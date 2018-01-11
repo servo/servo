@@ -134,7 +134,7 @@ pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
                                         found: *mut bool,
                                         vp: MutableHandleValue)
                                         -> bool {
-    rooted!(in(cx) let mut proto = ptr::null_mut());
+    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
     if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
         *found = false;
         return true;
@@ -287,7 +287,7 @@ pub unsafe fn has_property_on_prototype(cx: *mut JSContext,
                                         id: HandleId,
                                         found: &mut bool)
                                         -> bool {
-    rooted!(in(cx) let mut proto = ptr::null_mut());
+    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
     if !JS_GetPrototype(cx, proxy, proto.handle_mut()) {
         return false;
     }

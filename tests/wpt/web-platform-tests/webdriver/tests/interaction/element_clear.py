@@ -147,9 +147,9 @@ def test_clear_content_editable_resettable_element(session, element):
     url = element[1] + """<input id=focusCheck type=checkbox>
                     <input id=blurCheck type=checkbox>
                     <script>
-                    var id = %s
-                    document.getElementById("id").addEventListener("focus", checkFocus);
-                    document.getElementById("id").addEventListener("blur", checkBlur);
+                    var id = "%s";
+                    document.getElementById(id).addEventListener("focus", checkFocus);
+                    document.getElementById(id).addEventListener("blur", checkBlur);
                     document.getElementById("empty").addEventListener("focus", checkFocus);
                     document.getElementById("empty").addEventListener("blur", checkBlur);
 
@@ -163,15 +163,15 @@ def test_clear_content_editable_resettable_element(session, element):
     session.url = inline(url)
     # Step 1
     empty_element = session.find.css("#empty", all=False)
-    test_clear_element_helper(session, empty_element, False)
+    clear_element_test_helper(session, empty_element, False)
     session.execute_script("document.getElementById(\"focusCheck\").checked = false;")
     session.execute_script("document.getElementById(\"blurCheck\").checked = false;")
     # Step 2 - 4
     test_element = session.find.css("#" + element[0], all=False)
-    test_clear_element_helper(session, test_element, True)
+    clear_element_test_helper(session, test_element, True)
 
 
-def test_clear_element_helper(session, element, value):
+def clear_element_test_helper(session, element, value):
     response = clear(session, element)
     assert_success(response)
     response = session.execute_script("return document.getElementById(\"focusCheck\").checked;")

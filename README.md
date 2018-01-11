@@ -14,6 +14,32 @@ Visit the [Servo Project page](https://servo.org/) for news and guides.
 
 ## Setting up your environment
 
+### Rustup.rs
+
+Building servo requires [rustup](https://rustup.rs/), version 1.8.0 or more recent.
+If you have an older version, run `rustup self update`.
+
+To install on Windows, download and run [`rustup-init.exe`](https://win.rustup.rs/)
+then follow the onscreen instructions.
+
+To install on other systems, run:
+
+```sh
+curl https://sh.rustup.rs -sSf | sh
+```
+
+This will also download the current stable version of Rust, which Servo won’t use.
+To skip that step, run instead:
+
+```
+curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
+```
+
+See also [Other installation methods](
+https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods)
+
+### Other dependencies
+
 Please select your operating system:
 * [OS X](#os-x)
 * [Debian-based Linuxes](#on-debian-based-linuxes)
@@ -115,7 +141,11 @@ sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip me
 sudo emerge net-misc/curl media-libs/freeglut \
     media-libs/freetype media-libs/mesa dev-util/gperf \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
-    x11-libs/libXmu media-libs/glu x11-base/xorg-server
+    x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang
+```
+with the following environment variable set:
+```sh
+export LIBCLANG_PATH="/usr/lib64/llvm/*/lib64"
 ```
 #### On Windows (MSVC)
 
@@ -152,11 +182,9 @@ Pre-installed Android tools are needed. See wiki for
 
 ## The Rust compiler
 
-Servo's build system automatically downloads a Rust compiler to build itself.
-This is normally a specific revision of Rust upstream, but sometimes has a
-backported patch or two.
-If you'd like to know which nightly build of Rust we use, see
-[`rust-toolchain`](https://github.com/servo/servo/blob/master/rust-toolchain).
+Servo's build system uses rustup.rs to automatically download a Rust compiler.
+This is a specific version of Rust Nightly determined by the
+[`rust-toolchain`](https://github.com/servo/servo/blob/master/rust-toolchain) file.
 
 ## Building
 

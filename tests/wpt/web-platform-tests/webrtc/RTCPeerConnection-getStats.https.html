@@ -10,8 +10,8 @@
   'use strict';
 
   // Test is based on the following editor draft:
-  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
-  // https://w3c.github.io/webrtc-stats/archives/20170614/webrtc-stats.html
+  // webrtc-pc 20171130
+  // webrtc-stats 20171122
 
   // The following helper function is called from RTCPeerConnection-helper.js
   //   getTrackFromUserMedia
@@ -20,39 +20,25 @@
   //   validateStatsReport
   //   assert_stats_report_has_stats
 
+  // The following helper function is called from RTCPeerConnection-helper.js
+  //   exchangeIceCandidates
+  //   doSignalingHandshake
+
   /*
-    8.2.  RTCPeerConnection Interface Extensions
-      partial interface RTCPeerConnection {
-        Promise<RTCStatsReport> getStats(optional MediaStreamTrack? selector = null);
-      };
-
-    8.3.  RTCStatsReport Object
-      interface RTCStatsReport {
-        readonly maplike<DOMString, object>;
-      };
-
-    8.4.  RTCStats Dictionary
-      dictionary RTCStats {
-        DOMHighResTimeStamp timestamp;
-        RTCStatsType        type;
-        DOMString           id;
-      };
-
-      id
-        Two RTCStats objects, extracted from two different RTCStatsReport objects, MUST
-        have the same id if they were produced by inspecting the same underlying object.
-
     8.2.  getStats
       1.  Let selectorArg be the method's first argument.
       2.  Let connection be the RTCPeerConnection object on which the method was invoked.
-      3.  If selectorArg is neither null nor a valid MediaStreamTrack, return a promise
-          rejected with a newly created TypeError.
+      3.  If selectorArg is null, let selector be null.
+      4.  If selectorArg is a MediaStreamTrack let selector be an RTCRtpSender
+          or RTCRtpReceiver on connection which track member matches selectorArg.
+          If no such sender or receiver exists, or if more than one sender or
+          receiver fit this criteria, return a promise rejected with a newly
+          created InvalidAccessError.
       5.  Let p be a new promise.
       6.  Run the following steps in parallel:
         1.  Gather the stats indicated by selector according to the stats selection algorithm.
         2.  Resolve p with the resulting RTCStatsReport object, containing the gathered stats.
    */
-
   promise_test(() => {
     const pc = new RTCPeerConnection();
     return pc.getStats();
@@ -65,9 +51,11 @@
 
   /*
     8.2.  getStats
-      4.  Let selector be a RTCRtpSender or RTCRtpReceiver on connection which track
-          member matches selectorArg. If no such sender or receiver exists, return a promise
-          rejected with a newly created InvalidAccessError.
+      4.  If selectorArg is a MediaStreamTrack let selector be an RTCRtpSender
+          or RTCRtpReceiver on connection which track member matches selectorArg.
+          If no such sender or receiver exists, or if more than one sender or
+          receiver fit this criteria, return a promise rejected with a newly
+          created InvalidAccessError.
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
@@ -94,12 +82,6 @@
     return pc.getStats(track);
   }, 'getStats() with track added via addTransceiver should succeed');
 
-  /*
-    8.2.  getStats
-      4.  Let selector be a RTCRtpSender or RTCRtpReceiver on connection which track
-          member matches selectorArg. If more than one sender or receiver fit this criteria,
-          return a promise rejected with a newly created InvalidAccessError.
-   */
   promise_test(t => {
     const pc = new RTCPeerConnection();
     return getTrackFromUserMedia('audio')
@@ -140,7 +122,35 @@
       validateStatsReport(statsReport);
       assert_stats_report_has_stats(statsReport, ['peer-connection']);
     });
-  }, 'getStats() with no argument should return stats report containing peer-connection stats');
+  }, 'getStats() with no argument should return stats report containing peer-connection stats on an empty PC');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      pc.addTrack(track, mediaStream);
+      return pc.getStats();
+    })
+    .then(statsReport => {
+      validateStatsReport(statsReport);
+      assert_stats_report_has_stats(statsReport, ['peer-connection']);
+      assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
+    });
+  }, 'getStats() with no argument should return stats report containing peer-connection stats and outbound-track-stats');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return getTrackFromUserMedia('audio')
+    .then(([track, mediaStream]) => {
+      pc.addTrack(track);
+      return pc.getStats();
+    })
+    .then(statsReport => {
+      validateStatsReport(statsReport);
+      assert_stats_report_has_stats(statsReport, ['peer-connection']);
+      assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
+    });
+  }, 'getStats() with no argument should return stats for no-stream tracks');
 
   /*
     8.5.  The stats selection algorithm
@@ -183,5 +193,151 @@
       assert_stats_report_has_stats(statsReport, ['inbound-rtp']);
     });
   }, `getStats() on track associated with RtpReceiver should return stats report containing inbound-rtp stats`);
+
+  /*
+    8.6   Mandatory To Implement Stats
+      An implementation MUST support generating statistics of the following types
+      when the corresponding objects exist on a PeerConnection, with the attributes
+      that are listed when they are valid for that object.
+   */
+
+  const mandatoryStats = [
+    "codec",
+    "inbound-rtp",
+    "outbound-rtp",
+    "remote-inbound-rtp",
+    "remote-outbound-rtp",
+    "peer-connection",
+    "data-channel",
+    "stream",
+    "track",
+    "transport",
+    "candidate-pair",
+    "local-candidate",
+    "remote-candidate",
+    "certificate"
+  ];
+
+  async_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const dataChannel = pc1.createDataChannel('test-channel');
+
+    return navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: true
+    })
+    .then(t.step_func(mediaStream => {
+      const tracks = mediaStream.getTracks();
+      assert_equals(tracks.length, 2,
+        'Expect media stream to have one audio and one video track');
+
+      let audioTrack;
+      let videoTrack;
+
+      for (const track of tracks) {
+        t.add_cleanup(() => track.stop());
+
+        pc1.addTrack(track, mediaStream);
+
+        if (track.kind === 'audio') {
+          audioTrack = track;
+        } else if (track.kind === 'video') {
+          videoTrack = track;
+        }
+      }
+
+      if (!audioTrack || ! videoTrack) {
+        assert_unreached('Expect mediaStream to have both audio and video streams');
+      }
+
+      const testStatsReport = (pc, statsReport) => {
+        validateStatsReport(statsReport);
+        assert_stats_report_has_stats(statsReport, mandatoryStats);
+
+        const dataChannelStats = findStatsFromReport(statsReport,
+          stats => {
+            return stats.type === 'data-channel' &&
+              stats.dataChannelIdentifier === dataChannel.id;
+          },
+          'Expect data channel stats to be found');
+
+        assert_equals(dataChannelStats.label, 'test-channel');
+
+        const audioTrackStats = findStatsFromReport(statsReport,
+          stats => {
+            return stats.type === 'track' &&
+              stats.trackIdentifier === audioTrack.id;
+          },
+          'Expect audio track stats to be found');
+
+        assert_equals(audioTrackStats.kind, 'audio');
+
+        const videoTrackStats = findStatsFromReport(statsReport,
+          stats => {
+            return stats.type === 'track' &&
+              stats.trackIdentifier === videoTrack.id;
+          },
+          'Expect video track stats to be found');
+
+        assert_equals(videoTrackStats.kind, 'video');
+
+        const mediaStreamStats = findStatsFromReport(statsReport,
+          stats => {
+            return stats.type === 'stream' &&
+              stats.streamIdentifier === mediaStream.id;
+          },
+          'Expect media stream stats to be found');
+
+        assert_true(mediaStreamStats.trackIds.include(audioTrackStats.id));
+        assert_true(mediaStreamStats.trackIds.include(videoTrackStats.id));
+      }
+
+      const onConnected = t.step_func(() => {
+        // Wait a while for the peer connections to collect stats
+        t.step_timeout(() => {
+          Promise.all([
+            pc1.getStats()
+            .then(statsReport => testStatsReport(pc1, statsReport)),
+
+            pc2.getStats()
+            .then(statsReport => testStatsReport(pc2, statsReport))
+          ])
+          .then(t.step_func_done())
+          .catch(t.step_func(err => {
+            assert_unreached(`test failed with error: ${err}`);
+          }));
+        }, 200)
+      })
+
+      let onTrackCount = 0
+      let onDataChannelCalled = false
+
+      pc2.addEventListener('track', t.step_func(() => {
+        onTrackCount++;
+        if (onTrackCount === 2 && onDataChannelCalled) {
+          onConnected();
+        }
+      }));
+
+      pc2.addEventListener('datachannel', t.step_func(() => {
+        onDataChannelCalled = true;
+        if (onTrackCount === 2) {
+          onConnected();
+        }
+      }));
+
+
+      exchangeIceCandidates(pc1, pc2);
+      doSignalingHandshake(pc1, pc2);
+    }))
+    .catch(t.step_func(err => {
+      assert_unreached(`test failed with error: ${err}`);
+    }));
+
+  }, `getStats() with connected peer connections having tracks and data channel should return all mandatory to implement stats`);
 
 </script>

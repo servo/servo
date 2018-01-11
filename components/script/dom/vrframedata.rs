@@ -73,7 +73,7 @@ impl VRFrameData {
 
 #[allow(unsafe_code)]
 fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
-    rooted!(in (cx) let mut array = ptr::null_mut());
+    rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
     unsafe {
         let _ = Float32Array::create(cx, CreateWith::Slice(src), array.handle_mut());
     }

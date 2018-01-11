@@ -13,63 +13,34 @@
 <body>
 <h1>High Resolution Time IDL tests</h1>
 <div id="log"></div>
-
-<pre id='untested_idl' style='display:none'>
-[Exposed=Windows,Worker]
-interface WindowOrWorkerGlobalScope {
-};
-
-[Exposed=(Window,Worker)]
-interface EventTarget {
-};
-
-[Exposed=Window]
-interface PerformanceTiming {
-};
-
-[Exposed=Window]
-interface PerformanceNavigation {
-};
-
-// from nav-timing
-partial interface Performance {
-    [SameObject]
-    readonly attribute PerformanceTiming timing;
-    [SameObject]
-    readonly attribute PerformanceNavigation navigation;
-    [Default] object              toJSON();
-};
-</pre>
-
-<pre id='idl'>
-typedef double DOMHighResTimeStamp;
-
-[Exposed=(Window,Worker)]
-interface Performance : EventTarget {
-    DOMHighResTimeStamp now();
-    readonly attribute DOMHighResTimeStamp timeOrigin;
-    [Default] object              toJSON();
-};
-
-partial interface WindowOrWorkerGlobalScope {
-    [Replaceable]
-    readonly attribute Performance performance;
-};
-</pre>
-
 <script>
+'use strict';
 
-(function() {
+function doTest([html, hr_time]) {
   var idl_array = new IdlArray();
-
-  idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
-  idl_array.add_idls(document.getElementById("idl").textContent);
-
-  idl_array.add_objects({Performance: [window.performance]});
-
+  // HTML is needed for WindowOrWorkerGlobalScope. Provide dummy interfaces for
+  // things that HTML depends on in turn which are not under tests.
+  idl_array.add_untested_idls('interface Document {};');
+  idl_array.add_untested_idls('interface EventTarget {};');
+  idl_array.add_untested_idls('interface LinkStyle {};');
+  idl_array.add_untested_idls(html);
+  idl_array.add_idls(hr_time);
+  idl_array.add_objects({
+    Performance: ["window.performance"],
+    Window: ["window"],
+  });
   idl_array.test();
-})();
+}
 
+function fetchText(url) {
+  return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+  return Promise.all(['/interfaces/html.idl',
+                      '/interfaces/hr-time.idl'].map(fetchText))
+                .then(doTest);
+}, 'Test driver');
 </script>
 </body>
 </html>

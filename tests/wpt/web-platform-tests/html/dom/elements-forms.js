@@ -1,17 +1,3 @@
-var inputModeKeywords = [
-  "verbatim",
-  "latin",
-  "latin-name",
-  "latin-prose",
-  "full-width-latin",
-  "kana",
-  "kana-name",
-  "katakana",
-  "numeric",
-  "tel",
-  "email",
-  "url",
-];
 var formElements = {
   form: {
     acceptCharset: {type: "string", domAttrName: "accept-charset"},
@@ -52,7 +38,6 @@ var formElements = {
     formNoValidate: "boolean",
     formTarget: "string",
     height: {type: "unsigned long", customGetter: true},
-    inputMode: {type: "enum", keywords: inputModeKeywords},
     max: "string",
     maxLength: "limited long",
     min: "string",
@@ -118,7 +103,6 @@ var formElements = {
     cols: {type: "limited unsigned long with fallback", defaultVal: 20},
     dirName: "string",
     disabled: "boolean",
-    inputMode: {type: "enum", keywords: inputModeKeywords},
     maxLength: "limited long",
     minLength: "limited long",
     name: "string",

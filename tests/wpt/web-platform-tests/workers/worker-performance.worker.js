@@ -110,9 +110,9 @@ test(function testPerformanceHasNoNavigation () {
     assert_equals(typeof(performance.navigation), "undefined", "performance.navigation is undefined");
 }, "performance.navigation is not available in workers");
 
-test(function testPerformanceHasNoToJSON () {
-    assert_equals(typeof(performance.toJSON), "undefined", "performance.toJSON is undefined");
-}, "performance.toJSON is not available in workers");
+test(function testPerformanceHasToJSON () {
+    assert_equals(typeof(performance.toJSON), "function", "performance.toJSON is a function");
+}, "performance.toJSON is available in workers");
 
 test(function testPerformanceNoNavigationEntries () {
     assert_equals(performance.getEntriesByType("navigation").length, 0, "getEntriesByType(\"navigation\") returns nothing");

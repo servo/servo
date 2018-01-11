@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wake lock state should be global</title>
+<link rel="help" href="https://w3c.github.io/wake-lock/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script id="iframe" type="text/plain">
+let iframeWakeLock, iframeRequest;
+window.onmessage = async message => {
+  switch(message.data) {
+  case "ACQUIRED":
+    iframeWakeLock = await navigator.getWakeLock("screen");
+    iframeRequest = iframeWakeLock.createRequest();
+    parent.postMessage(iframeWakeLock.active, "*");
+    break;
+  case "RELEASED":
+    iframeRequest.cancel();
+    parent.postMessage(iframeWakeLock.active, "*");
+    break;
+  default:
+    parent.postMessage("unknown operation", "*");
+  }
+}
+</script>
+
+<script>
+function load_iframe() {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    iframe.onload = () => { resolve(iframe); };
+    iframe.srcdoc = "<script>" +
+                    document.getElementById('iframe').textContent +
+                    "<\/script>";
+    document.body.appendChild(iframe);
+  });
+}
+
+function wait_for_message(iframe) {
+  return new Promise(resolve => {
+    self.addEventListener("message", function listener(e) {
+      if (e.source === iframe.contentWindow) {
+        resolve(e.data);
+        self.removeEventListener("message", listener);
+      }
+    });
+  });
+}
+
+promise_test(async t => {
+  const wakeLock = await navigator.getWakeLock("screen");
+  const iframe = await load_iframe();
+  const eventWatcher = new EventWatcher(t, wakeLock, "activechange");
+
+  assert_false(wakeLock.active, "wakeLock is initially false");
+
+  //when iframe wake lock is acquired, parent wake lock should be actived
+  iframe.contentWindow.postMessage("ACQUIRED", "*");
+  const isActive1 = await wait_for_message(iframe);
+  await eventWatcher.wait_for("activechange");
+  assert_true(isActive1, "the iframe wake lock state is actived when iframe wake lock is acquired");
+  assert_true(wakeLock.active, "the wake lock state is actived when iframe wake lock is acquired");
+
+  //when iframe wake lock is released, parent wake lock should be inactived
+  iframe.contentWindow.postMessage("RELEASED", "*");
+  const isActive2 = await wait_for_message(iframe);
+  eventWatcher.wait_for("activechange");
+  assert_false(isActive2, "the iframe wake lock state is inactived when iframe wake lock is released");
+  assert_false(wakeLock.active, "the wake lock state is inactived when iframe wake lock is released");
+}, "Test that wake lock state should be global");
+</script>
+</body>

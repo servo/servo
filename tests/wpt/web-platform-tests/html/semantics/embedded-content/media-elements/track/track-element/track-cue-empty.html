@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Invoke getCueAsHTML() on an empty cue</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var emptyCue = new VTTCue(0, 0, "");
+    var fragment = emptyCue.getCueAsHTML();
+
+    // The getCueAsHTML() method should return a document fragment.
+    assert_true(fragment instanceof DocumentFragment);
+
+    // The document fragment should have one child, an empty Text node.
+    assert_equals(fragment.childNodes.length, 1);
+    assert_equals(fragment.childNodes[0].constructor.name, Text.name);
+    assert_equals(fragment.childNodes[0].length, 0);
+    assert_equals(fragment.childNodes[0].data, "");
+});
+</script>

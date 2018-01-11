@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Flexbox Test: Flex item as table with narrow content</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#layout-algorithm" title="9. Flex Layout Algorithm">
+<meta name="assert" content="A flex item as a table uses the sizing algorithm of the flexbox">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="display:flex; width:200px;">
+  <div style="display:table; flex:1 0; background:green;">
+    <div style="width:10px; height:100px;"></div>
+  </div>
+  <div style="flex:1 0;"></div>
+</div>

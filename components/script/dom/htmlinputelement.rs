@@ -1045,6 +1045,12 @@ impl HTMLInputElement {
                         textinput.single_line_content_mut().clear();
                 }
             }
+            InputType::Number => {
+                let mut textinput = self.textinput.borrow_mut();
+                if !textinput.single_line_content().is_valid_number_string() {
+                    textinput.single_line_content_mut().clear();
+                }
+            }
             // TODO: Implement more value sanitization algorithms for different types of inputs
             _ => ()
         }

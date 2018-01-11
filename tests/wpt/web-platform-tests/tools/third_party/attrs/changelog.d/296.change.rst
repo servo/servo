@@ -1,0 +1,4 @@
+Generated ``__hash__`` methods now hash the class type along with the attribute values.
+Until now the hashes of two classes with the same values were identical which was a bug.
+
+The generated method is also *much* faster now.

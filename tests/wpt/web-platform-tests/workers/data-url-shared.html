@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <title>data URL shared worker</title>
+<script src="/common/get-host-info.sub.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id=log></div>
 <script>
+
 function assert_worker_sends_pass(test_desc, mime_type, worker_code) {
   async_test(function(t) {
     var w = new SharedWorker(`data:${mime_type},onconnect = function(e) { port = e.ports[0]; ${worker_code}}`);
@@ -35,4 +36,38 @@ assert_worker_throws('Web SQL Database inaccessible', 'self.openDatabase("someDB
 assert_worker_sends_pass('cross-origin worker', '', 'fetch("/").then(() => port.postMessage("FAIL"), () => port.postMessage("PASS"))');
 // 'data:' workers have opaque origin
 assert_worker_sends_pass('worker has opaque origin', 'application/javascript', 'if (self.location.origin == "null") port.postMessage("PASS"); else { port.postMessage("FAIL"); }');
+
+function openWindow(url) {
+  return new Promise(resolve => {
+    const win = window.open(url, '_blank');
+    add_completion_callback(() => win.close());
+    window.onmessage = e => {
+      assert_equals(e.data, 'LOADED');
+      resolve(win);
+    };
+  });
+}
+
+promise_test(() => {
+  const kWindowURL = 'data-url-shared-window.html';
+  const kRemoteWindowURL = get_host_info().HTTP_REMOTE_ORIGIN +
+                           '/workers/data-url-shared-window.html';
+  return openWindow(kWindowURL)
+    .then(win => {
+        const channel = new MessageChannel;
+        win.postMessage(channel.port1, '*', [channel.port1]);
+        return new Promise(resolve => channel.port2.onmessage = resolve);
+      })
+    .then(msg_event => {
+        assert_equals(msg_event.data, 1);
+        return openWindow(kRemoteWindowURL);
+      })
+    .then(win => {
+        const channel = new MessageChannel;
+        win.postMessage(channel.port1, '*', [channel.port1]);
+        return new Promise(resolve => channel.port2.onmessage = resolve);
+      })
+    .then(msg_event => assert_equals(msg_event.data, 1));
+}, 'A data: URL shared worker should not be shared among origins.');
+
 </script>

@@ -795,7 +795,7 @@ impl Stylist {
     pub fn lazily_compute_pseudo_element_style<E>(
         &self,
         guards: &StylesheetGuards,
-        element: &E,
+        element: E,
         pseudo: &PseudoElement,
         rule_inclusion: RuleInclusion,
         parent_style: &ComputedValues,
@@ -982,7 +982,7 @@ impl Stylist {
     fn lazy_pseudo_rules<E>(
         &self,
         guards: &StylesheetGuards,
-        element: &E,
+        element: E,
         parent_style: &ComputedValues,
         pseudo: &PseudoElement,
         is_probe: bool,
@@ -1203,7 +1203,7 @@ impl Stylist {
     /// This corresponds to `ElementRuleCollector` in WebKit.
     pub fn push_applicable_declarations<E, F>(
         &self,
-        element: &E,
+        element: E,
         pseudo_element: Option<&PseudoElement>,
         style_attribute: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
         smil_override: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
@@ -1238,7 +1238,7 @@ impl Stylist {
         if let Some(map) = self.cascade_data.user_agent.cascade_data.normal_rules(pseudo_element) {
             map.get_all_matching_rules(
                 element,
-                &rule_hash_target,
+                rule_hash_target,
                 applicable_declarations,
                 context,
                 self.quirks_mode,
@@ -1276,7 +1276,7 @@ impl Stylist {
             if let Some(map) = self.cascade_data.user.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
                     element,
-                    &rule_hash_target,
+                    rule_hash_target,
                     applicable_declarations,
                     context,
                     self.quirks_mode,
@@ -1307,7 +1307,7 @@ impl Stylist {
                     if let Some(map) = stylist.cascade_data.author.slotted_rules(pseudo_element) {
                         map.get_all_matching_rules(
                             element,
-                            &rule_hash_target,
+                            rule_hash_target,
                             applicable_declarations,
                             context,
                             self.quirks_mode,
@@ -1341,7 +1341,7 @@ impl Stylist {
 
                 map.get_all_matching_rules(
                     element,
-                    &rule_hash_target,
+                    rule_hash_target,
                     applicable_declarations,
                     &mut matching_context,
                     stylist.quirks_mode,
@@ -1358,7 +1358,7 @@ impl Stylist {
             if let Some(map) = self.cascade_data.author.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
                     element,
-                    &rule_hash_target,
+                    rule_hash_target,
                     applicable_declarations,
                     context,
                     self.quirks_mode,
@@ -2271,10 +2271,9 @@ impl CascadeData {
                         );
 
                         let style_rule_cascade_data = if selector.is_slotted() {
-                            if self.slotted_rule_data.is_none() {
-                                self.slotted_rule_data = Some(Box::new(StyleRuleCascadeData::new()));
-                            }
-                            self.slotted_rule_data.as_mut().unwrap()
+                            self.slotted_rule_data.get_or_insert_with(|| {
+                                Box::new(StyleRuleCascadeData::new())
+                            })
                         } else {
                             &mut self.normal_rule_data
                         };

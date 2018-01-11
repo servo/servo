@@ -1,5 +1,6 @@
 from webdriver import Element, WebDriverException
 
+
 # WebDriver specification ID: dfn-error-response-data
 errors = {
     "element click intercepted": 400,
@@ -21,7 +22,7 @@ errors = {
     "no such window": 404,
     "script timeout": 408,
     "session not created": 500,
-    "stale element reference": 400,
+    "stale element reference": 404,
     "timeout": 408,
     "unable to set cookie": 500,
     "unable to capture screen": 500,
@@ -31,6 +32,7 @@ errors = {
     "unknown method": 405,
     "unsupported operation": 500,
 }
+
 
 # WebDriver specification ID: dfn-send-an-error
 #
@@ -54,12 +56,13 @@ errors = {
 # >
 # > 5. Send a response with status and data as arguments.
 def assert_error(response, error_code):
-    """Verify that the provided wdclient.Response instance described a valid
-    error response as defined by `dfn-send-an-error` and the provided error
-    code.
+    """
+    Verify that the provided webdriver.Response instance described
+    a valid error response as defined by `dfn-send-an-error` and
+    the provided error code.
 
-    :param response: wdclient.Response instance
-    :param error_code: string value of the expected "error code"
+    :param response: ``webdriver.Response`` instance.
+    :param error_code: String value of the expected error code
     """
     assert response.status == errors[error_code]
     assert "value" in response.body
@@ -69,13 +72,13 @@ def assert_error(response, error_code):
 
 
 def assert_success(response, value=None):
-    """Verify that the provided wdclient.Response instance described a valid
-    error response as defined by `dfn-send-an-error` and the provided error
-    code.
+    """
+    Verify that the provided webdriver.Response instance described
+    a valid error response as defined by `dfn-send-an-error` and
+    the provided error code.
 
-    :param response: wdclient.Response instance.
+    :param response: ``webdriver.Response`` instance.
     :param value: Expected value of the response body, if any.
-
     """
     assert response.status == 200, str(response.error)
 
@@ -97,7 +100,7 @@ def assert_dialog_handled(session, expected_text):
     except:
         assert (result.status == 200 and
                 result.body["value"] != expected_text), (
-               "Dialog with text '%s' was not handled." % expected_text)
+            "Dialog with text '%s' was not handled." % expected_text)
 
 
 def assert_same_element(session, a, b):
@@ -122,7 +125,7 @@ def assert_same_element(session, a, b):
         return
 
     message = ("Expected element references to describe the same element, " +
-        "but they did not.")
+               "but they did not.")
 
     # Attempt to provide more information, accounting for possible errors such
     # as stale element references or not visible elements.

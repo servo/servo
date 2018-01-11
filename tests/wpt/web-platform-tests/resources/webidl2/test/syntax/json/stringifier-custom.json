@@ -14,7 +14,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "unsigned long"
                 },
@@ -31,7 +30,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": true,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -48,7 +46,6 @@
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -59,16 +56,13 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": true,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -81,7 +75,9 @@
         "extAttrs": [
             {
                 "name": "Constructor",
-                "arguments": null
+                "arguments": null,
+                "type": "extended-attribute",
+                "rhs": null
             }
         ]
     }

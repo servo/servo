@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body id="body" tabindex="1">
+<dialog id="top-dialog" tabindex="1" style="width: 100px; top: 30px"><button id="top-dialog-button">I get focus</button></dialog>
+<dialog id="bottom-dialog" tabindex="-1" style="width: 100px; bottom: 30px"><button id="bottom-dialog-button">I don't get focus.</button></dialog>
+<div id="container">
+    <input id="text" type="text">
+    <input id="datetime" type="datetime">
+    <input id="color" type="color">
+    <select id="select">
+        <optgroup id="optgroup">
+            <option id="option">Option</option>
+        </optgroup>
+    </select>
+    <div id="contenteditable-div" contenteditable>I'm editable</div>
+    <span id="tabindex-span" tabindex="0">I'm tabindexed.</div>
+    <embed id="embed" type="application/x-blink-test-plugin" width=100 height=100></embed>
+    <a id="anchor" href="">Link</a>
+</div>
+<script>
+"use strict";
+// The test passses if only the topmost dialog and its button are focusable.
+
+function testFocus(element, expectFocus) {
+    var focusedElement = null;
+    element.addEventListener('focus', function() { focusedElement = element; }, false);
+    element.focus();
+    var theElement = element;
+    assert_equals(focusedElement === theElement, expectFocus, element.id);
+}
+
+function testTree(element, expectFocus) {
+    if (element.nodeType == Node.ELEMENT_NODE)
+        testFocus(element, expectFocus);
+    var childNodes = element.childNodes;
+    for (var i = 0; i < childNodes.length; i++)
+        testTree(childNodes[i], expectFocus);
+}
+
+test(function() {
+    var bottomDialog = document.getElementById('bottom-dialog');
+    bottomDialog.showModal();
+
+    var topDialog = document.getElementById('top-dialog');
+    topDialog.showModal();
+
+    testFocus(document.body, false);
+    testTree(topDialog, true);
+    testTree(bottomDialog, false);
+    testTree(document.getElementById('container'), false);
+}, "Test that inert nodes are not focusable.");
+</script>
+</body>
+</html>

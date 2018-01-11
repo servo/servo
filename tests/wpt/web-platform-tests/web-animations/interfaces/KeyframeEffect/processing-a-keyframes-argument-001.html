@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Tests for processing a keyframes argument (property access)</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#processing-a-keyframes-argument">
+<title>Processing a keyframes argument (property access)</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#processing-a-keyframes-argument">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -201,7 +201,7 @@ test(() => {
     { offset: null, computedOffset: 0.5, easing: 'linear', left: '300px' },
     { offset: null, computedOffset: 1, easing: 'linear', left: '200px' },
   ]);
-}, "'easing' and 'offset' are ignored on iterable objects");
+}, '\'easing\' and \'offset\' are ignored on iterable objects');
 
 test(() => {
   const effect = new KeyframeEffect(null, createIterable([

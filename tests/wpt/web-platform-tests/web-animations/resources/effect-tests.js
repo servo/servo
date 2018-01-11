@@ -1,3 +1,5 @@
+'use strict';
+
 // Common utility methods for testing animation effects
 
 // Tests the |property| member of |animation's| target effect's computed timing
@@ -26,7 +28,7 @@ function assert_computed_timing_for_each_phase(animation, property, values) {
   const timing = effect.getComputedTiming();
 
   // The following calculations are based on the definitions here:
-  // https://w3c.github.io/web-animations/#animation-effect-phases-and-states
+  // https://drafts.csswg.org/web-animations/#animation-effect-phases-and-states
   const beforeActive = Math.max(Math.min(timing.delay, timing.endTime), 0);
   const activeAfter =
     Math.max(Math.min(timing.delay + timing.activeDuration, timing.endTime), 0);

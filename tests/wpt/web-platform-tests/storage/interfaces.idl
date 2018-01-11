@@ -1,11 +1,9 @@
-[SecureContext,
- NoInterfaceObject,
- Exposed=(Window,Worker)]
-interface NavigatorStorage {
+[SecureContext]
+interface mixin NavigatorStorage {
   readonly attribute StorageManager storage;
 };
-Navigator implements NavigatorStorage;
-WorkerNavigator implements NavigatorStorage;
+Navigator includes NavigatorStorage;
+WorkerNavigator includes NavigatorStorage;
 
 [SecureContext,
  Exposed=(Window,Worker)]

@@ -21,7 +21,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call
+from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
 from servo.build_commands import notify_build_done
 from servo.util import STATIC_RUST_LANG_ORG_DIST, URLOPEN_KWARGS
 
@@ -43,16 +43,16 @@ class MachCommands(CommandBase):
             # for c in $(cargo --list | tail -$(($(cargo --list | wc -l) - 1))); do
             #   (cargo help $c 2>&1 | grep "\\--package" >/dev/null 2>&1) && echo $c
             # done
-            if params[0] and params[0] in [
+            if params and params[0] in [
                 'bench', 'build', 'check', 'clean', 'doc', 'fmt', 'pkgid',
                 'run', 'rustc', 'rustdoc', 'test', 'update',
             ]:
                 params[1:1] = ['--package', 'geckoservo']
 
-            self.set_use_stable_rust()
+            self.set_use_geckolib_toolchain()
 
         build_start = time()
-        status = call(['cargo'] + params, env=env)
+        status = self.call_rustup_run(["cargo"] + params, env=env)
         elapsed = time() - build_start
 
         notify_build_done(self.config, elapsed, status == 0)
@@ -197,8 +197,7 @@ class MachCommands(CommandBase):
             self.ensure_bootstrapped()
 
             with cd(self.context.topdir):
-                call(["cargo", "update"] + params,
-                     env=self.build_env())
+                self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',
@@ -211,8 +210,7 @@ class MachCommands(CommandBase):
             params = []
 
         self.ensure_bootstrapped()
-
-        return call(["rustc"] + params, env=self.build_env())
+        return self.call_rustup_run(["rustc"] + params, env=self.build_env())
 
     @Command('rustc-geckolib',
              description='Run the Rust compiler with the same compiler version and root crate as build-geckolib',
@@ -224,17 +222,11 @@ class MachCommands(CommandBase):
         if params is None:
             params = []
 
-        self.set_use_stable_rust()
+        self.set_use_geckolib_toolchain()
         self.ensure_bootstrapped()
         env = self.build_env(geckolib=True)
 
-        return call(["rustc"] + params, env=env)
-
-    @Command('rust-root',
-             description='Print the path to the root of the Rust compiler',
-             category='devenv')
-    def rust_root(self):
-        print(self.config["tools"]["rust-root"])
+        return self.call_rustup_run(["rustc"] + params, env=env)
 
     @Command('grep',
              description='`git grep` for selected directories.',
@@ -267,24 +259,17 @@ class MachCommands(CommandBase):
     def rustup(self):
         url = STATIC_RUST_LANG_ORG_DIST + "/channel-rust-nightly-date.txt"
         nightly_date = urllib2.urlopen(url, **URLOPEN_KWARGS).read()
+        toolchain = "nightly-" + nightly_date
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:
-            f.write("nightly-%s\n" % nightly_date)
-
-        # Reset self.config["tools"]["rust-root"] and self.config["tools"]["cargo-root"]
-        self._rust_nightly_date = None
-        self.set_use_stable_rust(False)
-        self.set_cargo_root()
-
-        self.fetch()
+            f.write(toolchain + "\n")
+        return call(["rustup" + BIN_SUFFIX, "install", toolchain])
 
     @Command('fetch',
              description='Fetch Rust, Cargo and Cargo dependencies',
              category='devenv')
     def fetch(self):
-        # Fetch Rust and Cargo
         self.ensure_bootstrapped()
 
-        # Fetch Cargo dependencies
         with cd(self.context.topdir):
-            call(["cargo", "fetch"], env=self.build_env())
+            return self.call_rustup_run(["cargo", "fetch"], env=self.build_env())

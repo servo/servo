@@ -1,0 +1,113 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGMarkerElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGMarkerElement.
+
+  var markerElement = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+  markerElement.setAttribute("markerUnits", "userSpaceOnUse");
+  markerElement.setAttribute("orient", "auto");
+
+  var svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+  // markerUnits
+  // Check initial 'markerUnits' value.
+  assert_true(markerElement.markerUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(markerElement.markerUnits.baseVal), "number");
+  assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_USERSPACEONUSE);
+
+  // Switch to 'strokeWidth'.
+  markerElement.markerUnits.baseVal = SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH;
+  assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH);
+  assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
+
+  // Try setting invalid values.
+  assert_throws(new TypeError(), function() { markerElement.markerUnits.baseVal = 3; });
+  assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH);
+  assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
+
+  assert_throws(new TypeError(), function() { markerElement.markerUnits.baseVal = -1; });
+  assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH);
+  assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
+
+  assert_throws(new TypeError(), function() { markerElement.markerUnits.baseVal = 0; });
+  assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_STROKEWIDTH);
+  assert_equals(markerElement.getAttribute('markerUnits'), "strokeWidth");
+
+  // Switch to 'userSpaceOnUse'
+  markerElement.markerUnits.baseVal = SVGMarkerElement.SVG_MARKERUNITS_USERSPACEONUSE;
+  assert_equals(markerElement.markerUnits.baseVal, SVGMarkerElement.SVG_MARKERUNITS_USERSPACEONUSE);
+  assert_equals(markerElement.getAttribute('markerUnits'), "userSpaceOnUse");
+
+  // orientType
+  // Check initial 'orient' value.
+  assert_true(markerElement.orientType instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(markerElement.orientType.baseVal), "number");
+  assert_equals(markerElement.orientAngle.baseVal.value, 0);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO);
+
+  // Switch to 'Pi/2 rad' value - via setOrientToAngle().
+  anglePiHalfRad = svgElement.createSVGAngle();
+  anglePiHalfRad.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_RAD, (Math.PI / 2).toFixed(2));
+  markerElement.setOrientToAngle(anglePiHalfRad);
+  assert_equals(markerElement.orientAngle.baseVal.value.toFixed(1), "90.0");
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_RAD);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+  assert_equals(markerElement.getAttribute('orient'), (Math.PI / 2).toFixed(2) + "rad");
+
+  // Switch to 'auto' value - via setOrientToAuto().
+  markerElement.setOrientToAuto();
+  assert_equals(markerElement.orientAngle.baseVal.value, 0);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO);
+  assert_equals(markerElement.getAttribute('orient'), "auto");
+
+  // Switch to '20deg' value - via setOrientToAngle().
+  angle20deg = svgElement.createSVGAngle();
+  angle20deg.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_DEG, 20);
+  markerElement.setOrientToAngle(angle20deg);
+  assert_equals(markerElement.orientAngle.baseVal.value, 20);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_DEG);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+  assert_equals(markerElement.getAttribute('orient'), "20deg");
+
+  // Switch to '10deg' value.
+  markerElement.orientAngle.baseVal.value = 10;
+  assert_equals(markerElement.orientAngle.baseVal.value, 10);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_DEG);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+  assert_equals(markerElement.getAttribute('orient'), "10deg");
+
+  // Switch to 'auto' value - by modifying orientType.
+  markerElement.orientType.baseVal = SVGMarkerElement.SVG_MARKER_ORIENT_AUTO;
+  assert_equals(markerElement.orientAngle.baseVal.value, 0);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO);
+  assert_equals(markerElement.getAttribute('orient'), "auto");
+
+  markerElement.setAttribute('orient', '10deg');
+
+  // Try setting invalid values.
+  assert_throws(new TypeError(), function() { markerElement.orientType.baseVal = 3; });
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+  assert_equals(markerElement.getAttribute('orient'), "10deg");
+
+  assert_throws(new TypeError(), function() { markerElement.orientType.baseVal = -1; });
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+  assert_equals(markerElement.getAttribute('orient'), "10deg");
+
+  assert_throws(new TypeError(), function() { markerElement.orientType.baseVal = 0; });
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+  assert_equals(markerElement.getAttribute('orient'), "10deg");
+
+  // Switch back to 'auto' value.
+  markerElement.orientType.baseVal = SVGMarkerElement.SVG_MARKER_ORIENT_AUTO;
+  assert_equals(markerElement.orientAngle.baseVal.value, 0);
+  assert_equals(markerElement.orientAngle.baseVal.unitType, SVGAngle.SVG_ANGLETYPE_UNSPECIFIED);
+  assert_equals(markerElement.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO);
+  assert_equals(markerElement.getAttribute('orient'), "auto");
+});
+</script>

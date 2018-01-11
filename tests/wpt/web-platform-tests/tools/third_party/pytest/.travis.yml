@@ -1,0 +1,56 @@
+sudo: false
+language: python
+python:
+  - '3.6'
+# command to install dependencies
+install:
+  - pip install --upgrade --pre tox
+# # command to run tests
+env:
+  matrix:
+    # coveralls is not listed in tox's envlist, but should run in travis
+    - TOXENV=coveralls
+    # note: please use "tox --listenvs" to populate the build matrix below
+    - TOXENV=linting
+    - TOXENV=py27
+    - TOXENV=py34
+    - TOXENV=py36
+    - TOXENV=py27-pexpect
+    - TOXENV=py27-xdist
+    - TOXENV=py27-trial
+    - TOXENV=py27-numpy
+    - TOXENV=py27-pluggymaster
+    - TOXENV=py36-pexpect
+    - TOXENV=py36-xdist
+    - TOXENV=py36-trial
+    - TOXENV=py36-numpy
+    - TOXENV=py36-pluggymaster
+    - TOXENV=py27-nobyte
+    - TOXENV=doctesting
+    - TOXENV=docs
+
+matrix:
+  include:
+    - env: TOXENV=pypy
+      python: 'pypy-5.4'
+    - env: TOXENV=py35
+      python: '3.5'
+    - env: TOXENV=py35-freeze
+      python: '3.5'
+    - env: TOXENV=py37
+      python: 'nightly'
+  allow_failures:
+    - env: TOXENV=py37
+      python: 'nightly'
+
+script: tox --recreate
+
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#pytest"
+    on_success: change
+    on_failure: change
+    skip_join: true
+  email:
+    - pytest-commit@python.org

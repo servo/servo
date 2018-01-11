@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<title>ServiceWorker FetchEvent for sandboxed iframe.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+var lastCallbackId = 0;
+var callbacks = {};
+function postMessageAndWaitResult(frame) {
+  return new Promise(function(resolve) {
+    var id = ++lastCallbackId;
+    callbacks[id] = resolve;
+    frame.contentWindow.postMessage({id:id}, '*');
+  });
+}
+
+window.onmessage = function (e) {
+  message = e.data;
+  var id = message['id'];
+  var calback = callbacks[id];
+  delete callbacks[id];
+  calback(message['result']);
+};
+
+promise_test(function(t) {
+    var SCOPE = 'resources/sandboxed-iframe-fetch-event-iframe.html';
+    var SCRIPT = 'resources/sandboxed-iframe-fetch-event-worker.js';
+    var frames = [];
+    var worker;
+    return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+      .then(function(registration) {
+          worker = registration.installing;
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(SCOPE + '?iframe');
+        })
+      .then(function(frame) {
+          frames.push(frame);
+          return postMessageAndWaitResult(frame);
+        })
+      .then(function(result) {
+          assert_equals(result, 'done');
+          return with_sandboxed_iframe(SCOPE + '?script', 'allow-scripts');
+        })
+      .then(function(frame) {
+          frames.push(frame);
+          return postMessageAndWaitResult(frame);
+        })
+      .then(function(result) {
+          assert_equals(result, 'done');
+          return with_sandboxed_iframe(SCOPE + '?script-origin',
+                                       'allow-scripts allow-same-origin');
+        })
+      .then(function(frame) {
+          frames.push(frame);
+          return postMessageAndWaitResult(frame);
+        })
+      .then(function(result) {
+          assert_equals(result, 'done');
+          return new Promise(function(resolve) {
+              var channel = new MessageChannel();
+              channel.port1.onmessage = function(msg) {
+                  resolve(msg);
+                };
+              worker.postMessage({port: channel.port2}, [channel.port2]);
+            });
+        })
+      .then(function(msg) {
+          for (var frame of frames) {
+            frame.remove();
+          }
+          var expected_base_url = new URL(SCOPE, location.href).href;
+          var request_set = {};
+          for (var request of msg.data.requests) {
+            request_set[request] = true;
+          }
+          assert_true(
+              expected_base_url + '?iframe' in request_set,
+              'The request for normal iframe should be handled by SW.');
+          assert_true(
+              expected_base_url + '?iframe_fetch' in request_set,
+              'The fetch request from normal iframe should be handled by SW.');
+          assert_true(
+              expected_base_url + '?iframe_workerfetch' in request_set,
+              'The fetch request from worker in normal iframe should be ' +
+              'handled by SW.');
+          assert_true(
+              expected_base_url + '?iframe_iframe' in request_set,
+              'The request for normal iframe inside normal iframe should be ' +
+              'handled by SW.');
+          assert_false(
+              expected_base_url + '?iframe_script' in request_set,
+              'The request for sandboxed iframe with allow-scripts flag ' +
+              'inside normal iframe should not be handled by SW.');
+          assert_true(
+              expected_base_url + '?iframe_script-origin' in request_set,
+              'The request for sandboxed iframe with allow-scripts and ' +
+              'allow-same-origin flag inside normal iframe should be handled ' +
+              'by SW.');
+          assert_false(
+              expected_base_url + '?script' in request_set,
+              'The request for sandboxed iframe with allow-scripts flag ' +
+              'should not be handled by SW.');
+          assert_false(
+              expected_base_url + '?script_fetch' in request_set,
+              'The fetch request from sandboxed iframe with allow-scripts ' +
+              'flag should not be handled by SW.');
+          assert_false(
+              expected_base_url + '?script_workerfetch' in request_set,
+              'The fetch request from worker from sandboxed iframe with ' +
+              'allow-scripts flag should not be handled by SW.');
+          assert_false(
+              expected_base_url + '?script_iframe' in request_set,
+              'The request for normal iframe inside sandboxed iframe with ' +
+              'allow-scripts flag should not be handled by SW.');
+          assert_false(
+              expected_base_url + '?script_script' in request_set,
+              'The request for sandboxed iframe with allow-scripts flag ' +
+              'inside sandboxed iframe with allow-scripts flag should not be ' +
+              'handled by SW.');
+          assert_false(
+              expected_base_url + '?script_script-origin' in request_set,
+              'The request for sandboxed iframe with allow-scripts and ' +
+              'allow-same-origin flag inside sandboxed iframe with ' +
+              'allow-scripts flag should not be handled by SW.');
+          assert_true(
+              expected_base_url + '?script-origin' in request_set,
+              'The request for sandboxed iframe with allow-scripts and ' +
+              'allow-same-origin flag should be handled by SW.');
+          assert_true(
+              expected_base_url + '?script-origin_fetch' in request_set,
+              'The fetch request from sandboxed iframe with allow-scripts ' +
+              'and allow-same-origin flag should be handled by SW.');
+          assert_true(
+              expected_base_url + '?script-origin_workerfetch' in request_set,
+              'The fetch request from worker in sandboxed iframe with ' +
+              'allow-scripts and allow-same-origin flag should be handled ' +
+              'by SW.');
+          assert_true(
+              expected_base_url + '?script-origin_iframe' in request_set,
+              'The request for normal iframe inside sandboxed iframe with ' +
+              'allow-scripts and allow-same-origin flag should be handled by' +
+              'SW.');
+          assert_false(
+              expected_base_url + '?script-origin_script' in request_set,
+              'The request for sandboxed iframe with allow-scripts flag ' +
+              'inside sandboxed iframe with allow-scripts and ' +
+              'allow-same-origin flag should be handled by SW.');
+          assert_true(
+              expected_base_url + '?script-origin_script-origin' in request_set,
+              'The request for sandboxed iframe with allow-scripts and' +
+              'allow-same-origin flag inside sandboxed iframe with ' +
+              'allow-scripts and allow-same-origin flag should be handled by' +
+              'SW.');
+
+          var client_set = {};
+          for (var client of msg.data.clients) {
+            client_set[client] = true;
+          }
+          assert_true(
+              expected_base_url + '?iframe' in client_set,
+              'The normal iframe should be controlled by SW.');
+          assert_true(
+              expected_base_url + '?iframe_iframe' in client_set,
+              'The normal iframe inside normal iframe should be controlled ' +
+              'by SW.');
+          assert_false(
+              expected_base_url + '?iframe_script' in client_set,
+              'The sandboxed iframe with allow-scripts flag inside normal ' +
+              'iframe should not be controlled by SW.');
+          assert_true(
+              expected_base_url + '?iframe_script-origin' in client_set,
+              'The sandboxed iframe with allow-scripts and allow-same-origin' +
+              'flag inside normal iframe should be controlled by SW.');
+          assert_false(
+              expected_base_url + '?script' in client_set,
+              'The sandboxed iframe with allow-scripts flag should not be ' +
+              'controlled by SW.');
+          assert_false(
+              expected_base_url + '?script_iframe' in client_set,
+              'The normal iframe inside sandboxed iframe with allow-scripts' +
+              'flag should not be controlled by SW.');
+          assert_false(
+              expected_base_url + '?script_script' in client_set,
+              'The sandboxed iframe with allow-scripts flag inside sandboxed ' +
+              'iframe with allow-scripts flag should not be controlled by SW.');
+          assert_false(
+              expected_base_url + '?script_script-origin' in client_set,
+              'The sandboxed iframe with allow-scripts and allow-same-origin ' +
+              'flag inside sandboxed iframe with allow-scripts flag should ' +
+              'not be controlled by SW.');
+          assert_true(
+              expected_base_url + '?script-origin' in client_set,
+              'The sandboxed iframe with allow-scripts and allow-same-origin ' +
+              'flag should be controlled by SW.');
+          assert_true(
+              expected_base_url + '?script-origin_iframe' in client_set,
+              'The normal iframe inside sandboxed iframe with allow-scripts ' +
+              'and allow-same-origin flag should be controlled by SW.');
+          assert_false(
+              expected_base_url + '?script-origin_script' in client_set,
+              'The sandboxed iframe with allow-scripts flag inside sandboxed ' +
+              'iframe with allow-scripts and allow-same-origin flag should ' +
+              'be controlled by SW.');
+          assert_true(
+              expected_base_url + '?script-origin_script-origin' in client_set,
+              'The sandboxed iframe with allow-scripts and allow-same-origin ' +
+              'flag inside sandboxed iframe with allow-scripts and ' +
+              'allow-same-origin flag should be controlled by SW.');
+          return service_worker_unregister_and_done(t, SCOPE);
+        });
+  }, 'ServiceWorker FetchEvent for sandboxed iframe.');
+</script>
+</body>
