@@ -32,7 +32,7 @@ fn size_of_selectors_dummy_types() {
 size_of_test!(test_size_of_rule, style::stylist::Rule, 32);
 
 // Large pages generate tens of thousands of ComputedValues.
-size_of_test!(test_size_of_cv, ComputedValues, 256);
+size_of_test!(test_size_of_cv, ComputedValues, 248);
 
 size_of_test!(test_size_of_option_arc_cv, Option<Arc<ComputedValues>>, 8);
 size_of_test!(test_size_of_option_rule_node, Option<StrongRuleNode>, 8);
