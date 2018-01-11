@@ -246,7 +246,7 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        use invalidation::element::collector::StateAndAttrInvalidationProcessor;
+        use invalidation::element::state_and_attributes::StateAndAttrInvalidationProcessor;
         use invalidation::element::invalidator::TreeStyleInvalidator;
 
         debug!("invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
