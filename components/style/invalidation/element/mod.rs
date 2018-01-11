@@ -4,6 +4,7 @@
 
 //! Invalidation of element styles due to attribute or style changes.
 
+pub mod document_state;
 pub mod element_wrapper;
 pub mod invalidation_map;
 pub mod invalidator;
