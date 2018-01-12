@@ -437,7 +437,7 @@ def set_gecko_property(ffi_name, expr):
             ${keyword.casted_constant_name(value, cast_type)} => Keyword::${to_camel_case(value)},
             % endfor
             % if keyword.gecko_inexhaustive:
-            x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
+            _ => panic!("Found unexpected value in style struct for ${ident} property"),
             % endif
         }
         % else:
@@ -446,7 +446,7 @@ def set_gecko_property(ffi_name, expr):
             structs::${keyword.gecko_constant(value)} => Keyword::${to_camel_case(value)},
             % endfor
             % if keyword.gecko_inexhaustive:
-            x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
+            _ => panic!("Found unexpected value in style struct for ${ident} property"),
             % endif
         }
         % endif
@@ -598,8 +598,7 @@ def set_gecko_property(ffi_name, expr):
             CoordDataValue::Calc(calc) =>
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
                     LengthOrPercentage::Calc(calc.into())),
-            _ => unreachable!("Unexpected coordinate {:?} in ${ident}",
-                              self.gecko.${gecko_ffi_name}.as_value()),
+            _ => unreachable!("Unexpected coordinate in ${ident}"),
         };
         SVGLength::Length(length.into())
     }
@@ -1257,7 +1256,7 @@ fn clone_single_transform_function(
             % for servo, gecko, format in transform_functions:
                 ${computed_operation_arm(servo, gecko, format)}
             % endfor
-            _ => panic!("{:?} is not an acceptable transform function", transform_function),
+            _ => panic!("unacceptable transform function"),
         }
     }
 }
@@ -2377,7 +2376,7 @@ fn static_assert() {
             % endfor
             structs::${border_style_keyword.gecko_constant('auto')} => OutlineStyle::Auto,
             % if border_style_keyword.gecko_inexhaustive:
-            x => panic!("Found unexpected value in style struct for outline_style property: {:?}", x),
+            _ => panic!("Found unexpected value in style struct for outline_style property"),
             % endif
         }
     }
@@ -2900,8 +2899,8 @@ fn static_assert() {
                         ${value}_list.push(CustomIdent(ident));
                     },
                 % endfor
-                x => {
-                    panic!("Found unexpected value for font-variant-alternates: {:?}", x);
+                _ => {
+                    panic!("Found unexpected value for font-variant-alternates");
                 }
             }
         }
@@ -3078,7 +3077,7 @@ fn static_assert() {
             % for value in keyword.gecko_values():
                 structs::${keyword.gecko_constant(value)} => Keyword::${to_camel_case(value)},
             % endfor
-            x => panic!("Found unexpected value for animation-${ident}: {:?}", x),
+            _ => panic!("Found unexpected value for animation-${ident}"),
         }
     }
     ${impl_animation_count(ident, gecko_ffi_name)}
@@ -3812,7 +3811,7 @@ fn static_assert() {
                         % endif
                             => Keyword::${to_camel_case(value)},
                         % endfor
-                        x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
+                        _ => panic!("Found unexpected value in style struct for ${ident} property"),
                     }
                 }).collect()
         )
@@ -3862,7 +3861,7 @@ fn static_assert() {
                 StyleImageLayerRepeat::Space => RepeatKeyword::Space,
                 StyleImageLayerRepeat::Round => RepeatKeyword::Round,
                 StyleImageLayerRepeat::NoRepeat => RepeatKeyword::NoRepeat,
-                x => panic!("Found unexpected value in style struct for ${shorthand}_repeat property: {:?}", x),
+                _ => panic!("Found unexpected value in style struct for ${shorthand}_repeat property"),
             }
         }
 
@@ -4839,7 +4838,7 @@ fn static_assert() {
                 structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE => ShapeKeyword::DoubleCircle,
                 structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE => ShapeKeyword::Triangle,
                 structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME => ShapeKeyword::Sesame,
-                x => panic!("Unexpected value in style struct for text-emphasis-style property: {:?}", x)
+                _ => panic!("Unexpected value in style struct for text-emphasis-style property")
             };
 
         T::Keyword(KeywordValue {
@@ -4947,7 +4946,7 @@ fn static_assert() {
                 structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS => TextOverflowSide::Ellipsis,
                 structs::NS_STYLE_TEXT_OVERFLOW_STRING =>
                     TextOverflowSide::String(side.mString.to_string().into_boxed_str()),
-                x => panic!("Found unexpected value in style struct for text_overflow property: {:?}", x),
+                _ => panic!("Found unexpected value in style struct for text_overflow property"),
             }
         }
 
@@ -5430,7 +5429,7 @@ clip-path
             structs::NS_STYLE_CURSOR_ALL_SCROLL => Keyword::Cursor(Cursor::AllScroll),
             structs::NS_STYLE_CURSOR_ZOOM_IN => Keyword::Cursor(Cursor::ZoomIn),
             structs::NS_STYLE_CURSOR_ZOOM_OUT => Keyword::Cursor(Cursor::ZoomOut),
-            x => panic!("Found unexpected value in style struct for cursor property: {:?}", x),
+            _ => panic!("Found unexpected value in style struct for cursor property"),
         };
 
         let images = self.gecko.mCursorImages.iter().map(|gecko_cursor_image| {
@@ -5693,7 +5692,7 @@ clip-path
                             )
                         }
                     },
-                    x => panic!("Found unexpected value in style struct for content property: {:?}", x),
+                    _ => panic!("Found unexpected value in style struct for content property"),
                 }
             }).collect()
         )

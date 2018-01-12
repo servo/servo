@@ -746,17 +746,10 @@ pub trait TElement
     /// element-backed pseudo-element, in which case we return the originating
     /// element.
     fn rule_hash_target(&self) -> Self {
-        if let Some(pseudo) = self.implemented_pseudo_element() {
+        if let Some(_) = self.implemented_pseudo_element() {
             match self.closest_non_native_anonymous_ancestor() {
                 Some(e) => e,
-                None => {
-                    panic!(
-                        "Trying to collect rules for a detached pseudo-element: \
-                        {:?} {:?}",
-                        pseudo,
-                        self,
-                    )
-                }
+                None => panic!("Trying to collect rules for a detached pseudo-element")
             }
         } else {
             *self

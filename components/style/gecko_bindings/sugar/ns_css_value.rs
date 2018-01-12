@@ -114,7 +114,7 @@ impl nsCSSValue {
             nsCSSUnit::eCSSUnit_Calc => {
                 LengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
             },
-            x => panic!("The unit should not be {:?}", x),
+            _ => panic!("Unexpected unit"),
         }
     }
 
@@ -124,7 +124,7 @@ impl nsCSSValue {
             nsCSSUnit::eCSSUnit_Pixel => {
                 Length::new(bindings::Gecko_CSSValue_GetNumber(self))
             },
-            x => panic!("The unit should not be {:?}", x),
+            _ => panic!("Unexpected unit"),
         }
     }
 

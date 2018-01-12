@@ -3029,7 +3029,7 @@ macro_rules! get_longhand_from_id {
         match PropertyId::from_nscsspropertyid($id) {
             Ok(PropertyId::Longhand(long)) => long,
             _ => {
-                panic!("stylo: unknown presentation property with id {:?}", $id);
+                panic!("stylo: unknown presentation property with id");
             }
         }
     };
@@ -3042,7 +3042,7 @@ macro_rules! match_wrap_declared {
                 LonghandId::$property => PropertyDeclaration::$property($inner),
             )*
             _ => {
-                panic!("stylo: Don't know how to handle presentation property {:?}", $longhand);
+                panic!("stylo: Don't know how to handle presentation property");
             }
         }
     )
@@ -3226,7 +3226,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
         structs::nsCSSUnit::eCSSUnit_Point => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
         structs::nsCSSUnit::eCSSUnit_Pica => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
         structs::nsCSSUnit::eCSSUnit_Quarter => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
-        _ => unreachable!("Unknown unit {:?} passed to SetLengthValue", unit)
+        _ => unreachable!("Unknown unit passed to SetLengthValue")
     };
 
     let prop = match_wrap_declared! { long,
