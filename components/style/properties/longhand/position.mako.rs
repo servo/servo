@@ -247,7 +247,7 @@ ${helpers.predefined_type("object-position",
                           "Position",
                           "computed::Position::zero()",
                           products="gecko",
-                          boxed="True",
+                          boxed=True,
                           spec="https://drafts.csswg.org/css-images-3/#the-object-position",
                           animation_value_type="ComputedValue")}
 
