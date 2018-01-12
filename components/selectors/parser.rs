@@ -71,6 +71,10 @@ pub enum SelectorParseErrorKind<'i> {
     EmptyNegation,
 }
 
+impl<'i> From<SelectorParseErrorKind<'i>> for () {
+    fn from(_: SelectorParseErrorKind<'i>) -> Self {}
+}
+
 macro_rules! with_all_bounds {
     (
         [ $( $InSelector: tt )* ]
