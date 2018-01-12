@@ -15,7 +15,7 @@ use selector_parser::Direction;
 use selector_parser::SelectorImpl;
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
-use selectors::parser::{Selector, SelectorIter, SelectorMethods};
+use selectors::parser::{Selector, SelectorIter, Visit};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 

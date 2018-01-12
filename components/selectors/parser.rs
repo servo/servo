@@ -96,7 +96,7 @@ macro_rules! with_all_bounds {
 
             /// non tree-structural pseudo-classes
             /// (see: https://drafts.csswg.org/selectors/#structural-pseudos)
-            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + SelectorMethods<Impl = Self>;
+            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + Visit<Impl = Self>;
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + PseudoElement<Impl = Self>;
@@ -326,7 +326,7 @@ impl AncestorHashes {
     }
 }
 
-pub trait SelectorMethods {
+pub trait Visit {
     type Impl: SelectorImpl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -334,7 +334,7 @@ pub trait SelectorMethods {
         V: SelectorVisitor<Impl = Self::Impl>;
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
+impl<Impl: SelectorImpl> Visit for Selector<Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -364,7 +364,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
+impl<Impl: SelectorImpl> Visit for Component<Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -2013,7 +2013,7 @@ pub mod tests {
         }
     }
 
-    impl SelectorMethods for PseudoClass {
+    impl Visit for PseudoClass {
         type Impl = DummySelectorImpl;
 
         fn visit<V>(&self, _visitor: &mut V) -> bool
