@@ -8,7 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Fork of Arc for Servo. This has the following advantages over std::Arc:
+//! Fork of Arc for Servo. This has the following advantages over std::sync::Arc:
 //!
 //! * We don't waste storage on the weak reference count.
 //! * We don't do extra RMU operations to handle the possibility of weak references.
