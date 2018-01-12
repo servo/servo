@@ -86,10 +86,10 @@ macro_rules! with_all_bounds {
         pub trait SelectorImpl: Clone + Sized + 'static {
             type ExtraMatchingData: Sized + Default + 'static;
             type AttrValue: $($InSelector)*;
-            type Identifier: $($InSelector)* + PrecomputedHash;
-            type ClassName: $($InSelector)* + PrecomputedHash;
-            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName> + PrecomputedHash;
-            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl> + PrecomputedHash;
+            type Identifier: $($InSelector)*;
+            type ClassName: $($InSelector)*;
+            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName>;
+            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl>;
             type NamespacePrefix: $($InSelector)* + Default;
             type BorrowedNamespaceUrl: ?Sized + Eq;
             type BorrowedLocalName: ?Sized + Eq;
@@ -275,14 +275,24 @@ impl AncestorHashes {
     pub fn new<Impl: SelectorImpl>(
         selector: &Selector<Impl>,
         quirks_mode: QuirksMode,
-    ) -> Self {
+    ) -> Self
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         Self::from_iter(selector.iter(), quirks_mode)
     }
 
     fn from_iter<Impl: SelectorImpl>(
         iter: SelectorIter<Impl>,
         quirks_mode: QuirksMode,
-    ) -> Self {
+    ) -> Self
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         // Compute ancestor hashes for the bloom filter.
         let mut hashes = [0u32; 4];
         let mut hash_iter = AncestorIter::new(iter)
@@ -789,7 +799,12 @@ pub enum Component<Impl: SelectorImpl> {
 
 impl<Impl: SelectorImpl> Component<Impl> {
     /// Compute the ancestor hash to check against the bloom filter.
-    fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32> {
+    fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32>
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         match *self {
             Component::LocalName(LocalName { ref name, ref lower_name }) => {
                 // Only insert the local-name into the filter if it's all
@@ -2065,12 +2080,6 @@ pub mod tests {
     impl<'a> From<&'a str> for DummyAtom {
         fn from(string: &'a str) -> Self {
             DummyAtom(string.into())
-        }
-    }
-
-    impl PrecomputedHash for DummyAtom {
-        fn precomputed_hash(&self) -> u32 {
-            return 0
         }
     }
 

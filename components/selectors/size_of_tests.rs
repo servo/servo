@@ -7,7 +7,6 @@ use gecko_like_types;
 use gecko_like_types::*;
 use parser;
 use parser::*;
-use precomputed_hash::PrecomputedHash;
 use std::fmt;
 use visitor::SelectorVisitor;
 
@@ -67,8 +66,4 @@ impl From<String> for Atom {
 
 impl<'a> From<&'a str> for Atom {
     fn from(_: &'a str) -> Self { unimplemented!() }
-}
-
-impl PrecomputedHash for Atom {
-    fn precomputed_hash(&self) -> u32 { unimplemented!() }
 }
