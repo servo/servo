@@ -24,5 +24,5 @@ ${helpers.predefined_type("border-spacing",
                           "BorderSpacing",
                           "computed::BorderSpacing::zero()",
                           animation_value_type="BorderSpacing",
-                          boxed="True",
+                          boxed=True,
                           spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing")}
