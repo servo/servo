@@ -49,6 +49,7 @@ extern crate euclid;
 extern crate hashglobe;
 #[cfg(feature = "servo")]
 extern crate mozjs as js;
+extern crate selectors;
 extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
@@ -637,6 +638,13 @@ impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::TypedTransform3D<T, Src
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedVector2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.x.size_of(ops) + self.y.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for selectors::parser::AncestorHashes {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let selectors::parser::AncestorHashes { ref packed_hashes } = *self;
+        packed_hashes.size_of(ops)
     }
 }
 

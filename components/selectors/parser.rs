@@ -19,7 +19,7 @@ use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display, Debug, Write};
 use std::iter::Rev;
 use std::slice;
-use visitor::SelectorVisitor;
+pub use visitor::{Visit, SelectorVisitor};
 
 /// A trait that represents a pseudo-element.
 pub trait PseudoElement : Sized + ToCss {
@@ -86,17 +86,17 @@ macro_rules! with_all_bounds {
         pub trait SelectorImpl: Clone + Sized + 'static {
             type ExtraMatchingData: Sized + Default + 'static;
             type AttrValue: $($InSelector)*;
-            type Identifier: $($InSelector)* + PrecomputedHash;
-            type ClassName: $($InSelector)* + PrecomputedHash;
-            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName> + PrecomputedHash;
-            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl> + PrecomputedHash;
+            type Identifier: $($InSelector)*;
+            type ClassName: $($InSelector)*;
+            type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName>;
+            type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl>;
             type NamespacePrefix: $($InSelector)* + Default;
             type BorrowedNamespaceUrl: ?Sized + Eq;
             type BorrowedLocalName: ?Sized + Eq;
 
             /// non tree-structural pseudo-classes
             /// (see: https://drafts.csswg.org/selectors/#structural-pseudos)
-            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + SelectorMethods<Impl = Self>;
+            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss;
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + PseudoElement<Impl = Self>;
@@ -266,7 +266,7 @@ where
 /// off the upper bits) at the expense of making the fourth somewhat more
 /// complicated to assemble, because we often bail out before checking all the
 /// hashes.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AncestorHashes {
     pub packed_hashes: [u32; 3],
 }
@@ -275,14 +275,24 @@ impl AncestorHashes {
     pub fn new<Impl: SelectorImpl>(
         selector: &Selector<Impl>,
         quirks_mode: QuirksMode,
-    ) -> Self {
+    ) -> Self
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         Self::from_iter(selector.iter(), quirks_mode)
     }
 
     fn from_iter<Impl: SelectorImpl>(
         iter: SelectorIter<Impl>,
         quirks_mode: QuirksMode,
-    ) -> Self {
+    ) -> Self
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         // Compute ancestor hashes for the bloom filter.
         let mut hashes = [0u32; 4];
         let mut hash_iter = AncestorIter::new(iter)
@@ -316,15 +326,7 @@ impl AncestorHashes {
     }
 }
 
-pub trait SelectorMethods {
-    type Impl: SelectorImpl;
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Self::Impl>;
-}
-
-impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
+impl<Impl: SelectorImpl> Visit for Selector<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -354,7 +356,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
+impl<Impl: SelectorImpl> Visit for Component<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -789,7 +791,12 @@ pub enum Component<Impl: SelectorImpl> {
 
 impl<Impl: SelectorImpl> Component<Impl> {
     /// Compute the ancestor hash to check against the bloom filter.
-    fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32> {
+    fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32>
+        where Impl::Identifier: PrecomputedHash,
+              Impl::ClassName: PrecomputedHash,
+              Impl::LocalName: PrecomputedHash,
+              Impl::NamespaceUrl: PrecomputedHash,
+    {
         match *self {
             Component::LocalName(LocalName { ref name, ref lower_name }) => {
                 // Only insert the local-name into the filter if it's all
@@ -1998,7 +2005,7 @@ pub mod tests {
         }
     }
 
-    impl SelectorMethods for PseudoClass {
+    impl Visit for PseudoClass {
         type Impl = DummySelectorImpl;
 
         fn visit<V>(&self, _visitor: &mut V) -> bool
@@ -2065,12 +2072,6 @@ pub mod tests {
     impl<'a> From<&'a str> for DummyAtom {
         fn from(string: &'a str) -> Self {
             DummyAtom(string.into())
-        }
-    }
-
-    impl PrecomputedHash for DummyAtom {
-        fn precomputed_hash(&self) -> u32 {
-            return 0
         }
     }
 

@@ -19,7 +19,7 @@ use properties::PropertyFlags;
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::parser::{SelectorMethods, SelectorParseErrorKind};
+use selectors::parser::{Visit, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use std::mem;
@@ -312,7 +312,7 @@ impl ToCss for NonTSPseudoClass {
     }
 }
 
-impl SelectorMethods for NonTSPseudoClass {
+impl Visit for NonTSPseudoClass {
     type Impl = SelectorImpl;
 
 

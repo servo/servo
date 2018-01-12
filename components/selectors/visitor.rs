@@ -44,3 +44,31 @@ pub trait SelectorVisitor {
         true
     }
 }
+
+/// Enables traversing selector components stored in various types
+pub trait Visit {
+    /// The type parameter of selector component types.
+    type Impl: SelectorImpl;
+
+    /// Traverse selector components inside `self`.
+    ///
+    /// Implementations of this method should call `SelectorVisitor` methods
+    /// or other impls of `Visit` as appropriate based on the fields of `Self`.
+    ///
+    /// A return value of `false` indicates terminating the traversal.
+    /// It should be propagated with an early return.
+    /// On the contrary, `true` indicates that all fields of `self` have been traversed:
+    ///
+    /// ```rust,ignore
+    /// if !visitor.visit_simple_selector(&self.some_simple_selector) {
+    ///     return false;
+    /// }
+    /// if !self.some_component.visit(visitor) {
+    ///     return false;
+    /// }
+    /// true
+    /// ```
+    fn visit<V>(&self, visitor: &mut V) -> bool
+    where
+        V: SelectorVisitor<Impl = Self::Impl>;
+}

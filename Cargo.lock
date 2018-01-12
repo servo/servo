@@ -1043,7 +1043,7 @@ dependencies = [
  "nsstring 0.1.0",
  "parking_lot 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
@@ -1084,7 +1084,7 @@ dependencies = [
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
@@ -1488,7 +1488,7 @@ dependencies = [
  "selectors 0.19.0",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
@@ -1541,7 +1541,7 @@ dependencies = [
  "selectors 0.19.0",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
@@ -1693,7 +1693,8 @@ dependencies = [
  "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashglobe 0.1.0",
  "mozjs 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "selectors 0.19.0",
+ "servo_arc 0.1.0",
  "smallbitvec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1716,7 +1717,7 @@ name = "malloc_size_of_tests"
 version = "0.0.1"
 dependencies = [
  "malloc_size_of 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
 ]
 
 [[package]]
@@ -2605,7 +2606,7 @@ dependencies = [
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
@@ -2650,7 +2651,7 @@ dependencies = [
  "range 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.19.0",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "style 0.0.1",
@@ -2717,14 +2718,11 @@ dependencies = [
  "cssparser 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "malloc_size_of 0.0.1",
- "malloc_size_of_derive 0.0.1",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
- "size_of_test 0.0.1",
+ "servo_arc 0.1.0",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2914,7 +2912,7 @@ dependencies = [
 
 [[package]]
 name = "servo_arc"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3143,7 +3141,7 @@ dependencies = [
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
@@ -3182,7 +3180,7 @@ dependencies = [
  "rayon 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
@@ -3203,7 +3201,7 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "selectors 0.19.0",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]

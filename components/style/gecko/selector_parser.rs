@@ -12,7 +12,7 @@ use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::element::document_state::InvalidationMatchingData;
 use selector_parser::{Direction, SelectorParser};
 use selectors::SelectorList;
-use selectors::parser::{self as selector_parser, Selector, SelectorMethods, SelectorParseErrorKind};
+use selectors::parser::{self as selector_parser, Selector, Visit, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -113,7 +113,7 @@ impl ToCss for NonTSPseudoClass {
     }
 }
 
-impl SelectorMethods for NonTSPseudoClass {
+impl Visit for NonTSPseudoClass {
     type Impl = SelectorImpl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
