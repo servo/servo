@@ -2,7 +2,7 @@
 
 name = "selectors"
 version = "0.19.0" # Not yet published
-authors = ["Simon Sapin <simon.sapin@exyr.org>", "Alan Jeffrey <ajeffrey@mozilla.com>"]
+authors = ["The Servo Project Developers"]
 documentation = "https://docs.rs/selectors/"
 
 description = "CSS Selectors matching for Rust"
