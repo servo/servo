@@ -19,6 +19,15 @@ pub struct InvalidationMatchingData {
     pub document_state: DocumentState,
 }
 
+impl Default for InvalidationMatchingData {
+    #[inline(always)]
+    fn default() -> Self {
+        Self {
+            document_state: DocumentState::empty(),
+        }
+    }
+}
+
 /// An invalidation processor for style changes due to state and attribute
 /// changes.
 pub struct DocumentStateInvalidationProcessor<'a, E: TElement> {
@@ -46,9 +55,9 @@ impl<'a, E: TElement> DocumentStateInvalidationProcessor<'a, E> {
             quirks_mode,
         );
 
-        matching_context.extra_data = Some(InvalidationMatchingData {
+        matching_context.extra_data = InvalidationMatchingData {
             document_state: document_states_changed,
-        });
+        };
 
         Self { rules, document_states_changed, matching_context }
     }

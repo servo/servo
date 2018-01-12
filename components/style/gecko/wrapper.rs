@@ -2111,10 +2111,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozWindowInactive => {
                 let state_bit = DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE;
-                if let Some(ref invalidation_data) = context.extra_data {
-                    if invalidation_data.document_state.intersects(state_bit) {
-                        return true;
-                    }
+                if context.extra_data.document_state.intersects(state_bit) {
+                    return true;
                 }
 
                 self.document_state().contains(state_bit)
@@ -2133,12 +2131,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozLocaleDir(ref dir) => {
                 let state_bit = DocumentState::NS_DOCUMENT_STATE_RTL_LOCALE;
-                if let Some(ref invalidation_data) = context.extra_data {
+                if context.extra_data.document_state.intersects(state_bit) {
                     // NOTE(emilio): We could still return false for
                     // Direction::Other(..), but we don't bother.
-                    if invalidation_data.document_state.intersects(state_bit) {
-                        return true;
-                    }
+                    return true;
                 }
 
                 let doc_is_rtl = self.document_state().contains(state_bit);
