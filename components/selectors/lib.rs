@@ -10,8 +10,6 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate matches;
 extern crate fnv;
-extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
 extern crate phf;
 extern crate precomputed_hash;
 #[cfg(test)] #[macro_use] extern crate size_of_test;

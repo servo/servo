@@ -17,6 +17,7 @@ cssparser = "0.23.0"
 euclid = "0.16"
 hashglobe = { path = "../hashglobe" }
 mozjs = { version = "0.1.8", features = ["promises"], optional = true }
+selectors = { path = "../selectors" }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"
 smallvec = "0.6"
