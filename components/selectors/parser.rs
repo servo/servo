@@ -96,7 +96,7 @@ macro_rules! with_all_bounds {
 
             /// non tree-structural pseudo-classes
             /// (see: https://drafts.csswg.org/selectors/#structural-pseudos)
-            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + Visit<Impl = Self>;
+            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss;
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + PseudoElement<Impl = Self>;
@@ -326,7 +326,7 @@ impl AncestorHashes {
     }
 }
 
-impl<Impl: SelectorImpl> Visit for Selector<Impl> {
+impl<Impl: SelectorImpl> Visit for Selector<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -356,7 +356,7 @@ impl<Impl: SelectorImpl> Visit for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> Visit for Component<Impl> {
+impl<Impl: SelectorImpl> Visit for Component<Impl> where Impl::NonTSPseudoClass: Visit<Impl=Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
