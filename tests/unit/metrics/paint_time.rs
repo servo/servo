@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::Size2D;
 use gfx::display_list::{BaseDisplayItem, WebRenderImageInfo};
 use gfx::display_list::{DisplayItem, DisplayList, ImageDisplayItem};
 use gfx_traits::Epoch;
@@ -12,8 +11,8 @@ use msg::constellation_msg::TEST_PIPELINE_ID;
 use net_traits::image::base::PixelFormat;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
-use style::computed_values::image_rendering::T as ImageRendering;
 use time;
+use webrender_api::{ImageRendering, LayoutSize};
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
@@ -128,8 +127,8 @@ fn test_first_contentful_paint_setter() {
             key: None,
         },
         image_data: None,
-        stretch_size: Size2D::zero(),
-        tile_spacing: Size2D::zero(),
+        stretch_size: LayoutSize::zero(),
+        tile_spacing: LayoutSize::zero(),
         image_rendering: ImageRendering::Auto,
     }));
     let display_list = DisplayList {
