@@ -2110,8 +2110,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 self.get_document_theme() == DocumentTheme::Doc_Theme_Dark
             }
             NonTSPseudoClass::MozWindowInactive => {
-                self.document_state()
-                    .contains(DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE)
+                let state_bit = DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE;
+                if context.extra_data.document_state.intersects(state_bit) {
+                    return true;
+                }
+
+                self.document_state().contains(state_bit)
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
@@ -2126,9 +2130,14 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 self.match_element_lang(None, lang_arg)
             }
             NonTSPseudoClass::MozLocaleDir(ref dir) => {
-                let doc_is_rtl =
-                    self.document_state()
-                        .contains(DocumentState::NS_DOCUMENT_STATE_RTL_LOCALE);
+                let state_bit = DocumentState::NS_DOCUMENT_STATE_RTL_LOCALE;
+                if context.extra_data.document_state.intersects(state_bit) {
+                    // NOTE(emilio): We could still return false for
+                    // Direction::Other(..), but we don't bother.
+                    return true;
+                }
+
+                let doc_is_rtl = self.document_state().contains(state_bit);
 
                 match **dir {
                     Direction::Ltr => !doc_is_rtl,

@@ -12,6 +12,7 @@ use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr, Sour
 use dom::{OpaqueNode, TElement, TNode};
 use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
+use invalidation::element::document_state::InvalidationMatchingData;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
 use properties::PropertyFlags;
@@ -377,6 +378,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
+    type ExtraMatchingData = InvalidationMatchingData;
     type AttrValue = String;
     type Identifier = Atom;
     type ClassName = Atom;

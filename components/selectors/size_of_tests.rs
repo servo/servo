@@ -24,6 +24,7 @@ impl parser::PseudoElement for gecko_like_types::PseudoElement {
 // Boilerplate
 
 impl SelectorImpl for Impl {
+    type ExtraMatchingData = u64;
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;

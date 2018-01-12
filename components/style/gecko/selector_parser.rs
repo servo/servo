@@ -9,6 +9,7 @@ use element_state::{DocumentState, ElementState};
 use gecko_bindings::structs::{self, CSSPseudoClassType};
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use invalidation::element::document_state::InvalidationMatchingData;
 use selector_parser::{Direction, SelectorParser};
 use selectors::SelectorList;
 use selectors::parser::{self as selector_parser, Selector, SelectorMethods, SelectorParseErrorKind};
@@ -278,6 +279,7 @@ impl NonTSPseudoClass {
 pub struct SelectorImpl;
 
 impl ::selectors::SelectorImpl for SelectorImpl {
+    type ExtraMatchingData = InvalidationMatchingData;
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;

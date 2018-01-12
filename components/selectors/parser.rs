@@ -84,6 +84,7 @@ macro_rules! with_all_bounds {
         /// are parameterized on SelectorImpl. See
         /// <https://github.com/rust-lang/rust/issues/26925>
         pub trait SelectorImpl: Clone + Sized + 'static {
+            type ExtraMatchingData: Sized + Default + 'static;
             type AttrValue: $($InSelector)*;
             type Identifier: $($InSelector)* + PrecomputedHash;
             type ClassName: $($InSelector)* + PrecomputedHash;
@@ -2027,6 +2028,7 @@ pub mod tests {
     }
 
     impl SelectorImpl for DummySelectorImpl {
+        type ExtraMatchingData = ();
         type AttrValue = DummyAtom;
         type Identifier = DummyAtom;
         type ClassName = DummyAtom;
