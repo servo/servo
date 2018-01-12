@@ -17,7 +17,7 @@
 use app_units::Au;
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D, TypedRect, SideOffsets2D};
 use euclid::num::{One, Zero};
-use gfx_traits::StackingContextId;
+use gfx_traits::{self, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
@@ -143,6 +143,25 @@ impl DisplayList {
             );
         }
         print_tree.end_level();
+    }
+}
+
+impl gfx_traits::DisplayList for DisplayList {
+    /// Analyze the display list to figure out if this may be the first
+    /// contentful paint (i.e. the display list contains items of type text,
+    /// image, non-white canvas or SVG). Used by metrics.
+    fn is_contentful(&self) -> bool {
+        for item in &self.list {
+            match item {
+                &DisplayItem::Text(_) |
+                &DisplayItem::Image(_) => {
+                    return true
+                }
+                _ => (),
+            }
+        }
+
+        false
     }
 }
 

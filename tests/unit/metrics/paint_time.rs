@@ -66,10 +66,13 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
     );
     let dummy_profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
+    // `maybe_observe_paint_time` expects a `&gfx_traits::DisplayList` instead
+    // of a `&gfx::display_list::DisplayList` so we need to help the typechecker
+    // here with `&*display_list`.
     paint_time_metrics.maybe_observe_paint_time(
         &dummy_profiler_metadata_factory,
         epoch,
-        &display_list,
+        &*display_list,
     );
 
     // Should not set any metric until navigation start is set.
