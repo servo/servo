@@ -558,7 +558,7 @@
                 % for value in values:
                     ${to_rust_ident(value).upper()} => ${type}::${to_camel_case(value)},
                 % endfor
-                x => panic!("Found unexpected value in style struct for ${keyword.name} property: {:?}", x),
+                _ => panic!("Found unexpected value in style struct for ${keyword.name} property"),
             }
         }
     }

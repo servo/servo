@@ -901,7 +901,7 @@ impl structs::FontSizePrefs {
             structs::kGenericFont_monospace => self.mDefaultMonospaceSize,
             structs::kGenericFont_cursive => self.mDefaultCursiveSize,
             structs::kGenericFont_fantasy => self.mDefaultFantasySize,
-            x => unreachable!("Unknown generic ID {}", x),
+            _ => unreachable!("Unknown generic ID"),
         })
     }
 }
