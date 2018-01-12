@@ -81,11 +81,10 @@ impl<'a, E: TElement> InvalidationProcessor<'a, E> for DocumentStateInvalidation
     }
 
     fn should_process_descendants(&mut self, element: E) -> bool {
-        let data = match element.borrow_data() {
-            Some(d) => d,
+        match element.borrow_data() {
+            Some(d) => state_and_attributes::should_process_descendants(&d),
             None => return false,
-        };
-        state_and_attributes::should_process_descendants(&data)
+        }
     }
 
     fn invalidated_descendants(&mut self, element: E, child: E) {

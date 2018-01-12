@@ -298,12 +298,10 @@ where
             return should_process_descendants(&self.data)
         }
 
-        let data = match element.borrow_data() {
-            Some(d) => d,
+        match element.borrow_data() {
+            Some(d) => should_process_descendants(&d),
             None => return false,
-        };
-
-        should_process_descendants(&data)
+        }
     }
 
     fn recursion_limit_exceeded(&mut self, element: E) {
