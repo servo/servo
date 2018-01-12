@@ -114,6 +114,29 @@ impl ToCss for CustomIdent {
     }
 }
 
+/// Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-context-properties)
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct MozContextProperties(pub CustomIdent);
+
+impl MozContextProperties {
+    /// Parse an already-tokenizer identifier
+    pub fn from_ident<'i>(location: SourceLocation, ident: &CowRcStr<'i>, excluding: &[&str])
+                          -> Result<Self, ParseError<'i>> {
+        let valid = match_ignore_ascii_case! { ident,
+            "initial" | "inherit" | "unset" | "default" => false,
+            _ => true
+        };
+        if !valid {
+            return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+        }
+        if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
+            Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        } else {
+            Ok(MozContextProperties(CustomIdent(Atom::from(ident.as_ref()))))
+        }
+    }
+}
+
 /// <https://drafts.csswg.org/css-animations/#typedef-keyframes-name>
 #[derive(Clone, Debug, MallocSizeOf, ToComputedValue)]
 pub enum KeyframesName {
