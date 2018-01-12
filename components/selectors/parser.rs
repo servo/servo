@@ -19,7 +19,7 @@ use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display, Debug, Write};
 use std::iter::Rev;
 use std::slice;
-use visitor::SelectorVisitor;
+pub use visitor::{Visit, SelectorVisitor};
 
 /// A trait that represents a pseudo-element.
 pub trait PseudoElement : Sized + ToCss {
@@ -324,14 +324,6 @@ impl AncestorHashes {
         ((self.packed_hashes[1] & 0xff000000) >> 16) |
         ((self.packed_hashes[2] & 0xff000000) >> 8)
     }
-}
-
-pub trait Visit {
-    type Impl: SelectorImpl;
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Self::Impl>;
 }
 
 impl<Impl: SelectorImpl> Visit for Selector<Impl> {
