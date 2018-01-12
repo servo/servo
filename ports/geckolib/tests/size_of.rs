@@ -2,29 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use selectors::gecko_like_types as dummies;
+use selectors;
 use servo_arc::Arc;
-use std::mem::{size_of, align_of};
 use style;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::data::{ElementData, ElementStyles};
-use style::gecko::selector_parser as real;
+use style::gecko::selector_parser::{self, SelectorImpl};
 use style::properties::ComputedValues;
 use style::rule_tree::{RuleNode, StrongRuleNode};
 use style::values::computed;
 use style::values::specified;
 
-#[test]
-fn size_of_selectors_dummy_types() {
-    assert_eq!(size_of::<dummies::PseudoClass>(), size_of::<real::NonTSPseudoClass>());
-    assert_eq!(align_of::<dummies::PseudoClass>(), align_of::<real::NonTSPseudoClass>());
+size_of_test!(size_of_selector, selectors::parser::Selector<SelectorImpl>, 8);
+size_of_test!(size_of_pseudo_element, selector_parser::PseudoElement, 24);
 
-    assert_eq!(size_of::<dummies::PseudoElement>(), size_of::<real::PseudoElement>());
-    assert_eq!(align_of::<dummies::PseudoElement>(), align_of::<real::PseudoElement>());
-
-    assert_eq!(size_of::<dummies::Atom>(), size_of::<style::Atom>());
-    assert_eq!(align_of::<dummies::Atom>(), align_of::<style::Atom>());
-}
+size_of_test!(size_of_component, selectors::parser::Component<SelectorImpl>, 32);
+size_of_test!(size_of_pseudo_class, selector_parser::NonTSPseudoClass, 24);
 
 // The size of this is critical to performance on the bloom-basic microbenchmark.
 // When iterating over a large Rule array, we want to be able to fast-reject

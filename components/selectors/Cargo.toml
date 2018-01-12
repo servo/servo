@@ -17,7 +17,6 @@ name = "selectors"
 path = "lib.rs"
 
 [features]
-gecko_like_types = []
 bench = []
 
 [dependencies]
@@ -30,9 +29,6 @@ phf = "0.7.18"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
 smallvec = "0.6"
-
-[dev-dependencies]
-size_of_test = {path = "../size_of_test"}
 
 [build-dependencies]
 phf_codegen = "0.7.18"

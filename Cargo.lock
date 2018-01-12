@@ -2723,7 +2723,6 @@ dependencies = [
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_arc 0.1.0",
- "size_of_test 0.0.1",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
