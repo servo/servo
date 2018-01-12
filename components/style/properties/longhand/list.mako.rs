@@ -35,7 +35,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
                               "computed::ListStyleType::disc()",
                               initial_specified_value="specified::ListStyleType::disc()",
                               animation_value_type="discrete",
-                              boxed="True",
+                              boxed=True,
                               spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 % endif
 
@@ -58,5 +58,5 @@ ${helpers.predefined_type("-moz-image-region",
                           "computed::ClipRectOrAuto::auto()",
                           animation_value_type="ComputedValue",
                           products="gecko",
-                          boxed="True",
+                          boxed=True,
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)")}

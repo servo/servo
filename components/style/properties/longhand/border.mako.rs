@@ -210,7 +210,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     vector=False,
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
-    boxed="True")}
+    boxed=True)}
 
 ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     parse_method="parse_non_negative",
