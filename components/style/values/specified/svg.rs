@@ -264,7 +264,8 @@ impl ToCss for SVGPaintOrder {
 
 /// Specified MozContextProperties value.
 /// Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-context-properties)
-pub type MozContextProperties = CustomIdent;
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct MozContextProperties(pub CustomIdent);
 
 impl Parse for MozContextProperties {
     fn parse<'i, 't>(
@@ -273,6 +274,6 @@ impl Parse for MozContextProperties {
     ) -> Result<MozContextProperties, ParseError<'i>> {
         let location = input.current_source_location();
         let i = input.expect_ident()?;
-        CustomIdent::from_ident(location, i, &["all", "none", "auto"])
+        Ok(MozContextProperties(CustomIdent::from_ident(location, i, &["all", "none", "auto"])?))
     }
 }
