@@ -306,11 +306,26 @@ impl DOMString {
     /// A valid number is the same as what rust considers to be valid,
     /// except for +1., NaN, and Infinity.
     /// https://html.spec.whatwg.org/multipage/#valid-floating-point-number
-    pub fn is_valid_number_string(&self) -> bool {
+    pub fn is_valid_float_number_string(&self) -> bool {
         let input = &self.0;
         input.parse::<f64>().ok().map_or(false, |val| {
             !(val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+"))
         })
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number
+    pub fn best_representation_of_the_float_number(&mut self) {
+        let input = &self.0.clone();
+        match input.parse::<f64>() {
+            Ok(val) if !(
+                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+            ) => {
+                // FIXME(tigercosmos): need consider `min`, `max`, `step`, when they are implemented
+                self.0 = format!("{}", val.round());
+            },
+            Ok(_) => {},
+            Err(_) => {}
+        }
     }
 
     /// A valid normalized local date and time string should be "{date}T{time}"
