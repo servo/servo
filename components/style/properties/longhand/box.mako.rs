@@ -20,8 +20,6 @@ ${helpers.predefined_type(
     initial_specified_value="specified::Display::inline()",
     animation_value_type="discrete",
     needs_context=False,
-    custom_cascade= product == 'servo',
-    custom_cascade_function="specified::Display::cascade_property_custom",
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-display/#propdef-display",
 )}
