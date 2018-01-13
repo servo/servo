@@ -34,6 +34,9 @@
       <input type="range" id="stepdown_beyond_min" min=3 max=11 value=6 step=3 />
       <input type="range" id="illegal_min_and_max" min="ab" max="f" />
       <input type="range" id="illegal_value_and_step" min=0 max=5 value="ppp" step="xyz" />
+      <input type="range" id="should_skip_whitespace" value=" 123"/>
+      <input type="range" id="exponent_value1" value=""/>
+      <input type="range" id="exponent_value2" value=""/>
     </div>
 
     <div id="log">
@@ -277,6 +280,35 @@
           assert_equals(e.value, "3")
         }, "Performing stepDown() beyond the value of the min attribute", {
           "help" : "https://html.spec.whatwg.org/multipage/#dom-input-stepdown"
+        }
+      );
+
+      test(
+        function() {
+          var e = document.getElementById('should_skip_whitespace');
+          assert_equals(e.value, "123")
+        }, "Skip ASCII whitespace within input", {
+          "help" : "https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number"
+        }
+      );
+
+      test(
+        function() {
+          var e = document.getElementById('exponent_value1');
+          e.value = 1e2;
+          assert_equals(e.value, "100")
+        }, "Multiply value by ten raised to the exponentth power with `e`", {
+          "help" : "https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number"
+        }
+      );
+
+      test(
+        function() {
+          var e = document.getElementById('exponent_value2');
+          e.value = 1E2;
+          assert_equals(e.value, "100")
+        }, "Multiply value by ten raised to the exponentth power with `E`", {
+          "help" : "https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number"
         }
       );
 
