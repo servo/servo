@@ -1047,11 +1047,15 @@ impl HTMLInputElement {
             }
             InputType::Number => {
                 let mut textinput = self.textinput.borrow_mut();
-                if !textinput.single_line_content().is_valid_number_string() {
+                if !textinput.single_line_content().is_valid_float_number_string() {
                     textinput.single_line_content_mut().clear();
                 }
             }
-            // TODO: Implement more value sanitization algorithms for different types of inputs
+            InputType::Range => {
+                let mut textinput = self.textinput.borrow_mut();
+                textinput.single_line_content_mut()
+                         .set_best_representation_of_the_float_number();
+            }
             _ => ()
         }
     }

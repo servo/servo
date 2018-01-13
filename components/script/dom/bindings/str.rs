@@ -306,11 +306,15 @@ impl DOMString {
     /// A valid number is the same as what rust considers to be valid,
     /// except for +1., NaN, and Infinity.
     /// https://html.spec.whatwg.org/multipage/#valid-floating-point-number
-    pub fn is_valid_number_string(&self) -> bool {
-        let input = &self.0;
-        input.parse::<f64>().ok().map_or(false, |val| {
-            !(val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+"))
-        })
+    pub fn is_valid_float_number_string(&self) -> bool {
+        parse_float_number(&self.0).is_ok()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number
+    pub fn set_best_representation_of_the_float_number(&mut self) {
+        if let Ok(val) = parse_float_number(&self.0) {
+            self.0 = val;
+        }
     }
 
     /// A valid normalized local date and time string should be "{date}T{time}"
@@ -670,4 +674,17 @@ fn max_week_in_year(year: u32) -> u32 {
 #[inline]
 fn is_leap_year(year: u32) -> bool {
     year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
+}
+
+// https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values
+fn parse_float_number(input: &str) -> Result<String, ()> {
+    match input.parse::<f64>() {
+        Ok(val) if !(
+            val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+        ) => {
+            // FIXME(tigercosmos): need consider `min`, `max`, `step`, when they are implemented
+            Ok(format!("{}", val.round()))
+        },
+        _ => Err(())
+    }
 }
