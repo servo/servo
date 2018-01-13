@@ -145,10 +145,10 @@ def arg_to_bool(arg):
 
 
 class Longhand(object):
-    def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
-                 predefined_type=None, custom_cascade=False, servo_pref=None, gecko_pref=None,
+    def __init__(self, style_struct, name, spec=None, animation_value_type=None, keyword=None,
+                 predefined_type=None, servo_pref=None, gecko_pref=None,
                  enabled_in="content", need_index=False,
-                 custom_cascade_function=None, gecko_ffi_name=None,
+                 gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
@@ -164,8 +164,6 @@ class Longhand(object):
         self.style_struct = style_struct
         self.servo_pref = servo_pref
         self.gecko_pref = gecko_pref
-        self.custom_cascade = custom_cascade
-        self.custom_cascade_function = custom_cascade_function if custom_cascade else None
         # For enabled_in, the setup is as follows:
         # It needs to be one of the four values: ["", "ua", "chrome", "content"]
         #  * "chrome" implies "ua", and implies that they're explicitly
@@ -177,7 +175,6 @@ class Longhand(object):
         self.enabled_in = enabled_in
         self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
-        self.derived_from = (derived_from or "").split()
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
         self.alias = alias.split() if alias else []
@@ -241,7 +238,6 @@ class Shorthand(object):
         self.spec = spec
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
-        self.derived_from = None
         self.servo_pref = servo_pref
         self.gecko_pref = gecko_pref
         self.sub_properties = sub_properties
@@ -365,7 +361,6 @@ class PropertiesData(object):
         self.current_style_struct = None
         self.longhands = []
         self.longhands_by_name = {}
-        self.derived_longhands = {}
         self.longhand_aliases = []
         self.shorthands = []
         self.shorthand_aliases = []
@@ -396,9 +391,6 @@ class PropertiesData(object):
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
         self.longhands_by_name[name] = longhand
-
-        for name in longhand.derived_from:
-            self.derived_longhands.setdefault(name, []).append(longhand)
 
         return longhand
 

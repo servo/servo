@@ -260,14 +260,12 @@
     %>
     /// ${property.spec}
     pub mod ${property.ident} {
-        % if not property.derived_from:
-            #[allow(unused_imports)]
-            use cssparser::{Parser, BasicParseError, Token};
-            #[allow(unused_imports)]
-            use parser::{Parse, ParserContext};
-            #[allow(unused_imports)]
-            use properties::{UnparsedValue, ShorthandId};
-        % endif
+        #[allow(unused_imports)]
+        use cssparser::{Parser, BasicParseError, Token};
+        #[allow(unused_imports)]
+        use parser::{Parse, ParserContext};
+        #[allow(unused_imports)]
+        use properties::{UnparsedValue, ShorthandId};
         #[allow(unused_imports)]
         use values::{Auto, Either, None_, Normal};
         #[allow(unused_imports)]
@@ -319,106 +317,95 @@
                     Some(LonghandId::${property.camel_case});
                 % endif
 
-            % if not property.derived_from:
-                match value {
-                    DeclaredValue::Value(specified_value) => {
-                        % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
-                            if let Some(sf) = specified_value.get_system() {
-                                longhands::system_font::resolve_system_font(sf, context);
-                            }
-                        % endif
-                        % if not property.style_struct.inherited and property.logical:
-                            context.rule_cache_conditions.borrow_mut()
-                                .set_writing_mode_dependency(context.builder.writing_mode);
-                        % endif
-                        % if property.is_vector:
-                            // In the case of a vector property we want to pass
-                            // down an iterator so that this can be computed
-                            // without allocation
-                            //
-                            // However, computing requires a context, but the
-                            // style struct being mutated is on the context. We
-                            // temporarily remove it, mutate it, and then put it
-                            // back. Vector longhands cannot touch their own
-                            // style struct whilst computing, else this will
-                            // panic.
-                            let mut s =
-                                context.builder.take_${data.current_style_struct.name_lower}();
-                            {
-                                let iter = specified_value.compute_iter(context);
-                                s.set_${property.ident}(iter);
-                            }
-                            context.builder.put_${data.current_style_struct.name_lower}(s);
-                        % else:
-                            % if property.boxed:
-                            let computed = (**specified_value).to_computed_value(context);
-                            % else:
-                            let computed = specified_value.to_computed_value(context);
-                            % endif
-                            % if property.ident == "font_size":
-                                 specified::FontSize::cascade_specified_font_size(
-                                     context,
-                                     &specified_value,
-                                     computed,
-                                 );
-                            % else:
-                                context.builder.set_${property.ident}(computed)
-                            % endif
-                        % endif
-                    }
-                    DeclaredValue::WithVariables(_) => unreachable!(),
-                    DeclaredValue::CSSWideKeyword(keyword) => match keyword {
-                        % if not data.current_style_struct.inherited:
-                        CSSWideKeyword::Unset |
-                        % endif
-                        CSSWideKeyword::Initial => {
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_initial_font_size(context);
-                            % else:
-                                context.builder.reset_${property.ident}();
-                            % endif
-                        },
-                        % if data.current_style_struct.inherited:
-                        CSSWideKeyword::Unset |
-                        % endif
-                        CSSWideKeyword::Inherit => {
-                            % if not property.style_struct.inherited:
-                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
-                            % endif
-                            % if property.ident == "font_size":
-                                computed::FontSize::cascade_inherit_font_size(context);
-                            % else:
-                                context.builder.inherit_${property.ident}();
-                            % endif
+            match value {
+                DeclaredValue::Value(specified_value) => {
+                    % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
+                        if let Some(sf) = specified_value.get_system() {
+                            longhands::system_font::resolve_system_font(sf, context);
                         }
+                    % endif
+                    % if not property.style_struct.inherited and property.logical:
+                        context.rule_cache_conditions.borrow_mut()
+                            .set_writing_mode_dependency(context.builder.writing_mode);
+                    % endif
+                    % if property.is_vector:
+                        // In the case of a vector property we want to pass
+                        // down an iterator so that this can be computed
+                        // without allocation
+                        //
+                        // However, computing requires a context, but the
+                        // style struct being mutated is on the context. We
+                        // temporarily remove it, mutate it, and then put it
+                        // back. Vector longhands cannot touch their own
+                        // style struct whilst computing, else this will
+                        // panic.
+                        let mut s =
+                            context.builder.take_${data.current_style_struct.name_lower}();
+                        {
+                            let iter = specified_value.compute_iter(context);
+                            s.set_${property.ident}(iter);
+                        }
+                        context.builder.put_${data.current_style_struct.name_lower}(s);
+                    % else:
+                        % if property.boxed:
+                        let computed = (**specified_value).to_computed_value(context);
+                        % else:
+                        let computed = specified_value.to_computed_value(context);
+                        % endif
+                        % if property.ident == "font_size":
+                             specified::FontSize::cascade_specified_font_size(
+                                 context,
+                                 &specified_value,
+                                 computed,
+                             );
+                        % else:
+                            context.builder.set_${property.ident}(computed)
+                        % endif
+                    % endif
+                }
+                DeclaredValue::WithVariables(_) => unreachable!(),
+                DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+                    % if not data.current_style_struct.inherited:
+                    CSSWideKeyword::Unset |
+                    % endif
+                    CSSWideKeyword::Initial => {
+                        % if property.ident == "font_size":
+                            computed::FontSize::cascade_initial_font_size(context);
+                        % else:
+                            context.builder.reset_${property.ident}();
+                        % endif
+                    },
+                    % if data.current_style_struct.inherited:
+                    CSSWideKeyword::Unset |
+                    % endif
+                    CSSWideKeyword::Inherit => {
+                        % if not property.style_struct.inherited:
+                            context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                        % endif
+                        % if property.ident == "font_size":
+                            computed::FontSize::cascade_inherit_font_size(context);
+                        % else:
+                            context.builder.inherit_${property.ident}();
+                        % endif
                     }
                 }
-
-                % if property.custom_cascade and property.custom_cascade_function:
-                    ${property.custom_cascade_function}(declaration, context);
-                % elif property.custom_cascade:
-                    cascade_property_custom(declaration, context);
-                % endif
-            % else:
-                // Do not allow stylesheets to set derived properties.
-            % endif
-        }
-        % if not property.derived_from:
-            pub fn parse_declared<'i, 't>(
-                context: &ParserContext,
-                input: &mut Parser<'i, 't>,
-            ) -> Result<PropertyDeclaration, ParseError<'i>> {
-                % if property.allow_quirks:
-                    parse_quirky(context, input, specified::AllowQuirks::Yes)
-                % else:
-                    parse(context, input)
-                % endif
-                % if property.boxed:
-                    .map(Box::new)
-                % endif
-                    .map(PropertyDeclaration::${property.camel_case})
             }
-        % endif
+        }
+
+        pub fn parse_declared<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<PropertyDeclaration, ParseError<'i>> {
+            % if property.allow_quirks:
+                parse_quirky(context, input, specified::AllowQuirks::Yes)
+            % else:
+                parse(context, input)
+            % endif
+            % if property.boxed:
+                .map(Box::new)
+            % endif
+                .map(PropertyDeclaration::${property.camel_case})
+        }
     }
 </%def>
 
