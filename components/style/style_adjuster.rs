@@ -479,7 +479,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
                 let inline_display = self_display.inlinify();
                 if self_display != inline_display {
-                    self.style.mutate_box().set_display(inline_display);
+                    self.style.mutate_box().set_adjusted_display(inline_display, false);
                 }
             }
         }
