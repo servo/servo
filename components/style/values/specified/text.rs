@@ -6,8 +6,6 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
-#[cfg(feature = "servo")]
-use properties::{longhands, PropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::fmt;
@@ -280,13 +278,6 @@ impl TextDecorationLine {
     /// Returns the initial value of text-decoration-line
     pub fn none() -> Self {
         TextDecorationLine::NONE
-    }
-
-    #[cfg(feature = "servo")]
-    #[inline]
-    /// Custom cascade for the text-decoration-line property in servo
-    pub fn cascade_property_custom(_declaration: &PropertyDeclaration, context: &mut Context) {
-        longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
     }
 }
 

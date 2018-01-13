@@ -4,6 +4,8 @@
 
 //! Computed types for text properties.
 
+#[cfg(feature = "servo")]
+use properties::StyleBuilder;
 use std::fmt;
 use style_traits::ToCss;
 use values::{CSSInteger, CSSFloat};
@@ -101,5 +103,47 @@ impl ToCss for TextDecorationLine {
         }
 
         Ok(())
+    }
+}
+
+/// A struct that represents the _used_ value of the text-decoration property.
+///
+/// FIXME(emilio): This is done at style resolution time, though probably should
+/// be done at layout time, otherwise we need to account for display: contents
+/// and similar stuff when we implement it.
+///
+/// FIXME(emilio): Also, should be just a bitfield instead of three bytes.
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
+pub struct TextDecorationsInEffect {
+    /// Whether an underline is in effect.
+    pub underline: bool,
+    /// Whether an overline decoration is in effect.
+    pub overline: bool,
+    /// Whether a line-through style is in effect.
+    pub line_through: bool,
+}
+
+impl TextDecorationsInEffect {
+    /// Computes the text-decorations in effect for a given style.
+    #[cfg(feature = "servo")]
+    pub fn from_style(style: &StyleBuilder) -> Self {
+        use values::computed::Display;
+
+        // Start with no declarations if this is an atomic inline-level box;
+        // otherwise, start with the declarations in effect and add in the text
+        // decorations that this block specifies.
+        let mut result = match style.get_box().clone_display() {
+            Display::InlineBlock |
+            Display::InlineTable => Self::default(),
+            _ => style.get_parent_inheritedtext().text_decorations_in_effect.clone(),
+        };
+
+        let text_style = style.get_text();
+
+        result.underline |= text_style.has_underline();
+        result.overline |= text_style.has_overline();
+        result.line_through |= text_style.has_line_through();
+
+        result
     }
 }

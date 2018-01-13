@@ -7,15 +7,11 @@
 use Atom;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-#[cfg(feature = "servo")]
-use properties::{longhands, PropertyDeclaration};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt;
 use style_traits::{ParseError, ToCss, StyleParseErrorKind};
 use values::CustomIdent;
 use values::KeyframesName;
-#[cfg(feature = "servo")]
-use values::computed::Context;
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use values::specified::{AllowQuirks, Number};
@@ -219,16 +215,6 @@ impl Display {
             Display::WebkitBox => Display::WebkitInlineBox,
             other => other,
         }
-    }
-
-    #[cfg(feature = "servo")]
-    #[inline]
-    /// Custom cascade for the `display` property in servo
-    pub fn cascade_property_custom(
-        _declaration: &PropertyDeclaration,
-        context: &mut Context
-    ) {
-        longhands::_servo_text_decorations_in_effect::derive_from_display(context);
     }
 }
 
