@@ -4609,7 +4609,8 @@ fn static_assert() {
 
     pub fn clone_image_orientation(&self) -> longhands::image_orientation::computed_value::T {
         use gecko_bindings::structs::nsStyleImageOrientation_Angles;
-        use properties::longhands::image_orientation::computed_value::{Orientation, T};
+        use properties::longhands::image_orientation::computed_value::T;
+        use values::computed::Orientation;
 
         let gecko_orientation = self.gecko.mImageOrientation.mOrientation;
         if gecko_orientation & structs::nsStyleImageOrientation_Bits_FROM_IMAGE_MASK as u8 != 0 {
