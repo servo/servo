@@ -278,7 +278,7 @@ class CommandBase(object):
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
-        self.config["build"].setdefault("incremental", False)
+        self.config["build"].setdefault("incremental", None)
         self.config["build"].setdefault("thinlto", False)
 
         self.config.setdefault("android", {})
@@ -439,6 +439,8 @@ class CommandBase(object):
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
+        elif self.config["build"]["incremental"] is not None:
+            env["CARGO_INCREMENTAL"] = "0"
 
         if extra_lib:
             if sys.platform == "darwin":

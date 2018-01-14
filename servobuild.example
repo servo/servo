@@ -40,8 +40,10 @@ debug-mozjs = false
 # Any optional flags that will be added to $RUSTFLAGS
 #rustflags = ""
 
-# Enable rustc’s incremental compilation
+# Enable or disable rustc’s incremental compilation
+# The default is enabled in debug mode only.
 #incremental = false
+#incremental = true
 
 # Whether to use ThinLTO or not
 #thinlto = false
