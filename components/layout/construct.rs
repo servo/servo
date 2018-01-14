@@ -109,7 +109,10 @@ pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragments(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
-    Whitespace(OpaqueNode, PseudoElementType<()>, ServoArc<ComputedValues>, RestyleDamage),
+    ///
+    /// FIXME(emilio): How could whitespace have any PseudoElementType other
+    /// than Normal?
+    Whitespace(OpaqueNode, PseudoElementType, ServoArc<ComputedValues>, RestyleDamage),
     /// TableColumn Fragment
     TableColumnFragment(Fragment),
 }
@@ -257,7 +260,7 @@ impl InlineFragmentsAccumulator {
             fragments: IntermediateInlineFragments::new(),
             enclosing_node: Some(InlineFragmentNodeInfo {
                 address: node.opaque(),
-                pseudo: node.get_pseudo_element_type().strip(),
+                pseudo: node.get_pseudo_element_type(),
                 style: node.style(style_context),
                 selected_style: node.selected_style(),
                 flags: InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT |
@@ -695,7 +698,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),
-                        node.get_pseudo_element_type().strip(),
+                        node.get_pseudo_element_type(),
                         style,
                         selected_style,
                         node.restyle_damage(),
@@ -715,7 +718,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     };
                     fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                             node.opaque(),
-                            node.get_pseudo_element_type().strip(),
+                            node.get_pseudo_element_type(),
                             style.clone(),
                             selected_style.clone(),
                             node.restyle_damage(),
@@ -851,7 +854,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 Box::new(UnscannedTextFragmentInfo::new(String::new(), None))
             );
             let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
-                                                                node.get_pseudo_element_type().strip(),
+                                                                node.get_pseudo_element_type(),
                                                                 node_style.clone(),
                                                                 node.selected_style(),
                                                                 node.restyle_damage(),
@@ -898,7 +901,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         if node.is_ignorable_whitespace(context) {
             return ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                 node.opaque(),
-                node.get_pseudo_element_type().strip(),
+                node.get_pseudo_element_type(),
                 context.stylist.style_for_anonymous(
                     &context.guards, &PseudoElement::ServoText, &style),
                 node.restyle_damage()))
@@ -951,7 +954,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
                 block_flow));
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
-                                                            node.get_pseudo_element_type().strip(),
+                                                            node.get_pseudo_element_type(),
                                                             style,
                                                             node.selected_style(),
                                                             node.restyle_damage(),
@@ -1392,7 +1395,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         if fragment.node != node.opaque() {
                             continue
                         }
-                        if fragment.pseudo != node.get_pseudo_element_type().strip() {
+                        if fragment.pseudo != node.get_pseudo_element_type() {
                             continue
                         }
 
@@ -1641,10 +1644,10 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
 
     fn construction_result_mut(self, data: &mut LayoutData) -> &mut ConstructionResult {
         match self.get_pseudo_element_type() {
-            PseudoElementType::Before(_) => &mut data.before_flow_construction_result,
-            PseudoElementType::After(_) => &mut data.after_flow_construction_result,
-            PseudoElementType::DetailsSummary(_) => &mut data.details_summary_flow_construction_result,
-            PseudoElementType::DetailsContent(_) => &mut data.details_content_flow_construction_result,
+            PseudoElementType::Before => &mut data.before_flow_construction_result,
+            PseudoElementType::After => &mut data.after_flow_construction_result,
+            PseudoElementType::DetailsSummary => &mut data.details_summary_flow_construction_result,
+            PseudoElementType::DetailsContent => &mut data.details_content_flow_construction_result,
             PseudoElementType::Normal    => &mut data.flow_construction_result,
         }
     }

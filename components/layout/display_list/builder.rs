@@ -2278,10 +2278,10 @@ impl FragmentDisplayListBuilding for Fragment {
     fn fragment_type(&self) -> FragmentType {
         match self.pseudo {
             PseudoElementType::Normal => FragmentType::FragmentBody,
-            PseudoElementType::Before(_) => FragmentType::BeforePseudoContent,
-            PseudoElementType::After(_) => FragmentType::AfterPseudoContent,
-            PseudoElementType::DetailsSummary(_) => FragmentType::FragmentBody,
-            PseudoElementType::DetailsContent(_) => FragmentType::FragmentBody,
+            PseudoElementType::Before => FragmentType::BeforePseudoContent,
+            PseudoElementType::After => FragmentType::AfterPseudoContent,
+            PseudoElementType::DetailsSummary => FragmentType::FragmentBody,
+            PseudoElementType::DetailsContent => FragmentType::FragmentBody,
         }
     }
 }
