@@ -63,7 +63,6 @@ use std::sync::atomic::Ordering;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
-use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, NodeInfo, OpaqueNode};
@@ -804,7 +803,7 @@ pub struct ServoThreadSafeLayoutNode<'ln> {
 
     /// The pseudo-element type, with (optionally)
     /// a specified display value to override the stylesheet.
-    pseudo: PseudoElementType<Option<display::T>>,
+    pseudo: PseudoElementType<()>,
 }
 
 impl<'a> PartialEq for ServoThreadSafeLayoutNode<'a> {
@@ -1083,7 +1082,7 @@ pub struct ServoThreadSafeLayoutElement<'le> {
 
     /// The pseudo-element type, with (optionally)
     /// a specified display value to override the stylesheet.
-    pseudo: PseudoElementType<Option<display::T>>,
+    pseudo: PseudoElementType<()>,
 }
 
 impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
@@ -1096,15 +1095,14 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         }
     }
 
-    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>> {
+    fn get_pseudo_element_type(&self) -> PseudoElementType<()> {
         self.pseudo
     }
 
-    fn with_pseudo(&self,
-                   pseudo: PseudoElementType<Option<display::T>>) -> Self {
+    fn with_pseudo(&self, pseudo: PseudoElementType<()>) -> Self {
         ServoThreadSafeLayoutElement {
             element: self.element.clone(),
-            pseudo: pseudo,
+            pseudo,
         }
     }
 

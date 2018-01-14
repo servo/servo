@@ -1473,15 +1473,7 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             None => {
                 // Pseudo-element.
                 let style = node.style(self.style_context());
-                let display = match node.get_pseudo_element_type() {
-                    PseudoElementType::Normal => Display::Inline,
-                    PseudoElementType::Before(maybe_display) |
-                    PseudoElementType::After(maybe_display) |
-                    PseudoElementType::DetailsContent(maybe_display) |
-                    PseudoElementType::DetailsSummary(maybe_display)
-                        => maybe_display.unwrap_or(style.get_box().display),
-                };
-                (display, style.get_box().float, style.get_box().position)
+                (style.get_box().display, style.get_box().float, style.get_box().position)
             }
             Some(LayoutNodeType::Element(_)) => {
                 let style = node.style(self.style_context());
