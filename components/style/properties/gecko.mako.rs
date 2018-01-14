@@ -3113,33 +3113,23 @@ fn static_assert() {
                                             gecko_enum_prefix="StyleDisplay",
                                             gecko_strip_moz_prefix=False) %>
 
-    pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
+    fn match_display_keyword(
+        v: longhands::display::computed_value::T
+    ) -> structs::root::mozilla::StyleDisplay {
         use properties::longhands::display::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        let result = match v {
+        match v {
             % for value in display_keyword.values_for('gecko'):
                 Keyword::${to_camel_case(value)} =>
                     structs::${display_keyword.gecko_constant(value)},
             % endfor
-        };
-        self.gecko.mDisplay = result;
-        self.gecko.mOriginalDisplay = result;
+        }
     }
 
-    /// Set the display value from the style adjustment code. This is pretty
-    /// much like set_display, but without touching the mOriginalDisplay field,
-    /// which we want to keep.
-    pub fn set_adjusted_display(&mut self,
-                                v: longhands::display::computed_value::T,
-                                _is_item_or_root: bool) {
-        use properties::longhands::display::computed_value::T as Keyword;
-        let result = match v {
-            % for value in display_keyword.values_for('gecko'):
-                Keyword::${to_camel_case(value)} =>
-                    structs::${display_keyword.gecko_constant(value)},
-            % endfor
-        };
+    pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
+        let result = Self::match_display_keyword(v);
         self.gecko.mDisplay = result;
+        self.gecko.mOriginalDisplay = result;
     }
 
     pub fn copy_display_from(&mut self, other: &Self) {
@@ -3149,6 +3139,14 @@ fn static_assert() {
 
     pub fn reset_display(&mut self, other: &Self) {
         self.copy_display_from(other)
+    }
+
+    pub fn set_adjusted_display(
+        &mut self,
+        v: longhands::display::computed_value::T,
+        _is_item_or_root: bool
+    ) {
+        self.gecko.mDisplay = Self::match_display_keyword(v);
     }
 
     <%call expr="impl_keyword_clone('display', 'mDisplay', display_keyword)"></%call>
