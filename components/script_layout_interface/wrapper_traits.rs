@@ -37,6 +37,16 @@ pub enum PseudoElementType {
 }
 
 impl PseudoElementType {
+    pub fn fragment_type(&self) -> FragmentType {
+        match *self {
+            PseudoElementType::Normal => FragmentType::FragmentBody,
+            PseudoElementType::Before => FragmentType::BeforePseudoContent,
+            PseudoElementType::After => FragmentType::AfterPseudoContent,
+            PseudoElementType::DetailsSummary => FragmentType::FragmentBody,
+            PseudoElementType::DetailsContent => FragmentType::FragmentBody,
+        }
+    }
+
     pub fn is_before(&self) -> bool {
         match *self {
             PseudoElementType::Before => true,
@@ -254,13 +264,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     fn get_rowspan(&self) -> u32;
 
     fn fragment_type(&self) -> FragmentType {
-        match self.get_pseudo_element_type() {
-            PseudoElementType::Normal => FragmentType::FragmentBody,
-            PseudoElementType::Before => FragmentType::BeforePseudoContent,
-            PseudoElementType::After => FragmentType::AfterPseudoContent,
-            PseudoElementType::DetailsSummary => FragmentType::FragmentBody,
-            PseudoElementType::DetailsContent => FragmentType::FragmentBody,
-        }
+        self.get_pseudo_element_type().fragment_type()
     }
 
     fn generate_scroll_root_id(&self, pipeline_id: PipelineId) -> ClipId {
