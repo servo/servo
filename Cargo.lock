@@ -241,16 +241,16 @@ dependencies = [
 
 [[package]]
 name = "brotli"
-version = "1.0.8"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "brotli-decompressor 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "brotli-decompressor 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "brotli-decompressor"
-version = "1.0.9"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1934,7 +1934,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "brotli 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3787,8 +3787,8 @@ dependencies = [
 "checksum blurmac 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "72af3718b3f652fb2026bf9d9dd5f92332cd287884283c343f03fff16cbb0172"
 "checksum blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "68dd72da3a3bb40f3d3bdd366c4cf8e2b1d208c366304f382c80cef8126ca8da"
 "checksum blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e73bda0f4c71c63a047351070097f3f507e6718e86b9ee525173371ef7b94b73"
-"checksum brotli 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "951f20a2cc403194b2746d9ac6f796292e3c0344e983c72c7d6bd6cff6c3d102"
-"checksum brotli-decompressor 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)" = "e80402aa0457c3c03d3996a36af7c1e7efa2ad97ee8ec7c2761b07666bab5566"
+"checksum brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "fe87b40996b84fdc56e57c165d93079f4b50cb806598118e692ddfaa3d3c57c0"
+"checksum brotli-decompressor 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "313f4b6cc0b365d6b88eda5aa40175ee34ac6efa9a79e0b3b8202eca90247ba8"
 "checksum browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)" = "<none>"
 "checksum byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "652805b7e73fada9d85e9a6682a4abd490cb52d96aeecc12e33a0de34dfd0d23"
 "checksum bytes 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c129aff112dcc562970abb69e2508b40850dd24c274761bb50fb8a0067ba6c27"
