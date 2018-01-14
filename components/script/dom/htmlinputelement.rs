@@ -8,6 +8,7 @@ use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
+use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
@@ -60,6 +61,63 @@ const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
+const AUTOCOMPLETE_VALID_VALUES: [&str; 55] = [
+    "on",
+    "off",
+    "name",
+    "honorific-prefix",
+    "given-name",
+    "additional-name",
+    "family-name",
+    "honorific-suffix",
+    "nickname",
+    "username",
+    "new-password",
+    "current-password",
+    "organization-title",
+    "organization",
+    "street-address",
+    "address-line1",
+    "address-line2",
+    "address-line3",
+    "address-level4",
+    "address-level3",
+    "address-level2",
+    "address-level1",
+    "country",
+    "country-name",
+    "postal-code",
+    "cc-name",
+    "cc-given-name",
+    "cc-additional-name",
+    "cc-family-name",
+    "cc-number",
+    "cc-exp",
+    "cc-exp-month",
+    "cc-exp-year",
+    "cc-csc",
+    "cc-type",
+    "transaction-currency",
+    "transaction-amount",
+    "language",
+    "bday",
+    "bday-day",
+    "bday-month",
+    "bday-year",
+    "sex",
+    "url",
+    "photo",
+    "tel",
+    "tel-country-code",
+    "tel-national",
+    "tel-area-code",
+    "tel-local",
+    "tel-local-prefix",
+    "tel-local-suffix",
+    "tel-extension",
+    "email",
+    "impp"
+];
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
@@ -431,6 +489,35 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_setter!(SetAlt, "alt");
+
+    // https://html.spec.whatwg.org/multipage/#attr-fe-autocomplete
+    fn Autocomplete(&self) -> DOMString {
+        let element = self.upcast::<Element>();
+        let mut val = element.get_string_attribute(&local_name!("autocomplete"));
+        val.make_ascii_lowercase();
+
+        let val = DOMString::from(val.trim());
+
+        match &*val {
+            "" => {
+                match self.GetForm() {
+                    Some(ref elem) => (*elem).Autocomplete(),
+                    None => DOMString::from("on")
+                }
+            },
+            _ => {
+                for allowed in AUTOCOMPLETE_VALID_VALUES.iter() {
+                    if allowed == &&*val {
+                        return val
+                    }
+                }
+                DOMString::from("")
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#attr-fe-autocomplete
+    make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-dirName
     make_getter!(DirName, "dirname");

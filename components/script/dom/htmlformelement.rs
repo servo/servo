@@ -106,7 +106,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     make_setter!(SetAction, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
-    make_enumerated_getter!(Autocomplete, "autocomplete", "on", "off");
+    make_enumerated_getter!(Autocomplete, "autocomplete", "on", "on" | "off");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
     make_setter!(SetAutocomplete, "autocomplete");
