@@ -358,13 +358,9 @@ pub trait ThreadSafeLayoutElement
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
         if self.get_local_name() == &local_name!("details") &&
-           self.get_namespace() == &ns!(html) {
-            let display = if self.get_attr(&ns!(), &local_name!("open")).is_some() {
-                None // Specified by the stylesheet
-            } else {
-                Some(Display::None)
-            };
-            Some(self.with_pseudo(PseudoElementType::DetailsContent(display)))
+           self.get_namespace() == &ns!(html) &&
+           self.get_attr(&ns!(), &local_name!("open")).is_some() {
+            Some(self.with_pseudo(PseudoElementType::DetailsContent(None)))
         } else {
             None
         }
