@@ -20,7 +20,7 @@ geckoservo = {path = "../../../ports/geckolib"}
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 malloc_size_of = {path = "../../../components/malloc_size_of"}
-selectors = {path = "../../../components/selectors", features = ["gecko_like_types"]}
+selectors = {path = "../../../components/selectors"}
 size_of_test = {path = "../../../components/size_of_test"}
 smallvec = "0.6"
 style_traits = {path = "../../../components/style_traits"}

@@ -9,9 +9,10 @@ use element_state::{DocumentState, ElementState};
 use gecko_bindings::structs::{self, CSSPseudoClassType};
 use gecko_bindings::structs::RawServoSelectorList;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use invalidation::element::document_state::InvalidationMatchingData;
 use selector_parser::{Direction, SelectorParser};
 use selectors::SelectorList;
-use selectors::parser::{self as selector_parser, Selector, SelectorMethods, SelectorParseErrorKind};
+use selectors::parser::{self as selector_parser, Selector, Visit, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -36,9 +37,8 @@ pub type PseudoClassStringArg = Box<[u16]>;
 
 macro_rules! pseudo_class_name {
     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-     string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
-     keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
-        #[doc = "Our representation of a non tree-structural pseudo-class."]
+     string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+        /// Our representation of a non tree-structural pseudo-class.
         #[derive(Clone, Debug, Eq, PartialEq)]
         pub enum NonTSPseudoClass {
             $(
@@ -49,10 +49,6 @@ macro_rules! pseudo_class_name {
                 #[doc = $s_css]
                 $s_name(PseudoClassStringArg),
             )*
-            $(
-                #[doc = $k_css]
-                $k_name(Box<[u16]>),
-            )*
             /// The `:dir` pseudo-class.
             Dir(Box<Direction>),
             /// The non-standard `:-moz-any` pseudo-class.
@@ -60,6 +56,8 @@ macro_rules! pseudo_class_name {
             /// TODO(emilio): We disallow combinators and pseudos here, so we
             /// should use SimpleSelector instead
             MozAny(Box<[Selector<SelectorImpl>]>),
+            /// The non-standard `:-moz-locale-dir` pseudo-class.
+            MozLocaleDir(Box<Direction>),
         }
     }
 }
@@ -71,8 +69,7 @@ impl ToCss for NonTSPseudoClass {
         use fmt::Write;
         macro_rules! pseudo_class_serialize {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
-             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     $(NonTSPseudoClass::$s_name(ref s) => {
@@ -87,16 +84,14 @@ impl ToCss for NonTSPseudoClass {
                         }
                         return dest.write_str(")")
                     }, )*
-                    $(NonTSPseudoClass::$k_name(ref s) => {
-                        // Don't include the terminating nul.
-                        let value = String::from_utf16(&s[..s.len() - 1]).unwrap();
-                        dest.write_str(concat!(":", $k_css, "("))?;
-                        dest.write_str(&value)?;
+                    NonTSPseudoClass::MozLocaleDir(ref dir) => {
+                        dest.write_str(":-moz-locale-dir(")?;
+                        dir.to_css(dest)?;
                         return dest.write_char(')')
-                    }, )*
+                    },
                     NonTSPseudoClass::Dir(ref dir) => {
                         dest.write_str(":dir(")?;
-                        (**dir).to_css(dest)?;
+                        dir.to_css(dest)?;
                         return dest.write_char(')')
                     },
                     NonTSPseudoClass::MozAny(ref selectors) => {
@@ -118,7 +113,7 @@ impl ToCss for NonTSPseudoClass {
     }
 }
 
-impl SelectorMethods for NonTSPseudoClass {
+impl Visit for NonTSPseudoClass {
     type Impl = SelectorImpl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -146,13 +141,14 @@ impl NonTSPseudoClass {
         }
         macro_rules! pseudo_class_check_is_enabled_in {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
-            keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
+            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
                     $(NonTSPseudoClass::$s_name(..) => check_flag!($s_flags),)*
-                    $(NonTSPseudoClass::$k_name(..) => check_flag!($k_flags),)*
-                    NonTSPseudoClass::Dir(_) => false,
+                    // TODO(emilio): Maybe -moz-locale-dir shouldn't be
+                    // content-exposed.
+                    NonTSPseudoClass::MozLocaleDir(_) |
+                    NonTSPseudoClass::Dir(_) |
                     NonTSPseudoClass::MozAny(_) => false,
                 }
             }
@@ -191,13 +187,12 @@ impl NonTSPseudoClass {
         }
         macro_rules! pseudo_class_state {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
-             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
-                    $(NonTSPseudoClass::$k_name(..) => flag!($k_state),)*
-                    NonTSPseudoClass::Dir(..) => ElementState::empty(),
+                    NonTSPseudoClass::Dir(..) |
+                    NonTSPseudoClass::MozLocaleDir(..) |
                     NonTSPseudoClass::MozAny(..) => ElementState::empty(),
                 }
             }
@@ -256,12 +251,11 @@ impl NonTSPseudoClass {
         }
         macro_rules! pseudo_class_geckotype {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
-             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
                     $(NonTSPseudoClass::$s_name(..) => gecko_type!($s_gecko_type),)*
-                    $(NonTSPseudoClass::$k_name(..) => gecko_type!($k_gecko_type),)*
+                    NonTSPseudoClass::MozLocaleDir(_) => gecko_type!(mozLocaleDir),
                     NonTSPseudoClass::Dir(_) => gecko_type!(dir),
                     NonTSPseudoClass::MozAny(_) => gecko_type!(any),
                 }
@@ -285,6 +279,7 @@ impl NonTSPseudoClass {
 pub struct SelectorImpl;
 
 impl ::selectors::SelectorImpl for SelectorImpl {
+    type ExtraMatchingData = InvalidationMatchingData;
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;
@@ -353,8 +348,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
-             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => NonTSPseudoClass::$name,)*
                     _ => return Err(location.new_custom_error(
@@ -378,8 +372,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_string_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
-             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($s_css => {
                         let name = parser.expect_ident_or_string()?;
@@ -388,23 +381,15 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                         let utf16: Vec<u16> = name.encode_utf16().chain(Some(0u16)).collect();
                         NonTSPseudoClass::$s_name(utf16.into_boxed_slice())
                     }, )*
-                    $($k_css => {
-                        let name = parser.expect_ident()?;
-                        // Convert to ASCII-lowercase nul-terminated UTF-16 string.
-                        let utf16: Vec<u16> = name.encode_utf16().map(utf16_to_ascii_lowercase)
-                            .chain(Some(0u16)).collect();
-                        NonTSPseudoClass::$k_name(utf16.into_boxed_slice())
-                    }, )*
+                    "-moz-locale-dir" => {
+                        NonTSPseudoClass::MozLocaleDir(
+                            Box::new(Direction::parse(parser)?)
+                        )
+                    },
                     "dir" => {
-                        let name: &str = parser.expect_ident()?;
-                        let direction = match_ignore_ascii_case! { name,
-                            "rtl" => Direction::Rtl,
-                            "ltr" => Direction::Ltr,
-                            _ => {
-                                Direction::Other(Box::from(name))
-                            },
-                        };
-                        NonTSPseudoClass::Dir(Box::new(direction))
+                        NonTSPseudoClass::Dir(
+                            Box::new(Direction::parse(parser)?)
+                        )
                     },
                     "-moz-any" => {
                         NonTSPseudoClass::MozAny(
@@ -493,13 +478,6 @@ impl SelectorImpl {
         for pseudo in &EAGER_PSEUDOS {
             fun(pseudo.clone())
         }
-    }
-}
-
-fn utf16_to_ascii_lowercase(unit: u16) -> u16 {
-    match unit {
-        65...90 => unit + 32, // A-Z => a-z
-        _ => unit
     }
 }
 

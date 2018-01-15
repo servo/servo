@@ -1597,4 +1597,8 @@ extern "C" {
  pub fn Gecko_GetElementsWithId ( aDocument : * const nsIDocument , aId : * mut nsAtom , ) -> * const nsTArray < * mut Element > ; 
 } extern "C" {
  pub fn Gecko_GetBoolPrefValue ( pref_name : * const :: std :: os :: raw :: c_char , ) -> bool ; 
+} extern "C" {
+ pub fn Gecko_IsInServoTraversal ( ) -> bool ; 
+} extern "C" {
+ pub fn Gecko_IsMainThread ( ) -> bool ; 
 }

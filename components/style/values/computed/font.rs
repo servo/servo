@@ -482,7 +482,7 @@ impl SingleFontFamily {
                 name: (&*family.mName).into(),
                 syntax: FamilyNameSyntax::Quoted,
             }),
-            x => panic!("Found unexpected font FontFamilyType: {:?}", x),
+            _ => panic!("Found unexpected font FontFamilyType"),
         }
     }
 }

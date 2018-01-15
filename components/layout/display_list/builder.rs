@@ -14,9 +14,10 @@ use app_units::{Au, AU_PER_PX};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
+use display_list::ToLayout;
 use display_list::background::{compute_background_image_size, tile_image_axis};
 use display_list::background::{convert_linear_gradient, convert_radial_gradient};
-use display_list::webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
+use display_list::webrender_helpers::ToBorderRadius;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Transform3D, TypedRect, TypedSize2D, Vector2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, FlowFlags};
@@ -26,7 +27,7 @@ use fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFrag
 use fragment::SpecificFragmentInfo;
 use gfx::display_list;
 use gfx::display_list::{BaseDisplayItem, BorderDetails, BorderDisplayItem, BLUR_INFLATION_FACTOR};
-use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClipScrollNode};
+use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClipScrollNode};
 use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
 use gfx::display_list::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{DisplayListSection, GradientDisplayItem, IframeDisplayItem, ImageBorder};
@@ -76,7 +77,7 @@ use style_traits::CSSPixel;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_api::{ClipId, ClipMode, ColorF, ComplexClipRegion, LineStyle};
+use webrender_api::{BoxShadowClipMode, ClipId, ClipMode, ColorF, ComplexClipRegion, LineStyle};
 use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, StickyOffsetBounds};
 
 trait ResolvePercentage {
@@ -914,15 +915,15 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let clip = if !border_radii.is_square() {
             LocalClip::RoundedRect(
-                bounds.to_rectf(),
+                bounds.to_layout(),
                 ComplexClipRegion::new(
-                    bounds.to_rectf(),
+                    bounds.to_layout(),
                     border_radii.to_border_radius(),
                     ClipMode::Clip,
                 ),
             )
         } else {
-            LocalClip::Rect(bounds.to_rectf())
+            LocalClip::Rect(bounds.to_layout())
         };
 
         let base = state.create_base_display_item(
@@ -934,7 +935,7 @@ impl FragmentDisplayListBuilding for Fragment {
         );
         state.add_display_item(DisplayItem::SolidColor(Box::new(SolidColorDisplayItem {
             base: base,
-            color: background_color.to_gfx_color(),
+            color: background_color.to_layout(),
         })));
 
         // The background image is painted on top of the background color.
@@ -1118,7 +1119,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Create the image display item.
         let base = state.create_base_display_item(
             &placement.bounds,
-            LocalClip::Rect(placement.css_clip.to_rectf()),
+            LocalClip::Rect(placement.css_clip.to_layout()),
             self.node,
             style.get_cursor(Cursor::Default),
             display_list_section,
@@ -1210,7 +1211,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let base = state.create_base_display_item(
             &placement.bounds,
-            LocalClip::Rect(placement.css_clip.to_rectf()),
+            LocalClip::Rect(placement.css_clip.to_layout()),
             self.node,
             style.get_cursor(Cursor::Default),
             display_list_section,
@@ -1271,7 +1272,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
             let base = state.create_base_display_item(
                 &bounds,
-                LocalClip::from(clip.to_rectf()),
+                LocalClip::from(clip.to_layout()),
                 self.node,
                 style.get_cursor(Cursor::Default),
                 display_list_section,
@@ -1284,7 +1285,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     .base
                     .color
                     .unwrap_or(style.get_color().color)
-                    .to_gfx_color(),
+                    .to_layout(),
                 offset: Vector2D::new(
                     Au::from(box_shadow.base.horizontal),
                     Au::from(box_shadow.base.vertical),
@@ -1367,7 +1368,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Append the border to the display list.
         let base = state.create_base_display_item(
             &bounds,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             style.get_cursor(Cursor::Default),
             display_list_section,
@@ -1380,10 +1381,10 @@ impl FragmentDisplayListBuilding for Fragment {
                     border_widths: border.to_physical(style.writing_mode),
                     details: BorderDetails::Normal(NormalBorder {
                         color: SideOffsets2D::new(
-                            colors.top.to_gfx_color(),
-                            colors.right.to_gfx_color(),
-                            colors.bottom.to_gfx_color(),
-                            colors.left.to_gfx_color(),
+                            colors.top.to_layout(),
+                            colors.right.to_layout(),
+                            colors.bottom.to_layout(),
+                            colors.left.to_layout(),
                         ),
                         style: border_style,
                         radius: build_border_radius(&bounds, border_style_struct),
@@ -1533,10 +1534,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // Append the outline to the display list.
         let color = style
             .resolve_color(style.get_outline().outline_color)
-            .to_gfx_color();
+            .to_layout();
         let base = state.create_base_display_item(
             &bounds,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             style.get_cursor(Cursor::Default),
             DisplayListSection::Outlines,
@@ -1567,7 +1568,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Compute the text fragment bounds and draw a border surrounding them.
         let base = state.create_base_display_item(
             stacking_relative_border_box,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             style.get_cursor(Cursor::Default),
             DisplayListSection::Content,
@@ -1594,7 +1595,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let base = state.create_base_display_item(
             &baseline,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             style.get_cursor(Cursor::Default),
             DisplayListSection::Content,
@@ -1615,7 +1616,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // This prints a debug border around the border of this fragment.
         let base = state.create_base_display_item(
             stacking_relative_border_box,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             self.style.get_cursor(Cursor::Default),
             DisplayListSection::Content,
@@ -1653,14 +1654,14 @@ impl FragmentDisplayListBuilding for Fragment {
             let background_color = style.resolve_color(style.get_background().background_color);
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
-                LocalClip::from(clip.to_rectf()),
+                LocalClip::from(clip.to_layout()),
                 self.node,
                 self.style.get_cursor(Cursor::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::SolidColor(Box::new(SolidColorDisplayItem {
                 base: base,
-                color: background_color.to_gfx_color(),
+                color: background_color.to_layout(),
             })));
         }
 
@@ -1705,14 +1706,14 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let base = state.create_base_display_item(
             &insertion_point_bounds,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             self.style.get_cursor(cursor),
             display_list_section,
         );
         state.add_display_item(DisplayItem::SolidColor(Box::new(SolidColorDisplayItem {
             base: base,
-            color: self.style().get_color().color.to_gfx_color(),
+            color: self.style().get_color().color.to_layout(),
         })));
     }
 
@@ -1869,15 +1870,15 @@ impl FragmentDisplayListBuilding for Fragment {
             let radii = build_border_radius_for_inner_rect(&stacking_relative_border_box, style);
             if !radii.is_square() {
                 LocalClip::RoundedRect(
-                    stacking_relative_border_box.to_rectf(),
+                    stacking_relative_border_box.to_layout(),
                     ComplexClipRegion::new(
-                        stacking_relative_content_box.to_rectf(),
+                        stacking_relative_content_box.to_layout(),
                         radii.to_border_radius(),
                         ClipMode::Clip,
                     ),
                 )
             } else {
-                LocalClip::Rect(stacking_relative_border_box.to_rectf())
+                LocalClip::Rect(stacking_relative_border_box.to_layout())
             }
         };
 
@@ -2096,12 +2097,9 @@ impl FragmentDisplayListBuilding for Fragment {
             &overflow,
             self.effective_z_index(),
             filters.into(),
-            self.style()
-                .get_effects()
-                .mix_blend_mode
-                .to_mix_blend_mode(),
+            self.style().get_effects().mix_blend_mode.to_layout(),
             self.transform_matrix(&border_box),
-            self.style().get_used_transform_style().to_transform_style(),
+            self.style().get_used_transform_style().to_layout(),
             self.perspective_matrix(&border_box),
             scroll_policy,
             parent_clipping_and_scrolling,
@@ -2149,7 +2147,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Base item for all text/shadows
         let base = state.create_base_display_item(
             &stacking_relative_content_box,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             self.style().get_cursor(cursor),
             DisplayListSection::Content,
@@ -2168,7 +2166,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     color: shadow
                         .color
                         .unwrap_or(self.style().get_color().color)
-                        .to_gfx_color(),
+                        .to_layout(),
                 },
             )));
         }
@@ -2215,7 +2213,7 @@ impl FragmentDisplayListBuilding for Fragment {
             base: base.clone(),
             text_run: text_fragment.run.clone(),
             range: text_fragment.range,
-            text_color: text_color.to_gfx_color(),
+            text_color: text_color.to_layout(),
             orientation: orientation,
             baseline_origin: baseline_origin,
         })));
@@ -2258,7 +2256,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_box.to_physical(self.style.writing_mode, container_size);
         let base = state.create_base_display_item(
             &stacking_relative_box,
-            LocalClip::from(clip.to_rectf()),
+            LocalClip::from(clip.to_layout()),
             self.node,
             self.style.get_cursor(Cursor::Default),
             DisplayListSection::Content,
@@ -2266,7 +2264,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         state.add_display_item(DisplayItem::Line(Box::new(LineDisplayItem {
             base: base,
-            color: color.to_gfx_color(),
+            color: color.to_layout(),
             style: LineStyle::Solid,
         })));
     }
@@ -2736,10 +2734,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         // If we already have a scroll root for this flow, just return. This can happen
         // when fragments map to more than one flow, such as in the case of table
         // wrappers. We just accept the first scroll root in that case.
-        let new_clip_scroll_node_id = ClipId::new(
-            self.fragment.unique_id(),
-            state.pipeline_id.to_webrender(),
-        );
+        let new_clip_scroll_node_id =
+            ClipId::new(self.fragment.unique_id(), state.pipeline_id.to_webrender());
 
         let sensitivity = if StyleOverflow::Hidden == self.fragment.style.get_box().overflow_x &&
             StyleOverflow::Hidden == self.fragment.style.get_box().overflow_y
@@ -3145,7 +3141,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
         color.a = 1.0;
         let base = state.create_base_display_item(
             &stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2)),
-            LocalClip::from(self.clip.to_rectf()),
+            LocalClip::from(self.clip.to_layout()),
             node,
             None,
             DisplayListSection::Content,
@@ -3205,23 +3201,6 @@ fn modify_border_width_for_inline_sides(
 
     if !inline_border_info.is_last_fragment_of_element {
         border_width.inline_end = Au(0);
-    }
-}
-
-/// Allows a CSS color to be converted into a graphics color.
-pub trait ToGfxColor {
-    /// Converts a CSS color to a graphics color.
-    fn to_gfx_color(&self) -> ColorF;
-}
-
-impl ToGfxColor for RGBA {
-    fn to_gfx_color(&self) -> ColorF {
-        ColorF::new(
-            self.red_f32(),
-            self.green_f32(),
-            self.blue_f32(),
-            self.alpha_f32(),
-        )
     }
 }
 

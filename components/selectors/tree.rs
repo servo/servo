@@ -15,7 +15,7 @@ use std::fmt::Debug;
 /// Opaque representation of an Element, for identity comparisons. We use
 /// NonZeroPtrMut to get the NonZero optimization.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct OpaqueElement(pub NonZeroPtrMut<()>);
+pub struct OpaqueElement(NonZeroPtrMut<()>);
 
 impl OpaqueElement {
     /// Creates a new OpaqueElement from an arbitrarily-typed pointer.

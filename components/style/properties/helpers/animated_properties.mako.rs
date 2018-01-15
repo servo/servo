@@ -178,7 +178,7 @@ impl From<nsCSSPropertyID> for TransitionProperty {
             % endfor
             nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
             _ => {
-                panic!("non-convertible nsCSSPropertyID::{:?}", property)
+                panic!("non-convertible nsCSSPropertyID")
             }
         }
     }
@@ -552,7 +552,7 @@ impl Animate for AnimationValue {
             % endif
             % endfor
             _ => {
-                panic!("Unexpected AnimationValue::animate call, got: {:?}, {:?}", self, other);
+                panic!("Unexpected AnimationValue::animate call");
             }
         };
         Ok(value)
@@ -582,11 +582,7 @@ impl ComputeSquaredDistance for AnimationValue {
             % endif
             % endfor
             _ => {
-                panic!(
-                    "computed values should be of the same property, got: {:?}, {:?}",
-                    self,
-                    other
-                );
+                panic!("computed values should be of the same property");
             },
         }
     }

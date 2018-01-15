@@ -161,27 +161,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
     }
 </%helpers:single_keyword_computed>
 
-<%helpers:longhand name="-servo-display-for-hypothetical-box"
-                   animation_value_type="none"
-                   derived_from="display"
-                   products="servo"
-                   spec="Internal (not web-exposed)">
-    pub use super::display::{SpecifiedValue, get_initial_value};
-    pub use super::display::{parse};
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    #[inline]
-    pub fn derive_from_display(context: &mut Context) {
-        let d = context.style().get_box().clone_display();
-        context.builder.set__servo_display_for_hypothetical_box(d);
-    }
-
-</%helpers:longhand>
-
-
 ${helpers.predefined_type(
     "vertical-align",
     "VerticalAlign",
@@ -389,7 +368,7 @@ ${helpers.predefined_type("scroll-snap-destination",
                           "computed::Position::zero()",
                           products="gecko",
                           gecko_pref="layout.css.scroll-snap.enabled",
-                          boxed="True",
+                          boxed=True,
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
                           animation_value_type="discrete")}
 
@@ -505,7 +484,7 @@ ${helpers.predefined_type("perspective",
 ${helpers.predefined_type("perspective-origin",
                           "position::Position",
                           "computed::position::Position::center()",
-                          boxed="True",
+                          boxed=True,
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
                           animation_value_type="ComputedValue")}
@@ -589,7 +568,7 @@ ${helpers.single_keyword("-moz-appearance",
 
 ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
-                          boxed="True" if product == "gecko" else "False",
+                          boxed= product == "gecko",
                           animation_value_type="none",
                           gecko_ffi_name="mBinding",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)")}

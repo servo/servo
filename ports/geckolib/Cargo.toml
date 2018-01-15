@@ -22,11 +22,7 @@ log = {version = "0.3.5", features = ["release_max_level_info"]}
 malloc_size_of = {path = "../../components/malloc_size_of"}
 nsstring = {path = "../../support/gecko/nsstring"}
 parking_lot = "0.4"
-# Turn on gecko_like_types because of so that crates which use this
-# crate and also dev-depend on stylo_tests get reasonable behavior
-# during rebuilds.  See https://github.com/rust-lang/cargo/issues/3923
-# for the cargo problem behind this.
-selectors = {path = "../../components/selectors", features = ["gecko_like_types"]}
+selectors = {path = "../../components/selectors"}
 servo_arc = {path = "../../components/servo_arc"}
 smallvec = "0.6"
 style = {path = "../../components/style", features = ["gecko"]}

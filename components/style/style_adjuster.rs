@@ -193,7 +193,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if our_writing_mode != parent_writing_mode &&
            self.style.get_box().clone_display() == Display::Inline {
-            self.style.mutate_box().set_display(Display::InlineBlock);
+            // TODO(emilio): Figure out if we can just set the adjusted display
+            // on Gecko too and unify this code path.
+            if cfg!(feature = "servo") {
+                self.style.mutate_box().set_adjusted_display(
+                    Display::InlineBlock,
+                    false,
+                );
+            } else {
+                self.style.mutate_box().set_display(Display::InlineBlock);
+            }
         }
     }
 
@@ -470,7 +479,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             if !flags.contains(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
                 let inline_display = self_display.inlinify();
                 if self_display != inline_display {
-                    self.style.mutate_box().set_display(inline_display);
+                    self.style.mutate_box().set_adjusted_display(inline_display, false);
                 }
             }
         }

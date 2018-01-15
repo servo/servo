@@ -130,6 +130,9 @@ where
     /// should match when matching_mode is ForStatelessPseudoElement.
     pub pseudo_element_matching_fn: Option<&'a Fn(&Impl::PseudoElement) -> bool>,
 
+    /// Extra implementation-dependent matching data.
+    pub extra_data: Impl::ExtraMatchingData,
+
     quirks_mode: QuirksMode,
     classes_and_ids_case_sensitivity: CaseSensitivity,
     _impl: ::std::marker::PhantomData<Impl>,
@@ -173,6 +176,7 @@ where
             scope_element: None,
             nesting_level: 0,
             pseudo_element_matching_fn: None,
+            extra_data: Default::default(),
             _impl: ::std::marker::PhantomData,
         }
     }

@@ -12,13 +12,14 @@ use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr, Sour
 use dom::{OpaqueNode, TElement, TNode};
 use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
+use invalidation::element::document_state::InvalidationMatchingData;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
 use properties::PropertyFlags;
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::parser::{SelectorMethods, SelectorParseErrorKind};
+use selectors::parser::{Visit, SelectorParseErrorKind};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use std::mem;
@@ -311,7 +312,7 @@ impl ToCss for NonTSPseudoClass {
     }
 }
 
-impl SelectorMethods for NonTSPseudoClass {
+impl Visit for NonTSPseudoClass {
     type Impl = SelectorImpl;
 
 
@@ -377,6 +378,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
+    type ExtraMatchingData = InvalidationMatchingData;
     type AttrValue = String;
     type Identifier = Atom;
     type ClassName = Atom;

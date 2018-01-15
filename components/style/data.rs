@@ -246,8 +246,8 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        use invalidation::element::collector::StateAndAttrInvalidationProcessor;
         use invalidation::element::invalidator::TreeStyleInvalidator;
+        use invalidation::element::state_and_attributes::StateAndAttrInvalidationProcessor;
 
         debug!("invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
                 handled_snapshot: {}, pseudo: {:?}",
@@ -262,6 +262,8 @@ impl ElementData {
         }
 
         let mut xbl_stylists = SmallVec::<[_; 3]>::new();
+        // FIXME(emilio): This is wrong, needs to account for ::slotted rules
+        // that may apply to elements down the tree.
         let cut_off_inheritance =
             element.each_applicable_non_document_style_rule_data(|data, quirks_mode| {
                 xbl_stylists.push((data, quirks_mode))

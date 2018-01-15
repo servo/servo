@@ -30,7 +30,7 @@ ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
                           animation_value_type="ComputedValue",
-                          boxed="True",
+                          boxed=True,
                           allow_quirks=True,
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 

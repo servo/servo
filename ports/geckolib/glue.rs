@@ -216,6 +216,16 @@ unsafe fn dummy_url_data() -> &'static RefPtr<URLExtraData> {
     RefPtr::from_ptr_ref(&DUMMY_URL_DATA)
 }
 
+#[allow(dead_code)]
+fn is_main_thread() -> bool {
+    unsafe { bindings::Gecko_IsMainThread() }
+}
+
+#[allow(dead_code)]
+fn is_in_servo_traversal() -> bool {
+    unsafe { bindings::Gecko_IsInServoTraversal() }
+}
+
 fn create_shared_context<'a>(
     global_style_data: &GlobalStyleData,
     guard: &'a SharedRwLockReadGuard,
@@ -1014,8 +1024,13 @@ pub extern "C" fn Servo_Element_GetPseudoComputedValues(element: RawGeckoElement
 #[no_mangle]
 pub extern "C" fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed) -> bool {
     let element = GeckoElement(element);
-    let data = element.borrow_data().expect("Invoking Servo_Element_IsDisplayNone on unstyled element");
-    data.styles.is_display_none()
+    let data = element.get_data().expect("Invoking Servo_Element_IsDisplayNone on unstyled element");
+
+    // This function is hot, so we bypass the AtomicRefCell. It would be nice to also assert that
+    // we're not in the servo traversal, but this function is called at various intermediate
+    // checkpoints when managing the traversal on the Gecko side.
+    debug_assert!(is_main_thread());
+    unsafe { &*data.as_ptr() }.styles.is_display_none()
 }
 
 #[no_mangle]
@@ -1335,6 +1350,7 @@ fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
 unsafe fn read_locked_arc_unchecked<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
     where Locked<T>: HasArcFFI, F: FnOnce(&T) -> R
 {
+    debug_assert!(is_main_thread() && !is_in_servo_traversal());
     read_locked_arc(raw, func)
 }
 
@@ -3013,7 +3029,7 @@ macro_rules! get_longhand_from_id {
         match PropertyId::from_nscsspropertyid($id) {
             Ok(PropertyId::Longhand(long)) => long,
             _ => {
-                panic!("stylo: unknown presentation property with id {:?}", $id);
+                panic!("stylo: unknown presentation property with id");
             }
         }
     };
@@ -3026,7 +3042,7 @@ macro_rules! match_wrap_declared {
                 LonghandId::$property => PropertyDeclaration::$property($inner),
             )*
             _ => {
-                panic!("stylo: Don't know how to handle presentation property {:?}", $longhand);
+                panic!("stylo: Don't know how to handle presentation property");
             }
         }
     )
@@ -3210,7 +3226,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
         structs::nsCSSUnit::eCSSUnit_Point => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
         structs::nsCSSUnit::eCSSUnit_Pica => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
         structs::nsCSSUnit::eCSSUnit_Quarter => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
-        _ => unreachable!("Unknown unit {:?} passed to SetLengthValue", unit)
+        _ => unreachable!("Unknown unit passed to SetLengthValue")
     };
 
     let prop = match_wrap_declared! { long,

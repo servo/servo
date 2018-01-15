@@ -1,8 +1,8 @@
 [package]
 
 name = "selectors"
-version = "0.19.0" # Not yet published
-authors = ["Simon Sapin <simon.sapin@exyr.org>", "Alan Jeffrey <ajeffrey@mozilla.com>"]
+version = "0.19.0"
+authors = ["The Servo Project Developers"]
 documentation = "https://docs.rs/selectors/"
 
 description = "CSS Selectors matching for Rust"
@@ -15,11 +15,8 @@ build = "build.rs"
 [lib]
 name = "selectors"
 path = "lib.rs"
-# https://github.com/servo/servo/issues/16710
-doctest = false
 
 [features]
-gecko_like_types = []
 bench = []
 
 [dependencies]
@@ -28,15 +25,10 @@ matches = "0.1"
 cssparser = "0.23.0"
 log = "0.3"
 fnv = "1.0"
-malloc_size_of = { path = "../malloc_size_of" }
-malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 phf = "0.7.18"
 precomputed-hash = "0.1"
-servo_arc = { path = "../servo_arc" }
+servo_arc = { version = "0.1", path = "../servo_arc" }
 smallvec = "0.6"
-
-[dev-dependencies]
-size_of_test = {path = "../size_of_test"}
 
 [build-dependencies]
 phf_codegen = "0.7.18"

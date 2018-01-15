@@ -241,16 +241,16 @@ dependencies = [
 
 [[package]]
 name = "brotli"
-version = "1.0.8"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "brotli-decompressor 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "brotli-decompressor 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "brotli-decompressor"
-version = "1.0.9"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1043,7 +1043,7 @@ dependencies = [
  "nsstring 0.1.0",
  "parking_lot 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
@@ -1084,7 +1084,7 @@ dependencies = [
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
@@ -1493,7 +1493,7 @@ dependencies = [
  "selectors 0.19.0",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
@@ -1546,7 +1546,7 @@ dependencies = [
  "selectors 0.19.0",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
@@ -1706,7 +1706,8 @@ dependencies = [
  "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashglobe 0.1.0",
  "mozjs 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "selectors 0.19.0",
+ "servo_arc 0.1.0",
  "smallbitvec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1729,7 +1730,7 @@ name = "malloc_size_of_tests"
 version = "0.0.1"
 dependencies = [
  "malloc_size_of 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
 ]
 
 [[package]]
@@ -1946,7 +1947,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "base64 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "brotli 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2618,7 +2619,7 @@ dependencies = [
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_allocator 0.0.1",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
@@ -2663,7 +2664,7 @@ dependencies = [
  "range 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.19.0",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "style 0.0.1",
@@ -2730,14 +2731,11 @@ dependencies = [
  "cssparser 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "malloc_size_of 0.0.1",
- "malloc_size_of_derive 0.0.1",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
- "size_of_test 0.0.1",
+ "servo_arc 0.1.0",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2927,7 +2925,7 @@ dependencies = [
 
 [[package]]
 name = "servo_arc"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3155,7 +3153,7 @@ dependencies = [
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
@@ -3194,7 +3192,7 @@ dependencies = [
  "rayon 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
  "serde_json 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
@@ -3215,7 +3213,7 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "selectors 0.19.0",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_arc 0.0.1",
+ "servo_arc 0.1.0",
  "servo_atoms 0.0.1",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]
@@ -3576,7 +3574,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.56.1"
-source = "git+https://github.com/servo/webrender#007c61df33081caec1163db17305ccc191da7d99"
+source = "git+https://github.com/servo/webrender#2acfa55f11f51427a6b62b3fc93252365288d1a5"
 dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3604,7 +3602,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.56.1"
-source = "git+https://github.com/servo/webrender#007c61df33081caec1163db17305ccc191da7d99"
+source = "git+https://github.com/servo/webrender#2acfa55f11f51427a6b62b3fc93252365288d1a5"
 dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3800,9 +3798,9 @@ dependencies = [
 "checksum blurdroid 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d7daba519d29beebfc7d302795af88a16b43f431b9b268586926ac61cc655a68"
 "checksum blurmac 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "72af3718b3f652fb2026bf9d9dd5f92332cd287884283c343f03fff16cbb0172"
 "checksum blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "68dd72da3a3bb40f3d3bdd366c4cf8e2b1d208c366304f382c80cef8126ca8da"
-"checksum blurz 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "e46aafc5abff777617a09f64396ed689d76937e440970450972abd615c3d470b"
-"checksum brotli 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "951f20a2cc403194b2746d9ac6f796292e3c0344e983c72c7d6bd6cff6c3d102"
-"checksum brotli-decompressor 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)" = "e80402aa0457c3c03d3996a36af7c1e7efa2ad97ee8ec7c2761b07666bab5566"
+"checksum blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e73bda0f4c71c63a047351070097f3f507e6718e86b9ee525173371ef7b94b73"
+"checksum brotli 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "fe87b40996b84fdc56e57c165d93079f4b50cb806598118e692ddfaa3d3c57c0"
+"checksum brotli-decompressor 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "313f4b6cc0b365d6b88eda5aa40175ee34ac6efa9a79e0b3b8202eca90247ba8"
 "checksum browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)" = "<none>"
 "checksum byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "652805b7e73fada9d85e9a6682a4abd490cb52d96aeecc12e33a0de34dfd0d23"
 "checksum bytes 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c129aff112dcc562970abb69e2508b40850dd24c274761bb50fb8a0067ba6c27"
