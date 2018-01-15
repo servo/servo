@@ -1481,6 +1481,9 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             }
             Some(LayoutNodeType::Element(_)) => {
                 let original_display = style.get_box().original_display;
+                // FIXME(emilio, #19771): This munged_display business is pretty
+                // wrong. After we fix this we should be able to unify the
+                // pseudo-element path too.
                 let munged_display = match original_display {
                     Display::Inline | Display::InlineBlock => original_display,
                     _ => style.get_box().display,
