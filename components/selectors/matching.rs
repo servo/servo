@@ -541,8 +541,23 @@ where
     }
 }
 
+/// This function is for breaking the recursion in matches_simple_selector
+/// so that the compiler can inline that function.
+fn matches_simple_selector_helper<E, F>(
+    selector: &Component<E::Impl>,
+    element: &E,
+    context: &mut LocalMatchingContext<E::Impl>,
+    flags_setter: &mut F,
+) -> bool
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
+{
+    matches_simple_selector(selector, element, context, flags_setter)
+}
+
 /// Determines whether the given element matches the given single selector.
-#[inline]
+#[inline(always)]
 fn matches_simple_selector<E, F>(
     selector: &Component<E::Impl>,
     element: &E,
@@ -710,7 +725,7 @@ where
         Component::Negation(ref negated) => {
             context.shared.nesting_level += 1;
             let result = !negated.iter().all(|ss| {
-                matches_simple_selector(
+                matches_simple_selector_helper(
                     ss,
                     element,
                     context,
