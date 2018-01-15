@@ -45,7 +45,6 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
-use script_layout_interface::wrapper_traits::PseudoElementType;
 use servo_config::opts;
 use servo_geometry::max_rect;
 use std::{cmp, f32};
@@ -2276,13 +2275,7 @@ impl FragmentDisplayListBuilding for Fragment {
     }
 
     fn fragment_type(&self) -> FragmentType {
-        match self.pseudo {
-            PseudoElementType::Normal => FragmentType::FragmentBody,
-            PseudoElementType::Before(_) => FragmentType::BeforePseudoContent,
-            PseudoElementType::After(_) => FragmentType::AfterPseudoContent,
-            PseudoElementType::DetailsSummary(_) => FragmentType::FragmentBody,
-            PseudoElementType::DetailsContent(_) => FragmentType::FragmentBody,
-        }
+        self.pseudo.fragment_type()
     }
 }
 

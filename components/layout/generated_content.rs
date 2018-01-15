@@ -368,7 +368,7 @@ impl Counter {
     fn render(&self,
               layout_context: &LayoutContext,
               node: OpaqueNode,
-              pseudo: PseudoElementType<()>,
+              pseudo: PseudoElementType,
               style: ::ServoArc<ComputedValues>,
               list_style_type: ListStyleType,
               mode: RenderingMode)
@@ -431,7 +431,7 @@ struct CounterValue {
 /// Creates fragment info for a literal string.
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
-               pseudo: PseudoElementType<()>,
+               pseudo: PseudoElementType,
                style: ::ServoArc<ComputedValues>,
                string: String)
                -> Option<SpecificFragmentInfo> {

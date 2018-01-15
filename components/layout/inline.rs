@@ -1766,7 +1766,7 @@ pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
     pub style: ServoArc<ComputedValues>,
     pub selected_style: ServoArc<ComputedValues>,
-    pub pseudo: PseudoElementType<()>,
+    pub pseudo: PseudoElementType,
     pub flags: InlineFragmentNodeFlags,
 }
 
