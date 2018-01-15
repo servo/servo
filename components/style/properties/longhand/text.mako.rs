@@ -29,8 +29,6 @@ ${helpers.predefined_type("text-decoration-line",
                           "TextDecorationLine",
                           "specified::TextDecorationLine::none()",
                           initial_specified_value="specified::TextDecorationLine::none()",
-                          custom_cascade= product == 'servo',
-                          custom_cascade_function="specified::TextDecorationLine::cascade_property_custom",
                           animation_value_type="discrete",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line")}

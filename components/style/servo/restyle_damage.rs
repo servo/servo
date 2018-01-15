@@ -280,7 +280,7 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
         get_border.border_top_left_radius, get_border.border_top_right_radius,
         get_border.border_bottom_left_radius, get_border.border_bottom_right_radius,
         get_position.z_index, get_box._servo_overflow_clip_box,
-        get_inheritedtext._servo_text_decorations_in_effect,
+        get_inheritedtext.text_decorations_in_effect,
         get_pointing.cursor, get_pointing.pointer_events,
         get_effects.box_shadow, get_effects.clip, get_inheritedtext.text_shadow, get_effects.filter,
         get_effects.mix_blend_mode, get_inheritedbox.image_rendering,

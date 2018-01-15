@@ -2171,9 +2171,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         // Create display items for text decorations.
-        let text_decorations = self.style()
-            .get_inheritedtext()
-            ._servo_text_decorations_in_effect;
+        let text_decorations =
+            self.style().get_inheritedtext().text_decorations_in_effect;
 
         let stacking_relative_content_box = LogicalRect::from_physical(
             self.style.writing_mode,

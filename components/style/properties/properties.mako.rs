@@ -570,13 +570,7 @@ impl LonghandId {
         match *self {
             % for property in data.longhands:
                 LonghandId::${property.camel_case} => {
-                    % if not property.derived_from:
-                        longhands::${property.ident}::parse_declared(context, input)
-                    % else:
-                        Err(input.new_custom_error(
-                            StyleParseErrorKind::UnknownProperty("${property.ident}".into())
-                        ))
-                    % endif
+                    longhands::${property.ident}::parse_declared(context, input)
                 }
             % endfor
         }
@@ -1454,10 +1448,8 @@ impl ToCss for PropertyDeclaration {
     {
         match *self {
             % for property in data.longhands:
-                % if not property.derived_from:
-                    PropertyDeclaration::${property.camel_case}(ref value) =>
-                        value.to_css(dest),
-                % endif
+                PropertyDeclaration::${property.camel_case}(ref value) =>
+                    value.to_css(dest),
             % endfor
             PropertyDeclaration::CSSWideKeyword(_, keyword) => keyword.to_css(dest),
             PropertyDeclaration::WithVariables(_, ref with_variables) => {
@@ -1474,9 +1466,6 @@ impl ToCss for PropertyDeclaration {
                 Ok(())
             },
             PropertyDeclaration::Custom(_, ref value) => value.borrow().to_css(dest),
-            % if any(property.derived_from for property in data.longhands):
-                _ => Err(fmt::Error),
-            % endif
         }
     }
 }
@@ -1859,6 +1848,13 @@ pub mod style_structs {
                 /// The ${longhand.name} computed value.
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
             % endfor
+            % if style_struct.name == "InheritedText":
+                /// The "used" text-decorations that apply to this box.
+                ///
+                /// FIXME(emilio): This is technically a box-tree concept, and
+                /// would be nice to move away from style.
+                pub text_decorations_in_effect: ::values::computed::text::TextDecorationsInEffect,
+            % endif
             % if style_struct.name == "Font":
                 /// The font hash, used for font caching.
                 pub hash: u64,
@@ -1870,9 +1866,8 @@ pub mod style_structs {
             % endif
         }
         % if style_struct.name == "Font":
-
-        impl PartialEq for ${style_struct.name} {
-            fn eq(&self, other: &${style_struct.name}) -> bool {
+        impl PartialEq for Font {
+            fn eq(&self, other: &Font) -> bool {
                 self.hash == other.hash
                 % for longhand in style_struct.longhands:
                     && self.${longhand.ident} == other.${longhand.ident}
@@ -3074,6 +3069,9 @@ mod lazy_static_module {
                         % for longhand in style_struct.longhands:
                             ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
                         % endfor
+                        % if style_struct.name == "InheritedText":
+                            text_decorations_in_effect: ::values::computed::text::TextDecorationsInEffect::default(),
+                        % endif
                         % if style_struct.name == "Font":
                             hash: 0,
                         % endif
@@ -3644,7 +3642,7 @@ macro_rules! css_properties_accessors {
         $macro_name! {
             % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in props:
-                    % if not property.derived_from and property.enabled_in_content():
+                    % if property.enabled_in_content():
                         % for name in [property.name] + property.alias:
                             % if '-' in name:
                                 [${to_rust_ident(name).capitalize()}, Set${to_rust_ident(name).capitalize()},
