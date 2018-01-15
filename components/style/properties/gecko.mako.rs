@@ -5255,16 +5255,16 @@ clip-path
 
         self.gecko.mContextPropsBits = 0;
         for (gecko, servo) in self.gecko.mContextProps.iter_mut().zip(v) {
-            if servo.0 == atom!("fill") {
+            if (servo.0).0 == atom!("fill") {
                 self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL as u8;
-            } else if servo.0 == atom!("stroke") {
+            } else if (servo.0).0 == atom!("stroke") {
                 self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE as u8;
-            } else if servo.0 == atom!("fill-opacity") {
+            } else if (servo.0).0 == atom!("fill-opacity") {
                 self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY as u8;
-            } else if servo.0 == atom!("stroke-opacity") {
+            } else if (servo.0).0 == atom!("stroke-opacity") {
                 self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY as u8;
             }
-            gecko.mRawPtr = servo.0.into_addrefed();
+            gecko.mRawPtr = (servo.0).0.into_addrefed();
         }
     }
 
