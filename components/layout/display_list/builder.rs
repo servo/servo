@@ -55,7 +55,6 @@ use style::computed_values::background_attachment::single_value::T as Background
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::computed_values::border_style::T as BorderStyle;
-use style::computed_values::cursor;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::position::T as StylePosition;
@@ -67,12 +66,13 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, NumberOrPercentage};
 use style::values::computed::effects::SimpleShadow;
+use style::values::computed::pointing::Cursor;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::effects::Filter;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
 use style_traits::CSSPixel;
 use style_traits::ToCss;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{self, BoxShadowClipMode, ClipId, ClipMode, ColorF, ComplexClipRegion};
 use webrender_api::{ImageRendering, LayoutSize, LayoutVector2D, LineStyle};
@@ -375,7 +375,7 @@ impl<'a> DisplayListBuildState<'a> {
         bounds: &Rect<Au>,
         clip: LocalClip,
         node: OpaqueNode,
-        cursor: Option<Cursor>,
+        cursor: Option<CursorKind>,
         section: DisplayListSection,
     ) -> BaseDisplayItem {
         let clipping_and_scrolling = if self.is_background_or_border_of_clip_scroll_node(section) {
@@ -930,7 +930,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &bounds,
             clip,
             self.node,
-            style.get_cursor(Cursor::Default),
+            style.get_cursor(CursorKind::Default),
             display_list_section,
         );
         state.add_display_item(DisplayItem::SolidColor(Box::new(SolidColorDisplayItem {
@@ -1121,7 +1121,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &placement.bounds,
             LocalClip::Rect(placement.css_clip.to_layout()),
             self.node,
-            style.get_cursor(Cursor::Default),
+            style.get_cursor(CursorKind::Default),
             display_list_section,
         );
 
@@ -1213,7 +1213,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &placement.bounds,
             LocalClip::Rect(placement.css_clip.to_layout()),
             self.node,
-            style.get_cursor(Cursor::Default),
+            style.get_cursor(CursorKind::Default),
             display_list_section,
         );
 
@@ -1274,7 +1274,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 &bounds,
                 LocalClip::from(clip.to_layout()),
                 self.node,
-                style.get_cursor(Cursor::Default),
+                style.get_cursor(CursorKind::Default),
                 display_list_section,
             );
             let border_radius = build_border_radius(absolute_bounds, style.get_border());
@@ -1370,7 +1370,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &bounds,
             LocalClip::from(clip.to_layout()),
             self.node,
-            style.get_cursor(Cursor::Default),
+            style.get_cursor(CursorKind::Default),
             display_list_section,
         );
 
@@ -1544,7 +1544,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &bounds,
             LocalClip::from(clip.to_layout()),
             self.node,
-            style.get_cursor(Cursor::Default),
+            style.get_cursor(CursorKind::Default),
             DisplayListSection::Outlines,
         );
         state.add_display_item(DisplayItem::Border(Box::new(BorderDisplayItem {
@@ -1571,7 +1571,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_border_box,
             LocalClip::from(clip.to_layout()),
             self.node,
-            style.get_cursor(Cursor::Default),
+            style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(Box::new(BorderDisplayItem {
@@ -1597,7 +1597,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &baseline,
             LocalClip::from(clip.to_layout()),
             self.node,
-            style.get_cursor(Cursor::Default),
+            style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Line(Box::new(LineDisplayItem {
@@ -1618,7 +1618,7 @@ impl FragmentDisplayListBuilding for Fragment {
             stacking_relative_border_box,
             LocalClip::from(clip.to_layout()),
             self.node,
-            self.style.get_cursor(Cursor::Default),
+            self.style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(Box::new(BorderDisplayItem {
@@ -1655,7 +1655,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 stacking_relative_border_box,
                 LocalClip::from(clip.to_layout()),
                 self.node,
-                self.style.get_cursor(Cursor::Default),
+                self.style.get_cursor(CursorKind::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::SolidColor(Box::new(SolidColorDisplayItem {
@@ -1688,7 +1688,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     stacking_relative_border_box.size.height,
                 ),
             );
-            cursor = Cursor::Text;
+            cursor = CursorKind::Text;
         } else {
             insertion_point_bounds = Rect::new(
                 Point2D::new(
@@ -1700,7 +1700,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     INSERTION_POINT_LOGICAL_WIDTH,
                 ),
             );
-            cursor = Cursor::VerticalText;
+            cursor = CursorKind::VerticalText;
         };
 
         let base = state.create_base_display_item(
@@ -1963,7 +1963,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         build_local_clip(&self.style),
                         self.node,
-                        self.style.get_cursor(Cursor::Default),
+                        self.style.get_cursor(CursorKind::Default),
                         DisplayListSection::Content,
                     );
                     let item = DisplayItem::Iframe(Box::new(IframeDisplayItem {
@@ -1989,7 +1989,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         build_local_clip(&self.style),
                         self.node,
-                        self.style.get_cursor(Cursor::Default),
+                        self.style.get_cursor(CursorKind::Default),
                         DisplayListSection::Content,
                     );
                     state.add_display_item(DisplayItem::Image(Box::new(ImageDisplayItem {
@@ -2025,7 +2025,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     &stacking_relative_content_box,
                     build_local_clip(&self.style),
                     self.node,
-                    self.style.get_cursor(Cursor::Default),
+                    self.style.get_cursor(CursorKind::Default),
                     DisplayListSection::Content,
                 );
                 let display_item = DisplayItem::Image(Box::new(ImageDisplayItem {
@@ -2128,9 +2128,9 @@ impl FragmentDisplayListBuilding for Fragment {
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
             // TODO: Distinguish between 'sideways-lr' and 'sideways-rl' writing modes in CSS
             // Writing Modes Level 4.
-            (TextOrientation::SidewaysRight, Cursor::VerticalText)
+            (TextOrientation::SidewaysRight, CursorKind::VerticalText)
         } else {
-            (TextOrientation::Upright, Cursor::Text)
+            (TextOrientation::Upright, CursorKind::Text)
         };
 
         // Compute location of the baseline.
@@ -2256,7 +2256,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &stacking_relative_box,
             LocalClip::from(clip.to_layout()),
             self.node,
-            self.style.get_cursor(Cursor::Default),
+            self.style.get_cursor(CursorKind::Default),
             DisplayListSection::Content,
         );
 
@@ -3158,7 +3158,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 }
 
 trait ComputedValuesCursorUtility {
-    fn get_cursor(&self, default_cursor: Cursor) -> Option<Cursor>;
+    fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind>;
 }
 
 impl ComputedValuesCursorUtility for ComputedValues {
@@ -3166,14 +3166,14 @@ impl ComputedValuesCursorUtility for ComputedValues {
     /// the cursor to use if `cursor` is `auto`. Typically, this will be `PointerCursor`, but for
     /// text display items it may be `TextCursor` or `VerticalTextCursor`.
     #[inline]
-    fn get_cursor(&self, default_cursor: Cursor) -> Option<Cursor> {
+    fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind> {
         match (
             self.get_pointing().pointer_events,
             self.get_pointing().cursor,
         ) {
             (PointerEvents::None, _) => None,
-            (PointerEvents::Auto, cursor::Keyword::Auto) => Some(default_cursor),
-            (PointerEvents::Auto, cursor::Keyword::Cursor(cursor)) => Some(cursor),
+            (PointerEvents::Auto, Cursor(CursorKind::Auto)) => Some(default_cursor),
+            (PointerEvents::Auto, Cursor(cursor)) => Some(cursor),
         }
     }
 }

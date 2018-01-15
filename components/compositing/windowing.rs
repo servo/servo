@@ -17,7 +17,7 @@ use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use style_traits::DevicePixel;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use webrender_api::{DeviceUintSize, DeviceUintRect, ScrollLocation};
 
 #[derive(Clone)]
@@ -173,7 +173,7 @@ pub trait WindowMethods {
     fn prepare_for_composite(&self, width: usize, height: usize) -> bool;
 
     /// Sets the cursor to be used in the window.
-    fn set_cursor(&self, cursor: Cursor);
+    fn set_cursor(&self, cursor: CursorKind);
 
     /// Process a key event.
     fn handle_key(&self, ctx: Option<TopLevelBrowsingContextId>, ch: Option<char>, key: Key, mods: KeyModifiers);

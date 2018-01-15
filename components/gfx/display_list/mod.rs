@@ -30,7 +30,7 @@ use std::f32;
 use std::fmt;
 use std::sync::Arc;
 use style::values::computed::Filter;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use text::TextRun;
 use text::glyph::ByteIndex;
 use webrender_api::{BoxShadowClipMode, ClipId, ColorF, ExtendMode, GradientStop, ImageKey};
@@ -646,7 +646,7 @@ pub struct DisplayItemMetadata {
     pub node: OpaqueNode,
     /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
     /// this display item is ineligible for pointer events (`pointer-events: none`).
-    pub pointing: Option<Cursor>,
+    pub pointing: Option<CursorKind>,
 }
 
 /// Paints a solid color.

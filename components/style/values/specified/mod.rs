@@ -57,6 +57,9 @@ pub use self::outline::OutlineStyle;
 pub use self::rect::LengthOrNumberRect;
 pub use self::percentage::Percentage;
 pub use self::position::{Position, PositionComponent, GridAutoFlow, GridTemplateAreas};
+pub use self::pointing::Cursor;
+#[cfg(feature = "gecko")]
+pub use self::pointing::CursorImage;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg::MozContextProperties;
@@ -90,6 +93,7 @@ pub mod length;
 pub mod list;
 pub mod outline;
 pub mod percentage;
+pub mod pointing;
 pub mod position;
 pub mod rect;
 pub mod source_size_list;
