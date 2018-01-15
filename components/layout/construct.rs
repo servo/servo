@@ -1465,8 +1465,10 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
     fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) {
         node.insert_flags(LayoutDataFlags::HAS_NEWLY_CONSTRUCTED_FLOW);
 
+        let style = node.style(self.style_context());
+
         // Bail out if this node has an ancestor with display: none.
-        if node.style(self.style_context()).is_in_display_none_subtree() {
+        if style.is_in_display_none_subtree() {
             self.set_flow_construction_result(node, ConstructionResult::None);
             return;
         }
@@ -1475,11 +1477,9 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
         let (display, float, positioning) = match node.type_id() {
             None => {
                 // Pseudo-element.
-                let style = node.style(self.style_context());
                 (style.get_box().display, style.get_box().float, style.get_box().position)
             }
             Some(LayoutNodeType::Element(_)) => {
-                let style = node.style(self.style_context());
                 let original_display = style.get_box().original_display;
                 let munged_display = match original_display {
                     Display::Inline | Display::InlineBlock => original_display,
