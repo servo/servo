@@ -68,7 +68,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_api::{ClipId, DevicePixel, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -807,7 +807,7 @@ pub enum ConstellationMsg {
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
-    SetCursor(Cursor),
+    SetCursor(CursorKind),
 }
 
 /// Resources required by workerglobalscopes
