@@ -10,7 +10,6 @@ name = "metrics"
 path = "lib.rs"
 
 [dependencies]
-gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.9"
 log = "0.3.5"

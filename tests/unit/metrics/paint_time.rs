@@ -69,7 +69,7 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
     paint_time_metrics.maybe_observe_paint_time(
         &dummy_profiler_metadata_factory,
         epoch,
-        &display_list,
+        &*display_list,
     );
 
     // Should not set any metric until navigation start is set.

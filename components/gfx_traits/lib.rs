@@ -105,3 +105,8 @@ pub fn node_id_from_clip_id(id: usize) -> Option<usize> {
     }
     None
 }
+
+pub trait DisplayList {
+    /// Returns true if this display list contains meaningful content.
+    fn is_contentful(&self) -> bool;
+}
