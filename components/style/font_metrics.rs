@@ -12,7 +12,6 @@ use context::SharedStyleContext;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::style_structs::Font;
-use std::fmt;
 
 /// Represents the font metrics that style needs from a font to compute the
 /// value of certain CSS units like `ex`.
@@ -35,7 +34,7 @@ pub enum FontMetricsQueryResult {
 }
 
 /// A trait used to represent something capable of providing us font metrics.
-pub trait FontMetricsProvider: fmt::Debug {
+pub trait FontMetricsProvider {
     /// Obtain the metrics for given font family.
     ///
     /// TODO: We could make this take the full list, I guess, and save a few
