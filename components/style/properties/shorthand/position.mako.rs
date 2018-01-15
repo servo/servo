@@ -614,14 +614,25 @@
     use properties::longhands::align_content;
     use properties::longhands::justify_content;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let align = align_content::parse(context, input)?;
         if align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        let justify = input.try(|input| justify_content::parse(context, input))
-                           .unwrap_or(justify_content::SpecifiedValue::from(align));
+
+        // FIXME(emilio): I don't see anything that would implement this bit
+        // from the spec:
+        //
+        //    if [justify-content is] omitted, it is copied from the first
+        //    value, unless that value is a <baseline-position> in which case it
+        //    is defaulted to start.
+        //
+        let justify =
+            input.try(|input| justify_content::parse(context, input)).unwrap_or(align);
+
         if justify.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }

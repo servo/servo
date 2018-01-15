@@ -175,11 +175,13 @@ impl ToCss for AlignJustifyContent {
     }
 }
 
-
 impl Parse for AlignJustifyContent {
     // normal | <baseline-position> |
     // [ <content-distribution> || [ <overflow-position>? && <content-position> ] ]
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         // normal | <baseline-position>
         if let Ok(value) = input.try(|input| parse_normal_or_baseline(input)) {
             return Ok(AlignJustifyContent::new(value))
@@ -381,7 +383,6 @@ fn parse_normal_or_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignF
 
 // <baseline-position>
 fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    // FIXME: remove clone() when lifetimes are non-lexical
     try_match_ident_ignore_ascii_case! { input,
         "baseline" => Ok(AlignFlags::BASELINE),
         "first" => {
@@ -415,12 +416,9 @@ fn parse_overflow_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result
         return Ok(content)
     }
     // <overflow-position> followed by required <content-position>
-    if let Ok(overflow) = parse_overflow_position(input) {
-        if let Ok(content) = parse_content_position(input) {
-            return Ok(overflow | content)
-        }
-    }
-    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    let overflow = parse_overflow_position(input)?;
+    let content = parse_content_position(input)?;
+    Ok(overflow | content)
 }
 
 // <content-position>
