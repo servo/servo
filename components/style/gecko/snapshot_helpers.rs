@@ -34,7 +34,7 @@ pub fn has_class<T>(
                 let classes = slice::from_raw_parts(list, n as usize);
                 match case_sensitivity {
                     CaseSensitivity::CaseSensitive => {
-                        classes.iter().any(|ptr| name == WeakAtom::new(*ptr))
+                        classes.iter().any(|ptr| &**name == WeakAtom::new(*ptr))
                     }
                     CaseSensitivity::AsciiCaseInsensitive => {
                         classes.iter().any(|ptr| name.eq_ignore_ascii_case(WeakAtom::new(*ptr)))

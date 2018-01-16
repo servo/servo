@@ -2191,7 +2191,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.may_have_class() {
             return false;
