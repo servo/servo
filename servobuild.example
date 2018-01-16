@@ -1,6 +1,4 @@
 # Copy this file to .servobuild in the Servo root directory
-# Be sure to set the cache-dir correctly, otherwise extra
-# copies of the Rust compiler may get downloaded
 
 # Paths starting with "./" are relative to the repo root
 
