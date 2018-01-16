@@ -611,17 +611,19 @@
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko">
-    use properties::longhands::align_content;
-    use properties::longhands::justify_content;
+    use values::specified::align::{AlignJustifyContent, FallbackAllowed};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
-        let align = align_content::parse(context, input)?;
+    pub fn parse_value<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        let align = AlignJustifyContent::parse_with_fallback(input, FallbackAllowed::No)?;
         if align.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        let justify = input.try(|input| justify_content::parse(context, input))
-                           .unwrap_or(justify_content::SpecifiedValue::from(align));
+        let justify =
+            input.try(|input| AlignJustifyContent::parse_with_fallback(input, FallbackAllowed::No))
+                .unwrap_or(align);
         if justify.has_extra_flags() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
