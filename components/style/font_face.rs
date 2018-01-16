@@ -20,7 +20,8 @@ use parser::{ParserContext, ParserErrorContext, Parse};
 use properties::longhands::font_language_override;
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
 use values::computed::font::FamilyName;
 use values::specified::url::SpecifiedUrl;
@@ -272,8 +273,7 @@ macro_rules! font_face_descriptors_common {
 
         impl ToCssWithGuard for FontFaceRuleData {
             // Serialization of FontFaceRule is not specced.
-            fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-            where W: fmt::Write {
+            fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
                 dest.write_str("@font-face {\n")?;
                 $(
                     if let Some(ref value) = self.$ident {

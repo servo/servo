@@ -7,7 +7,8 @@
 use {Namespace, Prefix};
 use cssparser::SourceLocation;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 
 /// A `@namespace` rule.
 #[derive(Clone, Debug, PartialEq)]
@@ -23,8 +24,7 @@ pub struct NamespaceRule {
 
 impl ToCssWithGuard for NamespaceRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSNamespaceRule
-    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
+    fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@namespace ")?;
         if let Some(ref prefix) = self.prefix {
             dest.write_str(&*prefix.to_string())?;

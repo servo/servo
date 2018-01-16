@@ -13,7 +13,8 @@ use media_queries::Device;
 use parser::{Parse, ParserContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use stylesheets::CssRules;
 use values::specified::url::SpecifiedUrl;
@@ -40,8 +41,7 @@ impl DocumentRule {
 }
 
 impl ToCssWithGuard for DocumentRule {
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@-moz-document ")?;
         self.condition.to_css(dest)?;
         dest.write_str(" {")?;

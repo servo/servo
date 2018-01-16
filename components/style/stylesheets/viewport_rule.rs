@@ -23,9 +23,10 @@ use shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::iter::Enumerate;
 use std::str::Chars;
+use str::CssStringWriter;
 use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseErrorKind};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{StylesheetInDocument, Origin};
@@ -520,8 +521,7 @@ impl ViewportRule {
 
 impl ToCssWithGuard for ViewportRule {
     // Serialization of ViewportRule is not specced.
-    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
+    fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@viewport { ")?;
         let mut iter = self.declarations.iter();
         iter.next().unwrap().to_css(dest)?;

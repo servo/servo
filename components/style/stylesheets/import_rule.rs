@@ -9,7 +9,8 @@
 use cssparser::SourceLocation;
 use media_queries::MediaList;
 use shared_lock::{DeepCloneWithLock, DeepCloneParams, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 use style_traits::ToCss;
 use stylesheets::{StylesheetContents, StylesheetInDocument};
 use values::specified::url::SpecifiedUrl;
@@ -107,9 +108,7 @@ impl DeepCloneWithLock for ImportRule {
 }
 
 impl ToCssWithGuard for ImportRule {
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@import ")?;
         self.url.to_css(dest)?;
 

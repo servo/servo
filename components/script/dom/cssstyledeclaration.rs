@@ -21,7 +21,7 @@ use style::properties::{DeclarationSource, Importance, PropertyDeclarationBlock,
 use style::properties::{parse_one_declaration_into, parse_style_attribute, SourcePropertyDeclaration};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
-use style_traits::{ParsingMode, ToCss};
+use style_traits::ParsingMode;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -85,7 +85,8 @@ impl CSSStyleOwner {
                     // [1]: https://github.com/whatwg/html/issues/2306
                     if let Some(pdb) = attr {
                         let guard = shared_lock.read();
-                        let serialization = pdb.read_with(&guard).to_css_string();
+                        let mut serialization = String::new();
+                        pdb.read_with(&guard).to_css(&mut serialization).unwrap();
                         el.set_attribute(&local_name!("style"),
                                          AttrValue::Declaration(serialization,
                                                                 pdb));
@@ -415,7 +416,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         self.owner.with_block(|pdb| {
             pdb.declarations().get(index as usize).map(|declaration| {
                 let important = pdb.declarations_importance().get(index);
-                let mut css = declaration.to_css_string();
+                let mut css = String::new();
+                declaration.to_css(&mut css).unwrap();
                 if important {
                     css += " !important";
                 }
@@ -427,7 +429,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn CssText(&self) -> DOMString {
         self.owner.with_block(|pdb| {
-            DOMString::from(pdb.to_css_string())
+            let mut serialization = String::new();
+            pdb.to_css(&mut serialization).unwrap();
+            DOMString::from(serialization)
         })
     }
 

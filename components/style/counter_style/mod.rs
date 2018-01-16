@@ -17,8 +17,9 @@ use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::Cow;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::ops::Range;
+use str::CssStringWriter;
 use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 
@@ -228,8 +229,7 @@ macro_rules! counter_style_descriptors {
         }
 
         impl ToCssWithGuard for CounterStyleRuleData {
-            fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-            where W: fmt::Write {
+            fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
                 dest.write_str("@counter-style ")?;
                 self.name.to_css(dest)?;
                 dest.write_str(" {\n")?;
