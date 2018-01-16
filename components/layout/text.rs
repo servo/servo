@@ -329,16 +329,12 @@ impl TextRunScanner {
                     options.flags.insert(ShapingFlags::RTL_FLAG);
                 }
                 let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
-                if linebreaker.is_none() {
-                    debug_assert!(run_info.text.len() > 0);
-                    *linebreaker = Some(LineBreakLeafIter::new(&run_info.text, 0));
-                }
+
                 let (run, break_at_zero) = TextRun::new(&mut *font,
                                                         run_info.text,
                                                         &options,
                                                         run_info.bidi_level,
-                                                        &mut linebreaker.as_mut()
-                                                                        .unwrap());
+                                                        linebreaker);
                 result.push((ScannedTextRun {
                     run: Arc::new(run),
                     insertion_point: run_info.insertion_point,

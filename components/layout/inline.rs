@@ -554,7 +554,6 @@ impl LineBreaker {
                        layout_context: &LayoutContext) {
         // Undo any whitespace stripping from previous reflows.
         fragment.reset_text_range_and_inline_size();
-
         // Determine initial placement for the fragment if we need to.
         //
         // Also, determine whether we can legally break the line before, or
@@ -566,7 +565,17 @@ impl LineBreaker {
             self.pending_line.green_zone = line_bounds.size;
             false
         } else {
-            if fragment.suppress_line_break_before() {
+            // In case of Foo<span style="...">bar</span>, the line breaker will
+            // set the "suppress line break before" flag for the second fragment.
+            //
+            // In case of Foo<span>bar</span> the second fragment ("bar") will
+            // start _within_ a glyph run, so we also avoid breaking there
+            //
+            // is_on_glyph_run_boundary does a binary search, but this is ok
+            // because the result will be cached and reused in
+            // `calculate_split_position` later
+            if fragment.suppress_line_break_before() ||
+               !fragment.is_on_glyph_run_boundary() {
                 false
             } else {
                 fragment.white_space().allow_wrap()

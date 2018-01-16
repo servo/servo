@@ -1634,6 +1634,16 @@ impl Fragment {
         }
     }
 
+    /// Does this fragment start on a glyph run boundary?
+    pub fn is_on_glyph_run_boundary(&self) -> bool {
+        let text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment_info)
+                => text_fragment_info,
+            _   => return true,
+        };
+        text_fragment_info.run.on_glyph_run_boundary(text_fragment_info.range.begin())
+    }
+
     /// Truncates this fragment to the given `max_inline_size`, using a character-based breaking
     /// strategy. The resulting fragment will have `SpecificFragmentInfo::TruncatedFragment`,
     /// preserving the original fragment for use in incremental reflow.
