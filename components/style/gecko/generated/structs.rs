@@ -1906,8 +1906,8 @@ pub type ServoStyleContextStrong = ::gecko_bindings::sugar::ownership::Strong<::
  # [ link_name = "\u{1}_ZN14nsContentUtils34sIsFormAutofillAutocompleteEnabledE" ] 
  pub static mut  nsContentUtils_sIsFormAutofillAutocompleteEnabled  :  bool ;
 } extern "C" {
- # [ link_name = "\u{1}_ZN14nsContentUtils23sIsWebComponentsEnabledE" ] 
- pub static mut  nsContentUtils_sIsWebComponentsEnabled  :  bool ;
+ # [ link_name = "\u{1}_ZN14nsContentUtils23sIsShadowDOMEnabledE" ] 
+ pub static mut  nsContentUtils_sIsShadowDOMEnabled  :  bool ;
 } extern "C" {
  # [ link_name = "\u{1}_ZN14nsContentUtils24sIsCustomElementsEnabledE" ] 
  pub static mut  nsContentUtils_sIsCustomElementsEnabled  :  bool ;
