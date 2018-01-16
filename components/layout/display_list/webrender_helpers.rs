@@ -166,6 +166,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             item.stretch_size.to_layout(),
                             item.tile_spacing.to_layout(),
                             item.image_rendering.to_layout(),
+                            webrender_api::AlphaType::PremultipliedAlpha,
                             id,
                         );
                     }
