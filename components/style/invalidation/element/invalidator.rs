@@ -534,6 +534,20 @@ where
 
         let mut any_descendant = false;
 
+        // NOTE(emilio): This should not be needed for Shadow DOM for normal
+        // element state / attribute invalidations (it's needed for XBL though,
+        // due to the weird way the anon content there works (it doesn't block
+        // combinators)).
+        //
+        // However, it's needed as of right now for document state invalidation,
+        // were we rely on iterating every element that ends up in the composed
+        // doc.
+        //
+        // Also, we could avoid having that special-case for document state
+        // invalidations if we invalidate for document state changes per
+        // subtree, though that's kind of annoying because we need to invalidate
+        // the shadow host subtree (to handle :host and ::slotted), and the
+        // actual shadow tree (to handle all other rules in the ShadowRoot).
         if let Some(anon_content) = self.element.xbl_binding_anonymous_content() {
             any_descendant |=
                 self.invalidate_dom_descendants_of(anon_content, invalidations);
