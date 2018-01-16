@@ -41,7 +41,10 @@ debug-mozjs = false
 #rustflags = ""
 
 # Enable or disable rustc’s incremental compilation
-# The default is enabled in debug mode only.
+# Cargo’s default is to enable it in debug mode but not in release mode.
+# Leaving this key unspecified makes mach keep Cargo’s default.
+# It can be set to true or false in order to always enable or always disable
+# incremental compilation.
 #incremental = false
 #incremental = true
 
