@@ -72,7 +72,7 @@ use script_layout_interface::{TrustedNodeAddress, PendingImageState};
 use script_layout_interface::message::{Msg, Reflow, ReflowGoal, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{NodeScrollRootIdResponse, ResolvedStyleResponse, TextIndexResponse};
+use script_layout_interface::rpc::{NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, Runtime};
 use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
 use script_thread::{ScriptThread, SendableMainThreadScriptChan};
@@ -120,7 +120,7 @@ use timers::{IsInterval, TimerCallback};
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
-use webrender_api::{ClipId, DocumentId};
+use webrender_api::{ExternalScrollId, DocumentId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -1141,7 +1141,7 @@ impl Window {
         self.update_viewport_for_scroll(x, y);
         self.perform_a_scroll(x,
                               y,
-                              global_scope.pipeline_id().root_scroll_node(),
+                              global_scope.pipeline_id().root_scroll_id(),
                               behavior,
                               None);
     }
@@ -1150,14 +1150,14 @@ impl Window {
     pub fn perform_a_scroll(&self,
                             x: f32,
                             y: f32,
-                            scroll_root_id: ClipId,
+                            scroll_id: ExternalScrollId,
                             _behavior: ScrollBehavior,
                             _element: Option<&Element>) {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
         self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
-            scroll_root_id: scroll_root_id,
+            scroll_id,
             scroll_offset: Vector2D::new(-x, -y),
         })).unwrap();
     }
@@ -1412,13 +1412,17 @@ impl Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
-    pub fn scroll_node(&self,
-                       node: &Node,
-                       x_: f64,
-                       y_: f64,
-                       behavior: ScrollBehavior) {
-        if !self.reflow(ReflowGoal::NodeScrollRootIdQuery(node.to_trusted_node_address()),
-                        ReflowReason::Query) {
+    pub fn scroll_node(
+        &self,
+        node: &Node,
+        x_: f64,
+        y_: f64,
+        behavior: ScrollBehavior
+    ) {
+        if !self.reflow(
+            ReflowGoal::NodeScrollIdQuery(node.to_trusted_node_address()),
+            ReflowReason::Query
+        ) {
             return;
         }
 
@@ -1428,12 +1432,12 @@ impl Window {
         self.scroll_offsets.borrow_mut().insert(node.to_untrusted_node_address(),
                                                 Vector2D::new(x_ as f32, y_ as f32));
 
-        let NodeScrollRootIdResponse(scroll_root_id) = self.layout_rpc.node_scroll_root_id();
+        let NodeScrollIdResponse(scroll_id) = self.layout_rpc.node_scroll_id();
 
         // Step 12
         self.perform_a_scroll(x_.to_f32().unwrap_or(0.0f32),
                               y_.to_f32().unwrap_or(0.0f32),
-                              scroll_root_id,
+                              scroll_id,
                               behavior,
                               None);
     }
@@ -1888,7 +1892,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
         ReflowGoal::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowGoal::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
-        ReflowGoal::NodeScrollRootIdQuery(_n) => "\tNodeScrollRootIdQuery",
+        ReflowGoal::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
         ReflowGoal::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowGoal::OffsetParentQuery(_n) => "\tOffsetParentQuery",
         ReflowGoal::StyleQuery(_n) => "\tStyleQuery",
