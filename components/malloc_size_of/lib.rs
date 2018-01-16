@@ -823,13 +823,13 @@ malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ClipAndScrollInfo);
 #[cfg(feature = "servo")]
-malloc_size_of_is_0!(webrender_api::ClipId);
-#[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ColorF);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ExtendMode);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::FilterOp);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::ExternalScrollId);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::GradientStop);
 #[cfg(feature = "servo")]

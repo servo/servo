@@ -113,7 +113,7 @@ pub enum ReflowGoal {
     TickAnimations,
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
-    NodeScrollRootIdQuery(TrustedNodeAddress),
+    NodeScrollIdQuery(TrustedNodeAddress),
     NodeGeometryQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
@@ -132,7 +132,7 @@ impl ReflowGoal {
             ReflowGoal::TickAnimations | ReflowGoal::Full => true,
             ReflowGoal::ContentBoxQuery(_) | ReflowGoal::ContentBoxesQuery(_) |
             ReflowGoal::NodeGeometryQuery(_) | ReflowGoal::NodeScrollGeometryQuery(_) |
-            ReflowGoal::NodeScrollRootIdQuery(_) |
+            ReflowGoal::NodeScrollIdQuery(_) |
             ReflowGoal::ResolvedStyleQuery(..) | ReflowGoal::OffsetParentQuery(_) |
             ReflowGoal::StyleQuery(_)  => false,
         }
@@ -145,8 +145,7 @@ impl ReflowGoal {
             ReflowGoal::StyleQuery(_)  | ReflowGoal::TextIndexQuery(..) |
             ReflowGoal::ContentBoxQuery(_) | ReflowGoal::ContentBoxesQuery(_) |
             ReflowGoal::NodeGeometryQuery(_) | ReflowGoal::NodeScrollGeometryQuery(_) |
-            ReflowGoal::NodeScrollRootIdQuery(_) |
-            ReflowGoal::ResolvedStyleQuery(..) |
+            ReflowGoal::NodeScrollIdQuery(_) | ReflowGoal::ResolvedStyleQuery(..) |
             ReflowGoal::OffsetParentQuery(_) => false,
             ReflowGoal::NodesFromPointQuery(..) | ReflowGoal::Full |
             ReflowGoal::TickAnimations => true,

@@ -8,7 +8,7 @@ use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::properties::longhands::overflow_x;
-use webrender_api::ClipId;
+use webrender_api::ExternalScrollId;
 
 /// Synchronous messages that script can send to layout.
 ///
@@ -27,8 +27,8 @@ pub trait LayoutRPC {
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
     fn node_scroll_area(&self) -> NodeGeometryResponse;
-    /// Requests the scroll root id of this node. Used by APIs such as `scrollTop`
-    fn node_scroll_root_id(&self) -> NodeScrollRootIdResponse;
+    /// Requests the scroll id of this node. Used by APIs such as `scrollTop`
+    fn node_scroll_id(&self) -> NodeScrollIdResponse;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
@@ -51,7 +51,7 @@ pub struct NodeGeometryResponse {
 
 pub struct NodeOverflowResponse(pub Option<Point2D<overflow_x::computed_value::T>>);
 
-pub struct NodeScrollRootIdResponse(pub ClipId);
+pub struct NodeScrollIdResponse(pub ExternalScrollId);
 
 pub struct ResolvedStyleResponse(pub String);
 

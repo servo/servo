@@ -7517,6 +7517,18 @@
      {}
     ]
    ],
+   "mozilla/duplicated_scroll_ids.html": [
+    [
+     "/_mozilla/mozilla/duplicated_scroll_ids.html",
+     [
+      [
+       "/_mozilla/mozilla/duplicated_scroll_ids_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/iframe/resize_after_load.html": [
     [
      "/_mozilla/mozilla/iframe/resize_after_load.html",
@@ -11036,6 +11048,11 @@
     ]
    ],
    "mozilla/details_ui_opened_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/duplicated_scroll_ids_ref.html": [
     [
      {}
     ]
@@ -66228,6 +66245,14 @@
   "mozilla/double_focus.html": [
    "614fb3a1e9d775f07bf1d5b9a846ca48729f7805",
    "testharness"
+  ],
+  "mozilla/duplicated_scroll_ids.html": [
+   "b2981b97ad5e482b9b6bae872e45f27b084018ef",
+   "reftest"
+  ],
+  "mozilla/duplicated_scroll_ids_ref.html": [
+   "437c185b1424990fa78ff00f08bbc0e9cda9c2f7",
+   "support"
   ],
   "mozilla/element_attribute.html": [
    "35625bedf3b323f8538174058c755cbccd25157c",
