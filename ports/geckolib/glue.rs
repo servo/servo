@@ -1438,11 +1438,18 @@ macro_rules! impl_basic_rule_funcs_without_getter {
         debug: $debug:ident,
         to_css: $to_css:ident,
     } => {
+        #[cfg(debug_assertions)]
         #[no_mangle]
         pub extern "C" fn $debug(rule: &$raw_type, result: *mut nsACString) {
             read_locked_arc(rule, |rule: &$rule_type| {
                 write!(unsafe { result.as_mut().unwrap() }, "{:?}", *rule).unwrap();
             })
+        }
+
+        #[cfg(not(debug_assertions))]
+        #[no_mangle]
+        pub extern "C" fn $debug(_: &$raw_type, _: *mut nsACString) {
+            unreachable!()
         }
 
         #[no_mangle]
