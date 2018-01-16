@@ -8,6 +8,7 @@ use nth_index_cache::NthIndexCacheInner;
 use parser::{AncestorHashes, Combinator, Component, LocalName};
 use parser::{Selector, SelectorImpl, SelectorIter, SelectorList};
 use std::borrow::Borrow;
+use std::iter;
 use tree::Element;
 
 pub use context::*;
@@ -222,7 +223,7 @@ pub enum CompoundSelectorMatchingResult {
 ///
 /// NOTE(emilio): This doesn't allow to match in the leftmost sequence of the
 /// complex selector, but it happens to be the case we don't need it.
-pub fn matches_compound_selector<E>(
+pub fn matches_compound_selector_from<E>(
     selector: &Selector<E::Impl>,
     mut from_offset: usize,
     context: &mut MatchingContext<E::Impl>,
@@ -426,31 +427,21 @@ where
 {
     debug!("Matching complex selector {:?} for {:?}", selector_iter, element);
 
-    let matches_all_simple_selectors = {
-        let matches_hover_and_active_quirk =
-            matches_hover_and_active_quirk(&selector_iter, context, rightmost);
-        let mut local_context =
-            LocalMatchingContext {
-                shared: context,
-                visited_handling,
-                matches_hover_and_active_quirk,
-            };
-        selector_iter.all(|simple| {
-            matches_simple_selector(
-                simple,
-                element,
-                &mut local_context,
-                flags_setter,
-            )
-        })
-    };
+    let matches_compound_selector = matches_compound_selector(
+        &mut selector_iter,
+        element,
+        context,
+        visited_handling,
+        flags_setter,
+        rightmost
+    );
 
     let combinator = selector_iter.next_sequence();
     if combinator.map_or(false, |c| c.is_sibling()) {
         flags_setter(element, ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS);
     }
 
-    if !matches_all_simple_selectors {
+    if !matches_compound_selector {
         return SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling;
     }
 
@@ -541,8 +532,84 @@ where
     }
 }
 
-/// Determines whether the given element matches the given single selector.
 #[inline]
+fn matches_local_name<E>(
+    element: &E,
+    local_name: &LocalName<E::Impl>
+) -> bool
+where
+    E: Element,
+{
+    let name = select_name(
+        element.is_html_element_in_html_document(),
+        &local_name.name,
+        &local_name.lower_name
+    ).borrow();
+    element.get_local_name() == name
+}
+
+/// Determines whether the given element matches the given compound selector.
+#[inline]
+fn matches_compound_selector<E, F>(
+    selector_iter: &mut SelectorIter<E::Impl>,
+    element: &E,
+    context: &mut MatchingContext<E::Impl>,
+    visited_handling: VisitedHandlingMode,
+    flags_setter: &mut F,
+    rightmost: Rightmost,
+) -> bool
+where
+    E: Element,
+    F: FnMut(&E, ElementSelectorFlags),
+{
+    let matches_hover_and_active_quirk =
+        matches_hover_and_active_quirk(&selector_iter, context, rightmost);
+
+    // Handle some common cases first.
+    // We may want to get rid of this at some point if we can make the
+    // generic case fast enough.
+    let mut selector = selector_iter.next();
+    if let Some(&Component::LocalName(ref local_name)) = selector {
+        if !matches_local_name(element, local_name) {
+            return false;
+        }
+        selector = selector_iter.next();
+    }
+    let class_and_id_case_sensitivity = context.classes_and_ids_case_sensitivity();
+    if let Some(&Component::ID(ref id)) = selector {
+        if !element.has_id(id, class_and_id_case_sensitivity) {
+            return false;
+        }
+        selector = selector_iter.next();
+    }
+    while let Some(&Component::Class(ref class)) = selector {
+        if !element.has_class(class, class_and_id_case_sensitivity) {
+            return false;
+        }
+        selector = selector_iter.next();
+    }
+    let selector = match selector {
+        Some(s) => s,
+        None => return true,
+    };
+
+    let mut local_context =
+        LocalMatchingContext {
+            shared: context,
+            visited_handling,
+            matches_hover_and_active_quirk,
+        };
+    iter::once(selector).chain(selector_iter).all(|simple| {
+        matches_simple_selector(
+            simple,
+            element,
+            &mut local_context,
+            flags_setter,
+        )
+    })
+}
+
+/// Determines whether the given element matches the given single selector.
 fn matches_simple_selector<E, F>(
     selector: &Component<E::Impl>,
     element: &E,
@@ -571,9 +638,8 @@ where
         Component::PseudoElement(ref pseudo) => {
             element.match_pseudo_element(pseudo, context.shared)
         }
-        Component::LocalName(LocalName { ref name, ref lower_name }) => {
-            let is_html = element.is_html_element_in_html_document();
-            element.get_local_name() == select_name(is_html, name, lower_name).borrow()
+        Component::LocalName(ref local_name) => {
+            matches_local_name(element, local_name)
         }
         Component::ExplicitUniversalType |
         Component::ExplicitAnyNamespace => {
