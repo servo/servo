@@ -179,7 +179,7 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 impl<'a> TextRun {
     /// Constructs a new text run. Also returns if there is a line break at the beginning
     pub fn new(font: &mut Font, text: String, options: &ShapingOptions,
-               bidi_level: bidi::Level, breaker: &mut LineBreakLeafIter) -> (TextRun, bool) {
+               bidi_level: bidi::Level, breaker: &mut Option<LineBreakLeafIter>) -> (TextRun, bool) {
         let (glyphs, break_at_zero) = TextRun::break_and_shape(font, &text, options, breaker);
         (TextRun {
             text: Arc::new(text),
@@ -194,12 +194,22 @@ impl<'a> TextRun {
     }
 
     pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions,
-                           breaker: &mut LineBreakLeafIter) -> (Vec<GlyphRun>, bool) {
+                           breaker: &mut Option<LineBreakLeafIter>) -> (Vec<GlyphRun>, bool) {
         let mut glyphs = vec!();
         let mut slice = 0..0;
 
         let mut finished = false;
         let mut break_at_zero = false;
+
+        if breaker.is_none() {
+            if text.len() == 0 {
+                return (glyphs, true)
+            }
+            *breaker = Some(LineBreakLeafIter::new(&text, 0));
+        }
+
+        let mut breaker = breaker.as_mut().unwrap();
+
         while !finished {
             let (idx, _is_hard_break) = breaker.next(text);
             if idx == text.len() {
@@ -312,6 +322,14 @@ impl<'a> TextRun {
                 None
             }
         })
+    }
+
+    pub fn on_glyph_run_boundary(&self, index: ByteIndex) -> bool {
+        if let Some(glyph_index) = self.index_of_first_glyph_run_containing(index) {
+            self.glyphs[glyph_index].range.begin() == index
+        } else {
+            true
+        }
     }
 
     /// Returns the index in the range of the first glyph advancing over given advance
