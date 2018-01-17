@@ -286,31 +286,37 @@ impl DOMString {
     /// YYYY must be four or more digits, MM and DD both must be two digits
     /// https://html.spec.whatwg.org/multipage/#valid-date-string
     pub fn is_valid_date_string(&self) -> bool {
-        parse_date_string(&*self.0).is_ok()
+        parse_date_string(&self.0).is_ok()
     }
 
     /// A valid month string should be "YYYY-MM"
     /// YYYY must be four or more digits, MM both must be two digits
     /// https://html.spec.whatwg.org/multipage/#valid-month-string
     pub fn is_valid_month_string(&self) -> bool {
-        parse_month_string(&*self.0).is_ok()
+        parse_month_string(&self.0).is_ok()
     }
 
     /// A valid week string should be like {YYYY}-W{WW}, such as "2017-W52"
     /// YYYY must be four or more digits, WW both must be two digits
     /// https://html.spec.whatwg.org/multipage/#valid-week-string
     pub fn is_valid_week_string(&self) -> bool {
-        parse_week_string(&*self.0).is_ok()
+        parse_week_string(&self.0).is_ok()
     }
 
-    /// A valid number is the same as what rust considers to be valid,
-    /// except for +1., NaN, and Infinity.
     /// https://html.spec.whatwg.org/multipage/#valid-floating-point-number
-    pub fn is_valid_number_string(&self) -> bool {
-        let input = &self.0;
-        input.parse::<f64>().ok().map_or(false, |val| {
-            !(val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+"))
-        })
+    pub fn is_valid_floating_point_number_string(&self) -> bool {
+        // for the case that `parse_floating_point_number` cannot handle
+        if self.0.contains(" ") {
+            return false;
+        }
+        parse_floating_point_number(&self.0).is_ok()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number
+    pub fn set_best_representation_of_the_floating_point_number(&mut self) {
+        if let Ok(val) = parse_floating_point_number(&self.0) {
+            self.0 = val.to_string();
+        }
     }
 
     /// A valid normalized local date and time string should be "{date}T{time}"
@@ -617,7 +623,7 @@ fn parse_time_component(value: &str) -> Result<(u32, u32, f32), ()> {
     Ok((hour_int, minute_int, second_float))
 }
 
-// https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
+/// https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
 fn parse_local_date_and_time_string(value: &str) ->  Result<((u32, u32, u32), (u32, u32, f32)), ()> {
     // Step 1, 2, 4
     let mut iterator = if value.contains('T') {
@@ -658,7 +664,7 @@ fn max_day_in_month(year_num: u32, month_num: u32) -> Result<u32, ()> {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#week-number-of-the-last-day
+/// https://html.spec.whatwg.org/multipage/#week-number-of-the-last-day
 fn max_week_in_year(year: u32) -> u32 {
     match Utc.ymd(year as i32, 1, 1).weekday() {
         Weekday::Thu => 53,
@@ -670,4 +676,19 @@ fn max_week_in_year(year: u32) -> u32 {
 #[inline]
 fn is_leap_year(year: u32) -> bool {
     year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
+}
+
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values
+fn parse_floating_point_number(input: &str) -> Result<f64, ()> {
+    match input.trim().parse::<f64>() {
+        Ok(val) if !(
+            // A valid number is the same as what rust considers to be valid,
+            // except for +1., NaN, and Infinity.
+            val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+        ) => {
+            // TODO(#19773): need consider `min`, `max`, `step`, when they are implemented
+            Ok(val.round())
+        },
+        _ => Err(())
+    }
 }
