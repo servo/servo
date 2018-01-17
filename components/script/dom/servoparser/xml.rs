@@ -9,7 +9,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
-use dom::servoparser::Sink;
+use dom::servoparser::{ParsingAlgorithm, Sink};
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use xml5ever::buffer_queue::BufferQueue;
@@ -30,6 +30,7 @@ impl Tokenizer {
             document: Dom::from_ref(document),
             current_line: 1,
             script: Default::default(),
+            parsing_algorithm: ParsingAlgorithm::Normal,
         };
 
         let tb = XmlTreeBuilder::new(sink, Default::default());
