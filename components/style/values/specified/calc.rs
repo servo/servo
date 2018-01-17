@@ -64,9 +64,10 @@ pub enum CalcUnit {
 
 /// A struct to hold a simplified `<length>` or `<percentage>` expression.
 ///
-/// In some cases, e.g. DOMMatrix, we support calc(), but reject all the relative lengths, and
-/// to_computed_pixel_length_without_context() handles this case. Therefore, if you want to add a
-/// new field, please make sure this function work properly.
+/// In some cases, e.g. DOMMatrix, we support calc(), but reject all the
+/// relative lengths, and to_computed_pixel_length_without_context() handles
+/// this case. Therefore, if you want to add a new field, please make sure this
+/// function work properly.
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
