@@ -363,19 +363,6 @@ impl Element {
         !self.overflow_y_is_visible()
     }
 
-    // https://drafts.csswg.org/cssom-view/#scrolling-box
-    fn has_scrolling_box(&self) -> bool {
-        // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
-        //       self.has_scrolling_mechanism()
-        self.overflow_x_is_hidden() ||
-        self.overflow_y_is_hidden()
-    }
-
-    fn has_overflow(&self) -> bool {
-        self.ScrollHeight() > self.ClientHeight() ||
-        self.ScrollWidth() > self.ClientWidth()
-    }
-
     // used value of overflow-x is "visible"
     fn overflow_x_is_visible(&self) -> bool {
         let window = window_from_node(self);
@@ -388,20 +375,6 @@ impl Element {
         let window = window_from_node(self);
         let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
         overflow_pair.y == overflow_y::computed_value::T::Visible
-    }
-
-    // used value of overflow-x is "hidden"
-    fn overflow_x_is_hidden(&self) -> bool {
-        let window = window_from_node(self);
-        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.x == overflow_x::computed_value::T::Hidden
-    }
-
-    // used value of overflow-y is "hidden"
-    fn overflow_y_is_hidden(&self) -> bool {
-        let window = window_from_node(self);
-        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.y == overflow_y::computed_value::T::Hidden
     }
 }
 
@@ -1498,13 +1471,7 @@ impl Element {
                return;
         }
 
-        // Step 10
-        if !self.has_css_layout_box() ||
-           !self.has_scrolling_box() ||
-           !self.has_overflow()
-        {
-            return;
-        }
+        // Step 10 (TODO)
 
         // Step 11
         win.scroll_node(node, x, y, behavior);
@@ -1960,13 +1927,7 @@ impl ElementMethods for Element {
                return;
         }
 
-        // Step 10
-        if !self.has_css_layout_box() ||
-           !self.has_scrolling_box() ||
-           !self.has_overflow()
-        {
-            return;
-        }
+        // Step 10 (TODO)
 
         // Step 11
         win.scroll_node(node, self.ScrollLeft(), y, behavior);
@@ -2059,13 +2020,7 @@ impl ElementMethods for Element {
                return;
         }
 
-        // Step 10
-        if !self.has_css_layout_box() ||
-           !self.has_scrolling_box() ||
-           !self.has_overflow()
-        {
-            return;
-        }
+        // Step 10 (TODO)
 
         // Step 11
         win.scroll_node(node, x, self.ScrollTop(), behavior);
