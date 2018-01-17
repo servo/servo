@@ -9,6 +9,7 @@ use malloc_size_of::MallocSizeOfOps;
 use selectors::{Element, NthIndexCache};
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
+use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::env;
 use std::fmt::Write;
@@ -1774,7 +1775,6 @@ pub unsafe extern "C" fn Servo_SelectorList_QueryAll(
     content_list: *mut structs::nsSimpleContentList,
     may_use_invalidation: bool,
 ) {
-    use smallvec::SmallVec;
     use std::borrow::Borrow;
     use style::dom_apis::{self, MayUseInvalidation, QueryAll};
 
@@ -2391,10 +2391,10 @@ pub extern "C" fn Servo_ComputedValues_EqualCustomProperties(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoStyleContextBorrowed,
-                                                        rules: RawGeckoServoStyleRuleListBorrowedMut) {
-    use smallvec::SmallVec;
-
+pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
+    values: ServoStyleContextBorrowed,
+    rules: RawGeckoServoStyleRuleListBorrowedMut,
+) {
     let rule_node = match values.rules {
         Some(ref r) => r,
         None => return,
@@ -4927,6 +4927,40 @@ pub extern "C" fn Servo_ParseCounterStyleName(
     match parser.parse_entirely(counter_style::parse_counter_style_name_definition) {
         Ok(name) => name.0.into_addrefed(),
         Err(_) => ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_InvalidateStyleForDocStateChanges(
+    root: RawGeckoElementBorrowed,
+    raw_style_sets: *const nsTArray<RawServoStyleSetBorrowed>,
+    states_changed: u64,
+) {
+    use style::invalidation::element::document_state::DocumentStateInvalidationProcessor;
+    use style::invalidation::element::invalidator::TreeStyleInvalidator;
+
+    let mut borrows = SmallVec::<[_; 20]>::with_capacity((*raw_style_sets).len());
+    for style_set in &**raw_style_sets {
+        borrows.push(PerDocumentStyleData::from_ffi(*style_set).borrow());
+    }
+    let root = GeckoElement(root);
+    let mut processor = DocumentStateInvalidationProcessor::new(
+        borrows.iter().flat_map(|b| b.stylist.iter_origins().map(|(data, _origin)| data)),
+        DocumentState::from_bits_truncate(states_changed),
+        root.as_node().owner_doc().quirks_mode(),
+    );
+
+    let result = TreeStyleInvalidator::new(
+        root,
+        /* stack_limit_checker = */ None,
+        &mut processor,
+    ).invalidate();
+
+    debug_assert!(!result.has_invalidated_siblings(), "How in the world?");
+    if result.has_invalidated_descendants() {
+        bindings::Gecko_NoteDirtySubtreeForInvalidation(root.0);
+    } else if result.has_invalidated_self() {
+        bindings::Gecko_NoteDirtyElement(root.0);
     }
 }
 

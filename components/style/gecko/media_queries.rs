@@ -684,9 +684,11 @@ impl Expression {
     pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
         let mut css_value = nsCSSValue::null();
         unsafe {
-            (self.feature.mGetter.unwrap())(device.pres_context,
-                                            self.feature,
-                                            &mut css_value)
+            (self.feature.mGetter.unwrap())(
+                device.pres_context().mDocument.raw::<structs::nsIDocument>(),
+                self.feature,
+                &mut css_value,
+            )
         };
 
         let value = match MediaExpressionValue::from_css_value(self, &css_value) {

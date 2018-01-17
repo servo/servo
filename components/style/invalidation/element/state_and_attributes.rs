@@ -24,7 +24,7 @@ use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
 use smallvec::SmallVec;
 use stylesheets::origin::{Origin, OriginSet};
-use stylist::StyleRuleCascadeData;
+use stylist::CascadeData;
 
 #[derive(Debug, PartialEq)]
 enum VisitedDependent {
@@ -57,7 +57,7 @@ where
 /// changes.
 pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
-    shadow_rule_datas: &'a [(AtomicRef<'b, StyleRuleCascadeData>, QuirksMode)],
+    shadow_rule_datas: &'a [(AtomicRef<'b, CascadeData>, QuirksMode)],
     cut_off_inheritance: bool,
     element: E,
     data: &'a mut ElementData,
@@ -68,7 +68,7 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
-        shadow_rule_datas: &'a [(AtomicRef<'b, StyleRuleCascadeData>, QuirksMode)],
+        shadow_rule_datas: &'a [(AtomicRef<'b, CascadeData>, QuirksMode)],
         cut_off_inheritance: bool,
         element: E,
         data: &'a mut ElementData,
@@ -255,11 +255,11 @@ where
                 OriginSet::all()
             };
 
-            self.shared_context.stylist.each_normal_rule_cascade_data(|cascade_data, origin| {
+            for (cascade_data, origin) in self.shared_context.stylist.iter_origins() {
                 if document_origins.contains(origin.into()) {
                     collector.collect_dependencies_in_invalidation_map(cascade_data.invalidation_map());
                 }
-            });
+            }
 
             for &(ref data, quirks_mode) in self.shadow_rule_datas {
                 // FIXME(emilio): Replace with assert / remove when we figure

@@ -2216,8 +2216,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms7preloadE"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "_ZN9nsGkAtoms11prerenderedE"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms15mozpresentationE"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "_ZN9nsGkAtoms8preserveE"]
@@ -7391,8 +7389,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "?preload@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "?prerendered@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "?mozpresentation@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "?preserve@nsGkAtoms@@2PEAVnsStaticAtom@@EA"]
@@ -12566,8 +12562,6 @@ cfg_if! {
             pub static nsGkAtoms_prefix: *mut nsStaticAtom;
             #[link_name = "\x01?preload@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_preload: *mut nsStaticAtom;
-            #[link_name = "\x01?prerendered@nsGkAtoms@@2PAVnsStaticAtom@@A"]
-            pub static nsGkAtoms_prerendered: *mut nsStaticAtom;
             #[link_name = "\x01?mozpresentation@nsGkAtoms@@2PAVnsStaticAtom@@A"]
             pub static nsGkAtoms_mozpresentation: *mut nsStaticAtom;
             #[link_name = "\x01?preserve@nsGkAtoms@@2PAVnsStaticAtom@@A"]
@@ -17744,8 +17738,6 @@ macro_rules! atom {
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prefix as *mut _) } }};
 ("preload") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preload as *mut _) } }};
-("prerendered") =>
-  {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prerendered as *mut _) } }};
 ("mozpresentation") =>
   {{ #[allow(unsafe_code)] #[allow(unused_unsafe)]unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpresentation as *mut _) } }};
 ("preserve") =>

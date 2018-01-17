@@ -10,7 +10,7 @@ use invalidation::element::invalidator::{DescendantInvalidationLists, Invalidati
 use invalidation::element::invalidator::{Invalidation, InvalidationProcessor};
 use invalidation::element::state_and_attributes;
 use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, VisitedHandlingMode};
-use stylist::StyleRuleCascadeData;
+use stylist::CascadeData;
 
 /// A struct holding the members necessary to invalidate document state
 /// selectors.
@@ -30,20 +30,20 @@ impl Default for InvalidationMatchingData {
 
 /// An invalidation processor for style changes due to state and attribute
 /// changes.
-pub struct DocumentStateInvalidationProcessor<'a, E: TElement> {
+pub struct DocumentStateInvalidationProcessor<'a, E: TElement, I> {
     // TODO(emilio): We might want to just run everything for every possible
     // binding along with the document data, or just apply the XBL stuff to the
     // bound subtrees.
-    rules: &'a StyleRuleCascadeData,
+    rules: I,
     matching_context: MatchingContext<'a, E::Impl>,
     document_states_changed: DocumentState,
 }
 
-impl<'a, E: TElement> DocumentStateInvalidationProcessor<'a, E> {
+impl<'a, E: TElement, I> DocumentStateInvalidationProcessor<'a, E, I> {
     /// Creates a new DocumentStateInvalidationProcessor.
     #[inline]
     pub fn new(
-        rules: &'a StyleRuleCascadeData,
+        rules: I,
         document_states_changed: DocumentState,
         quirks_mode: QuirksMode,
     ) -> Self {
@@ -63,7 +63,11 @@ impl<'a, E: TElement> DocumentStateInvalidationProcessor<'a, E> {
     }
 }
 
-impl<'a, E: TElement> InvalidationProcessor<'a, E> for DocumentStateInvalidationProcessor<'a, E> {
+impl<'a, E, I> InvalidationProcessor<'a, E> for DocumentStateInvalidationProcessor<'a, E, I>
+where
+    E: TElement,
+    I: Iterator<Item = &'a CascadeData>,
+{
     fn collect_invalidations(
         &mut self,
         _element: E,
@@ -71,14 +75,15 @@ impl<'a, E: TElement> InvalidationProcessor<'a, E> for DocumentStateInvalidation
         _descendant_invalidations: &mut DescendantInvalidationLists<'a>,
         _sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool {
-        let map = self.rules.invalidation_map();
+        for cascade_data in &mut self.rules {
+            let map = cascade_data.invalidation_map();
+            for dependency in &map.document_state_selectors {
+                if !dependency.state.intersects(self.document_states_changed) {
+                    continue;
+                }
 
-        for dependency in &map.document_state_selectors {
-            if !dependency.state.intersects(self.document_states_changed) {
-                continue;
+                self_invalidations.push(Invalidation::new(&dependency.selector, 0));
             }
-
-            self_invalidations.push(Invalidation::new(&dependency.selector, 0));
         }
 
         false
