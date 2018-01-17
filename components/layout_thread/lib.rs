@@ -1042,7 +1042,7 @@ impl LayoutThread {
             // Observe notifications about rendered frames if needed right before
             // sending the display list to WebRender in order to set time related
             // Progressive Web Metrics.
-            self.paint_time_metrics.maybe_observe_paint_time(self, epoch, &display_list);
+            self.paint_time_metrics.maybe_observe_paint_time(self, epoch, &*display_list);
 
             self.webrender_api.set_display_list(
                 self.webrender_document,
