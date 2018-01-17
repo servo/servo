@@ -46,7 +46,7 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use servo_config::opts;
-use servo_geometry::max_rect;
+use servo_geometry::MaxRect;
 use std::{cmp, f32};
 use std::default::Default;
 use std::mem;
@@ -2381,7 +2381,7 @@ impl SavedStackingContextCollectionState {
             .containing_block_clip_stack
             .last()
             .cloned()
-            .unwrap_or_else(max_rect);
+            .unwrap_or_else(MaxRect::max_rect);
         state.clip_stack.push(clip);
         self.clips_pushed += 1;
     }
@@ -2447,7 +2447,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let origin = &border_box.origin;
         let transform_clip = |clip: &Rect<Au>| {
-            if *clip == max_rect() {
+            if *clip == Rect::max_rect() {
                 return *clip;
             }
 
@@ -2458,7 +2458,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     // clip region. Here we don't have enough information to detect when that is
                     // happening. For the moment we just punt on trying to optimize the display
                     // list for those cases.
-                    max_rect()
+                    Rect::max_rect()
                 },
                 Some(transform) => {
                     let clip = Rect::new(
@@ -2573,7 +2573,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 state.containing_block_clipping_and_scrolling
             },
             StylePosition::Fixed => {
-                preserved_state.push_clip(state, &max_rect(), StylePosition::Fixed);
+                preserved_state.push_clip(state, &Rect::max_rect(), StylePosition::Fixed);
                 state.current_clipping_and_scrolling
             },
             _ => state.current_clipping_and_scrolling,
@@ -2599,7 +2599,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &stacking_relative_border_box,
             );
         }
-        self.base.clip = state.clip_stack.last().cloned().unwrap_or_else(max_rect);
+        self.base.clip = state
+            .clip_stack
+            .last()
+            .cloned()
+            .unwrap_or_else(Rect::max_rect);
 
         // We keep track of our position so that any stickily positioned elements can
         // properly determine the extent of their movement relative to scrolling containers.
@@ -2969,7 +2973,11 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
     fn collect_stacking_contexts_for_inline(&mut self, state: &mut StackingContextCollectionState) {
         self.base.stacking_context_id = state.current_stacking_context_id;
         self.base.clipping_and_scrolling = Some(state.current_clipping_and_scrolling);
-        self.base.clip = state.clip_stack.last().cloned().unwrap_or_else(max_rect);
+        self.base.clip = state
+            .clip_stack
+            .last()
+            .cloned()
+            .unwrap_or_else(Rect::max_rect);
 
         for fragment in self.fragments.fragments.iter_mut() {
             let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;

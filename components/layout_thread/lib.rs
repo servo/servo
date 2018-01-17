@@ -108,7 +108,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::read_resource_file;
-use servo_geometry::max_rect;
+use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -1467,7 +1467,7 @@ impl LayoutThread {
 
         if let Some(mut root_flow) = self.root_flow.borrow().clone() {
             let reflow_info = Reflow {
-                page_clip_rect: max_rect(),
+                page_clip_rect: Rect::max_rect(),
             };
 
             // Unwrap here should not panic since self.root_flow is only ever set to Some(_)

@@ -6,9 +6,12 @@ extern crate app_units;
 extern crate euclid;
 extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;
+extern crate webrender_api;
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::{Point2D, Rect, Size2D};
+use std::f32;
+use webrender_api::{LayoutPoint, LayoutRect, LayoutSize};
 
 // Units for use with euclid::length and euclid::scale_factor.
 
@@ -32,9 +35,27 @@ pub enum DeviceIndependentPixel {}
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 
-#[inline(always)]
-pub fn max_rect() -> Rect<Au> {
-    Rect::new(Point2D::new(MIN_AU / 2, MIN_AU / 2), Size2D::new(MAX_AU, MAX_AU))
+pub trait MaxRect {
+    #[inline(always)]
+    fn max_rect() -> Self;
+}
+
+impl MaxRect for Rect<Au> {
+    fn max_rect() -> Rect<Au> {
+        Rect::new(
+            Point2D::new(MIN_AU / 2, MIN_AU / 2),
+            Size2D::new(MAX_AU, MAX_AU)
+        )
+    }
+}
+
+impl MaxRect for LayoutRect {
+    fn max_rect() -> LayoutRect {
+        LayoutRect::new(
+            LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),
+            LayoutSize::new(f32::MAX, f32::MAX),
+        )
+    }
 }
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.

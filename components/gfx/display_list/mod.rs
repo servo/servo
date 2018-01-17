@@ -23,7 +23,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
-use servo_geometry::max_rect;
+use servo_geometry::MaxRect;
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::f32;
@@ -445,10 +445,7 @@ impl BaseDisplayItem {
                 pointing: None,
             },
             // Create a rectangle of maximal size.
-            local_clip: LocalClip::from(LayoutRect::new(
-                LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),
-                LayoutSize::new(f32::MAX, f32::MAX),
-            )),
+            local_clip: LocalClip::from(LayoutRect::max_rect()),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
             clipping_and_scrolling: ClippingAndScrolling::simple(ClipScrollNodeIndex(0)),
@@ -495,7 +492,7 @@ impl ClippingRegion {
     #[inline]
     pub fn max() -> ClippingRegion {
         ClippingRegion {
-            main: max_rect(),
+            main: Rect::max_rect(),
             complex: Vec::new(),
         }
     }
@@ -606,7 +603,7 @@ impl ClippingRegion {
 
     #[inline]
     pub fn is_max(&self) -> bool {
-        self.main == max_rect() && self.complex.is_empty()
+        self.main == Rect::max_rect() && self.complex.is_empty()
     }
 }
 
@@ -616,7 +613,7 @@ impl fmt::Debug for ClippingRegion {
             write!(f, "ClippingRegion::Max")
         } else if *self == ClippingRegion::empty() {
             write!(f, "ClippingRegion::Empty")
-        } else if self.main == max_rect() {
+        } else if self.main == Rect::max_rect() {
             write!(f, "ClippingRegion(Complex={:?})", self.complex)
         } else {
             write!(f, "ClippingRegion(Rect={:?}, Complex={:?})", self.main, self.complex)
