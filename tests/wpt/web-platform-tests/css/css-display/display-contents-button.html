@@ -5,8 +5,11 @@
 <link rel="help" href="https://drafts.csswg.org/css-display/#unbox-html">
 <link rel="match" href="display-contents-pass-ref.html">
 <style>
+  /* Disable kerning because kerning may differ for different node tree. */
+  html { font-kerning: none; font-feature-settings: "kern" off; }
   button {
     all: initial;
+    font-kerning: none; font-feature-settings: "kern" off;
     border: 10px solid red;
     display: contents;
   }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>HTMLAnchorElement relList</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var element = document.createElement("a");
+  // Test that setting rel is also setting relList, for both
+  // valid and invalid values.
+  element.rel = "whatever";
+  assert_true(element.relList.contains("whatever"));
+  element.rel = "prefetch";
+  assert_true(element.relList.contains("prefetch"));
+  // Test that add() works.
+  element.relList.add("preloadwhatever");
+  assert_equals(element.rel, "prefetch preloadwhatever");
+  assert_true(element.relList.contains("preloadwhatever"));
+  // Test that remove() works.
+  element.relList.remove("preloadwhatever");
+  assert_equals(element.rel, "prefetch");
+  assert_false(element.relList.contains("preloadwhatever"));
+  // Test that toggle() works.
+  element.relList.toggle("prefetch", false);
+  assert_equals(element.rel, "");
+  element.relList.toggle("prefetch", true);
+  assert_equals(element.rel, "prefetch");
+  // Test that replace() works.
+  element.relList.replace("prefetch", "first");
+  assert_equals(element.rel, "first");
+  // Test that indexed item getter works.
+  element.relList.add("second");
+  assert_equals(element.relList.length, 2);
+  assert_equals(element.relList[0], "first");
+  assert_equals(element.relList[1], "second");
+
+  // Test that supports() is returning true for valid values
+  // and false for invalid ones.
+  assert_false(element.relList.supports("bogus"));
+  assert_false(element.relList.supports("alternate"));
+  assert_false(element.relList.supports("author"));
+  assert_false(element.relList.supports("bookmark"));
+  assert_false(element.relList.supports("external"));
+  assert_false(element.relList.supports("help"));
+  assert_false(element.relList.supports("license"));
+  assert_false(element.relList.supports("next"));
+  assert_false(element.relList.supports("nofollow"));
+  assert_false(element.relList.supports("prev"));
+  assert_false(element.relList.supports("search"));
+  assert_false(element.relList.supports("tag"));
+  assert_true(element.relList.supports("noreferrer"));
+  assert_true(element.relList.supports("noopener"));
+}, "Make sure that relList based feature detection is working");
+</script>

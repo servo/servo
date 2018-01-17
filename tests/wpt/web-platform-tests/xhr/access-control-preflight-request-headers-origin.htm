@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test that 'Origin' is not included in Access-Control-Request-Headers in a preflight request</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+async_test((test) => {
+  const xhr = new XMLHttpRequest;
+  const url = get_host_info().HTTP_REMOTE_ORIGIN +
+      "/xhr/resources/access-control-preflight-request-headers-origin.py";
+
+  xhr.open("GET", url);
+  xhr.setRequestHeader("x-pass", "PASS");
+
+  xhr.onerror = test.unreached_func("Unexpected error");
+
+  xhr.onload = test.step_func_done(() => {
+    assert_equals(xhr.responseText, "PASS");
+  });
+
+  xhr.send();
+}, "'Origin' should not be included in CORS Request-Headers");
+    </script>
+  </body>
+</html>
