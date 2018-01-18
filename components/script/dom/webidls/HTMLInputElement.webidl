@@ -9,8 +9,8 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString accept;
   [CEReactions]
            attribute DOMString alt;
-  // [CEReactions]
-  //         attribute DOMString autocomplete;
+  [CEReactions]
+           attribute DOMString autocomplete;
   // [CEReactions]
   //         attribute boolean autofocus;
   [CEReactions]
