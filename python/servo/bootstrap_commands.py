@@ -169,10 +169,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--keep',
                      default='1',
                      help='Keep up to this many most recent dependencies')
-    @CommandArgument('--custom-path', '-c',
-                     action='store_true',
-                     help='Get Cargo path from CARGO_HOME environment variable')
-    def clean_cargo_cache(self, force=False, show_size=False, keep=None, custom_path=False):
+    def clean_cargo_cache(self, force=False, show_size=False, keep=None):
         def get_size(path):
             if os.path.isfile(path):
                 return os.path.getsize(path) / (1024 * 1024.0)
@@ -189,7 +186,7 @@ class MachCommands(CommandBase):
             'git': {},
         }
         import toml
-        if os.environ.get("CARGO_HOME", "") and custom_path:
+        if os.environ.get("CARGO_HOME", ""):
             cargo_dir = os.environ.get("CARGO_HOME")
         else:
             cargo_dir = path.join(self.context.topdir, ".cargo")
@@ -317,7 +314,10 @@ class MachCommands(CommandBase):
                                 print("Removing `{}`{} package from {}".format(*print_msg))
                                 for crate_path in crate_paths:
                                     if os.path.exists(crate_path):
-                                        delete(crate_path)
+                                        try:
+                                            delete(crate_path)
+                                        except:
+                                            print("Delete %s failed!" % crate_path)
                             else:
                                 print("Would remove `{}`{} package from {}".format(*print_msg))
 
