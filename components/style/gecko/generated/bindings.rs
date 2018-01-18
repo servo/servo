@@ -1152,6 +1152,8 @@ extern "C" {
 } extern "C" {
  pub fn Servo_Element_IsPrimaryStyleReusedViaRuleNode ( element : RawGeckoElementBorrowed , ) -> bool ; 
 } extern "C" {
+ pub fn Servo_InvalidateStyleForDocStateChanges ( root : RawGeckoElementBorrowed , sets : * const nsTArray < RawServoStyleSetBorrowed > , aStatesChanged : u64 , ) ; 
+} extern "C" {
  pub fn Servo_StyleSheet_FromUTF8Bytes ( loader : * mut Loader , gecko_stylesheet : * mut ServoStyleSheet , data : * const u8 , data_len : usize , parsing_mode : SheetParsingMode , extra_data : * mut RawGeckoURLExtraData , line_number_offset : u32 , quirks_mode : nsCompatibility , reusable_sheets : * mut LoaderReusableStyleSheets , ) -> RawServoStyleSheetContentsStrong ; 
 } extern "C" {
  pub fn Servo_StyleSheet_Empty ( parsing_mode : SheetParsingMode , ) -> RawServoStyleSheetContentsStrong ; 
