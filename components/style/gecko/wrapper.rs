@@ -2112,7 +2112,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozWindowInactive => {
                 let state_bit = DocumentState::NS_DOCUMENT_STATE_WINDOW_INACTIVE;
                 if context.extra_data.document_state.intersects(state_bit) {
-                    return true;
+                    return !context.in_negation;
                 }
 
                 self.document_state().contains(state_bit)
@@ -2134,7 +2134,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 if context.extra_data.document_state.intersects(state_bit) {
                     // NOTE(emilio): We could still return false for
                     // Direction::Other(..), but we don't bother.
-                    return true;
+                    return !context.in_negation;
                 }
 
                 let doc_is_rtl = self.document_state().contains(state_bit);

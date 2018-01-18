@@ -620,6 +620,15 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
+    if cfg!(debug_assertions) {
+        if context.shared.nesting_level == 0 {
+            debug_assert!(!context.shared.in_negation, "How?");
+        }
+        if context.shared.in_negation {
+            debug_assert!(context.shared.nesting_level > 0);
+        }
+    }
+
     match *selector {
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
@@ -774,6 +783,12 @@ where
             matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
+            debug_assert!(
+                !context.shared.in_negation,
+                "Someone messed up parsing?"
+            );
+
+            context.shared.in_negation = true;
             context.shared.nesting_level += 1;
             let result = !negated.iter().all(|ss| {
                 matches_simple_selector(
@@ -784,6 +799,7 @@ where
                 )
             });
             context.shared.nesting_level -= 1;
+            context.shared.in_negation = false;
             result
         }
     }

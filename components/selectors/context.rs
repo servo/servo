@@ -126,6 +126,9 @@ where
     /// immutable again.
     pub nesting_level: usize,
 
+    /// Whether we're inside a negation or not.
+    pub in_negation: bool,
+
     /// An optional hook function for checking whether a pseudo-element
     /// should match when matching_mode is ForStatelessPseudoElement.
     pub pseudo_element_matching_fn: Option<&'a Fn(&Impl::PseudoElement) -> bool>,
@@ -175,6 +178,7 @@ where
             classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
             scope_element: None,
             nesting_level: 0,
+            in_negation: false,
             pseudo_element_matching_fn: None,
             extra_data: Default::default(),
             _impl: ::std::marker::PhantomData,
