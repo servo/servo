@@ -38,10 +38,6 @@ num = [
 packages = [
   "bitflags",
   "lazy_static",
-  "mime",
-  "semver",
-  "toml",
-  "unicase",
   "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.

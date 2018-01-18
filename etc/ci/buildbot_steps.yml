@@ -75,15 +75,15 @@ mac-nightly:
 linux-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - env CC=gcc-5 CXX=g++-5 ./mach build --release
+  - ./mach build --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-rel-nogate:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - env CC=gcc-5 CXX=g++-5 ./mach build --release
+  - ./mach build --release
   - python ./etc/ci/chaos_monkey_test.py
-  - env CC=gcc-5 CXX=g++-5 RUSTFLAGS= bash ./etc/ci/mutation_test.sh
+  - RUSTFLAGS= bash ./etc/ci/mutation_test.sh
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
@@ -96,11 +96,11 @@ linux-dev:
   - ./mach clean-cargo-cache --keep 3 --force
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
-  - env CC=gcc-5 CXX=g++-5 ./mach build --dev
-  - env CC=gcc-5 CXX=g++-5 ./mach test-unit
+  - ./mach build --dev
+  - ./mach test-unit
   - ./mach package --dev
-  - env CC=gcc-5 CXX=g++-5 ./mach build-cef
-  - env CC=gcc-5 CXX=g++-5 ./mach build --dev --no-default-features --features default-except-unstable
+  - ./mach build-cef
+  - ./mach build --dev --no-default-features --features default-except-unstable
   - ./mach build-geckolib
   - ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
@@ -110,7 +110,7 @@ linux-dev:
 linux-rel-wpt:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - env CC=gcc-5 CXX=g++-5 ./mach build --release --with-debug-assertions
+  - ./mach build --release --with-debug-assertions
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
@@ -119,7 +119,7 @@ linux-rel-wpt:
 linux-rel-css:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - env CC=gcc-5 CXX=g++-5 ./mach build --release --with-debug-assertions
+  - ./mach build --release --with-debug-assertions
   - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - ./mach build-geckolib --release
@@ -130,7 +130,7 @@ linux-rel-css:
 linux-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - env CC=gcc-5 CXX=g++-5 ./mach build --release
+  - ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly linux
   - ./mach test-perf

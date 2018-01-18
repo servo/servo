@@ -23,9 +23,6 @@ phf_codegen = "0.7.18"
 phf_shared = "0.7.18"
 serde_json = "1.0"
 
-[target.'cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
-gecko-media = {git = "https://github.com/servo/gecko-media.git"}
-
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
 
