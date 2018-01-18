@@ -10,7 +10,6 @@ ${helpers.predefined_type("cursor",
                           "Cursor",
                           "computed::Cursor::auto()",
                           initial_specified_value="specified::Cursor::auto()",
-                          products="gecko",
                           boxed=product == "gecko",
                           animation_value_type="discrete",
                           spec="https://drafts.csswg.org/css-ui/#cursor")}

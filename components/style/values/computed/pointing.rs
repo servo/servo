@@ -18,10 +18,8 @@ use values::specified::url::SpecifiedUrl;
 /// Servo variant.
 /// https://drafts.csswg.org/css-ui/#cursor
 #[cfg(not(feature = "gecko"))]
-pub struct Cursor {
-    /// The kind of the cursor [default | help | ...].
-    pub keyword: CursorKind,
-}
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct Cursor(pub CursorKind);
 
 /// The computed value for the `cursor` property.
 /// Gecko variant.

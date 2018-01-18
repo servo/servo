@@ -26,9 +26,7 @@ impl Cursor {
     #[cfg(not(feature = "gecko"))]
     #[inline]
     pub fn auto() -> Self {
-        Self {
-            keyword: CursorKind::Auto,
-        }
+        Cursor(CursorKind::Auto)
     }
 
     /// Set `cursor` to `auto`
@@ -47,9 +45,7 @@ impl Cursor {
         context: &ParserContext,
         input: &mut Parser<'i, 't>
     ) -> Result<Self, ParseError<'i>> {
-        Ok(Self {
-            keyword: CursorKind::parse(context, input)?,
-        })
+        Ok(Cursor(CursorKind::parse(context, input)?))
     }
 
     /// cursor: [<url> [<number> <number>]?]# [auto | default | ...]

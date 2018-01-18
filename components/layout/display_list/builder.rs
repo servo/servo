@@ -55,7 +55,6 @@ use style::computed_values::background_attachment::single_value::T as Background
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::computed_values::border_style::T as BorderStyle;
-use style::computed_values::cursor;
 use style::computed_values::image_rendering::T as ImageRendering;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::pointer_events::T as PointerEvents;
@@ -69,6 +68,7 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, NumberOrPercentage};
 use style::values::computed::effects::SimpleShadow;
+use style::values::computed::pointing::Cursor;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::effects::Filter;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
@@ -3161,12 +3161,12 @@ impl ComputedValuesCursorUtility for ComputedValues {
     #[inline]
     fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind> {
         match (
-            self.get_pointing().pointer_events,
-            self.get_pointing().cursor,
+            &self.get_pointing().pointer_events,
+            &self.get_pointing().cursor,
         ) {
-            (PointerEvents::None, _) => None,
-            (PointerEvents::Auto, cursor::Cursor(CursorKind::Auto)) => Some(default_cursor),
-            (PointerEvents::Auto, cursor::Cursor(cursor) => Some(cursor),
+            (&PointerEvents::None, _) => None,
+            (&PointerEvents::Auto, &Cursor(CursorKind::Auto)) => Some(default_cursor),
+            (&PointerEvents::Auto, &Cursor(cursor)) => Some(cursor),
         }
     }
 }
