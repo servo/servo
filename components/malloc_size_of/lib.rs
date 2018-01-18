@@ -716,19 +716,31 @@ impl MallocSizeOf for url::Host {
 }
 
 #[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::BorderStyle);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ClipAndScrollInfo);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ClipId);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ColorF);
 #[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::ExtendMode);
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::GradientStop);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ImageKey);
 #[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::ImageRendering);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::LineStyle);
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::LocalClip);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::MixBlendMode);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::NormalBorder);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::RepeatMode);
 #[cfg(feature = "servo")]

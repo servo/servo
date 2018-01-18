@@ -44,7 +44,7 @@ use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
 use sequential;
 use serde::{Serialize, Serializer};
-use servo_geometry::max_rect;
+use servo_geometry::MaxRect;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -1955,7 +1955,7 @@ impl Flow for BlockFlow {
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
 
         if self.is_root() {
-            self.base.clip = max_rect();
+            self.base.clip = Rect::max_rect();
         }
 
         if self.base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {

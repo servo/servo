@@ -84,7 +84,7 @@ use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
-use servo_geometry::{f32_rect_to_au_rect, max_rect};
+use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -1606,7 +1606,7 @@ impl Window {
             return false;
         }
 
-        let had_clip_rect = clip_rect != max_rect();
+        let had_clip_rect = clip_rect != MaxRect::max_rect();
         if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
             return false;
         }
@@ -1614,7 +1614,7 @@ impl Window {
         self.page_clip_rect.set(proposed_clip_rect);
 
         // If we didn't have a clip rect, the previous display doesn't need rebuilding
-        // because it was built for infinite clip (max_rect()).
+        // because it was built for infinite clip (MaxRect::amax_rect()).
         had_clip_rect
     }
 
@@ -1835,7 +1835,7 @@ impl Window {
             js_runtime: DomRefCell::new(Some(runtime.clone())),
             bluetooth_thread,
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
-            page_clip_rect: Cell::new(max_rect()),
+            page_clip_rect: Cell::new(MaxRect::max_rect()),
             resize_event: Default::default(),
             layout_chan,
             layout_rpc,

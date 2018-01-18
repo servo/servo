@@ -15,7 +15,7 @@ use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingRegion,
 use gfx::display_list::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, ClipMode, ComplexClipRegion};
-use webrender_api::{DisplayListBuilder, ExtendMode, LayoutTransform};
+use webrender_api::{DisplayListBuilder, LayoutTransform};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -160,12 +160,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             },
             DisplayItem::Image(ref item) => {
                 if let Some(id) = item.webrender_image.key {
-                    if item.stretch_size.width > Au(0) && item.stretch_size.height > Au(0) {
+                    if item.stretch_size.width > 0.0 && item.stretch_size.height > 0.0 {
                         builder.push_image(
                             &self.prim_info(),
-                            item.stretch_size.to_layout(),
-                            item.tile_spacing.to_layout(),
-                            item.image_rendering.to_layout(),
+                            item.stretch_size,
+                            item.tile_spacing,
+                            item.image_rendering,
                             webrender_api::AlphaType::PremultipliedAlpha,
                             id,
                         );
@@ -177,30 +177,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 let details = match item.details {
                     BorderDetails::Normal(ref border) => {
-                        let left = webrender_api::BorderSide {
-                            color: border.color.left,
-                            style: border.style.left.to_layout(),
-                        };
-                        let top = webrender_api::BorderSide {
-                            color: border.color.top,
-                            style: border.style.top.to_layout(),
-                        };
-                        let right = webrender_api::BorderSide {
-                            color: border.color.right,
-                            style: border.style.right.to_layout(),
-                        };
-                        let bottom = webrender_api::BorderSide {
-                            color: border.color.bottom,
-                            style: border.style.bottom.to_layout(),
-                        };
-                        let radius = border.radius.to_border_radius();
-                        webrender_api::BorderDetails::Normal(webrender_api::NormalBorder {
-                            left: left,
-                            top: top,
-                            right: right,
-                            bottom: bottom,
-                            radius: radius,
-                        })
+                        webrender_api::BorderDetails::Normal(*border)
                     },
                     BorderDetails::Image(ref image) => match image.image.key {
                         None => return,
@@ -220,34 +197,24 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         },
                     },
                     BorderDetails::Gradient(ref gradient) => {
-                        let extend_mode = if gradient.gradient.repeating {
-                            ExtendMode::Repeat
-                        } else {
-                            ExtendMode::Clamp
-                        };
                         webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
                             gradient: builder.create_gradient(
-                                gradient.gradient.start_point.to_layout(),
-                                gradient.gradient.end_point.to_layout(),
+                                gradient.gradient.start_point,
+                                gradient.gradient.end_point,
                                 gradient.gradient.stops.clone(),
-                                extend_mode,
+                                gradient.gradient.extend_mode,
                             ),
                             outset: gradient.outset,
                         })
                     },
                     BorderDetails::RadialGradient(ref gradient) => {
-                        let extend_mode = if gradient.gradient.repeating {
-                            ExtendMode::Repeat
-                        } else {
-                            ExtendMode::Clamp
-                        };
                         webrender_api::BorderDetails::RadialGradient(
                             webrender_api::RadialGradientBorder {
                                 gradient: builder.create_radial_gradient(
-                                    gradient.gradient.center.to_layout(),
-                                    gradient.gradient.radius.to_layout(),
+                                    gradient.gradient.center,
+                                    gradient.gradient.radius,
                                     gradient.gradient.stops.clone(),
-                                    extend_mode,
+                                    gradient.gradient.extend_mode,
                                 ),
                                 outset: gradient.outset,
                             },
@@ -258,45 +225,26 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_border(&self.prim_info(), widths, details);
             },
             DisplayItem::Gradient(ref item) => {
-                let start_point = item.gradient.start_point.to_layout();
-                let end_point = item.gradient.end_point.to_layout();
-                let extend_mode = if item.gradient.repeating {
-                    ExtendMode::Repeat
-                } else {
-                    ExtendMode::Clamp
-                };
                 let gradient = builder.create_gradient(
-                    start_point,
-                    end_point,
+                    item.gradient.start_point,
+                    item.gradient.end_point,
                     item.gradient.stops.clone(),
-                    extend_mode,
+                    item.gradient.extend_mode,
                 );
-                builder.push_gradient(
-                    &self.prim_info(),
-                    gradient,
-                    item.tile.to_layout(),
-                    item.tile_spacing.to_layout(),
-                );
+                builder.push_gradient(&self.prim_info(), gradient, item.tile, item.tile_spacing);
             },
             DisplayItem::RadialGradient(ref item) => {
-                let center = item.gradient.center.to_layout();
-                let radius = item.gradient.radius.to_layout();
-                let extend_mode = if item.gradient.repeating {
-                    ExtendMode::Repeat
-                } else {
-                    ExtendMode::Clamp
-                };
                 let gradient = builder.create_radial_gradient(
-                    center,
-                    radius,
+                    item.gradient.center,
+                    item.gradient.radius,
                     item.gradient.stops.clone(),
-                    extend_mode,
+                    item.gradient.extend_mode,
                 );
                 builder.push_radial_gradient(
                     &self.prim_info(),
                     gradient,
-                    item.tile.to_layout(),
-                    item.tile_spacing.to_layout(),
+                    item.tile,
+                    item.tile_spacing,
                 );
             },
             DisplayItem::Line(ref item) => {
@@ -310,14 +258,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 );
             },
             DisplayItem::BoxShadow(ref item) => {
-                let box_bounds = item.box_bounds.to_layout();
                 builder.push_box_shadow(
                     &self.prim_info(),
-                    box_bounds,
-                    item.offset.to_layout(),
+                    item.box_bounds,
+                    item.offset,
                     item.color,
-                    item.blur_radius.to_f32_px(),
-                    item.spread_radius.to_f32_px(),
+                    item.blur_radius,
+                    item.spread_radius,
                     item.border_radius.to_border_radius(),
                     item.clip_mode,
                 );
@@ -326,8 +273,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_shadow(
                     &self.prim_info(),
                     webrender_api::Shadow {
-                        blur_radius: item.blur_radius.to_f32_px(),
-                        offset: item.offset.to_layout(),
+                        blur_radius: item.blur_radius,
+                        offset: item.offset,
                         color: item.color,
                     },
                 );

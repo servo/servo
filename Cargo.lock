@@ -1779,7 +1779,6 @@ dependencies = [
 name = "metrics_tests"
 version = "0.0.1"
 dependencies = [
- "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1788,8 +1787,8 @@ dependencies = [
  "net_traits 0.0.1",
  "profile_traits 0.0.1",
  "servo_url 0.0.1",
- "style 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2960,6 +2959,7 @@ dependencies = [
  "euclid 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
+ "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
