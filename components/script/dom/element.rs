@@ -349,11 +349,12 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    // Elements that have a computed value of the display property
-    // that is table-column or table-column-group
-    // FIXME: Currently, it is assumed to be true always
+    //
+    // The specification currently says "The terms CSS layout box and SVG layout box are not
+    // currently defined by CSS or SVG." so we are interpreting "has CSS layout box" as "has
+    // bounding content box".
     fn has_css_layout_box(&self) -> bool {
-        true
+        self.upcast::<Node>().bounding_content_box().is_some()
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
