@@ -127,6 +127,9 @@ where
     /// MatchingContext immutable again.
     nesting_level: usize,
 
+    /// Whether we're inside a negation or not.
+    in_negation: bool,
+
     /// An optional hook function for checking whether a pseudo-element
     /// should match when matching_mode is ForStatelessPseudoElement.
     pub pseudo_element_matching_fn: Option<&'a Fn(&Impl::PseudoElement) -> bool>,
@@ -176,6 +179,7 @@ where
             classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
             scope_element: None,
             nesting_level: 0,
+            in_negation: false,
             pseudo_element_matching_fn: None,
             extra_data: Default::default(),
             _impl: ::std::marker::PhantomData,
@@ -186,6 +190,12 @@ where
     #[inline]
     pub fn is_nested(&self) -> bool {
         self.nesting_level != 0
+    }
+
+    /// Whether we're matching inside a :not(..) selector.
+    #[inline]
+    pub fn in_negation(&self) -> bool {
+        self.in_negation
     }
 
     /// The quirks mode of the document.
@@ -209,6 +219,23 @@ where
         self.nesting_level += 1;
         let result = f(self);
         self.nesting_level -= 1;
+        result
+    }
+
+    /// Runs F with a deeper nesting level, and marking ourselves in a negation,
+    /// for a :not(..) selector, for example.
+    #[inline]
+    pub fn nest_for_negation<F, R>(&mut self, f: F) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        debug_assert!(
+            !self.in_negation,
+            "Someone messed up parsing?"
+        );
+        self.in_negation = true;
+        let result = self.nest(f);
+        self.in_negation = false;
         result
     }
 
