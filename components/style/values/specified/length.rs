@@ -71,11 +71,17 @@ pub enum FontRelativeLength {
 /// A source to resolve font-relative units against
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FontBaseSize {
-    /// Use the font-size of the current element
+    /// Use the font-size of the current element.
     CurrentStyle,
-    /// Use the inherited font-size
+    /// Use the inherited font-size.
     InheritedStyle,
-    /// Use a custom base size
+    /// Use the inherited font-size, but strip em units.
+    ///
+    /// FIXME(emilio): This is very complex, and should go away.
+    InheritedStyleButStripEmUnits,
+    /// Use a custom base size.
+    ///
+    /// FIXME(emilio): This is very dubious, and only used for MathML.
     Custom(Au),
 }
 
@@ -85,6 +91,7 @@ impl FontBaseSize {
         match *self {
             FontBaseSize::Custom(size) => size,
             FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
+            FontBaseSize::InheritedStyleButStripEmUnits |
             FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size().size(),
         }
     }
@@ -99,36 +106,48 @@ impl FontRelativeLength {
         CSSPixelLength::new(pixel)
     }
 
-    /// Return reference font size. We use the base_size flag to pass a different size
-    /// for computing font-size and unconstrained font-size.
-    /// This returns a pair, the first one is the reference font size, and the second one is the
-    /// unpacked relative length.
+    /// Return reference font size.
+    ///
+    /// We use the base_size flag to pass a different size for computing
+    /// font-size and unconstrained font-size.
+    ///
+    /// This returns a pair, the first one is the reference font size, and the
+    /// second one is the unpacked relative length.
     fn reference_font_size_and_length(
         &self,
         context: &Context,
         base_size: FontBaseSize,
     ) -> (Au, CSSFloat) {
-        fn query_font_metrics(context: &Context, reference_font_size: Au) -> FontMetricsQueryResult {
-            context.font_metrics_provider.query(context.style().get_font(),
-                                                reference_font_size,
-                                                context.style().writing_mode,
-                                                context.in_media_query,
-                                                context.device())
+        fn query_font_metrics(
+            context: &Context,
+            reference_font_size: Au,
+        ) -> FontMetricsQueryResult {
+            context.font_metrics_provider.query(
+                context.style().get_font(),
+                reference_font_size,
+                context.style().writing_mode,
+                context.in_media_query,
+                context.device(),
+            )
         }
 
         let reference_font_size = base_size.resolve(context);
-
         match *self {
             FontRelativeLength::Em(length) => {
                 if context.for_non_inherited_property.is_some() {
-                    if matches!(base_size, FontBaseSize::CurrentStyle) {
+                    if base_size == FontBaseSize::CurrentStyle {
                         context.rule_cache_conditions.borrow_mut()
                             .set_font_size_dependency(
                                 reference_font_size.into()
                             );
                     }
                 }
-                (reference_font_size, length)
+
+                if base_size == FontBaseSize::InheritedStyleButStripEmUnits {
+                    (Au(0), length)
+                } else {
+                    (reference_font_size, length)
+                }
             },
             FontRelativeLength::Ex(length) => {
                 if context.for_non_inherited_property.is_some() {
@@ -182,7 +201,7 @@ impl FontRelativeLength {
                 // https://drafts.csswg.org/css-values/#rem:
                 //
                 //     When specified on the font-size property of the root
-                //     element, the rem units refer to the property’s initial
+                //     element, the rem units refer to the property's initial
                 //     value.
                 //
                 let reference_size = if context.is_root_element || context.in_media_query {

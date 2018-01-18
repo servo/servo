@@ -2505,9 +2505,12 @@ fn static_assert() {
 
     /// Set font size, taking into account scriptminsize and scriptlevel
     /// Returns Some(size) if we have to recompute the script unconstrained size
-    pub fn apply_font_size(&mut self, v: FontSize,
-                           parent: &Self,
-                           device: &Device) -> Option<NonNegativeLength> {
+    pub fn apply_font_size(
+        &mut self,
+        v: FontSize,
+        parent: &Self,
+        device: &Device,
+    ) -> Option<NonNegativeLength> {
         let (adjusted_size, adjusted_unconstrained_size) =
             self.calculate_script_level_size(parent, device);
         // In this case, we have been unaffected by scriptminsize, ignore it
