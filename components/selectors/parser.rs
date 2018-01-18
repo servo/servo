@@ -609,13 +609,12 @@ impl<'a, Impl: SelectorImpl> Iterator for SelectorIter<'a, Impl> {
     fn next(&mut self) -> Option<Self::Item> {
         debug_assert!(self.next_combinator.is_none(),
                       "You should call next_sequence!");
-        match self.iter.next() {
-            None => None,
-            Some(&Component::Combinator(c)) => {
+        match *self.iter.next()? {
+            Component::Combinator(c) => {
                 self.next_combinator = Some(c);
                 None
             },
-            Some(x) => Some(x),
+            ref x => Some(x),
         }
     }
 }
