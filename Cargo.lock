@@ -1167,7 +1167,7 @@ dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
- "osmesa-src 17.3.1-devel (git+https://github.com/servo/osmesa-src)",
+ "osmesa-src 17.4.0-devel (git+https://github.com/servo/osmesa-src)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2203,8 +2203,8 @@ dependencies = [
 
 [[package]]
 name = "osmesa-src"
-version = "17.3.1-devel"
-source = "git+https://github.com/servo/osmesa-src#6d23daede16f7edf7c66bdcce73c7583d0853733"
+version = "17.4.0-devel"
+source = "git+https://github.com/servo/osmesa-src#1cf8c2f21c7e9047c3bd5a2f1accbc08e5636cf7"
 
 [[package]]
 name = "osmesa-sys"
@@ -3933,7 +3933,7 @@ dependencies = [
 "checksum openssl 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)" = "419ef26bb651d72b6c5a603bcc4e4856a362460e62352dfffa53de91d2e81181"
 "checksum openssl-sys 0.9.22 (registry+https://github.com/rust-lang/crates.io-index)" = "5483bdc56756041ba6aa37c9cb59cc2219f012a2a1377d97ad35556ac6676ee7"
 "checksum ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "da12c96037889ae0be29dd2bdd260e5a62a7df24e6466d5a15bb8131c1c200a8"
-"checksum osmesa-src 17.3.1-devel (git+https://github.com/servo/osmesa-src)" = "<none>"
+"checksum osmesa-src 17.4.0-devel (git+https://github.com/servo/osmesa-src)" = "<none>"
 "checksum osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88cfece6e95d2e717e0872a7f53a8684712ad13822a7979bc760b9c77ec0013b"
 "checksum ovr-mobile-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b7b5f9389b2015f8340f0566c488f3e96735e2e8fd7b85d571832cd274ac2998"
 "checksum owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf84f41639e037b484f93433aa3897863b561ed65c6e59c7073d7c561710f37"
