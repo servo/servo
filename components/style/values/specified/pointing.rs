@@ -38,10 +38,12 @@ impl Cursor {
             keyword: CursorKind::Auto
         }
     }
+}
 
+impl Parse for Cursor {
     /// cursor: [auto | default | ...]
     #[cfg(not(feature = "gecko"))]
-    pub fn parse<'i, 't>(
+    fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>
     ) -> Result<Self, ParseError<'i>> {
@@ -50,7 +52,7 @@ impl Cursor {
 
     /// cursor: [<url> [<number> <number>]?]# [auto | default | ...]
     #[cfg(feature = "gecko")]
-    pub fn parse<'i, 't>(
+    fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>
     ) -> Result<Self, ParseError<'i>> {
