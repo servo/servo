@@ -23,29 +23,34 @@
   <script><![CDATA[
   test(function() {
     var first = document.getElementById('first');
-    var second = document.getElementById('second');
-    var third = document.getElementById('third');
-    var fourth = document.getElementById('fourth');
-
     assert_equals(getComputedStyle(first).x, "0px");
     assert_equals(getComputedStyle(first).y, "0px");
     assert_equals(getComputedStyle(first).width, "auto");
     assert_equals(getComputedStyle(first).height, "auto");
+  }, 'width and height default to auto');
 
+  test(function() {
+    var second = document.getElementById('second');
     assert_equals(getComputedStyle(second).x, "10px");
     assert_equals(getComputedStyle(second).y, "20px");
     assert_equals(getComputedStyle(second).width, "30px");
     assert_equals(getComputedStyle(second).height, "40px");
+  }, 'style rules are applied');
 
+  test(function() {
+    var third = document.getElementById('third');
     assert_equals(getComputedStyle(third).x, "50px");
     assert_equals(getComputedStyle(third).y, "60px");
     assert_equals(getComputedStyle(third).width, "70px");
     assert_equals(getComputedStyle(third).height, "80px");
+  }, 'attributes set properties');
 
+  test(function() {
+    var fourth = document.getElementById('fourth');
     assert_equals(getComputedStyle(fourth).x, "10px");
     assert_equals(getComputedStyle(fourth).y, "20px");
     assert_equals(getComputedStyle(fourth).width, "30px");
     assert_equals(getComputedStyle(fourth).height, "40px");
-  });
+  }, 'style rules override attributes');
   ]]></script>
 </svg>

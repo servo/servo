@@ -171,7 +171,6 @@ window.checkLayout = function(selectorList, callDone = true)
     }
     var nodes = document.querySelectorAll(selectorList);
     nodes = Array.prototype.slice.call(nodes);
-    nodes.reverse();
     var checkedLayout = false;
     Array.prototype.forEach.call(nodes, function(node) {
         test(function(t) {

@@ -1,0 +1,33 @@
+interface Gamepad {
+    readonly attribute DOMString                  id;
+    readonly attribute long                       index;
+    readonly attribute boolean                    connected;
+    readonly attribute DOMHighResTimeStamp        timestamp;
+    readonly attribute GamepadMappingType         mapping;
+    readonly attribute FrozenArray<double>        axes;
+    readonly attribute FrozenArray<GamepadButton> buttons;
+};
+
+interface GamepadButton {
+    readonly attribute boolean pressed;
+    readonly attribute boolean touched;
+    readonly attribute double  value;
+};
+
+enum GamepadMappingType {
+    "",
+    "standard",
+};
+
+partial interface Navigator {
+    sequence<Gamepad?> getGamepads();
+};
+
+[Constructor(GamepadEventInit eventInitDict)]
+interface GamepadEvent : Event {
+    readonly attribute Gamepad gamepad;
+};
+
+dictionary GamepadEventInit : EventInit {
+    required Gamepad gamepad;
+};

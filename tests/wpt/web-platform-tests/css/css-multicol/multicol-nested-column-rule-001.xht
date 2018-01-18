@@ -18,7 +18,7 @@
   {
   column-rule: blue solid 1em;
   font: 1.25em/1 Ahem;
-  width: 36em;
+  width: 26em;
   }
 
   /*
@@ -26,47 +26,47 @@
   N == 3;
 
   W == max(0, (available-width - ((N - 1) * column-gap)) / N);
-  W == max(0, (42em - ((3 - 1) * 3em)) / 3);
-  W == max(0, (42em - (2 * 3em)) / 3);
-  W == max(0, (42em - 6em) / 3);
-  W == max(0, 36em / 3);
-  W == max(0, 12em);
-  W == 12em;
+  W == max(0, (26em - ((3 - 1) * 1em)) / 3);
+  W == max(0, (26em - (2 * 1em)) / 3);
+  W == max(0, (26em - 2em) / 3);
+  W == max(0, 24em / 3);
+  W == max(0, 8em);
+  W == 8em;
 
   So, the first column-rule should be at:
 
     1.0em : margin-left of outer div
-   12.0em : width of 1st column box
-    1.0em : (3.0em / 2) - (1.0em / 2) : left edge of 1st column-rule
+    8.0em : width of 1st column box
+    0.0em : (1.0em / 2) - (1.0em / 2) : left edge of 1st column-rule
   =========
-   14.0em
+    9.0em
 
   The 2nd column-rule should be at:
 
     1.0em : margin-left of outer div
-   12.0em : width of 1st column box
-    3.0em : first column-gap
-   12.0em : width of 2nd column box
-    1.0em : (3.0em / 2) - (1.0em / 2) : left edge of 2nd column-rule
+    8.0em : width of 1st column box
+    1.0em : first -moz-column-gap
+    8.0em : width of 2nd column box
+    0.0em : (1.0em / 2) - (1.0em / 2) : left edge of 2nd column-rule
   =========
-   29.0em
+   18.0em
 
   The height of column rule depends on number of line boxes in
   each outer column box which depends on number of line boxes
   in each inner column box. So:
 
-    12em : width of each outer column box
+     8em : width of each outer column box
    -
      2em : horizontal margin of each div inside
    =======
-    10em : width of each inner multi-column elements
+     6em : width of each inner multi-column elements
 
   N == 3;
 
-  W == max(0, (available-width - ((N - 1) * column-gap)) / N);
-  W == max(0, (10em - ((3 - 1) * 3em)) / 3);
-  W == max(0, (10em - (2 * 3em)) / 3);
-  W == max(0, (10em - 6em) / 3);
+  W == max(0, (available-width - ((N - 1) * -column-gap)) / N);
+  W == max(0, (6em - ((3 - 1) * 1em)) / 3);
+  W == max(0, (6em - (2 * 1em)) / 3);
+  W == max(0, (6em - 2em) / 3);
   W == max(0, 4em / 3);
   W == max(0, 1.33333em);
   W == 1.33333em;
@@ -90,7 +90,7 @@
   widows: 1;
 
   column-count: 3;
-  column-gap: 3em;
+  column-gap: 1em;
   }
   ]]></style>
  </head>

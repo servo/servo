@@ -54,7 +54,7 @@ A test run is started using the ``wptrunner`` command.  The command
 takes multiple options, of which the following are most significant:
 
 ``--product`` (defaults to `firefox`)
-  The product to test against: `b2g`, `chrome`, `firefox`, or `servo`.
+  The product to test against: `chrome`, `firefox`, or `servo`.
 
 ``--binary`` (required if product is `firefox` or `servo`)
   The path to a binary file for the product (browser) to test against.

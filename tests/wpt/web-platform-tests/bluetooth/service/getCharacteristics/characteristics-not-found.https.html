@@ -6,11 +6,15 @@
 <script src="/bluetooth/resources/bluetooth-helpers.js"></script>
 <script>
 'use strict';
-bluetooth_test(() => {
-  return getEmptyHealthThermometerService()
-    .then(({service}) => assert_promise_rejects_with_message(
-      service.getCharacteristics(),
-      new DOMException('No Characteristics found in service.',
-                       'NotFoundError')))
-}, 'Request for absent characteristics. Reject with NotFoundError.');
+const test_desc = 'Request for absent characteristics. Reject with ' +
+    'NotFoundError.';
+const expected = new DOMException('No Characteristics found in service.',
+    'NotFoundError');
+let service;
+
+bluetooth_test(() => getEmptyHealthThermometerService()
+    .then(_ => ({service} = _))
+    .then(() => assert_promise_rejects_with_message(
+      service.getCharacteristics(), expected)),
+    test_desc);
 </script>

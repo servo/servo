@@ -5,13 +5,12 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/bluetooth/resources/bluetooth-helpers.js"></script>
 <script>
-bluetooth_test(() => {
-  let device_name = 'LE Device';
-  return setUpPreconnectedDevice({name: device_name})
+const test_desc = 'A device with name and no UUIDs nearby. Should be found if ' +
+   'acceptAllDevices is true.';
+const name = 'LE Device';
+
+bluetooth_test(() => setUpPreconnectedDevice({name: name})
     .then(() => requestDeviceWithTrustedClick({acceptAllDevices: true}))
-    .then(device => {
-      assert_equals(device.name, device_name);
-    });
-}, 'A device with name and no UUIDs nearby. Should be found if ' +
-   'acceptAllDevices is true.');
+    .then(device => assert_equals(device.name, name)),
+    test_desc);
 </script>

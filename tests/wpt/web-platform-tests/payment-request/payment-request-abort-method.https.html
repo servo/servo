@@ -43,7 +43,7 @@ promise_test(async t => {
   try {
     await request.abort();
   } catch (err) {
-    assert_true(false, "Unexpected promise rejection: " + err.message);
+    assert_unreached("Unexpected promise rejection: " + err.message);
   }
   // The request is now "closed", so...
   await promise_rejects(t, "InvalidStateError", request.abort());
@@ -55,7 +55,7 @@ promise_test(async t => {
   try {
     await request.abort();
   } catch (err) {
-    assert_true(false, "Unexpected promise rejection: " + err.message);
+    assert_unreached("Unexpected promise rejection: " + err.message);
   }
   await promise_rejects(t, "AbortError", acceptPromise);
   // As request is now "closed", trying to show it will fail

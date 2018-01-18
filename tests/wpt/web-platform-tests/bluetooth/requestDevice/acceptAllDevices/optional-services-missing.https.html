@@ -6,15 +6,17 @@
 <script src="/bluetooth/resources/bluetooth-helpers.js"></script>
 <script>
 'use strict';
-bluetooth_test(() => {
-  return getHealthThermometerDevice({acceptAllDevices: true})
+const test_desc = 'requestDevice called with acceptAllDevices: true and ' +
+    'with no optionalServices. Should not get access to any services.';
+const expected = new DOMException(
+    'Origin is not allowed to access any service. ' +
+    'Tip: Add the service UUID to \'optionalServices\' in ' +
+    'requestDevice() options. https://goo.gl/HxfxSQ',
+    'SecurityError');
+
+bluetooth_test(() => getHealthThermometerDevice({acceptAllDevices: true})
     .then(({device}) => assert_promise_rejects_with_message(
       device.gatt.getPrimaryServices(),
-      new DOMException(
-        'Origin is not allowed to access any service. ' +
-        'Tip: Add the service UUID to \'optionalServices\' in ' +
-        'requestDevice() options. https://goo.gl/HxfxSQ',
-        'SecurityError')));
-}, 'requestDevice called with acceptAllDevices: true and with no ' +
-   'optionalServices. Should not get access to any services.');
+      expected)),
+    test_desc);
 </script>

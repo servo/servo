@@ -10,7 +10,14 @@
 test(() => {
   location.hash = '\uD999';
   assert_equals(location.hash, '#%EF%BF%BD');
-}, "location : unpaired surrogate codepoint should be replaced with U+FFFD");
+}, "location.hash : unpaired surrogate codepoint should be replaced with U+FFFD");
+
+test(() => {
+  var w = window.open("about:blank#\uD800");
+  assert_equals(w.location.href, 'about:blank#%EF%BF%BD');
+  w.location.href = 'about:blank#\uD999';
+  assert_equals(w.location.href, 'about:blank#%EF%BF%BD');
+}, "location.href : unpaired surrogate codepoint should be replaced with U+FFFD");
 
 test(() => {
   var w = window.open("about:blank#\uD800");

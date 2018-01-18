@@ -356,7 +356,7 @@ class ReftestTest(Test):
         return node
 
     def update_metadata(self, metadata):
-        if not "url_count" in metadata:
+        if "url_count" not in metadata:
             metadata["url_count"] = defaultdict(int)
         for reference, _ in self.references:
             # We assume a naive implementation in which a url with multiple

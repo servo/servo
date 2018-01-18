@@ -9,7 +9,6 @@
 <script>
 
 const iframe_scripts = [
-  '/resources/testharness.js',
   'resources/fetch-tests.js',
   'url-format.any.js',
   'url-with-xhr.any.js',
@@ -18,6 +17,8 @@ const iframe_scripts = [
 ];
 
 let html = '<!doctype html>\n<meta charset="utf-8">\n<body>\n';
+html = html + '<script src="/resources/testharness.js"></' + 'script>\n';
+html = html + '<script>setup({"explicit_timeout": true});</' + 'script>\n';
 for (const script of iframe_scripts)
   html = html + '<script src="' + script + '"></' + 'script>\n';
 

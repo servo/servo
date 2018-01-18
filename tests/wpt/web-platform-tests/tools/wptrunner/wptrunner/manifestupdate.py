@@ -247,8 +247,8 @@ class TestNode(ManifestItem):
                         boolean_properties=self.root.boolean_properties)
                 except ConditionError as e:
                     if stability is not None:
-                       self.set("disabled", stability or "unstable", e.cond.children[0])
-                       self.new_disabled = True
+                        self.set("disabled", stability or "unstable", e.cond.children[0])
+                        self.new_disabled = True
                     else:
                         print "Conflicting test results for %s, cannot update" % self.root.test_path
                     return

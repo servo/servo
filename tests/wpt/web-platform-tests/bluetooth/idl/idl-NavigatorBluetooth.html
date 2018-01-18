@@ -3,6 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 'use strict';
+const test_desc = '[SameObject] test for navigator.bluetooth';
 
 test(() => {
   assert_true('bluetooth' in navigator,
@@ -11,5 +12,5 @@ test(() => {
 
 test(() => {
   assert_equals(navigator.bluetooth, navigator.bluetooth);
-}, '[SameObject] test for navigator.bluetooth');
+}, test_desc);
 </script>

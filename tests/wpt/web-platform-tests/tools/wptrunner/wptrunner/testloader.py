@@ -93,7 +93,7 @@ class EqualTimeChunker(TestChunker):
         for i, (test_type, test_path, tests) in enumerate(manifest_items):
             test_dir = tuple(os.path.split(test_path)[0].split(os.path.sep)[:3])
 
-            if not test_dir in by_dir:
+            if test_dir not in by_dir:
                 by_dir[test_dir] = PathData(test_dir)
 
             data = by_dir[test_dir]
@@ -261,7 +261,7 @@ class EqualTimeChunker(TestChunker):
                 return self.paths.popleft()
 
             @property
-            def badness(self_):
+            def badness(self_):  # noqa: N805
                 """Badness metric for this chunk"""
                 return self._badness(self_.time)
 
@@ -587,6 +587,7 @@ class TestSource(object):
         self.current_metadata = None
 
     @abstractmethod
+    # noqa: N805
     #@classmethod (doesn't compose with @abstractmethod)
     def make_queue(cls, tests, **kwargs):
         pass

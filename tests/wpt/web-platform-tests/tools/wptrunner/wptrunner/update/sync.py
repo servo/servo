@@ -109,7 +109,7 @@ class UpdateCheckout(Step):
                          state.sync["branch"],
                          state.local_branch)
         sync_path = os.path.abspath(sync_tree.root)
-        if not sync_path in sys.path:
+        if sync_path not in sys.path:
             from update import setup_paths
             setup_paths(sync_path)
 

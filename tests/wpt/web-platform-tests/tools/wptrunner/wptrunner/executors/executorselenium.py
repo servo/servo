@@ -51,7 +51,7 @@ class SeleniumProtocol(Protocol):
             self.webdriver = webdriver.Remote(command_executor=RemoteConnection(self.url.strip("/"),
                                                                                 resolve_ip=False),
                                               desired_capabilities=self.capabilities)
-        except:
+        except Exception:
             self.logger.warning(
                 "Connecting to Selenium failed:\n%s" % traceback.format_exc())
         else:
@@ -64,7 +64,7 @@ class SeleniumProtocol(Protocol):
         else:
             try:
                 self.after_connect()
-            except:
+            except Exception:
                 print >> sys.stderr, traceback.format_exc()
                 self.logger.warning(
                     "Failed to connect to navigate initial page")
@@ -76,7 +76,7 @@ class SeleniumProtocol(Protocol):
         self.logger.debug("Hanging up on Selenium session")
         try:
             self.webdriver.quit()
-        except:
+        except Exception:
             pass
         del self.webdriver
 
@@ -103,7 +103,7 @@ class SeleniumProtocol(Protocol):
     def wait(self):
         while True:
             try:
-                self.webdriver.execute_async_script("");
+                self.webdriver.execute_async_script("")
             except exceptions.TimeoutException:
                 pass
             except (socket.timeout, exceptions.NoSuchWindowException,
@@ -220,7 +220,7 @@ class SeleniumTestharnessExecutor(TestharnessExecutor):
             win_s = webdriver.execute_script("return window['%s'];" % self.window_id)
             win_obj = json.loads(win_s)
             test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
-        except:
+        except Exception:
             after = webdriver.window_handles
             if len(after) == 2:
                 test_window = next(iter(set(after) - set([parent])))

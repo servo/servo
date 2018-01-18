@@ -1257,11 +1257,22 @@ policies and contribution forms [3].
             if (e instanceof AssertionError) {
                 throw e;
             }
+
+            assert(typeof e === "object",
+                   "assert_throws", description,
+                   "${func} threw ${e} with type ${type}, not an object",
+                   {func:func, e:e, type:typeof e});
+
+            assert(e !== null,
+                   "assert_throws", description,
+                   "${func} threw null, not an object",
+                   {func:func});
+
             if (code === null) {
                 throw new AssertionError('Test bug: need to pass exception to assert_throws()');
             }
             if (typeof code === "object") {
-                assert(typeof e == "object" && "name" in e && e.name == code.name,
+                assert("name" in e && e.name == code.name,
                        "assert_throws", description,
                        "${func} threw ${actual} (${actual_name}) expected ${expected} (${expected_name})",
                                     {func:func, actual:e, actual_name:e.name,
@@ -1340,8 +1351,7 @@ policies and contribution forms [3].
             var required_props = { code: name_code_map[name] };
 
             if (required_props.code === 0 ||
-               (typeof e == "object" &&
-                "name" in e &&
+               ("name" in e &&
                 e.name !== e.name.toUpperCase() &&
                 e.name !== "DOMException")) {
                 // New style exception: also test the name property.
@@ -1353,13 +1363,8 @@ policies and contribution forms [3].
             //in.  It might be an instanceof the appropriate interface on some
             //unknown other window.  TODO: Work around this somehow?
 
-            assert(typeof e == "object",
-                   "assert_throws", description,
-                   "${func} threw ${e} with type ${type}, not an object",
-                   {func:func, e:e, type:typeof e});
-
             for (var prop in required_props) {
-                assert(typeof e == "object" && prop in e && e[prop] == required_props[prop],
+                assert(prop in e && e[prop] == required_props[prop],
                        "assert_throws", description,
                        "${func} threw ${e} that is not a DOMException " + code + ": property ${prop} is equal to ${actual}, expected ${expected}",
                        {func:func, e:e, prop:prop, actual:e[prop], expected:required_props[prop]});
