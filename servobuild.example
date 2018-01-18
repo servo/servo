@@ -1,6 +1,4 @@
 # Copy this file to .servobuild in the Servo root directory
-# Be sure to set the cache-dir correctly, otherwise extra
-# copies of the Rust compiler may get downloaded
 
 # Paths starting with "./" are relative to the repo root
 
@@ -40,8 +38,13 @@ debug-mozjs = false
 # Any optional flags that will be added to $RUSTFLAGS
 #rustflags = ""
 
-# Enable rustc’s incremental compilation
+# Enable or disable rustc’s incremental compilation
+# Cargo’s default is to enable it in debug mode but not in release mode.
+# Leaving this key unspecified makes mach keep Cargo’s default.
+# It can be set to true or false in order to always enable or always disable
+# incremental compilation.
 #incremental = false
+#incremental = true
 
 # Whether to use ThinLTO or not
 #thinlto = false
