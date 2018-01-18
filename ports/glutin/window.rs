@@ -1196,6 +1196,7 @@ impl WindowMethods for Window {
                 use glutin::MouseCursor;
 
                 let glutin_cursor = match c {
+                    CursorKind::Auto => MouseCursor::Default,
                     CursorKind::None => MouseCursor::NoneCursor,
                     CursorKind::Default => MouseCursor::Default,
                     CursorKind::Pointer => MouseCursor::Hand,
