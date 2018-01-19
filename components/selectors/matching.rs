@@ -60,7 +60,7 @@ impl ElementSelectorFlags {
 /// Holds per-compound-selector data.
 struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     shared: &'a mut MatchingContext<'b, Impl>,
-    matches_hover_and_active_quirk: bool,
+    matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk,
     visited_handling: VisitedHandlingMode,
 }
 
@@ -171,6 +171,15 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
+/// Whether the :hover and :active quirk applies.
+///
+/// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum MatchesHoverAndActiveQuirk {
+    Yes,
+    No,
+}
+
 /// Matches a selector, fast-rejecting against a bloom filter.
 ///
 /// We accept an offset to allow consumers to represent and match against
@@ -240,7 +249,7 @@ where
     let mut local_context = LocalMatchingContext {
         shared: context,
         visited_handling,
-        matches_hover_and_active_quirk: false,
+        matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
     };
 
     for component in selector.iter_raw_parse_order_from(from_offset) {
@@ -333,23 +342,23 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
     selector_iter: &SelectorIter<Impl>,
     context: &MatchingContext<Impl>,
     rightmost: Rightmost,
-) -> bool {
+) -> MatchesHoverAndActiveQuirk {
     if context.quirks_mode() != QuirksMode::Quirks {
-        return false;
+        return MatchesHoverAndActiveQuirk::No;
     }
 
     if context.nesting_level != 0 {
-        return false;
+        return MatchesHoverAndActiveQuirk::No;
     }
 
     // This compound selector had a pseudo-element to the right that we
     // intentionally skipped.
-    if matches!(rightmost, Rightmost::Yes) &&
+    if rightmost == Rightmost::Yes &&
         context.matching_mode == MatchingMode::ForStatelessPseudoElement {
-        return false;
+        return MatchesHoverAndActiveQuirk::No;
     }
 
-    selector_iter.clone().all(|simple| {
+    let all_match = selector_iter.clone().all(|simple| {
         match *simple {
             Component::LocalName(_) |
             Component::AttributeInNoNamespaceExists { .. } |
@@ -375,9 +384,16 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
             },
             _ => true,
         }
-    })
+    });
+
+    if all_match {
+        MatchesHoverAndActiveQuirk::Yes
+    } else {
+        MatchesHoverAndActiveQuirk::No
+    }
 }
 
+#[derive(Clone, Copy, PartialEq)]
 enum Rightmost {
     Yes,
     No,
@@ -714,7 +730,7 @@ where
             )
         }
         Component::NonTSPseudoClass(ref pc) => {
-            if context.matches_hover_and_active_quirk &&
+            if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
                context.shared.nesting_level == 0 &&
                E::Impl::is_active_or_hover(pc) &&
                !element.is_link() {
