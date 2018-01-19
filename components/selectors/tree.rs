@@ -6,7 +6,6 @@
 //! between layout and style.
 
 use attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use context::VisitedHandlingMode;
 use matching::{ElementSelectorFlags, MatchingContext};
 use parser::SelectorImpl;
 use servo_arc::NonZeroPtrMut;
@@ -69,7 +68,6 @@ pub trait Element: Sized + Clone + Debug {
         &self,
         pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        visited_handling: VisitedHandlingMode,
         flags_setter: &mut F,
     ) -> bool
     where

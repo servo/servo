@@ -11,7 +11,6 @@ use element_state::ElementState;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::context::VisitedHandlingMode;
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use std::cell::Cell;
 use std::fmt;
@@ -150,7 +149,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         &self,
         pseudo_class: &NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        visited_handling: VisitedHandlingMode,
         _setter: &mut F,
     ) -> bool
     where
@@ -162,12 +160,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             #[cfg(feature = "gecko")]
             NonTSPseudoClass::MozAny(ref selectors) => {
                 use selectors::matching::matches_complex_selector;
-                context.nesting_level += 1;
-                let result = selectors.iter().any(|s| {
-                    matches_complex_selector(s.iter(), self, context, _setter)
+                return context.nest(|context| {
+                    selectors.iter().any(|s| {
+                        matches_complex_selector(s.iter(), self, context, _setter)
+                    })
                 });
-                context.nesting_level -= 1;
-                return result
             }
 
             // :dir is implemented in terms of state flags, but which state flag
@@ -199,10 +196,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             // Instead, we use the `visited_handling` to determine if they
             // match.
             NonTSPseudoClass::Link => {
-                return self.is_link() && visited_handling.matches_unvisited()
+                return self.is_link() && context.visited_handling().matches_unvisited()
             }
             NonTSPseudoClass::Visited => {
-                return self.is_link() && visited_handling.matches_visited()
+                return self.is_link() && context.visited_handling().matches_visited()
             }
 
             #[cfg(feature = "gecko")]
@@ -237,7 +234,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             return self.element.match_non_ts_pseudo_class(
                 pseudo_class,
                 context,
-                visited_handling,
                 &mut |_, _| {},
             )
         }
@@ -247,7 +243,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 self.element.match_non_ts_pseudo_class(
                     pseudo_class,
                     context,
-                    visited_handling,
                     &mut |_, _| {},
                 )
             }

@@ -105,8 +105,6 @@ where
     pub bloom_filter: Option<&'a BloomFilter>,
     /// An optional cache to speed up nth-index-like selectors.
     pub nth_index_cache: Option<&'a mut NthIndexCache>,
-    /// Input that controls how matching for links is handled.
-    pub visited_handling: VisitedHandlingMode,
     /// The element which is going to match :scope pseudo-class. It can be
     /// either one :scope element, or the scoping element.
     ///
@@ -120,11 +118,14 @@ where
     /// See https://drafts.csswg.org/selectors-4/#scope-pseudo
     pub scope_element: Option<OpaqueElement>,
 
+    /// Controls how matching for links is handled.
+    visited_handling: VisitedHandlingMode,
+
     /// The current nesting level of selectors that we're matching.
     ///
-    /// FIXME(emilio): Move this somewhere else and make MatchingContext
-    /// immutable again.
-    pub nesting_level: usize,
+    /// FIXME(emilio): Consider putting the mutable stuff in a Cell, then make
+    /// MatchingContext immutable again.
+    nesting_level: usize,
 
     /// An optional hook function for checking whether a pseudo-element
     /// should match when matching_mode is ForStatelessPseudoElement.
@@ -181,6 +182,12 @@ where
         }
     }
 
+    /// Whether we're matching a nested selector.
+    #[inline]
+    pub fn is_nested(&self) -> bool {
+        self.nesting_level != 0
+    }
+
     /// The quirks mode of the document.
     #[inline]
     pub fn quirks_mode(&self) -> QuirksMode {
@@ -191,5 +198,39 @@ where
     #[inline]
     pub fn classes_and_ids_case_sensitivity(&self) -> CaseSensitivity {
         self.classes_and_ids_case_sensitivity
+    }
+
+    /// Runs F with a deeper nesting level.
+    #[inline]
+    pub fn nest<F, R>(&mut self, f: F) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        self.nesting_level += 1;
+        let result = f(self);
+        self.nesting_level -= 1;
+        result
+    }
+
+    #[inline]
+    pub fn visited_handling(&self) -> VisitedHandlingMode {
+        self.visited_handling
+    }
+
+    /// Runs F with a different VisitedHandlingMode.
+    #[inline]
+    pub fn with_visited_handling_mode<F, R>(
+        &mut self,
+        handling_mode: VisitedHandlingMode,
+        f: F,
+    ) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        let original_handling_mode = self.visited_handling;
+        self.visited_handling = handling_mode;
+        let result = f(self);
+        self.visited_handling = original_handling_mode;
+        result
     }
 }

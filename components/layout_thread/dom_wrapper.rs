@@ -713,7 +713,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         &self,
         pseudo_class: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: VisitedHandlingMode,
         _: &mut F,
     ) -> bool
     where
@@ -1221,7 +1220,6 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         &self,
         _: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: VisitedHandlingMode,
         _: &mut F,
     ) -> bool
     where

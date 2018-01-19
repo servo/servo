@@ -89,7 +89,6 @@ use script_layout_interface::message::ReflowGoal;
 use script_thread::ScriptThread;
 use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::context::VisitedHandlingMode;
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use servo_arc::Arc;
@@ -2636,7 +2635,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         &self,
         pseudo_class: &NonTSPseudoClass,
         _: &mut MatchingContext<Self::Impl>,
-        _: VisitedHandlingMode,
         _: &mut F,
     ) -> bool
     where
