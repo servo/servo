@@ -1976,13 +1976,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "net_traits_tests"
-version = "0.0.1"
-dependencies = [
- "net_traits 0.0.1",
-]
-
-[[package]]
 name = "nodrop"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"

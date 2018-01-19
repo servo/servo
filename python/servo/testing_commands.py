@@ -231,7 +231,7 @@ class MachCommands(CommandBase):
             else:
                 test_patterns.append(test)
 
-        self_contained_tests = ["gfx", "layout", "msg", "net", "selectors"]
+        self_contained_tests = ["gfx", "layout", "msg", "net", "net_traits", "selectors"]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
             packages |= set(self_contained_tests)
