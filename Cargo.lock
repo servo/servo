@@ -1916,15 +1916,8 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "nonzero 0.0.1",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
-name = "msg_tests"
-version = "0.0.1"
-dependencies = [
- "msg 0.0.1",
  "size_of_test 0.0.1",
+ "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
