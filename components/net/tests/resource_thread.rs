@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate ipc_channel;
+extern crate net;
+extern crate net_traits;
+extern crate profile_traits;
+
 use ipc_channel::ipc;
 use net::resource_thread::new_core_resource_thread;
 use net::test::parse_hostsfile;

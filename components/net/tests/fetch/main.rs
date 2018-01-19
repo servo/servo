@@ -14,25 +14,14 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate net;
 extern crate net_traits;
-extern crate profile_traits;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;
 extern crate unicase;
-extern crate url;
 
-mod chrome_loader;
-mod cookie;
-mod cookie_http_state;
 mod data_loader;
 mod fetch;
-mod file_loader;
-mod filemanager_thread;
-mod hsts;
 mod http_loader;
-mod mime_classifier;
-mod resource_thread;
-mod subresource_integrity;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};

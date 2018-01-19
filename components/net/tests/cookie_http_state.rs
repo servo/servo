@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate hyper;
+extern crate net;
+extern crate net_traits;
+extern crate servo_url;
+
 use hyper::header::{Header, SetCookie};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
 use servo_url::ServoUrl;
-
 
 fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String {
     let mut storage = CookieStorage::new(150);

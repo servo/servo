@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate net;
+extern crate net_traits;
+extern crate time;
+
 use net::hsts::{HstsEntry, HstsList};
 use net_traits::IncludeSubdomains;
 use std::collections::HashMap;
-use time;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {

@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate net;
+extern crate net_traits;
+
 use net::mime_classifier::{ApacheBugFlag, MimeClassifier, Mp4Matcher, NoSniffFlag};
 use net::mime_classifier::as_string_option;
 use net_traits::LoadContext;
@@ -56,7 +59,6 @@ fn test_validate_classifier() {
     classifier.validate().expect("Validation error")
 }
 
-#[cfg(test)]
 fn test_sniff_with_flags(filename_orig: &path::Path,
                                  type_string: &str,
                                  subtype_string: &str,
@@ -93,7 +95,6 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
     }
 }
 
-#[cfg(test)]
 fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string: &str,
                    supplied_type: Option<(&'static str, &'static str)>) {
     test_sniff_with_flags(filename_orig,
@@ -104,7 +105,6 @@ fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string
                           ApacheBugFlag::Off)
 }
 
-#[cfg(test)]
 fn test_sniff_classification(file: &str, type_string: &str, subtype_string: &str,
                              supplied_type: Option<(&'static str, &'static str)>) {
     let mut x = PathBuf::from("./");
@@ -113,7 +113,7 @@ fn test_sniff_classification(file: &str, type_string: &str, subtype_string: &str
     x.push(file);
     test_sniff_full(&x, type_string, subtype_string, supplied_type);
 }
-#[cfg(test)]
+
 fn test_sniff_classification_sup(file: &str, type_string: &'static str, subtype_string: &str) {
     test_sniff_classification(file, type_string, subtype_string, None);
     let class_type = Some((type_string, ""));
