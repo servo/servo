@@ -2119,12 +2119,11 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
-                context.nesting_level += 1;
-                let result = sels.iter().any(|s| {
-                    matches_complex_selector(s.iter(), self, context, flags_setter)
-                });
-                context.nesting_level -= 1;
-                result
+                context.nest(|context| {
+                    sels.iter().any(|s| {
+                        matches_complex_selector(s.iter(), self, context, flags_setter)
+                    })
+                })
             }
             NonTSPseudoClass::Lang(ref lang_arg) => {
                 self.match_element_lang(None, lang_arg)
