@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate net_traits;
+
 use net_traits::pub_domains::{is_pub_domain, is_reg_domain, pub_suffix, reg_suffix};
 
 // These tests may need to be updated if the PSL changes.
