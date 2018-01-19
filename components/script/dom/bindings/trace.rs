@@ -50,6 +50,8 @@ use dom::document::PendingRestyle;
 use encoding_rs::Encoding;
 use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use euclid::Length as EuclidLength;
+#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+use gecko_media::Player;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::IncompleteUtf8;
@@ -419,6 +421,9 @@ unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
+
+#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
+unsafe_no_jsmanaged_fields!(Player);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
