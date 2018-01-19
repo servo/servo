@@ -2921,13 +2921,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "servo_remutex_tests"
-version = "0.0.1"
-dependencies = [
- "servo_remutex 0.0.1",
-]
-
-[[package]]
 name = "servo_url"
 version = "0.0.1"
 dependencies = [
