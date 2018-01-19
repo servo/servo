@@ -10,8 +10,6 @@
 
 // These tests came from https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
 
-#![cfg(test)]
-
 extern crate servo_remutex;
 
 use servo_remutex::{ReentrantMutex, ReentrantMutexGuard};
