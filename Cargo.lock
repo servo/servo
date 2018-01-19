@@ -2892,13 +2892,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "servo_config_tests"
-version = "0.0.1"
-dependencies = [
- "servo_config 0.0.1",
-]
-
-[[package]]
 name = "servo_geometry"
 version = "0.0.1"
 dependencies = [
