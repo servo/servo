@@ -348,11 +348,12 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    // Elements that have a computed value of the display property
-    // that is table-column or table-column-group
-    // FIXME: Currently, it is assumed to be true always
+    //
+    // We'll have no content box if there's no fragment for the node, and we use
+    // bounding_content_box, for simplicity, to detect this (rather than making a more specific
+    // query to the layout thread).
     fn has_css_layout_box(&self) -> bool {
-        true
+        self.upcast::<Node>().bounding_content_box().is_some()
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
