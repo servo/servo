@@ -182,10 +182,10 @@ where
         }
     }
 
-    /// How many times deep are we in a selector.
+    /// Whether we're matching a nested selector.
     #[inline]
-    pub fn nesting_level(&self) -> usize {
-        self.nesting_level
+    pub fn is_nested(&self) -> bool {
+        self.nesting_level != 0
     }
 
     /// The quirks mode of the document.

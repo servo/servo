@@ -286,7 +286,7 @@ where
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
     if context.matching_mode == MatchingMode::ForStatelessPseudoElement &&
-        context.nesting_level() == 0 {
+        !context.is_nested() {
         // Consume the pseudo.
         match *iter.next().unwrap() {
             Component::PseudoElement(ref pseudo) => {
@@ -342,7 +342,7 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
         return MatchesHoverAndActiveQuirk::No;
     }
 
-    if context.nesting_level() != 0 {
+    if context.is_nested() {
         return MatchesHoverAndActiveQuirk::No;
     }
 
@@ -718,9 +718,10 @@ where
         }
         Component::NonTSPseudoClass(ref pc) => {
             if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
-               context.shared.nesting_level() == 0 &&
+               !context.shared.is_nested() &&
                E::Impl::is_active_or_hover(pc) &&
-               !element.is_link() {
+               !element.is_link()
+            {
                 return false;
             }
 
