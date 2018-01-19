@@ -8,6 +8,8 @@ publish = false
 [lib]
 name = "servo_config"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 euclid = "0.16"
