@@ -61,7 +61,6 @@ impl ElementSelectorFlags {
 struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     shared: &'a mut MatchingContext<'b, Impl>,
     matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk,
-    visited_handling: VisitedHandlingMode,
 }
 
 #[inline(always)]
@@ -245,10 +244,8 @@ where
         selector.combinator_at_parse_order(from_offset - 1); // This asserts.
     }
 
-    let visited_handling = context.visited_handling;
     let mut local_context = LocalMatchingContext {
         shared: context,
-        visited_handling,
         matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
     };
 
@@ -321,12 +318,10 @@ where
         }
     }
 
-    let visited_handling = context.visited_handling;
     let result = matches_complex_selector_internal(
         iter,
         element,
         context,
-        visited_handling,
         flags_setter,
         Rightmost::Yes,
     );
@@ -433,7 +428,6 @@ fn matches_complex_selector_internal<E, F>(
     mut selector_iter: SelectorIter<E::Impl>,
     element: &E,
     context: &mut MatchingContext<E::Impl>,
-    visited_handling: VisitedHandlingMode,
     flags_setter: &mut F,
     rightmost: Rightmost,
 ) -> SelectorMatchingResult
@@ -447,7 +441,6 @@ where
         &mut selector_iter,
         element,
         context,
-        visited_handling,
         flags_setter,
         rightmost
     );
@@ -483,12 +476,11 @@ where
 
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
-    let mut visited_handling =
-        if element.is_link() || combinator.is_sibling() {
-            VisitedHandlingMode::AllLinksUnvisited
-        } else {
-            visited_handling
-        };
+    let mut visited_handling = if element.is_link() || combinator.is_sibling() {
+        VisitedHandlingMode::AllLinksUnvisited
+    } else {
+        context.visited_handling()
+    };
 
     loop {
         let element = match next_element {
@@ -496,14 +488,16 @@ where
             Some(next_element) => next_element,
         };
 
-        let result = matches_complex_selector_internal(
-            selector_iter.clone(),
-            &element,
-            context,
-            visited_handling,
-            flags_setter,
-            Rightmost::No,
-        );
+        let result =
+            context.with_visited_handling_mode(visited_handling, |context| {
+                matches_complex_selector_internal(
+                    selector_iter.clone(),
+                    &element,
+                    context,
+                    flags_setter,
+                    Rightmost::No,
+                )
+            });
 
         match (result, combinator) {
             // Return the status immediately.
@@ -537,12 +531,9 @@ where
             _ => {},
         }
 
-        visited_handling =
-            if element.is_link() || combinator.is_sibling() {
-                VisitedHandlingMode::AllLinksUnvisited
-            } else {
-                visited_handling
-            };
+        if element.is_link() || combinator.is_sibling() {
+            visited_handling = VisitedHandlingMode::AllLinksUnvisited;
+        }
 
         next_element = next_element_for_combinator(&element, combinator);
     }
@@ -570,7 +561,6 @@ fn matches_compound_selector<E, F>(
     selector_iter: &mut SelectorIter<E::Impl>,
     element: &E,
     context: &mut MatchingContext<E::Impl>,
-    visited_handling: VisitedHandlingMode,
     flags_setter: &mut F,
     rightmost: Rightmost,
 ) -> bool
@@ -612,7 +602,6 @@ where
     let mut local_context =
         LocalMatchingContext {
             shared: context,
-            visited_handling,
             matches_hover_and_active_quirk,
         };
     iter::once(selector).chain(selector_iter).all(|simple| {
@@ -738,7 +727,6 @@ where
             element.match_non_ts_pseudo_class(
                 pc,
                 &mut context.shared,
-                context.visited_handling,
                 flags_setter
             )
         }
@@ -788,10 +776,8 @@ where
             matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            let visited_handling = context.visited_handling;
             context.shared.nest(|context| {
                 let mut local_context = LocalMatchingContext {
-                    visited_handling,
                     matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
                     shared: context,
                 };

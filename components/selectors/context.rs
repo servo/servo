@@ -105,8 +105,6 @@ where
     pub bloom_filter: Option<&'a BloomFilter>,
     /// An optional cache to speed up nth-index-like selectors.
     pub nth_index_cache: Option<&'a mut NthIndexCache>,
-    /// Input that controls how matching for links is handled.
-    pub visited_handling: VisitedHandlingMode,
     /// The element which is going to match :scope pseudo-class. It can be
     /// either one :scope element, or the scoping element.
     ///
@@ -120,10 +118,13 @@ where
     /// See https://drafts.csswg.org/selectors-4/#scope-pseudo
     pub scope_element: Option<OpaqueElement>,
 
+    /// Controls how matching for links is handled.
+    visited_handling: VisitedHandlingMode,
+
     /// The current nesting level of selectors that we're matching.
     ///
-    /// FIXME(emilio): Consider putting the mutable stuff in a Cell.
-    /// immutable again.
+    /// FIXME(emilio): Consider putting the mutable stuff in a Cell, then make
+    /// MatchingContext immutable again.
     nesting_level: usize,
 
     /// An optional hook function for checking whether a pseudo-element
@@ -208,6 +209,28 @@ where
         self.nesting_level += 1;
         let result = f(self);
         self.nesting_level -= 1;
+        result
+    }
+
+    #[inline]
+    pub fn visited_handling(&self) -> VisitedHandlingMode {
+        self.visited_handling
+    }
+
+    /// Runs F with a different VisitedHandlingMode.
+    #[inline]
+    pub fn with_visited_handling_mode<F, R>(
+        &mut self,
+        handling_mode: VisitedHandlingMode,
+        f: F,
+    ) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        let original_handling_mode = self.visited_handling;
+        self.visited_handling = handling_mode;
+        let result = f(self);
+        self.visited_handling = original_handling_mode;
         result
     }
 }

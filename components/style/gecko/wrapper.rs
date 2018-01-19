@@ -1997,7 +1997,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         &self,
         pseudo_class: &NonTSPseudoClass,
         context: &mut MatchingContext<Self::Impl>,
-        visited_handling: VisitedHandlingMode,
         flags_setter: &mut F,
     ) -> bool
     where
@@ -2057,10 +2056,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             },
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Link => {
-                self.is_link() && visited_handling.matches_unvisited()
+                self.is_link() && context.visited_handling().matches_unvisited()
             }
             NonTSPseudoClass::Visited => {
-                self.is_link() && visited_handling.matches_visited()
+                self.is_link() && context.visited_handling().matches_visited()
             }
             NonTSPseudoClass::MozFirstNode => {
                 flags_setter(self, ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR);
