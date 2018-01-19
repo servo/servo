@@ -122,9 +122,9 @@ where
 
     /// The current nesting level of selectors that we're matching.
     ///
-    /// FIXME(emilio): Move this somewhere else and make MatchingContext
+    /// FIXME(emilio): Consider putting the mutable stuff in a Cell.
     /// immutable again.
-    pub nesting_level: usize,
+    nesting_level: usize,
 
     /// An optional hook function for checking whether a pseudo-element
     /// should match when matching_mode is ForStatelessPseudoElement.
@@ -181,6 +181,12 @@ where
         }
     }
 
+    /// How many times deep are we in a selector.
+    #[inline]
+    pub fn nesting_level(&self) -> usize {
+        self.nesting_level
+    }
+
     /// The quirks mode of the document.
     #[inline]
     pub fn quirks_mode(&self) -> QuirksMode {
@@ -191,5 +197,17 @@ where
     #[inline]
     pub fn classes_and_ids_case_sensitivity(&self) -> CaseSensitivity {
         self.classes_and_ids_case_sensitivity
+    }
+
+    /// Runs F with a deeper nesting level.
+    #[inline]
+    pub fn nest<F, R>(&mut self, f: F) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        self.nesting_level += 1;
+        let result = f(self);
+        self.nesting_level -= 1;
+        result
     }
 }

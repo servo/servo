@@ -289,7 +289,7 @@ where
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
     if context.matching_mode == MatchingMode::ForStatelessPseudoElement &&
-        context.nesting_level == 0 {
+        context.nesting_level() == 0 {
         // Consume the pseudo.
         match *iter.next().unwrap() {
             Component::PseudoElement(ref pseudo) => {
@@ -347,7 +347,7 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
         return MatchesHoverAndActiveQuirk::No;
     }
 
-    if context.nesting_level != 0 {
+    if context.nesting_level() != 0 {
         return MatchesHoverAndActiveQuirk::No;
     }
 
@@ -639,17 +639,15 @@ where
     match *selector {
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
-            context.shared.nesting_level += 1;
-            let result =
+            context.shared.nest(|context| {
                 element.assigned_slot().is_some() &&
                 matches_complex_selector(
                     selector.iter(),
                     element,
-                    context.shared,
+                    context,
                     flags_setter,
-                );
-            context.shared.nesting_level -= 1;
-            result
+                )
+            })
         }
         Component::PseudoElement(ref pseudo) => {
             element.match_pseudo_element(pseudo, context.shared)
@@ -731,7 +729,7 @@ where
         }
         Component::NonTSPseudoClass(ref pc) => {
             if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
-               context.shared.nesting_level == 0 &&
+               context.shared.nesting_level() == 0 &&
                E::Impl::is_active_or_hover(pc) &&
                !element.is_link() {
                 return false;
@@ -790,17 +788,22 @@ where
             matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            context.shared.nesting_level += 1;
-            let result = !negated.iter().all(|ss| {
-                matches_simple_selector(
-                    ss,
-                    element,
-                    context,
-                    flags_setter,
-                )
-            });
-            context.shared.nesting_level -= 1;
-            result
+            let visited_handling = context.visited_handling;
+            context.shared.nest(|context| {
+                let mut local_context = LocalMatchingContext {
+                    visited_handling,
+                    matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
+                    shared: context,
+                };
+                !negated.iter().all(|ss| {
+                    matches_simple_selector(
+                        ss,
+                        element,
+                        &mut local_context,
+                        flags_setter,
+                    )
+                })
+            })
         }
     }
 }
