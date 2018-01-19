@@ -1483,20 +1483,13 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
+ "size_of_test 0.0.1",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
-name = "layout_tests"
-version = "0.0.1"
-dependencies = [
- "layout 0.0.1",
- "size_of_test 0.0.1",
 ]
 
 [[package]]
