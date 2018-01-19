@@ -705,12 +705,13 @@ impl LayoutThread {
                 rw_data.scroll_offsets.insert(state.scroll_root_id, state.scroll_offset);
 
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-                self.webrender_api.scroll_node_with_id(
-                    self.webrender_document,
+                let mut txn = webrender_api::Transaction::new();
+                txn.scroll_node_with_id(
                     webrender_api::LayoutPoint::from_untyped(&point),
                     state.scroll_root_id,
                     webrender_api::ScrollClamping::ToContentBounds
                 );
+                self.webrender_api.send_transaction(self.webrender_document, txn);
             }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
@@ -1044,15 +1045,15 @@ impl LayoutThread {
             // Progressive Web Metrics.
             self.paint_time_metrics.maybe_observe_paint_time(self, epoch, &*display_list);
 
-            self.webrender_api.set_display_list(
-                self.webrender_document,
+            let mut txn = webrender_api::Transaction::new();
+            txn.set_display_list(
                 webrender_api::Epoch(epoch.0),
                 Some(get_root_flow_background_color(layout_root)),
                 viewport_size,
                 builder.finalize(),
-                true,
-                webrender_api::ResourceUpdates::new());
-            self.webrender_api.generate_frame(self.webrender_document, None);
+                true);
+            txn.generate_frame();
+            self.webrender_api.send_transaction(self.webrender_document, txn);
         });
     }
 

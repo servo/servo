@@ -609,8 +609,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
-        self.webrender_api.set_root_pipeline(self.webrender_document, pipeline_id);
-        self.webrender_api.generate_frame(self.webrender_document, None);
+        let mut txn = webrender_api::Transaction::new();
+        txn.set_root_pipeline(pipeline_id);
+        txn.generate_frame();
+        self.webrender_api.send_transaction(self.webrender_document, txn);
 
         self.create_pipeline_details_for_frame_tree(&frame_tree);
 
@@ -992,7 +994,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         (combined_event.cursor.to_f32() / self.scale).to_untyped();
                     let location = webrender_api::ScrollLocation::Delta(delta);
                     let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
-                    self.webrender_api.scroll(self.webrender_document, location, cursor, combined_event.phase);
+                    let mut txn = webrender_api::Transaction::new();
+                    txn.scroll(location, cursor, combined_event.phase);
+                    self.webrender_api.send_transaction(self.webrender_document, txn);
                     last_combined_event = None
                 }
             }
@@ -1047,7 +1051,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
-            self.webrender_api.scroll(self.webrender_document, scroll_location, cursor, combined_event.phase);
+            let mut txn = webrender_api::Transaction::new();
+            txn.scroll(scroll_location, cursor, combined_event.phase);
+            self.webrender_api.send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
         }
 
@@ -1145,7 +1151,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn update_page_zoom_for_webrender(&mut self) {
         let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
-        self.webrender_api.set_page_zoom(self.webrender_document, page_zoom);
+
+        let mut txn = webrender_api::Transaction::new();
+        txn.set_page_zoom(page_zoom);
+        self.webrender_api.send_transaction(self.webrender_document, txn);
     }
 
     /// Simulate a pinch zoom
@@ -1443,7 +1452,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         if self.webrender.layers_are_bouncing_back() {
-            self.webrender_api.tick_scrolling_bounce_animations(self.webrender_document);
+            let mut txn = webrender_api::Transaction::new();
+            txn.tick_scrolling_bounce_animations();
+            self.webrender_api.send_transaction(self.webrender_document, txn);
             self.send_viewport_rects()
         }
     }
@@ -1537,7 +1548,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
         flags.toggle(flag);
         self.webrender.set_debug_flags(flags);
-        self.webrender_api.generate_frame(self.webrender_document, None);
+
+        let mut txn = webrender_api::Transaction::new();
+        txn.generate_frame();
+        self.webrender_api.send_transaction(self.webrender_document, txn);
     }
 }
 
