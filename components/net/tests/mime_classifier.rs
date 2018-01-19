@@ -23,7 +23,7 @@ fn read_file(path: &path::Path) -> io::Result<Vec<u8>> {
 fn test_sniff_mp4_matcher() {
     let matcher = Mp4Matcher;
 
-    let p = PathBuf::from("parsable_mime/video/mp4/test.mp4");
+    let p = PathBuf::from("tests/parsable_mime/video/mp4/test.mp4");
     let read_result = read_file(&p);
 
     match read_result {
@@ -66,7 +66,7 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
     let current_working_directory = env::current_dir().unwrap();
     println!("The current directory is {}", current_working_directory.display());
 
-    let mut filename = PathBuf::from("parsable_mime/");
+    let mut filename = PathBuf::from("tests/parsable_mime/");
     filename.push(filename_orig);
 
     let classifier = MimeClassifier::new();

@@ -16,11 +16,11 @@ pub struct TestProvider;
 
 impl UIProvider for TestProvider {
     fn open_file_dialog(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<String> {
-        Some("test.jpeg".to_string())
+        Some("tests/test.jpeg".to_string())
     }
 
     fn open_file_dialog_multi(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
-        Some(vec!["test.jpeg".to_string()])
+        Some(vec!["tests/test.jpeg".to_string()])
     }
 }
 
@@ -28,18 +28,18 @@ impl UIProvider for TestProvider {
 fn test_filemanager() {
     let filemanager = FileManager::new();
 
-    // Try to open a dummy file "tests/unit/net/test.jpeg" in tree
-    let mut handler = File::open("test.jpeg").expect("test.jpeg is stolen");
+    // Try to open a dummy file "components/net/tests/test.jpeg" in tree
+    let mut handler = File::open("tests/test.jpeg").expect("test.jpeg is stolen");
     let mut test_file_content = vec![];
 
     handler.read_to_end(&mut test_file_content)
-           .expect("Read tests/unit/net/test.jpeg error");
+           .expect("Read components/net/tests/test.jpeg error");
 
     let patterns = vec![FilterPattern(".txt".to_string())];
     let origin = "test.com".to_string();
 
     {
-        // Try to select a dummy file "tests/unit/net/test.jpeg"
+        // Try to select a dummy file "components/net/tests/test.jpeg"
         let (tx, rx) = ipc::channel().unwrap();
         filemanager.handle(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone(), None),
                            TEST_PROVIDER);

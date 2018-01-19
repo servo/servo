@@ -231,7 +231,7 @@ class MachCommands(CommandBase):
             else:
                 test_patterns.append(test)
 
-        self_contained_tests = ["gfx", "layout", "msg", "selectors"]
+        self_contained_tests = ["gfx", "layout", "msg", "net", "selectors"]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
             packages |= set(self_contained_tests)
@@ -863,7 +863,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
     def update_net_cookies(self):
         cache_dir = path.join(self.config["tools"]["cache-dir"], "tests")
         run_file = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
-                                          "tests", "unit", "net",
+                                          "components", "net", "tests",
                                           "cookie_http_state_utils.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
