@@ -625,6 +625,8 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
+    debug_assert!(context.shared.is_nested() || !context.shared.in_negation());
+
     match *selector {
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
@@ -777,7 +779,7 @@ where
             matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            context.shared.nest(|context| {
+            context.shared.nest_for_negation(|context| {
                 let mut local_context = LocalMatchingContext {
                     matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
                     shared: context,

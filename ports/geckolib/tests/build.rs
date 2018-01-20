@@ -39,6 +39,21 @@ fn main() {
         for line in r.lines() {
             let s = line.unwrap();
             for cap in matcher.captures_iter(&s) {
+                // This causes a mismatch in old libclangs (the ones that are
+                // used in linux32 mozilla-central) because it generates:
+                //
+                //   *const nsTArray<*const RawServoStyleSet>
+                //
+                // Instead of:
+                //
+                //   *const nsTArray<RawServoStyleSetBorrowed>
+                //
+                // Which is not a problem, but would cause this to not compile.
+                //
+                // Skip this until libclang is updated there.
+                if &cap[1] == "InvalidateStyleForDocStateChanges" {
+                    continue;
+                }
                 w.write_all(format!("    [ Servo_{0}, bindings::Servo_{0} ];\n", &cap[1]).as_bytes()).unwrap();
             }
         }
