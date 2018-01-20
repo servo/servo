@@ -8,6 +8,8 @@ publish = false
 [lib]
 name = "net"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 base64 = "0.6"
@@ -43,3 +45,7 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
+
+[[test]]
+name = "main"
+path = "tests/main.rs"

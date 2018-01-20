@@ -8,6 +8,8 @@ publish = false
 [lib]
 name = "servo_remutex"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 lazy_static = "1"

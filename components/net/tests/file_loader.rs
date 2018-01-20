@@ -8,7 +8,7 @@ use url::Url;
 #[test]
 fn load_htm() {
     let mut path = env::current_dir().expect("didn't get working dir");
-    path.push("test.jpeg");
+    path.push("tests/test.jpeg");
 
     let canon_path = path.canonicalize().expect("file path doesn't exist");
     let url = Url::from_file_path(canon_path);

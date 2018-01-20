@@ -42,6 +42,7 @@ packages = [
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
+  "./components/net/tests/parsable_mime/text",
   # Mako does not lend itself easily to splitting long lines
   "./components/style/properties/helpers/animated_properties.mako.rs",
   # Helper macro where actually a pseudo-element per line makes sense.
@@ -59,7 +60,6 @@ files = [
   "./tests/wpt/mozilla/tests/webgl",
   # Ignore those files since the issues reported are on purpose
   "./tests/html/bad-line-ends.html",
-  "./tests/unit/net/parsable_mime/text",
   "./tests/wpt/mozilla/tests/css/fonts",
   "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",

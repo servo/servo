@@ -552,11 +552,13 @@ pub trait MutableOwnedFlowUtils {
     /// Sets the flow as the containing block for all absolute descendants that have been marked
     /// as having reached their containing block. This is needed in order to handle cases like:
     ///
-    ///     <div>
-    ///         <span style="position: relative">
-    ///             <span style="position: absolute; ..."></span>
-    ///         </span>
-    ///     </div>
+    /// ```html
+    /// <div>
+    ///     <span style="position: relative">
+    ///         <span style="position: absolute; ..."></span>
+    ///     </span>
+    /// </div>
+    /// ```
     fn take_applicable_absolute_descendants(&mut self,
                                             absolute_descendants: &mut AbsoluteDescendants);
 }
@@ -742,12 +744,14 @@ pub struct AbsoluteDescendantInfo {
     /// Whether the absolute descendant has reached its containing block. This exists so that we
     /// can handle cases like the following:
     ///
-    ///     <div>
-    ///         <span id=a style="position: absolute; ...">foo</span>
-    ///         <span style="position: relative">
-    ///             <span id=b style="position: absolute; ...">bar</span>
-    ///         </span>
-    ///     </div>
+    /// ```html
+    /// <div>
+    ///     <span id=a style="position: absolute; ...">foo</span>
+    ///     <span style="position: relative">
+    ///         <span id=b style="position: absolute; ...">bar</span>
+    ///     </span>
+    /// </div>
+    /// ```
     ///
     /// When we go to create the `InlineFlow` for the outer `div`, our absolute descendants will
     /// be `a` and `b`. At this point, we need a way to distinguish between the two, because the
@@ -1343,11 +1347,13 @@ impl MutableOwnedFlowUtils for FlowRef {
     /// Sets the flow as the containing block for all absolute descendants that have been marked
     /// as having reached their containing block. This is needed in order to handle cases like:
     ///
-    ///     <div>
-    ///         <span style="position: relative">
-    ///             <span style="position: absolute; ..."></span>
-    ///         </span>
-    ///     </div>
+    /// ```html
+    /// <div>
+    ///     <span style="position: relative">
+    ///         <span style="position: absolute; ..."></span>
+    ///     </span>
+    /// </div>
+    /// ```
     fn take_applicable_absolute_descendants(&mut self,
                                             absolute_descendants: &mut AbsoluteDescendants) {
         let mut applicable_absolute_descendants = AbsoluteDescendants::new();

@@ -9,6 +9,8 @@ publish = false
 [lib]
 name = "gfx"
 path = "lib.rs"
+test = false
+doctest = false
 
 [features]
 unstable = ["simd"]

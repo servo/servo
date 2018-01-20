@@ -1044,16 +1044,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gfx_tests"
-version = "0.0.1"
-dependencies = [
- "cssparser 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx 0.0.1",
- "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "style 0.0.1",
-]
-
-[[package]]
 name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
@@ -1435,20 +1425,13 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
+ "size_of_test 0.0.1",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
-name = "layout_tests"
-version = "0.0.1"
-dependencies = [
- "layout 0.0.1",
- "size_of_test 0.0.1",
 ]
 
 [[package]]
@@ -1839,15 +1822,8 @@ dependencies = [
  "malloc_size_of_derive 0.0.1",
  "nonzero 0.0.1",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
-name = "msg_tests"
-version = "0.0.1"
-dependencies = [
- "msg 0.0.1",
  "size_of_test 0.0.1",
+ "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -1900,28 +1876,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "net_tests"
-version = "0.0.1"
-dependencies = [
- "cookie 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "devtools_traits 0.0.1",
- "flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ipc-channel 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "msg 0.0.1",
- "net 0.0.1",
- "net_traits 0.0.1",
- "profile_traits 0.0.1",
- "servo_config 0.0.1",
- "servo_url 0.0.1",
- "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
@@ -1942,13 +1896,6 @@ dependencies = [
  "url 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_api 0.56.1 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
-name = "net_traits_tests"
-version = "0.0.1"
-dependencies = [
- "net_traits 0.0.1",
 ]
 
 [[package]]
@@ -2837,13 +2784,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "servo_config_tests"
-version = "0.0.1"
-dependencies = [
- "servo_config 0.0.1",
-]
-
-[[package]]
 name = "servo_geometry"
 version = "0.0.1"
 dependencies = [
@@ -2870,13 +2810,6 @@ dependencies = [
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "nonzero 0.0.1",
-]
-
-[[package]]
-name = "servo_remutex_tests"
-version = "0.0.1"
-dependencies = [
- "servo_remutex 0.0.1",
 ]
 
 [[package]]
