@@ -77,7 +77,7 @@ impl WebRenderDisplayListConverter for DisplayList {
 impl WebRenderDisplayItemConverter for DisplayItem {
     fn prim_info(&self) -> webrender_api::LayoutPrimitiveInfo {
         let tag = match self.base().metadata.pointing {
-            Some(cursor) => Some((self.base().metadata.node.0 as u64, cursor as u16)),
+            Some(cursor) => Some((self.base().metadata.node.0 as u64, cursor)),
             None => None,
         };
         webrender_api::LayoutPrimitiveInfo {
@@ -173,29 +173,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 }
             },
             DisplayItem::Border(ref item) => {
-                let widths = item.border_widths.to_layout();
-
                 let details = match item.details {
                     BorderDetails::Normal(ref border) => {
                         webrender_api::BorderDetails::Normal(*border)
                     },
-                    BorderDetails::Image(ref image) => match image.image.key {
-                        None => return,
-                        Some(key) => {
-                            webrender_api::BorderDetails::Image(webrender_api::ImageBorder {
-                                image_key: key,
-                                patch: webrender_api::NinePatchDescriptor {
-                                    width: image.image.width,
-                                    height: image.image.height,
-                                    slice: image.slice,
-                                },
-                                fill: image.fill,
-                                outset: image.outset,
-                                repeat_horizontal: image.repeat_horizontal,
-                                repeat_vertical: image.repeat_vertical,
-                            })
-                        },
-                    },
+                    BorderDetails::Image(ref image) => webrender_api::BorderDetails::Image(*image),
                     BorderDetails::Gradient(ref gradient) => {
                         webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
                             gradient: builder.create_gradient(
@@ -222,7 +204,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     },
                 };
 
-                builder.push_border(&self.prim_info(), widths, details);
+                builder.push_border(&self.prim_info(), item.border_widths, details);
             },
             DisplayItem::Gradient(ref item) => {
                 let gradient = builder.create_gradient(
@@ -265,7 +247,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     item.color,
                     item.blur_radius,
                     item.spread_radius,
-                    item.border_radius.to_border_radius(),
+                    item.border_radius,
                     item.clip_mode,
                 );
             },
@@ -303,11 +285,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     stacking_context.transform_style,
                     perspective,
                     stacking_context.mix_blend_mode,
-                    stacking_context
-                        .filters
-                        .iter()
-                        .map(ToLayout::to_layout)
-                        .collect(),
+                    stacking_context.filters.clone(),
                 );
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
@@ -328,7 +306,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         .define_scroll_frame_with_parent(
                             node.id,
                             parent_id,
-                            node.content_rect.to_layout(),
+                            node.content_rect,
                             node.clip.main.to_layout(),
                             node.clip.get_complex_clips(),
                             None,
