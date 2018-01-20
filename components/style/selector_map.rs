@@ -177,41 +177,49 @@ impl SelectorMap<Rule> {
         let init_len = matching_rules_list.len();
         if let Some(id) = rule_hash_target.get_id() {
             if let Some(rules) = self.id_hash.get(&id, quirks_mode) {
-                SelectorMap::get_matching_rules(element,
-                                                rules,
-                                                matching_rules_list,
-                                                context,
-                                                flags_setter,
-                                                cascade_level)
+                SelectorMap::get_matching_rules(
+                    element,
+                    rules,
+                    matching_rules_list,
+                    context,
+                    flags_setter,
+                    cascade_level,
+                )
             }
         }
 
         rule_hash_target.each_class(|class| {
             if let Some(rules) = self.class_hash.get(&class, quirks_mode) {
-                SelectorMap::get_matching_rules(element,
-                                                rules,
-                                                matching_rules_list,
-                                                context,
-                                                flags_setter,
-                                                cascade_level)
+                SelectorMap::get_matching_rules(
+                    element,
+                    rules,
+                    matching_rules_list,
+                    context,
+                    flags_setter,
+                    cascade_level,
+                )
             }
         });
 
         if let Some(rules) = self.local_name_hash.get(rule_hash_target.get_local_name()) {
-            SelectorMap::get_matching_rules(element,
-                                            rules,
-                                            matching_rules_list,
-                                            context,
-                                            flags_setter,
-                                            cascade_level)
+            SelectorMap::get_matching_rules(
+                element,
+                rules,
+                matching_rules_list,
+                context,
+                flags_setter,
+                cascade_level,
+            )
         }
 
-        SelectorMap::get_matching_rules(element,
-                                        &self.other,
-                                        matching_rules_list,
-                                        context,
-                                        flags_setter,
-                                        cascade_level);
+        SelectorMap::get_matching_rules(
+            element,
+            &self.other,
+            matching_rules_list,
+            context,
+            flags_setter,
+            cascade_level,
+        );
 
         // Sort only the rules we just added.
         matching_rules_list[init_len..].sort_unstable_by_key(|block| (block.specificity, block.source_order()));
