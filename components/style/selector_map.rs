@@ -159,7 +159,6 @@ impl SelectorMap<Rule> {
         rule_hash_target: E,
         matching_rules_list: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
-        quirks_mode: QuirksMode,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
     )
@@ -171,7 +170,10 @@ impl SelectorMap<Rule> {
             return
         }
 
-        // At the end, we're going to sort the rules that we added, so remember where we began.
+        let quirks_mode = context.quirks_mode();
+
+        // At the end, we're going to sort the rules that we added, so remember
+        // where we began.
         let init_len = matching_rules_list.len();
         if let Some(id) = rule_hash_target.get_id() {
             if let Some(rules) = self.id_hash.get(&id, quirks_mode) {
@@ -247,7 +249,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     pub fn insert(
         &mut self,
         entry: T,
-        quirks_mode: QuirksMode
+        quirks_mode: QuirksMode,
     ) -> Result<(), FailedAllocationError> {
         self.count += 1;
 
