@@ -1024,7 +1024,6 @@ dependencies = [
  "simd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
- "style_traits 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "truetype 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
