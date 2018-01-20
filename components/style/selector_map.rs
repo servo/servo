@@ -159,7 +159,6 @@ impl SelectorMap<Rule> {
         rule_hash_target: E,
         matching_rules_list: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
-        quirks_mode: QuirksMode,
         flags_setter: &mut F,
         cascade_level: CascadeLevel,
     )
@@ -171,45 +170,56 @@ impl SelectorMap<Rule> {
             return
         }
 
-        // At the end, we're going to sort the rules that we added, so remember where we began.
+        let quirks_mode = context.quirks_mode();
+
+        // At the end, we're going to sort the rules that we added, so remember
+        // where we began.
         let init_len = matching_rules_list.len();
         if let Some(id) = rule_hash_target.get_id() {
             if let Some(rules) = self.id_hash.get(&id, quirks_mode) {
-                SelectorMap::get_matching_rules(element,
-                                                rules,
-                                                matching_rules_list,
-                                                context,
-                                                flags_setter,
-                                                cascade_level)
+                SelectorMap::get_matching_rules(
+                    element,
+                    rules,
+                    matching_rules_list,
+                    context,
+                    flags_setter,
+                    cascade_level,
+                )
             }
         }
 
         rule_hash_target.each_class(|class| {
             if let Some(rules) = self.class_hash.get(&class, quirks_mode) {
-                SelectorMap::get_matching_rules(element,
-                                                rules,
-                                                matching_rules_list,
-                                                context,
-                                                flags_setter,
-                                                cascade_level)
+                SelectorMap::get_matching_rules(
+                    element,
+                    rules,
+                    matching_rules_list,
+                    context,
+                    flags_setter,
+                    cascade_level,
+                )
             }
         });
 
         if let Some(rules) = self.local_name_hash.get(rule_hash_target.get_local_name()) {
-            SelectorMap::get_matching_rules(element,
-                                            rules,
-                                            matching_rules_list,
-                                            context,
-                                            flags_setter,
-                                            cascade_level)
+            SelectorMap::get_matching_rules(
+                element,
+                rules,
+                matching_rules_list,
+                context,
+                flags_setter,
+                cascade_level,
+            )
         }
 
-        SelectorMap::get_matching_rules(element,
-                                        &self.other,
-                                        matching_rules_list,
-                                        context,
-                                        flags_setter,
-                                        cascade_level);
+        SelectorMap::get_matching_rules(
+            element,
+            &self.other,
+            matching_rules_list,
+            context,
+            flags_setter,
+            cascade_level,
+        );
 
         // Sort only the rules we just added.
         matching_rules_list[init_len..].sort_unstable_by_key(|block| (block.specificity, block.source_order()));
@@ -247,7 +257,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     pub fn insert(
         &mut self,
         entry: T,
-        quirks_mode: QuirksMode
+        quirks_mode: QuirksMode,
     ) -> Result<(), FailedAllocationError> {
         self.count += 1;
 

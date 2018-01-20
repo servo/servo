@@ -100,7 +100,7 @@ where
     Impl: SelectorImpl,
 {
     /// Input with the matching mode we should use when matching selectors.
-    pub matching_mode: MatchingMode,
+    matching_mode: MatchingMode,
     /// Input with the bloom filter used to fast-reject selectors.
     pub bloom_filter: Option<&'a BloomFilter>,
     /// An optional cache to speed up nth-index-like selectors.
@@ -202,6 +202,12 @@ where
     #[inline]
     pub fn quirks_mode(&self) -> QuirksMode {
         self.quirks_mode
+    }
+
+    /// The matching-mode for this selector-matching operation.
+    #[inline]
+    pub fn matching_mode(&self) -> MatchingMode {
+        self.matching_mode
     }
 
     /// The case-sensitivity for class and ID selectors
