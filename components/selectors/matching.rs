@@ -285,7 +285,7 @@ where
 {
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
-    if context.matching_mode == MatchingMode::ForStatelessPseudoElement &&
+    if context.matching_mode() == MatchingMode::ForStatelessPseudoElement &&
         !context.is_nested() {
         // Consume the pseudo.
         match *iter.next().unwrap() {
@@ -349,7 +349,7 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
     // This compound selector had a pseudo-element to the right that we
     // intentionally skipped.
     if rightmost == Rightmost::Yes &&
-        context.matching_mode == MatchingMode::ForStatelessPseudoElement {
+        context.matching_mode() == MatchingMode::ForStatelessPseudoElement {
         return MatchesHoverAndActiveQuirk::No;
     }
 
