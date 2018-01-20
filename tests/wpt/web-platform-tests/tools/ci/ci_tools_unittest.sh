@@ -16,6 +16,7 @@ fi
 
 if [[ $(./wpt test-jobs --includes wptrunner_unittest; echo $?) -eq 0 ]]; then
     if [ $TOXENV == "py27" ] || [ $TOXENV == "pypy" ]; then
+        TOXENV="$TOXENV,py27-flake8"
         cd tools/wptrunner
         tox
     fi

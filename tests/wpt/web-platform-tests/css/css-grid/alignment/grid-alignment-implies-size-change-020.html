@@ -26,12 +26,13 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<script src="../support/style-change.js"></script>
+<script src="support/style-change.js"></script>
 <script>
 function runTest() {
   evaluateStyleChange(item, "before", "data-expected-width", 120);
   grid.style.justifyItems = "stretch";
   evaluateStyleChange(item, "after", "data-expected-width", 200);
+  done();
 }
 </script>
 <body onload="runTest()">

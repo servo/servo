@@ -4,6 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 'use strict';
+const test_desc = 'Bluetooth IDL test';
 
 test(() => {
   assert_throws(new TypeError(), () => new Bluetooth(),
@@ -14,6 +15,5 @@ test(() => {
   // Bluetooth implements BluetoothDiscovery;
   assert_true('requestDevice' in navigator.bluetooth);
   assert_equals(navigator.bluetooth.requestDevice.length, 0);
-}, 'Bluetooth IDL test');
-
+}, test_desc);
 </script>

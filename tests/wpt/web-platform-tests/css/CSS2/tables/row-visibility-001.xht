@@ -4,6 +4,7 @@
         <title>CSS Test: Row and the 'visibility' property</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#dynamic-effects" />
+        <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
         <meta name="flags" content="" />
         <meta name="assert" content="A 'visibility' value of 'collapse' applies to table rows." />
         <style type="text/css">
@@ -27,13 +28,13 @@
             .cell
             {
                 display: table-cell;
-                height: 1in;
-                width: 1in;
+                height: 100px;
+                width: 100px;
             }
         </style>
     </head>
     <body>
-        <p>Test passes if there is no red visible on the page.</p>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
         <div id="table">
             <div id="row1">
                 <div class="cell"></div>

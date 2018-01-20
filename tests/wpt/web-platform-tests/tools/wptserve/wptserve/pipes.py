@@ -6,6 +6,7 @@ import types
 import uuid
 from cStringIO import StringIO
 
+from six import text_type
 
 def resolve_content(response):
     return b"".join(item for item in response.iter_content(read_file=True))
@@ -276,18 +277,18 @@ def slice(request, response, start, end=None):
 
 
 class ReplacementTokenizer(object):
-    def ident(scanner, token):
+    def ident(self, token):
         return ("ident", token)
 
-    def index(scanner, token):
+    def index(self, token):
         token = token[1:-1]
         try:
             token = int(token)
         except ValueError:
-            token = unicode(token, "utf8")
+            token = token.decode('utf8')
         return ("index", token)
 
-    def var(scanner, token):
+    def var(self, token):
         token = token[:-1]
         return ("var", token)
 
@@ -425,7 +426,7 @@ def template(request, content, escape_type="html"):
 
         #Should possibly support escaping for other contexts e.g. script
         #TODO: read the encoding of the response
-        return escape_func(unicode(value)).encode("utf-8")
+        return escape_func(text_type(value)).encode("utf-8")
 
     template_regexp = re.compile(r"{{([^}]*)}}")
     new_content = template_regexp.sub(config_replacement, content)

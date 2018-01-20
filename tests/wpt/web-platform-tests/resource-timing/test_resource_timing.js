@@ -183,7 +183,9 @@ function resource_load(expected)
     });
 
     t["timing_attrs"].step(function test() {
-        var actual = window.performance.getEntriesByName(expected.name)[0];
+        const entries = window.performance.getEntriesByName(expected.name);
+        assert_equals(entries.length, 1, 'There should be a single matching entry');
+        const actual = entries[0];
 
         // Debugging bug 1263428
         // Feel free to remove/overwrite this piece of code
@@ -191,18 +193,18 @@ function resource_load(expected)
             assert_true(false, "actual: "+JSON.stringify(actual));
         }
 
-        assert_equals(actual.redirectStart, 0, "redirectStart time");
-        assert_equals(actual.redirectEnd, 0, "redirectEnd time");
+        assert_equals(actual.redirectStart, 0, 'redirectStart should be 0');
+        assert_equals(actual.redirectEnd, 0, 'redirectEnd should be 0');
         assert_true(actual.secureConnectionStart == undefined ||
-                    actual.secureConnectionStart == 0, "secureConnectionStart time");
-        assert_equals(actual.fetchStart, actual.startTime, "fetchStart is equal to startTime");
-        assert_greater_than_equal(actual.domainLookupStart, actual.fetchStart, "domainLookupStart after fetchStart");
-        assert_greater_than_equal(actual.domainLookupEnd, actual.domainLookupStart, "domainLookupEnd after domainLookupStart");
-        assert_greater_than_equal(actual.connectStart, actual.domainLookupEnd, "connectStart after domainLookupEnd");
-        assert_greater_than_equal(actual.connectEnd, actual.connectStart, "connectEnd after connectStart");
-        assert_greater_than_equal(actual.requestStart, actual.connectEnd, "requestStart after connectEnd");
-        assert_greater_than_equal(actual.responseStart, actual.requestStart, "responseStart after requestStart");
-        assert_greater_than_equal(actual.responseEnd, actual.responseStart, "responseEnd after responseStart");
+                    actual.secureConnectionStart == 0, 'secureConnectionStart should be 0 or undefined');
+        assert_equals(actual.fetchStart, actual.startTime, 'fetchStart is equal to startTime');
+        assert_greater_than_equal(actual.domainLookupStart, actual.fetchStart, 'domainLookupStart after fetchStart');
+        assert_greater_than_equal(actual.domainLookupEnd, actual.domainLookupStart, 'domainLookupEnd after domainLookupStart');
+        assert_greater_than_equal(actual.connectStart, actual.domainLookupEnd, 'connectStart after domainLookupEnd');
+        assert_greater_than_equal(actual.connectEnd, actual.connectStart, 'connectEnd after connectStart');
+        assert_greater_than_equal(actual.requestStart, actual.connectEnd, 'requestStart after connectEnd');
+        assert_greater_than_equal(actual.responseStart, actual.requestStart, 'responseStart after requestStart');
+        assert_greater_than_equal(actual.responseEnd, actual.responseStart, 'responseEnd after responseStart');
         this.done();
     });
 

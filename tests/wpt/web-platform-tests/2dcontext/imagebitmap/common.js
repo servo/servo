@@ -38,7 +38,8 @@ function makeVideo() {
         video.oncanplaythrough = function() {
             resolve(video);
         };
-        video.src = "/images/pattern.ogv";
+        video.onerror = reject;
+        video.src = getVideoURI("/images/pattern");
     });
 }
 

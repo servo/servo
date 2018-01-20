@@ -37,7 +37,7 @@ invalid_data = [
                {"proxyType": 1}, {"proxyType": []}, {"proxyType": {"value": "system"}},
                {" proxyType": "system"}, {"proxyType ": "system"}, {"proxyType ": " system"},
                {"proxyType": "system "}]),
-    ("timeouts", [1, [], "{}", {}, False, {"pageLOAD": 10}, {"page load": 10},
+    ("timeouts", [1, [], "{}", False, {"pageLOAD": 10}, {"page load": 10},
                   {"page load": 10}, {"pageLoad": "10"}, {"pageLoad": {"value": 10}},
                   {"invalid": 10}, {"pageLoad": -1}, {"pageLoad": 2**64},
                   {"pageLoad": None}, {"pageLoad": 1.1}, {"pageLoad": 10, "invalid": 10},

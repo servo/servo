@@ -13,9 +13,16 @@
   var reportValue  = "{{GET[reportValue]}}";
   var reportExists = "{{GET[reportExists]}}";
   var noCookies = "{{GET[noCookies]}}";
+  var reportCookieName = "{{GET[reportCookieName]}}"
+  var testName = "{{GET[testName]}}"
+  var cookiePresent = "{{GET[cookiePresent]}}"
+  var reportCount = "{{GET[reportCount]}}"
 
   var location = window.location;
-  var thisTestName = location.pathname.split('/')[location.pathname.split('/').length - 1].split('.')[0];
+  if (reportCookieName == "") {
+    // fallback on test file name if cookie name not specified
+    reportCookieName = location.pathname.split('/')[location.pathname.split('/').length - 1].split('.')[0];
+  }
 
   var reportID = "";
 
@@ -24,7 +31,7 @@
     var cookieName = cookies[i].split('=')[0].trim();
     var cookieValue = cookies[i].split('=')[1].trim();
 
-    if (cookieName == thisTestName) {
+    if (cookieName == reportCookieName) {
       reportID = cookieValue;
       var cookieToDelete = cookieName + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=" + document.location.pathname.substring(0, document.location.pathname.lastIndexOf('/') + 1);
       document.cookie = cookieToDelete;
@@ -33,9 +40,10 @@
   }
 
   var timeout = document.querySelector("meta[name=timeout][content=long]") ? 50 : 5;
-  var reportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=take&timeout=" + timeout + "&reportID=" + reportID;
+  var reportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=retrieve_report&timeout=" + timeout + "&reportID=" + reportID;
 
-  var reportTest = async_test("Violation report status OK.");
+  if (testName == "") testName = "Violation report status OK.";
+  var reportTest = async_test(testName);
 
   function assert_field_value(field, value, field_name) {
     assert_true(field.indexOf(value.split(" ")[0]) != -1,
@@ -77,17 +85,38 @@
     report.send();
   });
 
-  if (noCookies) {
-      var cookieTest = async_test("No cookies sent with report.");
+  if (noCookies || cookiePresent) {
+      var cookieTest = async_test("Test report cookies.");
       var cookieReport = new XMLHttpRequest();
       cookieReport.onload = cookieTest.step_func(function () {
-          var data = JSON.parse(cookieReport.responseText);
-          assert_equals(data.reportCookies, "None");
-          cookieTest.done();
+        var data = JSON.parse(cookieReport.responseText);
+        if (noCookies) {
+          assert_equals(data.reportCookies, "None", "Report should not contain any cookies");
+        }
+
+        if (cookiePresent) {
+          assert_true(data.reportCookies.hasOwnProperty(cookiePresent), "Report should contain cookie: " + cookiePresent);
+        }
+        cookieTest.done();
       });
-      var cReportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=cookies&timeout=" + timeout + "&reportID=" + reportID;
+      var cReportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=retrieve_cookies&timeout=" + timeout + "&reportID=" + reportID;
       cookieReport.open("GET", cReportLocation, true);
       cookieReport.send();
-  };
+  }
+
+  if (reportCount != "") {
+      var reportCountTest = async_test("Test number of sent reports.");
+      var reportCountReport = new XMLHttpRequest();
+      reportCountReport.onload = reportCountTest.step_func(function () {
+        var data = JSON.parse(reportCountReport.responseText);
+
+        assert_equals(data.report_count, reportCount, "Report count was not what was expected.");
+
+        reportCountTest.done();
+      });
+      var cReportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=retrieve_count&timeout=" + timeout + "&reportID=" + reportID;
+      reportCountReport.open("GET", cReportLocation, true);
+      reportCountReport.send();
+  }
 
 })();

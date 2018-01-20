@@ -11,8 +11,7 @@
   run_all_fp_tests_allow_all(
       'http://{{domains[www]}}:{{ports[http][0]}}',
       'sync-xhr',
-      'InvalidAccessError: Failed to execute \'open\' on \'XMLHttpRequest\': ' +
-      'Synchronous requests are disabled by Feature Policy.',
+      'NetworkError',
       () => {
         return new Promise((resolve, reject) => {
           try {

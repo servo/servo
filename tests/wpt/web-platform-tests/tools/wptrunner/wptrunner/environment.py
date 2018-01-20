@@ -61,7 +61,7 @@ def get_ssl_kwargs(**kwargs):
     elif kwargs["ssl_type"] == "pregenerated":
         args = {"host_key_path": kwargs["host_key_path"],
                 "host_cert_path": kwargs["host_cert_path"],
-                 "ca_cert_path": kwargs["ca_cert_path"]}
+                "ca_cert_path": kwargs["ca_cert_path"]}
     else:
         args = {}
     return args

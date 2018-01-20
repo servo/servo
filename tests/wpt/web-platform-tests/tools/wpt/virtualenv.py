@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import logging
 from distutils.spawn import find_executable
@@ -21,7 +22,7 @@ class Virtualenv(object):
     def create(self):
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
-        call(self.virtualenv, self.path)
+        call(self.virtualenv, self.path, "-p", sys.executable)
 
     @property
     def bin_path(self):

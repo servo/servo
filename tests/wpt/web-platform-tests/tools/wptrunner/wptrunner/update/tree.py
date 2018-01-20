@@ -75,7 +75,7 @@ class HgTree(object):
             kwargs["repo"] = path
         try:
             hg("root", **kwargs)
-        except:
+        except Exception:
             return False
         return True
 
@@ -155,7 +155,7 @@ class GitTree(object):
             kwargs["repo"] = path
         try:
             git("rev-parse", "--show-toplevel", **kwargs)
-        except:
+        except Exception:
             return False
         return True
 
@@ -305,8 +305,8 @@ class GitTree(object):
 
     def paths(self):
         """List paths in the tree"""
-        repo_paths = [self.root] +  [os.path.join(self.root, path)
-                                     for path in self.submodules()]
+        repo_paths = [self.root] + [os.path.join(self.root, path)
+                                    for path in self.submodules()]
 
         rv = []
 

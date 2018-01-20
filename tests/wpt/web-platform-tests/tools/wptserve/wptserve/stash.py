@@ -2,7 +2,8 @@ import base64
 import json
 import os
 import uuid
-from multiprocessing.managers import BaseManager, DictProxy
+import threading
+from multiprocessing.managers import AcquirerProxy, BaseManager, DictProxy
 
 class ServerDictManager(BaseManager):
     shared_data = {}
@@ -13,11 +14,13 @@ def _get_shared():
 ServerDictManager.register("get_dict",
                            callable=_get_shared,
                            proxytype=DictProxy)
+ServerDictManager.register('Lock', threading.Lock, AcquirerProxy)
 
 class ClientDictManager(BaseManager):
     pass
 
 ClientDictManager.register("get_dict")
+ClientDictManager.register("Lock")
 
 class StashServer(object):
     def __init__(self, address=None, authkey=None):
@@ -53,6 +56,22 @@ def start_server(address=None, authkey=None):
     return (manager, manager._address, manager._authkey)
 
 
+class LockWrapper(object):
+    def __init__(self, lock):
+        self.lock = lock
+
+    def acquire(self):
+        self.lock.acquire()
+
+    def release(self):
+        self.lock.release()
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, *args, **kwargs):
+        self.release()
+
 #TODO: Consider expiring values after some fixed time for long-running
 #servers
 
@@ -81,21 +100,23 @@ class Stash(object):
     """
 
     _proxy = None
+    lock = None
 
     def __init__(self, default_path, address=None, authkey=None):
         self.default_path = default_path
-        self.data = self._get_proxy(address, authkey)
+        self._get_proxy(address, authkey)
+        self.data = Stash._proxy
 
     def _get_proxy(self, address=None, authkey=None):
         if address is None and authkey is None:
             Stash._proxy = {}
+            Stash.lock = threading.Lock()
 
         if Stash._proxy is None:
             manager = ClientDictManager(address, authkey)
             manager.connect()
             Stash._proxy = manager.get_dict()
-
-        return Stash._proxy
+            Stash.lock = LockWrapper(manager.Lock())
 
     def _wrap_key(self, key, path):
         if path is None:

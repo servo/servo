@@ -1133,7 +1133,7 @@ dictionary AssignedNodesOptions {
   boolean flatten = false;
 };
 
-typedef (CanvasRenderingContext2D or WebGLRenderingContext) RenderingContext;
+typedef (CanvasRenderingContext2D or ImageBitmapRenderingContext or WebGLRenderingContext) RenderingContext;
 
 [Exposed=Window,
  HTMLConstructor]

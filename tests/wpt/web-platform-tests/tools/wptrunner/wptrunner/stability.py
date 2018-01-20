@@ -274,6 +274,6 @@ def check_stability(logger, repeat_loop=10, repeat_restart=5, chaos_mode=True, m
             write_summary(logger, step_results, "FAIL")
             return 1
 
-        step_results.append((desc,  "PASS"))
+        step_results.append((desc, "PASS"))
 
     write_summary(logger, step_results, "PASS")

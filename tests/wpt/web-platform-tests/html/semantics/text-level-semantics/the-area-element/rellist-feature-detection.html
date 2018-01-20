@@ -32,6 +32,10 @@ test(function() {
   assert_equals(element.relList.length, 2);
   assert_equals(element.relList[0], "first");
   assert_equals(element.relList[1], "second");
+  // Test that relList is  [SameObject].
+  let savedRelList = element.relList;
+  element.rel = "something";
+  assert_equals(element.relList, savedRelList);
 
   // Test that supports() is returning true for valid values
   // and false for invalid ones.

@@ -28,7 +28,7 @@ def require_arg(kwargs, name, value_func=None):
     if value_func is None:
         value_func = lambda x: x is not None
 
-    if not name in kwargs or not value_func(kwargs[name]):
+    if name not in kwargs or not value_func(kwargs[name]):
         print >> sys.stderr, "Missing required argument %s" % name
         sys.exit(1)
 
@@ -97,7 +97,8 @@ scheme host and port.""")
     test_selection_group.add_argument("--skip-timeout", action="store_true",
                                       help="Skip tests that are expected to time out")
     test_selection_group.add_argument("--tag", action="append", dest="tags",
-                                      help="Labels applied to tests to include in the run. Labels starting dir: are equivalent to top-level directories.")
+                                      help="Labels applied to tests to include in the run. "
+                                           "Labels starting dir: are equivalent to top-level directories.")
 
     debugging_group = parser.add_argument_group("Debugging")
     debugging_group.add_argument('--debugger', const="__default__", nargs="?",
@@ -479,7 +480,8 @@ def create_parser_update(product_choices=None):
                         help="Don't create a VCS commit containing the changes.")
     parser.add_argument("--sync", dest="sync", action="store_true", default=False,
                         help="Sync the tests with the latest from upstream (implies --patch)")
-    parser.add_argument("--ignore-existing", action="store_true", help="When updating test results only consider results from the logfiles provided, not existing expectations.")
+    parser.add_argument("--ignore-existing", action="store_true",
+                        help="When updating test results only consider results from the logfiles provided, not existing expectations.")
     parser.add_argument("--stability", nargs="?", action="store", const="unstable", default=None,
         help=("Reason for disabling tests. When updating test results, disable tests that have "
               "inconsistent results across many runs with the given reason."))

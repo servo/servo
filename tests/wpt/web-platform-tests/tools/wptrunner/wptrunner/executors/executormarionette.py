@@ -304,7 +304,7 @@ class ExecuteAsyncScriptRun(object):
         self.result_flag = threading.Event()
 
     def run(self):
-        index = self.url.rfind("/storage/");
+        index = self.url.rfind("/storage/")
         if index != -1:
             # Clear storage
             self.protocol.clear_origin(self.url)
@@ -503,7 +503,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         assert viewport_size is None
         assert dpi is None
 
-        timeout =  self.timeout_multiplier * test.timeout if self.debug_info is None else None
+        timeout = self.timeout_multiplier * test.timeout if self.debug_info is None else None
 
         test_url = self.test_url(test)
 

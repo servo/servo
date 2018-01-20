@@ -22,7 +22,7 @@ test(() => {
   try {
     new PaymentRequestUpdateEvent("test");
   } catch (err) {
-    assert_true(false, `Unexpected exception: ${err.message}`);
+    assert_unreached(`Unexpected exception: ${err.message}`);
   }
 }, "PaymentRequestUpdateEvent can be constructed in secure-context");
 

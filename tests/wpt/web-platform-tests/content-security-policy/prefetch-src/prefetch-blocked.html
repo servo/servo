@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="prefetch-src 'none';">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/content-security-policy/support/testharness-helper.js'></script>
+  <script src='/content-security-policy/support/prefetch-helper.js'></script>
+  <script>
+    async_test(t => {
+      let url = window.origin + '/content-security-policy/support/fail.png';
+
+      let link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = url;
+
+      assert_link_does_not_prefetch(t, link);
+    }, "Blocked prefetch generates report.");
+  </script>
+</head>
+<body>
+</body>
+</html>

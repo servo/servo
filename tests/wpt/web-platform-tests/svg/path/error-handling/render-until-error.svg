@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="100" height="100">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#paths-PathDataErrorHandling"/>
+    <h:link rel="match" href="render-until-error-ref.svg"/>
+    <h:meta name="assert" content="render up to (but not including) the first error"/>
+  </metadata>
+  <style>
+    path {
+      stroke: lime;
+    }
+  </style>
+  <g id="container">
+    <path transform="translate(90,10)" />
+    <path transform="translate(80,20)" d="none" />
+    <path transform="translate(70,30)" d="# invalid" />
+    <path transform="translate(60,40)" d="m 0 0 l 3 -4 z # ignored suffix v 123" />
+    <path transform="translate(50,50)" d="" />
+    <path transform="translate(40,60)" d="m 0 0 l -9 11 -123 z # ignore last l parameter" />
+    <polygon transform="translate(20,80)" />
+    <polyline transform="translate(10,90)" />
+  </g>
+</svg>

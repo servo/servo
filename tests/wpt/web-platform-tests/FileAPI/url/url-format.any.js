@@ -2,7 +2,7 @@ const blob = new Blob(['test']);
 const file = new File(['test'], 'name');
 
 test(() => {
-  const url_count = 10000;
+  const url_count = 5000;
   let list = [];
 
   for (let i = 0; i < url_count; ++i)

@@ -4,6 +4,8 @@ import error
 import protocol
 import transport
 
+from six import string_types
+
 from mozlog import get_default_logger
 
 logger = get_default_logger()
@@ -313,7 +315,7 @@ class Cookies(object):
         cookie = {"name": name,
                   "value": None}
 
-        if isinstance(name, (str, unicode)):
+        if isinstance(name, string_types):
             cookie["value"] = value
         elif hasattr(value, "value"):
             cookie["value"] = value.value

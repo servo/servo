@@ -86,11 +86,11 @@ promise_test(t => {
     assert_not_equals(pc.sctp, null);
     // Test outcome depends on canSendSize value
     if (canSendSize) {
-      assert_equals(pc.sctp.maxMessageSize, Math.min(65535, canSendSize),
-        'Missing SDP attribute and a non-zero canSendSize should give an maxMessageSize of min(65535, canSendSize)');
+      assert_equals(pc.sctp.maxMessageSize, Math.min(65536, canSendSize),
+        'Missing SDP attribute and a non-zero canSendSize should give an maxMessageSize of min(65536, canSendSize)');
     } else {
-      assert_equals(pc.sctp.maxMessageSize, 65535,
-        'Missing SDP attribute and a canSendSize of 0 should give an maxMessageSize of 65535');
+      assert_equals(pc.sctp.maxMessageSize, 65536,
+        'Missing SDP attribute and a canSendSize of 0 should give an maxMessageSize of 65536');
     }
   });
 }, 'Remote offer SDP missing max-message-size attribute');
@@ -172,7 +172,7 @@ promise_test(t => {
       assert_equals(pc.sctp.maxMessageSize, canSendSize,
         'A remote value larger than a non-zero canSendSize should limit maxMessageSize to canSendSize');
     } else {
-      assert_equals(pc.sctp.maxMessageSize, 65535,
+      assert_equals(pc.sctp.maxMessageSize, 65536,
         'A canSendSize of zero should let the remote value set maxMessageSize');
     }
   });

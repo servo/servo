@@ -132,11 +132,6 @@ def get_sha1():
     return git("rev-parse", "HEAD").strip()
 
 
-def install_wptrunner():
-    """Install wptrunner."""
-    call("pip", "install", wptrunner_root)
-
-
 def deepen_checkout(user):
     """Convert from a shallow checkout to a full one"""
     fetch_args = [user, "+refs/heads/*:refs/remotes/origin/*"]

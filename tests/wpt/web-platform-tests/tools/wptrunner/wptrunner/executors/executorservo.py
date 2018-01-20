@@ -28,7 +28,7 @@ from .executormarionette import WdspecRun
 pytestrunner = None
 webdriver = None
 
-extra_timeout = 5 # seconds
+extra_timeout = 5  # seconds
 
 hosts_text = """127.0.0.1 web-platform.test
 127.0.0.1 www.web-platform.test
