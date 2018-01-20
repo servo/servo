@@ -5302,53 +5302,50 @@ clip-path
 <%self:impl_trait style_struct_name="Pointing"
                   skip_longhands="cursor caret-color">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
-        use properties::longhands::cursor::computed_value::Keyword;
-        use style_traits::cursor::Cursor;
+        use style_traits::cursor::CursorKind;
 
         self.gecko.mCursor = match v.keyword {
-            Keyword::Auto => structs::NS_STYLE_CURSOR_AUTO,
-            Keyword::Cursor(cursor) => match cursor {
-                Cursor::None => structs::NS_STYLE_CURSOR_NONE,
-                Cursor::Default => structs::NS_STYLE_CURSOR_DEFAULT,
-                Cursor::Pointer => structs::NS_STYLE_CURSOR_POINTER,
-                Cursor::ContextMenu => structs::NS_STYLE_CURSOR_CONTEXT_MENU,
-                Cursor::Help => structs::NS_STYLE_CURSOR_HELP,
-                Cursor::Progress => structs::NS_STYLE_CURSOR_SPINNING,
-                Cursor::Wait => structs::NS_STYLE_CURSOR_WAIT,
-                Cursor::Cell => structs::NS_STYLE_CURSOR_CELL,
-                Cursor::Crosshair => structs::NS_STYLE_CURSOR_CROSSHAIR,
-                Cursor::Text => structs::NS_STYLE_CURSOR_TEXT,
-                Cursor::VerticalText => structs::NS_STYLE_CURSOR_VERTICAL_TEXT,
-                Cursor::Alias => structs::NS_STYLE_CURSOR_ALIAS,
-                Cursor::Copy => structs::NS_STYLE_CURSOR_COPY,
-                Cursor::Move => structs::NS_STYLE_CURSOR_MOVE,
-                Cursor::NoDrop => structs::NS_STYLE_CURSOR_NO_DROP,
-                Cursor::NotAllowed => structs::NS_STYLE_CURSOR_NOT_ALLOWED,
-                Cursor::Grab => structs::NS_STYLE_CURSOR_GRAB,
-                Cursor::Grabbing => structs::NS_STYLE_CURSOR_GRABBING,
-                Cursor::EResize => structs::NS_STYLE_CURSOR_E_RESIZE,
-                Cursor::NResize => structs::NS_STYLE_CURSOR_N_RESIZE,
-                Cursor::NeResize => structs::NS_STYLE_CURSOR_NE_RESIZE,
-                Cursor::NwResize => structs::NS_STYLE_CURSOR_NW_RESIZE,
-                Cursor::SResize => structs::NS_STYLE_CURSOR_S_RESIZE,
-                Cursor::SeResize => structs::NS_STYLE_CURSOR_SE_RESIZE,
-                Cursor::SwResize => structs::NS_STYLE_CURSOR_SW_RESIZE,
-                Cursor::WResize => structs::NS_STYLE_CURSOR_W_RESIZE,
-                Cursor::EwResize => structs::NS_STYLE_CURSOR_EW_RESIZE,
-                Cursor::NsResize => structs::NS_STYLE_CURSOR_NS_RESIZE,
-                Cursor::NeswResize => structs::NS_STYLE_CURSOR_NESW_RESIZE,
-                Cursor::NwseResize => structs::NS_STYLE_CURSOR_NWSE_RESIZE,
-                Cursor::ColResize => structs::NS_STYLE_CURSOR_COL_RESIZE,
-                Cursor::RowResize => structs::NS_STYLE_CURSOR_ROW_RESIZE,
-                Cursor::AllScroll => structs::NS_STYLE_CURSOR_ALL_SCROLL,
-                Cursor::ZoomIn => structs::NS_STYLE_CURSOR_ZOOM_IN,
-                Cursor::ZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
-                // note: the following properties are gecko-only.
-                Cursor::MozGrab => structs::NS_STYLE_CURSOR_GRAB,
-                Cursor::MozGrabbing => structs::NS_STYLE_CURSOR_GRABBING,
-                Cursor::MozZoomIn => structs::NS_STYLE_CURSOR_ZOOM_IN,
-                Cursor::MozZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
-            }
+            CursorKind::Auto => structs::NS_STYLE_CURSOR_AUTO,
+            CursorKind::None => structs::NS_STYLE_CURSOR_NONE,
+            CursorKind::Default => structs::NS_STYLE_CURSOR_DEFAULT,
+            CursorKind::Pointer => structs::NS_STYLE_CURSOR_POINTER,
+            CursorKind::ContextMenu => structs::NS_STYLE_CURSOR_CONTEXT_MENU,
+            CursorKind::Help => structs::NS_STYLE_CURSOR_HELP,
+            CursorKind::Progress => structs::NS_STYLE_CURSOR_SPINNING,
+            CursorKind::Wait => structs::NS_STYLE_CURSOR_WAIT,
+            CursorKind::Cell => structs::NS_STYLE_CURSOR_CELL,
+            CursorKind::Crosshair => structs::NS_STYLE_CURSOR_CROSSHAIR,
+            CursorKind::Text => structs::NS_STYLE_CURSOR_TEXT,
+            CursorKind::VerticalText => structs::NS_STYLE_CURSOR_VERTICAL_TEXT,
+            CursorKind::Alias => structs::NS_STYLE_CURSOR_ALIAS,
+            CursorKind::Copy => structs::NS_STYLE_CURSOR_COPY,
+            CursorKind::Move => structs::NS_STYLE_CURSOR_MOVE,
+            CursorKind::NoDrop => structs::NS_STYLE_CURSOR_NO_DROP,
+            CursorKind::NotAllowed => structs::NS_STYLE_CURSOR_NOT_ALLOWED,
+            CursorKind::Grab => structs::NS_STYLE_CURSOR_GRAB,
+            CursorKind::Grabbing => structs::NS_STYLE_CURSOR_GRABBING,
+            CursorKind::EResize => structs::NS_STYLE_CURSOR_E_RESIZE,
+            CursorKind::NResize => structs::NS_STYLE_CURSOR_N_RESIZE,
+            CursorKind::NeResize => structs::NS_STYLE_CURSOR_NE_RESIZE,
+            CursorKind::NwResize => structs::NS_STYLE_CURSOR_NW_RESIZE,
+            CursorKind::SResize => structs::NS_STYLE_CURSOR_S_RESIZE,
+            CursorKind::SeResize => structs::NS_STYLE_CURSOR_SE_RESIZE,
+            CursorKind::SwResize => structs::NS_STYLE_CURSOR_SW_RESIZE,
+            CursorKind::WResize => structs::NS_STYLE_CURSOR_W_RESIZE,
+            CursorKind::EwResize => structs::NS_STYLE_CURSOR_EW_RESIZE,
+            CursorKind::NsResize => structs::NS_STYLE_CURSOR_NS_RESIZE,
+            CursorKind::NeswResize => structs::NS_STYLE_CURSOR_NESW_RESIZE,
+            CursorKind::NwseResize => structs::NS_STYLE_CURSOR_NWSE_RESIZE,
+            CursorKind::ColResize => structs::NS_STYLE_CURSOR_COL_RESIZE,
+            CursorKind::RowResize => structs::NS_STYLE_CURSOR_ROW_RESIZE,
+            CursorKind::AllScroll => structs::NS_STYLE_CURSOR_ALL_SCROLL,
+            CursorKind::ZoomIn => structs::NS_STYLE_CURSOR_ZOOM_IN,
+            CursorKind::ZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
+            // note: the following properties are gecko-only.
+            CursorKind::MozGrab => structs::NS_STYLE_CURSOR_GRAB,
+            CursorKind::MozGrabbing => structs::NS_STYLE_CURSOR_GRABBING,
+            CursorKind::MozZoomIn => structs::NS_STYLE_CURSOR_ZOOM_IN,
+            CursorKind::MozZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
         } as u8;
 
         unsafe {
@@ -5390,47 +5387,47 @@ clip-path
     }
 
     pub fn clone_cursor(&self) -> longhands::cursor::computed_value::T {
-        use properties::longhands::cursor::computed_value::{Keyword, Image};
-        use style_traits::cursor::Cursor;
+        use values::computed::pointing::CursorImage;
+        use style_traits::cursor::CursorKind;
         use values::specified::url::SpecifiedUrl;
 
         let keyword = match self.gecko.mCursor as u32 {
-            structs::NS_STYLE_CURSOR_AUTO => Keyword::Auto,
-            structs::NS_STYLE_CURSOR_NONE => Keyword::Cursor(Cursor::None),
-            structs::NS_STYLE_CURSOR_DEFAULT => Keyword::Cursor(Cursor::Default),
-            structs::NS_STYLE_CURSOR_POINTER => Keyword::Cursor(Cursor::Pointer),
-            structs::NS_STYLE_CURSOR_CONTEXT_MENU => Keyword::Cursor(Cursor::ContextMenu),
-            structs::NS_STYLE_CURSOR_HELP => Keyword::Cursor(Cursor::Help),
-            structs::NS_STYLE_CURSOR_SPINNING => Keyword::Cursor(Cursor::Progress),
-            structs::NS_STYLE_CURSOR_WAIT => Keyword::Cursor(Cursor::Wait),
-            structs::NS_STYLE_CURSOR_CELL => Keyword::Cursor(Cursor::Cell),
-            structs::NS_STYLE_CURSOR_CROSSHAIR => Keyword::Cursor(Cursor::Crosshair),
-            structs::NS_STYLE_CURSOR_TEXT => Keyword::Cursor(Cursor::Text),
-            structs::NS_STYLE_CURSOR_VERTICAL_TEXT => Keyword::Cursor(Cursor::VerticalText),
-            structs::NS_STYLE_CURSOR_ALIAS => Keyword::Cursor(Cursor::Alias),
-            structs::NS_STYLE_CURSOR_COPY => Keyword::Cursor(Cursor::Copy),
-            structs::NS_STYLE_CURSOR_MOVE => Keyword::Cursor(Cursor::Move),
-            structs::NS_STYLE_CURSOR_NO_DROP => Keyword::Cursor(Cursor::NoDrop),
-            structs::NS_STYLE_CURSOR_NOT_ALLOWED => Keyword::Cursor(Cursor::NotAllowed),
-            structs::NS_STYLE_CURSOR_GRAB => Keyword::Cursor(Cursor::Grab),
-            structs::NS_STYLE_CURSOR_GRABBING => Keyword::Cursor(Cursor::Grabbing),
-            structs::NS_STYLE_CURSOR_E_RESIZE => Keyword::Cursor(Cursor::EResize),
-            structs::NS_STYLE_CURSOR_N_RESIZE => Keyword::Cursor(Cursor::NResize),
-            structs::NS_STYLE_CURSOR_NE_RESIZE => Keyword::Cursor(Cursor::NeResize),
-            structs::NS_STYLE_CURSOR_NW_RESIZE => Keyword::Cursor(Cursor::NwResize),
-            structs::NS_STYLE_CURSOR_S_RESIZE => Keyword::Cursor(Cursor::SResize),
-            structs::NS_STYLE_CURSOR_SE_RESIZE => Keyword::Cursor(Cursor::SeResize),
-            structs::NS_STYLE_CURSOR_SW_RESIZE => Keyword::Cursor(Cursor::SwResize),
-            structs::NS_STYLE_CURSOR_W_RESIZE => Keyword::Cursor(Cursor::WResize),
-            structs::NS_STYLE_CURSOR_EW_RESIZE => Keyword::Cursor(Cursor::EwResize),
-            structs::NS_STYLE_CURSOR_NS_RESIZE => Keyword::Cursor(Cursor::NsResize),
-            structs::NS_STYLE_CURSOR_NESW_RESIZE => Keyword::Cursor(Cursor::NeswResize),
-            structs::NS_STYLE_CURSOR_NWSE_RESIZE => Keyword::Cursor(Cursor::NwseResize),
-            structs::NS_STYLE_CURSOR_COL_RESIZE => Keyword::Cursor(Cursor::ColResize),
-            structs::NS_STYLE_CURSOR_ROW_RESIZE => Keyword::Cursor(Cursor::RowResize),
-            structs::NS_STYLE_CURSOR_ALL_SCROLL => Keyword::Cursor(Cursor::AllScroll),
-            structs::NS_STYLE_CURSOR_ZOOM_IN => Keyword::Cursor(Cursor::ZoomIn),
-            structs::NS_STYLE_CURSOR_ZOOM_OUT => Keyword::Cursor(Cursor::ZoomOut),
+            structs::NS_STYLE_CURSOR_AUTO => CursorKind::Auto,
+            structs::NS_STYLE_CURSOR_NONE => CursorKind::None,
+            structs::NS_STYLE_CURSOR_DEFAULT => CursorKind::Default,
+            structs::NS_STYLE_CURSOR_POINTER => CursorKind::Pointer,
+            structs::NS_STYLE_CURSOR_CONTEXT_MENU => CursorKind::ContextMenu,
+            structs::NS_STYLE_CURSOR_HELP => CursorKind::Help,
+            structs::NS_STYLE_CURSOR_SPINNING => CursorKind::Progress,
+            structs::NS_STYLE_CURSOR_WAIT => CursorKind::Wait,
+            structs::NS_STYLE_CURSOR_CELL => CursorKind::Cell,
+            structs::NS_STYLE_CURSOR_CROSSHAIR => CursorKind::Crosshair,
+            structs::NS_STYLE_CURSOR_TEXT => CursorKind::Text,
+            structs::NS_STYLE_CURSOR_VERTICAL_TEXT => CursorKind::VerticalText,
+            structs::NS_STYLE_CURSOR_ALIAS => CursorKind::Alias,
+            structs::NS_STYLE_CURSOR_COPY => CursorKind::Copy,
+            structs::NS_STYLE_CURSOR_MOVE => CursorKind::Move,
+            structs::NS_STYLE_CURSOR_NO_DROP => CursorKind::NoDrop,
+            structs::NS_STYLE_CURSOR_NOT_ALLOWED => CursorKind::NotAllowed,
+            structs::NS_STYLE_CURSOR_GRAB => CursorKind::Grab,
+            structs::NS_STYLE_CURSOR_GRABBING => CursorKind::Grabbing,
+            structs::NS_STYLE_CURSOR_E_RESIZE => CursorKind::EResize,
+            structs::NS_STYLE_CURSOR_N_RESIZE => CursorKind::NResize,
+            structs::NS_STYLE_CURSOR_NE_RESIZE => CursorKind::NeResize,
+            structs::NS_STYLE_CURSOR_NW_RESIZE => CursorKind::NwResize,
+            structs::NS_STYLE_CURSOR_S_RESIZE => CursorKind::SResize,
+            structs::NS_STYLE_CURSOR_SE_RESIZE => CursorKind::SeResize,
+            structs::NS_STYLE_CURSOR_SW_RESIZE => CursorKind::SwResize,
+            structs::NS_STYLE_CURSOR_W_RESIZE => CursorKind::WResize,
+            structs::NS_STYLE_CURSOR_EW_RESIZE => CursorKind::EwResize,
+            structs::NS_STYLE_CURSOR_NS_RESIZE => CursorKind::NsResize,
+            structs::NS_STYLE_CURSOR_NESW_RESIZE => CursorKind::NeswResize,
+            structs::NS_STYLE_CURSOR_NWSE_RESIZE => CursorKind::NwseResize,
+            structs::NS_STYLE_CURSOR_COL_RESIZE => CursorKind::ColResize,
+            structs::NS_STYLE_CURSOR_ROW_RESIZE => CursorKind::RowResize,
+            structs::NS_STYLE_CURSOR_ALL_SCROLL => CursorKind::AllScroll,
+            structs::NS_STYLE_CURSOR_ZOOM_IN => CursorKind::ZoomIn,
+            structs::NS_STYLE_CURSOR_ZOOM_OUT => CursorKind::ZoomOut,
             _ => panic!("Found unexpected value in style struct for cursor property"),
         };
 
@@ -5448,8 +5445,8 @@ clip-path
                     None
                 };
 
-            Image { url, hotspot }
-        }).collect();
+            CursorImage { url, hotspot }
+        }).collect::<Vec<_>>().into_boxed_slice();
 
         longhands::cursor::computed_value::T { images, keyword }
     }

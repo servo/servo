@@ -33,7 +33,7 @@ use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::rc::Rc;
 use servo_url::ServoUrl;
-use style_traits::cursor::Cursor;
+use style_traits::cursor::CursorKind;
 use style_traits::DevicePixel;
 #[cfg(target_os="linux")]
 extern crate x11;
@@ -104,69 +104,68 @@ impl Window {
         vec![WindowEvent::Idle]
     }
 
-    fn cursor_type_for_cursor(&self, cursor: Cursor) -> cef_cursor_type_t {
+    fn cursor_type_for_cursor(&self, cursor: CursorKind) -> cef_cursor_type_t {
         match cursor {
-            Cursor::None => return cef_cursor_type_t::CT_NONE,
-            Cursor::ContextMenu => return cef_cursor_type_t::CT_CONTEXTMENU,
-            Cursor::Grabbing => return cef_cursor_type_t::CT_GRABBING,
-            Cursor::Crosshair => return cef_cursor_type_t::CT_CROSS,
-            Cursor::Copy => return cef_cursor_type_t::CT_COPY,
-            Cursor::Alias => return cef_cursor_type_t::CT_ALIAS,
-            Cursor::Text => return cef_cursor_type_t::CT_IBEAM,
-            Cursor::Grab | Cursor::AllScroll =>
-                return cef_cursor_type_t::CT_GRAB,
-            Cursor::NoDrop => return cef_cursor_type_t::CT_NODROP,
-            Cursor::NotAllowed => return cef_cursor_type_t::CT_NOTALLOWED,
-            Cursor::Pointer => return cef_cursor_type_t::CT_POINTER,
-            Cursor::SResize => return cef_cursor_type_t::CT_SOUTHRESIZE,
-            Cursor::WResize => return cef_cursor_type_t::CT_WESTRESIZE,
-            Cursor::EwResize => return cef_cursor_type_t::CT_EASTWESTRESIZE,
-            Cursor::ColResize => return cef_cursor_type_t::CT_COLUMNRESIZE,
-            Cursor::EResize => return cef_cursor_type_t::CT_EASTRESIZE,
-            Cursor::NResize => return cef_cursor_type_t::CT_NORTHRESIZE,
-            Cursor::NsResize => return cef_cursor_type_t::CT_NORTHSOUTHRESIZE,
-            Cursor::RowResize => return cef_cursor_type_t::CT_ROWRESIZE,
-            Cursor::VerticalText => return cef_cursor_type_t::CT_VERTICALTEXT,
-            _ => return cef_cursor_type_t::CT_POINTER,
+            CursorKind::None => cef_cursor_type_t::CT_NONE,
+            CursorKind::ContextMenu => cef_cursor_type_t::CT_CONTEXTMENU,
+            CursorKind::Grabbing => cef_cursor_type_t::CT_GRABBING,
+            CursorKind::Crosshair => cef_cursor_type_t::CT_CROSS,
+            CursorKind::Copy => cef_cursor_type_t::CT_COPY,
+            CursorKind::Alias => cef_cursor_type_t::CT_ALIAS,
+            CursorKind::Text => cef_cursor_type_t::CT_IBEAM,
+            CursorKind::Grab | CursorKind::AllScroll => cef_cursor_type_t::CT_GRAB,
+            CursorKind::NoDrop => cef_cursor_type_t::CT_NODROP,
+            CursorKind::NotAllowed => cef_cursor_type_t::CT_NOTALLOWED,
+            CursorKind::Pointer => cef_cursor_type_t::CT_POINTER,
+            CursorKind::SResize => cef_cursor_type_t::CT_SOUTHRESIZE,
+            CursorKind::WResize => cef_cursor_type_t::CT_WESTRESIZE,
+            CursorKind::EwResize => cef_cursor_type_t::CT_EASTWESTRESIZE,
+            CursorKind::ColResize => cef_cursor_type_t::CT_COLUMNRESIZE,
+            CursorKind::EResize => cef_cursor_type_t::CT_EASTRESIZE,
+            CursorKind::NResize => cef_cursor_type_t::CT_NORTHRESIZE,
+            CursorKind::NsResize => cef_cursor_type_t::CT_NORTHSOUTHRESIZE,
+            CursorKind::RowResize => cef_cursor_type_t::CT_ROWRESIZE,
+            CursorKind::VerticalText => cef_cursor_type_t::CT_VERTICALTEXT,
+            _ => cef_cursor_type_t::CT_POINTER,
         }
     }
 
     /// Returns the Cocoa cursor for a CSS cursor. These match Firefox, except where Firefox
     /// bundles custom resources (which we don't yet do).
     #[cfg(target_os="macos")]
-    fn cursor_handle_for_cursor(&self, cursor: Cursor) -> cef_cursor_handle_t {
+    fn cursor_handle_for_cursor(&self, cursor: CursorKind) -> cef_cursor_handle_t {
         use cocoa::base::class;
 
         unsafe {
             match cursor {
-                Cursor::None => return 0 as cef_cursor_handle_t,
-                Cursor::ContextMenu => msg_send![class("NSCursor"), contextualMenuCursor],
-                Cursor::Grabbing => msg_send![class("NSCursor"), closedHandCursor],
-                Cursor::Crosshair => msg_send![class("NSCursor"), crosshairCursor],
-                Cursor::Copy => msg_send![class("NSCursor"), dragCopyCursor],
-                Cursor::Alias => msg_send![class("NSCursor"), dragLinkCursor],
-                Cursor::Text => msg_send![class("NSCursor"), IBeamCursor],
-                Cursor::Grab | Cursor::AllScroll =>
+                CursorKind::None => return 0 as cef_cursor_handle_t,
+                CursorKind::ContextMenu => msg_send![class("NSCursor"), contextualMenuCursor],
+                CursorKind::Grabbing => msg_send![class("NSCursor"), closedHandCursor],
+                CursorKind::Crosshair => msg_send![class("NSCursor"), crosshairCursor],
+                CursorKind::Copy => msg_send![class("NSCursor"), dragCopyCursor],
+                CursorKind::Alias => msg_send![class("NSCursor"), dragLinkCursor],
+                CursorKind::Text => msg_send![class("NSCursor"), IBeamCursor],
+                CursorKind::Grab | CursorKind::AllScroll =>
                     msg_send![class("NSCursor"), openHandCursor],
-                Cursor::NoDrop | Cursor::NotAllowed =>
+                CursorKind::NoDrop | CursorKind::NotAllowed =>
                     msg_send![class("NSCursor"), operationNotAllowedCursor],
-                Cursor::Pointer => msg_send![class("NSCursor"), pointingHandCursor],
-                Cursor::SResize => msg_send![class("NSCursor"), resizeDownCursor],
-                Cursor::WResize => msg_send![class("NSCursor"), resizeLeftCursor],
-                Cursor::EwResize | Cursor::ColResize =>
+                CursorKind::Pointer => msg_send![class("NSCursor"), pointingHandCursor],
+                CursorKind::SResize => msg_send![class("NSCursor"), resizeDownCursor],
+                CursorKind::WResize => msg_send![class("NSCursor"), resizeLeftCursor],
+                CursorKind::EwResize | CursorKind::ColResize =>
                     msg_send![class("NSCursor"), resizeLeftRightCursor],
-                Cursor::EResize => msg_send![class("NSCursor"), resizeRightCursor],
-                Cursor::NResize => msg_send![class("NSCursor"), resizeUpCursor],
-                Cursor::NsResize | Cursor::RowResize =>
+                CursorKind::EResize => msg_send![class("NSCursor"), resizeRightCursor],
+                CursorKind::NResize => msg_send![class("NSCursor"), resizeUpCursor],
+                CursorKind::NsResize | CursorKind::RowResize =>
                     msg_send![class("NSCursor"), resizeUpDownCursor],
-                Cursor::VerticalText => msg_send![class("NSCursor"), IBeamCursorForVerticalLayout],
+                CursorKind::VerticalText => msg_send![class("NSCursor"), IBeamCursorForVerticalLayout],
                 _ => msg_send![class("NSCursor"), arrowCursor],
             }
         }
     }
 
     #[cfg(not(target_os="macos"))]
-    fn cursor_handle_for_cursor(&self, _: Cursor) -> cef_cursor_handle_t {
+    fn cursor_handle_for_cursor(&self, _: CursorKind) -> cef_cursor_handle_t {
         0
     }
 
@@ -488,7 +487,7 @@ impl WindowMethods for Window {
         // TODO(negge)
     }
 
-    fn set_cursor(&self, cursor: Cursor) {
+    fn set_cursor(&self, cursor: CursorKind) {
         use types::{CefCursorInfo,cef_point_t,cef_size_t};
         let browser = self.cef_browser.borrow();
         if let Some(ref browser) = *browser {
