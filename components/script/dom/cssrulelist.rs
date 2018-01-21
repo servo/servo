@@ -103,7 +103,7 @@ impl CSSRuleList {
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);
         self.dom_rules.borrow_mut().insert(index, MutNullableDom::new(Some(&*dom_rule)));
-        Ok((idx))
+        Ok(idx)
     }
 
     // In case of a keyframe rule, index must be valid.
