@@ -933,10 +933,14 @@ impl FragmentDisplayListBuilding for Fragment {
             style.get_cursor(CursorKind::Default),
             display_list_section,
         );
-        state.add_display_item(DisplayItem::SolidColor(Box::new(SolidColorDisplayItem {
-            base: base,
-            color: background_color.to_layout(),
-        })));
+
+        // Skip transparent backgrounds.
+        if background_color.alpha != 0 {
+            state.add_display_item(DisplayItem::SolidColor(Box::new(SolidColorDisplayItem {
+                base: base,
+                color: background_color.to_layout(),
+            })));
+        }
 
         // The background image is painted on top of the background color.
         // Implements background image, per spec:

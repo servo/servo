@@ -35,6 +35,7 @@ parking_lot = "0.4"
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rayon = "0.8"
+ron = {git = "https://github.com/ron-rs/ron"}
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
@@ -48,4 +49,4 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
-webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc", "debug-serialization"]}
