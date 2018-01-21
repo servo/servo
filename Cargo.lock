@@ -1460,6 +1460,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "range 0.0.1",
  "rayon 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ron 0.2.0 (git+https://github.com/ron-rs/ron)",
  "script 0.0.1",
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
@@ -2326,6 +2327,15 @@ dependencies = [
 name = "regex-syntax"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "ron"
+version = "0.2.0"
+source = "git+https://github.com/ron-rs/ron#d19c857a268ac7d27e5ef8dd5423d2e3542a804d"
+dependencies = [
+ "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "rust-webvr"
@@ -3752,6 +3762,7 @@ dependencies = [
 "checksum ref_slice 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "825740057197b7d43025e7faf6477eaabc03434e153233da02d1f44602f71527"
 "checksum regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1731164734096285ec2a5ec7fea5248ae2f5485b3feeb0115af4fda2183b2d1b"
 "checksum regex-syntax 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ad890a5eef7953f55427c50575c680c42841653abd2b028b68cd223d157f62db"
+"checksum ron 0.2.0 (git+https://github.com/ron-rs/ron)" = "<none>"
 "checksum rust-webvr 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)" = "4f0a5115abda9e10f6ea04c475a92d97bf8c4e6ddb6276e4db548c0d3c1524cd"
 "checksum rust-webvr-api 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)" = "712e22ba3c03a7075b40842ae91029a0ab96a81f95e97c0cf623800ec0cbac07"
 "checksum rustc-demangle 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3058a43ada2c2d0b92b3ae38007a2d0fa5e9db971be260e0171408a4ff471c95"

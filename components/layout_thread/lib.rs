@@ -33,6 +33,7 @@ extern crate parking_lot;
 extern crate profile_traits;
 extern crate range;
 extern crate rayon;
+extern crate ron;
 extern crate script;
 extern crate script_layout_interface;
 extern crate script_traits;
@@ -1018,17 +1019,22 @@ impl LayoutThread {
             }
             let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
 
-            if opts::get().dump_display_list {
-                display_list.print();
-            }
-            if opts::get().dump_display_list_json {
-                println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
-            }
-
             debug!("Layout done!");
 
             // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-            let builder = rw_data.display_list.as_ref().unwrap().convert_to_webrender(self.id);
+            let webrender_display_list = rw_data.display_list.as_ref().unwrap()
+                .convert_to_webrender(self.id).finalize();
+
+            if opts::get().dump_display_list {
+                println!("// Display List from {:?}\n{}",
+                    self.epoch.get(),
+                    ron::ser::to_string_pretty(
+                        &webrender_display_list,
+                        ron::ser::PrettyConfig::default()).unwrap());
+            }
+            if opts::get().dump_display_list_json {
+                println!("{}", serde_json::to_string_pretty(&webrender_display_list).unwrap());
+            }
 
             let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                             self.viewport_size.height.to_f32_px());
@@ -1049,7 +1055,7 @@ impl LayoutThread {
                 webrender_api::Epoch(epoch.0),
                 Some(get_root_flow_background_color(layout_root)),
                 viewport_size,
-                builder.finalize(),
+                webrender_display_list,
                 true);
             txn.generate_frame();
             self.webrender_api.send_transaction(self.webrender_document, txn);
