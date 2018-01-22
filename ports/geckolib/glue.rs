@@ -2040,7 +2040,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     );
 
     let cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
-    data.stylist.precomputed_values_for_pseudo_with_rule_node(
+    data.stylist.precomputed_values_for_pseudo_with_rule_node::<GeckoElement>(
         &guards,
         &pseudo,
         parent_style_or_null.map(|x| &*x),
@@ -2231,15 +2231,15 @@ fn get_pseudo_style(
                         let guards = StylesheetGuards::same(guard);
                         let metrics = get_metrics_provider_for_product();
                         let inputs = CascadeInputs::new_from_style(pseudo_styles);
-                        doc_data.stylist
-                            .compute_pseudo_element_style_with_inputs(
-                                &inputs,
-                                pseudo,
-                                &guards,
-                                Some(inherited_styles),
-                                &metrics,
-                                CascadeFlags::empty(),
-                            )
+                        doc_data.stylist.compute_pseudo_element_style_with_inputs(
+                            &inputs,
+                            pseudo,
+                            &guards,
+                            Some(inherited_styles),
+                            &metrics,
+                            CascadeFlags::empty(),
+                            Some(element),
+                        )
                     })
                 },
                 _ => {
@@ -3655,6 +3655,7 @@ pub extern "C" fn Servo_ReparentStyle(
         Some(layout_parent_style),
         &metrics,
         cascade_flags,
+        element,
     ).into()
 }
 
@@ -4297,7 +4298,7 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(
 
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
 
-    doc_data.stylist.compute_for_declarations(
+    doc_data.stylist.compute_for_declarations::<GeckoElement>(
         &guards,
         parent_style,
         declarations.clone_arc(),

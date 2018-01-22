@@ -12,6 +12,7 @@
 
 #[cfg(feature = "servo")]
 use app_units::Au;
+use dom::TElement;
 use custom_properties::CustomPropertiesBuilder;
 use servo_arc::{Arc, UniqueArc};
 use smallbitvec::SmallBitVec;
@@ -3188,7 +3189,7 @@ bitflags! {
 /// Returns the computed values.
 ///   * `flags`: Various flags.
 ///
-pub fn cascade(
+pub fn cascade<E>(
     device: &Device,
     pseudo: Option<<&PseudoElement>,
     rule_node: &StrongRuleNode,
@@ -3202,7 +3203,11 @@ pub fn cascade(
     quirks_mode: QuirksMode,
     rule_cache: Option<<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
-) -> Arc<ComputedValues> {
+    element: Option<E>,
+) -> Arc<ComputedValues>
+where
+    E: TElement,
+{
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     let empty = SmallBitVec::new();
 
@@ -3261,12 +3266,13 @@ pub fn cascade(
         quirks_mode,
         rule_cache,
         rule_cache_conditions,
+        element,
     )
 }
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-pub fn apply_declarations<'a, F, I>(
+pub fn apply_declarations<'a, E, F, I>(
     device: &Device,
     pseudo: Option<<&PseudoElement>,
     rules: &StrongRuleNode,
@@ -3281,8 +3287,10 @@ pub fn apply_declarations<'a, F, I>(
     quirks_mode: QuirksMode,
     rule_cache: Option<<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
+    _element: Option<E>,
 ) -> Arc<ComputedValues>
 where
+    E: TElement,
     F: Fn() -> I,
     I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
 {

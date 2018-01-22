@@ -642,14 +642,20 @@ impl Stylist {
     /// parent; otherwise, non-inherited properties are reset to their initial
     /// values. The flow constructor uses this flag when constructing anonymous
     /// flows.
-    pub fn precomputed_values_for_pseudo(
+    ///
+    /// TODO(emilio): The type parameter could go away with a void type
+    /// implementing TElement.
+    pub fn precomputed_values_for_pseudo<E>(
         &self,
         guards: &StylesheetGuards,
         pseudo: &PseudoElement,
         parent: Option<&ComputedValues>,
         cascade_flags: CascadeFlags,
-        font_metrics: &FontMetricsProvider
-    ) -> Arc<ComputedValues> {
+        font_metrics: &FontMetricsProvider,
+    ) -> Arc<ComputedValues>
+    where
+        E: TElement,
+    {
         debug_assert!(pseudo.is_precomputed());
 
         let rule_node = self.rule_node_for_precomputed_pseudo(
@@ -658,7 +664,7 @@ impl Stylist {
             None,
         );
 
-        self.precomputed_values_for_pseudo_with_rule_node(
+        self.precomputed_values_for_pseudo_with_rule_node::<E>(
             guards,
             pseudo,
             parent,
@@ -670,7 +676,10 @@ impl Stylist {
 
     /// Computes the style for a given "precomputed" pseudo-element with
     /// given rule node.
-    pub fn precomputed_values_for_pseudo_with_rule_node(
+    ///
+    /// TODO(emilio): The type parameter could go away with a void type
+    /// implementing TElement.
+    pub fn precomputed_values_for_pseudo_with_rule_node<E>(
         &self,
         guards: &StylesheetGuards,
         pseudo: &PseudoElement,
@@ -678,8 +687,11 @@ impl Stylist {
         cascade_flags: CascadeFlags,
         font_metrics: &FontMetricsProvider,
         rule_node: StrongRuleNode
-    ) -> Arc<ComputedValues> {
-        self.compute_pseudo_element_style_with_inputs(
+    ) -> Arc<ComputedValues>
+    where
+        E: TElement,
+    {
+        self.compute_pseudo_element_style_with_inputs::<E>(
             &CascadeInputs {
                 rules: Some(rule_node),
                 visited_rules: None,
@@ -689,6 +701,7 @@ impl Stylist {
             parent,
             font_metrics,
             cascade_flags,
+            None,
         ).unwrap()
     }
 
@@ -730,13 +743,19 @@ impl Stylist {
     }
 
     /// Returns the style for an anonymous box of the given type.
+    ///
+    /// TODO(emilio): The type parameter could go away with a void type
+    /// implementing TElement.
     #[cfg(feature = "servo")]
-    pub fn style_for_anonymous(
+    pub fn style_for_anonymous<E>(
         &self,
         guards: &StylesheetGuards,
         pseudo: &PseudoElement,
-        parent_style: &ComputedValues
-    ) -> Arc<ComputedValues> {
+        parent_style: &ComputedValues,
+    ) -> Arc<ComputedValues>
+    where
+        E: TElement,
+    {
         use font_metrics::ServoMetricsProvider;
 
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
@@ -771,12 +790,12 @@ impl Stylist {
         if inherit_all {
             cascade_flags.insert(CascadeFlags::INHERIT_ALL);
         }
-        self.precomputed_values_for_pseudo(
+        self.precomputed_values_for_pseudo::<E>(
             guards,
             &pseudo,
             Some(parent_style),
             cascade_flags,
-            &ServoMetricsProvider
+            &ServoMetricsProvider,
         )
     }
 
@@ -818,6 +837,7 @@ impl Stylist {
             Some(parent_style),
             font_metrics,
             CascadeFlags::empty(),
+            Some(element),
         )
     }
 
@@ -825,7 +845,7 @@ impl Stylist {
     /// This can be used for truly lazy pseudo-elements or to avoid redoing
     /// selector matching for eager pseudo-elements when we need to recompute
     /// their style with a new parent style.
-    pub fn compute_pseudo_element_style_with_inputs(
+    pub fn compute_pseudo_element_style_with_inputs<E>(
         &self,
         inputs: &CascadeInputs,
         pseudo: &PseudoElement,
@@ -833,7 +853,11 @@ impl Stylist {
         parent_style: Option<&ComputedValues>,
         font_metrics: &FontMetricsProvider,
         cascade_flags: CascadeFlags,
-    ) -> Option<Arc<ComputedValues>> {
+        element: Option<E>,
+    ) -> Option<Arc<ComputedValues>>
+    where
+        E: TElement,
+    {
         // We may have only visited rules in cases when we are actually
         // resolving, not probing, pseudo-element style.
         if inputs.rules.is_none() && inputs.visited_rules.is_none() {
@@ -861,6 +885,7 @@ impl Stylist {
             parent_style,
             font_metrics,
             cascade_flags,
+            element,
         ))
     }
 
@@ -879,7 +904,7 @@ impl Stylist {
     ///
     /// is_link should be true if we're computing style for a link; that affects
     /// how :visited handling is done.
-    pub fn compute_style_with_inputs(
+    pub fn compute_style_with_inputs<E>(
         &self,
         inputs: &CascadeInputs,
         pseudo: Option<&PseudoElement>,
@@ -888,8 +913,12 @@ impl Stylist {
         parent_style_ignoring_first_line: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
         font_metrics: &FontMetricsProvider,
-        cascade_flags: CascadeFlags
-    ) -> Arc<ComputedValues> {
+        cascade_flags: CascadeFlags,
+        element: Option<E>,
+    ) -> Arc<ComputedValues>
+    where
+        E: TElement,
+    {
         // We need to compute visited values if we have visited rules or if our
         // parent has visited values.
         let mut visited_values = None;
@@ -928,7 +957,7 @@ impl Stylist {
                     });
             }
 
-            visited_values = Some(properties::cascade(
+            visited_values = Some(properties::cascade::<E>(
                 &self.device,
                 pseudo,
                 rule_node,
@@ -942,6 +971,7 @@ impl Stylist {
                 self.quirks_mode,
                 /* rule_cache = */ None,
                 &mut Default::default(),
+                element,
             ));
         }
 
@@ -953,7 +983,7 @@ impl Stylist {
         // difficult to assert that display: contents nodes never arrive here
         // (tl;dr: It doesn't apply for replaced elements and such, but the
         // computed value is still "contents").
-        properties::cascade(
+        properties::cascade::<E>(
             &self.device,
             pseudo,
             rules,
@@ -967,6 +997,7 @@ impl Stylist {
             self.quirks_mode,
             /* rule_cache = */ None,
             &mut Default::default(),
+            None,
         )
     }
 
@@ -1515,14 +1546,28 @@ impl Stylist {
     }
 
     /// Computes styles for a given declaration with parent_style.
-    pub fn compute_for_declarations(
+    ///
+    /// FIXME(emilio): the lack of pseudo / cascade flags look quite dubious,
+    /// hopefully this is only used for some canvas font stuff.
+    ///
+    /// TODO(emilio): The type parameter can go away when
+    /// https://github.com/rust-lang/rust/issues/35121 is fixed.
+    pub fn compute_for_declarations<E>(
         &self,
         guards: &StylesheetGuards,
         parent_style: &ComputedValues,
         declarations: Arc<Locked<PropertyDeclarationBlock>>,
-    ) -> Arc<ComputedValues> {
+    ) -> Arc<ComputedValues>
+    where
+        E: TElement,
+    {
         use font_metrics::get_metrics_provider_for_product;
 
+        // FIXME(emilio): Why do we even need the rule node? We should probably
+        // just avoid allocating it and calling `apply_declarations` directly,
+        // maybe...
+        //
+        // Also the `vec!` is super-wasteful.
         let v = vec![ApplicableDeclarationBlock::from_declarations(
             declarations.clone(),
             CascadeLevel::StyleAttributeNormal
@@ -1537,7 +1582,7 @@ impl Stylist {
         let metrics = get_metrics_provider_for_product();
 
         // FIXME(emilio): the pseudo bit looks quite dubious!
-        properties::cascade(
+        properties::cascade::<E>(
             &self.device,
             /* pseudo = */ None,
             &rule_node,
@@ -1551,20 +1596,24 @@ impl Stylist {
             self.quirks_mode,
             /* rule_cache = */ None,
             &mut Default::default(),
+            None,
         )
     }
 
     /// Accessor for a shared reference to the device.
+    #[inline]
     pub fn device(&self) -> &Device {
         &self.device
     }
 
     /// Accessor for a mutable reference to the device.
+    #[inline]
     pub fn device_mut(&mut self) -> &mut Device {
         &mut self.device
     }
 
     /// Accessor for a shared reference to the rule tree.
+    #[inline]
     pub fn rule_tree(&self) -> &RuleTree {
         &self.rule_tree
     }

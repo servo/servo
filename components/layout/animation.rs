@@ -15,6 +15,7 @@ use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as Conste
 use script_traits::UntrustedNodeAddress;
 use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
+use style::dom::TElement;
 use style::font_metrics::ServoMetricsProvider;
 use style::selector_parser::RestyleDamage;
 use style::timer::Timer;
@@ -22,14 +23,19 @@ use style::timer::Timer;
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed, inserting them into
 /// `expired_animations`.
-pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
-                              script_chan: &IpcSender<ConstellationControlMsg>,
-                              running_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
-                              expired_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
-                              mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
-                              new_animations_receiver: &Receiver<Animation>,
-                              pipeline_id: PipelineId,
-                              timer: &Timer) {
+pub fn update_animation_state<E>(
+    constellation_chan: &IpcSender<ConstellationMsg>,
+    script_chan: &IpcSender<ConstellationControlMsg>,
+    running_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
+    expired_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
+    mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
+    new_animations_receiver: &Receiver<Animation>,
+    pipeline_id: PipelineId,
+    timer: &Timer,
+)
+where
+    E: TElement,
+{
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let mut should_push = true;
@@ -144,22 +150,25 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM
 /// lock held.
-// NB: This is specific for SelectorImpl, since the layout context and the
-// flows are SelectorImpl specific too. If that goes away at some point,
-// this should be made generic.
-pub fn recalc_style_for_animations(context: &LayoutContext,
-                                   flow: &mut Flow,
-                                   animations: &FnvHashMap<OpaqueNode,
-                                                        Vec<Animation>>) {
+pub fn recalc_style_for_animations<E>(
+    context: &LayoutContext,
+    flow: &mut Flow,
+    animations: &FnvHashMap<OpaqueNode, Vec<Animation>>,
+)
+where
+    E: TElement,
+{
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
         if let Some(ref animations) = animations.get(&fragment.node) {
             for animation in animations.iter() {
                 let old_style = fragment.style.clone();
-                update_style_for_animation(&context.style_context,
-                                           animation,
-                                           &mut fragment.style,
-                                           &ServoMetricsProvider);
+                update_style_for_animation::<E>(
+                    &context.style_context,
+                    animation,
+                    &mut fragment.style,
+                    &ServoMetricsProvider,
+                );
                 let difference =
                     RestyleDamage::compute_style_difference(
                         &old_style,
@@ -173,6 +182,6 @@ pub fn recalc_style_for_animations(context: &LayoutContext,
     let base = flow.mut_base();
     base.restyle_damage.insert(damage);
     for kid in base.children.iter_mut() {
-        recalc_style_for_animations(context, kid, animations)
+        recalc_style_for_animations::<E>(context, kid, animations)
     }
 }

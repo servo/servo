@@ -592,6 +592,7 @@ where
                 self.context.shared.quirks_mode(),
                 Some(&self.context.thread_local.rule_cache),
                 &mut conditions,
+                Some(self.element),
             );
 
         self.context

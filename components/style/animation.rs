@@ -8,7 +8,7 @@
 use Atom;
 use bezier::Bezier;
 use context::SharedStyleContext;
-use dom::OpaqueNode;
+use dom::{OpaqueNode, TElement};
 use font_metrics::FontMetricsProvider;
 use properties::{self, CascadeFlags, ComputedValues, LonghandId};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
@@ -458,12 +458,16 @@ pub fn start_transitions_if_applicable(
     had_animations
 }
 
-fn compute_style_for_animation_step(context: &SharedStyleContext,
-                                    step: &KeyframesStep,
-                                    previous_style: &ComputedValues,
-                                    style_from_cascade: &Arc<ComputedValues>,
-                                    font_metrics_provider: &FontMetricsProvider)
-                                    -> Arc<ComputedValues> {
+fn compute_style_for_animation_step<E>(
+    context: &SharedStyleContext,
+    step: &KeyframesStep,
+    previous_style: &ComputedValues,
+    style_from_cascade: &Arc<ComputedValues>,
+    font_metrics_provider: &FontMetricsProvider,
+) -> Arc<ComputedValues>
+where
+    E: TElement,
+{
     match step.value {
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
         KeyframesStepValue::Declarations { block: ref declarations } => {
@@ -482,20 +486,23 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             // This currently ignores visited styles, which seems acceptable,
             // as existing browsers don't appear to animate visited styles.
             let computed =
-                properties::apply_declarations(context.stylist.device(),
-                                               /* pseudo = */ None,
-                                               previous_style.rules(),
-                                               &context.guards,
-                                               iter,
-                                               Some(previous_style),
-                                               Some(previous_style),
-                                               Some(previous_style),
-                                               /* visited_style = */ None,
-                                               font_metrics_provider,
-                                               CascadeFlags::empty(),
-                                               context.quirks_mode(),
-                                               /* rule_cache = */ None,
-                                               &mut Default::default());
+                properties::apply_declarations::<E, _, _>(
+                    context.stylist.device(),
+                    /* pseudo = */ None,
+                    previous_style.rules(),
+                    &context.guards,
+                    iter,
+                    Some(previous_style),
+                    Some(previous_style),
+                    Some(previous_style),
+                    /* visited_style = */ None,
+                    font_metrics_provider,
+                    CascadeFlags::empty(),
+                    context.quirks_mode(),
+                    /* rule_cache = */ None,
+                    &mut Default::default(),
+                    /* element = */ None,
+                );
             computed
         }
     }
@@ -503,11 +510,12 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
 
 /// Triggers animations for a given node looking at the animation property
 /// values.
-pub fn maybe_start_animations(context: &SharedStyleContext,
-                              new_animations_sender: &Sender<Animation>,
-                              node: OpaqueNode,
-                              new_style: &Arc<ComputedValues>)
-                              -> bool {
+pub fn maybe_start_animations(
+    context: &SharedStyleContext,
+    new_animations_sender: &Sender<Animation>,
+    node: OpaqueNode,
+    new_style: &Arc<ComputedValues>,
+) -> bool {
     let mut had_animations = false;
 
     let box_style = new_style.get_box();
@@ -599,10 +607,15 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
 }
 /// Updates a single animation and associated style based on the current time.
 /// If `damage` is provided, inserts the appropriate restyle damage.
-pub fn update_style_for_animation(context: &SharedStyleContext,
-                                  animation: &Animation,
-                                  style: &mut Arc<ComputedValues>,
-                                  font_metrics_provider: &FontMetricsProvider) {
+pub fn update_style_for_animation<E>(
+    context: &SharedStyleContext,
+    animation: &Animation,
+    style: &mut Arc<ComputedValues>,
+    font_metrics_provider: &FontMetricsProvider,
+)
+where
+    E: TElement,
+{
     debug!("update_style_for_animation: entering");
     debug_assert!(!animation.is_expired());
 
@@ -724,11 +737,13 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
             let relative_progress = (now - last_keyframe_ended_at) / relative_duration;
 
             // TODO: How could we optimise it? Is it such a big deal?
-            let from_style = compute_style_for_animation_step(context,
-                                                              last_keyframe,
-                                                              &**style,
-                                                              &state.cascade_style,
-                                                              font_metrics_provider);
+            let from_style = compute_style_for_animation_step::<E>(
+                context,
+                last_keyframe,
+                &**style,
+                &state.cascade_style,
+                font_metrics_provider,
+            );
 
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
@@ -739,11 +754,13 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
                 timing_function = from_style.get_box().animation_timing_function_at(0);
             }
 
-            let target_style = compute_style_for_animation_step(context,
-                                                                target_keyframe,
-                                                                &from_style,
-                                                                &state.cascade_style,
-                                                                font_metrics_provider);
+            let target_style = compute_style_for_animation_step::<E>(
+                context,
+                target_keyframe,
+                &from_style,
+                &state.cascade_style,
+                font_metrics_provider,
+            );
 
             let mut new_style = (*style).clone();
 
