@@ -65,7 +65,6 @@ mime_guess = "1.8.0"
 mozjs = { version = "0.1.10", features = ["promises"]}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-nonzero = {path = "../nonzero"}
 num-traits = "0.1.32"
 offscreen_gl_context = { version = "0.14", features = ["serde"] }
 open = "1.1.1"

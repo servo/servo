@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::VRPoseBinding;
 use dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
@@ -12,6 +11,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
 use std::ptr;
+use std::ptr::NonNull;
 use webvr_traits::webvr;
 
 #[dom_struct]
@@ -52,13 +52,13 @@ unsafe fn update_or_create_typed_array(cx: *mut JSContext,
 
 #[inline]
 #[allow(unsafe_code)]
-fn heap_to_option(heap: &Heap<*mut JSObject>) -> Option<NonNullJSObjectPtr> {
+fn heap_to_option(heap: &Heap<*mut JSObject>) -> Option<NonNull<JSObject>> {
     let js_object = heap.get();
     if js_object.is_null() {
         None
     } else {
         unsafe {
-            Some(NonNullJSObjectPtr::new_unchecked(js_object))
+            Some(NonNull::new_unchecked(js_object))
         }
     }
 }
@@ -101,37 +101,37 @@ impl VRPose {
 impl VRPoseMethods for VRPose {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-position
-    unsafe fn GetPosition(&self, _cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn GetPosition(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.position)
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-linearvelocity
-    unsafe fn GetLinearVelocity(&self, _cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn GetLinearVelocity(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_vel)
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-linearacceleration
-    unsafe fn GetLinearAcceleration(&self, _cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn GetLinearAcceleration(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_acc)
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-orientation
-    unsafe fn GetOrientation(&self, _cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn GetOrientation(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.orientation)
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-angularvelocity
-    unsafe fn GetAngularVelocity(&self, _cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn GetAngularVelocity(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_vel)
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrpose-angularacceleration
-    unsafe fn GetAngularAcceleration(&self, _cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn GetAngularAcceleration(&self, _cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_acc)
     }
 }

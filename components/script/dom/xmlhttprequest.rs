@@ -14,7 +14,6 @@ use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -67,6 +66,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
 use std::ptr;
+use std::ptr::NonNull;
 use std::slice;
 use std::str;
 use std::sync::{Arc, Mutex};
@@ -1120,11 +1120,11 @@ impl XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#arraybuffer-response
     #[allow(unsafe_code)]
-    unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNullJSObjectPtr> {
+    unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         // Step 1
         let created = self.response_arraybuffer.get();
-        if !created.is_null() {
-            return Some(NonNullJSObjectPtr::new_unchecked(created));
+        if let Some(nonnull) = NonNull::new(created) {
+            return Some(nonnull)
         }
 
         // Step 2
@@ -1132,7 +1132,7 @@ impl XMLHttpRequest {
         rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
         ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer.handle_mut()).ok().and_then(|()| {
             self.response_arraybuffer.set(array_buffer.get());
-            Some(NonNullJSObjectPtr::new_unchecked(array_buffer.get()))
+            Some(NonNull::new_unchecked(array_buffer.get()))
         })
     }
 

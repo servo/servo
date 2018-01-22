@@ -828,6 +828,8 @@ impl MallocSizeOf for RuleNode {
     }
 }
 
+// FIXME: use std::ptr::NonNull when Firefox requires Rust 1.25+
+
 #[derive(Clone)]
 struct WeakRuleNode {
     p: NonZeroPtrMut<RuleNode>,

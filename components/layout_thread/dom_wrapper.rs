@@ -36,7 +36,6 @@ use html5ever::{LocalName, Namespace};
 use layout::data::StyleAndLayoutData;
 use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
-use nonzero::NonZero;
 use range::Range;
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
@@ -59,6 +58,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use std::ptr::NonNull;
 use std::sync::atomic::Ordering;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -76,7 +76,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocke
 use style::str::is_whitespace;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr = data.ptr.get() as *mut StyleData;
+    let ptr = data.ptr.as_ptr() as *mut StyleData;
     let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
     let _ = Box::from_raw(non_opaque);
 }
@@ -229,7 +229,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
             let ptr: *mut StyleAndLayoutData =
                 Box::into_raw(Box::new(StyleAndLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
-                ptr: NonZero::new_unchecked(ptr as *mut StyleData),
+                ptr: NonNull::new_unchecked(ptr as *mut StyleData),
             };
             self.init_style_and_layout_data(opaque);
         };
@@ -450,7 +450,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
-                &(*(d.ptr.get() as *mut StyleData)).element_data
+                &(*(d.ptr.as_ptr() as *mut StyleData)).element_data
             })
         }
     }
@@ -575,7 +575,7 @@ impl<'le> ServoLayoutElement<'le> {
 
     fn get_style_data(&self) -> Option<&StyleData> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| &*(d.ptr.get() as *mut StyleData))
+            self.get_style_and_layout_data().map(|d| &*(d.ptr.as_ptr() as *mut StyleData))
         }
     }
 

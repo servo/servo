@@ -548,7 +548,7 @@ impl SizeConstraint {
         max_size = max_size.map(|x| max(x, min_size));
 
         if let Some(border) = border {
-            min_size = max((min_size - border), Au(0));
+            min_size = max(min_size - border, Au(0));
             max_size = max_size.map(|x| max(x - border, Au(0)));
         }
 
