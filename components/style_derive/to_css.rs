@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cg;
+use darling::{Error, FromMetaItem};
 use quote::Tokens;
-use syn::DeriveInput;
+use syn::{self, DeriveInput, Ident};
 use synstructure;
 
 pub fn derive(input: DeriveInput) -> Tokens {
@@ -16,13 +17,13 @@ pub fn derive(input: DeriveInput) -> Tokens {
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
     let style = synstructure::BindStyle::Ref.into();
     let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
-        let mut identifier = cg::to_css_identifier(variant.ident.as_ref());
+        let identifier = cg::to_css_identifier(variant.ident.as_ref());
         let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
         let separator = if variant_attrs.comma { ", " } else { " " };
 
         if variant_attrs.dimension {
             assert_eq!(bindings.len(), 1);
-            assert!(!variant_attrs.function, "That makes no sense");
+            assert!(variant_attrs.function.is_none(), "That makes no sense");
         }
 
         let mut expr = if !bindings.is_empty() {
@@ -39,7 +40,10 @@ pub fn derive(input: DeriveInput) -> Tokens {
                 };
             } else {
                 for binding in bindings {
-                    where_clause.add_trait_bound(&binding.field.ty);
+                    let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.field);
+                    if !attrs.ignore_bound {
+                        where_clause.add_trait_bound(&binding.field.ty);
+                    }
                     expr = quote! {
                         #expr
                         writer.item(#binding)?;
@@ -63,7 +67,8 @@ pub fn derive(input: DeriveInput) -> Tokens {
                 #expr?;
                 ::std::fmt::Write::write_str(dest, #identifier)
             }
-        } else if variant_attrs.function {
+        } else if let Some(function) = variant_attrs.function {
+            let mut identifier = function.name.map_or(identifier, |name| name.to_string());
             identifier.push_str("(");
             expr = quote! {
                 ::std::fmt::Write::write_str(dest, #identifier)?;
@@ -112,15 +117,36 @@ pub fn derive(input: DeriveInput) -> Tokens {
 #[derive(Default, FromDeriveInput)]
 struct CssInputAttrs {
     derive_debug: bool,
-    function: bool,
+    function: Option<Function>,
     comma: bool,
 }
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
 struct CssVariantAttrs {
-    function: bool,
+    function: Option<Function>,
     iterable: bool,
     comma: bool,
     dimension: bool,
+}
+
+#[darling(attributes(css), default)]
+#[derive(Default, FromField)]
+struct CssFieldAttrs {
+    ignore_bound: bool,
+}
+
+struct Function {
+    name: Option<Ident>,
+}
+
+impl FromMetaItem for Function {
+    fn from_word() -> Result<Self, Error> {
+        Ok(Self { name: None })
+    }
+
+    fn from_string(name: &str) -> Result<Self, Error> {
+        let name = syn::parse_ident(name).map_err(Error::custom)?;
+        Ok(Self { name: Some(name) })
+    }
 }
