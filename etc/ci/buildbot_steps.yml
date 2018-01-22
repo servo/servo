@@ -1,6 +1,8 @@
 env:
   RUSTFLAGS: -Dwarnings
   CARGO_INCREMENTAL: "0"
+  CCACHE: sccache
+  RUSTC_WRAPPER: sccache
 
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
