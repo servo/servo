@@ -22,7 +22,7 @@ use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, TElement, TNode};
 use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
-use style::properties::{CascadeFlags, ComputedValues};
+use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylist::RuleInclusion;
 use webrender_api::ClipId;
@@ -393,7 +393,6 @@ pub trait ThreadSafeLayoutElement
                             &context.guards,
                             &style_pseudo,
                             Some(data.styles.primary()),
-                            CascadeFlags::empty(),
                             &ServoMetricsProvider,
                         )
                     }

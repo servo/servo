@@ -3148,30 +3148,8 @@ bitflags! {
         /// present, non-inherited styles are reset to their initial values.
         const INHERIT_ALL = 1;
 
-        /// Whether to skip any display style fixup for root element, flex/grid
-        /// item, and ruby descendants.
-        const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 1 << 1;
-
         /// Whether to only cascade properties that are visited dependent.
-        const VISITED_DEPENDENT_ONLY = 1 << 2;
-
-        /// Whether the given element we're styling is the document element,
-        /// that is, matches :root.
-        ///
-        /// Not set for native anonymous content since some NAC form their own
-        /// root, but share the device.
-        ///
-        /// This affects some style adjustments, like blockification, and means
-        /// that it may affect global state, like the Device's root font-size.
-        const IS_ROOT_ELEMENT = 1 << 3;
-
-        /// Whether we're computing the style of a link, either visited or
-        /// unvisited.
-        const IS_LINK = 1 << 4;
-
-        /// Whether we're computing the style of a link element that happens to
-        /// be visited.
-        const IS_VISITED_LINK = 1 << 5;
+        const VISITED_DEPENDENT_ONLY = 1 << 1;
     }
 }
 
@@ -3287,7 +3265,7 @@ pub fn apply_declarations<'a, E, F, I>(
     quirks_mode: QuirksMode,
     rule_cache: Option<<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
-    _element: Option<E>,
+    element: Option<E>,
 ) -> Arc<ComputedValues>
 where
     E: TElement,
@@ -3326,7 +3304,7 @@ where
     };
 
     let mut context = computed::Context {
-        is_root_element: flags.contains(CascadeFlags::IS_ROOT_ELEMENT),
+        is_root_element: pseudo.is_none() && element.map_or(false, |e| e.is_root()),
         // We'd really like to own the rules here to avoid refcount traffic, but
         // animation's usage of `apply_declarations` make this tricky. See bug
         // 1375525.
@@ -3610,8 +3588,11 @@ where
 
     builder.clear_modified_reset();
 
-    StyleAdjuster::new(&mut builder)
-        .adjust(layout_parent_style, flags);
+    StyleAdjuster::new(&mut builder).adjust(
+        layout_parent_style,
+        element,
+        flags,
+    );
 
     if builder.modified_reset() || !apply_reset {
         // If we adjusted any reset structs, we can't cache this ComputedValues.

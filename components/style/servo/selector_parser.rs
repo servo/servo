@@ -14,8 +14,7 @@ use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
 use invalidation::element::document_state::InvalidationMatchingData;
 use invalidation::element::element_wrapper::ElementSnapshot;
-use properties::ComputedValues;
-use properties::PropertyFlags;
+use properties::{CascadeFlags, ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
@@ -174,10 +173,10 @@ impl PseudoElement {
         self.is_precomputed()
     }
 
-    /// Whether this pseudo-element skips flex/grid container
-    /// display-based fixup.
+    /// Whether this pseudo-element skips flex/grid container display-based
+    /// fixup.
     #[inline]
-    pub fn skip_item_based_display_fixup(&self) -> bool {
+    pub fn skip_item_display_fixup(&self) -> bool {
         !self.is_before_or_after()
     }
 
@@ -210,6 +209,43 @@ impl PseudoElement {
             PseudoElement::ServoAnonymousBlock |
             PseudoElement::ServoInlineBlockWrapper |
             PseudoElement::ServoInlineAbsolute => PseudoElementCascadeType::Precomputed,
+        }
+    }
+
+    /// For most (but not all) anon-boxes, we inherit all values from the
+    /// parent, this is the hook in the style system to allow this.
+    ///
+    /// FIXME(emilio): It's likely that this is broken in a variety of
+    /// situations, and what it really wants is just inherit some reset
+    /// properties...  Also, I guess it just could do all: inherit on the
+    /// stylesheet, though chances are that'd be kinda slow if we don't cache
+    /// them...
+    pub fn cascade_flags(&self) -> CascadeFlags {
+        match *self {
+            PseudoElement::After |
+            PseudoElement::Before |
+            PseudoElement::Selection |
+            PseudoElement::DetailsContent |
+            PseudoElement::DetailsSummary => CascadeFlags::empty(),
+            // Anonymous table flows shouldn't inherit their parents properties in order
+            // to avoid doubling up styles such as transformations.
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
+            PseudoElement::ServoText |
+            PseudoElement::ServoInputText => CascadeFlags::empty(),
+
+            // For tables, we do want style to inherit, because TableWrapper is
+            // responsible for handling clipping and scrolling, while Table is
+            // responsible for creating stacking contexts.
+            //
+            // StackingContextCollectionFlags makes sure this is processed
+            // properly.
+            PseudoElement::ServoAnonymousTable |
+            PseudoElement::ServoAnonymousTableWrapper |
+            PseudoElement::ServoTableWrapper |
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => CascadeFlags::INHERIT_ALL,
         }
     }
 

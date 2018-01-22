@@ -455,7 +455,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
-    fn skip_root_and_item_based_display_fixup(&self) -> bool {
+    fn skip_item_display_fixup(&self) -> bool {
         false
     }
 
