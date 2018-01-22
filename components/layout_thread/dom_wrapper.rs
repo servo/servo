@@ -860,6 +860,7 @@ impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
 impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteNode = ServoLayoutNode<'ln>;
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
+    type ConcreteElement = ServoLayoutElement<'ln>;
     type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<Self>;
 
     fn opaque(&self) -> OpaqueNode {
@@ -1084,6 +1085,7 @@ pub struct ServoThreadSafeLayoutElement<'le> {
 
 impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
     type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'le>;
+    type ConcreteElement = ServoLayoutElement<'le>;
 
     fn as_node(&self) -> ServoThreadSafeLayoutNode<'le> {
         ServoThreadSafeLayoutNode {

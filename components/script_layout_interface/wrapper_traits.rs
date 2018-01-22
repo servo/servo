@@ -148,7 +148,7 @@ impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo + PartialEq + Sized {
     type ConcreteNode: LayoutNode<ConcreteThreadSafeLayoutNode = Self>;
-    type ConcreteElement: TElement = <Self::ConcreteNode as TNode>::ConcreteElement;
+    type ConcreteElement: TElement;
 
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
@@ -293,9 +293,11 @@ pub trait ThreadSafeLayoutElement
 {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
-    /// This type alias is just a hack to avoid writing the monstrosity after it
-    /// twice.
-    type ConcreteElement: TElement = <Self::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteElement;
+    /// This type alias is just a work-around to avoid writing
+    ///
+    ///   <Self::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteElement
+    ///
+    type ConcreteElement: TElement;
 
     fn as_node(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
