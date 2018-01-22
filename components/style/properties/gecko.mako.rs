@@ -1616,57 +1616,9 @@ fn static_assert() {
                                     ["border-{0}-radius".format(x.ident.replace("_", "-"))
                                      for x in CORNERS]) %>
 
-<% skip_moz_border_color_longhands = " ".join("-moz-border-{0}-colors".format(x.ident)
-                                              for x in SIDES) %>
 <%self:impl_trait style_struct_name="Border"
                   skip_longhands="${skip_border_longhands} border-image-source border-image-outset
-                                  border-image-repeat border-image-width border-image-slice
-                                  ${skip_moz_border_color_longhands}">
-
-    fn set_moz_border_colors(&mut self, side: structs::Side, v: Option<Vec<::cssparser::RGBA>>) {
-        match v {
-            None => {
-                let ptr = self.gecko.mBorderColors.mPtr;
-                if let Some(colors) = unsafe { ptr.as_mut() } {
-                    unsafe { colors.mColors[side as usize].clear() };
-                }
-            }
-            Some(ref colors) => {
-                unsafe { bindings::Gecko_EnsureMozBorderColors(&mut self.gecko) };
-                let border_colors = unsafe { self.gecko.mBorderColors.mPtr.as_mut().unwrap() };
-                let dest_colors = &mut border_colors.mColors[side as usize];
-                unsafe { dest_colors.set_len_pod(colors.len() as u32) };
-                for (dst, src) in dest_colors.iter_mut().zip(colors.into_iter()) {
-                    *dst = convert_rgba_to_nscolor(src);
-                }
-            }
-        }
-    }
-
-    fn copy_moz_border_colors_from(&mut self, other: &Self, side: structs::Side) {
-        if let Some(dest) = unsafe { self.gecko.mBorderColors.mPtr.as_mut() } {
-            dest.mColors[side as usize].clear_pod();
-        }
-        if let Some(src) = unsafe { other.gecko.mBorderColors.mPtr.as_ref() } {
-            let src = &src.mColors[side as usize];
-            if !src.is_empty() {
-                unsafe { bindings::Gecko_EnsureMozBorderColors(&mut self.gecko) };
-                let dest = unsafe { self.gecko.mBorderColors.mPtr.as_mut().unwrap() };
-                let dest = &mut dest.mColors[side as usize];
-                unsafe { dest.set_len_pod(src.len() as u32) };
-                dest.copy_from_slice(&src);
-            }
-        }
-    }
-
-    fn clone_moz_border_colors(&self, side: structs::Side) -> Option<Vec<::cssparser::RGBA>> {
-        unsafe { self.gecko.mBorderColors.mPtr.as_ref() }.map(|colors| {
-            colors.mColors[side as usize].iter()
-                .map(|color| convert_nscolor_to_rgba(*color))
-                .collect()
-        })
-    }
-
+                                  border-image-repeat border-image-width border-image-slice">
     % for side in SIDES:
     <% impl_keyword("border_%s_style" % side.ident,
                     "mBorderStyle[%s]" % side.index,
@@ -1712,29 +1664,6 @@ fn static_assert() {
 
     pub fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
-    }
-
-    #[allow(non_snake_case)]
-    pub fn set__moz_border_${side.ident}_colors(&mut self,
-                                                v: longhands::_moz_border_${side.ident}_colors::computed_value::T) {
-        self.set_moz_border_colors(structs::Side::eSide${to_camel_case(side.ident)}, v.0);
-    }
-
-    #[allow(non_snake_case)]
-    pub fn copy__moz_border_${side.ident}_colors_from(&mut self, other: &Self) {
-        self.copy_moz_border_colors_from(other, structs::Side::eSide${to_camel_case(side.ident)});
-    }
-
-    #[allow(non_snake_case)]
-    pub fn reset__moz_border_${side.ident}_colors(&mut self, other: &Self) {
-        self.copy__moz_border_${side.ident}_colors_from(other)
-    }
-
-    #[allow(non_snake_case)]
-    pub fn clone__moz_border_${side.ident}_colors(&self)
-                                                  -> longhands::_moz_border_${side.ident}_colors::computed_value::T {
-        use self::longhands::_moz_border_${side.ident}_colors::computed_value::T;
-        T(self.clone_moz_border_colors(structs::Side::eSide${to_camel_case(side.ident)}))
     }
     % endfor
 
