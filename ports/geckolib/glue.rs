@@ -4396,7 +4396,7 @@ pub extern "C" fn Servo_GetCustomPropertyValue(
         None => return false,
     };
 
-    let name = unsafe { Atom::from((&*name)) };
+    let name = unsafe { Atom::from(&*name) };
     let computed_value = match custom_properties.get(&name) {
         Some(v) => v,
         None => return false,
