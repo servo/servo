@@ -1143,7 +1143,11 @@ impl InlineFlow {
         let font_style = style.clone_font();
         let font_metrics = text::font_metrics_for_style(font_context, font_style);
         let line_height = text::line_height_from_style(style, &font_metrics);
-        let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
+        let inline_metrics = if fragments.iter().any(Fragment::is_text_or_replaced) {
+            InlineMetrics::from_font_metrics(&font_metrics, line_height)
+        } else {
+            InlineMetrics::new(Au(0), Au(0), Au(0))
+        };
 
         let mut line_metrics = LineMetrics::new(Au(0), MIN_AU);
         let mut largest_block_size_for_top_fragments = Au(0);
