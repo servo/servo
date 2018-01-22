@@ -4,8 +4,8 @@
 
 //! Generic types for CSS values related to effects.
 
-use std::fmt;
-use style_traits::values::{SequenceWriter, ToCss};
+use std::fmt::{self, Write};
+use style_traits::values::{CssWriter, SequenceWriter, ToCss};
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
 
@@ -88,9 +88,9 @@ where
     BlurShapeLength: ToCss,
     ShapeLength: ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         {
             let mut writer = SequenceWriter::new(&mut *dest, " ");

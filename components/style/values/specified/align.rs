@@ -11,8 +11,8 @@ use gecko_bindings::structs;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
@@ -71,7 +71,10 @@ bitflags! {
 }
 
 impl ToCss for AlignFlags {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let s = match *self & !AlignFlags::FLAG_BITS {
             AlignFlags::AUTO => "auto",
             AlignFlags::NORMAL => "normal",
@@ -209,7 +212,10 @@ impl AlignJustifyContent {
 }
 
 impl ToCss for AlignJustifyContent {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.primary().to_css(dest)?;
         match self.fallback() {
             AlignFlags::AUTO => {}

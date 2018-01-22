@@ -22,7 +22,8 @@ use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
-use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{Comma, CssWriter, OneOrMoreSeparated, ParseError};
+use style_traits::{StyleParseErrorKind, ToCss};
 use values::computed::font::FamilyName;
 use values::specified::url::SpecifiedUrl;
 
@@ -55,8 +56,9 @@ pub struct UrlSource {
 }
 
 impl ToCss for UrlSource {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         self.url.to_css(dest)
     }
@@ -278,7 +280,7 @@ macro_rules! font_face_descriptors_common {
                 $(
                     if let Some(ref value) = self.$ident {
                         dest.write_str(concat!("  ", $name, ": "))?;
-                        ToCss::to_css(value, dest)?;
+                        ToCss::to_css(value, &mut CssWriter::new(dest))?;
                         dest.write_str(";\n")?;
                     }
                 )*

@@ -93,12 +93,11 @@ impl MediaListMethods for MediaList {
     // https://drafts.csswg.org/cssom/#dom-medialist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
         let guard = self.shared_lock().read();
-        self.media_queries.read_with(&guard).media_queries
-        .get(index as usize).and_then(|query| {
-            let mut s = String::new();
-            query.to_css(&mut s).unwrap();
-            Some(DOMString::from_string(s))
-        })
+        self.media_queries
+            .read_with(&guard)
+            .media_queries
+            .get(index as usize)
+            .map(|query| query.to_css_string().into())
     }
 
     // https://drafts.csswg.org/cssom/#dom-medialist-item

@@ -7,8 +7,8 @@
 use cssparser::Parser;
 use euclid::Size2D;
 use parser::ParserContext;
-use std::fmt;
-use style_traits::{ToCss, ParseError};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 use values::animated::ToAnimatedValue;
 
 /// A generic size, for `border-*-radius` longhand properties, or
@@ -56,9 +56,9 @@ impl<L> ToCss for Size<L>
 where L:
     ToCss + PartialEq,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-    where W:
-        fmt::Write
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         self.0.width.to_css(dest)?;
 

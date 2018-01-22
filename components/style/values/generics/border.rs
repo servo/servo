@@ -4,8 +4,8 @@
 
 //! Generic types for CSS values related to borders.
 
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::generics::rect::Rect;
 use values::generics::size::Size;
 
@@ -84,8 +84,9 @@ impl<N> From<N> for BorderImageSlice<N>
 impl<N> ToCss for BorderImageSlice<N>
     where N: PartialEq + ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         self.offsets.to_css(dest)?;
         if self.fill {
@@ -118,8 +119,13 @@ impl<L> BorderRadius<L>
 {
     /// Serialises two given rects following the syntax of the `border-radius``
     /// property.
-    pub fn serialize_rects<W>(widths: Rect<&L>, heights: Rect<&L>, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    pub fn serialize_rects<W>(
+        widths: Rect<&L>,
+        heights: Rect<&L>,
+        dest: &mut CssWriter<W>,
+    ) -> fmt::Result
+    where
+        W: Write,
     {
         widths.to_css(dest)?;
         if widths.0 != heights.0 || widths.1 != heights.1 || widths.2 != heights.2 || widths.3 != heights.3 {
@@ -133,7 +139,10 @@ impl<L> BorderRadius<L>
 impl<L> ToCss for BorderRadius<L>
     where L: PartialEq + ToCss
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let BorderRadius {
             top_left: BorderCornerRadius(ref tl),
             top_right: BorderCornerRadius(ref tr),

@@ -16,11 +16,11 @@ use properties::animated_properties::AnimationValue;
 use shared_lock::Locked;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
 use str::{CssString, CssStringBorrow, CssStringWriter};
-use style_traits::{ToCss, ParseError, ParsingMode, StyleParseErrorKind};
+use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use values::computed::Context;
@@ -664,7 +664,7 @@ impl PropertyDeclarationBlock {
                         css.append_to(dest)
                     },
                     Some(AppendableValue::DeclarationsForShorthand(_, decls)) => {
-                        shorthand.longhands_to_css(decls, dest)
+                        shorthand.longhands_to_css(decls, &mut CssWriter::new(dest))
                     }
                     _ => Ok(())
                 }
@@ -845,7 +845,7 @@ impl PropertyDeclarationBlock {
                         }
                         #[cfg(feature = "gecko")]
                         (_, Some(sys)) => {
-                            sys.to_css(&mut v)?;
+                            sys.to_css(&mut CssWriter::new(&mut v))?;
                             AppendableValue::Css {
                                 css: CssStringBorrow::from(&v),
                                 with_variables: false,
@@ -951,10 +951,12 @@ pub enum AppendableValue<'a, I>
 }
 
 /// Potentially appends whitespace after the first (property: value;) pair.
-fn handle_first_serialization<W>(dest: &mut W,
-                                 is_first_serialization: &mut bool)
-                                 -> fmt::Result
-    where W: fmt::Write,
+fn handle_first_serialization<W>(
+    dest: &mut W,
+    is_first_serialization: &mut bool,
+) -> fmt::Result
+where
+    W: Write,
 {
     if !*is_first_serialization {
         dest.write_str(" ")
@@ -980,7 +982,7 @@ where
             decl.to_css(dest)
         },
         AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
-            shorthand.longhands_to_css(decls, dest)
+            shorthand.longhands_to_css(decls, &mut CssWriter::new(dest))
         }
     }
 }
@@ -999,7 +1001,7 @@ where
 {
     handle_first_serialization(dest, is_first_serialization)?;
 
-    property_name.to_css(dest)?;
+    property_name.to_css(&mut CssWriter::new(dest))?;
     dest.write_char(':')?;
 
     // for normal parsed values, add a space between key: and value

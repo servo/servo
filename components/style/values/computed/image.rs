@@ -9,8 +9,8 @@
 
 use cssparser::RGBA;
 use std::f32::consts::PI;
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::{Either, None_};
 use values::computed::{Angle, ComputedUrl, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 #[cfg(feature = "gecko")]
@@ -99,8 +99,13 @@ impl GenericLineDirection for LineDirection {
         }
     }
 
-    fn to_css<W>(&self, dest: &mut W, compat_mode: CompatMode) -> fmt::Result
-        where W: fmt::Write
+    fn to_css<W>(
+        &self,
+        dest: &mut CssWriter<W>,
+        compat_mode: CompatMode,
+    ) -> fmt::Result
+    where
+        W: Write,
     {
         match *self {
             LineDirection::Angle(ref angle) => angle.to_css(dest),

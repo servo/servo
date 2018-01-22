@@ -12,9 +12,9 @@ use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::ParserContext;
 use servo_arc::{Arc, RawOffsetArc};
-use std::fmt;
+use std::fmt::{self, Write};
 use std::mem;
-use style_traits::{ToCss, ParseError};
+use style_traits::{CssWriter, ToCss, ParseError};
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
 #[derive(Clone, Debug, PartialEq)]
@@ -136,7 +136,10 @@ impl SpecifiedUrl {
 }
 
 impl ToCss for SpecifiedUrl {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("url(")?;
         self.serialization.to_css(dest)?;
         dest.write_str(")")

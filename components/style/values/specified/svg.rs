@@ -6,8 +6,9 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseErrorKind, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CommaWithSpace, CssWriter, ParseError, Separator};
+use style_traits::{StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 use values::generics::svg as generic;
 use values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
@@ -237,7 +238,10 @@ impl Parse for SVGPaintOrder {
 }
 
 impl ToCss for SVGPaintOrder {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.0 == 0 {
             return dest.write_str("normal")
         }

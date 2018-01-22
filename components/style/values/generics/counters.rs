@@ -5,7 +5,7 @@
 //! Generic types for counters-related CSS values.
 
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use values::CustomIdent;
 
 /// A generic value for the `counter-increment` property.
@@ -27,7 +27,7 @@ where
     I: ToCss,
 {
     #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: fmt::Write,
     {

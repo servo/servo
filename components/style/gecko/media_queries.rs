@@ -24,7 +24,7 @@ use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
-use style_traits::{CSSPixel, DevicePixel};
+use style_traits::{CSSPixel, CssWriter, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::Origin;
@@ -236,7 +236,7 @@ pub struct Expression {
 }
 
 impl ToCss for Expression {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
         where W: fmt::Write,
     {
         dest.write_str("(")?;
@@ -408,7 +408,7 @@ impl MediaExpressionValue {
 }
 
 impl MediaExpressionValue {
-    fn to_css<W>(&self, dest: &mut W, for_expr: &Expression) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>, for_expr: &Expression) -> fmt::Result
         where W: fmt::Write,
     {
         match *self {

@@ -6,8 +6,8 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
 use values::computed::NumberOrPercentage;
 use values::computed::length::LengthOrPercentage;
@@ -209,7 +209,10 @@ pub enum SVGStrokeDashArray<LengthType> {
 }
 
 impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCss {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match self {
             &SVGStrokeDashArray::Values(ref values) => {
                 let mut iter = values.iter();

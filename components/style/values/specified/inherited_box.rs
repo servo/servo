@@ -7,8 +7,8 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::f64::consts::PI;
-use std::fmt;
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::computed;
 use values::computed::{Context, Orientation, ToComputedValue};
 use values::specified::Angle;
@@ -25,7 +25,10 @@ pub struct ImageOrientation {
 }
 
 impl ToCss for ImageOrientation {
-    fn to_css<W: fmt::Write>(&self, dest: &mut W) -> fmt::Result {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if let Some(angle) = self.angle {
             angle.to_css(dest)?;
             if self.flipped {

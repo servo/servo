@@ -4,7 +4,7 @@
 
 //! A list of common mouse cursors per CSS3-UI § 8.1.1.
 
-use super::ToCss;
+use super::{CssWriter, ToCss};
 
 macro_rules! define_cursor {
     (
@@ -46,10 +46,14 @@ macro_rules! define_cursor {
         }
 
         impl ToCss for CursorKind {
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result where W: ::std::fmt::Write {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> ::std::fmt::Result where W: ::std::fmt::Write {
                 match *self {
-                    $( CursorKind::$c_variant => dest.write_str($c_css), )+
-                    $( #[cfg(feature = "gecko")] CursorKind::$g_variant => dest.write_str($g_css), )+
+                    $(CursorKind::$c_variant => {
+                        ::std::fmt::Write::write_str(dest, $c_css)
+                    })+
+                    $(#[cfg(feature = "gecko")] CursorKind::$g_variant => {
+                        ::std::fmt::Write::write_str(dest, $g_css)
+                    })+
                 }
             }
         }

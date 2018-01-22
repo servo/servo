@@ -48,7 +48,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
             }
 
             quote! {{
-                let mut writer = ::style_traits::values::SequenceWriter::new(&mut *dest, #separator);
+                let mut writer = ::style_traits::values::SequenceWriter::new(dest, #separator);
                 #expr
                 Ok(())
             }}
@@ -78,7 +78,10 @@ pub fn derive(input: DeriveInput) -> Tokens {
         impl #impl_generics ::style_traits::ToCss for #name #ty_generics #where_clause {
             #[allow(unused_variables)]
             #[inline]
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
+            fn to_css<W>(
+                &self,
+                dest: &mut ::style_traits::CssWriter<W>,
+            ) -> ::std::fmt::Result
             where
                 W: ::std::fmt::Write
             {
@@ -93,7 +96,10 @@ pub fn derive(input: DeriveInput) -> Tokens {
         impls.append(quote! {
             impl #impl_generics ::std::fmt::Debug for #name #ty_generics #where_clause {
                 fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                    ::style_traits::ToCss::to_css(self, f)
+                    ::style_traits::ToCss::to_css(
+                        self,
+                        &mut ::style_traits::CssWriter::new(f),
+                    )
                 }
             }
         });

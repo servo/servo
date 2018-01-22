@@ -6,8 +6,8 @@
 
 #[cfg(feature = "servo")]
 use properties::StyleBuilder;
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::{CSSInteger, CSSFloat};
 use values::animated::ToAnimatedZero;
 use values::computed::{NonNegativeLength, NonNegativeNumber};
@@ -66,7 +66,10 @@ impl TextOverflow {
 }
 
 impl ToCss for TextOverflow {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.sides_are_logical {
             debug_assert!(self.first == TextOverflowSide::Clip);
             self.second.to_css(dest)?;
@@ -80,7 +83,10 @@ impl ToCss for TextOverflow {
 }
 
 impl ToCss for TextDecorationLine {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut has_any = false;
 
         macro_rules! write_value {

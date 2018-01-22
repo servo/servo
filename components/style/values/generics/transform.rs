@@ -7,8 +7,8 @@
 use app_units::Au;
 use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::{computed, CSSFloat};
 use values::computed::length::Length as ComputedLength;
 use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
@@ -136,9 +136,9 @@ where
     Integer: ToCss,
     Number: ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         match *self {
             TimingFunction::Keyword(keyword) => keyword.to_css(dest),
@@ -546,7 +546,10 @@ impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
      Integer: ToCss + Copy, LengthOrNumber: ToCss, LengthOrPercentage: ToCss, LoPoNumber: ToCss>
     ToCss for
     TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             TransformOperation::Matrix(ref m) => m.to_css(dest),
             TransformOperation::PrefixedMatrix(ref m) => m.to_css(dest),
@@ -653,9 +656,9 @@ impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
 }
 
 impl<T: ToCss> ToCss for Transform<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         if self.0.is_empty() {
             return dest.write_str("none");

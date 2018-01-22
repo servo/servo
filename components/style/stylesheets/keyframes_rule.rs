@@ -16,7 +16,7 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
-use style_traits::{ParsingMode, ToCss, ParseError, StyleParseErrorKind};
+use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::{KeyframesName, serialize_percentage};
@@ -40,7 +40,7 @@ impl ToCssWithGuard for KeyframesRule {
     // Serialization of KeyframesRule is not specced.
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@keyframes ")?;
-        self.name.to_css(dest)?;
+        self.name.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" {")?;
         let iter = self.keyframes.iter();
         for lock in iter {
@@ -109,7 +109,10 @@ impl ::std::cmp::Ord for KeyframePercentage {
 impl ::std::cmp::Eq for KeyframePercentage { }
 
 impl ToCss for KeyframePercentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         serialize_percentage(self.0, dest)
     }
 }
@@ -146,7 +149,10 @@ impl KeyframePercentage {
 pub struct KeyframeSelector(Vec<KeyframePercentage>);
 
 impl ToCss for KeyframeSelector {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.0.iter();
         iter.next().unwrap().to_css(dest)?;
         for percentage in iter {
@@ -194,7 +200,7 @@ pub struct Keyframe {
 
 impl ToCssWithGuard for Keyframe {
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
-        self.selector.to_css(dest)?;
+        self.selector.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" { ")?;
         self.block.read_with(guard).to_css(dest)?;
         dest.write_str(" }")?;

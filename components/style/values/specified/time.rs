@@ -7,8 +7,8 @@
 use cssparser::{Parser, Token};
 use parser::{ParserContext, Parse};
 #[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
@@ -133,9 +133,9 @@ impl Parse for Time {
 }
 
 impl ToCss for Time {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         if self.was_calc {
             dest.write_str("calc(")?;
