@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+// FIXME: remove this and use std::ptr::NonNull when Firefox requires Rust 1.25+
 pub struct NonZeroPtr<T: 'static>(&'static T);
 
 impl<T: 'static> NonZeroPtr<T> {
