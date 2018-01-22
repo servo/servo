@@ -160,7 +160,6 @@ impl ImageDataMethods for ImageData {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
     unsafe fn Data(&self, _: *mut JSContext) -> NonNull<JSObject> {
-        assert!(!self.data.get().is_null());
-        NonNull::new_unchecked(self.data.get())
+        NonNull::new(self.data.get()).expect("got a null pointer")
     }
 }

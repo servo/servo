@@ -1123,8 +1123,8 @@ impl XMLHttpRequest {
     unsafe fn arraybuffer_response(&self, cx: *mut JSContext) -> Option<NonNull<JSObject>> {
         // Step 1
         let created = self.response_arraybuffer.get();
-        if !created.is_null() {
-            return Some(NonNull::new_unchecked(created));
+        if let Some(nonnull) = NonNull::new(created) {
+            return Some(nonnull)
         }
 
         // Step 2

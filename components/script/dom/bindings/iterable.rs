@@ -105,8 +105,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
         };
         self.index.set(index + 1);
         result.map(|_| {
-            assert!(!rval.is_null());
-            unsafe { NonNull::new_unchecked(rval.get()) }
+            NonNull::new(rval.get()).expect("got a null pointer")
         })
     }
 }
