@@ -21,7 +21,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::{FrameRequestCallback, Scro
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -96,7 +95,7 @@ use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSRuntime};
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
@@ -125,6 +124,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::once;
 use std::mem;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
@@ -3554,7 +3554,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNullJSObjectPtr> {
+    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
@@ -3611,7 +3611,7 @@ impl DocumentMethods for Document {
                 if elements.peek().is_none() {
                     // TODO: Step 2.
                     // Step 3.
-                    return Some(NonNullJSObjectPtr::new_unchecked(first.reflector().get_jsobject().get()));
+                    return Some(NonNull::new_unchecked(first.reflector().get_jsobject().get()));
                 }
             } else {
                 return None;
@@ -3622,7 +3622,7 @@ impl DocumentMethods for Document {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, Box::new(filter));
-        Some(NonNullJSObjectPtr::new_unchecked(collection.reflector().get_jsobject().get()))
+        Some(NonNull::new_unchecked(collection.reflector().get_jsobject().get()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names

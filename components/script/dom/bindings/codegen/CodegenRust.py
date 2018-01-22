@@ -1422,7 +1422,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        result = CGGeneric("NonNullJSObjectPtr")
+        result = CGGeneric("NonNull<JSObject>")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2268,7 +2268,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
-        'dom::bindings::nonnull::NonNullJSObjectPtr',
+        'std::ptr::NonNull',
         'dom::bindings::mozmap::MozMap',
         'dom::bindings::root::DomRoot',
         'dom::bindings::str::ByteString',
@@ -5811,7 +5811,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::proxyhandler::get_expando_object',
         'dom::bindings::proxyhandler::get_property_descriptor',
         'dom::bindings::mozmap::MozMap',
-        'dom::bindings::nonnull::NonNullJSObjectPtr',
+        'std::ptr::NonNull',
         'dom::bindings::num::Finite',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',

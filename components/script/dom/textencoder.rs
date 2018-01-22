@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::TextEncoderBinding;
 use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString};
@@ -14,6 +13,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
 use js::typedarray::{Uint8Array, CreateWith};
 use std::ptr;
+use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct TextEncoder {
@@ -47,12 +47,12 @@ impl TextEncoderMethods for TextEncoder {
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textencoder-encode
-    unsafe fn Encode(&self, cx: *mut JSContext, input: USVString) -> NonNullJSObjectPtr {
+    unsafe fn Encode(&self, cx: *mut JSContext, input: USVString) -> NonNull<JSObject> {
         let encoded = input.0.as_bytes();
 
         rooted!(in(cx) let mut js_object = ptr::null_mut::<JSObject>());
         assert!(Uint8Array::create(cx, CreateWith::Slice(&encoded), js_object.handle_mut()).is_ok());
 
-        NonNullJSObjectPtr::new_unchecked(js_object.get())
+        NonNull::new_unchecked(js_object.get())
     }
 }
