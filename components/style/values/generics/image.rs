@@ -172,18 +172,7 @@ impl<G, R, U> fmt::Debug for Image<G, R, U>
     where G: fmt::Debug, R: fmt::Debug, U: fmt::Debug + ToCss
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Image::Url(ref url) => url.to_css(f),
-            Image::Gradient(ref grad) => grad.fmt(f),
-            Image::Rect(ref rect) => rect.fmt(f),
-            #[cfg(feature = "servo")]
-            Image::PaintWorklet(ref paint_worklet) => paint_worklet.fmt(f),
-            Image::Element(ref selector) => {
-                f.write_str("-moz-element(#")?;
-                serialize_identifier(&selector.to_string(), f)?;
-                f.write_str(")")
-            },
-        }
+        self.to_css(f)
     }
 }
 
