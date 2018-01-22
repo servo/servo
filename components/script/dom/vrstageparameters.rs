@@ -5,7 +5,6 @@
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding::VRStageParametersMethods;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
@@ -14,6 +13,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
 use std::ptr;
+use std::ptr::NonNull;
 use webvr_traits::WebVRStageParameters;
 
 #[dom_struct]
@@ -69,8 +69,8 @@ impl VRStageParameters {
 impl VRStageParametersMethods for VRStageParameters {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sittingtostandingtransform
-    unsafe fn SittingToStandingTransform(&self, _cx: *mut JSContext) -> NonNullJSObjectPtr {
-        NonNullJSObjectPtr::new_unchecked(self.transform.get())
+    unsafe fn SittingToStandingTransform(&self, _cx: *mut JSContext) -> NonNull<JSObject> {
+        NonNull::new_unchecked(self.transform.get())
     }
 
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sizex
