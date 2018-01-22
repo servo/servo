@@ -6,7 +6,7 @@ use cssparser::{ParseErrorKind, Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use malloc_size_of::MallocSizeOfOps;
-use selectors::{Element, NthIndexCache};
+use selectors::NthIndexCache;
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use smallvec::SmallVec;
@@ -122,7 +122,7 @@ use style::gecko_properties;
 use style::invalidation::element::restyle_hints;
 use style::media_queries::{Device, MediaList, parse_media_query_list};
 use style::parser::{Parse, ParserContext, self};
-use style::properties::{CascadeFlags, ComputedValues, DeclarationSource, Importance};
+use style::properties::{ComputedValues, DeclarationSource, Importance};
 use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use style::properties::{PropertyDeclarationId, ShorthandId};
 use style::properties::{SourcePropertyDeclaration, StyleBuilder};
@@ -2039,12 +2039,10 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         page_decls,
     );
 
-    let cascade_flags = CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     data.stylist.precomputed_values_for_pseudo_with_rule_node::<GeckoElement>(
         &guards,
         &pseudo,
         parent_style_or_null.map(|x| &*x),
-        cascade_flags,
         &metrics,
         rule_node
     ).into()
@@ -2220,7 +2218,7 @@ fn get_pseudo_style(
         PseudoElementCascadeType::Eager => {
             match *pseudo {
                 PseudoElement::FirstLetter => {
-                    styles.pseudos.get(&pseudo).and_then(|pseudo_styles| {
+                    styles.pseudos.get(&pseudo).map(|pseudo_styles| {
                         // inherited_styles can be None when doing lazy resolution
                         // (e.g. for computed style) or when probing.  In that case
                         // we just inherit from our element, which is what Gecko
@@ -2232,12 +2230,11 @@ fn get_pseudo_style(
                         let metrics = get_metrics_provider_for_product();
                         let inputs = CascadeInputs::new_from_style(pseudo_styles);
                         doc_data.stylist.compute_pseudo_element_style_with_inputs(
-                            &inputs,
+                            inputs,
                             pseudo,
                             &guards,
                             Some(inherited_styles),
                             &metrics,
-                            CascadeFlags::empty(),
                             Some(element),
                         )
                     })
@@ -3633,29 +3630,17 @@ pub extern "C" fn Servo_ReparentStyle(
     let pseudo = style_to_reparent.pseudo();
     let element = element.map(GeckoElement);
 
-    let mut cascade_flags = CascadeFlags::empty();
-    if style_to_reparent.is_anon_box() {
-        cascade_flags.insert(CascadeFlags::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
-    }
-    if let Some(element) = element {
-        if element.is_link() {
-            cascade_flags.insert(CascadeFlags::IS_LINK);
-            if element.is_visited_link() && doc_data.visited_styles_enabled() {
-                cascade_flags.insert(CascadeFlags::IS_VISITED_LINK);
-            }
-        };
-    }
-
-    doc_data.stylist.compute_style_with_inputs(
-        &inputs,
+    doc_data.stylist.cascade_style_and_visited(
+        element,
         pseudo.as_ref(),
+        inputs,
         &StylesheetGuards::same(&guard),
         Some(parent_style),
         Some(parent_style_ignoring_first_line),
         Some(layout_parent_style),
         &metrics,
-        cascade_flags,
-        element,
+        /* rule_cache = */ None,
+        &mut RuleCacheConditions::default(),
     ).into()
 }
 
