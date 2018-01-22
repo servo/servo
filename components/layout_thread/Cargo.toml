@@ -10,7 +10,7 @@ name = "layout_thread"
 path = "lib.rs"
 
 [features]
-unstable = ["parking_lot/nightly", "nonzero/unstable"]
+unstable = ["parking_lot/nightly"]
 
 [dependencies]
 app_units = "0.6"
@@ -30,7 +30,6 @@ malloc_size_of = { path = "../malloc_size_of" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-nonzero = {path = "../nonzero"}
 parking_lot = "0.4"
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}

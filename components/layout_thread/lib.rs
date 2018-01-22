@@ -28,7 +28,6 @@ extern crate malloc_size_of;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
-extern crate nonzero;
 extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
