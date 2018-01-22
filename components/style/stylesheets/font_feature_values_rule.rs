@@ -53,7 +53,7 @@ pub trait ToGeckoFontFeatureValues {
 }
 
 /// A @font-feature-values block declaration value that keeps one value.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub struct SingleValue(pub u32);
 
 impl Parse for SingleValue {
@@ -64,12 +64,6 @@ impl Parse for SingleValue {
             Token::Number { int_value: Some(v), .. } if v >= 0 => Ok(SingleValue(v as u32)),
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
-    }
-}
-
-impl ToCss for SingleValue {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
     }
 }
 
