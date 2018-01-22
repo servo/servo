@@ -75,7 +75,7 @@ kernel32-sys = "0.2"
 [build-dependencies]
 lazy_static = "1"
 log = "0.3"
-bindgen = { version = "0.31.2", optional = true }
+bindgen = { version = "0.32.2", optional = true }
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"
 toml = {version = "0.2.1", optional = true, default-features = false}
