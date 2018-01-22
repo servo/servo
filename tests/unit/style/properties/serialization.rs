@@ -5,6 +5,7 @@
 use properties::{parse, parse_input};
 use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
+use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
 use style::values::{CustomIdent, RGBA};
 use style::values::generics::flex::FlexBasis;
@@ -14,6 +15,18 @@ use style::values::specified::NoCalcLength;
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
 use stylesheets::block_from;
+
+trait ToCssString {
+    fn to_css_string(&self) -> String;
+}
+
+impl ToCssString for PropertyDeclarationBlock {
+    fn to_css_string(&self) -> String {
+        let mut css = String::new();
+        self.to_css(&mut css).unwrap();
+        css
+    }
+}
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {

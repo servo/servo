@@ -16,7 +16,8 @@ use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
 use gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
 use parser::{ParserContext, ParserErrorContext, Parse};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::CssRuleType;
 use values::computed::font::FamilyName;
@@ -347,9 +348,7 @@ macro_rules! font_feature_values_blocks {
         }
 
         impl ToCssWithGuard for FontFeatureValuesRule {
-            fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-                where W: fmt::Write
-            {
+            fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
                 dest.write_str("@font-feature-values ")?;
                 self.font_family_to_css(dest)?;
                 dest.write_str(" {\n")?;

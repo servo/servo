@@ -10,6 +10,7 @@ use num_traits::ToPrimitive;
 #[allow(unused_imports)] use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::convert::AsRef;
+use std::fmt::{self, Write};
 use std::iter::{Filter, Peekable};
 use std::str::Split;
 
@@ -161,5 +162,103 @@ pub fn string_as_ascii_lowercase<'a>(input: &'a str) -> Cow<'a, str> {
     } else {
         // Already ascii lowercase.
         Cow::Borrowed(input)
+    }
+}
+
+/// To avoid accidentally instantiating multiple monomorphizations of large
+/// serialization routines, we define explicit concrete types and require
+/// them in those routines. This primarily avoids accidental mixing of UTF8
+/// with UTF16 serializations in Gecko.
+#[cfg(feature = "gecko")]
+pub type CssStringWriter = ::nsstring::nsAString;
+
+/// String type that coerces to CssStringWriter, used when serialization code
+/// needs to allocate a temporary string.
+#[cfg(feature = "gecko")]
+pub type CssString = ::nsstring::nsString;
+
+/// Certain serialization code needs to interact with borrowed strings, which
+/// are sometimes native UTF8 Rust strings, and other times serialized UTF16
+/// strings. This enum multiplexes the two cases.
+#[cfg(feature = "gecko")]
+pub enum CssStringBorrow<'a> {
+    /// A borrow of a UTF16 CssString.
+    UTF16(&'a ::nsstring::nsString),
+    /// A borrow of a regular Rust UTF8 string.
+    UTF8(&'a str),
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> CssStringBorrow<'a> {
+    /// Writes the borrowed string to the provided writer.
+    pub fn append_to(&self, dest: &mut CssStringWriter) -> fmt::Result {
+        match *self {
+            CssStringBorrow::UTF16(s) => {
+                dest.append(s);
+                Ok(())
+            },
+            CssStringBorrow::UTF8(s) => dest.write_str(s),
+        }
+    }
+
+    /// Returns true of the borrowed string is empty.
+    pub fn is_empty(&self) -> bool {
+        match *self {
+            CssStringBorrow::UTF16(s) => s.is_empty(),
+            CssStringBorrow::UTF8(s) => s.is_empty(),
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> From<&'a str> for CssStringBorrow<'a> {
+    fn from(s: &'a str) -> Self {
+        CssStringBorrow::UTF8(s)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> From<&'a ::nsstring::nsString> for CssStringBorrow<'a> {
+    fn from(s: &'a ::nsstring::nsString) -> Self {
+        CssStringBorrow::UTF16(s)
+    }
+}
+
+/// String. The comments for the Gecko types explain the need for this abstraction.
+#[cfg(feature = "servo")]
+pub type CssStringWriter = String;
+
+/// String. The comments for the Gecko types explain the need for this abstraction.
+#[cfg(feature = "servo")]
+pub type CssString = String;
+
+/// Borrowed string. The comments for the Gecko types explain the need for this abstraction.
+#[cfg(feature = "servo")]
+pub struct CssStringBorrow<'a>(&'a str);
+
+#[cfg(feature = "servo")]
+impl<'a> CssStringBorrow<'a> {
+    /// Appends the borrowed string to the given string.
+    pub fn append_to(&self, dest: &mut CssStringWriter) -> fmt::Result {
+        dest.write_str(self.0)
+    }
+
+    /// Returns true if the borrowed string is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+#[cfg(feature = "servo")]
+impl<'a> From<&'a str> for CssStringBorrow<'a> {
+    fn from(s: &'a str) -> Self {
+        CssStringBorrow(s)
+    }
+}
+
+#[cfg(feature = "servo")]
+impl<'a> From<&'a String> for CssStringBorrow<'a> {
+    fn from(s: &'a String) -> Self {
+        CssStringBorrow(&*s)
     }
 }

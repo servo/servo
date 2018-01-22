@@ -14,7 +14,8 @@ use properties::LonghandIdSet;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
-use std::fmt;
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 use style_traits::{ParsingMode, ToCss, ParseError, StyleParseErrorKind};
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
@@ -37,9 +38,7 @@ pub struct KeyframesRule {
 
 impl ToCssWithGuard for KeyframesRule {
     // Serialization of KeyframesRule is not specced.
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@keyframes ")?;
         self.name.to_css(dest)?;
         dest.write_str(" {")?;
@@ -194,8 +193,7 @@ pub struct Keyframe {
 }
 
 impl ToCssWithGuard for Keyframe {
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         self.selector.to_css(dest)?;
         dest.write_str(" { ")?;
         self.block.read_with(guard).to_css(dest)?;
