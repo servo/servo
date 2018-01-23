@@ -29,6 +29,7 @@ use std::io::Read;
 use std::mem;
 use std::str;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
 
@@ -407,6 +408,12 @@ pub fn main_fetch(request: &mut Request,
     // Step 24.
     target.process_response_eof(&response);
 
+    if !response.is_network_error() {
+        if let Ok(mut http_cache) = context.state.http_cache.write() {
+            http_cache.update_awaiting_consumers(&request, &response);
+        }
+    }
+
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used
     response
@@ -422,7 +429,7 @@ fn wait_for_response(response: &mut Response, target: Target, done_chan: &mut Do
                 },
                 Data::Done => break,
                 Data::Cancelled => {
-                    response.aborted = true;
+                    response.aborted.store(true, Ordering::Relaxed);
                     break;
                 }
             }

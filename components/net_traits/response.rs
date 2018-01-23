@@ -10,6 +10,7 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::AtomicBool;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -113,7 +114,8 @@ pub struct Response {
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
     /// https://fetch.spec.whatwg.org/#concept-response-aborted
-    pub aborted: bool,
+    #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
+    pub aborted: Arc<AtomicBool>,
 }
 
 impl Response {
@@ -135,7 +137,7 @@ impl Response {
             location_url: None,
             internal_response: None,
             return_internal: true,
-            aborted: false,
+            aborted: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -165,7 +167,7 @@ impl Response {
             location_url: None,
             internal_response: None,
             return_internal: true,
-            aborted: false,
+            aborted: Arc::new(AtomicBool::new(false)),
         }
     }
 

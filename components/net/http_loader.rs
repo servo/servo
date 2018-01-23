@@ -872,7 +872,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
     // Step 21
     if let Ok(http_cache) = context.state.http_cache.read() {
-        if let Some(response_from_cache) = http_cache.construct_response(&http_request) {
+        if let Some(response_from_cache) = http_cache.construct_response(&http_request, done_chan) {
             let response_headers = response_from_cache.response.headers.clone();
             // Substep 1, 2, 3, 4
             let (cached_response, needs_revalidation) = match (http_request.cache_mode, &http_request.mode) {
@@ -902,6 +902,27 @@ fn http_network_or_cache_fetch(request: &mut Request,
             }
         }
     }
+
+    if let Some(ref ch) = *done_chan {
+        // The cache constructed a response with a body of ResponseBody::Receiving.
+        // We wait for the response in the cache to "finish",
+        // with a body of either Done or Cancelled.
+        loop {
+            match ch.1.recv()
+                    .expect("HTTP cache should always send Done or Cancelled") {
+                Data::Payload(_) => {},
+                Data::Done => break, // Return the full response as if it was initially cached as such.
+                Data::Cancelled => {
+                    // The response was cancelled while the fetch was ongoing.
+                    // Set response to None, which will trigger a network fetch below.
+                    response = None;
+                    break;
+                }
+            }
+        }
+    }
+    // Set done_chan back to None, it's cache-related usefulness ends here.
+    *done_chan = None;
 
     // Step 22
     if response.is_none() {
